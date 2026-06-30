@@ -77,7 +77,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(signatures.UnsupportedDetails, detail => detail.Contains("metadata-only", System.StringComparison.OrdinalIgnoreCase));
 
                 WordSignatureValidationReport validation = document.ValidateSignatures();
-                Assert.True(validation.IsStructurallyValid);
+                Assert.False(validation.IsStructurallyValid);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.PackageStructureStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.XmlSignatureStatus);
                 Assert.Equal(WordSignatureValidationState.NotChecked, validation.CryptographicStatus);
@@ -86,6 +86,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(WordSignatureValidationState.NotPresent, validation.TimestampStatus);
                 Assert.Equal(WordSignatureValidationState.Passed, validation.SignedPartCoverageStatus);
                 Assert.Equal(WordSignatureValidationState.Failed, validation.SignedPartDigestStatus);
+                Assert.Contains(validation.Findings, finding => finding.Contains("digest did not match", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(validation.Findings, finding => finding.Contains("Cryptographic signature validation is not performed", System.StringComparison.OrdinalIgnoreCase));
                 Assert.Contains(validation.Findings, finding => finding.Contains("package-part references resolve", System.StringComparison.OrdinalIgnoreCase));
             }

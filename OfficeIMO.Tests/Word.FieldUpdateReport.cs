@@ -172,6 +172,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_CreatesResultRunForEmptySimpleFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.EmptySimpleField.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
+                document.AddParagraph("Author: ")._paragraph.Append(new SimpleField { Instruction = " AUTHOR " });
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                AssertUpdated(report, WordFieldType.Author, "Ada Lovelace");
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                SimpleField field = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SimpleField>());
+                Text text = Assert.Single(field.Descendants<Text>());
+                Assert.Equal("Ada Lovelace", text.Text);
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_PreservesPageCountBehaviorAndReportsUnsupportedFields() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.PagesAndUnsupported.docx");
 
@@ -1390,6 +1414,38 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.Ref &&
                     field.ResultText == "Figure 1Network diagram");
+            }
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsAndGetReport_KeepsHiddenSequenceFieldsHidden() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.HiddenSequence.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Hidden figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure \\h ", "stale-hidden"));
+                document.AddParagraph("Visible figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure ", "stale-visible"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                WordFieldUpdateResult hidden = Assert.Single(report.Results, result =>
+                    result.FieldType == WordFieldType.Seq &&
+                    result.InstructionText.Contains("\\h", StringComparison.Ordinal));
+                Assert.Equal(WordFieldUpdateStatus.Updated, hidden.Status);
+                Assert.Equal(string.Empty, hidden.ResultText);
+                WordFieldUpdateResult visible = Assert.Single(report.Results, result =>
+                    result.FieldType == WordFieldType.Seq &&
+                    !result.InstructionText.Contains("\\h", StringComparison.Ordinal));
+                Assert.Equal("2", visible.ResultText);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                SimpleField hiddenField = document._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Descendants<SimpleField>()
+                    .Single(field => (field.Instruction?.Value ?? string.Empty).Contains("\\h", StringComparison.Ordinal));
+                Assert.Equal(string.Empty, Assert.Single(hiddenField.Descendants<Text>()).Text);
             }
         }
 

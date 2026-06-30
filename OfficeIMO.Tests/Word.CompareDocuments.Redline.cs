@@ -1129,6 +1129,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceParagraphRedlinePreservesNonTextRuns() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_mixed_paragraph_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Status: Draft") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(CreateNonImageDrawing())));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_mixed_paragraph_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Status: Approved") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(CreateNonImageDrawing())));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_mixed_paragraph_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            Paragraph paragraph = Assert.Single(body.Elements<Paragraph>());
+            Assert.Contains(paragraph.Descendants<DeletedRun>(), run => run.InnerText == "Status: Draft");
+            Assert.Contains(paragraph.Descendants<InsertedRun>(), run => run.InnerText == "Status: Approved");
+            Assert.Single(paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
+        }
+
+        [Fact]
         public void CompareStructureCreatesInPlaceTargetRedlineForInsertedImages() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {

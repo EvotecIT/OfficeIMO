@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
+using System.Text;
 
 namespace OfficeIMO.Word {
     public partial class WordTableOfContent {
@@ -125,10 +126,52 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            List<string> complexInstructions = EnumerateComplexFieldInstructions(paragraph).ToList();
+            foreach (string instruction in complexInstructions) {
+                if (IsIndexEntryInstruction(instruction)) {
+                    yield return instruction;
+                }
+            }
+
+            if (complexInstructions.Count > 0) {
+                yield break;
+            }
+
             foreach (FieldCode fieldCode in paragraph.Descendants<FieldCode>()) {
                 string instruction = fieldCode.Text ?? string.Empty;
                 if (IsIndexEntryInstruction(instruction)) {
                     yield return instruction;
+                }
+            }
+        }
+
+        private static IEnumerable<string> EnumerateComplexFieldInstructions(Paragraph paragraph) {
+            StringBuilder? instruction = null;
+            int depth = 0;
+            foreach (Run run in paragraph.Descendants<Run>()) {
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    if (child is FieldChar fieldChar) {
+                        FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                        if (fieldCharType == FieldCharValues.Begin) {
+                            depth++;
+                            if (depth == 1) {
+                                instruction = new StringBuilder();
+                            }
+                        } else if (fieldCharType == FieldCharValues.End) {
+                            if (depth == 1 && instruction != null) {
+                                yield return instruction.ToString();
+                                instruction = null;
+                            }
+
+                            depth = Math.Max(0, depth - 1);
+                        }
+
+                        continue;
+                    }
+
+                    if (depth > 0 && child is FieldCode fieldCode) {
+                        instruction?.Append(fieldCode.Text ?? string.Empty);
+                    }
                 }
             }
         }

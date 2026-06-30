@@ -79,17 +79,35 @@ namespace OfficeIMO.Word {
         }
 
         private static void RewriteParagraphWithTrackedText(Paragraph paragraph, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
-            foreach (OpenXmlElement child in paragraph.ChildElements.Where(child => child is not ParagraphProperties).ToList()) {
+            foreach (OpenXmlElement child in paragraph.ChildElements.Where(child => child is not ParagraphProperties && !ShouldPreserveParagraphRedlineChild(child)).ToList()) {
                 child.Remove();
             }
 
+            OpenXmlElement? insertionPoint = paragraph.ChildElements.FirstOrDefault(child => child is not ParagraphProperties);
             if (!string.IsNullOrEmpty(sourceText)) {
-                paragraph.Append(CreateDeletedRun(sourceText!, options));
+                InsertParagraphRedlineRun(paragraph, insertionPoint, CreateDeletedRun(sourceText!, options));
             }
 
             if (!string.IsNullOrEmpty(targetText)) {
-                paragraph.Append(CreateInsertedRun(targetText!, options));
+                InsertParagraphRedlineRun(paragraph, insertionPoint, CreateInsertedRun(targetText!, options));
             }
+        }
+
+        private static bool ShouldPreserveParagraphRedlineChild(OpenXmlElement child) {
+            if (child is not Run run) {
+                return true;
+            }
+
+            return run.ChildElements.Any(runChild => runChild is not RunProperties && runChild is not Text);
+        }
+
+        private static void InsertParagraphRedlineRun(Paragraph paragraph, OpenXmlElement? insertionPoint, OpenXmlElement run) {
+            if (insertionPoint != null) {
+                paragraph.InsertBefore(run, insertionPoint);
+                return;
+            }
+
+            paragraph.Append(run);
         }
 
         private static void ApplyRunFinding(Paragraph paragraph, int runIndex, WordComparisonFinding finding, WordComparisonRedlineOptions options) {
