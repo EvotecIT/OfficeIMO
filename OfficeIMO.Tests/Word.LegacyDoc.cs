@@ -1350,6 +1350,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocMultiSectionDefaultHeaderFooterAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("First body");
+                    WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+                    secondSection.AddParagraph("Second body");
+
+                    foreach (WordSection section in document.Sections) {
+                        foreach (HeaderReference headerReference in section._sectionProperties.Elements<HeaderReference>().ToList()) {
+                            headerReference.Remove();
+                        }
+
+                        foreach (FooterReference footerReference in section._sectionProperties.Elements<FooterReference>().ToList()) {
+                            footerReference.Remove();
+                        }
+                    }
+
+                    document.Sections[0].AddHeadersAndFooters();
+                    document.Sections[0].Header.Default!.AddParagraph("First header");
+                    document.Sections[0].Footer.Default!.AddParagraph("First footer");
+                    secondSection.AddHeadersAndFooters();
+                    secondSection.Header.Default!.AddParagraph("Second header");
+                    secondSection.Footer.Default!.AddParagraph("Second footer");
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0x54) > 0);
+                Assert.Equal(80, BitConverter.ToInt32(wordDocumentStream, 0xF6));
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("First body", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
+                Assert.Equal("Second body", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Equal("First header", Assert.Single(reloaded.Sections[0].Header.Default!.Paragraphs).Text);
+                Assert.Equal("First footer", Assert.Single(reloaded.Sections[0].Footer.Default!.Paragraphs).Text);
+                Assert.Equal("Second header", Assert.Single(reloaded.Sections[1].Header.Default!.Paragraphs).Text);
+                Assert.Equal("Second footer", Assert.Single(reloaded.Sections[1].Footer.Default!.Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveStreamWithLegacyDocFormat_WritesNativeDocAndReloadsThroughLegacyReader() {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create()) {

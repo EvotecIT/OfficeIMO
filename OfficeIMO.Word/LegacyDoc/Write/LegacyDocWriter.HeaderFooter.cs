@@ -13,21 +13,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return LegacyDocWritableHeaderFooterStories.Empty;
             }
 
-            if (document.Sections.Count != 1) {
-                throw new NotSupportedException("Native DOC saving currently supports headers and footers only for single-section documents.");
-            }
-
-            SectionProperties sectionProperties = document.Sections[0]._sectionProperties;
-            string? defaultHeader = ReadDefaultHeaderStory(mainPart, sectionProperties);
-            string? defaultFooter = ReadDefaultFooterStory(mainPart, sectionProperties);
-            ThrowIfUnreferencedHeaderFooterContent(mainPart, sectionProperties);
-            if (string.IsNullOrEmpty(defaultHeader) && string.IsNullOrEmpty(defaultFooter)) {
+            if (document.Sections.Count == 0) {
                 return LegacyDocWritableHeaderFooterStories.Empty;
             }
 
-            string[] stories = new string[HeaderFooterSeparatorStoryCount + HeaderFooterStoriesPerSection];
-            stories[HeaderFooterSeparatorStoryCount + 1] = defaultHeader ?? string.Empty;
-            stories[HeaderFooterSeparatorStoryCount + 3] = defaultFooter ?? string.Empty;
+            string[] stories = new string[HeaderFooterSeparatorStoryCount + (document.Sections.Count * HeaderFooterStoriesPerSection)];
+            for (int storyIndex = 0; storyIndex < stories.Length; storyIndex++) {
+                stories[storyIndex] = string.Empty;
+            }
+
+            for (int sectionIndex = 0; sectionIndex < document.Sections.Count; sectionIndex++) {
+                SectionProperties sectionProperties = document.Sections[sectionIndex]._sectionProperties;
+                string? defaultHeader = ReadDefaultHeaderStory(mainPart, sectionProperties);
+                string? defaultFooter = ReadDefaultFooterStory(mainPart, sectionProperties);
+                int sectionStoryOffset = HeaderFooterSeparatorStoryCount + (sectionIndex * HeaderFooterStoriesPerSection);
+                stories[sectionStoryOffset + 1] = defaultHeader ?? string.Empty;
+                stories[sectionStoryOffset + 3] = defaultFooter ?? string.Empty;
+            }
+
+            ThrowIfUnreferencedHeaderFooterContent(mainPart, document.Sections.Select(section => section._sectionProperties));
+            if (stories.All(string.IsNullOrEmpty)) {
+                return LegacyDocWritableHeaderFooterStories.Empty;
+            }
 
             var text = new StringBuilder();
             var characterPositions = new List<int>(stories.Length + 2);
@@ -177,19 +184,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnreferencedHeaderFooterContent(MainDocumentPart mainPart, SectionProperties sectionProperties) {
+        private static void ThrowIfUnreferencedHeaderFooterContent(MainDocumentPart mainPart, IEnumerable<SectionProperties> sectionPropertiesCollection) {
             var referencedIds = new HashSet<string>(StringComparer.Ordinal);
-            foreach (HeaderReference reference in sectionProperties.Elements<HeaderReference>()) {
-                string? id = reference.Id?.Value;
-                if (!string.IsNullOrWhiteSpace(id)) {
-                    referencedIds.Add(id!);
+            foreach (SectionProperties sectionProperties in sectionPropertiesCollection) {
+                foreach (HeaderReference reference in sectionProperties.Elements<HeaderReference>()) {
+                    string? id = reference.Id?.Value;
+                    if (!string.IsNullOrWhiteSpace(id)) {
+                        referencedIds.Add(id!);
+                    }
                 }
-            }
 
-            foreach (FooterReference reference in sectionProperties.Elements<FooterReference>()) {
-                string? id = reference.Id?.Value;
-                if (!string.IsNullOrWhiteSpace(id)) {
-                    referencedIds.Add(id!);
+                foreach (FooterReference reference in sectionProperties.Elements<FooterReference>()) {
+                    string? id = reference.Id?.Value;
+                    if (!string.IsNullOrWhiteSpace(id)) {
+                        referencedIds.Add(id!);
+                    }
                 }
             }
 
