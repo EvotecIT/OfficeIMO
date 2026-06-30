@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? avoidWidowAndOrphan = null,
             bool? suppressLineNumbers = null,
             bool? suppressAutoHyphens = null,
+            bool? contextualSpacing = null,
             bool? bidirectional = null,
             ushort? numberingListIndex = null,
             byte? numberingLevel = null,
@@ -60,6 +61,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
             SuppressLineNumbers = suppressLineNumbers;
             SuppressAutoHyphens = suppressAutoHyphens;
+            ContextualSpacing = contextualSpacing;
             Bidirectional = bidirectional;
             NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
                 ? numberingListIndex
@@ -161,6 +163,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool? SuppressAutoHyphens { get; }
 
+        internal bool? ContextualSpacing { get; }
+
         internal bool? Bidirectional { get; }
 
         internal ushort? NumberingListIndex { get; }
@@ -237,6 +241,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || AvoidWidowAndOrphan != null
             || SuppressLineNumbers != null
             || SuppressAutoHyphens != null
+            || ContextualSpacing != null
             || Bidirectional != null
             || NumberingListIndex != null
             || NumberingLevel != null
@@ -285,6 +290,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
                 && SuppressLineNumbers == other.SuppressLineNumbers
                 && SuppressAutoHyphens == other.SuppressAutoHyphens
+                && ContextualSpacing == other.ContextualSpacing
                 && Bidirectional == other.Bidirectional
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
@@ -338,6 +344,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + SuppressLineNumbers.GetHashCode();
             hash = (hash * 31) + SuppressAutoHyphens.GetHashCode();
+            hash = (hash * 31) + ContextualSpacing.GetHashCode();
             hash = (hash * 31) + Bidirectional.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();

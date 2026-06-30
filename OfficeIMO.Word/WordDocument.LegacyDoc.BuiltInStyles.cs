@@ -121,6 +121,10 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new SuppressAutoHyphens());
             }
 
+            if (paragraphFormat.ContextualSpacing == true) {
+                ReplaceStyleProperty(properties, new ContextualSpacing());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 ReplaceStyleProperty(properties, new BiDi());
             }

@@ -1227,6 +1227,10 @@ namespace OfficeIMO.Word {
                 EnsureLegacyDocParagraphProperties(paragraph).Append(new SuppressAutoHyphens());
             }
 
+            if (paragraphFormat.ContextualSpacing == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new ContextualSpacing());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 paragraph.BiDi = true;
             }
@@ -1687,6 +1691,11 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.SuppressAutoHyphens == true) {
                 properties.Append(new SuppressAutoHyphens());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.ContextualSpacing == true) {
+                properties.Append(new ContextualSpacing());
                 hasProperties = true;
             }
 
