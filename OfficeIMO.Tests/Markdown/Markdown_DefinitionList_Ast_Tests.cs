@@ -1636,6 +1636,63 @@ text
     }
 
     [Fact]
+    public void DefinitionList_NestedBlockquoteBody_Stops_Before_UnindentedList() {
+        const string markdown = """
+Term
+:   First paragraph
+    > quote
+- tail
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
+        var trailingList = Assert.IsType<UnorderedListBlock>(result.Document.Blocks[1]);
+        var group = Assert.Single(definitionList.Groups);
+        var definition = Assert.Single(group.Definitions);
+        Assert.Equal(2, definition.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        var quoteParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First paragraph", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("quote", quoteParagraph.Inlines.RenderMarkdown());
+        Assert.Equal("tail", Assert.Single(trailingList.Items).Content.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.Quote
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 11), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 6), result.SyntaxTree.Children[1].SourceSpan);
+        Assert.Equal("Term\n:   First paragraph\n    > quote\n\n- tail", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        Assert.Equal(2, native.Blocks.Count);
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(native.Blocks[0]);
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeQuote = Assert.IsType<MarkdownNativeQuoteBlock>(nativeDefinition.Children[1]);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(nativeQuote.Children));
+        var nativeTrailingList = Assert.IsType<MarkdownNativeListBlock>(native.Blocks[1]);
+        Assert.Equal("First paragraph\n\n> quote", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 3, 11), definitionBody.SourceSpan);
+        Assert.Equal("quote", nativeParagraph.Text);
+        Assert.Equal("tail", Assert.Single(nativeTrailingList.Items).Text);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedBlockquoteLazyParagraph_Stops_Before_UnindentedThematicBreak() {
         const string markdown = """
 Term

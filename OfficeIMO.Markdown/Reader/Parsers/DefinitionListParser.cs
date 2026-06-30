@@ -646,6 +646,11 @@ public static partial class MarkdownReader {
             return false;
         }
 
+        if (PreviousDefinitionLinesEndActiveNestedBlockquote(definitionSourceLines) &&
+            CurrentLineStartsListBlock(line)) {
+            return false;
+        }
+
         return true;
     }
 
@@ -715,6 +720,25 @@ public static partial class MarkdownReader {
         return false;
     }
 
+    private static bool PreviousDefinitionLinesEndActiveNestedBlockquote(List<MarkdownSourceLineSlice> definitionSourceLines) {
+        if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
+            return false;
+        }
+
+        for (int i = definitionSourceLines.Count - 1; i >= 0; i--) {
+            var previous = definitionSourceLines[i].Text;
+            if (string.IsNullOrWhiteSpace(previous)) {
+                return false;
+            }
+
+            if (previous.TrimStart().StartsWith(">", StringComparison.Ordinal)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool CurrentLineInterruptsNestedDefinitionBlock(string line) {
         if (string.IsNullOrWhiteSpace(line)) {
             return false;
@@ -723,6 +747,16 @@ public static partial class MarkdownReader {
         return IsAtxHeading(line, out _, out _) ||
             LooksLikeHr(line) ||
             line.TrimStart().StartsWith(">", StringComparison.Ordinal);
+    }
+
+    private static bool CurrentLineStartsListBlock(string line) {
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        var trimmed = line.TrimStart();
+        return IsUnorderedListLine(trimmed, out _, out _, out _) ||
+            IsOrderedListLine(trimmed, out _, out _);
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {

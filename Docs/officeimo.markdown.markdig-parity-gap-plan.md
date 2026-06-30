@@ -98,6 +98,7 @@ Current active row: `UseDefinitionLists`.
   - [ ] List-tail variants after nested body boundaries.
     - [x] Mixed unordered-to-ordered list tails stay inside the definition body as separate list children, with syntax/native source spans and writer reparse proof.
     - [x] Unindented blockquote tails after nested list bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
+    - [x] Unindented list tails after nested blockquote bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
 - [ ] Finish definition-list source mapping.
   - [x] Marker lines are source-backed through parsed `DefinitionMarker` syntax tokens and native `definitionMarker` source fields; generated marker tokens remain source-less by design.
   - [x] Continuation indentation stripped from definition body lines now surfaces as native `definitionContinuationIndent` source fields with precise caret lookup.
