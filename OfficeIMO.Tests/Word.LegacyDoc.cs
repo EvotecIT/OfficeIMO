@@ -1441,6 +1441,61 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSingleScriptFontFamilyAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph run = document.AddParagraph("Font");
+                    run._run!.RunProperties ??= new RunProperties();
+                    run._run.RunProperties.RunFonts = new RunFonts {
+                        ComplexScript = "Courier New"
+                    };
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph reloadedRun = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Font", reloadedRun.Text);
+                Assert.Equal("Courier New", reloadedRun.FontFamily);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocMatchingScriptFontFamiliesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph run = document.AddParagraph("Font");
+                    run._run!.RunProperties ??= new RunProperties();
+                    run._run.RunProperties.RunFonts = new RunFonts {
+                        Ascii = "Courier New",
+                        HighAnsi = "Courier New",
+                        EastAsia = "Courier New",
+                        ComplexScript = "Courier New"
+                    };
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph reloadedRun = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Font", reloadedRun.Text);
+                Assert.Equal("Courier New", reloadedRun.FontFamily);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocMatchingComplexScriptFontSizeAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2674,6 +2729,28 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("font size", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksConflictingScriptFontFamiliesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph formatted = document.AddParagraph("Formatted");
+                formatted._run!.RunProperties ??= new RunProperties();
+                formatted._run.RunProperties.RunFonts = new RunFonts {
+                    Ascii = "Courier New",
+                    ComplexScript = "Arial"
+                };
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("single font family", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

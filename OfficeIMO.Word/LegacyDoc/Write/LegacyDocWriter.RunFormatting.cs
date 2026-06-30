@@ -259,12 +259,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             string? eastAsia = NormalizeFontFamily(runFonts.EastAsia?.Value);
             string? complexScript = NormalizeFontFamily(runFonts.ComplexScript?.Value);
 
-            string? fontFamily = ascii ?? highAnsi;
+            string? fontFamily = ascii ?? highAnsi ?? eastAsia ?? complexScript;
             if (fontFamily == null) {
-                if (eastAsia != null || complexScript != null) {
-                    throw new NotSupportedException("Native DOC saving currently supports font family only for ASCII/HighAnsi text runs.");
-                }
-
                 return null;
             }
 

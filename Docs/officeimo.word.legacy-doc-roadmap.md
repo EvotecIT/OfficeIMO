@@ -445,6 +445,9 @@ just to reserve names.
     reader.
   - [x] Extend native character writing to font family through the DOC font
     table.
+  - [x] Accept matching script-specific `RunFonts` values, including
+    complex-script-only values, when they map to the writer's single DOC
+    font-table slot.
   - [x] Write direct paragraph alignment PAPX records and reload them through
     the legacy reader.
   - [x] Write direct paragraph spacing and indentation PAPX records and reload
