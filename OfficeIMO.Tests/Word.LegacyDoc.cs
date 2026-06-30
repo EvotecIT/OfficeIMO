@@ -1228,6 +1228,16 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
         }
 
+        private static void AssertHeaderFooterTabsAndBreaks(IReadOnlyList<WordParagraph> paragraphs) {
+            Assert.NotEmpty(paragraphs);
+            Paragraph paragraph = paragraphs[0]._paragraph;
+            Assert.Single(paragraph.Descendants<TabChar>());
+            Break breakRun = Assert.Single(paragraph.Descendants<Break>());
+            Assert.Null(breakRun.Type);
+            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\t') || text.Text.Contains('\v'));
+            Assert.Equal(new[] { "Left", "Right", "Next" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+        }
+
 
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_DoesNotProjectUnsupportedStoryTextIntoBody() {
@@ -1773,6 +1783,43 @@ namespace OfficeIMO.Tests {
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
                 AssertFormattedHeaderFooterRuns(reloadedSection.Header.Default!.Paragraphs);
                 AssertFormattedHeaderFooterRuns(reloadedSection.Footer.Default!.Paragraphs);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterTabsAndBreaksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string bodyText = "Body with header footer tabs and breaks";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph(bodyText);
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph();
+                    header.AddText("Left");
+                    header.AddTab();
+                    header.AddText("Right");
+                    header.AddBreak();
+                    header.AddText("Next");
+
+                    WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph();
+                    footer.AddText("Left");
+                    footer.AddTab();
+                    footer.AddText("Right");
+                    footer.AddBreak();
+                    footer.AddText("Next");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                AssertHeaderFooterTabsAndBreaks(reloadedSection.Header.Default!.Paragraphs);
+                AssertHeaderFooterTabsAndBreaks(reloadedSection.Footer.Default!.Paragraphs);
             } finally {
                 DeleteIfExists(docPath);
             }

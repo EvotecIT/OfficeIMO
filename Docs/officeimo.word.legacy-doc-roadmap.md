@@ -706,6 +706,8 @@ just to reserve names.
   - [x] Read and write supported direct run formatting inside simple
     header/footer story text through native DOC CHPX records, then reload bold
     and italic header/footer runs through the legacy reader.
+  - [x] Preserve tabs and text-wrapping breaks inside native-written simple
+    header/footer story text, then reload them as real Word tab and break runs.
   - [x] Read and write the native first-page section flag (`sprmSFTitlePage`)
     so first-page header/footer intent is represented in SEPX, not only in the
     header/footer story slots.
