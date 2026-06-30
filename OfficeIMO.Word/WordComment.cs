@@ -20,7 +20,7 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Identifier used to link threaded replies.
         /// </summary>
-        public string? ParaId => FindCommentEx()?.ParaId?.Value ?? _commentEx?.ParaId;
+        public string? ParaId => FindCommentEx()?.ParaId?.Value ?? _commentEx?.ParaId ?? GetCommentParagraphId(_comment);
 
         /// <summary>
         /// Identifier of parent comment if this comment is a reply.

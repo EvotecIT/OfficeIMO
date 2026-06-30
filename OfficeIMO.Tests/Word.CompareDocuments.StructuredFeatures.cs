@@ -34,6 +34,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureSplitsUnmatchedFieldsAcrossParts() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_header_field_deleted.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!._header.Append(new Paragraph(
+                    new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
+                    CreateComparisonSimpleField(" AUTHOR ", "Alice")));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_body_field_inserted.docx");
+            CreateDocumentWithSimpleField(targetPath, " AUTHOR ", "Alice");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                IncludedScopes = new HashSet<WordComparisonScope> { WordComparisonScope.Field }
+            });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Field &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.DetailedLocation.Contains("Header", StringComparison.Ordinal));
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Field &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.DetailedLocation.Contains("Body", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Field &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
         public void CompareStructureReportsContentControlAliasTagAndBindingChanges() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_content_control_diff.docx");
             CreateDocumentWithBoundContentControl(

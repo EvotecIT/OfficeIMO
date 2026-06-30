@@ -73,9 +73,9 @@ namespace OfficeIMO.Word {
             ApplyContentControlFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyImageFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
 
-            ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyTableCellFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyTableRowFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             AppendInPlaceReviewFindings(document, result, options);
 
             document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });

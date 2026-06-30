@@ -359,6 +359,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceAppliesTableCellRedlinesBeforeDeletedTableInsertion() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_table_before_cell_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Deleted table";
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable old";
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_before_cell_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable new";
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_before_cell_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Table[] tables = redline._document.Body!.Elements<Table>().ToArray();
+            Assert.Equal(2, tables.Length);
+            Assert.Equal("Deleted table", tables[0].InnerText);
+            Assert.Contains(tables[1].Descendants<DeletedRun>(), run => run.InnerText == "Stable old");
+            Assert.Contains(tables[1].Descendants<InsertedRun>(), run => run.InnerText == "Stable new");
+        }
+
+        [Fact]
         public void CompareStructureInPlaceInsertsDeletedContentControlsIntoOriginalPart() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -424,6 +457,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, report.ColumnCount);
             Assert.Contains("Alpha", TocText(index));
             Assert.DoesNotContain("Beta", TocText(index));
+        }
+
+        [Fact]
+        public void ImportedRawComplexTocStartsAtMatchedFieldWhenEarlierFieldExists() {
+            string filePath = Path.Combine(_directoryWithFiles, "ImportedRawComplexTocAfterAuthor.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.RemoveAllChildren<Paragraph>();
+                document._document.Body!.Append(CreateParagraphWithAuthorAndRawTocFields());
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+
+                Assert.Contains(document._document.Body!.Elements<Paragraph>(), paragraph =>
+                    paragraph.Descendants<FieldCode>().Any(fieldCode => fieldCode.Text.Contains("AUTHOR", StringComparison.Ordinal)));
+                Assert.Contains(toc.SdtBlock.Descendants<FieldCode>(), fieldCode =>
+                    fieldCode.Text.Contains("TOC", StringComparison.Ordinal));
+                Assert.DoesNotContain(toc.SdtBlock.Descendants<FieldCode>(), fieldCode =>
+                    fieldCode.Text.Contains("AUTHOR", StringComparison.Ordinal));
+            }
         }
 
         [Fact]
@@ -669,6 +724,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void AcceptRevisionsPreservesNonRunContentPromotedFromMoveRevision() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesMoveToHyperlink.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new MoveToRun(
+                        new Hyperlink(
+                            new Run(new Text("Moved link"))) {
+                            Anchor = "MovedBookmark"
+                        }) {
+                        Id = "1",
+                        Author = "OfficeIMO Tests",
+                        Date = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc)
+                    }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordRevisionOperationReport report = document.AcceptRevisions(WordRevisionFilter.All());
+
+                Assert.Single(report.MatchedRevisions);
+                OpenXmlElement hyperlink = Assert.Single(document._document.Body!.Descendants(), element =>
+                    string.Equals(element.LocalName, "hyperlink", StringComparison.Ordinal));
+                Assert.Equal("MovedBookmark", hyperlink.GetAttribute("anchor", "http://schemas.openxmlformats.org/wordprocessingml/2006/main").Value);
+                Assert.Equal("Moved link", hyperlink.InnerText);
+                Assert.DoesNotContain(document._document.Body!.Descendants(), element =>
+                    string.Equals(element.LocalName, "moveTo", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
         public void AddCommentReservesImportedCommentParagraphIdsWithoutCommentsEx() {
             string filePath = Path.Combine(_directoryWithFiles, "CommentParaIdReservation.docx");
 
@@ -726,6 +812,31 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void AddReplyUsesImportedParentParagraphIdWithoutCommentsExEntry() {
+            string filePath = Path.Combine(_directoryWithFiles, "CommentReplyImportedParentParaId.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Comment target");
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                WordprocessingCommentsPart commentsPart = package.MainDocumentPart!.AddNewPart<WordprocessingCommentsPart>();
+                commentsPart.Comments = new Comments(CreateImportedComment("0", "0000000A"));
+                commentsPart.Comments.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordComment parent = Assert.Single(WordComment.GetAllComments(document));
+                parent.AddReply("OfficeIMO Tests", "OT", "Imported reply");
+
+                var commentsEx = document._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsExPart!.CommentsEx!;
+                Assert.Contains(commentsEx.Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>(), commentEx =>
+                    commentEx.ParaIdParent?.Value == "0000000A");
+            }
+        }
+
         private static void CreateFieldRegressionDocument(string path, params (string Instruction, string Result)[] fields) {
             using WordDocument document = WordDocument.Create(path);
             foreach ((string instruction, string result) in fields) {
@@ -750,6 +861,22 @@ namespace OfficeIMO.Tests {
             };
             comment.GetFirstChild<Paragraph>()!.ParagraphId = paragraphId;
             return comment;
+        }
+
+        private static Paragraph CreateParagraphWithAuthorAndRawTocFields() {
+            return new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" AUTHOR ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("Alice") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new Text(" before toc ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" TOC \\o \"1-3\" \\h \\z \\u ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("No table of contents entries found.") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new Text(" after toc") { Space = SpaceProcessingModeValues.Preserve }));
         }
 
         private static List<byte[]> GetDeletedDrawingImageBytes(OpenXmlPart part, OpenXmlElement root) {
