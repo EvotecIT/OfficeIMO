@@ -96,9 +96,20 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            ApplyLegacyDocDocumentOptions(document, legacyDocument);
             AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories);
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
             return document;
+        }
+
+        private static void ApplyLegacyDocDocumentOptions(WordDocument document, LegacyDocDocument legacyDocument) {
+            if (!legacyDocument.DifferentOddAndEvenPages) {
+                return;
+            }
+
+            foreach (WordSection section in document.Sections) {
+                section.DifferentOddAndEvenPages = true;
+            }
         }
 
         private static void AddLegacyDocHeaderFooterStories(WordDocument document, IReadOnlyList<LegacyDocHeaderFooterStory> stories) {

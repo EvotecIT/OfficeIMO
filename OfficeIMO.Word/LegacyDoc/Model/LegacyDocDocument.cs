@@ -38,6 +38,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocHeaderFooterStory> HeaderFooterStories { get; private set; } = Array.Empty<LegacyDocHeaderFooterStory>();
 
+        internal bool DifferentOddAndEvenPages { get; private set; }
+
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
         public IReadOnlyList<LegacyDocImportDiagnostic> Diagnostics => _diagnostics;
 
@@ -127,6 +129,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             if (options.ReportUnsupportedFeatures) {
                 AddKnownUnsupportedFeatureDiagnostics(compoundFile, tableStream, fib);
             }
+
+            DifferentOddAndEvenPages = ReadDopFacingPagesFlag(tableStream, fib);
 
             if (!LegacyDocPieceTable.TryRead(wordDocumentStream, tableStream, fib, out LegacyDocTextContent textContent, out string? textError)) {
                 AddError("DOC-PIECE-TABLE-INVALID", textError ?? "The legacy DOC piece table could not be decoded.");
@@ -345,6 +349,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 "DOC-REVISION-TRACKING-PRESENT",
                 "The legacy DOC has revision tracking state. Tracked revision metadata is preserved in the source file but is not projected into the OfficeIMO document.",
                 detailCode: detailCode));
+        }
+
+        private static bool ReadDopFacingPagesFlag(byte[] tableStream, LegacyDocFib fib) {
+            const ushort facingPagesFlag = 0x0001;
+            if (fib.LcbDop < 2 || fib.FcDop < 0 || fib.FcDop > tableStream.Length - fib.LcbDop) {
+                return false;
+            }
+
+            ushort dopFlags = LegacyDocFib.ReadUInt16(tableStream, fib.FcDop);
+            return (dopFlags & facingPagesFlag) != 0;
         }
 
         private void AddUnsupportedStoryFeatureIfPresent(

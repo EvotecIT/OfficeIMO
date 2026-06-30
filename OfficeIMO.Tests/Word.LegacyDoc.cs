@@ -1253,6 +1253,24 @@ namespace OfficeIMO.Tests {
             Assert.Equal("First-page section", Assert.Single(section.Paragraphs).Text);
         }
 
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEvenOddHeaderDocumentFlag() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFacingPagesDop("Facing pages body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.Empty(result.UnsupportedFeatures);
+
+            WordDocument document = result.Document;
+            Assert.True(document.DifferentOddAndEvenPages);
+            WordSection section = Assert.Single(document.Sections);
+            Assert.True(section.DifferentOddAndEvenPages);
+            Assert.NotNull(section.Header.Even);
+            Assert.NotNull(section.Footer.Even);
+            Assert.Equal("Facing pages body", Assert.Single(section.Paragraphs).Text);
+        }
+
         [Theory]
         [InlineData(0, "continuous", "Continuous section")]
         [InlineData(1, "nextColumn", "Next-column section")]
@@ -4541,12 +4559,21 @@ namespace OfficeIMO.Tests {
             }
 
             internal static byte[] CreateSimpleDocWithRevisionTrackingDop(uint dopSecondFlags, params string[] paragraphs) {
+                return CreateSimpleDocWithDop(0, dopSecondFlags, paragraphs);
+            }
+
+            internal static byte[] CreateSimpleDocWithFacingPagesDop(params string[] paragraphs) {
+                return CreateSimpleDocWithDop(0x0001, 0, paragraphs);
+            }
+
+            private static byte[] CreateSimpleDocWithDop(ushort dopFirstFlags, uint dopSecondFlags, params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 const int dopOffset = 21;
                 const int dopLength = 8;
                 byte[] wordDocumentStream = CreateWordDocumentStream(text, fcDop: dopOffset, lcbDop: dopLength);
                 byte[] tableStream = CreateTableStream(text.Length);
                 Array.Resize(ref tableStream, dopOffset + dopLength);
+                WriteUInt16(tableStream, dopOffset, dopFirstFlags);
                 WriteUInt32(tableStream, dopOffset + 4, dopSecondFlags);
 
                 using var package = new MemoryStream();

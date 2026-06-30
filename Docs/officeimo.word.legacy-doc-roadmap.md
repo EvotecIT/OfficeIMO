@@ -623,6 +623,9 @@ just to reserve names.
     header/footer story slots.
   - [x] Write the native even/odd header document flag (`DopBase.fFacingPages`)
     when OfficeIMO has separate even-page headers and footers enabled.
+  - [x] Read the native even/odd header document flag (`DopBase.fFacingPages`)
+    and project it into the normal OfficeIMO `DifferentOddAndEvenPages`
+    section/header-footer surface.
   - [ ] Add visual table styles, nested tables, section breaks inside richer body
     shapes, and richer section writing as separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
