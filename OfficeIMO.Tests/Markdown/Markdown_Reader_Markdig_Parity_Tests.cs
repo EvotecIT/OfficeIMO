@@ -374,6 +374,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-emphasis-content-attribute-promotes-to-paragraph", "*em{#inner .wide}*" };
         yield return new object[] { "inline-strong-id-class", "**strong**{#strong .marked}" };
         yield return new object[] { "inline-strong-content-attribute-promotes-to-paragraph", "**strong{#inner .wide}**" };
+        yield return new object[] { "inline-strong-emphasis-id-class", "***both***{#both .mix}" };
         yield return new object[] { "inline-code-id-class", "`code`{#code .token}" };
         yield return new object[] { "inline-image-id-class", "![alt](img.png){#img .wide}" };
         yield return new object[] { "inline-image-alt-attribute-promotes-to-paragraph", "![alt{#alt .wide}](img.png)" };

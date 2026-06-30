@@ -1002,6 +1002,99 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("{#auto .wide}", Assert.Single(nativeAutolink.Metadata, metadata => metadata.Name == "attributes").Value);
     }
 
+    [Theory]
+    [InlineData("^sup^{#sup .high} tail", MarkdownSyntaxKind.InlineSuperscript, MarkdownNativeInlineKind.Superscript, "{#sup .high}", 6, 17, "<p><sup id=\"sup\" class=\"high\">sup</sup> tail</p>")]
+    [InlineData("~sub~{#sub .low} tail", MarkdownSyntaxKind.InlineSubscript, MarkdownNativeInlineKind.Subscript, "{#sub .low}", 6, 16, "<p><sub id=\"sub\" class=\"low\">sub</sub> tail</p>")]
+    public void ParseWithSyntaxTree_Captures_EmphasisExtra_GenericAttribute_Source_Metadata_And_Writer(
+        string markdown,
+        MarkdownSyntaxKind syntaxKind,
+        MarkdownNativeInlineKind nativeKind,
+        string expectedLiteral,
+        int startColumn,
+        int endColumn,
+        string expectedHtml) {
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            Subscript = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var owner = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == syntaxKind);
+        var expectedSpan = new MarkdownSourceSpan(1, startColumn, 1, endColumn);
+        AssertGenericAttributeToken(result, owner, expectedLiteral, expectedSpan);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var inline = Assert.Single(paragraph.InlineRuns, run => run.Kind == nativeKind);
+        var metadata = Assert.Single(inline.Metadata, item => item.Name == "attributes");
+
+        Assert.Equal(expectedLiteral, metadata.Value);
+        Assert.Equal(expectedSpan, metadata.SourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(metadata, out var nativeSlice));
+        Assert.Equal(expectedLiteral, nativeSlice.Text);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(metadata, "{#changed .edited}"));
+        Assert.Equal(
+            markdown.Replace(expectedLiteral, "{#changed .edited}", StringComparison.Ordinal),
+            roundtrip.Markdown.TrimEnd('\r', '\n'));
+
+        Assert.Equal(markdown, result.Document.ToMarkdown().TrimEnd('\r', '\n'));
+        Assert.Equal(expectedHtml, result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }));
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Renders_StrongEmphasis_GenericAttributes_Like_Markdig_Without_Duplicating_Markdown() {
+        const string markdown = "***both***{#both .mix} tail";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var emphasis = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineEmphasis && node.Attributes.ElementId == "both");
+        var strong = Assert.Single(emphasis.Children, node => node.Kind == MarkdownSyntaxKind.InlineStrong);
+        var expectedSpan = new MarkdownSourceSpan(1, 11, 1, 22);
+
+        AssertGenericAttributeToken(result, emphasis, "{#both .mix}", expectedSpan);
+        Assert.True(strong.Attributes.IsEmpty);
+        Assert.DoesNotContain(strong.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var nativeEmphasis = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Emphasis);
+        var nativeStrong = Assert.Single(nativeEmphasis.Children, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+        var emphasisAttributes = Assert.Single(nativeEmphasis.Metadata, item => item.Name == "attributes");
+
+        Assert.Equal("{#both .mix}", emphasisAttributes.Value);
+        Assert.Equal(expectedSpan, emphasisAttributes.SourceSpan);
+        Assert.DoesNotContain(nativeStrong.Metadata, item => item.Name == "attributes");
+        Assert.True(native.TryCreateOriginalSourceSlice(emphasisAttributes, out var emphasisSlice));
+        Assert.Equal("{#both .mix}", emphasisSlice.Text);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(emphasisAttributes, "{#changed .edited}"));
+        Assert.Equal("***both***{#changed .edited} tail", roundtrip.Markdown.TrimEnd('\r', '\n'));
+
+        Assert.Equal(markdown, result.Document.ToMarkdown().TrimEnd('\r', '\n'));
+        Assert.Equal("<p><em id=\"both\" class=\"mix\"><strong id=\"both\" class=\"mix\">both</strong></em> tail</p>", result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }));
+    }
+
     [Fact]
     public void ParseWithSyntaxTree_Keeps_Strike_Highlight_And_Inserted_GenericAttributes_Literal() {
         const string markdown = "~~gone~~{#s .strike} ==mark=={#m .mark} ++ins++{#i .insert}\n";
