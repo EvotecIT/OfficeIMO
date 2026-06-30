@@ -154,6 +154,36 @@ BETA
     }
 
     [Fact]
+    public void MarkdownReader_DocumentTransformContext_Can_Create_SourceSlices_For_ParsedBlocks() {
+        MarkdownSourceSlice normalizedSlice = default;
+        MarkdownSourceSlice originalSlice = default;
+        MarkdownOriginalSourceSliceFailureReason originalFailureReason = MarkdownOriginalSourceSliceFailureReason.None;
+        bool normalizedOk = false;
+        bool originalOk = false;
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.PreserveTrivia = true;
+        options.DocumentTransforms.Add(new InspectFirstBlockSourceTransform((document, context) => {
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+            var syntaxNode = context.FindSyntaxNode(paragraph);
+
+            Assert.NotNull(syntaxNode);
+            normalizedOk = context.TryCreateSourceSlice(paragraph, out normalizedSlice);
+            originalOk = context.TryCreateOriginalSourceSlice(paragraph, out originalSlice, out originalFailureReason);
+            return document;
+        }));
+
+        MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("alpha\r\n\r\n", options);
+
+        Assert.True(normalizedOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, normalizedSlice.TextKind);
+        Assert.Equal("alpha", normalizedSlice.Text);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalFailureReason);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal("alpha", originalSlice.Text);
+    }
+
+    [Fact]
     public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_PreciseChangedInlineNodeAnchor() {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
@@ -745,5 +775,9 @@ Lead[^1]
 
             return transformed;
         }
+    }
+
+    private sealed class InspectFirstBlockSourceTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) => inspect(document, context);
     }
 }

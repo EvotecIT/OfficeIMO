@@ -220,7 +220,14 @@ public static partial class MarkdownReader {
                 return doc;
             }
 
-            var transformed = ApplyDocumentTransforms(doc, options, transformDiagnostics, syntaxTree);
+            var transformed = ApplyDocumentTransforms(
+                doc,
+                options,
+                transformDiagnostics,
+                syntaxTree,
+                normalizedSourceText,
+                options.PreserveTrivia ? markdown : null,
+                options.PreserveTrivia);
             return transformed;
         } finally {
             state.SourceLineOffset = previousLineOffset;
