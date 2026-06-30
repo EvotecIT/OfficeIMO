@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         TextBox,
 
         /// <summary>
-        /// Merged table cell descriptors exist but are not projected yet.
+        /// Invalid or conflicting merged table cell descriptors were found.
         /// </summary>
         MergedTableCell
     }

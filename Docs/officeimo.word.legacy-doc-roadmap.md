@@ -306,7 +306,7 @@ just to reserve names.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
-- [ ] Add common table projection after paragraph/run projection is stable.
+- [x] Add common table projection after paragraph/run projection is stable.
   - [x] Project simple DOC cell/row marker tables into `WordTable` instances
     with plain cell text.
   - [x] Preserve direct run formatting inside projected simple table cells.
@@ -371,8 +371,9 @@ just to reserve names.
   - [x] Project simple multi-paragraph DOC table cells into multiple
     `WordTableCell` paragraphs instead of splitting the table at the in-cell
     paragraph mark.
-  - [ ] Add table formatting, merged cells, and nested tables as separate
-    fixture-backed slices.
+  - [x] Add table formatting and merged cells as separate fixture-backed slices.
+  - [ ] Add nested table projection only after TAP-backed nested table read/write
+    coverage exists.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.
   - [x] Project single-section page size, orientation, margins, header/footer
@@ -569,8 +570,8 @@ just to reserve names.
   - [x] Write paragraph-boundary section breaks after simple table body blocks,
     then reload the table and following section page setup through the legacy
     reader.
-  - [ ] Add table formatting, merged/nested tables, section breaks inside richer
-    body shapes, and richer section writing as separate preflight-backed slices.
+  - [ ] Add visual table styles, nested tables, section breaks inside richer body
+    shapes, and richer section writing as separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
