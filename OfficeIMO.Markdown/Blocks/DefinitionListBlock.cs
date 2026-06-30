@@ -514,7 +514,8 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
                     definitionChildren = new[] { MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                         MarkdownSyntaxKind.Paragraph,
                         fallbackInlines,
-                        literal: definitionLiteral) };
+                        literal: definitionLiteral,
+                        isGenerated: true) };
                 }
 
                 groupChildren.Add(cachedMarker != null
@@ -633,7 +634,8 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     private static MarkdownSyntaxNode CreateGeneratedDefinitionMarker() =>
         new MarkdownSyntaxNode(
             MarkdownSyntaxKind.DefinitionMarker,
-            literal: ":");
+            literal: ":",
+            isGenerated: true);
 
     private static bool IsSyntaxDefinitionValueForDefinition(MarkdownSyntaxNode? syntaxNode, DefinitionListDefinition definition) =>
         syntaxNode != null &&

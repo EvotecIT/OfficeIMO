@@ -1972,6 +1972,26 @@ beta
     }
 
     [Fact]
+    public void Parse_Reports_Generated_Definition_Child_Diagnostics_For_Rebuilt_Paragraph_Wrappers() {
+        var options = new MarkdownReaderOptions();
+        options.DocumentTransforms.Add(new RewriteFirstDefinitionBodyTransform("generated"));
+
+        var native = MarkdownNativeDocument.Parse("Term: original", options);
+
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(definition.Children));
+        var diagnostic = Assert.Single(native.Diagnostics, item => item.Id == "native.generated-definition-child");
+
+        Assert.Equal("generated", paragraph.Text);
+        Assert.True(paragraph.SyntaxNode.IsGenerated);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), paragraph.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), diagnostic.SourceSpan);
+        Assert.Same(paragraph, diagnostic.Block);
+        Assert.Equal(MarkdownNativeDiagnosticSeverity.Info, diagnostic.Severity);
+    }
+
+    [Fact]
     public void Parse_Reports_Fallback_Diagnostics_For_Unsupported_Blocks() {
         var native = MarkdownNativeDocument.Parse("[TOC]");
 
@@ -2002,6 +2022,20 @@ beta
             }
 
             return transformed;
+        }
+    }
+
+    private sealed class RewriteFirstDefinitionBodyTransform(string text) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            var definitionList = document.Blocks.OfType<DefinitionListBlock>().FirstOrDefault();
+            var definition = definitionList?.Groups.FirstOrDefault()?.Definitions.FirstOrDefault();
+            if (definition == null) {
+                return document;
+            }
+
+            definition.Blocks.Clear();
+            definition.Blocks.Add(new ParagraphBlock(new InlineSequence().Text(text)));
+            return document;
         }
     }
 

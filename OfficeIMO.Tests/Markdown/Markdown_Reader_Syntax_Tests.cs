@@ -3536,9 +3536,11 @@ Other: second
 
         Assert.Equal(":", finalMarker.Literal);
         Assert.Null(finalMarker.SourceSpan);
+        Assert.True(finalMarker.IsGenerated);
         Assert.Equal("rewritten", finalValue.Literal);
         Assert.Equal("rewritten", finalParagraph.Literal);
         Assert.Equal("rewritten", finalText.Literal);
+        Assert.True(finalParagraph.IsGenerated);
 
         var finalDefinitionListBlock = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
         var finalSemanticGroup = finalDefinitionListBlock.Groups[0];

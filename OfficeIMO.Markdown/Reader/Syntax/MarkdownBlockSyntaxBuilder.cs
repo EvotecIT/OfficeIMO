@@ -3,33 +3,37 @@ namespace OfficeIMO.Markdown;
 internal static class MarkdownBlockSyntaxBuilder {
     private static readonly MarkdownBlockSyntaxBuilderContext _context = new();
 
-    internal static MarkdownSyntaxNode BuildBlock(IMarkdownBlock block, MarkdownSourceSpan? span = null) {
+    internal static MarkdownSyntaxNode BuildBlock(IMarkdownBlock block, MarkdownSourceSpan? span = null, bool isGenerated = false) {
         var effectiveSpan = span ?? (block as MarkdownObject)?.SourceSpan;
+        MarkdownSyntaxNode node;
 
         if (block is ISyntaxMarkdownBlockWithContext syntaxBlockWithContext) {
-            return ApplyBlockAttributes(block, syntaxBlockWithContext.BuildSyntaxNode(_context, effectiveSpan));
+            node = ApplyBlockAttributes(block, syntaxBlockWithContext.BuildSyntaxNode(_context, effectiveSpan));
+        } else if (block is ISyntaxMarkdownBlock syntaxBlock) {
+            node = ApplyBlockAttributes(block, syntaxBlock.BuildSyntaxNode(effectiveSpan));
+        } else {
+            node = new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.Unknown,
+                effectiveSpan,
+                block.RenderMarkdown(),
+                associatedObject: block,
+                attributes: (block as MarkdownObject)?.Attributes);
         }
 
-        if (block is ISyntaxMarkdownBlock syntaxBlock) {
-            return ApplyBlockAttributes(block, syntaxBlock.BuildSyntaxNode(effectiveSpan));
-        }
-
-        return new MarkdownSyntaxNode(
-            MarkdownSyntaxKind.Unknown,
-            effectiveSpan,
-            block.RenderMarkdown(),
-            associatedObject: block,
-            attributes: (block as MarkdownObject)?.Attributes);
+        return isGenerated && !node.IsGenerated
+            ? CloneSyntaxNodePreservingSourceSpan(node, isGenerated: true)
+            : node;
     }
 
-    internal static MarkdownSyntaxNode BuildInlineBlock(IInlineSyntaxMarkdownBlock inlineBlock, MarkdownSourceSpan? span = null) {
+    internal static MarkdownSyntaxNode BuildInlineBlock(IInlineSyntaxMarkdownBlock inlineBlock, MarkdownSourceSpan? span = null, bool isGenerated = false) {
         var children = MarkdownInlineSyntaxBuilder.BuildChildren(inlineBlock.SyntaxInlines);
         return new MarkdownSyntaxNode(
             inlineBlock.SyntaxKind,
             span ?? inlineBlock.ProvidedSyntaxSpan ?? GetAggregateSpan(children),
             inlineBlock.SyntaxInlines.RenderMarkdown(),
             children: children,
-            associatedObject: inlineBlock);
+            associatedObject: inlineBlock,
+            isGenerated: isGenerated);
     }
 
     internal static MarkdownSyntaxNode BuildInlineContainerNode(
@@ -37,7 +41,8 @@ internal static class MarkdownBlockSyntaxBuilder {
         InlineSequence inlines,
         MarkdownSourceSpan? span = null,
         string? literal = null,
-        object? associatedObject = null) {
+        object? associatedObject = null,
+        bool isGenerated = false) {
         var markdownObject = associatedObject as MarkdownObject;
         var inlineChildren = MarkdownInlineSyntaxBuilder.BuildChildren(inlines);
         var children = MarkdownGenericAttributeSyntaxNodes.Append(inlineChildren, markdownObject);
@@ -47,7 +52,8 @@ internal static class MarkdownBlockSyntaxBuilder {
             literal ?? inlines?.RenderMarkdown(),
             children: children,
             associatedObject: associatedObject ?? inlines,
-            attributes: markdownObject?.Attributes);
+            attributes: markdownObject?.Attributes,
+            isGenerated: isGenerated);
     }
 
     internal static IReadOnlyList<MarkdownSyntaxNode> BuildChildSyntaxNodes(IEnumerable<IMarkdownBlock> children) {
@@ -96,7 +102,7 @@ internal static class MarkdownBlockSyntaxBuilder {
                 continue;
             }
 
-            children.Add(BuildBlock(block, cachedSyntax?.SourceSpan));
+            children.Add(BuildBlock(block, cachedSyntax?.SourceSpan, isGenerated: true));
         }
 
         return children;
@@ -155,6 +161,26 @@ internal static class MarkdownBlockSyntaxBuilder {
         syntaxNode?.AssociatedObject != null && ReferenceEquals(syntaxNode.AssociatedObject, block);
 
     internal static MarkdownSyntaxNode CloneSyntaxNode(MarkdownSyntaxNode node) {
+        return CloneSyntaxNode(node, isGeneratedOverride: null);
+    }
+
+    private static MarkdownSyntaxNode CloneSyntaxNodePreservingSourceSpan(MarkdownSyntaxNode node, bool isGenerated) {
+        var children = node.Children.Count == 0
+            ? Array.Empty<MarkdownSyntaxNode>()
+            : node.Children.Select(CloneSyntaxNode).ToArray();
+
+        return new MarkdownSyntaxNode(
+            node.Kind,
+            node.SourceSpan,
+            node.Literal,
+            children,
+            node.AssociatedObject,
+            node.CustomKind,
+            node.Attributes,
+            isGenerated);
+    }
+
+    private static MarkdownSyntaxNode CloneSyntaxNode(MarkdownSyntaxNode node, bool? isGeneratedOverride) {
         var children = node.Children.Count == 0
             ? Array.Empty<MarkdownSyntaxNode>()
             : node.Children.Select(CloneSyntaxNode).ToArray();
@@ -166,7 +192,8 @@ internal static class MarkdownBlockSyntaxBuilder {
             children,
             node.AssociatedObject,
             node.CustomKind,
-            node.Attributes);
+            node.Attributes,
+            isGeneratedOverride ?? node.IsGenerated);
     }
 
     private static MarkdownSyntaxNode ApplyBlockAttributes(IMarkdownBlock block, MarkdownSyntaxNode node) {
@@ -191,7 +218,8 @@ internal static class MarkdownBlockSyntaxBuilder {
             children,
             node.AssociatedObject,
             node.CustomKind,
-            node.Attributes.IsEmpty ? markdownObject.Attributes : node.Attributes);
+            node.Attributes.IsEmpty ? markdownObject.Attributes : node.Attributes,
+            node.IsGenerated);
     }
 
     private static bool IsSyntaxChildCompatibleWithBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) {

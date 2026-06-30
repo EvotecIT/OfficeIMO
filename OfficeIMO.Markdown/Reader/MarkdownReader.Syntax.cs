@@ -15,7 +15,8 @@ public static partial class MarkdownReader {
                 node.SourceSpan,
                 node.Literal,
                 customKind: node.CustomKind,
-                attributes: node.Attributes);
+                attributes: node.Attributes,
+                isGenerated: node.IsGenerated);
         }
 
         var children = new MarkdownSyntaxNode[node.Children.Count];
@@ -29,7 +30,8 @@ public static partial class MarkdownReader {
             node.Literal,
             children,
             customKind: node.CustomKind,
-            attributes: node.Attributes);
+            attributes: node.Attributes,
+            isGenerated: node.IsGenerated);
     }
 
     internal static MarkdownSyntaxNode BuildSyntaxTree(
@@ -185,7 +187,8 @@ public static partial class MarkdownReader {
             children,
             node.AssociatedObject,
             node.CustomKind,
-            node.Attributes);
+            node.Attributes,
+            node.IsGenerated);
     }
 
     private static MarkdownSyntaxNode NormalizeFinalSyntaxTreeChild(MarkdownSourceSpan? parentSpan, MarkdownSyntaxNode child) {
@@ -218,7 +221,8 @@ public static partial class MarkdownReader {
             children,
             child.AssociatedObject,
             child.CustomKind,
-            child.Attributes);
+            child.Attributes,
+            child.IsGenerated);
     }
 
     private static MarkdownSourceSpan? GetAggregateSpanContainedBy(IReadOnlyList<MarkdownSyntaxNode> children, MarkdownSourceSpan parentSpan) {

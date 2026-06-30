@@ -9,8 +9,8 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 ## Current State
 
 - [x] Markdig comparison baseline is pinned to Markdig `1.3.2` across tests, benchmarks, and compatibility docs.
-- [x] CommonMark `0.31.2` correctness is green: 652 of 652 tracked examples pass in the generated inventory.
-- [x] GFM tracked fixtures are green: 52 tracked fixtures, 52 passing, 0 failing.
+- [x] CommonMark `0.31.2` correctness is green: 652 of 652 official CommonMark `0.31.2` examples pass in the generated inventory; 0 are failing.
+- [x] GFM tracked fixtures are green: 52 tracked GFM fixtures, 52 passing, 0 failing in the generated GFM inventory.
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
 - [ ] Markdig extension parity is not closed: 10 rows are covered, 9 partial, 3 intentional, and 11 gap.
@@ -22,7 +22,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 This is the non-looping checklist. A test-only slice is valid only when the matching engine behavior already exists and the open lane is proof.
 
 - [ ] `UseDefinitionLists` promotion: mostly engine plus proof.
-  - [ ] Engine: finish generated paragraph wrapper source ownership or diagnostics so transformed/rebuilt definition bodies do not pretend to be fully lossless parsed source.
+  - [x] Engine: generated/rebuilt definition body wrappers are marked through `MarkdownSyntaxNode.IsGenerated`, and native projection emits `native.generated-definition-child` diagnostics when definition children are regenerated from semantic content.
   - [ ] Engine: broaden remaining lazy-continuation and nested-body parser cases where Markdig keeps lines literal or attaches them to definition bodies.
   - [ ] Writer: prove Markdown output reparses to equivalent definition-list behavior for the remaining edge cases.
   - [ ] Proof: refresh focused Markdig comparison, native/source-map, writer, and matrix evidence before changing the row to `Covered`.
@@ -100,7 +100,7 @@ Current active row: `UseDefinitionLists`.
   - [x] Marker lines are source-backed through parsed `DefinitionMarker` syntax tokens and native `definitionMarker` source fields; generated marker tokens remain source-less by design.
   - [x] Continuation indentation stripped from definition body lines now surfaces as native `definitionContinuationIndent` source fields with precise caret lookup.
   - [x] Blank separators now surface as native `definitionBlankLine` source fields with precise caret lookup while broad `definitionBody` spans remain available.
-  - [ ] Generated paragraph wrappers.
+  - [x] Generated paragraph wrappers are now honest in the final syntax/native model: rebuilt semantic children carry `MarkdownSyntaxNode.IsGenerated`, and definition-list native projection reports `native.generated-definition-child` instead of presenting fallback anchors as exact parsed source.
   - [x] Normalized native `definitionBody` values versus original source spans are now explicit: `definitionBody.Value` stays semantic/normalized while `MarkdownNativeDocument` can materialize normalized or original source slices for the span-backed native field.
 - [ ] Promote `UseDefinitionLists` only after parser behavior, AST/source/native projection, HTML rendering, Markdown writing, reparse stability, generated inventory, and the compatibility matrix all agree.
 

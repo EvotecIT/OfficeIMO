@@ -175,6 +175,9 @@ public sealed class MarkdownNativeDefinitionListDefinition {
         Children = syntaxNode != null
             ? MarkdownNativeProjectionFactory.CreateChildren(syntaxNode, diagnostics)
             : Array.Empty<MarkdownNativeBlock>();
+        if (syntaxNode != null) {
+            AddGeneratedChildDiagnostics(syntaxNode, Children, diagnostics);
+        }
     }
 
     /// <summary>Source semantic definition body.</summary>
@@ -197,4 +200,43 @@ public sealed class MarkdownNativeDefinitionListDefinition {
 
     /// <summary>Native definition body children.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
+
+    private static void AddGeneratedChildDiagnostics(
+        MarkdownSyntaxNode definitionNode,
+        IReadOnlyList<MarkdownNativeBlock> children,
+        ICollection<MarkdownNativeDiagnostic> diagnostics) {
+        if (definitionNode.Children.Count == 0 || diagnostics == null) {
+            return;
+        }
+
+        foreach (var childNode in definitionNode.Children) {
+            if (!childNode.IsGenerated) {
+                continue;
+            }
+
+            var nativeChild = FindNativeChild(children, childNode.AssociatedObject);
+            diagnostics.Add(new MarkdownNativeDiagnostic(
+                "native.generated-definition-child",
+                "Definition-list child syntax was regenerated from semantic content; any source span is a fallback anchor, not exact parsed source.",
+                MarkdownNativeDiagnosticSeverity.Info,
+                childNode.SourceSpan ?? definitionNode.SourceSpan,
+                nativeChild));
+        }
+    }
+
+    private static MarkdownNativeBlock? FindNativeChild(
+        IReadOnlyList<MarkdownNativeBlock> children,
+        object? associatedObject) {
+        if (associatedObject == null || children == null) {
+            return null;
+        }
+
+        for (int i = 0; i < children.Count; i++) {
+            if (ReferenceEquals(children[i].SourceBlock, associatedObject)) {
+                return children[i];
+            }
+        }
+
+        return null;
+    }
 }
