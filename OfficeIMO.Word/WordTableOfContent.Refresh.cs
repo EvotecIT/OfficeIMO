@@ -329,14 +329,31 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            foreach (Paragraph paragraph in _sdtBlock.Descendants<Paragraph>()) {
+                foreach (string instruction in EnumerateComplexFieldInstructions(paragraph)) {
+                    if (IsTocInstruction(instruction)) {
+                        return instruction;
+                    }
+                }
+            }
+
             foreach (FieldCode fieldCode in _sdtBlock.Descendants<FieldCode>()) {
-                if (!string.IsNullOrWhiteSpace(fieldCode.Text) &&
-                    fieldCode.Text.IndexOf("TOC", StringComparison.OrdinalIgnoreCase) >= 0) {
-                    return fieldCode.Text;
+                string instruction = fieldCode.Text ?? string.Empty;
+                if (IsTocInstruction(instruction)) {
+                    return instruction;
                 }
             }
 
             return DefaultTocInstruction;
+        }
+
+        private static bool IsTocInstruction(string? instruction) {
+            if (string.IsNullOrWhiteSpace(instruction)) {
+                return false;
+            }
+
+            WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction!);
+            return parsed.FieldType == WordFieldType.TOC;
         }
 
         private static string? GetTocEntryTypeFilter(string instruction) {

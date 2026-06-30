@@ -59,6 +59,10 @@ namespace OfficeIMO.Word {
                     parsed.Diagnostics.Count == 0 ? "Field instruction could not be parsed." : string.Join(" ", parsed.Diagnostics));
             }
 
+            if (candidate.IsLocked) {
+                return candidate.ToResult(parsed.FieldType, WordFieldUpdateStatus.Skipped, null, "Field is locked and was left unchanged.");
+            }
+
             if (!TryEvaluate(document, candidate, parsed, totalPages, state, updateDateTime, out string? value, out WordFieldUpdateStatus status, out string message)) {
                 return candidate.ToResult(parsed.FieldType, status, null, message);
             }
@@ -841,7 +845,9 @@ namespace OfficeIMO.Word {
             FieldCharValues? fieldCharType = fieldChar?.FieldCharType?.Value;
 
             if (fieldCharType == FieldCharValues.Begin) {
-                stack.Push(new ComplexFieldBuilder(sequence++, stack.Count, run));
+                stack.Push(new ComplexFieldBuilder(sequence++, stack.Count, run) {
+                    IsLocked = fieldChar?.FieldLock?.Value ?? false
+                });
             }
 
             if (stack.Count == 0) {
@@ -889,7 +895,8 @@ namespace OfficeIMO.Word {
                 OpenXmlElement anchorElement,
                 SimpleField? simpleField,
                 List<Run> resultRuns,
-                Run? endRun) {
+                Run? endRun,
+                bool isLocked) {
                 Sequence = sequence;
                 Representation = representation;
                 LocationKind = locationKind;
@@ -901,6 +908,7 @@ namespace OfficeIMO.Word {
                 SimpleField = simpleField;
                 ResultRuns = resultRuns;
                 EndRun = endRun;
+                IsLocked = isLocked;
             }
 
             internal int Sequence { get; }
@@ -929,6 +937,8 @@ namespace OfficeIMO.Word {
 
             internal Run? EndRun { get; }
 
+            internal bool IsLocked { get; }
+
             internal static MutableFieldCandidate ForSimple(WordFieldInventory.FieldRoot root, int sequence, int nestingLevel, SimpleField simpleField) {
                 return new MutableFieldCandidate(
                     sequence,
@@ -941,7 +951,8 @@ namespace OfficeIMO.Word {
                     simpleField,
                     simpleField,
                     simpleField.Elements<Run>().ToList(),
-                    null);
+                    null,
+                    simpleField.FieldLock?.Value ?? false);
             }
 
             internal WordFieldUpdateResult ToResult(WordFieldType? fieldType, WordFieldUpdateStatus status, string? resultText, string message) {
@@ -969,7 +980,8 @@ namespace OfficeIMO.Word {
                     builder.AnchorElement,
                     null,
                     builder.ResultRuns,
-                    builder.EndRun);
+                    builder.EndRun,
+                    builder.IsLocked);
             }
         }
 
@@ -993,6 +1005,8 @@ namespace OfficeIMO.Word {
             internal int? InstructionParentSequence { get; set; }
 
             internal bool HasSeparator { get; set; }
+
+            internal bool IsLocked { get; set; }
 
             internal Run? EndRun { get; set; }
 
