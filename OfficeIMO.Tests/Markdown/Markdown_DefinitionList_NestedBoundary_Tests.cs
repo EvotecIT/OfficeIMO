@@ -5,6 +5,244 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite;
 
 public sealed class Markdown_DefinitionList_NestedBoundary_Tests {
+    public static TheoryData<string, string, bool> FinalDefinitionListTailProbeCases => new() {
+        {
+            "plain-paragraph-after-blank",
+            """
+Term
+:   First
+
+Second paragraph
+lazy continuation
+""",
+            false
+        },
+        {
+            "plain-indented-paragraph-two-lazy-lines-after-blank",
+            """
+Term
+:   First
+
+    Second paragraph
+lazy one
+lazy two
+""",
+            false
+        },
+        {
+            "nested-unordered-two-lazy-lines-after-blank",
+            """
+Term
+:   First
+
+    - item
+lazy one
+lazy two
+""",
+            false
+        },
+        {
+            "nested-ordered-two-lazy-lines-after-blank",
+            """
+Term
+:   First
+
+    1. item
+lazy one
+lazy two
+""",
+            false
+        },
+        {
+            "nested-blockquote-two-lazy-lines-after-blank",
+            """
+Term
+:   First
+
+    > quote
+lazy one
+lazy two
+""",
+            false
+        },
+        {
+            "nested-unordered-setext-looking-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+Heading
+===
+""",
+            false
+        },
+        {
+            "nested-unordered-thematic-looking-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+---
+""",
+            false
+        },
+        {
+            "nested-unordered-heading-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+# Heading
+""",
+            false
+        },
+        {
+            "nested-unordered-fence-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+```csharp
+code
+```
+""",
+            false
+        },
+        {
+            "nested-unordered-html-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+<div>
+html
+</div>
+""",
+            false
+        },
+        {
+            "nested-unordered-reference-looking-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+[ref]: https://example.com
+""",
+            false
+        },
+        {
+            "nested-unordered-unordered-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+- sibling
+""",
+            false
+        },
+        {
+            "nested-unordered-ordered-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+2. sibling
+""",
+            false
+        },
+        {
+            "nested-unordered-task-shaped-tail-after-blank",
+            """
+Term
+:   First
+
+    - item
+- [x] sibling
+""",
+            false
+        },
+        {
+            "nested-unordered-table-shaped-tail-after-blank-tables-off",
+            """
+Term
+:   First
+
+    - item
+| A | B |
+|---|---|
+| C | D |
+""",
+            false
+        },
+        {
+            "nested-unordered-table-shaped-tail-after-blank-tables-on",
+            """
+Term
+:   First
+
+    - item
+| A | B |
+|---|---|
+| C | D |
+""",
+            true
+        },
+        {
+            "nested-blockquote-table-shaped-tail-after-blank-tables-off",
+            """
+Term
+:   First
+
+    > quote
+| A | B |
+|---|---|
+| C | D |
+""",
+            false
+        },
+        {
+            "nested-blockquote-table-shaped-tail-after-blank-tables-on",
+            """
+Term
+:   First
+
+    > quote
+| A | B |
+|---|---|
+| C | D |
+""",
+            true
+        }
+    };
+
+    [Theory]
+    [MemberData(nameof(FinalDefinitionListTailProbeCases))]
+    public void DefinitionList_FinalTailProbe_MatchesMarkdig_AndWriterReparse(string name, string markdown, bool pipeTables) {
+        var readerOptions = CreateMarkdigDefinitionListReaderOptions();
+        readerOptions.Tables = pipeTables;
+        var markdigPipeline = pipeTables
+            ? CreateMarkdigDefinitionListAndPipeTablesPipeline()
+            : CreateMarkdigDefinitionListPipeline();
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = MarkdownReader.Parse(written, readerOptions).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, markdigPipeline);
+
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     [Fact]
     public void DefinitionList_NestedBlockquoteBody_Merges_UnindentedBlockquoteContinuation() {
         const string markdown = """
@@ -170,6 +408,41 @@ Term
 
         Assert.Equal("First\n\n> quote\n> \\[ref\\]: https://example.com", definitionBody.Value!.Replace("\r\n", "\n"));
         Assert.Equal(new MarkdownSourceSpan(2, 5, 4, 26), definitionBody.SourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_NestedListLazyReferenceDefinitionLookingLine_StaysLiteral() {
+        const string markdown = """
+Term
+:   First
+
+    - item
+[ref]: https://example.com
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var nestedList = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var itemParagraph = Assert.Single(nestedList.Items).Content;
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.DoesNotContain(itemParagraph.Nodes, inline => inline is LinkInline);
+        Assert.Equal("item\n\\[ref\\]: https://example.com", itemParagraph.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal("Term\n:   First\n    - item\n      \\[ref\\]&#58; https://example.com", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+
+        Assert.Equal("First\n\n- item\n  \\[ref\\]&#58; https://example.com", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 26), definitionBody.SourceSpan);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 

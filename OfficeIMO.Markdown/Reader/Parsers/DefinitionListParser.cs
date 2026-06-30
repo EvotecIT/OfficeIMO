@@ -813,6 +813,7 @@ public static partial class MarkdownReader {
 
         var definitionBodyState = CloneState(state);
         definitionBodyState.IsMarkdigDefinitionListBody = true;
+        RemoveLazyDefinitionContinuationReferenceDefinitions(definitionBodyState, definitionSourceLines);
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(definitionSourceLines, options, definitionBodyState);
         (blocks, syntaxChildren) = MergeMarkdigDefinitionLazyListContinuations(blocks, syntaxChildren, definitionSourceLines, options, state);
         (blocks, syntaxChildren) = PreserveMarkdigDefinitionLazyParagraphSoftBreaks(blocks, syntaxChildren, definitionSourceLines, options, state);
@@ -824,6 +825,41 @@ public static partial class MarkdownReader {
         var nodes = new List<MarkdownSyntaxNode>();
         AddParagraphSyntaxNodes(nodes, definitionSourceLines, options, state);
         return (paragraphs, nodes);
+    }
+
+    private static void RemoveLazyDefinitionContinuationReferenceDefinitions(
+        MarkdownReaderState state,
+        IReadOnlyList<MarkdownSourceLineSlice> definitionSourceLines) {
+        if (state == null ||
+            state.LinkRefs.Count == 0 ||
+            definitionSourceLines == null ||
+            definitionSourceLines.Count == 0) {
+            return;
+        }
+
+        HashSet<int>? lazyReferenceLines = null;
+        for (int i = 0; i < definitionSourceLines.Count; i++) {
+            var sourceLine = definitionSourceLines[i];
+            if (!sourceLine.IsLazyQuoteContinuation ||
+                !StartsWithReferenceDefinitionLikeLabel(sourceLine.Text.TrimStart())) {
+                continue;
+            }
+
+            lazyReferenceLines ??= new HashSet<int>();
+            lazyReferenceLines.Add(sourceLine.AbsoluteLine);
+        }
+
+        if (lazyReferenceLines == null || lazyReferenceLines.Count == 0) {
+            return;
+        }
+
+        foreach (var pair in state.LinkRefs.ToArray()) {
+            var definition = pair.Value;
+            int? startLine = definition.LabelSourceSpan?.StartLine ?? definition.SourceSpan?.StartLine;
+            if (startLine.HasValue && lazyReferenceLines.Contains(startLine.Value)) {
+                state.LinkRefs.Remove(pair.Key);
+            }
+        }
     }
 
     private static IReadOnlyList<MarkdownSourceSpan> GetDefinitionBlankLineSourceSpans(

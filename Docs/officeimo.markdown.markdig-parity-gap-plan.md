@@ -84,28 +84,28 @@ Do not move an extension row to `Covered` until each applicable box is true.
 
 Current active row: `UseDefinitionLists`.
 
-- [ ] Run the final compact Markdig comparison probe for definition-list tail behavior.
-  - [ ] Paragraph-after-blank tails after plain paragraph, nested unordered list, nested ordered list, and nested blockquote bodies.
-  - [ ] Two-or-more lazy lines after nested unordered list, nested ordered list, and nested blockquote bodies.
-  - [ ] Boundary candidates after blank lines: setext/thematic/heading, fenced code, raw HTML, reference-definition-looking text, pipe-table-shaped text, ordered/unordered/task-list starts.
-  - [ ] Run with pipe tables off and on where the input is table-shaped.
-- [ ] Fix only real `UseDefinitionLists` engine mismatches found by that probe.
-  - [ ] Parser ownership: decide whether each tail stays inside the definition body or closes it, matching Markdig unless documented otherwise.
-  - [ ] Semantic AST: make the chosen ownership visible as stable OfficeIMO blocks, not a writer-only workaround.
-  - [ ] Syntax/native source: preserve spans for definition markers, body text, blank separators, continuation indentation, generated children, and boundary blocks.
-- [ ] Fix only real writer/reparse mismatches found by that probe.
-  - [ ] Ensure `ToMarkdown()` output reparses to equivalent HTML/AST behavior for covered definition-list cases.
-  - [ ] Preserve literal text when Markdig keeps it literal, including setext-looking, table-looking, reference-looking, and escaped-pipe tails.
-  - [ ] Insert blank boundaries only where required to prevent semantic collapse on reparse.
+- [x] Run the final compact Markdig comparison probe for definition-list tail behavior.
+  - [x] Paragraph-after-blank tails after plain paragraph, nested unordered list, nested ordered list, and nested blockquote bodies.
+  - [x] Two-or-more lazy lines after nested unordered list, nested ordered list, and nested blockquote bodies.
+  - [x] Boundary candidates after blank lines: setext/thematic/heading, fenced code, raw HTML, reference-definition-looking text, pipe-table-shaped text, ordered/unordered/task-list starts.
+  - [x] Run with pipe tables off and on where the input is table-shaped.
+- [x] Fix only real `UseDefinitionLists` engine mismatches found by that probe.
+  - [x] Parser ownership: blank-separated nested-list reference-definition-looking lazy tails stay literal inside the definition body like Markdig instead of inheriting root reference definitions.
+  - [x] Semantic AST: the tail remains list-item paragraph text, not a consumed reference-definition/link workaround.
+  - [x] Syntax/native source: the definition body keeps source-backed spans while normalized native values and writer output encode the colon for stable reparse.
+- [x] Fix only real writer/reparse mismatches found by that probe.
+  - [x] `ToMarkdown()` output reparses to equivalent HTML/AST behavior for the final compact definition-list probe.
+  - [x] Literal text is preserved when Markdig keeps it literal, including setext-looking, table-looking, reference-looking, and escaped-pipe tails.
+  - [x] Blank boundaries are inserted only where required to prevent semantic collapse on reparse.
 - [x] Close the active nested-body equals-setext literal gap.
   - [x] Nested list lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
   - [x] Nested blockquote lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
   - [x] Markdown writer escapes or preserves the shape so OfficeIMO reparse does not create a heading by accident.
   - [x] AST/source/native spans describe the nested paragraph and definition body correctly.
 - [ ] Broaden remaining lazy-continuation cases.
-  - [ ] Paragraph-after-blank variants not already covered by the final compact probe.
+  - [x] Paragraph-after-blank variants not already covered by the final compact probe.
     - [x] Blank-separated nested blockquote lazy tails preserve Markdig soft-break behavior with syntax/native source spans and writer reparse proof.
-  - [ ] Multiple lazy lines after nested blocks not already covered by the final compact probe.
+  - [x] Multiple lazy lines after nested blocks not already covered by the final compact probe.
     - [x] Multiple lazy lines inside a nested blockquote now stay in the definition body while a following unindented list closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
   - [x] Remaining list-like and table-like interruption starts, with pipe tables on and off.
     - [x] Compact Markdig comparison now matches for unordered, ordered, task-list-shaped, non-`1` ordered, ordered-parenthesis, escaped-pipe table-shaped, and pipe-table delimiter-mismatch tails across nested paragraph, list, ordered-list, and blockquote definition bodies.
