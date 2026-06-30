@@ -696,11 +696,6 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         continue;
                     }
 
-                    if (!bookmark.IsZeroLength) {
-                        ReportUnprojectedBookmark(bookmark);
-                        continue;
-                    }
-
                     result.Add(bookmark);
                     projectedBookmarks.Add(bookmark);
                 }
@@ -729,7 +724,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.Bookmark,
                     "DOC-BOOKMARK-RANGE-PRESENT",
-                    $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported zero-length body bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
+                    $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported same-paragraph body bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
                     detailCode: "Fib:PlcfBkf"));
             }
 
