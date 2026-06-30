@@ -109,6 +109,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     internal int? StructuredContentSignature { get; private set; }
     internal MarkdownSourceSpan? AlignmentRowSourceSpan { get; private set; }
     internal IReadOnlyList<TableAlignmentCellSource> AlignmentCellSources { get; private set; } = Array.Empty<TableAlignmentCellSource>();
+    internal IReadOnlyList<TablePipeSource> PipeSources { get; private set; } = Array.Empty<TablePipeSource>();
     internal bool PreserveHeaderlessSingleRowTable { get; set; }
     internal bool UseHeaderColumnCountForRendering { get; set; }
     internal bool CellsContainRenderedMarkdown { get; set; }
@@ -162,6 +163,12 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
     internal void SetAlignmentCellSources(IReadOnlyList<TableAlignmentCellSource>? sources) {
         AlignmentCellSources = sources == null || sources.Count == 0
             ? Array.Empty<TableAlignmentCellSource>()
+            : sources.ToArray();
+    }
+
+    internal void SetPipeSources(IReadOnlyList<TablePipeSource>? sources) {
+        PipeSources = sources == null || sources.Count == 0
+            ? Array.Empty<TablePipeSource>()
             : sources.ToArray();
     }
 

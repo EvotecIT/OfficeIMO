@@ -129,12 +129,15 @@ public static partial class MarkdownReader {
         var inlineState = CloneState(state);
         table.InlineRenderOptions = inlineOptions;
         table.InlineRenderState = inlineState;
+        var pipeSources = new List<TablePipeSource>();
         List<TableCellSourceFragment> headerCells;
         var bodyRows = new List<List<TableCellSourceFragment>>();
         if (start + 1 <= end && IsAlignmentRow(lines[start + 1])) {
             headerCells = cells0;
+            pipeSources.AddRange(FindTablePipeSources(lines[start], headerLine, state, rowIndex: -1));
             table.UseHeaderColumnCountForRendering = true;
             var alignmentLine = state.SourceLineOffset + start + 2;
+            pipeSources.AddRange(FindTablePipeSources(lines[start + 1], alignmentLine, state, rowIndex: -2));
             table.SetAlignmentRowSourceSpan(CreateLineSpan(state, alignmentLine, alignmentLine));
             var alignmentCells = SplitTableRowWithSourceInfo(lines[start + 1], alignmentLine, state);
             table.SetAlignmentCellSources(alignmentCells
@@ -143,6 +146,7 @@ public static partial class MarkdownReader {
             for (int i = 0; i < alignmentCells.Count; i++) table.Alignments.Add(ParseAlignmentCell(alignmentCells[i].Text));
             for (int i = start + 2; i <= end; i++) {
                 int absoluteLine = state.SourceLineOffset + i + 1;
+                pipeSources.AddRange(FindTablePipeSources(lines[i], absoluteLine, state, rowIndex: i - start - 2));
                 var row = SplitTableRowWithSourceInfo(lines[i], absoluteLine, state);
                 bodyRows.Add(row);
             }
@@ -150,10 +154,13 @@ public static partial class MarkdownReader {
             headerCells = new List<TableCellSourceFragment>();
             for (int i = start; i <= end; i++) {
                 int absoluteLine = state.SourceLineOffset + i + 1;
+                pipeSources.AddRange(FindTablePipeSources(lines[i], absoluteLine, state, rowIndex: i - start));
                 var row = SplitTableRowWithSourceInfo(lines[i], absoluteLine, state);
                 bodyRows.Add(row);
             }
         }
+
+        table.SetPipeSources(pipeSources);
 
         ApplyGenericAttributesToTable(table, headerCells, bodyRows, options, state);
 
@@ -514,6 +521,73 @@ public static partial class MarkdownReader {
 
         cells.Add(CreateTableCellSourceFragment(line, segmentStart, contentEndExclusive, absoluteLine, state));
         return cells;
+    }
+
+    private static IReadOnlyList<TablePipeSource> FindTablePipeSources(
+        string line,
+        int absoluteLine,
+        MarkdownReaderState? state,
+        int rowIndex) {
+        if (line is null) {
+            return Array.Empty<TablePipeSource>();
+        }
+
+        int trimStart = 0;
+        int trimEndExclusive = line.Length;
+        while (trimStart < trimEndExclusive && char.IsWhiteSpace(line[trimStart])) {
+            trimStart++;
+        }
+
+        while (trimEndExclusive > trimStart && char.IsWhiteSpace(line[trimEndExclusive - 1])) {
+            trimEndExclusive--;
+        }
+
+        if (trimStart >= trimEndExclusive) {
+            return Array.Empty<TablePipeSource>();
+        }
+
+        List<TablePipeSource>? pipes = null;
+        int codeFenceLen = 0;
+        int index = trimStart;
+        while (index < trimEndExclusive) {
+            char ch = line[index];
+            if (ch == '\\' && index + 1 < trimEndExclusive) {
+                index += 2;
+                continue;
+            }
+
+            if (ch == '`') {
+                int run = 1;
+                int tick = index + 1;
+                while (tick < trimEndExclusive && line[tick] == '`') {
+                    run++;
+                    tick++;
+                }
+
+                if (codeFenceLen == 0) {
+                    if (HasClosingBacktickRun(line.Substring(trimStart, trimEndExclusive - trimStart), index - trimStart + run, run)) {
+                        codeFenceLen = run;
+                    }
+                } else if (run == codeFenceLen) {
+                    codeFenceLen = 0;
+                }
+
+                index += run;
+                continue;
+            }
+
+            if (ch == '|' && codeFenceLen == 0) {
+                pipes ??= new List<TablePipeSource>();
+                var span = CreateSpan(state, absoluteLine, index + 1, absoluteLine, index + 1);
+                pipes.Add(new TablePipeSource(rowIndex, pipes.Count, span));
+            }
+
+            index++;
+        }
+
+        return pipes == null || pipes.Count == 0
+            ? Array.Empty<TablePipeSource>()
+            : pipes;
     }
 
     private static TableCellSourceFragment CreateTableCellSourceFragment(

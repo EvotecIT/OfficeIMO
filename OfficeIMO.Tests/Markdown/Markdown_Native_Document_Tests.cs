@@ -1374,6 +1374,20 @@ After
         Assert.Equal(ColumnAlignment.Right, table.AlignmentCells[1].Alignment);
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 6), table.AlignmentCells[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 13), table.AlignmentCells[1].SourceSpan);
+        Assert.Equal(9, table.Pipes.Count);
+        Assert.Equal(-1, table.Pipes[0].RowIndex);
+        Assert.Equal(0, table.Pipes[0].ColumnIndex);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), table.Pipes[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 8), table.Pipes[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 16), table.Pipes[2].SourceSpan);
+        Assert.Equal(-2, table.Pipes[3].RowIndex);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), table.Pipes[3].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 8), table.Pipes[4].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 15, 2, 15), table.Pipes[5].SourceSpan);
+        Assert.Equal(0, table.Pipes[6].RowIndex);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 1), table.Pipes[6].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 7), table.Pipes[7].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 12, 3, 12), table.Pipes[8].SourceSpan);
 
         var snapshot = native.ToSnapshot().Blocks[0];
         Assert.Equal(2, snapshot.FieldSourceSpans["alignmentRow"]!.StartLine);
@@ -1387,10 +1401,22 @@ After
         Assert.Equal("---:", alignmentCells[1].Value);
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 6), alignmentCells[0].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 13), alignmentCells[1].SourceSpan);
+        var tablePipes = table.EnumerateSourceFields("tablePipe").ToArray();
+        Assert.Equal(9, tablePipes.Length);
+        Assert.Equal(0, tablePipes[0].Index);
+        Assert.Equal(8, tablePipes[8].Index);
+        Assert.All(tablePipes, pipe => Assert.Equal("|", pipe.Value));
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 8), tablePipes[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 8), tablePipes[4].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 7), tablePipes[7].SourceSpan);
         var selectedAlignmentCell = native.FindBlockSourceFieldAtPosition(2, 3);
         Assert.NotNull(selectedAlignmentCell);
         Assert.Equal("alignmentCell", selectedAlignmentCell!.Name);
         Assert.Equal(alignmentCells[0].SourceSpan, selectedAlignmentCell.SourceSpan);
+        var selectedPipe = native.FindBlockSourceFieldAtPosition(1, 8);
+        Assert.NotNull(selectedPipe);
+        Assert.Equal("tablePipe", selectedPipe!.Name);
+        Assert.Equal(tablePipes[1].SourceSpan, selectedPipe.SourceSpan);
 
         var snapshotAlignmentCells = snapshot.EnumerateSourceFields("alignmentCell").ToArray();
         Assert.Equal(2, snapshotAlignmentCells.Length);
@@ -1398,11 +1424,39 @@ After
         Assert.Equal(1, snapshotAlignmentCells[1].Index);
         Assert.Equal(3, snapshotAlignmentCells[0].SourceSpan.StartColumn);
         Assert.Equal(13, snapshotAlignmentCells[1].SourceSpan.EndColumn);
+        var snapshotPipes = snapshot.EnumerateSourceFields("tablePipe").ToArray();
+        Assert.Equal(9, snapshotPipes.Length);
+        Assert.Equal(0, snapshotPipes[0].Index);
+        Assert.Equal(8, snapshotPipes[8].Index);
+        Assert.Equal(8, snapshotPipes[1].SourceSpan.StartColumn);
+        Assert.Equal(12, snapshotPipes[8].SourceSpan.EndColumn);
 
         var edited = native.CreateReplaceEdit(table.AlignmentRowSourceSpan!.Value, "| :---: | --- |").Apply(native.SourceMarkdown);
         Assert.Equal("| :---: | --- |", edited.Split('\n')[1]);
         var editedCell = native.CreateReplaceEdit(alignmentCells[0], ":---:").Apply(native.SourceMarkdown);
         Assert.Equal("| :---: | ---: |", editedCell.Split('\n')[1]);
+        var editedPipe = native.CreateReplaceEdit(tablePipes[1], "||").Apply(native.SourceMarkdown);
+        Assert.Equal("| Name || Value |", editedPipe.Split('\n')[0]);
+    }
+
+    [Fact]
+    public void Parse_Table_Pipe_Source_Fields_Ignore_Escaped_And_CodeSpan_Pipes() {
+        var markdown = """
+| Name | Value |
+| --- | --- |
+| CPU \| spare | `a|b` |
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        var tablePipes = table.EnumerateSourceFields("tablePipe").ToArray();
+        Assert.Equal(9, tablePipes.Length);
+        Assert.Equal(new[] { 1, 8, 16 }, tablePipes.Where(pipe => pipe.SourceSpan.StartLine == 1).Select(pipe => pipe.SourceSpan.StartColumn!.Value).ToArray());
+        Assert.Equal(new[] { 1, 7, 13 }, tablePipes.Where(pipe => pipe.SourceSpan.StartLine == 2).Select(pipe => pipe.SourceSpan.StartColumn!.Value).ToArray());
+        Assert.Equal(new[] { 1, 16, 24 }, tablePipes.Where(pipe => pipe.SourceSpan.StartLine == 3).Select(pipe => pipe.SourceSpan.StartColumn!.Value).ToArray());
+        Assert.NotEqual("tablePipe", native.FindBlockSourceFieldAtPosition(3, 8)?.Name);
+        Assert.NotEqual("tablePipe", native.FindBlockSourceFieldAtPosition(3, 20)?.Name);
     }
 
     [Fact]

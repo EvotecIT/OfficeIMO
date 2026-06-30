@@ -293,6 +293,7 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         Table = table;
         AlignmentRowSourceSpan = syntaxNode.Children.FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.TableAlignmentRow)?.SourceSpan;
         AlignmentCells = BuildAlignmentCells(table);
+        Pipes = BuildPipes(table);
         HeaderCells = BuildHeaderCells(table, syntaxNode, diagnostics);
         Rows = BuildRows(table, syntaxNode, diagnostics);
     }
@@ -305,6 +306,9 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
 
     /// <summary>Per-column alignment markers from the GFM table alignment/separator row.</summary>
     public IReadOnlyList<MarkdownNativeTableAlignmentCell> AlignmentCells { get; }
+
+    /// <summary>Pipe delimiter tokens in document order.</summary>
+    public IReadOnlyList<MarkdownNativeTablePipe> Pipes { get; }
 
     /// <summary>Header cells in document order.</summary>
     public IReadOnlyList<MarkdownNativeTableCell> HeaderCells { get; }
@@ -327,6 +331,20 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         }
 
         return cells;
+    }
+
+    private static IReadOnlyList<MarkdownNativeTablePipe> BuildPipes(TableBlock table) {
+        if (table.PipeSources.Count == 0) {
+            return Array.Empty<MarkdownNativeTablePipe>();
+        }
+
+        var pipes = new List<MarkdownNativeTablePipe>(table.PipeSources.Count);
+        for (var index = 0; index < table.PipeSources.Count; index++) {
+            var source = table.PipeSources[index];
+            pipes.Add(new MarkdownNativeTablePipe(source.RowIndex, source.ColumnIndex, source.SourceSpan));
+        }
+
+        return pipes;
     }
 
     private static IReadOnlyList<MarkdownNativeTableCell> BuildHeaderCells(
@@ -402,6 +420,28 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             ? columnAlignments[columnIndex]
             : ColumnAlignment.None;
     }
+}
+
+/// <summary>
+/// Native projection for a source-backed pipe delimiter in a table row.
+/// </summary>
+public sealed class MarkdownNativeTablePipe {
+    internal MarkdownNativeTablePipe(int rowIndex, int columnIndex, MarkdownSourceSpan sourceSpan) {
+        RowIndex = rowIndex;
+        ColumnIndex = columnIndex;
+        SourceSpan = sourceSpan;
+    }
+
+    /// <summary>
+    /// Row index for the delimiter: <c>-1</c> for the header row, <c>-2</c> for the alignment row, or zero-based body row index.
+    /// </summary>
+    public int RowIndex { get; }
+
+    /// <summary>Zero-based delimiter occurrence within the row.</summary>
+    public int ColumnIndex { get; }
+
+    /// <summary>Source span for this pipe delimiter in the normalized markdown text.</summary>
+    public MarkdownSourceSpan SourceSpan { get; }
 }
 
 /// <summary>
