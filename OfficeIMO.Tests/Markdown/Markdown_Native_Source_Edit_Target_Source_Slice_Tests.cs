@@ -41,6 +41,11 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
         Assert.True(native.TryCreateSourceSlice(paragraphs[1], out var secondSlice));
         Assert.Equal("alpha **one**", firstSlice.Text);
         Assert.Equal("beta [two](https://example.com)", secondSlice.Text);
+        Assert.NotNull(paragraphs[1].SyntaxNode);
+        Assert.False(paragraphs[1].SyntaxNode.IsGenerated);
+        Assert.True(native.TryCreateOriginalSourceSlice(paragraphs[1], out var originalSecondSlice, out var originalReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalReason);
+        Assert.Equal("beta [two](https://example.com)", originalSecondSlice.Text);
         Assert.Contains(paragraphs[0].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "one");
         Assert.Contains(paragraphs[1].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "two");
 
@@ -58,9 +63,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
 
         Assert.Contains("  gamma [three](https://example.org)", edit.Apply(native.SourceMarkdown));
         Assert.Contains("  gamma [three](https://example.org)", roundtrip.Markdown);
-        var diagnostic = Assert.Single(roundtrip.Diagnostics);
-        Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
-        Assert.Equal(paragraphs[1].SourceSpan, diagnostic.SourceSpan);
+        Assert.Empty(roundtrip.Diagnostics);
     }
 
     [Fact]

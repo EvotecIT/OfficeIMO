@@ -102,6 +102,12 @@ internal static class MarkdownBlockSyntaxBuilder {
                 continue;
             }
 
+            if (cachedSyntax != null &&
+                CanBuildSourceBackedCompatibleSyntax(cachedSyntax, block)) {
+                children.Add(BuildBlock(block, cachedSyntax.SourceSpan, isGenerated: false));
+                continue;
+            }
+
             children.Add(BuildBlock(block, cachedSyntax?.SourceSpan, isGenerated: true));
         }
 
@@ -159,6 +165,20 @@ internal static class MarkdownBlockSyntaxBuilder {
 
     private static bool IsSyntaxChildForBlock(MarkdownSyntaxNode? syntaxNode, IMarkdownBlock block) =>
         syntaxNode?.AssociatedObject != null && ReferenceEquals(syntaxNode.AssociatedObject, block);
+
+    private static bool CanBuildSourceBackedCompatibleSyntax(MarkdownSyntaxNode syntaxNode, IMarkdownBlock block) {
+        if (syntaxNode.IsGenerated ||
+            !syntaxNode.SourceSpan.HasValue ||
+            !IsSyntaxChildCompatibleWithBlock(syntaxNode, block) ||
+            syntaxNode.Literal == null) {
+            return false;
+        }
+
+        return string.Equals(
+            NormalizeSyntaxLiteralLineEndings(syntaxNode.Literal),
+            NormalizeSyntaxLiteralLineEndings(block.RenderMarkdown()),
+            StringComparison.Ordinal);
+    }
 
     internal static MarkdownSyntaxNode CloneSyntaxNode(MarkdownSyntaxNode node) {
         return CloneSyntaxNode(node, isGeneratedOverride: null);

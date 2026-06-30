@@ -45,6 +45,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose native inline and inline-metadata source-slice APIs so editor hosts can address inline content, link targets, titles, and similar metadata without rescanning raw markdown.
   - [x] Engine: align native source-slice APIs with source-edit targets for blocks, list item content, table cells, definition-list groups/terms/bodies, reference definitions, and reference-definition fields.
   - [x] Engine: expose paragraph-level native projections, source slices, and source edits for list-item paragraphs so editor hosts can address individual loose-list paragraphs instead of treating the whole item content as one span.
+  - [x] Engine: reconcile parsed-compatible list-item paragraph syntax as source-backed when the cached literal still matches the semantic paragraph, so individual loose-list paragraph edits can preserve original source bytes instead of reporting generated-node fallback.
   - [x] Engine: expose document-level blank-line source trivia, snapshots, and source slices so editor hosts can address empty and whitespace-only lines without rescanning raw markdown.
   - [x] Engine: capture document-level leading/trailing horizontal whitespace source trivia, including tabs, with source-order enumeration, position lookup, snapshots, source slices, and tab-expanded source columns.
   - [x] Engine: align generic line/column source-slice fallback with source-map tab-expanded columns.
@@ -211,6 +212,7 @@ Do not implement these rows from nearby tests alone. Decide the product shape fi
 This is the difference between "renders like Markdig" and "is a super-duper Markdown app."
 
 - [ ] Canonicalize duplicated semantic/syntax ownership for lists, tables, definition lists, callouts, footnotes, front matter, and extension nodes.
+  - [x] Parsed-compatible list-item paragraph syntax is now rebuilt as source-backed when the cached literal still matches the semantic paragraph, closing the generated-wrapper fallback for individual loose-list paragraph source edits.
 - [ ] Associate syntax nodes with semantic subobjects such as callout titles, list item paragraphs, definition groups/definitions, table rows/cells, and sequence-style inline wrappers.
 - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node roundtrip semantics.
 - [ ] Complete delimiter-token coverage for extension nodes.
