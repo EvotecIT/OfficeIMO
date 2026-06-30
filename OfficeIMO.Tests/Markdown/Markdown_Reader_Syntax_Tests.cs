@@ -3471,6 +3471,36 @@ See ![Badge][hero]
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Captures_Callout_LazyContinuation_Body_SourceSpans() {
+        var markdown = """
+> [!NOTE]
+Lazy body
+> quoted tail
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var callout = Assert.Single(result.SyntaxTree.Children);
+        Assert.Equal(MarkdownSyntaxKind.Callout, callout.Kind);
+        Assert.Equal(4, callout.Children.Count);
+        Assert.Equal(MarkdownSyntaxKind.CalloutOpeningMarker, callout.Children[0].Kind);
+        Assert.Equal(MarkdownSyntaxKind.CalloutKind, callout.Children[1].Kind);
+        Assert.Equal(MarkdownSyntaxKind.CalloutClosingMarker, callout.Children[2].Kind);
+
+        var paragraph = callout.Children[3];
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 3, 13), paragraph.SourceSpan);
+
+        var semanticCallout = Assert.IsType<CalloutBlock>(Assert.Single(result.Document.Blocks));
+        var semanticParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(semanticCallout.ChildBlocks));
+        Assert.Same(semanticParagraph, paragraph.AssociatedObject);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 3, 13), semanticParagraph.SourceSpan);
+
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(2, 5)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(3, 5)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Definition_List_Group_Spans() {
         var markdown = """
 Term: Definition

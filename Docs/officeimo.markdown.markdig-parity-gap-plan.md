@@ -165,6 +165,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
   - [x] Prove curated Markdig-compatible alert cases can be written and reparsed back to equivalent Markdig alert HTML.
   - [x] Broaden curated no-title alert fixture coverage across standard GitHub alert kinds, rich inline bodies, nested quotes, fenced code, lists, custom kinds, and multi-paragraph bodies.
   - [x] Cover Markdig alert parser boundaries for empty alerts, lazy-continuation body lines, lowercase kinds, and malformed markers that stay blockquotes.
+  - [x] Prove lazy-continuation alert body syntax/native source spans and source edits stay addressable across mixed unquoted and quoted body lines.
   - [ ] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
 - [x] Decide and close `UseCjkFriendlyEmphasis`.
   - [x] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof.

@@ -634,6 +634,41 @@ Inside
     }
 
     [Fact]
+    public void Callout_LazyContinuation_Body_SourceField_Uses_Unquoted_And_Quoted_Line_Spans() {
+        var markdown = """
+> [!NOTE]
+Lazy body
+> quoted tail
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var callout = Assert.IsType<MarkdownNativeCalloutBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 3, 13), callout.BodySourceSpan);
+
+        var calloutBody = Assert.Single(native.EnumerateBlockSourceFields("calloutBody"));
+        Assert.Same(callout, calloutBody.Block);
+        Assert.Equal("Lazy body quoted tail", calloutBody.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 3, 13), calloutBody.SourceSpan);
+
+        Assert.Equal("calloutBody", native.FindBlockSourceFieldAtPosition(2, 5)!.Name);
+        Assert.Equal("calloutBody", native.FindBlockSourceFieldAtPosition(3, 5)!.Name);
+
+        Assert.True(native.TryCreateSourceSlice(calloutBody, out var normalizedSlice));
+        Assert.Equal("Lazy body\n> quoted tail", normalizedSlice.Text.Replace("\r\n", "\n"));
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(1, snapshot.FieldSourceSpans["calloutBody"]!.StartColumn);
+        Assert.Equal(13, snapshot.FieldSourceSpans["calloutBody"]!.EndColumn);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "calloutBody"
+            && field.Value == "Lazy body quoted tail");
+
+        var edited = native.CreateReplaceEdit(calloutBody, "Updated lazy body").Apply(native.SourceMarkdown);
+        Assert.Contains("> [!NOTE]\nUpdated lazy body", edited.Replace("\r\n", "\n"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Quote_Body_SourceField_Uses_Structured_Child_Block_Span() {
         const string markdown = "> Old quote\n";
 

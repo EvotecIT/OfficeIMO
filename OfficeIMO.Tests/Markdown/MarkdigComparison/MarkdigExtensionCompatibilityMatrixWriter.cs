@@ -71,7 +71,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
 
         switch (row.MethodName) {
             case "UseAlertBlocks":
-                return new MatrixCells("Core plus renderer policy", "No-title, empty, lazy-continuation, lowercase, malformed-marker, and titled-boundary behavior covered", "Callout/alert marker, kind, title, body, and quote source fields are exposed", "Has opt-in Markdig alert HTML fallback plus curated writer/reparse proof", "Has expanded alert comparison; needs upstream-style GFM sweep", row.NextAction);
+                return new MatrixCells("Core plus renderer policy", "No-title, empty, lazy-continuation, lowercase, malformed-marker, and titled-boundary behavior covered", "Callout/alert marker, kind, title, body, lazy-continuation body, and quote source fields are exposed", "Has opt-in Markdig alert HTML fallback plus curated writer/reparse proof", "Has expanded alert comparison plus lazy-continuation syntax/native/source-edit proof; needs upstream-style GFM sweep", row.NextAction);
             case "UseCjkFriendlyEmphasis":
                 return new MatrixCells("Core delimiter option", "Partial delimiter behavior", "Needs delimiter token proof", "Mostly shared with emphasis rendering", "Needs CJK comparison fixtures", row.NextAction);
             case "UseCustomContainers":
