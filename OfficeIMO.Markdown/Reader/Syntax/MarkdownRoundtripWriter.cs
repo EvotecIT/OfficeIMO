@@ -77,11 +77,13 @@ public static class MarkdownRoundtripWriter {
                 "The parsed document was changed by one or more document transforms. Source edits were applied to normalized markdown instead of claiming a byte-preserving original-source roundtrip.",
                 GetTransformFallbackSpan(result) ?? editList[0].SourceSpan,
                 GetTransformFallbackRelatedSpans(result)));
+            AddKnownOriginalSourceFailureDiagnostics(editList, diagnostics);
         } else if (!result.PreservesOriginalMarkdown) {
             diagnostics.Add(new MarkdownRoundtripDiagnostic(
                 PreserveTriviaRequiredId,
                 "The parse result does not contain original reader input. Source edits were applied to normalized markdown. Parse with PreserveTrivia enabled before requesting a lossless source-edit roundtrip.",
                 editList[0].SourceSpan));
+            AddKnownOriginalSourceFailureDiagnostics(editList, diagnostics);
         } else if (TryCreateOriginalReplacements(result, editList, diagnostics, out var originalReplacements)) {
             return ApplyReplacements(result.OriginalMarkdown, originalReplacements, diagnostics);
         }
@@ -153,11 +155,16 @@ public static class MarkdownRoundtripWriter {
         var replacementList = new List<SourceReplacement>(edits.Count);
         for (var i = 0; i < edits.Count; i++) {
             var edit = edits[i];
+            if (edit.OriginalSourceFailureReason.HasValue) {
+                diagnostics.Add(CreateOriginalSourceSliceUnavailableDiagnostic(
+                    edit.SourceSpan,
+                    edit.OriginalSourceFailureReason.Value));
+                replacements = Array.Empty<SourceReplacement>();
+                return false;
+            }
+
             if (!result.TryCreateOriginalSourceSlice(edit.SourceSpan, out var slice, out var failureReason)) {
-                diagnostics.Add(new MarkdownRoundtripDiagnostic(
-                    OriginalSourceSliceUnavailableId,
-                    "At least one source edit could not be mapped back to original reader input. Source edits were applied to normalized markdown instead. Reason: " + FormatOriginalSourceSliceFailureReason(failureReason),
-                    edit.SourceSpan));
+                diagnostics.Add(CreateOriginalSourceSliceUnavailableDiagnostic(edit.SourceSpan, failureReason));
                 replacements = Array.Empty<SourceReplacement>();
                 return false;
             }
@@ -167,6 +174,30 @@ public static class MarkdownRoundtripWriter {
 
         replacements = replacementList.ToArray();
         return true;
+    }
+
+    private static void AddKnownOriginalSourceFailureDiagnostics(
+        IReadOnlyList<MarkdownNativeSourceEdit> edits,
+        ICollection<MarkdownRoundtripDiagnostic> diagnostics) {
+        for (var i = 0; i < edits.Count; i++) {
+            var edit = edits[i];
+            if (!edit.OriginalSourceFailureReason.HasValue) {
+                continue;
+            }
+
+            diagnostics.Add(CreateOriginalSourceSliceUnavailableDiagnostic(
+                edit.SourceSpan,
+                edit.OriginalSourceFailureReason.Value));
+        }
+    }
+
+    private static MarkdownRoundtripDiagnostic CreateOriginalSourceSliceUnavailableDiagnostic(
+        MarkdownSourceSpan sourceSpan,
+        MarkdownOriginalSourceSliceFailureReason failureReason) {
+        return new MarkdownRoundtripDiagnostic(
+            OriginalSourceSliceUnavailableId,
+            "At least one source edit could not be mapped back to original reader input. Source edits were applied to normalized markdown instead. Reason: " + FormatOriginalSourceSliceFailureReason(failureReason),
+            sourceSpan);
     }
 
     private static string FormatOriginalSourceSliceFailureReason(MarkdownOriginalSourceSliceFailureReason failureReason) =>

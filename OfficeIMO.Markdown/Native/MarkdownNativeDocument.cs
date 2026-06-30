@@ -236,11 +236,23 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Creates a non-mutating source edit that replaces a source span.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownSourceSpan sourceSpan, string replacementMarkdown) {
+        return CreateReplaceEdit(sourceSpan, replacementMarkdown, originalSourceFailureReason: null);
+    }
+
+    private MarkdownNativeSourceEdit CreateReplaceEdit(
+        MarkdownSourceSpan sourceSpan,
+        string replacementMarkdown,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason) {
         if (!TryResolveOffsets(sourceSpan, out var startOffset, out var endOffsetInclusive)) {
             throw new InvalidOperationException("The supplied source span cannot be mapped to offsets in this native document source.");
         }
 
-        return new MarkdownNativeSourceEdit(sourceSpan, startOffset, endOffsetInclusive, replacementMarkdown);
+        return new MarkdownNativeSourceEdit(
+            sourceSpan,
+            startOffset,
+            endOffsetInclusive,
+            replacementMarkdown,
+            originalSourceFailureReason);
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native block.</summary>
@@ -253,7 +265,10 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native block does not have a source span.");
         }
 
-        return CreateReplaceEdit(block.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            block.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(block.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native inline.</summary>
@@ -266,7 +281,10 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native inline does not have a source span.");
         }
 
-        return CreateReplaceEdit(inline.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            inline.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(inline.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces the source-backed content span of a native list item.</summary>
@@ -279,7 +297,10 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native list item does not have a source-backed content span.");
         }
 
-        return CreateReplaceEdit(listItem.ContentSourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            listItem.ContentSourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(listItem.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a reference-style link definition.</summary>
@@ -359,7 +380,10 @@ public sealed partial class MarkdownNativeDocument {
             throw new InvalidOperationException("The native inline metadata does not have a source span.");
         }
 
-        return CreateReplaceEdit(metadata.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            metadata.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(metadata.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces document-level source trivia.</summary>
@@ -369,6 +393,12 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         return CreateReplaceEdit(trivia.SourceSpan, replacementMarkdown);
+    }
+
+    private static MarkdownOriginalSourceSliceFailureReason? GetOriginalSourceFailureReason(MarkdownSyntaxNode? syntaxNode) {
+        return syntaxNode?.IsGenerated == true
+            ? MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode
+            : null;
     }
 
     private static MarkdownNativeBlock? FindBlockAtLine(MarkdownNativeBlock block, int lineNumber) {

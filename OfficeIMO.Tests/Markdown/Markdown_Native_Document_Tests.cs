@@ -2166,6 +2166,19 @@ beta
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, parseFailureReason);
         Assert.False(native.TryCreateOriginalSourceSlice(paragraph, out _, out var nativeFailureReason));
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, nativeFailureReason);
+
+        var edit = native.CreateReplaceEdit(paragraph, "updated");
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, edit.OriginalSourceFailureReason);
+        Assert.Equal("Term: updated", edit.Apply(native.SourceMarkdown));
+
+        var roundtrip = native.WriteWithSourceEdit(edit);
+        Assert.Equal("Term: updated", roundtrip.Markdown);
+        Assert.Contains(roundtrip.Diagnostics, item => item.Id == "roundtrip.document-transformed");
+        var sourceFailure = Assert.Single(
+            roundtrip.Diagnostics,
+            item => item.Id == "roundtrip.original-source-slice-unavailable");
+        Assert.Contains("generated from semantic content", sourceFailure.Message, StringComparison.Ordinal);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), sourceFailure.SourceSpan);
     }
 
     [Fact]
