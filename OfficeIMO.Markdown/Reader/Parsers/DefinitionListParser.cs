@@ -619,7 +619,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (PreviousDefinitionLineStartsNestedBlock(definitionSourceLines) &&
+        if (PreviousDefinitionLinesContainActiveNestedBlock(definitionSourceLines) &&
             CurrentLineInterruptsNestedDefinitionBlock(line)) {
             return false;
         }
@@ -668,7 +668,7 @@ public static partial class MarkdownReader {
         return previousNonBlankClosedFence && !inFence;
     }
 
-    private static bool PreviousDefinitionLineStartsNestedBlock(List<MarkdownSourceLineSlice> definitionSourceLines) {
+    private static bool PreviousDefinitionLinesContainActiveNestedBlock(List<MarkdownSourceLineSlice> definitionSourceLines) {
         if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
             return false;
         }
@@ -676,13 +676,15 @@ public static partial class MarkdownReader {
         for (int i = definitionSourceLines.Count - 1; i >= 0; i--) {
             var previous = definitionSourceLines[i].Text;
             if (string.IsNullOrWhiteSpace(previous)) {
-                continue;
+                return false;
             }
 
             var trimmed = previous.TrimStart();
-            return trimmed.StartsWith(">", StringComparison.Ordinal) ||
+            if (trimmed.StartsWith(">", StringComparison.Ordinal) ||
                 TryGetUnorderedListMarkerInfo(previous, out _, out _, out _) ||
-                TryGetOrderedListMarkerInfo(previous, out _, out _, out _, out _);
+                TryGetOrderedListMarkerInfo(previous, out _, out _, out _, out _)) {
+                return true;
+            }
         }
 
         return false;
@@ -694,7 +696,7 @@ public static partial class MarkdownReader {
         }
 
         return IsAtxHeading(line, out _, out _) ||
-            IsParagraphInterruptingThematicBreakLine(line);
+            LooksLikeHr(line);
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {
