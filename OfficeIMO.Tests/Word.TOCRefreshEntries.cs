@@ -51,6 +51,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshEntriesCountsEveryExplicitPageBreak() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesMultipleBreaks.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 1);
+                document.AddParagraph("First").SetStyle(WordParagraphStyles.Heading1);
+                AppendBodyParagraph(document, new Paragraph(
+                    new Run(new Break { Type = BreakValues.Page }),
+                    new Run(new Break { Type = BreakValues.Page })));
+                document.AddParagraph("Second").SetStyle(WordParagraphStyles.Heading1);
+
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                Assert.Equal(new[] { "First", "Second" }, report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.Equal(new[] { 1, 3 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshEntriesReplacesExistingEntriesAndHonorsLevelRange() {
             string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesReplace.docx");
 
@@ -1020,6 +1039,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshCaptionListCountsEveryExplicitPageBreak() {
+            string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresMultipleBreaks.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent list = document.AddTableOfContent();
+                AddGeneratedCaptionParagraph(document, "FigureOne", "Figure", "First diagram");
+                AppendBodyParagraph(document, new Paragraph(
+                    new Run(new Break { Type = BreakValues.Page }),
+                    new Run(new Break { Type = BreakValues.Page })));
+                AddGeneratedCaptionParagraph(document, "FigureTwo", "Figure", "Second diagram");
+
+                document.UpdateFieldsAndGetReport();
+                WordCaptionListRefreshReport report = list.RefreshListOfFigures();
+
+                Assert.Equal(new[] { "Figure 1 First diagram", "Figure 2 Second diagram" }, report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.Equal(new[] { 1, 3 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshCaptionListHonorsImportedPageNumberSeparator() {
             string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresPageNumberSeparator.docx");
 
@@ -1787,6 +1826,26 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Gamma", indexText);
                 Assert.Contains("See Beta", indexText);
                 Assert.DoesNotContain("Delta", indexText);
+            }
+        }
+
+        [Fact]
+        public void Test_TableOfContent_RefreshIndexCountsEveryExplicitPageBreak() {
+            string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshEntriesMultipleBreaks.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent index = document.AddTableOfContent();
+                AddIndexEntryParagraph(document, "Alpha topic", " XE \"Alpha\" ");
+                AppendBodyParagraph(document, new Paragraph(
+                    new Run(new Break { Type = BreakValues.Page }),
+                    new Run(new Break { Type = BreakValues.Page })));
+                AddIndexEntryParagraph(document, "Beta topic", " XE \"Beta\" ");
+
+                WordIndexRefreshReport report = index.RefreshIndex("Generated Index");
+
+                Assert.Equal(new[] { "Alpha", "Beta" }, report.Entries.Select(entry => entry.Term).ToArray());
+                Assert.Equal(new[] { 1 }, report.Entries[0].PageNumbers);
+                Assert.Equal(new[] { 3 }, report.Entries[1].PageNumbers);
             }
         }
 

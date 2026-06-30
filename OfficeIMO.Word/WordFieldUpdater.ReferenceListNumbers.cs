@@ -81,36 +81,40 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                Dictionary<int, int> starts = abstractNum.Elements<Level>()
+                Dictionary<int, ReferenceLevelDefinition> levels = abstractNum.Elements<Level>()
                     .Where(level => level.LevelIndex?.Value != null)
                     .ToDictionary(
                         level => level.LevelIndex!.Value,
-                        level => level.StartNumberingValue?.Val?.Value ?? 1);
+                        level => CreateReferenceLevelDefinition(level, level.StartNumberingValue?.Val?.Value ?? 1));
 
                 foreach (LevelOverride levelOverride in instance.Elements<LevelOverride>()) {
                     if (levelOverride.LevelIndex?.Value == null) {
                         continue;
                     }
 
-                    int? overrideStart = levelOverride.GetFirstChild<StartOverrideNumberingValue>()?.Val?.Value;
-                    if (overrideStart.HasValue) {
-                        starts[levelOverride.LevelIndex.Value] = overrideStart.Value;
+                    int levelIndex = levelOverride.LevelIndex.Value;
+                    int start = levelOverride.GetFirstChild<StartOverrideNumberingValue>()?.Val?.Value
+                        ?? levelOverride.GetFirstChild<Level>()?.StartNumberingValue?.Val?.Value
+                        ?? (levels.TryGetValue(levelIndex, out ReferenceLevelDefinition existingStartLevel) ? existingStartLevel.Start : 1);
+                    Level? overrideLevel = levelOverride.GetFirstChild<Level>();
+                    if (overrideLevel != null) {
+                        levels[levelIndex] = CreateReferenceLevelDefinition(overrideLevel, start);
+                    } else if (levels.TryGetValue(levelIndex, out ReferenceLevelDefinition existingLevel)) {
+                        levels[levelIndex] = new ReferenceLevelDefinition(existingLevel.NumberFormat, existingLevel.LevelText, start);
                     }
                 }
-
-                Dictionary<int, ReferenceLevelDefinition> levels = abstractNum.Elements<Level>()
-                    .Where(level => level.LevelIndex?.Value != null)
-                    .ToDictionary(
-                        level => level.LevelIndex!.Value,
-                        level => new ReferenceLevelDefinition(
-                            level.NumberingFormat?.Val?.Value,
-                            level.LevelText?.Val?.Value,
-                            starts.TryGetValue(level.LevelIndex!.Value, out int start) ? start : 1));
 
                 result[numberId] = new ReferenceNumberingDefinition(levels);
             }
 
             return result;
+        }
+
+        private static ReferenceLevelDefinition CreateReferenceLevelDefinition(Level level, int start) {
+            return new ReferenceLevelDefinition(
+                level.NumberingFormat?.Val?.Value,
+                level.LevelText?.Val?.Value,
+                start);
         }
 
         private static bool TryBuildReferenceListSnapshot(

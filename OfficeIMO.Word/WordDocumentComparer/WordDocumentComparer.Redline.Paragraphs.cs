@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
                             RedlineParagraphEntry sourceEntry = sourceParagraphs[sourceIndex];
                             deletedParagraphOffsets.TryGetValue(sourceEntry.PartKey, out int deletedOffset);
                             int targetLocalIndex = Math.Max(0, sourceEntry.LocalIndex - deletedOffset);
-                            InsertDeletedParagraph(targetParagraphs, sourceEntry, targetLocalIndex, finding.SourceText!, options);
+                            InsertDeletedParagraph(targetDocument, targetParagraphs, sourceEntry, targetLocalIndex, finding.SourceText!, options);
                             deletedParagraphOffsets[sourceEntry.PartKey] = deletedOffset + 1;
                         }
 
@@ -304,12 +304,8 @@ namespace OfficeIMO.Word {
             return paragraph.Ancestors<SdtElement>().Any() || paragraph.Descendants<SdtElement>().Any();
         }
 
-        private static void InsertDeletedParagraph(IReadOnlyList<RedlineParagraphEntry> targetParagraphs, RedlineParagraphEntry sourceEntry, int targetLocalIndex, string deletedText, WordComparisonRedlineOptions options) {
+        private static void InsertDeletedParagraph(WordprocessingDocument targetDocument, IReadOnlyList<RedlineParagraphEntry> targetParagraphs, RedlineParagraphEntry sourceEntry, int targetLocalIndex, string deletedText, WordComparisonRedlineOptions options) {
             RedlineParagraphEntry? firstTargetPartEntry = targetParagraphs.FirstOrDefault(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal));
-            if (firstTargetPartEntry == null) {
-                return;
-            }
-
             var paragraph = new Paragraph();
             paragraph.Append(CreateDeletedRun(deletedText, options));
 
@@ -322,7 +318,10 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            AppendRedlineParagraph(firstTargetPartEntry.Container, paragraph);
+            OpenXmlCompositeElement? targetContainer = firstTargetPartEntry?.Container ?? GetRedlineContainerByPartKey(targetDocument, sourceEntry.PartKey);
+            if (targetContainer != null) {
+                AppendRedlineParagraph(targetContainer, paragraph);
+            }
         }
 
         private static void AppendRedlineParagraph(OpenXmlCompositeElement container, Paragraph paragraph) {

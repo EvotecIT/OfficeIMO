@@ -1365,6 +1365,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_UsesNumberingLevelOverridesForRefListNumbers() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ReferenceListNumbers.LevelOverride.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                int numberingId = AddReferenceNumberingDefinition(document, "%1");
+                Numbering numbering = document._wordprocessingDocument.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+                NumberingInstance instance = numbering.Elements<NumberingInstance>().Single(item => item.NumberID?.Value == numberingId);
+                instance.Append(new LevelOverride(
+                    new Level(
+                        new StartNumberingValue { Val = 1 },
+                        new NumberingFormat { Val = NumberFormatValues.UpperRoman },
+                        new LevelText { Val = "Article %1" }) {
+                        LevelIndex = 0
+                    }) {
+                    LevelIndex = 0
+                });
+
+                WordParagraph target = document.AddParagraph("Override target");
+                target._paragraph.ParagraphProperties = new ParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = numberingId }));
+                target.AddBookmark("OverrideTarget");
+                document.AddParagraph("Override reference: ")._paragraph.Append(BuildSimpleField(" REF OverrideTarget \\n ", "stale-n"));
+                document.AddParagraph("Override full reference: ")._paragraph.Append(BuildSimpleField(" REF OverrideTarget \\w ", "stale-w"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Equal(2, report.TotalCount);
+                Assert.Equal(2, report.UpdatedCount);
+                Assert.Equal(0, report.UnsupportedCount);
+                Assert.Equal(new[] { "I", "Article I" }, report.Results.Select(result => result.ResultText).ToArray());
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesRefListNumberSwitchesFromParagraphStyles() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ReferenceListNumbers.ParagraphStyles.docx");
 
@@ -1608,6 +1647,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Formula: ")._paragraph.Append(BuildSimpleField(" = 2 + 3 * (4 + 1) ", "stale"));
+                document.AddParagraph("Formula with trailing switch: ")._paragraph.Append(BuildSimpleField(" = 2 + 3 \\* MERGEFORMAT ", "stale-mergeformat"));
                 document.AddParagraph("Decimal formula: ")._paragraph.Append(BuildSimpleField(" = 7 / 2 ", "stale"));
                 document.AddParagraph("Sum formula: ")._paragraph.Append(BuildSimpleField(" = SUM(1, 2, 3 + 4) ", "stale"));
                 document.AddParagraph("Average formula: ")._paragraph.Append(BuildSimpleField(" = AVERAGE(2, 4, 6) ", "stale"));
@@ -1630,12 +1670,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(17, report.TotalCount);
-                Assert.Equal(16, report.UpdatedCount);
+                Assert.Equal(18, report.TotalCount);
+                Assert.Equal(17, report.UpdatedCount);
                 Assert.Equal(1, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
 
-                Assert.Equal(new[] { "17", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0" }, report.Results
+                Assert.Equal(new[] { "17", "5", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.Formula && result.Status == WordFieldUpdateStatus.Updated)
                     .Select(result => result.ResultText)
                     .ToArray());
@@ -1653,7 +1693,7 @@ namespace OfficeIMO.Tests {
                     .Where(field => field.FieldType == WordFieldType.Formula)
                     .ToArray();
 
-                Assert.Equal(new[] { "17", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0", "stale" }, fields.Select(field => field.ResultText).ToArray());
+                Assert.Equal(new[] { "17", "5", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0", "stale" }, fields.Select(field => field.ResultText).ToArray());
             }
         }
 

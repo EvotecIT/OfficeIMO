@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
             RewriteTableWithTrackedText(deletedTable, trackInserted: false, options);
             RemoveEmptyWordColorAttributes(deletedTable);
 
-            if (TryInsertDeletedNestedTable(sourceTables, targetTables, sourceEntry.Table, deletedTable)) {
+            if (TryInsertDeletedNestedTable(sourceTables, targetTables, sourceEntry, deletedTable)) {
                 return;
             }
 
@@ -145,6 +145,21 @@ namespace OfficeIMO.Word {
                 string.Join("\u001f", row.Elements<TableCell>().Select(cell => cell.InnerText).ToArray())).ToArray());
         }
 
+        private static string GetRedlineTableSurfaceIdentity(Table table) {
+            return string.Join("\u001e", table.Elements<TableRow>().Select(row =>
+                string.Join("\u001f", row.Elements<TableCell>().Select(cell => GetCellSurfaceText(table, cell)).ToArray())).ToArray());
+        }
+
+        private static string GetCellSurfaceText(Table ownerTable, TableCell cell) {
+            return string.Concat(cell.Descendants<Text>()
+                .Where(text => ReferenceEquals(text.Ancestors<Table>().FirstOrDefault(), ownerTable))
+                .Select(text => text.Text));
+        }
+
+        private static bool IsNestedTable(Table table) {
+            return table.Ancestors<TableCell>().Any();
+        }
+
         private static void InsertBeforeTableAnchor(Table anchorTable, OpenXmlElement deletedTable, Dictionary<Table, OpenXmlElement> insertedBeforeTableAnchors) {
             if (insertedBeforeTableAnchors.TryGetValue(anchorTable, out OpenXmlElement? previousInserted)) {
                 previousInserted.InsertAfterSelf(deletedTable);
@@ -218,14 +233,17 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static bool TryInsertDeletedNestedTable(IReadOnlyList<RedlineTableEntry> sourceTables, IReadOnlyList<RedlineTableEntry> targetTables, Table sourceTable, Table deletedTable) {
-            if (!TryGetNestedTablePlacement(sourceTables, sourceTable, out NestedTablePlacement placement) ||
-                placement.ParentTableIndex < 0 ||
-                placement.ParentTableIndex >= targetTables.Count) {
+        private static bool TryInsertDeletedNestedTable(IReadOnlyList<RedlineTableEntry> sourceTables, IReadOnlyList<RedlineTableEntry> targetTables, RedlineTableEntry sourceEntry, Table deletedTable) {
+            if (!TryGetNestedTablePlacement(sourceTables, sourceEntry.Table, out NestedTablePlacement placement)) {
                 return false;
             }
 
-            Table targetParentTable = targetTables[placement.ParentTableIndex].Table;
+            RedlineTableEntry? targetParentEntry = FindTargetParentTableForNestedDeletion(sourceTables, targetTables, sourceEntry, placement);
+            if (targetParentEntry == null) {
+                return false;
+            }
+
+            Table targetParentTable = targetParentEntry.Table;
             List<TableRow> targetRows = targetParentTable.Elements<TableRow>().ToList();
             if (placement.RowIndex < 0 || placement.RowIndex >= targetRows.Count) {
                 return false;
@@ -238,6 +256,35 @@ namespace OfficeIMO.Word {
 
             InsertNestedTableIntoCell(targetCells[placement.CellIndex], deletedTable);
             return true;
+        }
+
+        private static RedlineTableEntry? FindTargetParentTableForNestedDeletion(
+            IReadOnlyList<RedlineTableEntry> sourceTables,
+            IReadOnlyList<RedlineTableEntry> targetTables,
+            RedlineTableEntry sourceEntry,
+            NestedTablePlacement placement) {
+            if (placement.ParentTableIndex < 0 || placement.ParentTableIndex >= sourceTables.Count) {
+                return null;
+            }
+
+            RedlineTableEntry sourceParentEntry = sourceTables[placement.ParentTableIndex];
+            string parentSurfaceIdentity = GetRedlineTableSurfaceIdentity(sourceParentEntry.Table);
+            RedlineTableEntry? surfaceMatch = targetTables
+                .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal) &&
+                                !IsNestedTable(entry.Table) &&
+                                string.Equals(GetRedlineTableSurfaceIdentity(entry.Table), parentSurfaceIdentity, StringComparison.Ordinal))
+                .OrderBy(entry => Math.Abs(entry.LocalIndex - sourceParentEntry.LocalIndex))
+                .FirstOrDefault();
+            if (surfaceMatch != null) {
+                return surfaceMatch;
+            }
+
+            return targetTables
+                .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal) &&
+                                !IsNestedTable(entry.Table) &&
+                                entry.LocalIndex <= sourceParentEntry.LocalIndex)
+                .OrderByDescending(entry => entry.LocalIndex)
+                .FirstOrDefault();
         }
 
         private static bool TryGetNestedTablePlacement(IReadOnlyList<RedlineTableEntry> sourceTables, Table sourceTable, out NestedTablePlacement placement) {

@@ -61,7 +61,7 @@ namespace OfficeIMO.Word {
                 }
 
                 bool overlaps = false;
-                bool formattingChanged = false;
+                int? sourceRunIndex = null;
                 foreach (RunTextSegment sourceSegment in sourceSegments) {
                     if (!sourceSegment.Overlaps(targetSegment)) {
                         continue;
@@ -69,12 +69,12 @@ namespace OfficeIMO.Word {
 
                     overlaps = true;
                     if (!string.Equals(sourceSegment.FormatSignature, targetSegment.FormatSignature, StringComparison.Ordinal)) {
-                        formattingChanged = true;
+                        sourceRunIndex = sourceSegment.Run.Index;
                         break;
                     }
                 }
 
-                if (!overlaps || !formattingChanged) {
+                if (!overlaps || sourceRunIndex == null) {
                     continue;
                 }
 
@@ -82,7 +82,7 @@ namespace OfficeIMO.Word {
                     WordComparisonScope.Run,
                     WordComparisonChangeKind.Modified,
                     RunLocation(targetParagraphIndex, targetSegment.Run.Index),
-                    targetSegment.Run.Index,
+                    sourceRunIndex.Value,
                     targetSegment.Run.Index,
                     targetSegment.Run.Text,
                     targetSegment.Run.Text,

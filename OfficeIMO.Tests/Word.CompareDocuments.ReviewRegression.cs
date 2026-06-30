@@ -257,6 +257,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceRunFormattingUsesOverlappingSourceRunForResegmentedText() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_resegmented_run_format_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("A") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(
+                        new RunProperties(new Bold()),
+                        new Text("B") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_resegmented_run_format_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("AB") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_resegmented_run_format_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Message == "Run formatting changed.");
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph changedParagraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), paragraph => paragraph.InnerText == "AB");
+            Run changedRun = Assert.Single(changedParagraph.Elements<Run>());
+            PreviousRunProperties previousProperties = Assert.IsType<PreviousRunProperties>(changedRun.RunProperties?.RunPropertiesChange?.FirstChild);
+            Assert.NotNull(previousProperties.GetFirstChild<Bold>());
+        }
+
+        [Fact]
         public void CompareStructureInPlacePreservesConsecutiveDeletedImageOrder() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_source.docx");
             string firstImage = Path.Combine(_directoryWithImages, "Kulek.jpg");
@@ -360,6 +398,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceInsertsDeletedParagraphWhenTargetPartHasNoParagraphEntries() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddHeadersAndFooters();
+                Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
+                header.RemoveAllChildren();
+                header.Append(new Paragraph(new Run(new Text("Deleted header paragraph") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddHeadersAndFooters();
+                Header header = document._wordprocessingDocument.MainDocumentPart!.HeaderParts.Single().Header!;
+                header.RemoveAllChildren();
+                header.Append(CreateSingleCellTable("Header table remains"));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_empty_part_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(outputPath, false);
+            HeaderPart headerPart = Assert.Single(package.MainDocumentPart!.HeaderParts);
+            Assert.Contains(headerPart.Header.Descendants<DeletedRun>(), run => run.InnerText == "Deleted header paragraph");
+            Assert.DoesNotContain(package.MainDocumentPart.Document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "Deleted header paragraph");
+        }
+
+        [Fact]
         public void CompareStructureInPlacePreservesConsecutiveDeletedTableOrder() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_table_order_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -388,6 +462,41 @@ namespace OfficeIMO.Tests {
             using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
             string[] tableTexts = redline._document.Body!.Elements<Table>().Select(table => table.InnerText).ToArray();
             Assert.Equal(new[] { "Deleted A", "Deleted B", "Stable C" }, tableTexts);
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceMapsDeletedNestedTableToSurvivingParentTable() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_nested_table_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document._document.Body!.Append(CreateSingleCellTable("Deleted top table"));
+                document._document.Body!.Append(CreateSingleCellTable(
+                    "Parent stable",
+                    CreateSingleCellTable("Nested deleted")));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_nested_table_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document._document.Body!.Append(CreateSingleCellTable("Parent stable"));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_nested_table_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Table[] topLevelTables = redline._document.Body!.Elements<Table>().ToArray();
+            Assert.Equal(2, topLevelTables.Length);
+            Assert.Contains(topLevelTables[0].Descendants<DeletedRun>(), run => run.InnerText == "Deleted top table");
+            Table nestedTable = Assert.Single(topLevelTables[1].Descendants<Table>());
+            Assert.Contains(nestedTable.Descendants<DeletedRun>(), run => run.InnerText == "Nested deleted");
         }
 
         [Fact]
@@ -931,6 +1040,20 @@ namespace OfficeIMO.Tests {
             }
 
             return images;
+        }
+
+        private static Table CreateSingleCellTable(string text, params OpenXmlElement[] additionalCellChildren) {
+            var cell = new TableCell(
+                new TableCellProperties(new TableCellWidth { Width = "5000", Type = TableWidthUnitValues.Dxa }),
+                new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+            foreach (OpenXmlElement child in additionalCellChildren) {
+                cell.Append(child);
+            }
+
+            return new Table(
+                new TableProperties(new TableWidth { Width = "0", Type = TableWidthUnitValues.Auto }),
+                new TableGrid(new GridColumn { Width = "5000" }),
+                new TableRow(cell));
         }
 
         private static void CreateContentControlRegressionDocument(string path, params (string Alias, string Tag, string Text)[] controls) {
