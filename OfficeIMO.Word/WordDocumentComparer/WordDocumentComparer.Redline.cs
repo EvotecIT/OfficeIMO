@@ -39,7 +39,7 @@ namespace OfficeIMO.Word {
                 AppendRedlineFindingsTable(document, result);
             }
 
-            if (options.TrackTextFindings) {
+            if (ShouldAppendTrackedRedlineFindings(options)) {
                 AppendTrackedRedlineFindings(document, result, options);
             }
 
@@ -551,6 +551,13 @@ namespace OfficeIMO.Word {
             if (!wroteAnyRevision) {
                 document.AddParagraph("No tracked changes were generated because the selected redline policy kept all findings report-only.");
             }
+        }
+
+        private static bool ShouldAppendTrackedRedlineFindings(WordComparisonRedlineOptions options) {
+            return options.TrackTextFindings ||
+                   options.TrackFeatureFindings ||
+                   options.TrackReviewFindings ||
+                   options.TrackFormattingFindings;
         }
 
         private static bool ShouldTrackFinding(WordComparisonFinding finding, WordComparisonRedlineOptions options) {

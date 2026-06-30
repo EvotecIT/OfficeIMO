@@ -105,8 +105,13 @@ namespace OfficeIMO.Word {
                 "|",
                 revision.LocationKind.ToString(),
                 revision.PartUri,
-                revision.Index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                revision.ElementName);
+                revision.RevisionType.ToString(),
+                revision.ElementName,
+                NormalizeFeatureText(revision.AffectedText),
+                NormalizeFeatureText(revision.LocationText),
+                revision.IsInTable ? "table" : string.Empty,
+                revision.IsInContentControl ? "content-control" : string.Empty,
+                revision.IsInTextBox ? "text-box" : string.Empty);
         }
 
         private static string GetRevisionSignature(WordRevisionInfo revision, WordComparisonOptions options) {

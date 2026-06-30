@@ -136,7 +136,7 @@ namespace OfficeIMO.Word {
             return document.InspectFields()
                 .Select(field => new FieldSnapshot(
                     field.Index,
-                    GetFieldMatchKey(field),
+                    GetFieldMatchKey(field, options),
                     GetFieldSignature(field, options),
                     GetFieldDisplayText(field),
                     GetFieldDetailedLocation(field),
@@ -144,13 +144,18 @@ namespace OfficeIMO.Word {
                 .ToList();
         }
 
-        private static string GetFieldMatchKey(WordFieldInfo field) {
+        private static string GetFieldMatchKey(WordFieldInfo field, WordComparisonOptions options) {
             return string.Join(
                 "|",
                 field.LocationKind.ToString(),
                 field.PartUri,
-                field.Index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                field.Representation.ToString());
+                field.Representation.ToString(),
+                field.FieldType?.ToString() ?? string.Empty,
+                NormalizeComparisonText(field.InstructionText, options),
+                field.NestingLevel.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                field.IsInTable ? "table" : string.Empty,
+                field.IsInContentControl ? "content-control" : string.Empty,
+                field.IsInTextBox ? "text-box" : string.Empty);
         }
 
         private static string GetFieldSignature(WordFieldInfo field, WordComparisonOptions options) {
@@ -209,8 +214,13 @@ namespace OfficeIMO.Word {
                         "|",
                         root.LocationKind.ToString(),
                         root.PartUri,
-                        snapshots.Count.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                        contentControl.LocalName);
+                        contentControl.LocalName,
+                        NormalizeComparisonText(alias, options),
+                        NormalizeComparisonText(tag, options),
+                        NormalizeComparisonText(bindingText, options),
+                        IsInTableFeature(contentControl) ? "table" : string.Empty,
+                        IsInContentControlFeature(contentControl) ? "nested-content-control" : string.Empty,
+                        IsInTextBoxFeature(contentControl) ? "text-box" : string.Empty);
                     string signature = string.Join(
                         "|",
                         contentControl.LocalName,

@@ -97,14 +97,16 @@ namespace OfficeIMO.Word {
             int runIndex,
             WordComparisonFinding finding,
             WordComparisonRedlineOptions options) {
+            int sourceParagraphIndex = FindSourceParagraphIndex(sourceParagraphs, targetParagraph, paragraphIndex);
             if (!string.Equals(finding.Message, "Run formatting changed.", StringComparison.Ordinal) ||
                 finding.ChangeKind != WordComparisonChangeKind.Modified ||
-                paragraphIndex >= sourceParagraphs.Count) {
+                sourceParagraphIndex < 0 ||
+                sourceParagraphIndex >= sourceParagraphs.Count) {
                 return;
             }
 
             int sourceRunIndex = finding.SourceIndex ?? runIndex;
-            List<Run> sourceRuns = GetDirectParagraphRuns(sourceParagraphs[paragraphIndex].Paragraph);
+            List<Run> sourceRuns = GetDirectParagraphRuns(sourceParagraphs[sourceParagraphIndex].Paragraph);
             List<Run> targetRuns = GetDirectParagraphRuns(targetParagraph);
             if (sourceRunIndex < 0 ||
                 sourceRunIndex >= sourceRuns.Count ||
@@ -120,6 +122,19 @@ namespace OfficeIMO.Word {
             }
 
             targetRun.RunProperties.RunPropertiesChange = CreateRunPropertiesChange(sourceRuns[sourceRunIndex].RunProperties, options);
+        }
+
+        private static int FindSourceParagraphIndex(IReadOnlyList<RedlineParagraphEntry> sourceParagraphs, Paragraph targetParagraph, int fallbackIndex) {
+            string targetText = GetParagraphText(targetParagraph);
+            if (!string.IsNullOrEmpty(targetText)) {
+                for (int index = 0; index < sourceParagraphs.Count; index++) {
+                    if (string.Equals(GetParagraphText(sourceParagraphs[index].Paragraph), targetText, StringComparison.Ordinal)) {
+                        return index;
+                    }
+                }
+            }
+
+            return fallbackIndex;
         }
 
         private static List<Run> GetDirectParagraphRuns(Paragraph paragraph) {
