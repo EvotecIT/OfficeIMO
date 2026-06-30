@@ -10,7 +10,7 @@ namespace OfficeIMO.Word {
             RegexOptions.CultureInvariant);
 
         private static readonly Regex SupportedNumericPictureSwitchPattern = new Regex(
-            @"^(?<instruction>.*?)\s+\\#\s*(?<format>""[^""]*""|\S+)\s*$",
+            @"^(?<instruction>.*?)\s+\\#\s*(?<format>""[^""]*""|[^\s\\]+)(?<suffix>.*)$",
             RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
         internal static IReadOnlyList<WordFieldInfo> Inspect(WordDocument document) {
@@ -258,7 +258,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            instructionWithoutPicture = match.Groups["instruction"].Value.Trim();
+            instructionWithoutPicture = (match.Groups["instruction"].Value + match.Groups["suffix"].Value).Trim();
             numericPicture = match.Groups["format"].Value.Trim();
             return true;
         }

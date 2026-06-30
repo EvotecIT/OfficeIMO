@@ -70,8 +70,9 @@ namespace OfficeIMO.Word {
             ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyTableCellFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyTableRowFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            AppendInPlaceReviewFindings(document, result, options);
 
-            document.Save(false);
+            document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
         }
 
         private static bool HasTrackedText(WordComparisonFinding finding) {
@@ -550,6 +551,36 @@ namespace OfficeIMO.Word {
 
             if (!wroteAnyRevision) {
                 document.AddParagraph("No tracked changes were generated because the selected redline policy kept all findings report-only.");
+            }
+        }
+
+        private static void AppendInPlaceReviewFindings(WordDocument document, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            WordComparisonFinding[] reviewFindings = result.Findings
+                .Where(finding => IsReviewFinding(finding) && ShouldTrackFinding(finding, options))
+                .ToArray();
+            if (reviewFindings.Length == 0) {
+                return;
+            }
+
+            document.AddParagraph("Tracked Review Changes").SetStyle(WordParagraphStyles.Heading2);
+            foreach (WordComparisonFinding finding in reviewFindings) {
+                document.AddParagraph(finding.Location + " - " + finding.Scope + " " + finding.ChangeKind);
+                WordParagraph paragraph = document.AddParagraph();
+                bool wroteRevision = false;
+
+                if (ShouldEmitDeletedText(finding)) {
+                    paragraph.AddDeletedText(finding.SourceText!, options.Author, options.DateTime);
+                    wroteRevision = true;
+                }
+
+                if (ShouldEmitInsertedText(finding)) {
+                    paragraph.AddInsertedText(finding.TargetText!, options.Author, options.DateTime);
+                    wroteRevision = true;
+                }
+
+                if (!wroteRevision) {
+                    paragraph.SetText(finding.Message);
+                }
             }
         }
 
