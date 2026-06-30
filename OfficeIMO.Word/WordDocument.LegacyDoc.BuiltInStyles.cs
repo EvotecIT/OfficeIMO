@@ -108,6 +108,14 @@ namespace OfficeIMO.Word {
             if (paragraphFormat.AvoidWidowAndOrphan == true) {
                 ReplaceStyleProperty(properties, new WidowControl());
             }
+
+            if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
+                ReplaceStyleProperty(properties, new Shading {
+                    Val = ShadingPatternValues.Clear,
+                    Color = "auto",
+                    Fill = paragraphFormat.ParagraphShading.Value.FillColorHex!
+                });
+            }
         }
 
         private static void MergeLegacyDocBuiltInStyleRunFormatting(Style style, LegacyDocCharacterFormat characterFormat) {

@@ -299,6 +299,8 @@ just to reserve names.
     alignment, spacing, bold, underline, highlight, color, and size projection.
   - [x] Preserve DOC stylesheet inheritance across built-in and custom styles,
     with a custom style inheriting from a formatted Heading 1 fixture.
+  - [x] Project built-in style-level paragraph shading from DOC `sprmPShd80`
+    into the merged OpenXML style definition.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.

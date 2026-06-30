@@ -718,6 +718,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(TabStopValues.Right, tabStops[1].Val!.Value);
             Assert.Equal(TabStopLeaderCharValues.Underscore, tabStops[1].Leader!.Value);
             Assert.Equal(4320, tabStops[1].Position!.Value);
+            Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
+            Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
+            Assert.Equal("auto", shading.Color!.Value);
+            Assert.Equal("ff0000", shading.Fill!.Value);
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
             Assert.NotNull(runProperties.GetFirstChild<BoldComplexScript>());
@@ -4083,6 +4087,7 @@ namespace OfficeIMO.Tests {
                             CreateParagraphSprm(0x2461, 1),
                             CreateParagraphSprm(0xA413, 0xF0, 0x00),
                             CreateParagraphSprm(0xA414, 0x78, 0x00),
+                            CreateParagraphSprm(0x442D, 0xC0, 0x00),
                             CreateParagraphTabStopsSprm(
                                 Array.Empty<int>(),
                                 (1440, 0, 0),
