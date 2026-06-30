@@ -684,7 +684,8 @@ just to reserve names.
     flattening conditional style paragraph properties into native DOC cell
     paragraph PAPX records for matching table regions, while preserving direct
     paragraph formatting as the override.
-  - [x] Read and write simple external body, table, header, and footer
+  - [x] Read and write simple external body, table, header, footer, footnote,
+    and endnote
     hyperlinks through native DOC `HYPERLINK` field characters, then reload
     them as normal OfficeIMO `WordHyperLink` objects while continuing to block
     internal bookmark links before bytes are committed.

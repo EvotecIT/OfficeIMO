@@ -27,7 +27,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate endnote id '{id.Value}'.");
                 }
 
-                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value));
+                stories.Add(id.Value, ReadSimpleEndnoteStory(endnote, id.Value, mainPart.EndnotesPart!));
             }
 
             return stories.Count == 0
@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : new LegacyDocWritableEndnotes(stories);
         }
 
-        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id) {
+        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id, EndnotesPart relationshipOwner) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         int paragraphStart = isFirstParagraph ? 0 : builder.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, builder.Length, isFirstParagraph, out string paragraphText);
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
                         if (!string.IsNullOrEmpty(paragraphText)) {
                             hasBodyText = true;
                         }
@@ -73,7 +73,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs);
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart, bool isFirstParagraph, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, out string paragraphText) {
             var builder = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "endnote", EndnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
@@ -87,8 +87,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Run run:
                         AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
                         break;
+                    case Hyperlink hyperlink:
+                        AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "endnote", storyStart);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only. Unsupported endnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs and simple external hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
                 }
             }
 

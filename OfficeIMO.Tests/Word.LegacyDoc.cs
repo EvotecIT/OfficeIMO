@@ -1899,6 +1899,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteExternalHyperlinksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with linked notes");
+
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote ");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    footnoteBody.AddHyperLink("site", new Uri("https://officeimo.net/footnote"), addStyle: true);
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote ");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    endnoteBody.AddHyperLink("mail", new Uri("mailto:endnote@example.org"), addStyle: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Equal("Body with linked notes", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                IReadOnlyList<WordParagraph> footnoteRuns = footnote.Paragraphs!;
+                string footnoteText = string.Concat(footnoteRuns.Select(run => run.IsHyperLink ? run.Hyperlink!.Text : run.Text));
+                Assert.Equal("footnote site", footnoteText);
+                Assert.DoesNotContain("HYPERLINK", footnoteText, StringComparison.Ordinal);
+                WordHyperLink? footnoteLink = footnoteRuns
+                    .Where(run => run.IsHyperLink)
+                    .Select(run => run.Hyperlink)
+                    .FirstOrDefault(link => link?.Text == "site");
+                Assert.NotNull(footnoteLink);
+                Assert.Equal("https://officeimo.net/footnote", footnoteLink.Uri?.ToString());
+
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                IReadOnlyList<WordParagraph> endnoteRuns = endnote.Paragraphs!;
+                string endnoteText = string.Concat(endnoteRuns.Select(run => run.IsHyperLink ? run.Hyperlink!.Text : run.Text));
+                Assert.Equal("endnote mail", endnoteText);
+                Assert.DoesNotContain("HYPERLINK", endnoteText, StringComparison.Ordinal);
+                WordHyperLink? endnoteLink = endnoteRuns
+                    .Where(run => run.IsHyperLink)
+                    .Select(run => run.Hyperlink)
+                    .FirstOrDefault(link => link?.Text == "mail");
+                Assert.NotNull(endnoteLink);
+                Assert.Equal("mailto:endnote@example.org", endnoteLink.Uri?.ToString());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedHeaderFooterRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string bodyText = "Body with formatted header footer";

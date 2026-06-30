@@ -35,7 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving cannot write duplicate footnote id '{id.Value}'.");
                 }
 
-                stories.Add(id.Value, ReadSimpleFootnoteStory(footnote, id.Value));
+                stories.Add(id.Value, ReadSimpleFootnoteStory(footnote, id.Value, mainPart.FootnotesPart!));
             }
 
             return stories.Count == 0
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return footnote.Type == null || footnote.Type.Value == FootnoteEndnoteValues.Normal;
         }
 
-        private static LegacyDocWritableNoteStory ReadSimpleFootnoteStory(Footnote footnote, long id) {
+        private static LegacyDocWritableNoteStory ReadSimpleFootnoteStory(Footnote footnote, long id, FootnotesPart relationshipOwner) {
             var builder = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
@@ -59,7 +59,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         int paragraphStart = isFirstParagraph ? 0 : builder.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, builder.Length, isFirstParagraph, out string paragraphText);
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
                         if (!string.IsNullOrEmpty(paragraphText)) {
                             hasBodyText = true;
                         }
@@ -85,7 +85,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs);
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart, bool isFirstParagraph, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart, bool isFirstParagraph, FootnotesPart relationshipOwner, out string paragraphText) {
             var builder = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedNoteParagraphFormatting(paragraph.ParagraphProperties, id, "footnote", FootnoteParagraphStyleIndexes);
             if (isFirstParagraph && paragraphFormatting.HasFormatting && paragraphFormatting.StyleIndex == null) {
@@ -99,8 +99,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Run run:
                         AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
                         break;
+                    case Hyperlink hyperlink:
+                        AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "footnote", storyStart);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only. Unsupported footnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs and simple external hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -171,6 +174,54 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping breaks.");
+        }
+
+        private static void AppendSupportedNoteHyperlinkText(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            Hyperlink hyperlink,
+            OpenXmlPartContainer relationshipOwner,
+            long id,
+            string noteKind,
+            int storyStart) {
+            Uri uri = ReadSupportedExternalHyperlinkUri(hyperlink, relationshipOwner);
+            AppendFormattedNoteText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+            AppendFormattedNoteText(text, runs, " HYPERLINK \"" + EscapeFieldString(uri.ToString()) + "\" ", LegacyDocWritableFormatting.Plain, storyStart);
+            AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+
+            int displayStart = text.Length;
+            foreach (OpenXmlElement child in hyperlink.ChildElements) {
+                switch (child) {
+                    case Run run:
+                        EnsureSupportedHyperlinkRun(run);
+                        AppendSupportedNoteHyperlinkRunText(text, runs, run, id, noteKind, storyStart);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} hyperlinks only when they contain text runs. Unsupported hyperlink element: {child.LocalName}.");
+                }
+            }
+
+            if (text.Length == displayStart) {
+                throw new NotSupportedException($"Native DOC saving supports {noteKind} hyperlinks only when they contain display text.");
+            }
+
+            AppendFormattedNoteText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+        }
+
+        private static void AppendSupportedNoteHyperlinkRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, long id, string noteKind, int storyStart) {
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties, allowHyperlinkRunStyle: true);
+
+            foreach (OpenXmlElement child in run.ChildElements) {
+                switch (child) {
+                    case RunProperties:
+                        break;
+                    case Text textNode:
+                        AppendFormattedNoteText(text, runs, textNode.Text, formatting, storyStart);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with plain text display runs. Unsupported hyperlink run element: {child.LocalName}.");
+                }
+            }
         }
 
         private sealed class LegacyDocWritableFootnotes {

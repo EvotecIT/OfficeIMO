@@ -92,8 +92,12 @@ namespace OfficeIMO.Word {
         }
 
         private OpenXmlPart? ResolveRelationshipPart() {
-            OpenXmlElement? parent = _paragraph.Parent;
-            while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
+            return ResolveRelationshipPart(_document, _paragraph);
+        }
+
+        private static OpenXmlPart? ResolveRelationshipPart(WordDocument document, OpenXmlElement paragraph) {
+            OpenXmlElement? parent = paragraph.Parent;
+            while (parent != null && parent is not Body && parent is not Header && parent is not Footer && parent is not Footnote && parent is not Endnote) {
                 parent = parent.Parent;
             }
 
@@ -107,7 +111,16 @@ namespace OfficeIMO.Word {
                 return footerPart;
             }
 
-            return _document._wordprocessingDocument?.MainDocumentPart;
+            MainDocumentPart? mainPart = document._wordprocessingDocument?.MainDocumentPart;
+            if (parent is Footnote) {
+                return mainPart?.FootnotesPart;
+            }
+
+            if (parent is Endnote) {
+                return mainPart?.EndnotesPart;
+            }
+
+            return mainPart;
         }
 
         /// <summary>
@@ -360,21 +373,9 @@ namespace OfficeIMO.Word {
         public static WordParagraph AddHyperLink(WordParagraph paragraph, string text, Uri uri, bool addStyle = false, string tooltip = "", bool history = true) {
             // Create a hyperlink relationship. Pass the relationship id to the hyperlink below.
 
-            HyperlinkRelationship rel;
-
-            // Determine if the paragraph belongs to a header or footer by checking the ancestors.
-            var headerPart = paragraph._paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
-            var footerPart = paragraph._paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
-
-            if (headerPart != null) {
-                rel = headerPart.AddHyperlinkRelationship(uri, true);
-            } else if (footerPart != null) {
-                rel = footerPart.AddHyperlinkRelationship(uri, true);
-            } else {
-                // Default to the main document part for paragraphs that are
-                // located in the body or in elements such as text boxes or tables.
-                rel = paragraph._document._wordprocessingDocument.MainDocumentPart!.AddHyperlinkRelationship(uri, true);
-            }
+            OpenXmlPart relationshipOwner = ResolveRelationshipPart(paragraph._document, paragraph._paragraph)
+                ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
+            HyperlinkRelationship rel = relationshipOwner.AddHyperlinkRelationship(uri, true);
 
             Hyperlink hyperlink = new Hyperlink() {
                 Id = rel.Id,
@@ -413,18 +414,9 @@ namespace OfficeIMO.Word {
             if (paragraph == null) throw new ArgumentNullException(nameof(paragraph));
             if (runs == null) throw new ArgumentNullException(nameof(runs));
 
-            HyperlinkRelationship rel;
-
-            var headerPart = paragraph._paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
-            var footerPart = paragraph._paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
-
-            if (headerPart != null) {
-                rel = headerPart.AddHyperlinkRelationship(uri, true);
-            } else if (footerPart != null) {
-                rel = footerPart.AddHyperlinkRelationship(uri, true);
-            } else {
-                rel = paragraph._document._wordprocessingDocument.MainDocumentPart!.AddHyperlinkRelationship(uri, true);
-            }
+            OpenXmlPart relationshipOwner = ResolveRelationshipPart(paragraph._document, paragraph._paragraph)
+                ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
+            HyperlinkRelationship rel = relationshipOwner.AddHyperlinkRelationship(uri, true);
 
             Hyperlink hyperlink = new Hyperlink() {
                 Id = rel.Id,
@@ -483,17 +475,9 @@ namespace OfficeIMO.Word {
             if (newText == null) throw new ArgumentNullException(nameof(newText));
             if (newUri == null) throw new ArgumentNullException(nameof(newUri));
 
-            HyperlinkRelationship rel;
-            var headerPart = _paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
-            var footerPart = _paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
-
-            if (headerPart != null) {
-                rel = headerPart.AddHyperlinkRelationship(newUri, true);
-            } else if (footerPart != null) {
-                rel = footerPart.AddHyperlinkRelationship(newUri, true);
-            } else {
-                rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(newUri, true);
-            }
+            OpenXmlPart relationshipOwner = ResolveRelationshipPart()
+                ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
+            HyperlinkRelationship rel = relationshipOwner.AddHyperlinkRelationship(newUri, true);
 
             Hyperlink hyperlink = new Hyperlink() {
                 Id = rel.Id,
@@ -525,17 +509,9 @@ namespace OfficeIMO.Word {
             if (newText == null) throw new ArgumentNullException(nameof(newText));
             if (newUri == null) throw new ArgumentNullException(nameof(newUri));
 
-            HyperlinkRelationship rel;
-            var headerPart = _paragraph.Ancestors<Header>().FirstOrDefault()?.HeaderPart;
-            var footerPart = _paragraph.Ancestors<Footer>().FirstOrDefault()?.FooterPart;
-
-            if (headerPart != null) {
-                rel = headerPart.AddHyperlinkRelationship(newUri, true);
-            } else if (footerPart != null) {
-                rel = footerPart.AddHyperlinkRelationship(newUri, true);
-            } else {
-                rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(newUri, true);
-            }
+            OpenXmlPart relationshipOwner = ResolveRelationshipPart()
+                ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
+            HyperlinkRelationship rel = relationshipOwner.AddHyperlinkRelationship(newUri, true);
 
             Hyperlink hyperlink = new Hyperlink() {
                 Id = rel.Id,

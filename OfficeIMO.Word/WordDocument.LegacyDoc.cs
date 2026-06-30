@@ -852,7 +852,9 @@ namespace OfficeIMO.Word {
             while (parent != null
                 && parent is not Body
                 && parent is not DocumentFormat.OpenXml.Wordprocessing.Header
-                && parent is not DocumentFormat.OpenXml.Wordprocessing.Footer) {
+                && parent is not DocumentFormat.OpenXml.Wordprocessing.Footer
+                && parent is not Footnote
+                && parent is not Endnote) {
                 parent = parent.Parent;
             }
 
@@ -866,7 +868,16 @@ namespace OfficeIMO.Word {
                 return footerPart;
             }
 
-            return paragraph._document._wordprocessingDocument?.MainDocumentPart;
+            MainDocumentPart? mainPart = paragraph._document._wordprocessingDocument?.MainDocumentPart;
+            if (parent is Footnote) {
+                return mainPart?.FootnotesPart;
+            }
+
+            if (parent is Endnote) {
+                return mainPart?.EndnotesPart;
+            }
+
+            return mainPart;
         }
 
         private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet) {
