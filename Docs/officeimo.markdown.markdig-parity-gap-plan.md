@@ -50,6 +50,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: align generic line/column source-slice fallback with source-map tab-expanded columns.
   - [x] Engine: capture document-level line-ending source trivia and map normalized line-ending spans back to original CRLF, LF, or standalone CR source slices and original-preserving source edits.
   - [x] Engine: expose pipe-table row delimiters as repeated native `tablePipe` source fields with source-order snapshots, caret lookup, and source edits while ignoring escaped and code-span pipes.
+  - [x] Engine: expose source-order inline metadata snapshots for link/image fields and delimiter-like inline metadata, including escaped-character markers, decoded entity source text, and hard-break markers.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
@@ -204,9 +205,10 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Canonicalize duplicated semantic/syntax ownership for lists, tables, definition lists, callouts, footnotes, front matter, and extension nodes.
 - [ ] Associate syntax nodes with semantic subobjects such as callout titles, list item paragraphs, definition groups/definitions, table rows/cells, and sequence-style inline wrappers.
 - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node diagnostics.
-- [ ] Complete delimiter-token coverage for emphasis extras, links/images, escapes/entities, breaks, HTML, footnotes, front matter, and extension nodes.
+- [ ] Complete delimiter-token coverage for emphasis extras, links/images, HTML, footnotes, front matter, and extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.
   - [x] Pipe-table alignment rows now expose per-column `alignmentCell` native/snapshot source fields with occurrence indexes and source edits, so editor hosts can target one alignment marker without rewriting the whole row.
+  - [x] Escaped-character markers, decoded entity source text, and hard-break markers now expose native inline metadata, source-order snapshot metadata fields, source slices, position lookup, and source edits.
 - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, transformed nodes, generated nodes, and normalized paragraph text.
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [ ] Add precise fallback diagnostics when exact source preservation is unavailable.

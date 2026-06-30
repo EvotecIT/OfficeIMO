@@ -346,6 +346,7 @@ public sealed class MarkdownNativeInlineSnapshot {
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
         IReadOnlyDictionary<string, string> metadata,
         IReadOnlyDictionary<string, MarkdownNativeSourceSpanSnapshot?> metadataSourceSpans,
+        IReadOnlyList<MarkdownNativeInlineMetadataSnapshot> metadataFields,
         IReadOnlyList<MarkdownNativeInlineSnapshot> children) {
         Id = id ?? string.Empty;
         Kind = kind;
@@ -356,6 +357,7 @@ public sealed class MarkdownNativeInlineSnapshot {
         SourceSpan = sourceSpan;
         Metadata = metadata ?? new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         MetadataSourceSpans = metadataSourceSpans ?? new Dictionary<string, MarkdownNativeSourceSpanSnapshot?>(StringComparer.OrdinalIgnoreCase);
+        MetadataFields = metadataFields ?? Array.Empty<MarkdownNativeInlineMetadataSnapshot>();
         Children = children ?? Array.Empty<MarkdownNativeInlineSnapshot>();
     }
 
@@ -386,8 +388,73 @@ public sealed class MarkdownNativeInlineSnapshot {
     /// <summary>Source spans for metadata values such as target/title/source/alt.</summary>
     public IReadOnlyDictionary<string, MarkdownNativeSourceSpanSnapshot?> MetadataSourceSpans { get; }
 
+    /// <summary>Source-backed metadata fields in source order, including repeated metadata names.</summary>
+    public IReadOnlyList<MarkdownNativeInlineMetadataSnapshot> MetadataFields { get; }
+
     /// <summary>Nested inline snapshots.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Children { get; }
+
+    /// <summary>Enumerates source-backed metadata fields with the supplied field name in source order.</summary>
+    public IEnumerable<MarkdownNativeInlineMetadataSnapshot> EnumerateMetadataFields(string name) {
+        if (string.IsNullOrWhiteSpace(name) || MetadataFields.Count == 0) {
+            yield break;
+        }
+
+        for (var i = 0; i < MetadataFields.Count; i++) {
+            var field = MetadataFields[i];
+            if (string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                yield return field;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Finds the first source-backed metadata field with the supplied name, optionally constrained to an occurrence index.
+    /// </summary>
+    public MarkdownNativeInlineMetadataSnapshot? FindMetadataField(string name, int index = -1) {
+        if (string.IsNullOrWhiteSpace(name) || MetadataFields.Count == 0) {
+            return null;
+        }
+
+        for (var i = 0; i < MetadataFields.Count; i++) {
+            var field = MetadataFields[i];
+            if (!string.Equals(field.Name, name, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            if (index < 0 || field.Index == index) {
+                return field;
+            }
+        }
+
+        return null;
+    }
+}
+
+/// <summary>
+/// UI-safe snapshot of a source-backed inline metadata field.
+/// </summary>
+public sealed class MarkdownNativeInlineMetadataSnapshot {
+    internal MarkdownNativeInlineMetadataSnapshot(MarkdownNativeInlineMetadata metadata, int index) {
+        Name = metadata?.Name ?? string.Empty;
+        Value = metadata?.Value ?? string.Empty;
+        SourceSpan = metadata?.SourceSpan.HasValue == true
+            ? new MarkdownNativeSourceSpanSnapshot(metadata.SourceSpan.Value)
+            : null;
+        Index = index;
+    }
+
+    /// <summary>Stable metadata field name such as <c>target</c>, <c>title</c>, or <c>openingMarker</c>.</summary>
+    public string Name { get; }
+
+    /// <summary>Semantic value represented by the metadata field.</summary>
+    public string Value { get; }
+
+    /// <summary>Source span for this metadata field when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Zero-based occurrence index in the source-order metadata list.</summary>
+    public int Index { get; }
 }
 
 /// <summary>

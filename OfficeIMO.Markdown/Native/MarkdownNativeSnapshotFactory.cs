@@ -252,7 +252,29 @@ internal static class MarkdownNativeSnapshotFactory {
             ToSpanSnapshot(inline.SourceSpan),
             metadata,
             metadataSourceSpans,
+            FromInlineMetadata(inline.Metadata),
             FromInlines(inline.Children));
+    }
+
+    private static IReadOnlyList<MarkdownNativeInlineMetadataSnapshot> FromInlineMetadata(IReadOnlyList<MarkdownNativeInlineMetadata>? metadata) {
+        if (metadata == null || metadata.Count == 0) {
+            return Array.Empty<MarkdownNativeInlineMetadataSnapshot>();
+        }
+
+        var orderedMetadata = metadata
+            .Select((value, originalIndex) => new { value, originalIndex })
+            .OrderBy(item => item.value.SourceSpan.HasValue ? 0 : 1)
+            .ThenBy(item => item.value.SourceSpan?.StartLine ?? int.MaxValue)
+            .ThenBy(item => item.value.SourceSpan?.StartColumn ?? int.MaxValue)
+            .ThenBy(item => item.originalIndex)
+            .ToArray();
+
+        var snapshots = new List<MarkdownNativeInlineMetadataSnapshot>(orderedMetadata.Length);
+        for (var i = 0; i < orderedMetadata.Length; i++) {
+            snapshots.Add(new MarkdownNativeInlineMetadataSnapshot(orderedMetadata[i].value, i));
+        }
+
+        return snapshots;
     }
 
     private static IReadOnlyList<MarkdownNativeListItemSnapshot> FromListItems(IReadOnlyList<MarkdownNativeListItem> items) {

@@ -425,6 +425,54 @@ Paragraph with footnote[^note] and ![Alt](img.png "Img").
         Assert.Same(label, native.FindInlineMetadataAtPosition(3, 26));
         Assert.Same(source, native.FindInlineMetadataAtPosition(3, 44));
         Assert.Null(native.FindInlineMetadataAtPosition(2, 1));
+
+        var snapshot = native.ToSnapshot();
+        var linkSnapshot = Assert.Single(snapshot.Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var linkMetadata = linkSnapshot.MetadataFields.ToArray();
+        Assert.Equal(new[] { "openingMarker", "separatorMarker", "target", "title", "closingMarker" }, linkMetadata.Select(field => field.Name).ToArray());
+        Assert.Equal("https://example.com", linkSnapshot.FindMetadataField("target")!.Value);
+        Assert.Equal("Docs", Assert.Single(linkSnapshot.EnumerateMetadataFields("title")).Value);
+        Assert.Equal(2, linkSnapshot.FindMetadataField("target")!.Index);
+        Assert.Equal(3, linkSnapshot.FindMetadataField("title")!.Index);
+        Assert.NotNull(linkSnapshot.FindMetadataField("target")!.SourceSpan);
+        Assert.NotNull(linkSnapshot.FindMetadataField("title")!.SourceSpan);
+    }
+
+    [Fact]
+    public void Native_Inline_Metadata_Snapshots_Preserve_Source_Token_Order_For_Escapes_Entities_And_Breaks() {
+        var markdown = "Escaped \\* and &copy;  \nnext";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+
+        var escapeMarker = Assert.Single(native.EnumerateInlineMetadata("escapeMarker"));
+        var escapedCharacter = Assert.Single(native.EnumerateInlineMetadata("escapedCharacter"));
+        var entitySourceText = Assert.Single(native.EnumerateInlineMetadata("sourceText"));
+        var hardBreakMarker = Assert.Single(native.EnumerateInlineMetadata("marker"));
+        Assert.Equal("\\", escapeMarker.Value);
+        Assert.Equal("*", escapedCharacter.Value);
+        Assert.Equal("&copy;", entitySourceText.Value);
+        Assert.Equal("  ", hardBreakMarker.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), escapeMarker.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 10), escapedCharacter.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 21), entitySourceText.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 22, 1, 23), hardBreakMarker.SourceSpan);
+
+        var snapshot = native.ToSnapshot();
+        Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        Assert.Equal(MarkdownNativeBlockKind.Paragraph, snapshot.Blocks[0].Kind);
+        var inlineFields = snapshot.Blocks[0].Inlines
+            .SelectMany(inline => inline.MetadataFields)
+            .OrderBy(field => field.SourceSpan?.StartLine ?? int.MaxValue)
+            .ThenBy(field => field.SourceSpan?.StartColumn ?? int.MaxValue)
+            .ToArray();
+        Assert.Equal(new[] { "escapeMarker", "escapedCharacter", "sourceText", "marker" }, inlineFields.Select(field => field.Name).ToArray());
+        Assert.Equal(new[] { "\\", "*", "&copy;", "  " }, inlineFields.Select(field => field.Value).ToArray());
+        Assert.Equal(9, inlineFields[0].SourceSpan!.StartColumn);
+        Assert.Equal(23, inlineFields[3].SourceSpan!.EndColumn);
+
+        Assert.Equal("Escaped \\! and &copy;  ", native.CreateReplaceEdit(escapedCharacter, "!").Apply(native.SourceMarkdown).Split('\n')[0]);
+        Assert.Equal("Escaped \\* and &reg;  ", native.CreateReplaceEdit(entitySourceText, "&reg;").Apply(native.SourceMarkdown).Split('\n')[0]);
+        Assert.Equal("Escaped \\* and &copy;\\", native.CreateReplaceEdit(hardBreakMarker, "\\").Apply(native.SourceMarkdown).Split('\n')[0]);
     }
 
     [Fact]
