@@ -3803,7 +3803,7 @@ namespace OfficeIMO.Tests {
                 using WordDocument document = WordDocument.Create();
                 var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
                 style.Append(new StyleName { Val = "Native DOC Unsupported Custom Style" });
-                style.Append(new StyleParagraphProperties(new NumberingProperties()));
+                style.Append(new StyleParagraphProperties(new SuppressLineNumbers()));
                 document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
                 document.AddParagraph("Unsupported custom style").SetStyleId(styleId);
 
@@ -3811,6 +3811,48 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains("unsupported paragraph property", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleNumberingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocNumberedStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCNumberedStyle";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Numbered Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleParagraphProperties(
+                        new NumberingProperties(
+                            new NumberingLevelReference { Val = 2 },
+                            new NumberingId { Val = 9 })));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled numbered paragraph").SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled numbered paragraph", paragraph.Text);
+                Assert.Equal(projectedStyleId, paragraph.StyleId);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
+                NumberingProperties numberingProperties = Assert.IsType<NumberingProperties>(paragraphProperties.GetFirstChild<NumberingProperties>());
+                Assert.Equal(2, numberingProperties.NumberingLevelReference!.Val!.Value);
+                Assert.Equal(9, numberingProperties.NumberingId!.Val!.Value);
+
+                Numbering numbering = reloaded._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+                Assert.Contains(numbering.Elements<NumberingInstance>(), instance => instance.NumberID?.Value == 9);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -3889,13 +3931,58 @@ namespace OfficeIMO.Tests {
                     styles.Append(headingStyle);
                 }
 
-                headingStyle.StyleParagraphProperties = new StyleParagraphProperties(new NumberingProperties());
+                headingStyle.StyleParagraphProperties = new StyleParagraphProperties(new SuppressLineNumbers());
                 document.AddParagraph("Unsupported built-in style").SetStyle(WordParagraphStyles.Heading1);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("unsupported paragraph property", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleNumberingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == headingStyleId)
+                        ?? new Style { Type = StyleValues.Paragraph, StyleId = headingStyleId };
+                    if (headingStyle.Parent == null) {
+                        styles.Append(headingStyle);
+                    }
+
+                    headingStyle.StyleParagraphProperties = new StyleParagraphProperties(
+                        new NumberingProperties(
+                            new NumberingLevelReference { Val = 1 },
+                            new NumberingId { Val = 7 }));
+
+                    document.AddParagraph("Styled built-in numbered paragraph").SetStyle(WordParagraphStyles.Heading1);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled built-in numbered paragraph", paragraph.Text);
+                Assert.Equal(headingStyleId, paragraph.StyleId);
+
+                Styles stylesAfterReload = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style headingStyleAfterReload = Assert.Single(stylesAfterReload.Elements<Style>(), style => style.StyleId == headingStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyleAfterReload.StyleParagraphProperties);
+                NumberingProperties numberingProperties = Assert.IsType<NumberingProperties>(paragraphProperties.GetFirstChild<NumberingProperties>());
+                Assert.Equal(1, numberingProperties.NumberingLevelReference!.Val!.Value);
+                Assert.Equal(7, numberingProperties.NumberingId!.Val!.Value);
+
+                Numbering numbering = reloaded._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+                Assert.Contains(numbering.Elements<NumberingInstance>(), instance => instance.NumberID?.Value == 7);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -3980,7 +4067,7 @@ namespace OfficeIMO.Tests {
                     styles.Append(headingStyle);
                 }
 
-                headingStyle.StyleParagraphProperties = new StyleParagraphProperties(new NumberingProperties());
+                headingStyle.StyleParagraphProperties = new StyleParagraphProperties(new SuppressLineNumbers());
 
                 var customStyle = new Style { Type = StyleValues.Paragraph, StyleId = customStyleId, CustomStyle = true };
                 customStyle.Append(new StyleName { Val = "Native DOC Unsupported Built In Base Style" });

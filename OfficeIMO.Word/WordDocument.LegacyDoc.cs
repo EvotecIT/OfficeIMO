@@ -1272,6 +1272,17 @@ namespace OfficeIMO.Word {
                 paragraphProperties.Append(numberingProperties);
             }
 
+            ReplaceLegacyDocNumberingProperties(numberingProperties, listIndex, level);
+        }
+
+        private static NumberingProperties CreateLegacyDocNumberingProperties(WordDocument document, ushort listIndex, byte level) {
+            EnsureLegacyDocNumberingDefinition(document, listIndex);
+            var numberingProperties = new NumberingProperties();
+            ReplaceLegacyDocNumberingProperties(numberingProperties, listIndex, level);
+            return numberingProperties;
+        }
+
+        private static void ReplaceLegacyDocNumberingProperties(NumberingProperties numberingProperties, ushort listIndex, byte level) {
             numberingProperties.RemoveAllChildren<NumberingLevelReference>();
             numberingProperties.RemoveAllChildren<NumberingId>();
             numberingProperties.Append(
@@ -1479,7 +1490,7 @@ namespace OfficeIMO.Word {
                 if (legacyStyle.BuiltInStyle != null) {
                     string builtInStyleId = legacyStyle.BuiltInStyle.Value.ToStringStyle();
                     Style builtInStyle = GetOrCreateLegacyDocBuiltInStyle(styles, builtInStyleId, legacyStyle.Name);
-                    MergeLegacyDocBuiltInStyleFormatting(builtInStyle, legacyStyle, styleSheet);
+                    MergeLegacyDocBuiltInStyleFormatting(document, builtInStyle, legacyStyle, styleSheet);
                     AddOrReplaceLegacyDocNextStyle(builtInStyle, legacyStyle, styleSheet);
                     continue;
                 }
@@ -1500,7 +1511,7 @@ namespace OfficeIMO.Word {
                     customStyle.Append(new NextParagraphStyle { Val = nextStyleId });
                 }
 
-                StyleParagraphProperties? styleParagraphProperties = CreateLegacyDocStyleParagraphProperties(legacyStyle.ParagraphFormat);
+                StyleParagraphProperties? styleParagraphProperties = CreateLegacyDocStyleParagraphProperties(document, legacyStyle.ParagraphFormat);
                 if (styleParagraphProperties != null) {
                     customStyle.Append(styleParagraphProperties);
                 }
@@ -1566,12 +1577,17 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static StyleParagraphProperties? CreateLegacyDocStyleParagraphProperties(LegacyDocParagraphFormat paragraphFormat) {
+        private static StyleParagraphProperties? CreateLegacyDocStyleParagraphProperties(WordDocument document, LegacyDocParagraphFormat paragraphFormat) {
             var properties = new StyleParagraphProperties();
             bool hasProperties = false;
 
             if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
                 properties.Append(new Justification { Val = alignment });
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.NumberingListIndex != null) {
+                properties.Append(CreateLegacyDocNumberingProperties(document, paragraphFormat.NumberingListIndex.Value, paragraphFormat.NumberingLevel ?? 0));
                 hasProperties = true;
             }
 

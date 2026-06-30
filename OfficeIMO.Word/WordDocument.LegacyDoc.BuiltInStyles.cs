@@ -22,9 +22,9 @@ namespace OfficeIMO.Word {
             return style;
         }
 
-        private static void MergeLegacyDocBuiltInStyleFormatting(Style style, LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
+        private static void MergeLegacyDocBuiltInStyleFormatting(WordDocument document, Style style, LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
             MergeLegacyDocBuiltInStyleBasedOn(style, legacyStyle, styleSheet);
-            MergeLegacyDocBuiltInStyleParagraphFormatting(style, legacyStyle.ParagraphFormat);
+            MergeLegacyDocBuiltInStyleParagraphFormatting(document, style, legacyStyle.ParagraphFormat);
             MergeLegacyDocBuiltInStyleRunFormatting(style, legacyStyle.CharacterFormat);
         }
 
@@ -41,7 +41,7 @@ namespace OfficeIMO.Word {
             ReplaceStyleProperty(style, new BasedOn { Val = basedOnStyleId });
         }
 
-        private static void MergeLegacyDocBuiltInStyleParagraphFormatting(Style style, LegacyDocParagraphFormat paragraphFormat) {
+        private static void MergeLegacyDocBuiltInStyleParagraphFormatting(WordDocument document, Style style, LegacyDocParagraphFormat paragraphFormat) {
             if (!paragraphFormat.HasFormatting) {
                 return;
             }
@@ -50,6 +50,10 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.Alignment != null && TryMapParagraphAlignment(paragraphFormat.Alignment.Value, out JustificationValues alignment)) {
                 ReplaceStyleProperty(properties, new Justification { Val = alignment });
+            }
+
+            if (paragraphFormat.NumberingListIndex != null) {
+                ReplaceStyleProperty(properties, CreateLegacyDocNumberingProperties(document, paragraphFormat.NumberingListIndex.Value, paragraphFormat.NumberingLevel ?? 0));
             }
 
             if (paragraphFormat.SpacingBeforeTwips != null || paragraphFormat.SpacingAfterTwips != null || paragraphFormat.LineSpacingTwips != null) {

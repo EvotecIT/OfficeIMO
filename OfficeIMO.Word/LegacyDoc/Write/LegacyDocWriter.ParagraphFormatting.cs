@@ -67,10 +67,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         avoidWidowAndOrphan = ReadOnOffValue(widowControl);
                         break;
                     case NumberingProperties numberingProperties:
-                        if (!allowParagraphStyleId) {
-                            throw new NotSupportedException("Native DOC saving currently supports simple numbering only on direct paragraph formatting. Unsupported paragraph property: numPr.");
-                        }
-
                         ReadSupportedNumberingProperties(numberingProperties, out numberingListIndex, out numberingLevel);
                         break;
                     case TextAlignment textAlignment:
