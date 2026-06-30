@@ -547,6 +547,9 @@ just to reserve names.
   - [x] Preserve native DOC custom paragraph styles that inherit from formatted
     built-in Heading styles by emitting the required built-in base style records
     even when the Heading style is not used directly.
+  - [x] Preserve native DOC custom paragraph styles that inherit from other
+    supported custom paragraph styles, including base style paragraph/run
+    formatting and child style overrides after legacy reader reload.
   - [x] Write supported paragraph style next-style metadata into native DOC STSH
     records and reload it through the legacy reader for fixture-backed built-in
     Heading and custom next-style links.
