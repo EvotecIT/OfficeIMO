@@ -1441,6 +1441,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocMatchingComplexScriptFontSizeAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph run = document.AddParagraph("Sized");
+                    run._run!.RunProperties ??= new RunProperties();
+                    run._run.RunProperties.FontSize = new FontSize { Val = "28" };
+                    run._run.RunProperties.FontSizeComplexScript = new FontSizeComplexScript { Val = "28" };
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph reloadedRun = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Sized", reloadedRun.Text);
+                Assert.Equal(14, reloadedRun.FontSize);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTabsAndReloadsAsWordTabRuns() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2629,6 +2654,26 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("unsupported run property", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksConflictingComplexScriptFontSizeBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph formatted = document.AddParagraph("Formatted");
+                formatted._run!.RunProperties ??= new RunProperties();
+                formatted._run.RunProperties.FontSize = new FontSize { Val = "28" };
+                formatted._run.RunProperties.FontSizeComplexScript = new FontSizeComplexScript { Val = "30" };
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("font size", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

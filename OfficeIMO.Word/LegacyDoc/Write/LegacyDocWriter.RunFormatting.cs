@@ -113,7 +113,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         highlight = ReadSupportedHighlight(highlightProperty);
                         break;
                     case FontSize fontSize:
-                        fontSizeHalfPoints = ReadFontSizeHalfPoints(fontSize);
+                        fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(fontSize.Val?.Value));
+                        break;
+                    case FontSizeComplexScript fontSizeComplexScript:
+                        fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(fontSizeComplexScript.Val?.Value));
                         break;
                     case Color color:
                         colorHex = ReadSupportedColorHex(color);
@@ -219,13 +222,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving does not support highlight color '{value}'.");
         }
 
-        private static int ReadFontSizeHalfPoints(FontSize fontSize) {
-            string? value = fontSize.Val?.Value;
+        private static int ReadFontSizeHalfPoints(string? value) {
             if (string.IsNullOrWhiteSpace(value) || !int.TryParse(value, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int halfPoints)) {
                 throw new NotSupportedException("Native DOC saving supports font size only when it is stored as a numeric half-point value.");
             }
 
             return halfPoints;
+        }
+
+        private static int MergeFontSizeHalfPoints(int? currentHalfPoints, int nextHalfPoints) {
+            if (currentHalfPoints != null && currentHalfPoints.Value != nextHalfPoints) {
+                throw new NotSupportedException("Native DOC saving supports one font size per text run. FontSize and FontSizeComplexScript must match.");
+            }
+
+            return nextHalfPoints;
         }
 
         private static string? ReadSupportedColorHex(Color color) {

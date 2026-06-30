@@ -425,6 +425,9 @@ just to reserve names.
     reader.
   - [x] Write direct underline, size, and color CHPX runs and reload them
     through the legacy reader.
+  - [x] Accept matching `FontSizeComplexScript` values when writing native
+    DOC run sizes, while blocking conflicting script-specific sizes before
+    bytes are committed.
   - [x] Write direct strikethrough CHPX runs and reload them through the legacy
     reader.
   - [x] Write direct outline CHPX runs and reload them through the legacy reader.
