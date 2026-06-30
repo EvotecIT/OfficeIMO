@@ -757,6 +757,9 @@ just to reserve names.
   - [x] Read the native even/odd header document flag (`DopBase.fFacingPages`)
     and project it into the normal OfficeIMO `DifferentOddAndEvenPages`
     section/header-footer surface.
+  - [x] Block unsupported visual and embedded related parts through a recursive
+    native-save preflight, including image parts owned by header/footer
+    relationship parts, before native `.doc` bytes are committed.
   - [ ] Add the remaining richer visual table style effects, nested tables,
     section breaks inside richer body shapes, and richer section writing as
     separate preflight-backed slices.

@@ -224,13 +224,46 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             ThrowIfUnsupportedReviewMarkup(mainPart);
 
-            if (mainPart.ImageParts.Any()) {
+            if (HasRelatedPart<ImagePart>(mainPart)) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Images are not supported yet.");
             }
 
-            if (mainPart.ChartParts.Any()) {
+            if (HasRelatedPart<ChartPart>(mainPart)) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Charts are not supported yet.");
             }
+
+            if (HasRelatedPart<DiagramDataPart>(mainPart)
+                || HasRelatedPart<DiagramLayoutDefinitionPart>(mainPart)
+                || HasRelatedPart<DiagramStylePart>(mainPart)
+                || HasRelatedPart<DiagramColorsPart>(mainPart)) {
+                throw new NotSupportedException("Native DOC saving currently supports text only. SmartArt diagrams are not supported yet.");
+            }
+
+            if (HasRelatedPart<EmbeddedObjectPart>(mainPart)
+                || HasRelatedPart<EmbeddedPackagePart>(mainPart)) {
+                throw new NotSupportedException("Native DOC saving currently supports text only. Embedded objects and packages are not supported yet.");
+            }
+        }
+
+        private static bool HasRelatedPart<TPart>(OpenXmlPartContainer container)
+            where TPart : OpenXmlPart {
+            return HasRelatedPart<TPart>(container, new HashSet<OpenXmlPart>());
+        }
+
+        private static bool HasRelatedPart<TPart>(OpenXmlPartContainer container, HashSet<OpenXmlPart> visited)
+            where TPart : OpenXmlPart {
+            foreach (IdPartPair relationship in container.Parts) {
+                OpenXmlPart part = relationship.OpenXmlPart;
+                if (part is TPart) {
+                    return true;
+                }
+
+                if (visited.Add(part) && HasRelatedPart<TPart>(part, visited)) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private static void ThrowIfUnsupportedReviewMarkup(DocumentFormat.OpenXml.Packaging.MainDocumentPart mainPart) {
