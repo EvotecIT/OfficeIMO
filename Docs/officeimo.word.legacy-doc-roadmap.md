@@ -389,6 +389,9 @@ just to reserve names.
     save/reload.
   - [x] Preserve paragraph-boundary section breaks after simple table body
     blocks through native DOC save/reload, including per-section page setup.
+  - [x] Report section descriptor boundaries that land inside active table
+    shapes as unsupported/preserve-only instead of projecting the section break
+    at the wrong body-block position.
   - [ ] Add section breaks inside richer body shapes, headers, footers,
     footnotes, and endnotes as separate fixture-backed slices.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`

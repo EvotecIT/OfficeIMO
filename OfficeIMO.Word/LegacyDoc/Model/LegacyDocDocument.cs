@@ -441,13 +441,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 while (nextSectionIndex < sections.Count && sections[nextSectionIndex].StartCharacter == characterPosition) {
-                    if (characterPosition < characters.Count) {
+                    if (IsInsideActiveTable()) {
+                        ReportUnprojectedSectionBoundary(sections[nextSectionIndex].StartCharacter);
+                    } else if (characterPosition < characters.Count) {
                         _bodyBlocks.Add(new LegacyDocSectionBreakBlock(sections[nextSectionIndex].Format));
                     }
 
                     nextSectionIndex++;
                 }
             }
+
+            bool IsInsideActiveTable() =>
+                inTable
+                || tableRows.Count > 0
+                || currentTableRow.Count > 0
+                || currentTableCellParagraphs.Count > 0;
 
             void ReportRemainingUnprojectedSectionBoundaries() {
                 while (nextSectionIndex < sections.Count) {

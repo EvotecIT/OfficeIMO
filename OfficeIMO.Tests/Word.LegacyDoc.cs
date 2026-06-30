@@ -1107,6 +1107,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsSectionBoundaryInsideTableCell() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithSectionBoundaryInsideTableCell();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+                Assert.Equal(LegacyDocUnsupportedFeatureKind.Section, feature.Kind);
+                Assert.Equal("DOC-MULTIPLE-SECTIONS-PRESENT", feature.Code);
+                Assert.Equal("Fib:PlcfSed", feature.DetailCode);
+                Assert.Contains("does not align with a supported body-block boundary", feature.Description);
+
+                Assert.True(result.HasDocument);
+                Assert.Single(result.Document.Sections);
+                WordTable table = Assert.Single(result.Document.Tables);
+                WordTableRow row = Assert.Single(table.Rows);
+                Assert.Equal(2, row.Cells.Count);
+                Assert.Equal(2, row.Cells[0].Paragraphs.Count);
+                Assert.Equal("A1 first", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal("A1 second", row.Cells[0].Paragraphs[1].Text);
+                Assert.Equal("B1", row.Cells[1].Paragraphs[0].Text);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => result.Document.Save(docPath));
+                Assert.Contains("DOC-MULTIPLE-SECTIONS-PRESENT", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphBoundarySectionBreaks() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithTwoSectionPageSetup();
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
@@ -3305,6 +3338,30 @@ namespace OfficeIMO.Tests {
                 const int papxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(text, textOffset, papxFkpOffset);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithSectionBoundaryInsideTableCell() {
+                const string text = "A1 first\rA1 second\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                int firstCellParagraphEnd = "A1 first\r".Length;
+
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateTwoSectionDescriptorPlc(firstCellParagraphEnd, text.Length, 0, 0);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+                WriteInt32(wordDocumentStream, 0xCA, fcPlcfSed);
+                WriteInt32(wordDocumentStream, 0xCE, sectionDescriptorPlc.Length);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
