@@ -435,10 +435,12 @@ namespace OfficeIMO.Tests {
             Assert.False(runs[0].Italic);
             Assert.Equal("bold ", runs[1].Text);
             Assert.True(runs[1].Bold);
+            Assert.NotNull(runs[1]._runProperties?.BoldComplexScript);
             Assert.False(runs[1].Italic);
             Assert.Equal("italic", runs[2].Text);
             Assert.False(runs[2].Bold);
             Assert.True(runs[2].Italic);
+            Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
         }
 
         [Fact]
@@ -718,6 +720,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4320, tabStops[1].Position!.Value);
             StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
             Assert.NotNull(runProperties.GetFirstChild<Bold>());
+            Assert.NotNull(runProperties.GetFirstChild<BoldComplexScript>());
             Assert.NotNull(runProperties.GetFirstChild<Outline>());
             Assert.NotNull(runProperties.GetFirstChild<Shadow>());
             Assert.NotNull(runProperties.GetFirstChild<Emboss>());
@@ -753,6 +756,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(JustificationValues.Center, headingJustification.Val!.Value);
             StyleRunProperties headingRunProperties = Assert.IsType<StyleRunProperties>(headingStyle.StyleRunProperties);
             Assert.NotNull(headingRunProperties.GetFirstChild<Bold>());
+            Assert.NotNull(headingRunProperties.GetFirstChild<BoldComplexScript>());
             Color headingColor = Assert.IsType<Color>(headingRunProperties.GetFirstChild<Color>());
             Assert.Equal("336699", headingColor.Val!.Value);
 
@@ -761,6 +765,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(WordParagraphStyles.Heading1.ToStringStyle(), childBasedOn.Val!.Value);
             StyleRunProperties childRunProperties = Assert.IsType<StyleRunProperties>(childStyle.StyleRunProperties);
             Assert.NotNull(childRunProperties.GetFirstChild<Italic>());
+            Assert.NotNull(childRunProperties.GetFirstChild<ItalicComplexScript>());
         }
 
         [Fact]

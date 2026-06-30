@@ -224,6 +224,8 @@ just to reserve names.
 - [ ] Add formatting projection for run/paragraph styles only when each mapping
   has a fixture and observable OfficeIMO contract.
   - [x] Project direct CHPX bold/italic character runs into OfficeIMO runs.
+  - [x] Project direct CHPX bold/italic into OpenXML complex-script
+    bold/italic run properties too, matching DOC's script-agnostic bits.
   - [x] Project direct CHPX underline, size, and color runs into OfficeIMO runs.
   - [x] Project direct CHPX font size into both OpenXML `FontSize` and
     `FontSizeComplexScript`, matching style-level DOC font-size projection.
@@ -241,6 +243,8 @@ just to reserve names.
     paragraph/run formatting into custom DOCX style definitions, including
     alignment, spacing, indentation, bold, size, and color, with both synthetic
     and Word COM-generated legacy `.doc` proof.
+  - [x] Project stylesheet-level bold/italic into matching complex-script
+    bold/italic style properties.
   - [x] Resolve stylesheet-level font-family run formatting through the DOC font
     table, including styles that carry character formatting after an empty
     paragraph UPX, with synthetic fixture proof and opt-in Word COM validation.

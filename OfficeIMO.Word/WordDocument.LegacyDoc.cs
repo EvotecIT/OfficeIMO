@@ -848,11 +848,13 @@ namespace OfficeIMO.Word {
 
             if (characterFormat.Bold) {
                 properties.Append(new Bold());
+                properties.Append(new BoldComplexScript());
                 hasProperties = true;
             }
 
             if (characterFormat.Italic) {
                 properties.Append(new Italic());
+                properties.Append(new ItalicComplexScript());
                 hasProperties = true;
             }
 
@@ -970,10 +972,16 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocRunFormatting(WordParagraph run, LegacyDocTextRun legacyRun) {
             if (legacyRun.Bold) {
                 run.SetBold();
+                RunProperties runProperties = run._runProperties ?? new RunProperties();
+                run._runProperties = runProperties;
+                runProperties.BoldComplexScript = new BoldComplexScript();
             }
 
             if (legacyRun.Italic) {
                 run.SetItalic();
+                RunProperties runProperties = run._runProperties ?? new RunProperties();
+                run._runProperties = runProperties;
+                runProperties.ItalicComplexScript = new ItalicComplexScript();
             }
 
             if (legacyRun.Strike) {

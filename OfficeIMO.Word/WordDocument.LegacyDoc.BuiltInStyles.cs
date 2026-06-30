@@ -128,10 +128,12 @@ namespace OfficeIMO.Word {
 
             if (characterFormat.Bold) {
                 ReplaceStyleProperty(properties, new Bold());
+                ReplaceStyleProperty(properties, new BoldComplexScript());
             }
 
             if (characterFormat.Italic) {
                 ReplaceStyleProperty(properties, new Italic());
+                ReplaceStyleProperty(properties, new ItalicComplexScript());
             }
 
             if (characterFormat.Strike) {
