@@ -210,6 +210,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return papx;
         }
 
+        internal static byte[] CreateStyleParagraphUpx(LegacyDocWritableParagraphFormatting formatting) {
+            if (!formatting.HasFormatting) {
+                return Array.Empty<byte>();
+            }
+
+            byte[] papx = CreatePapx(formatting);
+            var upx = new byte[papx.Length - 2];
+            Buffer.BlockCopy(papx, 2, upx, 0, upx.Length);
+            return upx;
+        }
+
         private static void AddSingleByteSprm(List<byte> grpprl, ushort sprm, byte operand) {
             grpprl.Add((byte)(sprm & 0xFF));
             grpprl.Add((byte)(sprm >> 8));

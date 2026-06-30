@@ -41,7 +41,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving currently supports text-wrapping and page breaks only. Unsupported break type: {breakType}.");
         }
 
-        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(RunProperties? runProperties) {
+        private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties) {
             if (runProperties == null || !runProperties.HasChildren) {
                 return LegacyDocWritableFormatting.Plain;
             }
@@ -359,6 +359,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte[] CreateChpx(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
+            List<byte> grpprl = CreateCharacterGrpprl(formatting, fontFamilyIndexes);
+            var chpx = new byte[grpprl.Count + 1];
+            chpx[0] = (byte)grpprl.Count;
+            grpprl.CopyTo(chpx, 1);
+            return chpx;
+        }
+
+        private static byte[] CreateStyleCharacterUpx(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
+            if (!formatting.HasFormatting) {
+                return Array.Empty<byte>();
+            }
+
+            return CreateCharacterGrpprl(formatting, fontFamilyIndexes).ToArray();
+        }
+
+        private static List<byte> CreateCharacterGrpprl(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
             var grpprl = new List<byte>(18);
             if (formatting.Bold) {
                 AddSingleByteSprm(grpprl, SprmCFBold, 1);
@@ -430,10 +446,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddUInt16Sprm(grpprl, SprmCRgFtc0, checked((ushort)fontIndex));
             }
 
-            var chpx = new byte[grpprl.Count + 1];
-            chpx[0] = (byte)grpprl.Count;
-            grpprl.CopyTo(chpx, 1);
-            return chpx;
+            return grpprl;
         }
 
         private static byte[] CreateFontTable(IReadOnlyList<string> fontFamilies) {

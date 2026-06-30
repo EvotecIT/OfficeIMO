@@ -45,6 +45,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort ExtendedCharacterFlag = 0x1000;
         private const int FcPlcfSedOffset = 0xCA;
         private const int LcbPlcfSedOffset = 0xCE;
+        private const int FcStshfOffset = 0xA2;
+        private const int LcbStshfOffset = 0xA6;
         private const int FcPlcfBtePapxOffset = 0x102;
         private const int LcbPlcfBtePapxOffset = 0x106;
         private const int FcSttbfFfnOffset = 0x112;
@@ -117,6 +119,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var text = new StringBuilder();
             var runs = new List<LegacyDocWritableRun>();
             var paragraphFormats = new List<LegacyDocWritableParagraph>();
+            LegacyDocWritableStyleSheet styleSheet = CreateWritableStyleSheet(mainPart!, body);
             LegacyDocSectionFormat finalSectionFormat = LegacyDocSectionFormat.Default;
             var sections = new List<LegacyDocWritableSection>();
             SectionMarkValues? pendingSectionBreakType = null;
@@ -125,7 +128,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Paragraph paragraph:
                         if (!IsPureSectionBreakParagraph(paragraph)) {
-                            AppendParagraph(text, runs, paragraphFormats, paragraph);
+                            AppendParagraph(text, runs, paragraphFormats, paragraph, styleSheet.StyleIndexes);
                             bodyContentCount++;
                         }
 
@@ -138,7 +141,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Table table:
-                        AppendTable(text, runs, paragraphFormats, table);
+                        AppendTable(text, runs, paragraphFormats, table, styleSheet.StyleIndexes);
                         bodyContentCount++;
                         break;
                     case SectionProperties sectionProperties:
@@ -154,7 +157,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             AddSection(sections, text.Length, finalSectionFormat.WithSectionBreakType(pendingSectionBreakType));
-            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections);
+            return new LegacyDocWritableBody(text.ToString(), runs, paragraphFormats, sections, styleSheet);
         }
 
         private static void ThrowIfUnsupportedDocumentParts(WordDocument document, DocumentFormat.OpenXml.Packaging.MainDocumentPart? mainPart) {
@@ -248,8 +251,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             sections.Add(new LegacyDocWritableSection(endCharacter, format));
         }
 
-        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph) {
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties);
+        private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Paragraph paragraph, IReadOnlyDictionary<string, ushort> styleIndexes) {
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             int paragraphStart = text.Length;
 
             foreach (OpenXmlElement child in paragraph.ChildElements) {
@@ -304,6 +307,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             WriteUInt16(stream, 0x3E, FibRgLw97DwordCount);
             WriteInt32(stream, 0x4C, body.Text.Length);
             WriteUInt16(stream, 0x98, FibRgFcLcb97Size);
+            WriteInt32(stream, FcStshfOffset, body.HasStyleSheet ? body.StyleSheetOffsetInTableStream : 0);
+            WriteInt32(stream, LcbStshfOffset, body.StyleSheet.Bytes.Length);
             WriteInt32(stream, 0xFA, body.HasCharacterFormatting ? ClxLength : 0);
             WriteInt32(stream, 0xFE, body.HasCharacterFormatting ? ChpxPlcLength : 0);
             WriteInt32(stream, FcPlcfBtePapxOffset, body.HasParagraphFormatting ? body.PapxPlcOffsetInTableStream : 0);
@@ -341,7 +346,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool compressedText = CanWriteCompressedText(body.Text);
             int bytesPerCharacter = compressedText ? 1 : 2;
             int textByteLength = checked(body.Text.Length * bytesPerCharacter);
-            var table = new byte[ClxLength + (body.HasCharacterFormatting ? ChpxPlcLength : 0) + (body.HasParagraphFormatting ? PapxPlcLength : 0) + (body.HasSectionDescriptors ? body.SedPlcLength : 0) + fontTable.Length];
+            var table = new byte[body.FontTableOffsetInTableStream + fontTable.Length];
             table[0] = 0x02;
             WriteInt32(table, 1, 16);
             WriteInt32(table, 5, 0);
@@ -380,6 +385,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ? chpxFkpOffset + OleSectorSize
                         : TextOffset + textByteLength);
                 WritePlcfSed(table, body.SedPlcOffsetInTableStream, CreateSectionRecords(body, sepxOffset));
+            }
+
+            if (body.HasStyleSheet) {
+                Buffer.BlockCopy(body.StyleSheet.Bytes, 0, table, body.StyleSheetOffsetInTableStream, body.StyleSheet.Bytes.Length);
             }
 
             if (fontTable.Length > 0) {
@@ -470,13 +479,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 string text,
                 IReadOnlyList<LegacyDocWritableRun> formattedRuns,
                 IReadOnlyList<LegacyDocWritableParagraph> formattedParagraphs,
-                IReadOnlyList<LegacyDocWritableSection> sections) {
+                IReadOnlyList<LegacyDocWritableSection> sections,
+                LegacyDocWritableStyleSheet styleSheet) {
                 Text = text;
                 FormattedRuns = formattedRuns;
                 FormattedParagraphs = formattedParagraphs;
                 Sections = sections;
-                FontFamilies = formattedRuns
-                    .Select(run => run.Formatting.FontFamily)
+                StyleSheet = styleSheet;
+                FontFamilies = styleSheet.FontFamilies
+                    .Concat(formattedRuns.Select(run => run.Formatting.FontFamily))
                     .Where(fontFamily => !string.IsNullOrWhiteSpace(fontFamily))
                     .Select(fontFamily => fontFamily!)
                     .Distinct(StringComparer.OrdinalIgnoreCase)
@@ -494,6 +505,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyList<LegacyDocWritableSection> Sections { get; }
 
+            internal LegacyDocWritableStyleSheet StyleSheet { get; }
+
             internal IReadOnlyList<string> FontFamilies { get; }
 
             internal IReadOnlyDictionary<string, int> FontFamilyIndexes { get; }
@@ -504,6 +517,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasFontTable => FontFamilies.Count > 0;
 
+            internal bool HasStyleSheet => StyleSheet.Bytes.Length > 0;
+
             internal bool HasSectionDescriptors => Sections.Count > 1 || Sections.Any(section => section.Format.HasFormatting);
 
             internal int PapxPlcOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0);
@@ -512,7 +527,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal int SedPlcLength => 4 + (Sections.Count * (4 + SedLength));
 
-            internal int FontTableOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0) + (HasParagraphFormatting ? PapxPlcLength : 0) + (HasSectionDescriptors ? SedPlcLength : 0);
+            private int AfterSectionDataOffsetInTableStream => ClxLength + (HasCharacterFormatting ? ChpxPlcLength : 0) + (HasParagraphFormatting ? PapxPlcLength : 0) + (HasSectionDescriptors ? SedPlcLength : 0);
+
+            internal int StyleSheetOffsetInTableStream => HasStyleSheet ? AlignToEven(AfterSectionDataOffsetInTableStream) : AfterSectionDataOffsetInTableStream;
+
+            internal int FontTableOffsetInTableStream => HasStyleSheet
+                ? StyleSheetOffsetInTableStream + StyleSheet.Bytes.Length
+                : AfterSectionDataOffsetInTableStream;
 
             internal IReadOnlyList<LegacyDocWritableSegment> CreateFormattingSegments() {
                 var segments = new List<LegacyDocWritableSegment>();

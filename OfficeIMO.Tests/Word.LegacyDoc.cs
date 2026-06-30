@@ -1916,6 +1916,84 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocCustomStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCCustomStyle";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Custom Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleParagraphProperties(
+                        new Justification { Val = JustificationValues.Center },
+                        new SpacingBetweenLines { Before = "120", After = "240" }));
+                    style.Append(new StyleRunProperties(
+                        new Bold(),
+                        new Color { Val = "FF0000" },
+                        new FontSize { Val = "28" },
+                        new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled custom paragraph").SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled custom paragraph", paragraph.Text);
+                Assert.Equal(projectedStyleId, paragraph.StyleId);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
+                Assert.Equal("Native DOC Custom Style", customStyle.StyleName!.Val!.Value);
+                BasedOn basedOn = Assert.IsType<BasedOn>(customStyle.GetFirstChild<BasedOn>());
+                Assert.Equal(WordParagraphStyles.Normal.ToStringStyle(), basedOn.Val!.Value);
+
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
+                Assert.Equal(JustificationValues.Center, paragraphProperties.GetFirstChild<Justification>()!.Val!.Value);
+                SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraphProperties.GetFirstChild<SpacingBetweenLines>());
+                Assert.Equal("120", spacing.Before!.Value);
+                Assert.Equal("240", spacing.After!.Value);
+
+                StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.StyleRunProperties);
+                Assert.NotNull(runProperties.GetFirstChild<Bold>());
+                Assert.Equal("ff0000", runProperties.GetFirstChild<Color>()!.Val!.Value);
+                Assert.Equal("28", runProperties.GetFirstChild<FontSize>()!.Val!.Value);
+                RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
+                Assert.Equal("Courier New", runFonts.Ascii!.Value);
+                Assert.Equal("Courier New", runFonts.HighAnsi!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedCustomParagraphStyleBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocUnsupportedCustomStyle";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                style.Append(new StyleName { Val = "Native DOC Unsupported Custom Style" });
+                style.Append(new StyleParagraphProperties(new NumberingProperties()));
+                document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                document.AddParagraph("Unsupported custom style").SetStyleId(styleId);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("unsupported paragraph property", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

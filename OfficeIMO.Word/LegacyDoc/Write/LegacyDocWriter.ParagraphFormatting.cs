@@ -4,7 +4,13 @@ using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(ParagraphProperties? paragraphProperties) {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, styleIndexes, allowParagraphStyleId: true);
+
+        private static LegacyDocWritableParagraphFormatting ReadSupportedStyleParagraphFormatting(StyleParagraphProperties? paragraphProperties) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false);
+
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId) {
             if (paragraphProperties == null || !paragraphProperties.HasChildren) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
@@ -26,7 +32,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
                 switch (property) {
                     case ParagraphStyleId paragraphStyleId:
-                        styleIndex = ReadSupportedParagraphStyleIndex(paragraphStyleId);
+                        if (!allowParagraphStyleId) {
+                            throw new NotSupportedException("Native DOC saving does not support nested paragraph style identifiers inside custom paragraph style definitions.");
+                        }
+
+                        styleIndex = ReadSupportedParagraphStyleIndex(paragraphStyleId, styleIndexes);
                         break;
                     case Justification justification:
                         alignment = ReadSupportedParagraphAlignment(justification);
@@ -188,7 +198,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return false;
         }
 
-        private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId) {
+        private static ushort? ReadSupportedParagraphStyleIndex(ParagraphStyleId paragraphStyleId, IReadOnlyDictionary<string, ushort> styleIndexes) {
             string? styleId = paragraphStyleId.Val?.Value;
             if (string.IsNullOrWhiteSpace(styleId) || string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
                 return null;
@@ -196,6 +206,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (TryMapBuiltInParagraphStyleIndex(styleId!, out ushort styleIndex)) {
                 return styleIndex;
+            }
+
+            if (styleIndexes.TryGetValue(styleId!, out ushort customStyleIndex)) {
+                return customStyleIndex;
             }
 
             throw new NotSupportedException($"Native DOC saving currently supports only built-in Normal and Heading1 through Heading9 paragraph styles. Unsupported paragraph style: {styleId}.");

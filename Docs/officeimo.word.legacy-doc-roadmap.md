@@ -483,6 +483,10 @@ just to reserve names.
     before bytes are committed.
   - [x] Write built-in paragraph style PAPX records and reload them through
     the legacy reader.
+  - [x] Write supported custom paragraph styles as native DOC STSH records,
+    including supported style-level paragraph/run formatting and font-table
+    references, then reload them through the legacy reader while blocking
+    unsupported style formatting before file bytes are committed.
   - [x] Write direct paragraph tab-stop PAPX records, including clear stops,
     and reload them through the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word
