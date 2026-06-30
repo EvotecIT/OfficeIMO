@@ -103,6 +103,15 @@ _Chart caption_
         Assert.Equal(new[] { "wide" }, syntaxBlock.Attributes.Classes);
         Assert.Equal("main", syntaxBlock.Attributes.GetAttribute("data-panel"));
         Assert.Equal("true", syntaxBlock.Attributes.GetAttribute("pinned"));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var visual = Assert.IsType<MarkdownNativeVisualBlock>(Assert.Single(native.Blocks));
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(visual, attributes.Block);
+        Assert.Equal("{#chart .wide data-panel=main pinned}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 49), attributes.SourceSpan);
+        Assert.Equal("attributes", native.FindBlockSourceFieldAtPosition(1, 13)?.Name);
     }
 
     [Fact]

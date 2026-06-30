@@ -364,15 +364,22 @@ public class Markdown_GenericAttributes_Syntax_Tests {
 
         var native = MarkdownNativeDocument.Parse(markdown, options);
         var nativeCode = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(native.Blocks));
-        var field = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+        var infoField = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+        var attributeField = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        var selectedField = native.FindBlockSourceFieldAtPosition(1, 4);
 
         Assert.Equal("code", nativeCode.ElementId);
         Assert.Equal(new[] { "wide" }, nativeCode.Classes);
-        Assert.Same(nativeCode, field.Block);
-        Assert.Equal("{#code .wide}", field.Value);
-        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 16), field.SourceSpan);
+        Assert.Same(nativeCode, infoField.Block);
+        Assert.Equal("{#code .wide}", infoField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 16), infoField.SourceSpan);
+        Assert.Same(nativeCode, attributeField.Block);
+        Assert.Equal("{#code .wide}", attributeField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 16), attributeField.SourceSpan);
+        Assert.Equal("attributes", selectedField?.Name);
+        Assert.Equal(attributeField.SourceSpan, selectedField?.SourceSpan);
 
-        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#sample .snippet}"));
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributeField, "{#sample .snippet}"));
 
         Assert.True(roundtrip.IsLossless);
         Assert.Empty(roundtrip.Diagnostics);
@@ -383,7 +390,8 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     public void FencedCode_InfoString_GenericAttributes_With_Language_Render_On_Code() {
         const string markdown = "```cs {#code .wide}\nvar x = 1;\n```\n";
         var options = new MarkdownReaderOptions {
-            GenericAttributes = true
+            GenericAttributes = true,
+            PreserveTrivia = true
         };
 
         var document = MarkdownReader.Parse(markdown, options);
@@ -401,6 +409,24 @@ public class Markdown_GenericAttributes_Syntax_Tests {
                 BodyClass = null,
                 EscapeNonAsciiText = false
             }));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeCode = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(native.Blocks));
+        var attributeField = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        var selectedField = native.FindBlockSourceFieldAtPosition(1, 7);
+
+        Assert.Equal("cs", nativeCode.Language);
+        Assert.Same(nativeCode, attributeField.Block);
+        Assert.Equal("{#code .wide}", attributeField.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 19), attributeField.SourceSpan);
+        Assert.Equal("attributes", selectedField?.Name);
+        Assert.Equal(attributeField.SourceSpan, selectedField?.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributeField, "{#sample .snippet}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("```cs {#sample .snippet}\nvar x = 1;\n```\n", roundtrip.Markdown);
     }
 
     [Fact]

@@ -60,6 +60,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("openingFence", code.OpeningFenceSourceSpan),
                     ("infoString", code.InfoStringSourceSpan),
+                    ("attributes", code.AttributeSourceSpan),
                     ("content", code.ContentSourceSpan),
                     ("closingFence", code.ClosingFenceSourceSpan));
                 break;
@@ -82,6 +83,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("openingFence", visual.OpeningFenceSourceSpan),
                     ("infoString", visual.InfoStringSourceSpan),
+                    ("attributes", visual.AttributeSourceSpan),
                     ("content", visual.ContentSourceSpan),
                     ("closingFence", visual.ClosingFenceSourceSpan));
                 break;

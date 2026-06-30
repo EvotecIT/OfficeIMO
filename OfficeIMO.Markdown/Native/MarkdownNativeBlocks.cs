@@ -122,6 +122,7 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
         Title = code.Attributes.GetAttribute("title");
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? code.OpeningFenceSourceSpan;
         InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
+        AttributeSourceSpan = MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceSpan(FenceInfo, InfoStringSourceSpan);
         ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent);
         ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? code.ClosingFenceSourceSpan;
     }
@@ -161,6 +162,9 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
 
     /// <summary>Source span for the fenced-code info string when the block was parsed from a fenced source block.</summary>
     public MarkdownSourceSpan? InfoStringSourceSpan { get; }
+
+    /// <summary>Source span for explicit generic attributes inside the fenced-code info string.</summary>
+    public MarkdownSourceSpan? AttributeSourceSpan { get; }
 
     /// <summary>Source span for the code payload when available.</summary>
     public MarkdownSourceSpan? ContentSourceSpan { get; }
@@ -217,6 +221,7 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
         Payload = MarkdownNativeVisualPayload.Create(visual);
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? visual.OpeningFenceSourceSpan;
         InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
+        AttributeSourceSpan = MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceSpan(FenceInfo, InfoStringSourceSpan);
         ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent);
         ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? visual.ClosingFenceSourceSpan;
     }
@@ -262,6 +267,9 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
 
     /// <summary>Source span for the fenced-block info string when the block was parsed from a fenced source block.</summary>
     public MarkdownSourceSpan? InfoStringSourceSpan { get; }
+
+    /// <summary>Source span for explicit generic attributes inside the fenced-block info string.</summary>
+    public MarkdownSourceSpan? AttributeSourceSpan { get; }
 
     /// <summary>Source span for the fenced payload when available.</summary>
     public MarkdownSourceSpan? ContentSourceSpan { get; }

@@ -53,6 +53,10 @@ public sealed partial class MarkdownNativeDocument {
             return 2;
         }
 
+        if (string.Equals(field.Name, "attributes", StringComparison.OrdinalIgnoreCase)) {
+            return 2;
+        }
+
         if (string.Equals(field.Name, "frontMatterBody", StringComparison.OrdinalIgnoreCase)) {
             return 0;
         }
@@ -354,6 +358,14 @@ public sealed partial class MarkdownNativeDocument {
             yield return new MarkdownNativeBlockSourceField("infoString", code.InfoString, code.InfoStringSourceSpan.Value, code);
         }
 
+        if (code.AttributeSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField(
+                "attributes",
+                MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceText(code.FenceInfo),
+                code.AttributeSourceSpan.Value,
+                code);
+        }
+
         if (code.ContentSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("content", code.Content, code.ContentSourceSpan.Value, code);
         }
@@ -370,6 +382,14 @@ public sealed partial class MarkdownNativeDocument {
 
         if (visual.InfoStringSourceSpan.HasValue) {
             yield return new MarkdownNativeBlockSourceField("infoString", visual.InfoString, visual.InfoStringSourceSpan.Value, visual);
+        }
+
+        if (visual.AttributeSourceSpan.HasValue) {
+            yield return new MarkdownNativeBlockSourceField(
+                "attributes",
+                MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceText(visual.FenceInfo),
+                visual.AttributeSourceSpan.Value,
+                visual);
         }
 
         if (visual.ContentSourceSpan.HasValue) {
