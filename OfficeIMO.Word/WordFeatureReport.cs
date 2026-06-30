@@ -601,18 +601,30 @@ namespace OfficeIMO.Word {
                 case WordFieldType.Author:
                 case WordFieldType.Comments:
                 case WordFieldType.CreateDate:
+                case WordFieldType.Date:
                 case WordFieldType.DocProperty:
+                case WordFieldType.DocVariable:
                 case WordFieldType.FileName:
+                case WordFieldType.FileSize:
                 case WordFieldType.Formula:
+                case WordFieldType.Info:
                 case WordFieldType.Keywords:
                 case WordFieldType.LastSavedBy:
+                case WordFieldType.NumChars:
                 case WordFieldType.NumPages:
+                case WordFieldType.NumWords:
                 case WordFieldType.Page:
                 case WordFieldType.PageRef:
+                case WordFieldType.PrintDate:
+                case WordFieldType.Quote:
                 case WordFieldType.Ref:
+                case WordFieldType.RevNum:
                 case WordFieldType.SaveDate:
+                case WordFieldType.Section:
+                case WordFieldType.SectionPages:
                 case WordFieldType.Seq:
                 case WordFieldType.Subject:
+                case WordFieldType.Time:
                 case WordFieldType.Title:
                     return true;
                 default:

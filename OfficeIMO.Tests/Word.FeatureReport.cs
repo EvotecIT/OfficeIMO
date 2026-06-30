@@ -96,12 +96,14 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
+                document.SetDocumentVariable("ClientName", "Evotec");
                 document.AddParagraph("Target heading").AddBookmark("TargetBookmark");
                 AddFeatureReportComplexField(document.AddParagraph("Reference: ")._paragraph, " REF ", " \"TargetBookmark\" \\h ", "Target heading", dirty: true, locked: true);
                 document.AddParagraph("Page: ").AddField(WordFieldType.Page);
                 document.AddParagraph("Formula: ")._paragraph.Append(BuildFeatureReportSimpleField(" = COUNT(1, 2, 3) ", "stale", locked: false));
                 document.AddParagraph("TOC: ").AddField(WordFieldType.TOC);
                 document.AddParagraph("Date: ").AddField(WordFieldType.Date);
+                document.AddParagraph("Variable: ").AddField(WordFieldType.DocVariable, parameters: new List<string> { "\"ClientName\"" });
                 document.AddParagraph("Unsupported: ")._paragraph.Append(BuildFeatureReportSimpleField(" SILLYFIELD value ", "Unknown", locked: false));
                 document.Save(false);
             }
@@ -111,21 +113,23 @@ namespace OfficeIMO.Tests {
                 WordFeatureFinding fields = Assert.Single(report.FindFeatures("Fields"));
 
                 Assert.Equal(WordFeatureSupportLevel.PartiallyEditable, fields.SupportLevel);
-                Assert.Equal(6, fields.Count);
-                Assert.Contains(fields.Details, detail => detail == "Simple fields: 5");
+                Assert.Equal(7, fields.Count);
+                Assert.Contains(fields.Details, detail => detail == "Simple fields: 6");
                 Assert.Contains(fields.Details, detail => detail == "Complex fields: 1");
-                Assert.Contains(fields.Details, detail => detail == "Deterministic refresh candidates: 3");
+                Assert.Contains(fields.Details, detail => detail == "Deterministic refresh candidates: 5");
                 Assert.Contains(fields.Details, detail => detail.Contains("Refreshable field types:", StringComparison.Ordinal)
+                    && detail.Contains("Date: 1", StringComparison.Ordinal)
+                    && detail.Contains("DocVariable: 1", StringComparison.Ordinal)
                     && detail.Contains("Formula: 1", StringComparison.Ordinal)
                     && detail.Contains("Page: 1", StringComparison.Ordinal)
                     && detail.Contains("Ref: 1", StringComparison.Ordinal));
                 Assert.Contains(fields.Details, detail => detail == "Queued/manual refresh fields: TOC: 1");
-                Assert.Contains(fields.Details, detail => detail == "Known unsupported refresh fields: Date: 1");
+                Assert.DoesNotContain(fields.Details, detail => detail.StartsWith("Known unsupported refresh fields", StringComparison.Ordinal));
                 Assert.Contains(fields.Details, detail => detail == "Field parser diagnostics: 1");
 
                 string markdown = report.ToMarkdown();
-                Assert.Contains("Deterministic refresh candidates: 3", markdown, StringComparison.Ordinal);
-                Assert.Contains("Known unsupported refresh fields: Date: 1", markdown, StringComparison.Ordinal);
+                Assert.Contains("Deterministic refresh candidates: 5", markdown, StringComparison.Ordinal);
+                Assert.DoesNotContain("Known unsupported refresh fields", markdown, StringComparison.Ordinal);
             }
         }
 

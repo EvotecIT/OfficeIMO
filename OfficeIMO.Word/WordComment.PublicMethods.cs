@@ -19,7 +19,7 @@ namespace OfficeIMO.Word {
         public static WordComment Create(WordDocument document, string author, string initials, string comment, WordComment? parent = null) {
             var comments = GetCommentsPart(document);
             var commentsEx = GetCommentsExPart(document);
-            var paraId = GetNewParaId(commentsEx);
+            var paraId = GetNewParaId(commentsEx, comments);
             // Compose a new Comment and add it to the Comments part.
             Paragraph p = new Paragraph(new Run(new Text(comment))) {
                 ParagraphId = paraId
@@ -220,12 +220,12 @@ namespace OfficeIMO.Word {
             }
 
             while (commentsEx.Elements<CommentEx>().Count() <= index) {
-                commentsEx.AppendChild(new CommentEx { ParaId = GetNewParaId(commentsEx) });
+                commentsEx.AppendChild(new CommentEx { ParaId = GetNewParaId(commentsEx, commentsPart.Comments) });
             }
 
             commentEx = commentsEx.Elements<CommentEx>().ElementAt(index);
             if (string.IsNullOrWhiteSpace(commentEx.ParaId?.Value)) {
-                commentEx.ParaId = _commentEx?.ParaId ?? GetNewParaId(commentsEx);
+                commentEx.ParaId = _commentEx?.ParaId ?? GetNewParaId(commentsEx, commentsPart.Comments);
             }
 
             _commentEx = commentEx;
