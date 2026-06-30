@@ -345,6 +345,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "standalone-attribute-before-paragraph", "{#intro .wide}\nParagraph" };
         yield return new object[] { "standalone-attribute-before-fenced-code", "{#code .wide}\n```cs\nvar x = 1;\n```" };
         yield return new object[] { "list-contained-standalone-attribute-before-fenced-code", "- item\n\n  {#code .wide}\n  ```cs\n  x\n  ```" };
+        yield return new object[] { "blockquote-contained-standalone-attribute-before-fenced-code", "> {#code .wide}\n> ```cs\n> x\n> ```" };
         yield return new object[] { "fenced-code-attribute-only-info-string", "```{#code .wide}\nvar x = 1;\n```" };
         yield return new object[] { "fenced-code-language-info-attributes", "```cs {#code .wide}\nvar x = 1;\n```" };
         yield return new object[] { "fenced-code-opaque-info-before-attributes", "```cs linenums {#code .wide}\nvar x = 1;\n```" };

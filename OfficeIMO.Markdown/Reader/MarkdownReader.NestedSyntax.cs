@@ -117,6 +117,17 @@ public static partial class MarkdownReader {
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownSyntaxNode node) {
         var span = RemapNestedSourceSpan(sourceLines, node.SourceSpan);
+        if (node.AssociatedObject is MarkdownObject markdownObject) {
+            var attributeSourceText = MarkdownGenericAttributeSourceSpans.GetSourceText(markdownObject);
+            var attributeSourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(markdownObject);
+            var remappedAttributeSourceSpan = IsSourceSpanAlreadyMappedToSourceLines(sourceLines, attributeSourceSpan)
+                ? attributeSourceSpan
+                : RemapNestedSourceSpan(sourceLines, attributeSourceSpan);
+            if (!string.IsNullOrEmpty(attributeSourceText) && remappedAttributeSourceSpan.HasValue) {
+                MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, remappedAttributeSourceSpan);
+            }
+        }
+
         if (node.AssociatedObject is QuoteBlock quoteBlock) {
             quoteBlock.ReplaceMarkerSourceSpans(quoteBlock.MarkerSourceSpans
                 .Select(marker => RemapNestedSourceSpan(sourceLines, marker) ?? marker)
@@ -225,6 +236,18 @@ public static partial class MarkdownReader {
         ShouldParseBlockGenericAttributes(options, state)
         && (state == null || !state.SuppressedParagraphGenericAttributeStartLines.Contains(startLineIndex));
 
+    private static bool ShouldParseNestedStandaloneFencedCodeGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int lineIndex) {
+        if (options?.GenericAttributes != true) {
+            return false;
+        }
+
+        if (state?.SuppressBlockGenericAttributes != true) {
+            return true;
+        }
+
+        return state.QuoteContainerLines.Contains(lineIndex);
+    }
+
     private static bool ShouldParseHeadingGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
         ShouldParseBlockGenericAttributes(options, state) && state?.SuppressHeadingGenericAttributes != true;
 
@@ -301,5 +324,41 @@ public static partial class MarkdownReader {
         int startColumn = sourceLines[startIndex].StartColumn + value.StartColumn.Value - 1;
         int endColumn = sourceLines[endIndex].StartColumn + value.EndColumn.Value - 1;
         return new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
+    }
+
+    private static bool IsSourceSpanAlreadyMappedToSourceLines(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownSourceSpan? span) {
+        if (!span.HasValue || sourceLines == null || sourceLines.Count == 0) {
+            return false;
+        }
+
+        var value = span.Value;
+        if (!TryFindSourceLine(sourceLines, value.StartLine, out var startLine) ||
+            !TryFindSourceLine(sourceLines, value.EndLine, out var endLine)) {
+            return false;
+        }
+
+        if (!value.StartColumn.HasValue || !value.EndColumn.HasValue) {
+            return true;
+        }
+
+        return value.StartColumn.Value >= startLine.StartColumn
+            && value.EndColumn.Value >= endLine.StartColumn;
+    }
+
+    private static bool TryFindSourceLine(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        int absoluteLine,
+        out MarkdownSourceLineSlice sourceLine) {
+        for (int i = 0; i < sourceLines.Count; i++) {
+            if (sourceLines[i].AbsoluteLine == absoluteLine) {
+                sourceLine = sourceLines[i];
+                return true;
+            }
+        }
+
+        sourceLine = default;
+        return false;
     }
 }

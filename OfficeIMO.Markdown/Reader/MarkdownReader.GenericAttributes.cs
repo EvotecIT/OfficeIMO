@@ -6,7 +6,7 @@ public static partial class MarkdownReader {
         int lineIndex,
         MarkdownReaderOptions options,
         MarkdownReaderState state) {
-        if (!ShouldParseBlockGenericAttributes(options, state)
+        if (!ShouldConsumeStandaloneGenericAttributeBlock(lines, lineIndex, options, state)
             || state.PendingGenericAttributeBlock != null
             || lines == null
             || lineIndex < 0
@@ -53,6 +53,41 @@ public static partial class MarkdownReader {
             content.Substring(0, consumedLength),
             sourceSpan);
         return true;
+    }
+
+    private static bool ShouldConsumeStandaloneGenericAttributeBlock(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) =>
+        ShouldParseBlockGenericAttributes(options, state)
+        || IsQuoteStandaloneAttributeBeforeFencedCode(lines, lineIndex, options, state);
+
+    private static bool IsQuoteStandaloneAttributeBeforeFencedCode(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (options?.GenericAttributes != true
+            || options.FencedCode != true
+            || state?.SuppressBlockGenericAttributes != true
+            || lines == null
+            || lineIndex < 0
+            || lineIndex >= lines.Length
+            || !state.QuoteContainerLines.Contains(lineIndex)) {
+            return false;
+        }
+
+        for (int i = lineIndex + 1; i < lines.Length; i++) {
+            if (string.IsNullOrWhiteSpace(lines[i])) {
+                continue;
+            }
+
+            return state.QuoteContainerLines.Contains(i)
+                && IsCodeFenceOpen(lines[i], out _, out _, out _);
+        }
+
+        return false;
     }
 
     private static bool HasFollowingConsumedStandaloneAttributeTarget(

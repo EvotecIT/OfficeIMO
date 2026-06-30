@@ -432,6 +432,71 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void BlockquoteContained_Standalone_GenericAttributes_Attach_To_Following_FencedCode_With_Source_Backup() {
+        const string markdown = "> {#code .wide}\n> ```cs\n> x\n> ```\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
+        var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(quoteBlock.Children));
+
+        Assert.Equal("code", codeBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, codeBlock.Attributes.Classes);
+        Assert.Equal(
+            "<blockquote><pre><code id=\"code\" class=\"language-cs wide\">x\n</code></pre></blockquote>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var code = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.CodeBlock);
+        var attributes = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var openingFence = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeFenceOpening);
+        var info = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeFenceInfo);
+        var content = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeContent);
+        var closingFence = Assert.Single(code.Children, node => node.Kind == MarkdownSyntaxKind.CodeFenceClosing);
+
+        Assert.Equal("{#code .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 15), attributes.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 5), openingFence.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 7), info.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 3), content.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 3, 4, 5), closingFence.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#code .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeQuote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var nativeCode = Assert.Single(nativeQuote.Children.OfType<MarkdownNativeCodeBlock>());
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("code", nativeCode.ElementId);
+        Assert.Equal(new[] { "wide" }, nativeCode.Classes);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 5), nativeCode.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 7), nativeCode.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 3), nativeCode.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 3, 4, 5), nativeCode.ClosingFenceSourceSpan);
+        Assert.Same(nativeCode, field.Block);
+        Assert.Equal("{#code .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 15), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#sample .snippet}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("> {#sample .snippet}\n> ```cs\n> x\n> ```\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void FencedCode_InfoString_GenericAttributes_Attach_To_Code_With_Source_Info() {
         const string markdown = "```{#code .wide}\nvar x = 1;\n```\n";
         var options = new MarkdownReaderOptions {

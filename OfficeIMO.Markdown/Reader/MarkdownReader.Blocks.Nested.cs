@@ -370,7 +370,7 @@ public static partial class MarkdownReader {
         sourceText = string.Empty;
         sourceSpan = null;
 
-        if (!ShouldParseBlockGenericAttributes(options, state)
+        if (!ShouldParseNestedStandaloneFencedCodeGenericAttributes(options, state, index)
             || lines == null
             || index < 0
             || index + 1 >= lines.Length) {
