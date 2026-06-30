@@ -947,13 +947,24 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
         Assert.Equal("{#docs .primary}", slice.Text);
 
+        var trailingText = Assert.Single(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.InlineText && node.Literal == " now");
+        Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 38), trailingText.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(trailingText, out var trailingTextSlice));
+        Assert.Equal(" now", trailingTextSlice.Text);
+
         var native = MarkdownNativeDocument.Parse(markdown, options);
         var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
         var nativeLink = Assert.Single(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link);
         var nativeAttributes = Assert.Single(nativeLink.Metadata, metadata => metadata.Name == "attributes");
+        var nativeTrailingText = Assert.Single(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.Text == " now");
 
         Assert.Equal("{#docs .primary}", nativeAttributes.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 34), nativeAttributes.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 38), nativeTrailingText.SourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(nativeTrailingText, out var nativeTrailingTextSlice));
+        Assert.Equal(" now", nativeTrailingTextSlice.Text);
     }
 
     [Fact]
@@ -1020,7 +1031,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
 
     [Fact]
     public void FootnoteReference_GenericAttributes_Are_Consumed_Without_Metadata() {
-        const string markdown = "See note[^a]{#ref .wide}\n\n[^a]: Footnote\n";
+        const string markdown = "See note[^a]{#ref .wide} tail\n\n[^a]: Footnote\n";
         var options = new MarkdownReaderOptions {
             Footnotes = true,
             GenericAttributes = true,
@@ -1035,11 +1046,22 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             result.FinalSyntaxTree.Descendants(),
             node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
 
+        var trailingText = Assert.Single(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.InlineText && node.Literal == " tail");
+        Assert.Equal(new MarkdownSourceSpan(1, 25, 1, 29), trailingText.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(trailingText, out var trailingTextSlice));
+        Assert.Equal(" tail", trailingTextSlice.Text);
+
         var native = MarkdownNativeDocument.Parse(markdown, options);
         var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
         var footnote = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.FootnoteRef);
+        var nativeTrailingText = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.Text == " tail");
 
         Assert.DoesNotContain(footnote.Metadata, metadata => metadata.Name == "attributes");
+        Assert.Equal(new MarkdownSourceSpan(1, 25, 1, 29), nativeTrailingText.SourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(nativeTrailingText, out var nativeTrailingTextSlice));
+        Assert.Equal(" tail", nativeTrailingTextSlice.Text);
         Assert.DoesNotContain(
             "{#ref .wide}",
             result.Document.ToHtmlFragment(new HtmlOptions {

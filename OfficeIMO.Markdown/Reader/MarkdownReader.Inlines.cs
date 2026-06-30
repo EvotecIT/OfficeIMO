@@ -945,6 +945,7 @@ public static partial class MarkdownReader {
                     sequence.Nodes,
                     i + 1,
                     out var remainingText,
+                    out var remainingTextSpan,
                     out var attributes,
                     out var attributeSourceText,
                     out var attributeSpan,
@@ -956,7 +957,9 @@ public static partial class MarkdownReader {
 
                 rewritten.Add(current);
                 if (!string.IsNullOrEmpty(remainingText)) {
-                    rewritten.Add(new TextRun(remainingText));
+                    var remainingRun = new TextRun(remainingText);
+                    MarkdownInlineSourceSpans.Set(remainingRun, remainingTextSpan);
+                    rewritten.Add(remainingRun);
                 }
 
                 i += consumedTextRuns;
@@ -968,13 +971,16 @@ public static partial class MarkdownReader {
                     sequence.Nodes,
                     i + 1,
                     out var discardRemainingText,
+                    out var discardRemainingTextSpan,
                     out _,
                     out _,
                     out _,
                     out var discardConsumedTextRuns)) {
                 rewritten.Add(current);
                 if (!string.IsNullOrEmpty(discardRemainingText)) {
-                    rewritten.Add(new TextRun(discardRemainingText));
+                    var remainingRun = new TextRun(discardRemainingText);
+                    MarkdownInlineSourceSpans.Set(remainingRun, discardRemainingTextSpan);
+                    rewritten.Add(remainingRun);
                 }
 
                 i += discardConsumedTextRuns;
@@ -991,11 +997,13 @@ public static partial class MarkdownReader {
         IReadOnlyList<IMarkdownInline> nodes,
         int startIndex,
         out string remainingText,
+        out MarkdownSourceSpan? remainingTextSpan,
         out MarkdownAttributeSet attributes,
         out string attributeSourceText,
         out MarkdownSourceSpan? attributeSpan,
         out int consumedTextRuns) {
         remainingText = string.Empty;
+        remainingTextSpan = null;
         attributes = MarkdownAttributeSet.Empty;
         attributeSourceText = string.Empty;
         attributeSpan = null;
@@ -1023,15 +1031,85 @@ public static partial class MarkdownReader {
             out var consumedLength)) {
             attributeSourceText = combined.ToString().Substring(0, consumedLength);
             attributeSpan = ResolveGenericAttributeSpan(nodes, startIndex, consumedTextRuns, consumedLength);
+            remainingTextSpan = ResolveGenericAttributeRemainingTextSpan(nodes, startIndex, consumedTextRuns, consumedLength);
             return true;
         }
 
         remainingText = string.Empty;
+        remainingTextSpan = null;
         attributes = MarkdownAttributeSet.Empty;
         attributeSourceText = string.Empty;
         attributeSpan = null;
         consumedTextRuns = 0;
         return false;
+    }
+
+    private static MarkdownSourceSpan? ResolveGenericAttributeRemainingTextSpan(
+        IReadOnlyList<IMarkdownInline> nodes,
+        int startIndex,
+        int consumedTextRuns,
+        int consumedLength) {
+        if (nodes == null || consumedTextRuns <= 0 || consumedLength < 0) {
+            return null;
+        }
+
+        var combinedLength = 0;
+        for (int i = 0; i < consumedTextRuns && startIndex + i < nodes.Count; i++) {
+            if (nodes[startIndex + i] is not TextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
+                break;
+            }
+
+            combinedLength += textRun.Text.Length;
+        }
+
+        if (consumedLength >= combinedLength) {
+            return null;
+        }
+
+        MarkdownSourceSpan? firstSpan = null;
+        MarkdownSourceSpan? lastSpan = null;
+        var runStart = 0;
+        for (int i = 0; i < consumedTextRuns && startIndex + i < nodes.Count; i++) {
+            if (nodes[startIndex + i] is not TextRun textRun || string.IsNullOrEmpty(textRun.Text)) {
+                break;
+            }
+
+            var runEnd = runStart + textRun.Text.Length;
+            if (runEnd <= consumedLength) {
+                runStart = runEnd;
+                continue;
+            }
+
+            var textRunSpan = MarkdownInlineSourceSpans.Get(textRun);
+            if (!textRunSpan.HasValue) {
+                return null;
+            }
+
+            var startInRun = Math.Max(0, consumedLength - runStart);
+            var segmentLength = textRun.Text.Length - startInRun;
+            var segmentSpan = startInRun == 0 && segmentLength == textRun.Text.Length
+                ? textRunSpan
+                : SliceSourceSpan(textRunSpan, startInRun, segmentLength);
+            if (!segmentSpan.HasValue) {
+                return null;
+            }
+
+            firstSpan ??= segmentSpan;
+            lastSpan = segmentSpan;
+            runStart = runEnd;
+        }
+
+        if (!firstSpan.HasValue || !lastSpan.HasValue) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(
+            firstSpan.Value.StartLine,
+            firstSpan.Value.StartColumn ?? 1,
+            lastSpan.Value.EndLine,
+            lastSpan.Value.EndColumn ?? (lastSpan.Value.StartColumn ?? 1),
+            firstSpan.Value.StartOffset,
+            lastSpan.Value.EndOffset);
     }
 
     private static MarkdownSourceSpan? ResolveGenericAttributeSpan(
