@@ -2079,6 +2079,102 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomStyleBasedOnFormattedBuiltInStyleAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+            const string customStyleId = "NativeDocBasedOnHeading";
+            const string projectedCustomStyleId = "LegacyDocNativeDOCBasedOnHeading";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == headingStyleId)
+                        ?? new Style { Type = StyleValues.Paragraph, StyleId = headingStyleId };
+                    if (headingStyle.Parent == null) {
+                        styles.Append(headingStyle);
+                    }
+
+                    headingStyle.StyleParagraphProperties = new StyleParagraphProperties(
+                        new Justification { Val = JustificationValues.Center },
+                        new SpacingBetweenLines { Before = "120", After = "240" });
+                    headingStyle.StyleRunProperties = new StyleRunProperties(
+                        new Bold(),
+                        new Color { Val = "336699" },
+                        new FontSize { Val = "32" });
+
+                    var customStyle = new Style { Type = StyleValues.Paragraph, StyleId = customStyleId, CustomStyle = true };
+                    customStyle.Append(new StyleName { Val = "Native DOC Based On Heading" });
+                    customStyle.Append(new BasedOn { Val = headingStyleId });
+                    styles.Append(customStyle);
+
+                    document.AddParagraph("Custom inherits heading").SetStyleId(customStyleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Custom inherits heading", paragraph.Text);
+                Assert.Equal(projectedCustomStyleId, paragraph.StyleId);
+
+                Styles reloadedStyles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == projectedCustomStyleId);
+                BasedOn customBasedOn = Assert.IsType<BasedOn>(customStyleAfterReload.GetFirstChild<BasedOn>());
+                Assert.Equal(headingStyleId, customBasedOn.Val!.Value);
+
+                Style headingStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == headingStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyleAfterReload.StyleParagraphProperties);
+                Assert.Equal(JustificationValues.Center, paragraphProperties.GetFirstChild<Justification>()!.Val!.Value);
+                SpacingBetweenLines spacing = Assert.IsType<SpacingBetweenLines>(paragraphProperties.GetFirstChild<SpacingBetweenLines>());
+                Assert.Equal("120", spacing.Before!.Value);
+                Assert.Equal("240", spacing.After!.Value);
+
+                StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyleAfterReload.StyleRunProperties);
+                Assert.NotNull(runProperties.GetFirstChild<Bold>());
+                Assert.NotNull(runProperties.GetFirstChild<BoldComplexScript>());
+                Assert.Equal("336699", runProperties.GetFirstChild<Color>()!.Val!.Value);
+                Assert.Equal("32", runProperties.GetFirstChild<FontSize>()!.Val!.Value);
+                Assert.Equal("32", runProperties.GetFirstChild<FontSizeComplexScript>()!.Val!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedBuiltInBaseStyleFormattingBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+            const string customStyleId = "NativeDocUnsupportedBuiltInBaseStyle";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == headingStyleId)
+                    ?? new Style { Type = StyleValues.Paragraph, StyleId = headingStyleId };
+                if (headingStyle.Parent == null) {
+                    styles.Append(headingStyle);
+                }
+
+                headingStyle.StyleParagraphProperties = new StyleParagraphProperties(new NumberingProperties());
+
+                var customStyle = new Style { Type = StyleValues.Paragraph, StyleId = customStyleId, CustomStyle = true };
+                customStyle.Append(new StyleName { Val = "Native DOC Unsupported Built In Base Style" });
+                customStyle.Append(new BasedOn { Val = headingStyleId });
+                styles.Append(customStyle);
+                document.AddParagraph("Unsupported inherited built-in style").SetStyleId(customStyleId);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("unsupported paragraph property", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

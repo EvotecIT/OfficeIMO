@@ -491,6 +491,9 @@ just to reserve names.
     DOC STSH records for used Heading styles, then reload them through the
     legacy reader while blocking unsupported used built-in style formatting
     before file bytes are committed.
+  - [x] Preserve native DOC custom paragraph styles that inherit from formatted
+    built-in Heading styles by emitting the required built-in base style records
+    even when the Heading style is not used directly.
   - [x] Write direct paragraph tab-stop PAPX records, including clear stops,
     and reload them through the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word

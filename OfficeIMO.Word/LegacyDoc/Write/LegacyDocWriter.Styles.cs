@@ -17,18 +17,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 .Where(styleId => !string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase))
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .ToArray();
-            ushort[] usedBuiltInStyleIndexes = usedStyleIds
+            var builtInStyleIndexes = new SortedSet<ushort>(usedStyleIds
                 .Select(styleId => TryMapBuiltInParagraphStyleIndex(styleId, out ushort styleIndex) ? (ushort?)styleIndex : null)
                 .Where(styleIndex => styleIndex != null)
-                .Select(styleIndex => styleIndex!.Value)
-                .Distinct()
-                .OrderBy(styleIndex => styleIndex)
-                .ToArray();
+                .Select(styleIndex => styleIndex!.Value));
             string[] customStyleIds = usedStyleIds
                 .Where(styleId => !TryMapBuiltInParagraphStyleIndex(styleId, out _))
                 .ToArray();
 
-            if (usedBuiltInStyleIndexes.Length == 0 && customStyleIds.Length == 0) {
+            if (builtInStyleIndexes.Count == 0 && customStyleIds.Length == 0) {
                 return LegacyDocWritableStyleSheet.Empty;
             }
 
@@ -47,10 +44,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var visited = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var visiting = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string styleId in customStyleIds) {
-                AddCustomStyleWithBase(styleId, paragraphStyles, orderedStyleIds, visited, visiting);
+                AddCustomStyleWithBase(styleId, paragraphStyles, orderedStyleIds, builtInStyleIndexes, visited, visiting);
             }
 
-            Dictionary<ushort, Style> builtInStyles = ReadUsedBuiltInStyles(usedBuiltInStyleIndexes, paragraphStyles);
+            AddBuiltInBaseStyles(builtInStyleIndexes, paragraphStyles);
+            Dictionary<ushort, Style> builtInStyles = ReadUsedBuiltInStyles(builtInStyleIndexes, paragraphStyles);
             var styleIndexes = new Dictionary<string, ushort>(StringComparer.OrdinalIgnoreCase);
             for (int index = 0; index < orderedStyleIds.Count; index++) {
                 styleIndexes[orderedStyleIds[index]] = checked((ushort)(10 + index));
@@ -69,10 +67,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             string styleId,
             IReadOnlyDictionary<string, Style> paragraphStyles,
             List<string> orderedStyleIds,
+            ISet<ushort> builtInStyleIndexes,
             HashSet<string> visited,
             HashSet<string> visiting) {
-            if (string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)
-                || TryMapBuiltInParagraphStyleIndex(styleId, out _)) {
+            if (string.Equals(styleId, "Normal", StringComparison.OrdinalIgnoreCase)) {
+                return;
+            }
+
+            if (TryMapBuiltInParagraphStyleIndex(styleId, out ushort builtInStyleIndex)) {
+                builtInStyleIndexes.Add(builtInStyleIndex);
                 return;
             }
 
@@ -90,7 +93,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             string? basedOnStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
             if (!string.IsNullOrWhiteSpace(basedOnStyleId)) {
-                AddCustomStyleWithBase(basedOnStyleId!, paragraphStyles, orderedStyleIds, visited, visiting);
+                AddCustomStyleWithBase(basedOnStyleId!, paragraphStyles, orderedStyleIds, builtInStyleIndexes, visited, visiting);
             }
 
             visiting.Remove(styleId);
@@ -98,7 +101,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             orderedStyleIds.Add(styleId);
         }
 
-        private static Dictionary<ushort, Style> ReadUsedBuiltInStyles(ushort[] usedBuiltInStyleIndexes, IReadOnlyDictionary<string, Style> paragraphStyles) {
+        private static void AddBuiltInBaseStyles(ISet<ushort> builtInStyleIndexes, IReadOnlyDictionary<string, Style> paragraphStyles) {
+            var pending = new Queue<ushort>(builtInStyleIndexes);
+            while (pending.Count > 0) {
+                ushort styleIndex = pending.Dequeue();
+                string styleId = GetBuiltInParagraphStyleId(styleIndex);
+                if (!paragraphStyles.TryGetValue(styleId, out Style? style)) {
+                    continue;
+                }
+
+                string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+                if (string.IsNullOrWhiteSpace(baseStyleId)
+                    || string.Equals(baseStyleId, "Normal", StringComparison.OrdinalIgnoreCase)
+                    || !TryMapBuiltInParagraphStyleIndex(baseStyleId!, out ushort baseStyleIndex)
+                    || !builtInStyleIndexes.Add(baseStyleIndex)) {
+                    continue;
+                }
+
+                pending.Enqueue(baseStyleIndex);
+            }
+        }
+
+        private static Dictionary<ushort, Style> ReadUsedBuiltInStyles(IEnumerable<ushort> usedBuiltInStyleIndexes, IReadOnlyDictionary<string, Style> paragraphStyles) {
             var builtInStyles = new Dictionary<ushort, Style>();
             foreach (ushort styleIndex in usedBuiltInStyleIndexes) {
                 string styleId = GetBuiltInParagraphStyleId(styleIndex);
