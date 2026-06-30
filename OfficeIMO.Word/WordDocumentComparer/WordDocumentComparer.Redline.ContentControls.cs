@@ -77,7 +77,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            InsertDeletedContentControl(targetDocument, deletedControl);
+            InsertDeletedContentControl(targetDocument, sourceControls[sourceIndex].PartUri, deletedControl);
             return true;
         }
 
@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(root.Root, GetFeatureOrderBase(root.LocationKind))) {
                     if (ordered.Element is SdtElement contentControl) {
-                        entries.Add(new RedlineContentControlEntry(entries.Count, contentControl));
+                        entries.Add(new RedlineContentControlEntry(entries.Count, root.PartUri, contentControl));
                     }
                 }
             }
@@ -283,9 +283,9 @@ namespace OfficeIMO.Word {
             return displayText.Substring(markerIndex + textMarker.Length);
         }
 
-        private static void InsertDeletedContentControl(WordprocessingDocument targetDocument, SdtElement deletedControl) {
-            Body? body = targetDocument.MainDocumentPart?.Document?.Body;
-            if (body == null) {
+        private static void InsertDeletedContentControl(WordprocessingDocument targetDocument, string partUri, SdtElement deletedControl) {
+            OpenXmlCompositeElement? targetContainer = GetRedlineContentControlContainer(targetDocument, partUri);
+            if (targetContainer == null) {
                 return;
             }
 
@@ -297,17 +297,44 @@ namespace OfficeIMO.Word {
                 _ => new Paragraph()
             };
 
-            InsertBodyRedlineElement(body, block);
+            InsertContentControlRedlineElement(targetContainer, block);
         }
 
-        private static void InsertBodyRedlineElement(Body body, OpenXmlElement element) {
-            SectionProperties? sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
-            if (sectionProperties != null) {
-                body.InsertBefore(element, sectionProperties);
+        private static OpenXmlCompositeElement? GetRedlineContentControlContainer(WordprocessingDocument targetDocument, string partUri) {
+            MainDocumentPart? mainPart = targetDocument.MainDocumentPart;
+            if (mainPart == null) {
+                return null;
+            }
+
+            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
+                if (string.Equals(root.PartUri, partUri, StringComparison.Ordinal)) {
+                    return root.Root;
+                }
+            }
+
+            return mainPart.Document?.Body;
+        }
+
+        private static void InsertContentControlRedlineElement(OpenXmlCompositeElement container, OpenXmlElement element) {
+            if (container is Body body) {
+                SectionProperties? sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
+                if (sectionProperties != null) {
+                    body.InsertBefore(element, sectionProperties);
+                    return;
+                }
+            }
+
+            if (container is Footnotes footnotes) {
+                footnotes.Append(element);
                 return;
             }
 
-            body.Append(element);
+            if (container is Endnotes endnotes) {
+                endnotes.Append(element);
+                return;
+            }
+
+            container.Append(element);
         }
 
         private static bool TryParseIndexedLocation(string location, string prefix, out int index) {
@@ -323,12 +350,15 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineContentControlEntry {
-            internal RedlineContentControlEntry(int index, SdtElement contentControl) {
+            internal RedlineContentControlEntry(int index, string partUri, SdtElement contentControl) {
                 Index = index;
+                PartUri = partUri;
                 ContentControl = contentControl;
             }
 
             internal int Index { get; }
+
+            internal string PartUri { get; }
 
             internal SdtElement ContentControl { get; }
         }

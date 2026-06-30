@@ -12,8 +12,14 @@ namespace OfficeIMO.Word {
             List<RedlineImageEntry> targetImages = GetRedlineImageEntries(targetDocument);
             var rewrittenTargetImages = new HashSet<int>();
             var insertedSourceImages = new HashSet<int>();
+            var insertedBeforeImageAnchors = new Dictionary<Run, OpenXmlElement>();
+            var insertedAfterImageAnchors = new Dictionary<Run, OpenXmlElement>();
 
-            foreach (WordComparisonFinding finding in result.Findings) {
+            List<WordComparisonFinding> imageFindings = result.Findings
+                .Where(finding => ShouldTrackFinding(finding, options) && finding.Scope == WordComparisonScope.Image)
+                .ToList();
+
+            foreach (WordComparisonFinding finding in imageFindings.Where(finding => finding.ChangeKind != WordComparisonChangeKind.Deleted)) {
                 if (!ShouldTrackFinding(finding, options) ||
                     finding.Scope != WordComparisonScope.Image) {
                     continue;
@@ -27,16 +33,6 @@ namespace OfficeIMO.Word {
                             !rewrittenTargetImages.Contains(insertedTargetIndex) &&
                             WrapImageRunAsInserted(targetImages[insertedTargetIndex], options)) {
                             rewrittenTargetImages.Add(insertedTargetIndex);
-                        }
-
-                        break;
-                    case WordComparisonChangeKind.Deleted:
-                        int deletedSourceIndex = GetSourceImageIndex(finding);
-                        if (deletedSourceIndex >= 0 &&
-                            deletedSourceIndex < sourceImages.Count &&
-                            !insertedSourceImages.Contains(deletedSourceIndex) &&
-                            InsertDeletedImageRun(sourceImages[deletedSourceIndex], targetContainers, targetImages, targetDocument, options)) {
-                            insertedSourceImages.Add(deletedSourceIndex);
                         }
 
                         break;
@@ -56,6 +52,18 @@ namespace OfficeIMO.Word {
                         break;
                 }
             }
+
+            foreach (WordComparisonFinding finding in imageFindings
+                .Where(finding => finding.ChangeKind == WordComparisonChangeKind.Deleted)
+                .OrderBy(finding => GetSourceImageIndex(finding))) {
+                int deletedSourceIndex = GetSourceImageIndex(finding);
+                if (deletedSourceIndex >= 0 &&
+                    deletedSourceIndex < sourceImages.Count &&
+                    !insertedSourceImages.Contains(deletedSourceIndex) &&
+                    InsertDeletedImageRun(sourceImages[deletedSourceIndex], targetContainers, targetImages, targetDocument, options, insertedBeforeImageAnchors, insertedAfterImageAnchors)) {
+                    insertedSourceImages.Add(deletedSourceIndex);
+                }
+            }
         }
 
         private static List<RedlineImageEntry> GetRedlineImageEntries(WordprocessingDocument document) {
@@ -71,7 +79,7 @@ namespace OfficeIMO.Word {
             MainDocumentPart? mainPart = document.MainDocumentPart;
             var containers = new List<RedlineImageContainer>();
             if (mainPart?.Document?.Body != null) {
-                containers.Add(new RedlineImageContainer(containers.Count, mainPart, mainPart.Document.Body, BodyPartOrderBase));
+                containers.Add(new RedlineImageContainer(containers.Count, BodyPartKey, mainPart, mainPart.Document.Body, BodyPartOrderBase));
             }
 
             if (mainPart == null) {
@@ -81,7 +89,7 @@ namespace OfficeIMO.Word {
             int headerIndex = 0;
             foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
                 if (headerPartKey.Key.Header != null) {
-                    containers.Add(new RedlineImageContainer(containers.Count, headerPartKey.Key, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride)));
+                    containers.Add(new RedlineImageContainer(containers.Count, headerPartKey.Value, headerPartKey.Key, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride)));
                 }
 
                 headerIndex++;
@@ -90,7 +98,7 @@ namespace OfficeIMO.Word {
             int footerIndex = 0;
             foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
                 if (footerPartKey.Key.Footer != null) {
-                    containers.Add(new RedlineImageContainer(containers.Count, footerPartKey.Key, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride)));
+                    containers.Add(new RedlineImageContainer(containers.Count, footerPartKey.Value, footerPartKey.Key, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride)));
                 }
 
                 footerIndex++;
@@ -99,14 +107,16 @@ namespace OfficeIMO.Word {
             List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                 if (mainPart.FootnotesPart != null) {
-                    containers.Add(new RedlineImageContainer(containers.Count, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride)));
+                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    containers.Add(new RedlineImageContainer(containers.Count, FootnotePartKeyPrefix + noteId, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride)));
                 }
             }
 
             List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                 if (mainPart.EndnotesPart != null) {
-                    containers.Add(new RedlineImageContainer(containers.Count, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride)));
+                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    containers.Add(new RedlineImageContainer(containers.Count, EndnotePartKeyPrefix + noteId, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride)));
                 }
             }
 
@@ -125,7 +135,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                entries.Add(new RedlineImageEntry(entries.Count, container.Index, containerImageIndex, container.Part, container.Container, run));
+                entries.Add(new RedlineImageEntry(entries.Count, container.Index, container.PartKey, containerImageIndex, container.Part, container.Container, run));
                 containerImageIndex++;
             }
         }
@@ -177,7 +187,9 @@ namespace OfficeIMO.Word {
             IReadOnlyList<RedlineImageContainer> targetContainers,
             IReadOnlyList<RedlineImageEntry> targetImages,
             WordprocessingDocument targetDocument,
-            WordComparisonRedlineOptions options) {
+            WordComparisonRedlineOptions options,
+            Dictionary<Run, OpenXmlElement> insertedBeforeImageAnchors,
+            Dictionary<Run, OpenXmlElement> insertedAfterImageAnchors) {
             RedlineImageContainer targetContainer = GetTargetImageContainer(sourceEntry, targetContainers);
             Run? deletedRun = CloneImageRunForPart(sourceEntry, targetContainer.Part, targetDocument);
             if (deletedRun == null) {
@@ -186,20 +198,20 @@ namespace OfficeIMO.Word {
 
             DeletedRun deleted = WrapRunAsDeleted(deletedRun, options);
             RedlineImageEntry? nextImage = targetImages
-                .Where(image => image.ContainerIndex == targetContainer.Index && image.ContainerImageIndex >= sourceEntry.ContainerImageIndex)
+                .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex >= sourceEntry.ContainerImageIndex)
                 .OrderBy(image => image.ContainerImageIndex)
                 .FirstOrDefault();
             if (nextImage?.Run.Parent != null) {
-                nextImage.Run.Parent.InsertBefore(deleted, nextImage.Run);
+                InsertBeforeImageAnchor(nextImage.Run, deleted, insertedBeforeImageAnchors);
                 return true;
             }
 
             RedlineImageEntry? previousImage = targetImages
-                .Where(image => image.ContainerIndex == targetContainer.Index && image.ContainerImageIndex < sourceEntry.ContainerImageIndex)
+                .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex < sourceEntry.ContainerImageIndex)
                 .OrderByDescending(image => image.ContainerImageIndex)
                 .FirstOrDefault();
             if (previousImage?.Run.Parent != null) {
-                previousImage.Run.Parent.InsertAfter(deleted, previousImage.Run);
+                InsertAfterImageAnchor(previousImage.Run, deleted, insertedAfterImageAnchors);
                 return true;
             }
 
@@ -209,7 +221,7 @@ namespace OfficeIMO.Word {
         }
 
         private static RedlineImageContainer GetTargetImageContainer(RedlineImageEntry sourceEntry, IReadOnlyList<RedlineImageContainer> targetContainers) {
-            RedlineImageContainer? matchingContainer = targetContainers.FirstOrDefault(container => container.Index == sourceEntry.ContainerIndex);
+            RedlineImageContainer? matchingContainer = targetContainers.FirstOrDefault(container => string.Equals(container.PartKey, sourceEntry.PartKey, StringComparison.Ordinal));
             if (matchingContainer != null) {
                 return matchingContainer;
             }
@@ -219,6 +231,26 @@ namespace OfficeIMO.Word {
             }
 
             throw new InvalidOperationException("Target document has no part that can receive a deleted image redline.");
+        }
+
+        private static void InsertBeforeImageAnchor(Run anchorRun, OpenXmlElement deleted, Dictionary<Run, OpenXmlElement> insertedBeforeImageAnchors) {
+            if (insertedBeforeImageAnchors.TryGetValue(anchorRun, out OpenXmlElement? previousInserted)) {
+                previousInserted.InsertAfterSelf(deleted);
+            } else {
+                anchorRun.Parent!.InsertBefore(deleted, anchorRun);
+            }
+
+            insertedBeforeImageAnchors[anchorRun] = deleted;
+        }
+
+        private static void InsertAfterImageAnchor(Run anchorRun, OpenXmlElement deleted, Dictionary<Run, OpenXmlElement> insertedAfterImageAnchors) {
+            if (insertedAfterImageAnchors.TryGetValue(anchorRun, out OpenXmlElement? previousInserted)) {
+                previousInserted.InsertAfterSelf(deleted);
+            } else {
+                anchorRun.Parent!.InsertAfter(deleted, anchorRun);
+            }
+
+            insertedAfterImageAnchors[anchorRun] = deleted;
         }
 
         private static Run? CloneImageRunForPart(RedlineImageEntry sourceEntry, OpenXmlPart targetPart, WordprocessingDocument targetDocument) {
@@ -439,14 +471,17 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineImageContainer {
-            internal RedlineImageContainer(int index, OpenXmlPart part, OpenXmlElement container, int orderBase) {
+            internal RedlineImageContainer(int index, string partKey, OpenXmlPart part, OpenXmlElement container, int orderBase) {
                 Index = index;
+                PartKey = partKey;
                 Part = part;
                 Container = container;
                 OrderBase = orderBase;
             }
 
             internal int Index { get; }
+
+            internal string PartKey { get; }
 
             internal OpenXmlPart Part { get; }
 
@@ -456,9 +491,10 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineImageEntry {
-            internal RedlineImageEntry(int index, int containerIndex, int containerImageIndex, OpenXmlPart part, OpenXmlElement container, Run run) {
+            internal RedlineImageEntry(int index, int containerIndex, string partKey, int containerImageIndex, OpenXmlPart part, OpenXmlElement container, Run run) {
                 Index = index;
                 ContainerIndex = containerIndex;
+                PartKey = partKey;
                 ContainerImageIndex = containerImageIndex;
                 Part = part;
                 Container = container;
@@ -468,6 +504,8 @@ namespace OfficeIMO.Word {
             internal int Index { get; }
 
             internal int ContainerIndex { get; }
+
+            internal string PartKey { get; }
 
             internal int ContainerImageIndex { get; }
 

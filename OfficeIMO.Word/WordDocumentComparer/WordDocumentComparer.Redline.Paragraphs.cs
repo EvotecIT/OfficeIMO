@@ -4,9 +4,15 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static HashSet<int> ApplyParagraphFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
-            List<RedlineParagraphEntry> sourceParagraphs = GetRedlineParagraphEntries(sourceDocument);
-            List<RedlineParagraphEntry> targetParagraphs = GetRedlineParagraphEntries(targetDocument);
+        private static HashSet<int> ApplyParagraphFindings(
+            WordprocessingDocument sourceDocument,
+            WordprocessingDocument targetDocument,
+            WordComparisonResult result,
+            WordComparisonRedlineOptions options,
+            out IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
+            out IReadOnlyList<RedlineParagraphEntry> targetParagraphs) {
+            sourceParagraphs = GetRedlineParagraphEntries(sourceDocument);
+            targetParagraphs = GetRedlineParagraphEntries(targetDocument);
             var rewrittenParagraphs = new HashSet<int>();
             var deletedParagraphOffsets = new Dictionary<string, int>(StringComparer.Ordinal);
 
@@ -113,9 +119,12 @@ namespace OfficeIMO.Word {
             targetParagraph.ParagraphProperties.ParagraphPropertiesChange = CreateParagraphPropertiesChange(sourceParagraph.ParagraphProperties, options);
         }
 
-        private static void ApplyRunFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options, HashSet<int> rewrittenParagraphs) {
-            List<RedlineParagraphEntry> sourceParagraphs = GetRedlineParagraphEntries(sourceDocument);
-            List<RedlineParagraphEntry> targetParagraphs = GetRedlineParagraphEntries(targetDocument);
+        private static void ApplyRunFindings(
+            IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
+            IReadOnlyList<RedlineParagraphEntry> targetParagraphs,
+            WordComparisonResult result,
+            WordComparisonRedlineOptions options,
+            HashSet<int> rewrittenParagraphs) {
             foreach (WordComparisonFinding finding in result.Findings) {
                 if (!ShouldTrackFinding(finding, options) ||
                     finding.Scope != WordComparisonScope.Run ||
@@ -172,6 +181,12 @@ namespace OfficeIMO.Word {
         private static int FindSourceParagraphIndex(IReadOnlyList<RedlineParagraphEntry> sourceParagraphs, Paragraph targetParagraph, int fallbackIndex) {
             string targetText = GetParagraphText(targetParagraph);
             if (!string.IsNullOrEmpty(targetText)) {
+                if (fallbackIndex >= 0 &&
+                    fallbackIndex < sourceParagraphs.Count &&
+                    string.Equals(GetParagraphText(sourceParagraphs[fallbackIndex].Paragraph), targetText, StringComparison.Ordinal)) {
+                    return fallbackIndex;
+                }
+
                 for (int index = 0; index < sourceParagraphs.Count; index++) {
                     if (string.Equals(GetParagraphText(sourceParagraphs[index].Paragraph), targetText, StringComparison.Ordinal)) {
                         return index;

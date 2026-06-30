@@ -188,6 +188,209 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceRunFormattingUsesOriginalTargetParagraphsAfterDeletedParagraph() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_run_format_after_deleted_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Removed before");
+                document.AddParagraph("Stable run");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_run_format_after_deleted_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Stable run").Bold = true;
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_run_format_after_deleted_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Message == "Paragraph deleted.");
+            Assert.Contains(result.Findings, finding => finding.Message == "Run formatting changed.");
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph stableParagraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Stable run");
+            Run stableRun = Assert.Single(stableParagraph.Elements<Run>());
+            Assert.NotNull(stableRun.RunProperties?.RunPropertiesChange);
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceRunFormattingUsesDuplicateParagraphPositionBeforeTextFallback() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_duplicate_run_format_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Same");
+                document.AddParagraph("Same").Italic = true;
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_duplicate_run_format_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Same");
+                document.AddParagraph("Same").Bold = true;
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_duplicate_run_format_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph[] paragraphs = redline._document.Body!.Elements<Paragraph>().ToArray();
+            Run firstRun = Assert.Single(paragraphs[0].Elements<Run>());
+            Run secondRun = Assert.Single(paragraphs[1].Elements<Run>());
+            Assert.Null(firstRun.RunProperties?.RunPropertiesChange);
+            PreviousRunProperties previousProperties = Assert.IsType<PreviousRunProperties>(secondRun.RunProperties?.RunPropertiesChange?.FirstChild);
+            Assert.NotNull(previousProperties.GetFirstChild<Italic>());
+        }
+
+        [Fact]
+        public void CompareStructureInPlacePreservesConsecutiveDeletedImageOrder() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_source.docx");
+            string firstImage = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string secondImage = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string stableImage = Path.Combine(_directoryWithImages, "snail.bmp");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph().AddImage(firstImage, 40, 40);
+                document.AddParagraph().AddImage(secondImage, 40, 40);
+                document.AddParagraph().AddImage(stableImage, 40, 40);
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph().AddImage(stableImage, 40, 40);
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_order_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            MainDocumentPart mainPart = redline._wordprocessingDocument.MainDocumentPart!;
+            List<byte[]> deletedImages = GetDeletedDrawingImageBytes(mainPart, mainPart.Document.Body!);
+            Assert.Equal(2, deletedImages.Count);
+            Assert.Equal(File.ReadAllBytes(firstImage), deletedImages[0]);
+            Assert.Equal(File.ReadAllBytes(secondImage), deletedImages[1]);
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceMatchesDeletedImagesByPart() {
+            string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!.AddParagraph().AddImage(imagePath, 40, 40);
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!.AddParagraph("Header remains");
+                document.AddParagraph().AddImage(imagePath, 40, 40);
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(outputPath, false);
+            HeaderPart headerPart = Assert.Single(package.MainDocumentPart!.HeaderParts);
+            Assert.NotEmpty(headerPart.Header.Descendants<DeletedRun>());
+            Assert.Empty(package.MainDocumentPart.Document.Body!.Descendants<DeletedRun>());
+        }
+
+        [Fact]
+        public void CompareStructureInPlacePreservesConsecutiveDeletedTableOrder() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_table_order_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Deleted A";
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Deleted B";
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable C";
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_order_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddTable(1, 1).Rows[0].Cells[0].Paragraphs[0].Text = "Stable C";
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_table_order_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            string[] tableTexts = redline._document.Body!.Elements<Table>().Select(table => table.InnerText).ToArray();
+            Assert.Equal(new[] { "Deleted A", "Deleted B", "Stable C" }, tableTexts);
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceInsertsDeletedContentControlsIntoOriginalPart() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!.AddParagraph().AddStructuredDocumentTag("Header deleted", "Header", "HeaderTag");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!.AddParagraph("Header remains");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_header_sdt_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(outputPath, false);
+            HeaderPart headerPart = Assert.Single(package.MainDocumentPart!.HeaderParts);
+            Assert.Contains(headerPart.Header.Descendants<DeletedRun>(), deleted => deleted.InnerText == "Header deleted");
+            Assert.DoesNotContain(package.MainDocumentPart.Document.Body!.Descendants<DeletedRun>(), deleted => deleted.InnerText == "Header deleted");
+        }
+
+        [Fact]
         public void TableOfContentRefreshCombinesSplitComplexTocInstruction() {
             string filePath = Path.Combine(_directoryWithFiles, "TocRefreshSplitComplexInstruction.docx");
 
@@ -498,6 +701,31 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void AddCommentAllocatesParagraphIdsWithUnsignedHexOrdering() {
+            string filePath = Path.Combine(_directoryWithFiles, "CommentParaIdUnsignedReservation.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Comment target");
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                WordprocessingCommentsPart commentsPart = package.MainDocumentPart!.AddNewPart<WordprocessingCommentsPart>();
+                commentsPart.Comments = new Comments(
+                    CreateImportedComment("0", "7FFFFFFF"),
+                    CreateImportedComment("1", "80000000"));
+                commentsPart.Comments.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                document.AddParagraph("New comment target").AddComment("OfficeIMO Tests", "OT", "New comment");
+
+                var commentsEx = document._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsExPart!.CommentsEx!;
+                Assert.Contains(commentsEx.Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>(), commentEx => commentEx.ParaId?.Value == "80000001");
+            }
+        }
+
         private static void CreateFieldRegressionDocument(string path, params (string Instruction, string Result)[] fields) {
             using WordDocument document = WordDocument.Create(path);
             foreach ((string instruction, string result) in fields) {
@@ -509,6 +737,41 @@ namespace OfficeIMO.Tests {
             }
 
             document.Save(false);
+        }
+
+        private static Comment CreateImportedComment(string id, string paragraphId) {
+            var comment = new Comment(
+                new Paragraph(
+                    new Run(new Text("Imported comment " + id)))) {
+                Id = id,
+                Author = "Imported",
+                Initials = "IM",
+                Date = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc)
+            };
+            comment.GetFirstChild<Paragraph>()!.ParagraphId = paragraphId;
+            return comment;
+        }
+
+        private static List<byte[]> GetDeletedDrawingImageBytes(OpenXmlPart part, OpenXmlElement root) {
+            var images = new List<byte[]>();
+            foreach (DeletedRun deletedRun in root.Descendants<DeletedRun>()) {
+                foreach (DocumentFormat.OpenXml.Drawing.Blip blip in deletedRun.Descendants<DocumentFormat.OpenXml.Drawing.Blip>()) {
+                    if (blip.Embed?.Value is not string relationshipId) {
+                        continue;
+                    }
+
+                    if (part.GetPartById(relationshipId) is not ImagePart imagePart) {
+                        continue;
+                    }
+
+                    using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                    using var memoryStream = new MemoryStream();
+                    stream.CopyTo(memoryStream);
+                    images.Add(memoryStream.ToArray());
+                }
+            }
+
+            return images;
         }
 
         private static void CreateContentControlRegressionDocument(string path, params (string Alias, string Tag, string Text)[] controls) {
