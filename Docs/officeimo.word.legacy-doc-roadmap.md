@@ -542,8 +542,9 @@ just to reserve names.
   - [x] Block nested table cells before native `.doc` bytes are committed until
     nested table projection has TAP-backed read/write coverage.
   - [x] Write simple table row heights with `sprmTDyaRowHeight`, reload them
-    through the legacy reader, and block unsupported row-level table properties
-    before native `.doc` bytes are committed.
+    through the legacy reader, ignore OpenXML auto row heights as native DOC
+    auto-size rows, and block unsupported row-level table properties before
+    native `.doc` bytes are committed.
   - [x] Write simple table row repeat-header and no-split flags with
     `sprmTTableHeader` and `sprmTFCantSplit90`, then reload them through the
     legacy reader.

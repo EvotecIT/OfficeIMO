@@ -2621,6 +2621,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_IgnoresAutoTableRowHeightAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Height = 720;
+                    TableRowHeight rowHeight = Assert.Single(table.Rows[0]._tableRow.TableRowProperties!.Elements<TableRowHeight>());
+                    rowHeight.HeightType = HeightRuleValues.Auto;
+                    table.Rows[0].Cells[0].AddParagraph("Auto height", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.False(
+                    ContainsBytePattern(wordDocumentStream, 0x07, 0x94),
+                    "Expected native DOC save to omit sprmTDyaRowHeight for OpenXML auto table row heights.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Null(row.Height);
+                Assert.Equal("Auto height", row.Cells[0].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedTableGridColumnWidthsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

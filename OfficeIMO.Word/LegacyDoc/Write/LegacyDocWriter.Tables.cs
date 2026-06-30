@@ -391,6 +391,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             rowHeightTwips = null;
             rowHeightIsExact = false;
 
+            HeightRuleValues? heightRule = rowHeight.HeightType?.Value;
+            if (heightRule == HeightRuleValues.Auto) {
+                return;
+            }
+
             uint? rawValue = rowHeight.Val?.Value;
             if (rawValue == null || rawValue.Value == 0) {
                 return;
@@ -398,11 +403,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (rawValue.Value > short.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports table row heights only as positive twip values within the Word 97-2003 signed twip range.");
-            }
-
-            HeightRuleValues? heightRule = rowHeight.HeightType?.Value;
-            if (heightRule == HeightRuleValues.Auto) {
-                throw new NotSupportedException("Native DOC saving supports table row heights only with exact or at-least height rules.");
             }
 
             if (heightRule != null && heightRule != HeightRuleValues.Exact && heightRule != HeightRuleValues.AtLeast) {
