@@ -1691,6 +1691,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedFootnoteRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string bodyText = "Zażółć body with formatted footnote";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph(bodyText);
+                    WordParagraph reference = paragraph.AddFootNote("plain ");
+                    WordParagraph noteBody = reference.FootNote!.Paragraphs![1];
+                    noteBody.AddText("bold ").SetBold();
+                    noteBody.AddText("italic").SetItalic();
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
+                int ccpFtn = BitConverter.ToInt32(wordDocumentStream, 0x50);
+                int boldStart = ccpText + 2 + "plain ".Length;
+                int italicStart = boldStart + "bold ".Length;
+
+                Assert.Equal(bodyText.Length + 2, ccpText);
+                Assert.Equal("plain bold italic".Length + 4, ccpFtn);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, boldStart, "bold ".Length, 0x0835, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, italicStart, "italic".Length, 0x0836, 1);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                Assert.Equal("plain bold italic", footnote.Paragraphs![1].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleEndnotesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -1729,6 +1769,49 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Body with native endnote", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 Assert.Equal("Native endnote", endnote.Paragraphs![1].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedEndnoteRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string bodyText = "Zażółć body with formatted endnote";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph(bodyText);
+                    WordParagraph reference = paragraph.AddEndNote("plain ");
+                    WordParagraph noteBody = reference.EndNote!.Paragraphs![1];
+                    noteBody.AddText("bold ").SetBold();
+                    noteBody.AddText("italic").SetItalic();
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
+                int ccpHdd = BitConverter.ToInt32(wordDocumentStream, 0x54);
+                int ccpEdn = BitConverter.ToInt32(wordDocumentStream, 0x60);
+                int endnoteStart = ccpText + ccpHdd;
+                int boldStart = endnoteStart + 2 + "plain ".Length;
+                int italicStart = boldStart + "bold ".Length;
+
+                Assert.Equal(bodyText.Length + 2, ccpText);
+                Assert.Equal(13, ccpHdd);
+                Assert.Equal("plain bold italic".Length + 4, ccpEdn);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, boldStart, "bold ".Length, 0x0835, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, italicStart, "italic".Length, 0x0836, 1);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                Assert.Equal("plain bold italic", endnote.Paragraphs![1].Text);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -7524,6 +7607,63 @@ namespace OfficeIMO.Tests {
                 error);
             Assert.True(compoundFile!.Streams.TryGetValue(streamName, out byte[]? stream), $"Compound stream '{streamName}' was not found.");
             return stream!;
+        }
+
+        private static void AssertChpxContainsSprmForCharacterRange(byte[] wordDocumentStream, byte[] tableStream, int startCharacter, int length, ushort sprm, byte operand) {
+            Assert.True(length > 0);
+            int fcMin = BitConverter.ToInt32(wordDocumentStream, 0x18);
+            int fcMac = BitConverter.ToInt32(wordDocumentStream, 0x1C);
+            int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
+            int ccpFtn = BitConverter.ToInt32(wordDocumentStream, 0x50);
+            int ccpHdd = BitConverter.ToInt32(wordDocumentStream, 0x54);
+            int ccpEdn = BitConverter.ToInt32(wordDocumentStream, 0x60);
+            int storedCharacters = ccpText + ccpFtn + ccpHdd + ccpEdn + ((ccpFtn > 0 || ccpEdn > 0) ? 1 : 0);
+            Assert.True(storedCharacters > 0);
+            int bytesPerCharacter = (fcMac - fcMin) / storedCharacters;
+            Assert.True(bytesPerCharacter == 1 || bytesPerCharacter == 2);
+
+            int targetFcStart = fcMin + (startCharacter * bytesPerCharacter);
+            int targetFcEnd = targetFcStart + (length * bytesPerCharacter);
+            int fcPlcfBteChpx = BitConverter.ToInt32(wordDocumentStream, 0xFA);
+            int lcbPlcfBteChpx = BitConverter.ToInt32(wordDocumentStream, 0xFE);
+            Assert.True(fcPlcfBteChpx >= 0);
+            Assert.True(lcbPlcfBteChpx >= 12);
+            Assert.True(fcPlcfBteChpx + lcbPlcfBteChpx <= tableStream.Length);
+
+            int binCount = (lcbPlcfBteChpx - 4) / 8;
+            int bteOffset = fcPlcfBteChpx + ((binCount + 1) * 4);
+            byte sprmLow = (byte)(sprm & 0xFF);
+            byte sprmHigh = (byte)(sprm >> 8);
+            for (int binIndex = 0; binIndex < binCount; binIndex++) {
+                int pageNumber = BitConverter.ToInt32(tableStream, bteOffset + (binIndex * 4));
+                int pageOffset = pageNumber * 512;
+                Assert.True(pageOffset >= 0);
+                Assert.True(pageOffset + 512 <= wordDocumentStream.Length);
+
+                int runCount = wordDocumentStream[pageOffset + 511];
+                int rgbOffset = pageOffset + ((runCount + 1) * 4);
+                Assert.True(rgbOffset + runCount <= pageOffset + 511);
+                for (int runIndex = 0; runIndex < runCount; runIndex++) {
+                    int fcStart = BitConverter.ToInt32(wordDocumentStream, pageOffset + (runIndex * 4));
+                    int fcEnd = BitConverter.ToInt32(wordDocumentStream, pageOffset + ((runIndex + 1) * 4));
+                    if (fcStart > targetFcStart || fcEnd < targetFcEnd) {
+                        continue;
+                    }
+
+                    int chpxOffset = wordDocumentStream[rgbOffset + runIndex] * 2;
+                    Assert.True(chpxOffset > 0, $"CHPX run covering character range {startCharacter}-{startCharacter + length} was plain.");
+                    int cbGrpprl = wordDocumentStream[pageOffset + chpxOffset];
+                    Assert.True(cbGrpprl > 0);
+                    Assert.True(pageOffset + chpxOffset + 1 + cbGrpprl <= pageOffset + 511);
+                    byte[] grpprl = wordDocumentStream.Skip(pageOffset + chpxOffset + 1).Take(cbGrpprl).ToArray();
+                    Assert.True(
+                        ContainsBytePattern(grpprl, sprmLow, sprmHigh, operand),
+                        $"CHPX run covering character range {startCharacter}-{startCharacter + length} did not contain sprm 0x{sprm:X4} with operand 0x{operand:X2}.");
+                    return;
+                }
+            }
+
+            Assert.Fail($"No CHPX run covered character range {startCharacter}-{startCharacter + length}.");
         }
 
         private static void AssertSectionSepxContainsSingleByteSprm(byte[] wordDocumentStream, byte[] tableStream, ushort sprm, byte operand) {

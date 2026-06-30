@@ -649,6 +649,9 @@ just to reserve names.
     DOC save, then reload them through the legacy reader.
   - [x] Write simple authored endnote references and text bodies through native
     DOC save, then reload them through the legacy reader.
+  - [x] Write supported direct run formatting inside authored footnote and
+    endnote text bodies through native DOC CHPX records, while still reloading
+    the note text through the current legacy reader.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

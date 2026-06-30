@@ -12,7 +12,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return LegacyDocWritableEndnotes.Empty;
             }
 
-            var stories = new Dictionary<long, string>();
+            var stories = new Dictionary<long, LegacyDocWritableNoteStory>();
             foreach (Endnote endnote in endnotes.Elements<Endnote>()) {
                 if (!IsUserEndnote(endnote)) {
                     continue;
@@ -35,15 +35,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : new LegacyDocWritableEndnotes(stories);
         }
 
-        private static string ReadSimpleEndnoteStory(Endnote endnote, long id) {
+        private static LegacyDocWritableNoteStory ReadSimpleEndnoteStory(Endnote endnote, long id) {
             var builder = new StringBuilder();
+            var runs = new List<LegacyDocWritableRun>();
             builder.Append(LegacyDocFootnoteReader.FootnoteReferenceCharacter);
             builder.Append(' ');
             bool hasBodyText = false;
             foreach (OpenXmlElement child in endnote.ChildElements) {
                 switch (child) {
                     case Paragraph paragraph:
-                        string paragraphText = ReadSimpleEndnoteParagraph(paragraph, id);
+                        string paragraphText = ReadSimpleEndnoteParagraph(paragraph, id, runs, builder.Length);
                         if (!string.IsNullOrEmpty(paragraphText)) {
                             hasBodyText = true;
                         }
@@ -61,10 +62,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             builder.Append('\r');
-            return builder.ToString();
+            return new LegacyDocWritableNoteStory(builder.ToString(), runs);
         }
 
-        private static string ReadSimpleEndnoteParagraph(Paragraph paragraph, long id) {
+        private static string ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, int storyStart) {
             var builder = new StringBuilder();
             foreach (OpenXmlElement child in paragraph.ChildElements) {
                 switch (child) {
@@ -72,7 +73,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ThrowIfUnsupportedEndnoteParagraphProperties(paragraphProperties, id);
                         break;
                     case Run run:
-                        AppendSimpleEndnoteRun(builder, run, id);
+                        AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only. Unsupported endnote paragraph element: {child.LocalName}.");
@@ -99,27 +100,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendSimpleEndnoteRun(StringBuilder builder, Run run, long id) {
+        private static void AppendSimpleEndnoteRun(StringBuilder builder, List<LegacyDocWritableRun> runs, Run run, long id, int storyStart) {
             if (IsEndnoteReferenceMarkRun(run)) {
                 return;
             }
 
-            if (run.RunProperties != null && run.RunProperties.HasChildren) {
-                throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only without formatted endnote text runs.");
-            }
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
 
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
                         break;
                     case Text text:
-                        builder.Append(text.Text);
+                        AppendFormattedNoteText(builder, runs, text.Text, formatting, storyStart);
                         break;
                     case TabChar:
-                        builder.Append('\t');
+                        AppendFormattedNoteText(builder, runs, "\t", formatting, storyStart);
                         break;
                     case Break breakNode:
-                        AppendSimpleEndnoteBreak(builder, breakNode, id);
+                        AppendSimpleEndnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text, tabs, and simple line breaks. Unsupported endnote run element: {child.LocalName}.");
@@ -144,10 +143,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return hasReferenceMark;
         }
 
-        private static void AppendSimpleEndnoteBreak(StringBuilder builder, Break breakNode, long id) {
+        private static void AppendSimpleEndnoteBreak(StringBuilder builder, List<LegacyDocWritableRun> runs, Break breakNode, long id, LegacyDocWritableFormatting formatting, int storyStart) {
             BreakValues? breakType = breakNode.Type?.Value;
             if (breakType == null || breakType == BreakValues.TextWrapping) {
-                builder.Append('\v');
+                AppendFormattedNoteText(builder, runs, "\v", formatting, storyStart);
                 return;
             }
 
@@ -155,13 +154,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private sealed class LegacyDocWritableEndnotes {
-            internal static readonly LegacyDocWritableEndnotes Empty = new LegacyDocWritableEndnotes(new Dictionary<long, string>());
+            internal static readonly LegacyDocWritableEndnotes Empty = new LegacyDocWritableEndnotes(new Dictionary<long, LegacyDocWritableNoteStory>());
 
-            private readonly Dictionary<long, string> _storiesById;
+            private readonly Dictionary<long, LegacyDocWritableNoteStory> _storiesById;
             private readonly List<LegacyDocWritableEndnoteReference> _references = new List<LegacyDocWritableEndnoteReference>();
             private readonly HashSet<long> _referencedIds = new HashSet<long>();
 
-            internal LegacyDocWritableEndnotes(Dictionary<long, string> storiesById) {
+            internal LegacyDocWritableEndnotes(Dictionary<long, LegacyDocWritableNoteStory> storiesById) {
                 _storiesById = storiesById;
             }
 
@@ -193,14 +192,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 var text = new StringBuilder();
+                var runs = new List<LegacyDocWritableRun>();
                 var textPositions = new List<int>(_references.Count + 2);
                 var markerPositions = new List<int>(_references.Count);
                 for (int index = 0; index < _references.Count; index++) {
                     LegacyDocWritableEndnoteReference reference = _references[index];
-                    string story = _storiesById[reference.Id];
+                    LegacyDocWritableNoteStory story = _storiesById[reference.Id];
                     textPositions.Add(text.Length);
                     markerPositions.Add(text.Length);
-                    text.Append(story);
+                    foreach (LegacyDocWritableRun run in story.FormattedRuns) {
+                        runs.Add(new LegacyDocWritableRun(text.Length + run.StartCharacter, run.Length, run.Formatting));
+                    }
+
+                    text.Append(story.Text);
                 }
 
                 textPositions.Add(text.Length - 1);
@@ -209,7 +213,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     text.ToString(),
                     CreateEndnoteReferencePlc(_references, bodyCharacterCount + footnoteCharacterCount + headerFooterCharacterCount + text.Length + terminalCharacterPadding),
                     CreateEndnoteTextPlc(textPositions),
-                    markerPositions);
+                    markerPositions,
+                    runs);
             }
 
             private static byte[] CreateEndnoteReferencePlc(IReadOnlyList<LegacyDocWritableEndnoteReference> references, int terminalCharacterPosition) {
@@ -248,13 +253,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocWritableEndnoteStories {
-            internal static readonly LegacyDocWritableEndnoteStories Empty = new LegacyDocWritableEndnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>());
+            internal static readonly LegacyDocWritableEndnoteStories Empty = new LegacyDocWritableEndnoteStories(string.Empty, Array.Empty<byte>(), Array.Empty<byte>(), Array.Empty<int>(), Array.Empty<LegacyDocWritableRun>());
 
-            internal LegacyDocWritableEndnoteStories(string text, byte[] plcfendRef, byte[] plcfendTxt, IReadOnlyList<int> markerPositions) {
+            internal LegacyDocWritableEndnoteStories(string text, byte[] plcfendRef, byte[] plcfendTxt, IReadOnlyList<int> markerPositions, IReadOnlyList<LegacyDocWritableRun> formattedRuns) {
                 Text = text;
                 PlcfendRef = plcfendRef;
                 PlcfendTxt = plcfendTxt;
                 MarkerPositions = markerPositions;
+                FormattedRuns = formattedRuns;
             }
 
             internal string Text { get; }
@@ -264,6 +270,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal byte[] PlcfendTxt { get; }
 
             internal IReadOnlyList<int> MarkerPositions { get; }
+
+            internal IReadOnlyList<LegacyDocWritableRun> FormattedRuns { get; }
         }
     }
 }
