@@ -403,6 +403,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "definition-list-term-attribute", "Term {#term .wide}\n:   Definition" };
     }
 
+    public static IEnumerable<object[]> AlertBlocksExtensionCases() {
+        yield return new object[] { "note-paragraph", "> [!NOTE]\n> Body" };
+        yield return new object[] { "warning-list", "> [!WARNING]\n> - Item" };
+        yield return new object[] { "custom-kind", "> [!CUSTOM]\n> Body" };
+    }
+
     [Theory]
     [MemberData(nameof(CoreParityCases))]
     public void MarkdownReader_Matches_Markdig_On_Curated_Cases(string _, string markdown) {
@@ -431,6 +437,27 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var markdig = MarkdigMarkdown.ToHtml(markdown);
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(AlertBlocksExtensionCases))]
+    public void MarkdownReader_AlertBlocks_Match_Markdig_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        MarkdownBlockRenderBuiltInExtensions.AddMarkdigAlertHtmlFallback(htmlOptions);
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseAlertBlocks(builder, null);
+
+        var office = MarkdownReader
+            .Parse(markdown, new MarkdownReaderOptions())
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeAlertHtmlForParity(markdig), NormalizeAlertHtmlForParity(office));
     }
 
     [Theory]
@@ -850,6 +877,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
+    }
+
+    private static string NormalizeAlertHtmlForParity(string html) {
+        return Regex.Replace(
+            NormalizeHtmlForParity(html),
+            "<svg[\\s\\S]*?</svg>",
+            "<svg />",
+            RegexOptions.CultureInvariant);
     }
 
     private static string NormalizeGenericAttributesHtmlForParity(string html) {

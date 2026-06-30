@@ -26,7 +26,7 @@ Current inventory: 33 Markdig extension-family rows; 11 covered, 8 partial, 3 in
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `UseAbbreviations` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep abbreviation comparison, list-contained source-token, native source-edit, and writer fixtures aligned as lossless trivia work expands. |
 | `UseAdvancedExtensions` | `Intentional` | Intentional difference | Not planned | Not planned | Intentional difference | Documented | Keep this row as a roll-up guard; do not implement as a broad on switch. |
-| `UseAlertBlocks` | `Partial` | Core plus renderer policy | Partial | Needs callout/alert source fields | Needs renderer callback and writer contract | Needs Markdig/GFM comparison proof | Align callout/alert syntax, AST fields, source spans, and renderer customization explicitly. |
+| `UseAlertBlocks` | `Partial` | Core plus renderer policy | No-title alert parser covered; titled callouts are OfficeIMO-specific | Has callout source fields; needs boundary proof | Has opt-in Markdig alert HTML fallback; needs writer/boundary contract | Has core alert comparison; needs broader GFM proof | Decide whether titled OfficeIMO callouts are an intentional superset, then close the remaining source/native/writer boundary and broader GFM alert fixtures. |
 | `UseAutoIdentifiers` | `Covered` | Renderer/host policy | Covered | Covered | Covered | Covered | Keep slug-style and heading-source fixtures aligned as broader renderer profiles evolve. |
 | `UseAutoLinks` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep broader GFM fixture breadth separate from the Markdig UseAutoLinks row. |
 | `UseBootstrap` | `Intentional` | Renderer/host policy | Not planned | Not planned | Intentional difference | Documented | Keep theme/rendering presets separate from parser parity. |
@@ -70,5 +70,5 @@ Current inventory: 33 Markdig extension-family rows; 11 covered, 8 partial, 3 in
 
 - [ ] Continue `UseGenericAttributes` only after probing remaining Markdig-supported block and inline targets. Avoid another standalone-attribute sweep unless Markdig evidence requires it.
 - [x] Keep `UseDefinitionLists` covered while broader source/trivia work evolves; do not reopen it without new Markdig evidence.
-- [ ] Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis` before adding more fixtures.
+- [ ] Decide the titled-callout boundary for `UseAlertBlocks` and the delimiter option boundary for `UseCjkFriendlyEmphasis` before adding more fixtures.
 - [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.

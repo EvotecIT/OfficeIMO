@@ -36,6 +36,87 @@ public class Markdown_Write_Profile_Tests {
     }
 
     [Fact]
+    public void Markdig_Alert_Html_Fallback_Renders_GitHub_Alert_Chrome() {
+        var doc = MarkdownReader.Parse("""
+> [!NOTE]
+> Body text
+""");
+        var options = new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        MarkdownBlockRenderBuiltInExtensions.AddMarkdigAlertHtmlFallback(options);
+
+        var html = doc.ToHtmlFragment(options);
+
+        Assert.Contains("<div class=\"markdown-alert markdown-alert-note\">", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"markdown-alert-title\"", html, StringComparison.Ordinal);
+        Assert.Contains(">Note</p>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Body text</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("class=\"callout", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void Markdig_Alert_Html_Fallback_Leaves_Custom_Kinds_Untitled() {
+        var doc = MarkdownReader.Parse("""
+> [!CUSTOM]
+> Body text
+""");
+        var options = new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        MarkdownBlockRenderBuiltInExtensions.AddMarkdigAlertHtmlFallback(options);
+
+        var html = doc.ToHtmlFragment(options);
+
+        Assert.Contains("<div class=\"markdown-alert markdown-alert-custom\">", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Body text</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("markdown-alert-title", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdig_Alert_Html_Fallback_Preserves_OfficeImo_Title_Inlines() {
+        var doc = MarkdownReader.Parse("""
+> [!NOTE] **Example**
+> Body text
+""");
+        var options = new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        MarkdownBlockRenderBuiltInExtensions.AddMarkdigAlertHtmlFallback(options);
+
+        var html = doc.ToHtmlFragment(options);
+
+        Assert.Contains("<div class=\"markdown-alert markdown-alert-note\">", html, StringComparison.Ordinal);
+        Assert.Contains("<p class=\"markdown-alert-title\"><svg", html, StringComparison.Ordinal);
+        Assert.Contains("<strong>Example</strong>", html, StringComparison.Ordinal);
+        Assert.Contains("<p>Body text</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdig_Alert_Html_Fallback_Is_Registered_Once() {
+        var options = new HtmlOptions { Kind = HtmlKind.Fragment, BodyClass = null };
+
+        MarkdownBlockRenderBuiltInExtensions.AddMarkdigAlertHtmlFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddMarkdigAlertHtmlFallback(options);
+
+        Assert.Single(
+            options.BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.MarkdigAlertHtmlName, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Portable_Html_Fallbacks_Render_Toc_As_Plain_List() {
         var doc = MarkdownDoc.Create()
             .H2("Section")

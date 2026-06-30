@@ -33,8 +33,9 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [ ] Writer/render: preserve attributes through HTML rendering and Markdown writing where the row claims support.
   - [ ] Proof: add target-by-target Markdig comparison and source/native fixtures only after each target exists in the engine.
 - [ ] `UseAlertBlocks` decision: scope first, then engine.
-  - [ ] Decide whether Markdig alert rendering callbacks become an OfficeIMO renderer contract or remain an intentional callout difference.
-  - [ ] If in scope, align alert/callout parser behavior, syntax fields, native source fields, renderer customization, writer output, and comparison fixtures.
+  - [x] Add an opt-in Markdig-style alert HTML fallback for no-title GitHub alert syntax while preserving OfficeIMO titled callouts as richer AST semantics.
+  - [ ] Decide whether titled OfficeIMO callouts are an intentional superset or need a Markdig-compatible boundary mode.
+  - [ ] Align the remaining callout/alert syntax fields, native source fields, writer output, and broader comparison fixtures around that boundary.
 - [ ] `UseCjkFriendlyEmphasis` decision: parser option or intentional gap.
   - [ ] Decide whether to add a Markdig-compatible delimiter option.
   - [ ] If in scope, implement delimiter behavior in the inline parser and prove source-token/writer behavior with CJK comparison cases.
@@ -147,8 +148,9 @@ Current active row: `UseDefinitionLists`.
     - [x] Paragraph-contained attributes embedded at the end of nested link labels, image alt text, linked-image alt text, emphasis content, and strong content now promote to the paragraph owner like Markdig, with syntax/native source proof.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [ ] Decide and close `UseAlertBlocks`.
-  - [ ] Decide whether Markdig alert rendering callbacks become an OfficeIMO renderer contract or remain an intentional callout difference.
-  - [ ] Align callout/alert AST fields, source spans, renderer customization, writer output, and comparison fixtures around that decision.
+  - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
+  - [ ] Decide whether titled OfficeIMO callouts are an intentional superset or need a Markdig-compatible boundary mode.
+  - [ ] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
 - [ ] Decide and close `UseCjkFriendlyEmphasis`.
   - [ ] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof, or document it as deferred/intentional.
 - [ ] Keep `UsePreciseSourceLocation` partial until lossless trivia, original mapping, generated-node diagnostics, and broader source edits are complete.
