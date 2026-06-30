@@ -71,6 +71,12 @@ public sealed partial class MarkdownNativeDocument {
             }
 
             IsLineBreakStart(sourceMarkdown, lineBreakOffset, out var lineBreakLength);
+            trivia.Add(CreateTrivia(
+                MarkdownNativeSourceTriviaKind.LineEnding,
+                sourceMarkdown,
+                lineNumber,
+                lineBreakOffset,
+                lineBreakLength));
             lineStartOffset = lineBreakOffset + lineBreakLength;
             lineNumber++;
         }

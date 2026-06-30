@@ -60,7 +60,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
             "# Title  \r\n\tIndented text\t \r\n   \r\nParagraph",
             new MarkdownReaderOptions { PreserveTrivia = true });
 
-        var trivia = native.SourceTrivia.ToArray();
+        var trivia = native.SourceTrivia.Where(item => item.Kind != MarkdownNativeSourceTriviaKind.LineEnding).ToArray();
         var trailingTrivia = native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.TrailingWhitespace).ToArray();
         var leadingTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LeadingWhitespace));
         var blankLineTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.BlankLine));
@@ -95,14 +95,47 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
         Assert.Equal("\t", originalLeadingSlice.Text);
         Assert.Equal("\t ", originalTrailingSlice.Text);
 
-        var snapshotTrivia = native.ToSnapshot().SourceTrivia;
-        Assert.Equal(4, snapshotTrivia.Count);
+        var snapshotTrivia = native.ToSnapshot().SourceTrivia
+            .Where(item => item.Kind != MarkdownNativeSourceTriviaKind.LineEnding)
+            .ToArray();
+        Assert.Equal(4, snapshotTrivia.Length);
         Assert.Equal(MarkdownNativeSourceTriviaKind.TrailingWhitespace, snapshotTrivia[0].Kind);
         Assert.Equal("  ", snapshotTrivia[0].Text);
         Assert.Equal(MarkdownNativeSourceTriviaKind.LeadingWhitespace, snapshotTrivia[1].Kind);
         Assert.Equal("\t", snapshotTrivia[1].Text);
         Assert.Equal(MarkdownNativeSourceTriviaKind.BlankLine, snapshotTrivia[3].Kind);
         Assert.Equal("   ", snapshotTrivia[3].Text);
+    }
+
+    [Fact]
+    public void NativeDocument_SourceTrivia_SourceSlices_Address_Line_Endings_With_Original_Mapping() {
+        var native = MarkdownNativeDocument.Parse(
+            "# Title\r\nParagraph\rTail\nEnd",
+            new MarkdownReaderOptions { PreserveTrivia = true });
+
+        var lineEndings = native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LineEnding).ToArray();
+
+        Assert.Equal(3, lineEndings.Length);
+        Assert.Equal(new[] { 8, 10, 5 }, lineEndings.Select(item => item.SourceSpan.StartColumn!.Value).ToArray());
+        Assert.All(lineEndings, item => Assert.Equal("\n", item.Text));
+        Assert.Same(lineEndings[0], native.FindSourceTriviaAtPosition(1, 8));
+        Assert.Same(lineEndings[1], native.FindSourceTriviaAtPosition(2, 10));
+        Assert.Same(lineEndings[2], native.FindSourceTriviaAtPosition(3, 5));
+
+        var expectedOriginalText = new[] { "\r\n", "\r", "\n" };
+        for (var i = 0; i < lineEndings.Length; i++) {
+            Assert.True(native.TryCreateSourceSlice(lineEndings[i], out var normalizedSlice));
+            Assert.True(native.TryCreateOriginalSourceSlice(lineEndings[i], out var originalSlice, out var failureReason));
+            Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, failureReason);
+            Assert.Equal("\n", normalizedSlice.Text);
+            Assert.Equal(expectedOriginalText[i], originalSlice.Text);
+        }
+
+        var snapshotTrivia = native.ToSnapshot().SourceTrivia
+            .Where(item => item.Kind == MarkdownNativeSourceTriviaKind.LineEnding)
+            .ToArray();
+        Assert.Equal(3, snapshotTrivia.Length);
+        Assert.All(snapshotTrivia, item => Assert.Equal("\n", item.Text));
     }
 
     [Fact]
