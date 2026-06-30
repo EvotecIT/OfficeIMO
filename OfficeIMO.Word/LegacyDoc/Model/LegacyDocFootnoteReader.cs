@@ -4,7 +4,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal static bool HasReadableFootnoteTables(byte[] tableStream, LegacyDocFib fib) {
             return fib.CcpFtn == 0
-                || TryReadFootnoteTables(tableStream, fib, out _, out _, out _);
+                || TryReadNoteTables(
+                    tableStream,
+                    fib.CcpFtn,
+                    fib.FcPlcffndRef,
+                    fib.LcbPlcffndRef,
+                    fib.FcPlcffndTxt,
+                    fib.LcbPlcffndTxt,
+                    "footnote",
+                    out _,
+                    out _,
+                    out _);
+        }
+
+        internal static bool HasReadableEndnoteTables(byte[] tableStream, LegacyDocFib fib) {
+            return fib.CcpEdn == 0
+                || TryReadNoteTables(
+                    tableStream,
+                    fib.CcpEdn,
+                    fib.FcPlcfendRef,
+                    fib.LcbPlcfendRef,
+                    fib.FcPlcfendTxt,
+                    fib.LcbPlcfendTxt,
+                    "endnote",
+                    out _,
+                    out _,
+                    out _);
         }
 
         internal static IReadOnlyList<LegacyDocFootnote> Read(byte[] tableStream, LegacyDocTextContent textContent, LegacyDocFib fib, out string? warning) {
@@ -13,7 +38,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return Array.Empty<LegacyDocFootnote>();
             }
 
-            if (!TryReadFootnoteTables(tableStream, fib, out int[] referencePositions, out int[] textPositions, out warning)) {
+            if (!TryReadNoteTables(
+                tableStream,
+                fib.CcpFtn,
+                fib.FcPlcffndRef,
+                fib.LcbPlcffndRef,
+                fib.FcPlcffndTxt,
+                fib.LcbPlcffndTxt,
+                "footnote",
+                out int[] referencePositions,
+                out int[] textPositions,
+                out warning)) {
                 return Array.Empty<LegacyDocFootnote>();
             }
 
@@ -42,25 +77,80 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return footnotes;
         }
 
-        private static bool TryReadFootnoteTables(byte[] tableStream, LegacyDocFib fib, out int[] referencePositions, out int[] textPositions, out string? warning) {
+        internal static IReadOnlyList<LegacyDocEndnote> ReadEndnotes(byte[] tableStream, LegacyDocTextContent textContent, LegacyDocFib fib, out string? warning) {
+            warning = null;
+            if (fib.CcpEdn == 0) {
+                return Array.Empty<LegacyDocEndnote>();
+            }
+
+            if (!TryReadNoteTables(
+                tableStream,
+                fib.CcpEdn,
+                fib.FcPlcfendRef,
+                fib.LcbPlcfendRef,
+                fib.FcPlcfendTxt,
+                fib.LcbPlcfendTxt,
+                "endnote",
+                out int[] referencePositions,
+                out int[] textPositions,
+                out warning)) {
+                return Array.Empty<LegacyDocEndnote>();
+            }
+
+            int endnoteBaseCharacterPosition = fib.CcpText + fib.CcpFtn + fib.CcpHdd + fib.CcpAtn;
+            int endnoteCount = referencePositions.Length;
+            var endnotes = new List<LegacyDocEndnote>(endnoteCount);
+            for (int index = 0; index < endnoteCount; index++) {
+                int startCharacter = textPositions[index];
+                int endCharacter = textPositions[index + 1];
+                if (endCharacter <= startCharacter) {
+                    continue;
+                }
+
+                string rawText = ExtractStoryText(
+                    textContent.AllCharacters,
+                    endnoteBaseCharacterPosition + startCharacter,
+                    endnoteBaseCharacterPosition + endCharacter);
+                IReadOnlyList<string> paragraphs = SplitStoryParagraphs(rawText);
+                if (paragraphs.Count == 0) {
+                    continue;
+                }
+
+                endnotes.Add(new LegacyDocEndnote(referencePositions[index], paragraphs));
+            }
+
+            return endnotes;
+        }
+
+        private static bool TryReadNoteTables(
+            byte[] tableStream,
+            int storyCharacterCount,
+            int fcReference,
+            int lcbReference,
+            int fcText,
+            int lcbText,
+            string noteKind,
+            out int[] referencePositions,
+            out int[] textPositions,
+            out string? warning) {
             referencePositions = Array.Empty<int>();
             textPositions = Array.Empty<int>();
             warning = null;
 
-            if (fib.CcpFtn == 0) {
+            if (storyCharacterCount == 0) {
                 return true;
             }
 
-            if (!TryReadFootnoteReferencePositions(tableStream, fib, out referencePositions, out warning)) {
+            if (!TryReadNoteReferencePositions(tableStream, fcReference, lcbReference, noteKind, out referencePositions, out warning)) {
                 return false;
             }
 
-            if (!TryReadFootnoteTextPositions(tableStream, fib, out textPositions, out warning)) {
+            if (!TryReadNoteTextPositions(tableStream, fcText, lcbText, noteKind, out textPositions, out warning)) {
                 return false;
             }
 
             if (referencePositions.Length == 0 || textPositions.Length < referencePositions.Length + 1) {
-                warning = "The footnote reference and text PLCs do not contain matching simple footnote ranges.";
+                warning = $"The {noteKind} reference and text PLCs do not contain matching simple {noteKind} ranges.";
                 referencePositions = Array.Empty<int>();
                 textPositions = Array.Empty<int>();
                 return false;
@@ -70,8 +160,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int previousTextPosition = -1;
             for (int index = 0; index < textPositions.Length; index++) {
                 int position = textPositions[index];
-                if (position < previousTextPosition || position < 0 || position > fib.CcpFtn) {
-                    warning = "The footnote text PLC contains a non-monotonic or out-of-range character position.";
+                if (position < previousTextPosition || position < 0 || position > storyCharacterCount) {
+                    warning = $"The {noteKind} text PLC contains a non-monotonic or out-of-range character position.";
                     referencePositions = Array.Empty<int>();
                     textPositions = Array.Empty<int>();
                     return false;
@@ -83,52 +173,52 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return true;
         }
 
-        private static bool TryReadFootnoteReferencePositions(byte[] tableStream, LegacyDocFib fib, out int[] positions, out string? warning) {
+        private static bool TryReadNoteReferencePositions(byte[] tableStream, int fcReference, int lcbReference, string noteKind, out int[] positions, out string? warning) {
             positions = Array.Empty<int>();
             warning = null;
-            if (fib.LcbPlcffndRef == 0) {
-                warning = "The FIB reports footnote story text without a footnote reference PLC.";
+            if (lcbReference == 0) {
+                warning = $"The FIB reports {noteKind} story text without a {noteKind} reference PLC.";
                 return false;
             }
 
-            if (fib.FcPlcffndRef < 0
-                || fib.LcbPlcffndRef < 4
-                || fib.FcPlcffndRef + fib.LcbPlcffndRef > tableStream.Length
-                || (fib.LcbPlcffndRef - 4) % 6 != 0) {
-                warning = "The FIB points outside the selected table stream for the footnote reference PLC.";
+            if (fcReference < 0
+                || lcbReference < 4
+                || fcReference + lcbReference > tableStream.Length
+                || (lcbReference - 4) % 6 != 0) {
+                warning = $"The FIB points outside the selected table stream for the {noteKind} reference PLC.";
                 return false;
             }
 
-            int noteCount = (fib.LcbPlcffndRef - 4) / 6;
+            int noteCount = (lcbReference - 4) / 6;
             var cps = new int[noteCount + 1];
             for (int index = 0; index < cps.Length; index++) {
-                cps[index] = LegacyDocFib.ReadInt32(tableStream, fib.FcPlcffndRef + (index * 4));
+                cps[index] = LegacyDocFib.ReadInt32(tableStream, fcReference + (index * 4));
             }
 
             positions = cps.Take(noteCount).ToArray();
             return true;
         }
 
-        private static bool TryReadFootnoteTextPositions(byte[] tableStream, LegacyDocFib fib, out int[] positions, out string? warning) {
+        private static bool TryReadNoteTextPositions(byte[] tableStream, int fcText, int lcbText, string noteKind, out int[] positions, out string? warning) {
             positions = Array.Empty<int>();
             warning = null;
-            if (fib.LcbPlcffndTxt == 0) {
-                warning = "The FIB reports footnote story text without a footnote text PLC.";
+            if (lcbText == 0) {
+                warning = $"The FIB reports {noteKind} story text without a {noteKind} text PLC.";
                 return false;
             }
 
-            if (fib.FcPlcffndTxt < 0
-                || fib.LcbPlcffndTxt < 8
-                || fib.FcPlcffndTxt + fib.LcbPlcffndTxt > tableStream.Length
-                || fib.LcbPlcffndTxt % 4 != 0) {
-                warning = "The FIB points outside the selected table stream for the footnote text PLC.";
+            if (fcText < 0
+                || lcbText < 8
+                || fcText + lcbText > tableStream.Length
+                || lcbText % 4 != 0) {
+                warning = $"The FIB points outside the selected table stream for the {noteKind} text PLC.";
                 return false;
             }
 
-            int positionCount = fib.LcbPlcffndTxt / 4;
+            int positionCount = lcbText / 4;
             positions = new int[positionCount];
             for (int index = 0; index < positionCount; index++) {
-                positions[index] = LegacyDocFib.ReadInt32(tableStream, fib.FcPlcffndTxt + (index * 4));
+                positions[index] = LegacyDocFib.ReadInt32(tableStream, fcText + (index * 4));
             }
 
             return true;

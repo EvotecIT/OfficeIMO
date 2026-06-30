@@ -5,9 +5,14 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes) {
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             if (run.Elements<FootnoteReference>().Any()) {
                 AppendFootnoteReferenceRun(text, runs, footnotes, run);
+                return;
+            }
+
+            if (run.Elements<EndnoteReference>().Any()) {
+                AppendEndnoteReferenceRun(text, runs, endnotes, run);
                 return;
             }
 
@@ -29,8 +34,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case FootnoteReference footnoteReference:
                         AppendFootnoteReference(text, runs, footnotes, footnoteReference);
                         break;
+                    case EndnoteReference endnoteReference:
+                        AppendEndnoteReference(text, runs, endnotes, endnoteReference);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, line breaks, page breaks, and simple footnote references only. Unsupported run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, line breaks, page breaks, and simple footnote/endnote references only. Unsupported run element: {child.LocalName}.");
                 }
             }
         }
@@ -49,6 +57,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
+        private static void AppendEndnoteReferenceRun(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableEndnotes endnotes, Run run) {
+            foreach (OpenXmlElement child in run.ChildElements) {
+                switch (child) {
+                    case RunProperties:
+                        break;
+                    case EndnoteReference endnoteReference:
+                        AppendEndnoteReference(text, runs, endnotes, endnoteReference);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports endnote reference runs only when they contain endnote references. Unsupported endnote reference run element: {child.LocalName}.");
+                }
+            }
+        }
+
         private static void AppendFootnoteReference(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFootnotes footnotes, FootnoteReference footnoteReference) {
             long? id = footnoteReference.Id?.Value;
             if (id == null || id.Value <= 0) {
@@ -57,6 +79,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             int referencePosition = text.Length;
             footnotes.AddReference(id.Value, referencePosition);
+            AppendFormattedText(text, runs, LegacyDocFootnoteReader.FootnoteReferenceCharacter.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
+        }
+
+        private static void AppendEndnoteReference(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableEndnotes endnotes, EndnoteReference endnoteReference) {
+            long? id = endnoteReference.Id?.Value;
+            if (id == null || id.Value <= 0) {
+                throw new NotSupportedException("Native DOC saving supports endnote references only when they use a positive identifier.");
+            }
+
+            int referencePosition = text.Length;
+            endnotes.AddReference(id.Value, referencePosition);
             AppendFormattedText(text, runs, LegacyDocFootnoteReader.FootnoteReferenceCharacter.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 

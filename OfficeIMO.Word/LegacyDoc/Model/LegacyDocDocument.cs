@@ -40,6 +40,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal IReadOnlyList<LegacyDocFootnote> Footnotes { get; private set; } = Array.Empty<LegacyDocFootnote>();
 
+        internal IReadOnlyList<LegacyDocEndnote> Endnotes { get; private set; } = Array.Empty<LegacyDocEndnote>();
+
         internal bool DifferentOddAndEvenPages { get; private set; }
 
         /// <summary>Gets diagnostics produced while reading the legacy document.</summary>
@@ -173,6 +175,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddWarning("DOC-FOOTNOTE-PLC-INVALID", footnoteWarning);
             }
 
+            Endnotes = LegacyDocFootnoteReader.ReadEndnotes(tableStream, textContent, fib, out string? endnoteWarning);
+            if (endnoteWarning != null) {
+                AddWarning("DOC-ENDNOTE-PLC-INVALID", endnoteWarning);
+            }
+
             HeaderFooterStories = LegacyDocHeaderFooterReader.Read(tableStream, textContent, fib, out string? headerFooterWarning);
             if (headerFooterWarning != null) {
                 AddWarning("DOC-PLCFHDD-INVALID", headerFooterWarning);
@@ -244,12 +251,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     "The legacy DOC contains footnote story text. Footnotes are preserved in the source file but are not projected into the OfficeIMO document.",
                     "Fib:CcpFtn");
             }
-            AddUnsupportedStoryFeatureIfPresent(
-                fib.CcpEdn,
-                LegacyDocUnsupportedFeatureKind.Endnote,
-                "DOC-ENDNOTE-STORIES-PRESENT",
-                "The legacy DOC contains endnote story text. Endnotes are preserved in the source file but are not projected into the OfficeIMO document.",
-                "Fib:CcpEdn");
+            if (!LegacyDocFootnoteReader.HasReadableEndnoteTables(tableStream, fib)) {
+                AddUnsupportedStoryFeatureIfPresent(
+                    fib.CcpEdn,
+                    LegacyDocUnsupportedFeatureKind.Endnote,
+                    "DOC-ENDNOTE-STORIES-PRESENT",
+                    "The legacy DOC contains endnote story text. Endnotes are preserved in the source file but are not projected into the OfficeIMO document.",
+                    "Fib:CcpEdn");
+            }
             AddUnsupportedStoryFeatureIfPresent(
                 fib.CcpAtn,
                 LegacyDocUnsupportedFeatureKind.Comment,
@@ -411,6 +420,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var bodyText = new System.Text.StringBuilder(characters.Count);
             var currentRuns = new List<LegacyDocTextRun>();
             var runText = new System.Text.StringBuilder();
+            var runCharacterPositions = new List<int>();
             LegacyDocCharacterFormat currentFormat = LegacyDocCharacterFormat.Default;
             bool hasCurrentRun = false;
             bool inTable = false;
@@ -459,7 +469,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                AppendRunCharacter(normalized.Value, format);
+                AppendRunCharacter(normalized.Value, format, textCharacter.CharacterPosition);
                 bodyText.Append(normalized.Value);
             }
 
@@ -518,7 +528,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     detailCode: "Fib:PlcfSed"));
             }
 
-            void AppendRunCharacter(char character, LegacyDocCharacterFormat format) {
+            void AppendRunCharacter(char character, LegacyDocCharacterFormat format, int characterPosition) {
                 if (!hasCurrentRun || !format.Equals(currentFormat)) {
                     FlushRun();
                     currentFormat = format;
@@ -526,6 +536,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 runText.Append(character);
+                runCharacterPositions.Add(characterPosition);
                 if (inTable) {
                     justClosedCell = false;
                 }
@@ -553,8 +564,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.Highlight,
                     currentFormat.FontSizeHalfPoints,
                     currentFormat.ColorHex,
-                    currentFormat.FontFamily));
+                    currentFormat.FontFamily,
+                    runCharacterPositions));
                 runText.Clear();
+                runCharacterPositions.Clear();
             }
 
             void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat) {

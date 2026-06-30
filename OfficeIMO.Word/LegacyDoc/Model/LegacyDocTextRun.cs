@@ -17,7 +17,47 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocHighlightColorKind? highlight,
             int? fontSizeHalfPoints,
             string? colorHex,
-            string? fontFamily) {
+            string? fontFamily)
+            : this(
+                text,
+                bold,
+                italic,
+                strike,
+                doubleStrike,
+                outline,
+                shadow,
+                emboss,
+                imprint,
+                hidden,
+                caps,
+                verticalPosition,
+                underline,
+                highlight,
+                fontSizeHalfPoints,
+                colorHex,
+                fontFamily,
+                Array.Empty<int>()) {
+        }
+
+        internal LegacyDocTextRun(
+            string text,
+            bool bold,
+            bool italic,
+            bool strike,
+            bool doubleStrike,
+            bool outline,
+            bool shadow,
+            bool emboss,
+            bool imprint,
+            bool hidden,
+            LegacyDocCapsKind? caps,
+            LegacyDocVerticalPositionKind? verticalPosition,
+            LegacyDocUnderlineKind? underline,
+            LegacyDocHighlightColorKind? highlight,
+            int? fontSizeHalfPoints,
+            string? colorHex,
+            string? fontFamily,
+            IReadOnlyList<int> characterPositions) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -35,6 +75,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
             FontFamily = fontFamily;
+            CharacterPositions = characterPositions.Count == 0
+                ? Array.Empty<int>()
+                : characterPositions.ToArray();
         }
 
         internal string Text { get; }
@@ -70,5 +113,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? ColorHex { get; }
 
         internal string? FontFamily { get; }
+
+        internal IReadOnlyList<int> CharacterPositions { get; }
     }
 }

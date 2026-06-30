@@ -1121,6 +1121,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleEndnoteStory() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithEndnoteStory("Body with endnote", "Projected endnote");
+            string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.True(result.HasDocument);
+                Assert.Equal("Body with endnote", result.Document.Sections[0].Paragraphs[0].Text);
+                Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.Endnote);
+
+                WordEndNote endnote = Assert.Single(result.Document.EndNotes);
+                Assert.Equal("Projected endnote", endnote.Paragraphs![1].Text);
+
+                result.Document.Save(docxPath);
+
+                using WordDocument reloaded = WordDocument.Load(docxPath);
+                WordEndNote reloadedEndnote = Assert.Single(reloaded.EndNotes);
+                Assert.Equal("Projected endnote", reloadedEndnote.Paragraphs![1].Text);
+            } finally {
+                DeleteIfExists(docxPath);
+            }
+        }
+
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_DoesNotProjectUnsupportedStoryTextIntoBody() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedHeaderFooterStoryText("Body story", "Header leak");
 
@@ -1642,18 +1669,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksEndnotesBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleEndnotesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                WordParagraph paragraph = document.AddParagraph("Body with endnote");
-                paragraph.AddEndNote("Native endnote");
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with native endnote");
+                    paragraph.AddEndNote("Native endnote");
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("endnotes are not supported", exception.Message, StringComparison.OrdinalIgnoreCase);
-                Assert.False(File.Exists(docPath));
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                int ccpText = BitConverter.ToInt32(wordDocumentStream, 0x4C);
+                int ccpHdd = BitConverter.ToInt32(wordDocumentStream, 0x54);
+                int ccpEdn = BitConverter.ToInt32(wordDocumentStream, 0x60);
+                int fcPlcfendRef = BitConverter.ToInt32(wordDocumentStream, 0x20A);
+                int lcbPlcfendRef = BitConverter.ToInt32(wordDocumentStream, 0x20E);
+                int fcPlcfendTxt = BitConverter.ToInt32(wordDocumentStream, 0x212);
+                int lcbPlcfendTxt = BitConverter.ToInt32(wordDocumentStream, 0x216);
+                Assert.Equal("Body with native endnote".Length + 2, ccpText);
+                Assert.Equal("Native endnote".Length + 4, ccpEdn);
+                Assert.Equal(13, ccpHdd);
+                Assert.Equal(10, lcbPlcfendRef);
+                Assert.Equal(12, lcbPlcfendTxt);
+                Assert.Equal("Body with native endnote".Length, BitConverter.ToInt32(tableStream, fcPlcfendRef));
+                Assert.Equal(ccpText + ccpHdd + ccpEdn + 1, BitConverter.ToInt32(tableStream, fcPlcfendRef + 4));
+                Assert.Equal(0, BitConverter.ToInt32(tableStream, fcPlcfendTxt));
+                Assert.Equal(ccpEdn - 1, BitConverter.ToInt32(tableStream, fcPlcfendTxt + 4));
+                Assert.Equal(ccpEdn + 2, BitConverter.ToInt32(tableStream, fcPlcfendTxt + 8));
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Body with native endnote", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                Assert.Equal("Native endnote", endnote.Paragraphs![1].Text);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4553,8 +4606,9 @@ namespace OfficeIMO.Tests {
         private static class LegacyDocTestBuilder {
             internal static byte[] CreateSimpleDoc(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
-                byte[] wordDocumentStream = CreateWordDocumentStream(text);
-                byte[] tableStream = CreateTableStream(text.Length);
+                const int textOffset = 0x800;
+                byte[] wordDocumentStream = CreateWordDocumentStream(text, textOffset: textOffset);
+                byte[] tableStream = CreateTableStream(text.Length, textOffset);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
@@ -5186,6 +5240,42 @@ namespace OfficeIMO.Tests {
                     lcbPlcffndRef: footnoteReferencePlc.Length,
                     fcPlcffndTxt: fcPlcffndTxt,
                     lcbPlcffndTxt: footnoteTextPlc.Length,
+                    ccpTextOverride: documentText.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithEndnoteStory(string bodyText, string endnoteText) {
+                string documentText = bodyText + "\u0002\r";
+                string endnoteStory = endnoteText + "\r";
+                string text = documentText + endnoteStory;
+
+                const int textOffset = 0x800;
+                byte[] tableStream = CreateTableStream(text.Length, textOffset);
+                int fcPlcfendRef = tableStream.Length;
+                byte[] endnoteReferencePlc = CreateFootnoteReferencePlc(bodyText.Length);
+                Array.Resize(ref tableStream, tableStream.Length + endnoteReferencePlc.Length);
+                Buffer.BlockCopy(endnoteReferencePlc, 0, tableStream, fcPlcfendRef, endnoteReferencePlc.Length);
+
+                int fcPlcfendTxt = tableStream.Length;
+                byte[] endnoteTextPlc = CreateFootnoteTextPlc(endnoteStory.Length);
+                Array.Resize(ref tableStream, tableStream.Length + endnoteTextPlc.Length);
+                Buffer.BlockCopy(endnoteTextPlc, 0, tableStream, fcPlcfendTxt, endnoteTextPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    ccpEdn: endnoteStory.Length,
+                    fcPlcfendRef: fcPlcfendRef,
+                    lcbPlcfendRef: endnoteReferencePlc.Length,
+                    fcPlcfendTxt: fcPlcfendTxt,
+                    lcbPlcfendTxt: endnoteTextPlc.Length,
+                    textOffset: textOffset,
                     ccpTextOverride: documentText.Length);
 
                 using var package = new MemoryStream();
@@ -5854,13 +5944,17 @@ namespace OfficeIMO.Tests {
                 int lcbPlcffndRef = 0,
                 int fcPlcffndTxt = 0,
                 int lcbPlcffndTxt = 0,
+                int fcPlcfendRef = 0,
+                int lcbPlcfendRef = 0,
+                int fcPlcfendTxt = 0,
+                int lcbPlcfendTxt = 0,
                 int fcPlcfHdd = 0,
                 int lcbPlcfHdd = 0,
                 int fcDop = 0,
                 int lcbDop = 0,
-                int? ccpTextOverride = null) {
+                int? ccpTextOverride = null,
+                int textOffset = 0x200) {
                 const int fibLength = 0x1AA;
-                const int textOffset = 0x200;
                 byte[] textBytes = EncodeWindows1252(text);
                 var stream = new byte[textOffset + textBytes.Length];
                 WriteUInt16(stream, 0x00, 0xA5EC);
@@ -5877,6 +5971,16 @@ namespace OfficeIMO.Tests {
                 WriteInt32(stream, 0xAE, lcbPlcffndRef);
                 WriteInt32(stream, 0xB2, fcPlcffndTxt);
                 WriteInt32(stream, 0xB6, lcbPlcffndTxt);
+                if (fcPlcfendRef != 0 || lcbPlcfendRef != 0 || fcPlcfendTxt != 0 || lcbPlcfendTxt != 0) {
+                    if (textOffset < 0x21A) {
+                        throw new InvalidOperationException("Synthetic DOC fixtures with endnote PLC offsets must place text after the extended FIB endnote fields.");
+                    }
+
+                    WriteInt32(stream, 0x20A, fcPlcfendRef);
+                    WriteInt32(stream, 0x20E, lcbPlcfendRef);
+                    WriteInt32(stream, 0x212, fcPlcfendTxt);
+                    WriteInt32(stream, 0x216, lcbPlcfendTxt);
+                }
                 WriteInt32(stream, 0xCA, fcPlcfSed);
                 WriteInt32(stream, 0xCE, lcbPlcfSed);
                 WriteInt32(stream, 0xF2, fcPlcfHdd);
@@ -6718,8 +6822,7 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
-            private static byte[] CreateTableStream(int characterCount) {
-                const int textOffset = 0x200;
+            private static byte[] CreateTableStream(int characterCount, int textOffset = 0x200) {
                 var table = new byte[21];
                 table[0] = 0x02;
                 WriteInt32(table, 1, 16);
