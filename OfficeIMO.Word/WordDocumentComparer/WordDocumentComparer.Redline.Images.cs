@@ -216,8 +216,17 @@ namespace OfficeIMO.Word {
             }
 
             var paragraph = new Paragraph(deleted);
-            targetContainer.Container.Append(paragraph);
+            AppendImageFallbackParagraph(targetContainer.Container, paragraph);
             return true;
+        }
+
+        private static void AppendImageFallbackParagraph(OpenXmlElement container, Paragraph paragraph) {
+            if (container is Body body && body.Elements<SectionProperties>().LastOrDefault() is SectionProperties sectionProperties) {
+                body.InsertBefore(paragraph, sectionProperties);
+                return;
+            }
+
+            container.Append(paragraph);
         }
 
         private static RedlineImageContainer GetTargetImageContainer(RedlineImageEntry sourceEntry, IReadOnlyList<RedlineImageContainer> targetContainers) {

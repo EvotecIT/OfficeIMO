@@ -93,10 +93,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.SetDocumentVariable("ClientName", "Evotec");
                 document.SetDocumentVariable("Ticket", "INC-42");
+                document.SetDocumentVariable("Status", "mixed status");
 
                 document.AddParagraph("Client: ").AddField(WordFieldType.DocVariable, parameters: new List<string> { "\"ClientName\"" });
                 document.AddParagraph("Ticket: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE Ticket ", "stale-ticket"));
                 document.AddParagraph("Case-insensitive: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE clientname ", "stale-client-lower"));
+                document.AddParagraph("Formatted: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE Status \\* Upper ", "stale-status"));
                 document.AddParagraph("Missing: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE MissingVariable ", "stale-missing"));
                 document.Save(false);
             }
@@ -104,8 +106,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(4, report.TotalCount);
-                Assert.Equal(3, report.UpdatedCount);
+                Assert.Equal(5, report.TotalCount);
+                Assert.Equal(4, report.UpdatedCount);
                 Assert.Equal(1, report.SkippedCount);
                 Assert.Equal(0, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
@@ -117,6 +119,11 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Updated &&
                     result.InstructionText.Contains("clientname", StringComparison.Ordinal) &&
                     result.ResultText == "Evotec");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.DocVariable &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.InstructionText.Contains("Status", StringComparison.Ordinal) &&
+                    result.ResultText == "MIXED STATUS");
                 Assert.Contains(report.Results, result =>
                     result.FieldType == WordFieldType.DocVariable &&
                     result.Status == WordFieldUpdateStatus.Skipped &&
@@ -141,6 +148,10 @@ namespace OfficeIMO.Tests {
                     field.FieldType == WordFieldType.DocVariable &&
                     field.InstructionText.Contains("clientname", StringComparison.Ordinal) &&
                     field.ResultText == "Evotec");
+                Assert.Contains(fields, field =>
+                    field.FieldType == WordFieldType.DocVariable &&
+                    field.InstructionText.Contains("Status", StringComparison.Ordinal) &&
+                    field.ResultText == "MIXED STATUS");
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.DocVariable &&
                     field.InstructionText.Contains("MissingVariable", StringComparison.Ordinal) &&
@@ -204,6 +215,9 @@ namespace OfficeIMO.Tests {
                 document.AddPageBreak();
                 document.AddParagraph("Page two: ").AddField(WordFieldType.Page);
                 document.AddPageBreak();
+                document.AddParagraph("Two explicit breaks")._paragraph.Append(
+                    new Run(new Break { Type = BreakValues.Page }),
+                    new Run(new Break { Type = BreakValues.Page }));
                 document.AddParagraph("Total pages: ").AddField(WordFieldType.NumPages);
                 document.AddParagraph("Formatted page: ")._paragraph.Append(BuildSimpleField(" PAGE \\# \"000\" ", "stale-page-picture"));
                 document.AddParagraph("Formatted total pages: ")._paragraph.Append(BuildSimpleField(" NUMPAGES \\# \"000\" ", "stale-total-picture"));
@@ -220,7 +234,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1, report.UnsupportedCount);
                 Assert.Equal(1, report.ParseErrorCount);
 
-                Assert.Equal(new[] { "1", "2", "003" }, report.Results
+                Assert.Equal(new[] { "1", "2", "005" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.Page)
                     .Select(result => result.ResultText)
                     .ToArray());
@@ -228,11 +242,11 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(report.Results, result =>
                     result.FieldType == WordFieldType.NumPages &&
                     result.Status == WordFieldUpdateStatus.Updated &&
-                    result.ResultText == "3");
+                    result.ResultText == "5");
                 Assert.Contains(report.Results, result =>
                     result.FieldType == WordFieldType.NumPages &&
                     result.Status == WordFieldUpdateStatus.Updated &&
-                    result.ResultText == "003" &&
+                    result.ResultText == "005" &&
                     result.Message.Contains("Numeric picture", StringComparison.Ordinal));
 
                 WordFieldUpdateResult unsupported = Assert.Single(report.Results, result => result.FieldType == WordFieldType.Database);
@@ -249,12 +263,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var fields = document.InspectFields();
 
-                Assert.Equal(new[] { "1", "2", "003" }, fields
+                Assert.Equal(new[] { "1", "2", "005" }, fields
                     .Where(field => field.FieldType == WordFieldType.Page)
                     .Select(field => field.ResultText)
                     .ToArray());
-                Assert.Contains(fields, field => field.FieldType == WordFieldType.NumPages && field.ResultText == "3");
-                Assert.Contains(fields, field => field.FieldType == WordFieldType.NumPages && field.ResultText == "003");
+                Assert.Contains(fields, field => field.FieldType == WordFieldType.NumPages && field.ResultText == "5");
+                Assert.Contains(fields, field => field.FieldType == WordFieldType.NumPages && field.ResultText == "005");
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.Database);
             }
         }
@@ -535,6 +549,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Info revision: ").AddField(WordFieldType.Info, parameters: new List<string> { "Revision" });
                 document.AddParagraph("Info version: ").AddField(WordFieldType.Info, parameters: new List<string> { "Version" });
                 document.AddParagraph("Info printed: ").AddField(WordFieldType.Info, parameters: new List<string> { "LastPrinted" });
+                document.AddParagraph("Info printed custom: ")._paragraph.Append(BuildSimpleField(" INFO LastPrinted \\@ \"yyyy/MM/dd\" ", "stale-info-printed"));
                 document.AddParagraph("Property category: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Category\"" });
                 document.AddParagraph("Property version: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Version\"" });
                 document.AddParagraph("Missing info: ")._paragraph.Append(BuildSimpleField(" INFO MissingBuiltInProperty ", "stale-missing-info"));
@@ -544,8 +559,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(9, report.TotalCount);
-                Assert.Equal(8, report.UpdatedCount);
+                Assert.Equal(10, report.TotalCount);
+                Assert.Equal(9, report.UpdatedCount);
                 Assert.Equal(1, report.SkippedCount);
                 Assert.Equal(0, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
@@ -576,6 +591,11 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Updated &&
                     result.InstructionText.Contains("LastPrinted", StringComparison.Ordinal) &&
                     result.ResultText == "2024-01-04 05:06:07");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Info &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.InstructionText.Contains("\\@ \"yyyy/MM/dd\"", StringComparison.Ordinal) &&
+                    result.ResultText == "2024/01/04");
                 AssertDocPropertyUpdated(report, "Category", "Market readiness");
                 AssertDocPropertyUpdated(report, "Version", "2026.6");
                 Assert.Contains(report.Results, result =>
@@ -1218,6 +1238,9 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("First page");
+                document.AddParagraph("Two explicit page breaks")._paragraph.Append(
+                    new Run(new Break { Type = BreakValues.Page }),
+                    new Run(new Break { Type = BreakValues.Page }));
                 Paragraph pageStart = document.AddParagraph("Page-start bookmark target")._paragraph;
                 pageStart.ParagraphProperties = new ParagraphProperties(new PageBreakBefore());
                 pageStart.InsertBefore(new BookmarkStart { Name = "PageStartBookmark", Id = "101" }, pageStart.GetFirstChild<Run>());
@@ -1236,11 +1259,11 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(report.Results, result =>
                     result.FieldType == WordFieldType.Page &&
                     result.Status == WordFieldUpdateStatus.Updated &&
-                    result.ResultText == "2");
+                    result.ResultText == "4");
                 Assert.Contains(report.Results, result =>
                     result.FieldType == WordFieldType.PageRef &&
                     result.Status == WordFieldUpdateStatus.Updated &&
-                    result.ResultText == "2");
+                    result.ResultText == "4");
             }
         }
 

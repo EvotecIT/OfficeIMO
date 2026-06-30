@@ -294,6 +294,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceInsertsDeletedImageBeforeFinalSectionProperties() {
+            string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph().AddImage(imagePath, 40, 40);
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Target keeps only text");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_sectpr_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(outputPath, false);
+            Body body = package.MainDocumentPart!.Document.Body!;
+            Assert.IsType<SectionProperties>(body.ChildElements.Last());
+            Paragraph deletedImageParagraph = Assert.Single(body.Elements<Paragraph>(), paragraph => paragraph.Descendants<DeletedRun>().Any());
+            Assert.True(body.ChildElements.ToList().IndexOf(deletedImageParagraph) < body.ChildElements.Count - 1);
+        }
+
+        [Fact]
         public void CompareStructureInPlaceMatchesDeletedImagesByPart() {
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_header_image_source.docx");
