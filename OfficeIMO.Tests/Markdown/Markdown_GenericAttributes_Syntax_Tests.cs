@@ -1488,6 +1488,59 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void InlineHtmlWrapper_GenericAttributes_Are_Consumed_Without_Metadata_And_Preserve_Trailing_Text_Source() {
+        const string markdown = "<u>hi</u>{#under .wide} tail\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        var htmlTag = Assert.Single(paragraph.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineHtmlTag);
+        var trailingText = Assert.Single(
+            paragraph.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.InlineText
+                && node.SourceSpan.HasValue
+                && node.SourceSpan.Value.Equals(new MarkdownSourceSpan(1, 24, 1, 28)));
+
+        Assert.True(htmlTag.Attributes.IsEmpty);
+        Assert.Equal("u", htmlTag.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 9), htmlTag.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(htmlTag, out var htmlTagSlice));
+        Assert.Equal("<u>hi</u>", htmlTagSlice.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 24, 1, 28), trailingText.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(trailingText, out var trailingTextSlice));
+        Assert.Equal(" tail", trailingTextSlice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var nativeHtmlTag = Assert.Single(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.HtmlTag);
+        var nativeTrailingText = Assert.Single(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.Text == " tail");
+
+        Assert.Equal("hi", nativeHtmlTag.Text);
+        Assert.DoesNotContain(nativeHtmlTag.Metadata, metadata => metadata.Name == "attributes");
+        Assert.DoesNotContain(native.EnumerateInlineMetadata(), metadata => metadata.Name == "attributes");
+        Assert.Equal(new MarkdownSourceSpan(1, 24, 1, 28), nativeTrailingText.SourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(nativeTrailingText, out var nativeTrailingTextSlice));
+        Assert.Equal(" tail", nativeTrailingTextSlice.Text);
+        Assert.Equal(
+            "<p><u>hi</u> tail</p>",
+            result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            }));
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Before_Footnote_Definition_Are_Consumed_Without_Metadata() {
         const string markdown = "{#fn .wide}\n[^a]: note\n\ntext[^a]\n";
         var options = new MarkdownReaderOptions {

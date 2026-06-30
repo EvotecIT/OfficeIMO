@@ -185,6 +185,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
     - [x] List-item generic attributes now preserve the captured separator whitespace in Markdown writer output instead of normalizing it away after the parser/source layer has already retained it.
     - [x] Footnote and definition-list continuation paragraphs after a blank line now keep trailing generic attributes literal like Markdig, without emitting `GenericAttributeBlock` syntax or native `attributes` metadata.
     - [x] Inline generic attributes now preserve source spans for trailing text that remains after an attributed or consumed-without-metadata inline target consumes the `{...}` block.
+    - [x] Typed inline HTML wrappers such as `<u>...</u>` now match Markdig by consuming valid following generic attributes without metadata while keeping trailing text source-backed.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [x] Decide and close `UseAlertBlocks`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
