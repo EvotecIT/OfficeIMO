@@ -149,7 +149,9 @@ namespace OfficeIMO.Word {
         /// <summary>UserName field code.</summary>
         UserName,
         /// <summary>Index entry field code.</summary>
-        XE
+        XE,
+        /// <summary>Formula field code, represented in Word field instructions as an equals expression.</summary>
+        Formula
     }
 
     /// <summary>

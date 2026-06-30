@@ -69,6 +69,8 @@
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.cs" Link="Shared\OfficeEncryption.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.AgileDescriptor.cs" Link="Shared\OfficeEncryption.AgileDescriptor.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.CompoundFile.cs" Link="Shared\OfficeEncryption.CompoundFile.cs" />
+        <Compile Include="..\OfficeIMO.Shared\OfficePackageSignatureInfo.cs" Link="Shared\OfficePackageSignatureInfo.cs" />
+        <Compile Include="..\OfficeIMO.Shared\OfficePackageSignatureWriter.cs" Link="Shared\OfficePackageSignatureWriter.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -77,6 +79,7 @@
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.Net.Http" />
+        <Reference Include="WindowsBase" />
     </ItemGroup>
 
     <ItemGroup>

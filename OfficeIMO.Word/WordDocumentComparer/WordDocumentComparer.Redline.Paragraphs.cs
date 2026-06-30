@@ -1,0 +1,278 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+
+namespace OfficeIMO.Word {
+    public static partial class WordDocumentComparer {
+        private static HashSet<int> ApplyParagraphFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            List<RedlineParagraphEntry> sourceParagraphs = GetRedlineParagraphEntries(sourceDocument);
+            List<RedlineParagraphEntry> targetParagraphs = GetRedlineParagraphEntries(targetDocument);
+            var rewrittenParagraphs = new HashSet<int>();
+
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.Paragraph ||
+                    !IsParagraphTextRedlineFinding(finding) ||
+                    !HasTrackedText(finding)) {
+                    continue;
+                }
+
+                switch (finding.ChangeKind) {
+                    case WordComparisonChangeKind.Modified:
+                        if (finding.TargetIndex is int modifiedIndex &&
+                            modifiedIndex >= 0 &&
+                            modifiedIndex < targetParagraphs.Count) {
+                            if (IsContentControlParagraph(targetParagraphs[modifiedIndex].Paragraph)) {
+                                break;
+                            }
+
+                            if (string.Equals(finding.SourceText, finding.TargetText, StringComparison.Ordinal)) {
+                                break;
+                            }
+
+                            RewriteParagraphWithTrackedText(targetParagraphs[modifiedIndex].Paragraph, finding.SourceText, finding.TargetText, options);
+                            rewrittenParagraphs.Add(modifiedIndex);
+                        }
+
+                        break;
+                    case WordComparisonChangeKind.Inserted:
+                        if (finding.TargetIndex is int insertedIndex &&
+                            insertedIndex >= 0 &&
+                            insertedIndex < targetParagraphs.Count &&
+                            !string.IsNullOrEmpty(finding.TargetText) &&
+                            !IsContentControlParagraph(targetParagraphs[insertedIndex].Paragraph)) {
+                            RewriteParagraphWithTrackedText(targetParagraphs[insertedIndex].Paragraph, null, finding.TargetText, options);
+                            rewrittenParagraphs.Add(insertedIndex);
+                        }
+
+                        break;
+                    case WordComparisonChangeKind.Deleted:
+                        if (finding.SourceIndex is int sourceIndex &&
+                            sourceIndex >= 0 &&
+                            sourceIndex < sourceParagraphs.Count &&
+                            !string.IsNullOrEmpty(finding.SourceText) &&
+                            !IsContentControlParagraph(sourceParagraphs[sourceIndex].Paragraph)) {
+                            InsertDeletedParagraph(targetParagraphs, sourceParagraphs[sourceIndex], finding.SourceText!, options);
+                        }
+
+                        break;
+                }
+            }
+
+            return rewrittenParagraphs;
+        }
+
+        private static bool IsParagraphTextRedlineFinding(WordComparisonFinding finding) {
+            return string.Equals(finding.Message, "Paragraph text changed.", StringComparison.Ordinal) ||
+                   string.Equals(finding.Message, "Paragraph inserted.", StringComparison.Ordinal) ||
+                   string.Equals(finding.Message, "Paragraph deleted.", StringComparison.Ordinal);
+        }
+
+        private static void ApplyRunFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options, HashSet<int> rewrittenParagraphs) {
+            List<RedlineParagraphEntry> sourceParagraphs = GetRedlineParagraphEntries(sourceDocument);
+            List<RedlineParagraphEntry> targetParagraphs = GetRedlineParagraphEntries(targetDocument);
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.Run ||
+                    !TryParseParagraphRunLocation(finding.Location, out int paragraphIndex, out int runIndex) ||
+                    paragraphIndex < 0 ||
+                    paragraphIndex >= targetParagraphs.Count ||
+                    rewrittenParagraphs.Contains(paragraphIndex) ||
+                    IsContentControlParagraph(targetParagraphs[paragraphIndex].Paragraph)) {
+                    continue;
+                }
+
+                if (IsFormattingFinding(finding)) {
+                    ApplyRunFormattingFinding(sourceParagraphs, targetParagraphs[paragraphIndex].Paragraph, paragraphIndex, runIndex, finding, options);
+                } else {
+                    ApplyRunFinding(targetParagraphs[paragraphIndex].Paragraph, runIndex, finding, options);
+                }
+            }
+        }
+
+        private static void ApplyRunFormattingFinding(
+            IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
+            Paragraph targetParagraph,
+            int paragraphIndex,
+            int runIndex,
+            WordComparisonFinding finding,
+            WordComparisonRedlineOptions options) {
+            if (!string.Equals(finding.Message, "Run formatting changed.", StringComparison.Ordinal) ||
+                finding.ChangeKind != WordComparisonChangeKind.Modified ||
+                paragraphIndex >= sourceParagraphs.Count) {
+                return;
+            }
+
+            int sourceRunIndex = finding.SourceIndex ?? runIndex;
+            List<Run> sourceRuns = GetDirectParagraphRuns(sourceParagraphs[paragraphIndex].Paragraph);
+            List<Run> targetRuns = GetDirectParagraphRuns(targetParagraph);
+            if (sourceRunIndex < 0 ||
+                sourceRunIndex >= sourceRuns.Count ||
+                runIndex < 0 ||
+                runIndex >= targetRuns.Count) {
+                return;
+            }
+
+            Run targetRun = targetRuns[runIndex];
+            targetRun.RunProperties ??= new RunProperties();
+            foreach (RunPropertiesChange existingChange in targetRun.RunProperties.Elements<RunPropertiesChange>().ToList()) {
+                existingChange.Remove();
+            }
+
+            targetRun.RunProperties.RunPropertiesChange = CreateRunPropertiesChange(sourceRuns[sourceRunIndex].RunProperties, options);
+        }
+
+        private static List<Run> GetDirectParagraphRuns(Paragraph paragraph) {
+            return paragraph.Descendants<Run>()
+                .Where(run => run.Ancestors<Paragraph>().FirstOrDefault() == paragraph)
+                .ToList();
+        }
+
+        private static RunPropertiesChange CreateRunPropertiesChange(RunProperties? sourceProperties, WordComparisonRedlineOptions options) {
+            var previousProperties = new PreviousRunProperties();
+            if (sourceProperties != null) {
+                RunProperties clonedProperties = (RunProperties)sourceProperties.CloneNode(true);
+                foreach (RunPropertiesChange existingChange in clonedProperties.Elements<RunPropertiesChange>().ToList()) {
+                    existingChange.Remove();
+                }
+
+                foreach (OpenXmlElement child in clonedProperties.ChildElements.ToList()) {
+                    previousProperties.Append(child.CloneNode(true));
+                }
+            }
+
+            return new RunPropertiesChange(previousProperties) {
+                Author = options.Author,
+                Date = options.DateTime ?? DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+        }
+
+        private static List<RedlineParagraphEntry> GetRedlineParagraphEntries(WordprocessingDocument document) {
+            var entries = new List<RedlineParagraphEntry>();
+            MainDocumentPart? mainPart = document.MainDocumentPart;
+            AddRedlineParagraphEntries(entries, BodyPartKey, mainPart?.Document?.Body, BodyPartOrderBase);
+
+            if (mainPart == null) {
+                return entries;
+            }
+
+            int headerIndex = 0;
+            foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                AddRedlineParagraphEntries(entries, headerPartKey.Value, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                headerIndex++;
+            }
+
+            int footerIndex = 0;
+            foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                AddRedlineParagraphEntries(entries, footerPartKey.Value, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                footerIndex++;
+            }
+
+            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
+                string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                AddRedlineParagraphEntries(entries, FootnotePartKeyPrefix + noteId, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+            }
+
+            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
+                string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                AddRedlineParagraphEntries(entries, EndnotePartKeyPrefix + noteId, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+            }
+
+            return entries;
+        }
+
+        private static void AddRedlineParagraphEntries(List<RedlineParagraphEntry> entries, string partKey, OpenXmlCompositeElement? container, int orderBase) {
+            if (container == null) {
+                return;
+            }
+
+            int localIndex = 0;
+            foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
+                if (ordered.Element is not Paragraph paragraph ||
+                    paragraph.Ancestors<TableCell>().Any()) {
+                    continue;
+                }
+
+                entries.Add(new RedlineParagraphEntry(partKey, container, paragraph, localIndex));
+                localIndex++;
+            }
+        }
+
+        private static bool IsContentControlParagraph(Paragraph paragraph) {
+            return paragraph.Ancestors<SdtElement>().Any() || paragraph.Descendants<SdtElement>().Any();
+        }
+
+        private static void InsertDeletedParagraph(IReadOnlyList<RedlineParagraphEntry> targetParagraphs, RedlineParagraphEntry sourceEntry, string deletedText, WordComparisonRedlineOptions options) {
+            RedlineParagraphEntry? firstTargetPartEntry = targetParagraphs.FirstOrDefault(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal));
+            if (firstTargetPartEntry == null) {
+                return;
+            }
+
+            var paragraph = new Paragraph();
+            paragraph.Append(CreateDeletedRun(deletedText, options));
+
+            List<RedlineParagraphEntry> targetPartEntries = targetParagraphs
+                .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal))
+                .ToList();
+
+            if (sourceEntry.LocalIndex >= 0 && sourceEntry.LocalIndex < targetPartEntries.Count) {
+                targetPartEntries[sourceEntry.LocalIndex].Paragraph.InsertBeforeSelf(paragraph);
+                return;
+            }
+
+            AppendRedlineParagraph(firstTargetPartEntry.Container, paragraph);
+        }
+
+        private static void AppendRedlineParagraph(OpenXmlCompositeElement container, Paragraph paragraph) {
+            if (container is Body body) {
+                SectionProperties? sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
+                if (sectionProperties != null) {
+                    body.InsertBefore(paragraph, sectionProperties);
+                    return;
+                }
+            }
+
+            container.Append(paragraph);
+        }
+
+        private static bool TryParseParagraphRunLocation(string location, out int paragraphIndex, out int runIndex) {
+            paragraphIndex = -1;
+            runIndex = -1;
+            const string paragraphPrefix = "paragraph[";
+            const string runToken = "]/run[";
+            if (!location.StartsWith(paragraphPrefix, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            int runTokenIndex = location.IndexOf(runToken, StringComparison.Ordinal);
+            if (runTokenIndex < 0 || !location.EndsWith("]", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            string paragraphText = location.Substring(paragraphPrefix.Length, runTokenIndex - paragraphPrefix.Length);
+            string runText = location.Substring(runTokenIndex + runToken.Length, location.Length - runTokenIndex - runToken.Length - 1);
+            return int.TryParse(paragraphText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out paragraphIndex) &&
+                   int.TryParse(runText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out runIndex);
+        }
+
+        private sealed class RedlineParagraphEntry {
+            internal RedlineParagraphEntry(string partKey, OpenXmlCompositeElement container, Paragraph paragraph, int localIndex) {
+                PartKey = partKey;
+                Container = container;
+                Paragraph = paragraph;
+                LocalIndex = localIndex;
+            }
+
+            internal string PartKey { get; }
+
+            internal OpenXmlCompositeElement Container { get; }
+
+            internal Paragraph Paragraph { get; }
+
+            internal int LocalIndex { get; }
+        }
+    }
+}

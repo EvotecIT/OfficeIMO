@@ -9,7 +9,7 @@ namespace OfficeIMO.Word {
         private readonly WordParagraph _paragraph;
         private readonly WordDocument _document;
         private readonly Comment _comment;
-        private readonly CommentEx? _commentEx;
+        private CommentEx? _commentEx;
         private readonly List<WordParagraph> _list;
 
         /// <summary>
@@ -20,12 +20,17 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Identifier used to link threaded replies.
         /// </summary>
-        public string? ParaId => _commentEx?.ParaId;
+        public string? ParaId => FindCommentEx()?.ParaId?.Value ?? _commentEx?.ParaId;
 
         /// <summary>
         /// Identifier of parent comment if this comment is a reply.
         /// </summary>
-        public string? ParentParaId => _commentEx?.ParaIdParent;
+        public string? ParentParaId => FindCommentEx()?.ParaIdParent?.Value ?? _commentEx?.ParaIdParent;
+
+        /// <summary>
+        /// Whether the comment is marked resolved. A null value means the document has no resolved-state metadata for this comment.
+        /// </summary>
+        public bool? IsResolved => FindCommentEx()?.Done?.Value;
 
         /// <summary>
         /// Parent comment instance if available.

@@ -197,6 +197,26 @@ namespace OfficeIMO.Examples {
                 return;
             }
 
+            if (HasArgument(args, "--word-mail-merge-workflows")) {
+                Word.MailMerge.Example_MailMergeWorkflowGallery(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
+            if (HasArgument(args, "--word-review-reports")) {
+                Word.ReviewReports.Example_ReviewReportWorkflow(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
+            if (HasArgument(args, "--word-comparison-reports")) {
+                Word.CompareDocuments.Example_ReportAndRedlineWorkflow(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
+            if (HasArgument(args, "--word-signature-preflight")) {
+                Word.SignaturePreflight.Example_SignaturePreflightWorkflow(folderPath, HasArgument(args, "--open-word"));
+                return;
+            }
+
             if (HasArgument(args, "--visio-premium") || HasArgument(args, "--premium-visio")) {
                 Visio.PremiumVisioShowcase.Example_PremiumVisioShowcase(folderPath, HasArgument(args, "--open-visio") || HasArgument(args, "--visio-open"));
                 return;
@@ -634,6 +654,7 @@ namespace OfficeIMO.Examples {
             // Word.Macros.Example_ListMacros(templatesPath, folderPath, false);
             // // Word/MailMerge
             // Word.MailMerge.Example_MailMergeAdvanced(folderPath, false);
+            // Word.MailMerge.Example_MailMergeWorkflowGallery(folderPath, false);
             // Word.MailMerge.Example_MailMergeSimple(folderPath, false);
             // Word.MarketReadinessProofGallery.Example_GenerateWordMarketReadinessProof(folderPath, false);
             // // Word/PageBreaks

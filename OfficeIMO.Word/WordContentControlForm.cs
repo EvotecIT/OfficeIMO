@@ -115,7 +115,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Describes the content-control form keys and validation issues found for a supplied form map.
     /// </summary>
-    public sealed class WordContentControlFormValidationResult {
+    public sealed partial class WordContentControlFormValidationResult {
         internal WordContentControlFormValidationResult(IEnumerable<string> expectedKeys, IEnumerable<string> suppliedKeys, IEnumerable<WordContentControlFormIssue> issues) {
             ExpectedKeys = expectedKeys.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(key => key, StringComparer.OrdinalIgnoreCase).ToList();
             SuppliedKeys = suppliedKeys.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(key => key, StringComparer.OrdinalIgnoreCase).ToList();

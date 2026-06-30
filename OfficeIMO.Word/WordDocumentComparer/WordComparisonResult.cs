@@ -20,6 +20,30 @@ namespace OfficeIMO.Word {
         /// <summary>A body paragraph outside a table.</summary>
         Paragraph,
 
+        /// <summary>A paragraph run or equivalent inline text segment.</summary>
+        Run,
+
+        /// <summary>A Word field instruction, result, or field metadata item.</summary>
+        Field,
+
+        /// <summary>A structured document tag/content control.</summary>
+        ContentControl,
+
+        /// <summary>A bookmark anchor or bookmark range.</summary>
+        Bookmark,
+
+        /// <summary>An internal or external hyperlink.</summary>
+        Hyperlink,
+
+        /// <summary>A numbered or bulleted list item.</summary>
+        List,
+
+        /// <summary>A Word comment or comment reply.</summary>
+        Comment,
+
+        /// <summary>A tracked revision or tracked formatting change.</summary>
+        Revision,
+
         /// <summary>A table as a whole.</summary>
         Table,
 
@@ -48,6 +72,7 @@ namespace OfficeIMO.Word {
         /// <param name="sourceText">Source text when the finding has textual content.</param>
         /// <param name="targetText">Target text when the finding has textual content.</param>
         /// <param name="message">Short diagnostic message suitable for logs and review reports.</param>
+        /// <param name="detailedLocation">Optional richer location that includes the document part or feature context.</param>
         public WordComparisonFinding(
             WordComparisonScope scope,
             WordComparisonChangeKind changeKind,
@@ -56,7 +81,8 @@ namespace OfficeIMO.Word {
             int? targetIndex,
             string? sourceText,
             string? targetText,
-            string message) {
+            string message,
+            string? detailedLocation = null) {
             if (string.IsNullOrWhiteSpace(location)) {
                 throw new ArgumentException("Comparison finding location cannot be empty.", nameof(location));
             }
@@ -68,6 +94,7 @@ namespace OfficeIMO.Word {
             Scope = scope;
             ChangeKind = changeKind;
             Location = location;
+            DetailedLocation = string.IsNullOrWhiteSpace(detailedLocation) ? location : detailedLocation!;
             SourceIndex = sourceIndex;
             TargetIndex = targetIndex;
             SourceText = sourceText;
@@ -83,6 +110,9 @@ namespace OfficeIMO.Word {
 
         /// <summary>Stable, human-readable path such as <c>paragraph[0]</c> or <c>table[1]/row[2]/cell[0]</c>.</summary>
         public string Location { get; }
+
+        /// <summary>Richer stable path that may include the document part, package URI, or feature context.</summary>
+        public string DetailedLocation { get; }
 
         /// <summary>Index in the source collection when available.</summary>
         public int? SourceIndex { get; }
@@ -103,7 +133,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Machine-readable comparison result produced by <see cref="WordDocumentComparer.CompareStructure(string, string)"/>.
     /// </summary>
-    public sealed class WordComparisonResult {
+    public sealed partial class WordComparisonResult {
         private readonly List<WordComparisonFinding> _findings = new();
         private readonly Dictionary<WordComparisonFinding, int> _documentOrders = new();
 
@@ -127,6 +157,18 @@ namespace OfficeIMO.Word {
         internal void Add(WordComparisonFinding finding, int documentOrder = int.MaxValue) {
             _findings.Add(finding);
             _documentOrders[finding] = documentOrder;
+        }
+
+        internal void RemoveWhere(Predicate<WordComparisonFinding> predicate) {
+            for (int i = _findings.Count - 1; i >= 0; i--) {
+                WordComparisonFinding finding = _findings[i];
+                if (!predicate(finding)) {
+                    continue;
+                }
+
+                _findings.RemoveAt(i);
+                _documentOrders.Remove(finding);
+            }
         }
 
         internal void SortFindingsByDocumentOrder() {
