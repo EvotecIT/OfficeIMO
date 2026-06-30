@@ -12,12 +12,17 @@ internal static class MarkdownNativeSnapshotFactory {
             blocks.Add(FromBlock(document.Blocks[i]));
         }
 
+        var sourceTrivia = new List<MarkdownNativeSourceTriviaSnapshot>(document.SourceTrivia.Count);
+        for (var i = 0; i < document.SourceTrivia.Count; i++) {
+            sourceTrivia.Add(new MarkdownNativeSourceTriviaSnapshot(document.SourceTrivia[i]));
+        }
+
         var diagnostics = new List<MarkdownNativeDiagnosticSnapshot>(document.Diagnostics.Count);
         for (var i = 0; i < document.Diagnostics.Count; i++) {
             diagnostics.Add(new MarkdownNativeDiagnosticSnapshot(document.Diagnostics[i]));
         }
 
-        return new MarkdownNativeDocumentSnapshot(document.SourceKind, referenceDefinitions, blocks, diagnostics);
+        return new MarkdownNativeDocumentSnapshot(document.SourceKind, referenceDefinitions, sourceTrivia, blocks, diagnostics);
     }
 
     internal static MarkdownNativeBlockSnapshot FromBlock(MarkdownNativeBlock block) {

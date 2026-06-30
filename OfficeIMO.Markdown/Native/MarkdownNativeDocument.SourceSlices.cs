@@ -41,6 +41,28 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     /// <summary>
+    /// Creates a source slice over the normalized markdown text that backs document-level source trivia.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownNativeSourceTrivia trivia, out MarkdownSourceSlice slice) {
+        if (trivia == null) {
+            slice = default;
+            return false;
+        }
+
+        if (trivia.SourceSpan.StartOffset.HasValue && trivia.SourceSpan.EndOffset.HasValue) {
+            return MarkdownSourceSlice.TryCreateFromOffsets(
+                SourceMarkdown,
+                trivia.SourceSpan,
+                MarkdownSourceTextKind.Normalized,
+                trivia.SourceSpan.StartOffset.Value,
+                trivia.SourceSpan.EndOffset.Value,
+                out slice);
+        }
+
+        return TryCreateSourceSlice(trivia.SourceSpan, out slice);
+    }
+
+    /// <summary>
     /// Creates a source slice over the normalized markdown text that backs a native inline.
     /// </summary>
     public bool TryCreateSourceSlice(MarkdownNativeInline inline, out MarkdownSourceSlice slice) {
@@ -232,6 +254,29 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         return TryCreateOriginalSourceSlice(field.SourceSpan, out slice, out failureReason);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input that backs document-level source trivia when trivia was preserved.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(MarkdownNativeSourceTrivia trivia, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(trivia, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input that backs document-level source trivia when trivia was preserved.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        MarkdownNativeSourceTrivia trivia,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
+        if (trivia == null) {
+            slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
+            return false;
+        }
+
+        return TryCreateOriginalSourceSlice(trivia.SourceSpan, out slice, out failureReason);
     }
 
     /// <summary>

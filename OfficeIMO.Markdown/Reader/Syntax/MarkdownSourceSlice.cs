@@ -75,6 +75,28 @@ public readonly struct MarkdownSourceSlice {
         return false;
     }
 
+    internal static bool TryCreateFromOffsets(
+        string? sourceText,
+        MarkdownSourceSpan sourceSpan,
+        MarkdownSourceTextKind textKind,
+        int startOffset,
+        int endOffsetInclusive,
+        out MarkdownSourceSlice slice) {
+        sourceText ??= string.Empty;
+        if (sourceText.Length == 0) {
+            slice = default;
+            return false;
+        }
+
+        if (TryNormalizeOffsetRange(sourceText, startOffset, endOffsetInclusive, out var normalizedStart, out var normalizedEnd)) {
+            slice = new MarkdownSourceSlice(sourceText, sourceSpan, textKind, normalizedStart, normalizedEnd);
+            return true;
+        }
+
+        slice = default;
+        return false;
+    }
+
     /// <summary>
     /// Attempts to create a source slice using only line and column coordinates, ignoring any normalized-text offsets.
     /// </summary>
@@ -104,9 +126,12 @@ public readonly struct MarkdownSourceSlice {
         out int startOffset,
         out int endOffsetInclusive) {
         if (span.StartOffset.HasValue && span.EndOffset.HasValue) {
-            startOffset = ClampOffset(sourceText, span.StartOffset.Value);
-            endOffsetInclusive = ClampOffset(sourceText, span.EndOffset.Value);
-            return endOffsetInclusive >= startOffset;
+            return TryNormalizeOffsetRange(
+                sourceText,
+                span.StartOffset.Value,
+                span.EndOffset.Value,
+                out startOffset,
+                out endOffsetInclusive);
         }
 
         return TryResolveLineColumnOffsets(sourceText, span, out startOffset, out endOffsetInclusive);
@@ -121,6 +146,11 @@ public readonly struct MarkdownSourceSlice {
             && span.EndColumn.HasValue
             && TryGetOffset(sourceText, span.StartLine, span.StartColumn.Value, out startOffset)
             && TryGetOffset(sourceText, span.EndLine, span.EndColumn.Value, out endOffsetInclusive)) {
+            if (IsEmptyLineSpan(sourceText, span, startOffset)) {
+                endOffsetInclusive = startOffset - 1;
+                return true;
+            }
+
             return endOffsetInclusive >= startOffset;
         }
 
@@ -134,9 +164,28 @@ public readonly struct MarkdownSourceSlice {
         return false;
     }
 
-    private static int ClampOffset(string sourceText, int offset) {
+    private static bool TryNormalizeOffsetRange(
+        string sourceText,
+        int startOffset,
+        int endOffsetInclusive,
+        out int normalizedStart,
+        out int normalizedEnd) {
+        normalizedStart = ClampStartOffset(sourceText, startOffset);
+        normalizedEnd = ClampEndOffset(sourceText, endOffsetInclusive);
+        return normalizedEnd >= normalizedStart - 1;
+    }
+
+    private static int ClampStartOffset(string sourceText, int offset) {
         if (offset < 0) {
             return 0;
+        }
+
+        return offset >= sourceText.Length ? sourceText.Length - 1 : offset;
+    }
+
+    private static int ClampEndOffset(string sourceText, int offset) {
+        if (offset < -1) {
+            return -1;
         }
 
         return offset >= sourceText.Length ? sourceText.Length - 1 : offset;
@@ -212,5 +261,15 @@ public readonly struct MarkdownSourceSlice {
 
         length = 0;
         return false;
+    }
+
+    private static bool IsEmptyLineSpan(string sourceText, MarkdownSourceSpan span, int startOffset) {
+        if (span.StartLine != span.EndLine
+            || span.StartColumn != span.EndColumn
+            || span.StartColumn != 1) {
+            return false;
+        }
+
+        return startOffset >= sourceText.Length || IsLineBreakStart(sourceText, startOffset, out _);
     }
 }

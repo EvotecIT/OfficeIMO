@@ -9,6 +9,7 @@ public sealed partial class MarkdownNativeDocument {
         string sourceMarkdown,
         MarkdownNativeDocumentSourceKind sourceKind,
         IReadOnlyList<MarkdownNativeBlock> blocks,
+        IReadOnlyList<MarkdownNativeSourceTrivia> sourceTrivia,
         IReadOnlyList<MarkdownNativeDiagnostic> diagnostics) {
         ParseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
         Document = parseResult.Document;
@@ -18,6 +19,7 @@ public sealed partial class MarkdownNativeDocument {
         SourceMarkdown = sourceMarkdown ?? string.Empty;
         SourceKind = sourceKind;
         Blocks = blocks ?? Array.Empty<MarkdownNativeBlock>();
+        SourceTrivia = sourceTrivia ?? Array.Empty<MarkdownNativeSourceTrivia>();
         Diagnostics = diagnostics ?? Array.Empty<MarkdownNativeDiagnostic>();
     }
 
@@ -47,6 +49,9 @@ public sealed partial class MarkdownNativeDocument {
 
     /// <summary>Top-level native block projection in document order.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Blocks { get; }
+
+    /// <summary>Document-level source trivia such as blank lines, in source order.</summary>
+    public IReadOnlyList<MarkdownNativeSourceTrivia> SourceTrivia { get; }
 
     /// <summary>Projection diagnostics including transform notices and unsupported block fallbacks.</summary>
     public IReadOnlyList<MarkdownNativeDiagnostic> Diagnostics { get; }
@@ -85,7 +90,14 @@ public sealed partial class MarkdownNativeDocument {
             }
         }
 
-        return new MarkdownNativeDocument(parseResult, sourceMarkdown ?? parseResult.SourceMarkdown, sourceKind, blocks, diagnostics);
+        var nativeSourceMarkdown = sourceMarkdown ?? parseResult.SourceMarkdown;
+        return new MarkdownNativeDocument(
+            parseResult,
+            nativeSourceMarkdown,
+            sourceKind,
+            blocks,
+            CreateSourceTrivia(nativeSourceMarkdown),
+            diagnostics);
     }
 
     /// <summary>Finds the first native block whose source span contains the supplied 1-based line.</summary>

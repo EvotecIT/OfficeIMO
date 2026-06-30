@@ -55,6 +55,40 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     }
 
     [Fact]
+    public void NativeDocument_SourceTrivia_SourceSlices_Address_Blank_Lines() {
+        var native = MarkdownNativeDocument.Parse(
+            "# Title\r\n\r\n   \r\nParagraph",
+            new MarkdownReaderOptions { PreserveTrivia = true });
+
+        var trivia = native.SourceTrivia.ToArray();
+
+        Assert.Equal(2, trivia.Length);
+        Assert.All(trivia, item => Assert.Equal(MarkdownNativeSourceTriviaKind.BlankLine, item.Kind));
+        Assert.Equal(2, trivia[0].LineNumber);
+        Assert.Equal(3, trivia[1].LineNumber);
+        Assert.Equal(string.Empty, trivia[0].Text);
+        Assert.Equal("   ", trivia[1].Text);
+        Assert.True(native.TryCreateSourceSlice(trivia[0], out var emptyBlankLineSlice));
+        Assert.True(native.TryCreateSourceSlice(trivia[1], out var whitespaceBlankLineSlice));
+        Assert.Equal(string.Empty, emptyBlankLineSlice.Text);
+        Assert.Equal("   ", whitespaceBlankLineSlice.Text);
+        Assert.True(native.TryCreateOriginalSourceSlice(trivia[0], out var originalEmptyBlankLineSlice, out var emptyReason));
+        Assert.True(native.TryCreateOriginalSourceSlice(trivia[1], out var originalWhitespaceBlankLineSlice, out var whitespaceReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, emptyReason);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, whitespaceReason);
+        Assert.Equal(string.Empty, originalEmptyBlankLineSlice.Text);
+        Assert.Equal("   ", originalWhitespaceBlankLineSlice.Text);
+
+        var snapshotTrivia = native.ToSnapshot().SourceTrivia;
+        Assert.Equal(2, snapshotTrivia.Count);
+        Assert.Equal(MarkdownNativeSourceTriviaKind.BlankLine, snapshotTrivia[0].Kind);
+        Assert.Equal(string.Empty, snapshotTrivia[0].Text);
+        Assert.Equal(2, snapshotTrivia[0].SourceSpan.StartLine);
+        Assert.Equal("   ", snapshotTrivia[1].Text);
+        Assert.Equal(3, snapshotTrivia[1].SourceSpan.StartLine);
+    }
+
+    [Fact]
     public void NativeTableCell_SourceSlice_Matches_ReplaceEdit_Target() {
         var native = MarkdownNativeDocument.Parse("""
 | Name | Value |

@@ -7,10 +7,12 @@ public sealed class MarkdownNativeDocumentSnapshot {
     internal MarkdownNativeDocumentSnapshot(
         MarkdownNativeDocumentSourceKind sourceKind,
         IReadOnlyList<MarkdownNativeReferenceLinkDefinitionSnapshot> referenceLinkDefinitions,
+        IReadOnlyList<MarkdownNativeSourceTriviaSnapshot> sourceTrivia,
         IReadOnlyList<MarkdownNativeBlockSnapshot> blocks,
         IReadOnlyList<MarkdownNativeDiagnosticSnapshot> diagnostics) {
         SourceKind = sourceKind;
         ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownNativeReferenceLinkDefinitionSnapshot>();
+        SourceTrivia = sourceTrivia ?? Array.Empty<MarkdownNativeSourceTriviaSnapshot>();
         Blocks = blocks ?? Array.Empty<MarkdownNativeBlockSnapshot>();
         Diagnostics = diagnostics ?? Array.Empty<MarkdownNativeDiagnosticSnapshot>();
     }
@@ -21,11 +23,34 @@ public sealed class MarkdownNativeDocumentSnapshot {
     /// <summary>Effective reference-style link definitions collected during parsing.</summary>
     public IReadOnlyList<MarkdownNativeReferenceLinkDefinitionSnapshot> ReferenceLinkDefinitions { get; }
 
+    /// <summary>Document-level source trivia such as blank lines, in source order.</summary>
+    public IReadOnlyList<MarkdownNativeSourceTriviaSnapshot> SourceTrivia { get; }
+
     /// <summary>Top-level block snapshots.</summary>
     public IReadOnlyList<MarkdownNativeBlockSnapshot> Blocks { get; }
 
     /// <summary>Projection diagnostics.</summary>
     public IReadOnlyList<MarkdownNativeDiagnosticSnapshot> Diagnostics { get; }
+}
+
+/// <summary>
+/// UI-safe snapshot of document-level source trivia.
+/// </summary>
+public sealed class MarkdownNativeSourceTriviaSnapshot {
+    internal MarkdownNativeSourceTriviaSnapshot(MarkdownNativeSourceTrivia trivia) {
+        Kind = trivia.Kind;
+        Text = trivia.Text;
+        SourceSpan = new MarkdownNativeSourceSpanSnapshot(trivia.SourceSpan);
+    }
+
+    /// <summary>Trivia kind.</summary>
+    public MarkdownNativeSourceTriviaKind Kind { get; }
+
+    /// <summary>Exact normalized line content represented by this trivia, excluding the line ending.</summary>
+    public string Text { get; }
+
+    /// <summary>Source span for the trivia content.</summary>
+    public MarkdownNativeSourceSpanSnapshot SourceSpan { get; }
 }
 
 /// <summary>
