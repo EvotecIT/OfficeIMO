@@ -162,6 +162,10 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (IsStandaloneAttributeReferenceDefinitionParagraphTarget(lines, i, options)) {
+                return true;
+            }
+
             if (options.Images
                 && options.StandaloneImageBlocks
                 && IsImageLine(lines[i])) {
@@ -185,6 +189,40 @@ public static partial class MarkdownReader {
 
         return false;
     }
+
+    private static bool IsStandaloneAttributeReferenceDefinitionParagraphTarget(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options) =>
+        options?.GenericAttributes == true
+        && TryParseReferenceLinkDefinition(lines, lineIndex, options, out _, out _, out _, out _);
+
+    private static bool IsStandaloneGenericAttributeOnlyLine(string? line) {
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        var leading = CountLeadingSpaces(line!);
+        var content = line!.Substring(leading).TrimEnd();
+        return MarkdownGenericAttributeParser.TryConsumeLeadingAttributeBlock(
+                content,
+                out var remaining,
+                out _,
+                out var consumedLength)
+            && consumedLength == content.Length
+            && string.IsNullOrWhiteSpace(remaining);
+    }
+
+    private static bool IsReferenceDefinitionAfterStandaloneGenericAttribute(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options) =>
+        options?.GenericAttributes == true
+        && lines != null
+        && lineIndex > 0
+        && lineIndex < lines.Length
+        && IsStandaloneGenericAttributeOnlyLine(lines[lineIndex - 1])
+        && TryParseReferenceLinkDefinition(lines, lineIndex, options, out _, out _, out _, out _);
 
     private static bool IsStandaloneAttributeFootnoteDefinitionTarget(string line, MarkdownReaderOptions options) {
         if (options?.Footnotes != true || string.IsNullOrWhiteSpace(line)) {

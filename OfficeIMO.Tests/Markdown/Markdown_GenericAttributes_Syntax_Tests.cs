@@ -109,6 +109,43 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Before_ReferenceDefinition_Create_Attributed_Paragraph() {
+        const string markdown = "{#ref .wide}\n[id]: https://example.com\n\n[site][id]\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        Assert.Empty(result.ReferenceLinkDefinitions);
+
+        var first = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+        var second = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
+
+        Assert.Equal("ref", first.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, first.Attributes.Classes);
+        Assert.Equal("[id]: https://example.com", InlinePlainText.Extract(first.Inlines));
+        Assert.Equal("[site][id]", InlinePlainText.Extract(second.Inlines));
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
+        Assert.Empty(native.ReferenceLinkDefinitions);
+        Assert.Equal("[id]: https://example.com", paragraph.Text);
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Same(native.Blocks[0], attributes.Block);
+        Assert.Equal("{#ref .wide}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 12), attributes.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#literal .ref}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("{#literal .ref}\n[id]: https://example.com\n\n[site][id]\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_List_With_Source_Backup() {
         const string markdown = "{#list .wide}\n- item\n";
         var options = new MarkdownReaderOptions {

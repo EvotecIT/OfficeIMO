@@ -53,6 +53,10 @@ public sealed partial class MarkdownNativeDocument {
             return 2;
         }
 
+        if (string.Equals(field.Name, "frontMatterBody", StringComparison.OrdinalIgnoreCase)) {
+            return 0;
+        }
+
         return field.Name.EndsWith("Body", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
     }
 

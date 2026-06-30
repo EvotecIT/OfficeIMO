@@ -78,6 +78,11 @@ public static partial class MarkdownReader {
                 out var titleSpan,
                 out var openingMarkerSpan,
                 out var separatorMarkerSpan)) {
+                if (IsReferenceDefinitionAfterStandaloneGenericAttribute(lines, idx, options)) {
+                    openParagraph = true;
+                    continue;
+                }
+
                 if (openParagraph && !CanReferenceDefinitionResolveOpenShortcutParagraph(lines, idx)) {
                     continue;
                 }

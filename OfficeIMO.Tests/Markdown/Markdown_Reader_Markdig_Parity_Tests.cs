@@ -323,6 +323,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "standalone-attribute-before-inline-image-paragraph", "{#img .wide}\n![Alt](image.png)" };
         yield return new object[] { "standalone-attribute-before-blockquote-stays-literal", "{#q .wide}\n> quote" };
         yield return new object[] { "standalone-attribute-before-html-block", "{#html .wide}\n<div>raw</div>" };
+        yield return new object[] { "standalone-attribute-before-reference-definition", "{#ref .wide}\n[id]: https://example.com\n\n[site][id]" };
         yield return new object[] { "standalone-attribute-before-thematic-break", "{#rule .wide}\n---" };
         yield return new object[] { "standalone-attribute-before-indented-code", "{#code .wide}\n    var x = 1;" };
         yield return new object[] { "standalone-attribute-before-definition-looking-text", "{#term .wide}\nTerm\n: definition" };

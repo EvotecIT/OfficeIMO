@@ -7,6 +7,11 @@ public static partial class MarkdownReader {
     /// </summary>
     internal sealed class ReferenceLinkDefParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
+            if (state.PendingGenericAttributeBlock != null
+                && IsStandaloneAttributeReferenceDefinitionParagraphTarget(lines, i, options)) {
+                return false;
+            }
+
             if (TryParseReferenceLinkDefinition(
                 lines,
                 i,

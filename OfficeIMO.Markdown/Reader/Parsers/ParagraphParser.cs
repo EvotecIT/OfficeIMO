@@ -14,7 +14,7 @@ public static partial class MarkdownReader {
                 (options.Callouts && IsCalloutHeader(lines[i], out _, out _)) ||
                 IsQuoteStarter(lines[i]) ||
                 HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options) ||
-                IsReferenceLinkDefinitionStarter(lines, i, options) ||
+                (IsReferenceLinkDefinitionStarter(lines, i, options) && !ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(lines, i, options, state)) ||
                 IsAbbreviationDefinitionStarter(lines[i], options) ||
                 IsFootnoteDefinitionStarter(lines[i], options) ||
                 (options.StandaloneImageBlocks && IsImageLine(lines[i]))) return false;
@@ -32,7 +32,7 @@ public static partial class MarkdownReader {
                    (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&
                    !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[j], options) &&
-                   !IsParagraphTerminatingReferenceLinkDefinition(lines, i, j, options) &&
+                   !IsParagraphTerminatingReferenceLinkDefinition(lines, i, j, options, state) &&
                    !IsAbbreviationDefinitionStarter(lines[j], options) &&
                    !IsFootnoteDefinitionStarter(lines[j], options) &&
                    !(options.StandaloneImageBlocks && IsImageLine(lines[j]))) {
@@ -453,10 +453,27 @@ public static partial class MarkdownReader {
             return TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _);
         }
 
+        private static bool ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(
+            string[] lines,
+            int index,
+            MarkdownReaderOptions options,
+            MarkdownReaderState state) =>
+            state?.PendingGenericAttributeBlock != null
+            && IsStandaloneAttributeReferenceDefinitionParagraphTarget(lines, index, options);
+
         private static bool IsAbbreviationDefinitionStarter(string line, MarkdownReaderOptions options) =>
             options?.Abbreviations == true && TryParseAbbreviationDefinition(line, 0, null, out _, out _, out _, out _, out _, out _);
 
-        private static bool IsParagraphTerminatingReferenceLinkDefinition(string[] lines, int paragraphStartIndex, int index, MarkdownReaderOptions options) {
+        private static bool IsParagraphTerminatingReferenceLinkDefinition(
+            string[] lines,
+            int paragraphStartIndex,
+            int index,
+            MarkdownReaderOptions options,
+            MarkdownReaderState state) {
+            if (ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(lines, index, options, state)) {
+                return false;
+            }
+
             if (!IsReferenceLinkDefinitionStarter(lines, index, options)) {
                 return false;
             }
