@@ -320,6 +320,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "standalone-attribute-before-fenced-code", "{#code .wide}\n```cs\nvar x = 1;\n```" };
         yield return new object[] { "standalone-attribute-before-unordered-list", "{#list .wide}\n- item" };
         yield return new object[] { "standalone-attribute-before-ordered-list", "{#list .wide}\n1. item" };
+        yield return new object[] { "standalone-attribute-before-inline-image-paragraph", "{#img .wide}\n![Alt](image.png)" };
         yield return new object[] { "standalone-attribute-before-blockquote-stays-literal", "{#q .wide}\n> quote" };
         yield return new object[] { "standalone-attribute-before-html-block", "{#html .wide}\n<div>raw</div>" };
         yield return new object[] { "standalone-attribute-before-thematic-break", "{#rule .wide}\n---" };

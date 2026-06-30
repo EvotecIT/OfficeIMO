@@ -279,6 +279,64 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Attach_To_Following_ImageBlock_With_Source_Backup() {
+        const string markdown = "{#img .wide}\n![Alt](image.png \"Title\")\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var imageBlock = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("img", imageBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, imageBlock.Attributes.Classes);
+        Assert.Equal("![Alt](image.png \"Title\"){#img .wide}", ((IMarkdownBlock)imageBlock).RenderMarkdown());
+        Assert.Equal(
+            "<img src=\"image.png\" alt=\"Alt\" title=\"Title\" id=\"img\" class=\"wide\" />",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var image = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(image.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var alt = Assert.Single(image.Children, node => node.Kind == MarkdownSyntaxKind.ImageAlt);
+        var source = Assert.Single(image.Children, node => node.Kind == MarkdownSyntaxKind.ImageSource);
+        var title = Assert.Single(image.Children, node => node.Kind == MarkdownSyntaxKind.ImageTitle);
+
+        Assert.Equal(MarkdownSyntaxKind.Image, image.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 25), image.SourceSpan);
+        Assert.Equal("{#img .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 12), attributes.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 5), alt.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 16), source.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 19, 2, 23), title.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#img .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeImage = Assert.IsType<MarkdownNativeImageBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(nativeImage, field.Block);
+        Assert.Equal("{#img .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 12), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#photo .hero}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("{#photo .hero}\n![Alt](image.png \"Title\")\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void BareUrl_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Literal_Text() {
         const string markdown = "https://example.com{#auto .wide}\n";
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();

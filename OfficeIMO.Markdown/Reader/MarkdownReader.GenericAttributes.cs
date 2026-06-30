@@ -162,6 +162,12 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (options.Images
+                && options.StandaloneImageBlocks
+                && IsImageLine(lines[i])) {
+                return true;
+            }
+
             return options.Paragraphs
                 && !IsCodeFenceOpen(lines[i], out _, out _, out _)
                 && !StartsTable(lines, i, options)

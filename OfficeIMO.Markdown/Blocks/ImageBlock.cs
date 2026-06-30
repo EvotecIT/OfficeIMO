@@ -71,6 +71,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         } else {
             sb.Append(imageMarkdown);
         }
+        sb.Append(MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes));
         if (imageRenderingMode == MarkdownImageRenderingMode.RichMarkdown && (Width != null || Height != null)) {
             var w = Width != null ? $"width={Width.Value}" : string.Empty;
             var h = Height != null ? $"height={Height.Value}" : string.Empty;
@@ -95,7 +96,8 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
             return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o) + captionBlocked;
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Path);
-        string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o), o)}\" alt=\"{alt}\"{title}{size}{extra} />";
+        var attributes = MarkdownHtmlAttributes.Render(Attributes, o);
+        string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o), o)}\" alt=\"{alt}\"{title}{size}{extra}{attributes} />";
         if (PictureSources.Count > 0) {
             img = BuildPictureHtml(o, img);
         }
