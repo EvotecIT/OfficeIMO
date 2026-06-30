@@ -139,6 +139,31 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     }
 
     [Fact]
+    public void NativeDocument_SourceTrivia_Columns_Expand_Tabs_Like_Source_Map() {
+        var native = MarkdownNativeDocument.Parse(
+            "\tTabbed\t \n\t\nDone",
+            new MarkdownReaderOptions { PreserveTrivia = true });
+
+        var leadingTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.LeadingWhitespace));
+        var trailingTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.TrailingWhitespace));
+        var blankLineTrivia = Assert.Single(native.EnumerateSourceTrivia(MarkdownNativeSourceTriviaKind.BlankLine));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4, 0, 0), leadingTrivia.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 13, 7, 8), trailingTrivia.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 4, 10, 10), blankLineTrivia.SourceSpan);
+        Assert.Same(leadingTrivia, native.FindSourceTriviaAtPosition(1, 4));
+        Assert.Same(trailingTrivia, native.FindSourceTriviaAtPosition(1, 12));
+        Assert.Same(trailingTrivia, native.FindSourceTriviaAtPosition(1, 13));
+        Assert.Same(blankLineTrivia, native.FindSourceTriviaAtPosition(2, 4));
+        Assert.True(native.TryCreateSourceSlice(leadingTrivia, out var leadingSlice));
+        Assert.True(native.TryCreateSourceSlice(trailingTrivia, out var trailingSlice));
+        Assert.True(native.TryCreateSourceSlice(blankLineTrivia, out var blankLineSlice));
+        Assert.Equal("\t", leadingSlice.Text);
+        Assert.Equal("\t ", trailingSlice.Text);
+        Assert.Equal("\t", blankLineSlice.Text);
+    }
+
+    [Fact]
     public void NativeTableCell_SourceSlice_Matches_ReplaceEdit_Target() {
         var native = MarkdownNativeDocument.Parse("""
 | Name | Value |
