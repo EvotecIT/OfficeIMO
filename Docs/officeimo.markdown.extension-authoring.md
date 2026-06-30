@@ -255,7 +255,7 @@ When an extension needs to target the parsed syntax shape instead of the semanti
 
 Register `MarkdownSyntaxBlockHtmlRenderExtension`, `MarkdownSyntaxInlineHtmlRenderExtension`, `MarkdownSyntaxBlockMarkdownRenderExtension`, or `MarkdownSyntaxInlineMarkdownRenderExtension` with the `MarkdownSyntaxKind` to handle. Later registrations win, returning `null` falls back to the next extension/default renderer, and syntax-kind overrides run before type-targeted overrides. The callback receives the matched final `MarkdownSyntaxNode`, so extension authors can inspect `SourceSpan`, `CustomKind`, parent/child syntax shape, and source slices through the render context.
 
-Render and write contexts expose `TryCreateSourceSlice(...)` and `TryCreateOriginalSourceSlice(...)` overloads for semantic objects, final syntax nodes, and raw `MarkdownSourceSpan` values. Use the span overloads when a block or inline exposes token-level spans such as callout kind/title tokens or link target/title syntax children.
+Render and write contexts expose `TryCreateSourceSlice(...)` and `TryCreateOriginalSourceSlice(...)` overloads for semantic objects, final syntax nodes, and raw `MarkdownSourceSpan` values. Use the span overloads when a block or inline exposes token-level spans such as callout opening marker/kind/closing marker/title tokens or link target/title syntax children.
 
 `MarkdownWriteOptions.BlockRenderExtensions` now has the same pattern through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)`, with `MarkdownWriteContext` exposing:
 

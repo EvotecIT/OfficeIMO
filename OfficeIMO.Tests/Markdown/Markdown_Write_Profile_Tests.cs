@@ -513,9 +513,13 @@ Lead[^1]
     public void Markdown_Block_Render_Extension_Can_Create_Source_Slices_From_Token_Source_Spans() {
         const string markdown = "> [!TIP] Heads up\r\n> Body\r\n";
         var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice openingMarkerSlice = default;
         MarkdownSourceSlice kindSlice = default;
+        MarkdownSourceSlice closingMarkerSlice = default;
         MarkdownSourceSlice titleSlice = default;
+        var openingMarkerOk = false;
         var kindOk = false;
+        var closingMarkerOk = false;
         var titleOk = false;
 
         var options = new MarkdownWriteOptions { OutputLineEnding = "\n" };
@@ -524,22 +528,30 @@ Lead[^1]
             typeof(CalloutBlock),
             (block, context) => {
                 if (block is not CalloutBlock callout
+                    || !callout.OpeningMarkerSourceSpan.HasValue
                     || !callout.KindSourceSpan.HasValue
+                    || !callout.ClosingMarkerSourceSpan.HasValue
                     || !callout.TitleSourceSpan.HasValue) {
                     return null;
                 }
 
+                openingMarkerOk = context.TryCreateOriginalSourceSlice(callout.OpeningMarkerSourceSpan.Value, out openingMarkerSlice);
                 kindOk = context.TryCreateOriginalSourceSlice(callout.KindSourceSpan.Value, out kindSlice);
+                closingMarkerOk = context.TryCreateOriginalSourceSlice(callout.ClosingMarkerSourceSpan.Value, out closingMarkerSlice);
                 titleOk = context.TryCreateOriginalSourceSlice(callout.TitleSourceSpan.Value, out titleSlice);
-                return $"<!-- kind:{kindSlice.Text}; title:{titleSlice.Text} -->";
+                return $"<!-- open:{openingMarkerSlice.Text}; kind:{kindSlice.Text}; close:{closingMarkerSlice.Text}; title:{titleSlice.Text} -->";
             }));
 
         var rendered = document.ToMarkdown(options);
 
-        Assert.Contains("<!-- kind:TIP; title:Heads up -->", rendered, StringComparison.Ordinal);
+        Assert.Contains("<!-- open:[!; kind:TIP; close:]; title:Heads up -->", rendered, StringComparison.Ordinal);
+        Assert.True(openingMarkerOk);
         Assert.True(kindOk);
+        Assert.True(closingMarkerOk);
         Assert.True(titleOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, openingMarkerSlice.TextKind);
         Assert.Equal(MarkdownSourceTextKind.Original, kindSlice.TextKind);
+        Assert.Equal(MarkdownSourceTextKind.Original, closingMarkerSlice.TextKind);
         Assert.Equal(MarkdownSourceTextKind.Original, titleSlice.TextKind);
     }
 
@@ -547,9 +559,13 @@ Lead[^1]
     public void Html_Block_Render_Extension_Can_Create_Source_Slices_From_Token_Source_Spans() {
         const string markdown = "> [!TIP] Heads up\r\n> Body\r\n";
         var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;
+        MarkdownSourceSlice openingMarkerSlice = default;
         MarkdownSourceSlice kindSlice = default;
+        MarkdownSourceSlice closingMarkerSlice = default;
         MarkdownSourceSlice titleSlice = default;
+        var openingMarkerOk = false;
         var kindOk = false;
+        var closingMarkerOk = false;
         var titleOk = false;
 
         var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
@@ -558,22 +574,30 @@ Lead[^1]
             typeof(CalloutBlock),
             (block, context) => {
                 if (block is not CalloutBlock callout
+                    || !callout.OpeningMarkerSourceSpan.HasValue
                     || !callout.KindSourceSpan.HasValue
+                    || !callout.ClosingMarkerSourceSpan.HasValue
                     || !callout.TitleSourceSpan.HasValue) {
                     return null;
                 }
 
+                openingMarkerOk = context.TryCreateOriginalSourceSlice(callout.OpeningMarkerSourceSpan.Value, out openingMarkerSlice);
                 kindOk = context.TryCreateOriginalSourceSlice(callout.KindSourceSpan.Value, out kindSlice);
+                closingMarkerOk = context.TryCreateOriginalSourceSlice(callout.ClosingMarkerSourceSpan.Value, out closingMarkerSlice);
                 titleOk = context.TryCreateOriginalSourceSlice(callout.TitleSourceSpan.Value, out titleSlice);
-                return $"<aside data-kind-token=\"{kindSlice.Text}\" data-title-token=\"{System.Net.WebUtility.HtmlEncode(titleSlice.Text)}\"></aside>";
+                return $"<aside data-open-token=\"{System.Net.WebUtility.HtmlEncode(openingMarkerSlice.Text)}\" data-kind-token=\"{kindSlice.Text}\" data-close-token=\"{System.Net.WebUtility.HtmlEncode(closingMarkerSlice.Text)}\" data-title-token=\"{System.Net.WebUtility.HtmlEncode(titleSlice.Text)}\"></aside>";
             }));
 
         var html = document.ToHtmlFragment(options);
 
-        Assert.Contains("<aside data-kind-token=\"TIP\" data-title-token=\"Heads up\"></aside>", html, StringComparison.Ordinal);
+        Assert.Contains("<aside data-open-token=\"[!\" data-kind-token=\"TIP\" data-close-token=\"]\" data-title-token=\"Heads up\"></aside>", html, StringComparison.Ordinal);
+        Assert.True(openingMarkerOk);
         Assert.True(kindOk);
+        Assert.True(closingMarkerOk);
         Assert.True(titleOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, openingMarkerSlice.TextKind);
         Assert.Equal(MarkdownSourceTextKind.Original, kindSlice.TextKind);
+        Assert.Equal(MarkdownSourceTextKind.Original, closingMarkerSlice.TextKind);
         Assert.Equal(MarkdownSourceTextKind.Original, titleSlice.TextKind);
     }
 
