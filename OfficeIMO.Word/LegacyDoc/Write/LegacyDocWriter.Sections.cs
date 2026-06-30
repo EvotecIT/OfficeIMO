@@ -35,6 +35,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
                 switch (property) {
+                    case HeaderReference:
+                    case FooterReference:
+                        break;
                     case PageSize pageSize:
                         pageWidth = ReadTwipValue(pageSize.Width, DefaultPageWidthTwips, "section page width");
                         pageHeight = ReadTwipValue(pageSize.Height, DefaultPageHeightTwips, "section page height");

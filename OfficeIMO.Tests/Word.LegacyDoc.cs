@@ -1317,6 +1317,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocDefaultHeaderFooterAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with header footer");
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    section.Header.Default!.AddParagraph("Saved header");
+                    section.Footer.Default!.AddParagraph("Saved footer");
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(BitConverter.ToInt32(wordDocumentStream, 0x54) > 0);
+                Assert.Equal(56, BitConverter.ToInt32(wordDocumentStream, 0xF6));
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Body with header footer", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.NotNull(reloadedSection.Header.Default);
+                Assert.NotNull(reloadedSection.Footer.Default);
+                Assert.Equal("Saved header", Assert.Single(reloadedSection.Header.Default!.Paragraphs).Text);
+                Assert.Equal("Saved footer", Assert.Single(reloadedSection.Footer.Default!.Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveStreamWithLegacyDocFormat_WritesNativeDocAndReloadsThroughLegacyReader() {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create()) {
@@ -3428,6 +3461,26 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("unsupported run property", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedHeaderFormattingBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Body");
+                document.AddHeadersAndFooters();
+                WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
+                headerParagraph.AddText("Rich header").SetBold();
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("unformatted text runs in headers", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
