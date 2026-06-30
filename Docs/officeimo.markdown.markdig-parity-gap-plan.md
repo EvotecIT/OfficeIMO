@@ -97,6 +97,7 @@ Current active row: `UseDefinitionLists`.
 - [ ] Broaden nested-body cases.
   - [ ] Blockquote source breadth beyond the already-covered heading/thematic/table-shaped cases.
   - [ ] Fenced-code variants beyond the marker-line and empty-marker boundary cases already closed.
+    - [x] Unclosed fenced-code bodies consume lazy-looking trailing lines like Markdig and write a closing fence for stable reparse.
   - [ ] List-tail variants after nested body boundaries.
     - [x] Mixed unordered-to-ordered list tails stay inside the definition body as separate list children, with syntax/native source spans and writer reparse proof.
     - [x] Unindented blockquote tails after nested list bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.

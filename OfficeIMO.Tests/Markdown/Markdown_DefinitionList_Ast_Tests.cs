@@ -1161,6 +1161,65 @@ lazy
     }
 
     [Fact]
+    public void DefinitionList_UnclosedFencedCodeBody_ConsumesLazyLookingTail_AndWriterReparses() {
+        const string markdown = """
+Term
+:   First
+    ```csharp
+lazy
+- item
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var paragraph = Assert.IsType<ParagraphBlock>(definition.Blocks[0]);
+        var codeBlock = Assert.IsType<CodeBlock>(definition.Blocks[1]);
+        var syntaxGroup = result.SyntaxTree.Children[0].Children[0];
+        var definitionValue = syntaxGroup.Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var codeSyntax = definitionValue.Children.Single(child => child.Kind == MarkdownSyntaxKind.CodeBlock);
+        var codeContentSyntax = codeSyntax.Children.Single(child => child.Kind == MarkdownSyntaxKind.CodeContent);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsed = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var reparsedOffice = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("First", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal("csharp", codeBlock.Language);
+        Assert.Equal("lazy\n- item", codeBlock.Content.Replace("\r\n", "\n"));
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.CodeBlock
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 6), definitionValue.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 5, 6), codeSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 5, 6), codeContentSyntax.SourceSpan);
+        Assert.Equal("Term\n:   First\n    ```csharp\n    lazy\n    - item\n    ```", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definitionBody = Assert.Single(native.EnumerateBlockSourceFields("definitionBody"));
+        var nativeDefinitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var nativeDefinition = Assert.Single(Assert.Single(nativeDefinitionList.Groups).Definitions);
+        var nativeCode = Assert.IsType<MarkdownNativeCodeBlock>(nativeDefinition.Children[1]);
+
+        Assert.Equal("First\n\n```csharp\nlazy\n- item\n```", definitionBody.Value!.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 5, 6), definitionBody.SourceSpan);
+        Assert.Equal("csharp", nativeCode.Language);
+        Assert.Equal("lazy\n- item", nativeCode.Content.Replace("\r\n", "\n"));
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 5, 6), nativeCode.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 7), nativeCode.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 8, 3, 13), nativeCode.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 5, 6), nativeCode.ContentSourceSpan);
+        Assert.Null(nativeCode.ClosingFenceSourceSpan);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedListBody_Merges_TableShapedLazyParagraphIntoLastItem() {
         const string markdown = """
 Term
