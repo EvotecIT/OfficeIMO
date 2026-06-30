@@ -291,7 +291,24 @@ namespace OfficeIMO.Word {
                         list.Add(paragraph.Bookmark);
                     }
                 }
+
+                foreach (var table in Tables) {
+                    AddBookmarksFromTable(table, list);
+                }
+
                 return list;
+            }
+        }
+
+        private static void AddBookmarksFromTable(WordTable table, List<WordBookmark> list) {
+            foreach (var paragraph in table.Paragraphs.Where(p => p.IsBookmark)) {
+                if (paragraph.Bookmark != null) {
+                    list.Add(paragraph.Bookmark);
+                }
+            }
+
+            foreach (var nestedTable in table.NestedTables) {
+                AddBookmarksFromTable(nestedTable, list);
             }
         }
 

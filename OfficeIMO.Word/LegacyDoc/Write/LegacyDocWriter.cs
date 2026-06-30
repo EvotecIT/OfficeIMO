@@ -175,7 +175,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Table table:
-                        AppendTable(text, runs, paragraphFormats, table, mainPart!, styleSheet.StyleIndexes, tableStyleDefinitions, footnotes, endnotes);
+                        AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart!, styleSheet.StyleIndexes, tableStyleDefinitions, footnotes, endnotes);
                         bodyContentCount++;
                         break;
                     case SectionProperties sectionProperties:

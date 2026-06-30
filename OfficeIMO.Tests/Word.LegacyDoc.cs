@@ -1984,6 +1984,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellBookmarkRangesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph paragraph = table.Rows[0].Cells[0].Paragraphs[0];
+                    paragraph._paragraph.RemoveAllChildren<Run>();
+                    paragraph._paragraph.Append(
+                        new BookmarkStart { Id = "51", Name = "TableCellBookmark" },
+                        new Run(new Text("Marked") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "51" });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableCellBookmark");
+
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph reloadedParagraph = Assert.Single(
+                    reloadedTable.Rows[0].Cells[0].Paragraphs,
+                    paragraph => paragraph.Bookmark?.Name == "TableCellBookmark");
+                Assert.Equal("Marked", reloadedParagraph._paragraph.InnerText);
+
+                TableCell reloadedCell = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Descendants<TableCell>());
+                Paragraph openXmlParagraph = Assert.Single(
+                    reloadedCell.Elements<Paragraph>(),
+                    paragraph => paragraph.ChildElements.OfType<BookmarkStart>().Any());
+                OpenXmlElement[] content = openXmlParagraph.ChildElements
+                    .Where(element => element is not ParagraphProperties)
+                    .ToArray();
+                Assert.Equal(3, content.Length);
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[0]);
+                Assert.Equal("TableCellBookmark", bookmarkStart.Name?.Value);
+                Assert.Equal("Marked", Assert.IsType<Text>(Assert.IsType<Run>(content[1]).FirstChild).Text);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[2]);
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedHyperlinkRunsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

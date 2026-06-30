@@ -587,15 +587,75 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
+            var pendingBookmarks = new List<LegacyDocBookmark>();
+            int pendingBookmarkStartCharacter = int.MaxValue;
+            int pendingBookmarkEndCharacter = int.MinValue;
+            bool emittedParagraph = false;
             for (int index = 0; index < sourceCell.Paragraphs.Count; index++) {
-                AddLegacyDocTableCellParagraph(cell, sourceCell.Paragraphs[index], styleSheet, notes, removeExistingParagraphs: index == 0);
+                LegacyDocTableCellParagraph sourceParagraph = sourceCell.Paragraphs[index];
+                if (string.IsNullOrEmpty(sourceParagraph.Text)
+                    && sourceParagraph.Bookmarks.Count > 0
+                    && index + 1 < sourceCell.Paragraphs.Count) {
+                    AddPendingTableCellBookmarks(sourceParagraph.Bookmarks, ref pendingBookmarkStartCharacter, ref pendingBookmarkEndCharacter, pendingBookmarks);
+                    continue;
+                }
+
+                AddLegacyDocTableCellParagraph(
+                    cell,
+                    sourceParagraph,
+                    styleSheet,
+                    notes,
+                    removeExistingParagraphs: !emittedParagraph,
+                    pendingBookmarks,
+                    pendingBookmarkStartCharacter,
+                    pendingBookmarkEndCharacter);
+                emittedParagraph = true;
+                pendingBookmarks.Clear();
+                pendingBookmarkStartCharacter = int.MaxValue;
+                pendingBookmarkEndCharacter = int.MinValue;
             }
         }
 
-        private static void AddLegacyDocTableCellParagraph(WordTableCell cell, LegacyDocTableCellParagraph sourceParagraph, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes, bool removeExistingParagraphs) {
+        private static void AddPendingTableCellBookmarks(IReadOnlyList<LegacyDocBookmark> bookmarks, ref int startCharacter, ref int endCharacter, List<LegacyDocBookmark> pendingBookmarks) {
+            foreach (LegacyDocBookmark bookmark in bookmarks) {
+                pendingBookmarks.Add(bookmark);
+                startCharacter = Math.Min(startCharacter, bookmark.StartCharacter);
+                endCharacter = Math.Max(endCharacter, bookmark.EndCharacter);
+            }
+        }
+
+        private static void AddLegacyDocTableCellParagraph(
+            WordTableCell cell,
+            LegacyDocTableCellParagraph sourceParagraph,
+            LegacyDocStyleSheet styleSheet,
+            LegacyDocNoteProjection notes,
+            bool removeExistingParagraphs,
+            IReadOnlyList<LegacyDocBookmark>? pendingBookmarks = null,
+            int pendingBookmarkStartCharacter = int.MaxValue,
+            int pendingBookmarkEndCharacter = int.MinValue) {
+            IReadOnlyList<LegacyDocBookmark> paragraphBookmarks = MergeLegacyDocTableCellBookmarks(sourceParagraph.Bookmarks, pendingBookmarks);
+            int paragraphStartCharacter = pendingBookmarks != null && pendingBookmarks.Count > 0
+                ? Math.Min(sourceParagraph.StartCharacter, pendingBookmarkStartCharacter)
+                : sourceParagraph.StartCharacter;
+            int paragraphEndCharacter = pendingBookmarks != null && pendingBookmarks.Count > 0
+                ? Math.Max(sourceParagraph.EndCharacter, pendingBookmarkEndCharacter)
+                : sourceParagraph.EndCharacter;
+
             if (sourceParagraph.Runs.Count == 0) {
-                WordParagraph emptyParagraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
+                WordParagraph emptyParagraph = cell.AddParagraph(removeExistingParagraphs: removeExistingParagraphs);
+                emptyParagraph._paragraph.RemoveAllChildren<Run>();
                 ApplyLegacyDocParagraphFormatting(emptyParagraph, sourceParagraph.Format, styleSheet);
+                LegacyDocBookmarkProjection.Create(paragraphBookmarks, paragraphStartCharacter, paragraphEndCharacter).EmitRemaining(emptyParagraph._paragraph);
+                return;
+            }
+
+            if (paragraphBookmarks.Count > 0) {
+                WordParagraph bookmarkedParagraph = cell.AddParagraph(removeExistingParagraphs: removeExistingParagraphs);
+                bookmarkedParagraph._paragraph.RemoveAllChildren<Run>();
+                ApplyLegacyDocParagraphFormatting(bookmarkedParagraph, sourceParagraph.Format, styleSheet);
+                LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(paragraphBookmarks, paragraphStartCharacter, paragraphEndCharacter);
+                AddLegacyDocRuns(bookmarkedParagraph, sourceParagraph.Runs, notes, bookmarks);
+                bookmarks.EmitRemaining(bookmarkedParagraph._paragraph);
                 return;
             }
 
@@ -613,6 +673,21 @@ namespace OfficeIMO.Word {
 
             ApplyLegacyDocParagraphFormatting(paragraph, sourceParagraph.Format, styleSheet);
             AddLegacyDocRuns(paragraph, sourceParagraph.Runs, remainingRunStartIndex, notes);
+        }
+
+        private static IReadOnlyList<LegacyDocBookmark> MergeLegacyDocTableCellBookmarks(IReadOnlyList<LegacyDocBookmark> paragraphBookmarks, IReadOnlyList<LegacyDocBookmark>? pendingBookmarks) {
+            if (pendingBookmarks == null || pendingBookmarks.Count == 0) {
+                return paragraphBookmarks;
+            }
+
+            if (paragraphBookmarks.Count == 0) {
+                return pendingBookmarks;
+            }
+
+            return pendingBookmarks
+                .Concat(paragraphBookmarks)
+                .Distinct()
+                .ToArray();
         }
 
         private static void AddLegacyDocParagraph(WordSection section, LegacyDocParagraphBlock paragraphBlock, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {

@@ -736,7 +736,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.Bookmark,
                     "DOC-BOOKMARK-RANGE-PRESENT",
-                    $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
+                    $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body and table-cell paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
                     detailCode: "Fib:PlcfBkf"));
             }
 
@@ -747,7 +747,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     justClosedCell = false;
                 }
 
-                currentTableCellParagraphs.Add(new LegacyDocTableCellParagraph(currentRuns.ToArray(), paragraphFormat));
+                currentTableCellParagraphs.Add(CreateCurrentTableCellParagraph(paragraphFormat));
                 currentRuns.Clear();
                 hasCurrentRun = false;
                 justClosedCell = false;
@@ -771,7 +771,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (currentRuns.Count > 0 || currentTableCellParagraphs.Count == 0) {
-                    currentTableCellParagraphs.Add(new LegacyDocTableCellParagraph(currentRuns.ToArray(), paragraphFormat));
+                    currentTableCellParagraphs.Add(CreateCurrentTableCellParagraph(paragraphFormat));
                 }
 
                 currentTableRow.Add(new LegacyDocTableCell(currentTableCellParagraphs.ToArray()));
@@ -789,7 +789,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 if (currentRuns.Count > 0 || currentTableCellParagraphs.Count > 0 || (!justClosedCell && currentTableRow.Count == 0)) {
                     if (currentRuns.Count > 0 || currentTableCellParagraphs.Count == 0) {
-                        currentTableCellParagraphs.Add(new LegacyDocTableCellParagraph(currentRuns.ToArray(), paragraphFormat));
+                        currentTableCellParagraphs.Add(CreateCurrentTableCellParagraph(paragraphFormat));
                     }
 
                     currentTableRow.Add(new LegacyDocTableCell(currentTableCellParagraphs.ToArray()));
@@ -831,7 +831,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 FlushRun();
                 if (currentRuns.Count > 0 || currentTableCellParagraphs.Count > 0) {
                     if (currentRuns.Count > 0 || currentTableCellParagraphs.Count == 0) {
-                        currentTableCellParagraphs.Add(new LegacyDocTableCellParagraph(currentRuns.ToArray(), paragraphFormat));
+                        currentTableCellParagraphs.Add(CreateCurrentTableCellParagraph(paragraphFormat));
                     }
 
                     currentTableRow.Add(new LegacyDocTableCell(currentTableCellParagraphs.ToArray()));
@@ -873,6 +873,39 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 hasCurrentRun = false;
                 inTable = false;
                 justClosedCell = false;
+            }
+
+            LegacyDocTableCellParagraph CreateCurrentTableCellParagraph(LegacyDocParagraphFormat paragraphFormat) {
+                IReadOnlyList<LegacyDocTextRun> runs = currentRuns.ToArray();
+                int paragraphStartCharacter = GetRunStartCharacter(runs);
+                int paragraphEndCharacter = GetRunEndCharacter(runs);
+                return new LegacyDocTableCellParagraph(
+                    runs,
+                    paragraphFormat,
+                    paragraphStartCharacter,
+                    paragraphEndCharacter,
+                    ExtractProjectedParagraphBookmarks(paragraphStartCharacter, paragraphEndCharacter));
+            }
+
+            int GetRunStartCharacter(IReadOnlyList<LegacyDocTextRun> runs) {
+                foreach (LegacyDocTextRun run in runs) {
+                    if (run.CharacterPositions.Count > 0) {
+                        return run.CharacterPositions[0];
+                    }
+                }
+
+                return currentParagraphStartCharacter;
+            }
+
+            int GetRunEndCharacter(IReadOnlyList<LegacyDocTextRun> runs) {
+                for (int index = runs.Count - 1; index >= 0; index--) {
+                    IReadOnlyList<int> positions = runs[index].CharacterPositions;
+                    if (positions.Count > 0) {
+                        return positions[positions.Count - 1] + 1;
+                    }
+                }
+
+                return currentParagraphStartCharacter;
             }
         }
 

@@ -7,7 +7,7 @@ using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
-        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, Table table, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, IReadOnlyDictionary<string, Style> tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+        private static void AppendTable(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Table table, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, IReadOnlyDictionary<string, Style> tableStyleDefinitions, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             ThrowIfUnsupportedTableShape(table, tableStyleDefinitions);
 
             TableRow[] rows = table.Elements<TableRow>().ToArray();
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
                     LegacyDocWritableParagraphFormatting cellParagraphFormatting = writableCell.ParagraphFormatting.WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
                     LegacyDocWritableFormatting cellRunFormatting = writableCell.RunFormatting.WithInheritedFormatting(tableStyleRunFormatting);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, writableCell.SourceCell, mainPart, styleIndexes, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, out int finalParagraphStart)
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, bookmarks, writableCell.SourceCell, mainPart, styleIndexes, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, out int finalParagraphStart)
                         .WithTableMarkers(isTableTerminatingParagraph: false);
                     text.Append('\a');
                     paragraphFormats.Add(new LegacyDocWritableParagraph(finalParagraphStart, text.Length - finalParagraphStart, paragraphFormatting));
@@ -1076,6 +1076,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             List<LegacyDocWritableParagraph> paragraphFormats,
+            LegacyDocWritableBookmarksBuilder bookmarks,
             TableCell? cell,
             MainDocumentPart mainPart,
             IReadOnlyDictionary<string, ushort> styleIndexes,
@@ -1113,14 +1114,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             for (int index = 0; index < paragraphs.Count - 1; index++) {
                 int paragraphStart = text.Length;
-                LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, paragraphs[index], mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes)
+                LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraphs[index], mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes)
                     .WithTableMarkers(isTableTerminatingParagraph: false);
                 text.Append('\r');
                 paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
             }
 
             finalParagraphStart = text.Length;
-            return AppendTableCellParagraph(text, runs, paragraphs[paragraphs.Count - 1], mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes);
+            return AppendTableCellParagraph(text, runs, bookmarks, paragraphs[paragraphs.Count - 1], mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes);
         }
 
         private static void ThrowIfUnsupportedTableCellProperties(TableCellProperties cellProperties) {
@@ -1166,7 +1167,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
                 .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
 
@@ -1180,8 +1181,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);
                         break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs, bookmarks, and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 
