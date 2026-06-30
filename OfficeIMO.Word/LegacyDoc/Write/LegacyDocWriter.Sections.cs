@@ -8,10 +8,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int DefaultPageHeightTwips = 15840;
         private const int DefaultPageMarginTwips = 1440;
         private const int DefaultHeaderFooterMarginTwips = 720;
+        private const int DefaultColumnSpaceTwips = 720;
+        private const int MaxLegacySectionColumns = 45;
         private const ushort SprmSBkc = 0x3009;
+        private const ushort SprmSCcolumns = 0x500B;
+        private const ushort SprmSDxaColumns = 0x900C;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSFTitlePage = 0x300A;
+        private const ushort SprmSLBetween = 0x3019;
         private const ushort SprmSBOrientation = 0x301D;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
@@ -33,6 +38,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? footerDistance = null;
             int? gutter = null;
             bool differentFirstPage = false;
+            int? columnCount = null;
+            int? columnSpacing = null;
+            bool hasColumnSeparator = false;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
@@ -67,6 +75,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         }
 
                         break;
+                    case Columns columns:
+                        ReadSupportedColumns(columns, out columnCount, out columnSpacing, out hasColumnSeparator);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports simple section page setup only. Unsupported section property: {property.LocalName}.");
                 }
@@ -84,7 +95,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 headerDistance,
                 footerDistance,
                 gutter,
-                differentFirstPage);
+                differentFirstPage,
+                columnCount,
+                columnSpacing,
+                hasColumnSeparator);
+        }
+
+        private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
+            if ((columns.EqualWidth != null && !columns.EqualWidth.Value) || columns.Elements<Column>().Any()) {
+                throw new NotSupportedException("Native DOC saving supports equal-width section columns only.");
+            }
+
+            columnCount = ReadColumnCount(columns.ColumnCount);
+            columnSpacing = ReadColumnSpacing(columns.Space, columnCount != null ? DefaultColumnSpaceTwips : null);
+            hasColumnSeparator = columns.Separator?.Value ?? false;
         }
 
         private static bool IsOnOffEnabled(OnOffType element) {
@@ -105,11 +129,51 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual == defaultValue ? null : actual;
         }
 
+        private static int? ReadColumnCount(OpenXmlSimpleType? value) {
+            if (value == null) {
+                return null;
+            }
+
+            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+                || actual < 1
+                || actual > MaxLegacySectionColumns) {
+                throw new NotSupportedException($"Native DOC saving supports section column counts from 1 through {MaxLegacySectionColumns}.");
+            }
+
+            return actual;
+        }
+
+        private static int? ReadColumnSpacing(OpenXmlSimpleType? value, int? defaultValue) {
+            if (value == null) {
+                return defaultValue;
+            }
+
+            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+                || actual < 0
+                || actual > ushort.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports section column spacing only within the Word 97-2003 unsigned twip range.");
+            }
+
+            return actual;
+        }
+
         private static byte[] CreateSepx(LegacyDocSectionFormat sectionFormat) {
             var grpprl = new List<byte>();
 
             if (sectionFormat.SectionBreakType != null && sectionFormat.SectionBreakType.Value != SectionMarkValues.NextPage) {
                 AddSingleByteSprm(grpprl, SprmSBkc, GetSectionBreakTypeOperand(sectionFormat.SectionBreakType.Value));
+            }
+
+            if (sectionFormat.ColumnCount != null) {
+                AddUInt16Sprm(grpprl, SprmSCcolumns, sectionFormat.ColumnCount.Value - 1);
+            }
+
+            if (sectionFormat.ColumnSpacingTwips != null) {
+                AddUInt16Sprm(grpprl, SprmSDxaColumns, sectionFormat.ColumnSpacingTwips.Value);
+            }
+
+            if (sectionFormat.HasColumnSeparator) {
+                AddSingleByteSprm(grpprl, SprmSLBetween, 1);
             }
 
             if (sectionFormat.HeaderDistanceTwips != null) {

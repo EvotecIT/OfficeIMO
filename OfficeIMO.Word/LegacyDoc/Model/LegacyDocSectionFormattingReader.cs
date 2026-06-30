@@ -4,9 +4,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocSectionFormattingReader {
         private const int SedLength = 12;
         private const ushort SprmSBkc = 0x3009;
+        private const ushort SprmSCcolumns = 0x500B;
+        private const ushort SprmSDxaColumns = 0x900C;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSFTitlePage = 0x300A;
+        private const ushort SprmSLBetween = 0x3019;
         private const ushort SprmSBOrientation = 0x301D;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
@@ -104,6 +107,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? footerDistance = null;
             int? gutter = null;
             bool differentFirstPage = false;
+            int? columnCount = null;
+            int? columnSpacing = null;
+            bool hasColumnSeparator = false;
             SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
@@ -138,8 +144,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmSLBetween) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    hasColumnSeparator = bytes[offset + 2] != 0;
+                    offset += 3;
+                    continue;
+                }
+
                 if (sprm == SprmSDyaHdrTop
                     || sprm == SprmSDyaHdrBottom
+                    || sprm == SprmSCcolumns
+                    || sprm == SprmSDxaColumns
                     || sprm == SprmSXaPage
                     || sprm == SprmSYaPage
                     || sprm == SprmSDxaLeft
@@ -158,6 +176,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmSDyaHdrBottom:
                             footerDistance = value;
+                            break;
+                        case SprmSCcolumns:
+                            columnCount = value + 1;
+                            break;
+                        case SprmSDxaColumns:
+                            columnSpacing = value;
                             break;
                         case SprmSXaPage:
                             pageWidth = value;
@@ -197,7 +221,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
-            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage);
+            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator);
         }
 
         private static SectionMarkValues? ReadSectionBreakType(byte value) {

@@ -1254,6 +1254,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionColumns() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionColumns();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.Empty(result.UnsupportedFeatures);
+
+                WordDocument document = result.Document;
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal("Column section", Assert.Single(document.Paragraphs).Text);
+                Assert.Equal(2, document.Sections[0].ColumnCount);
+                Assert.Equal(720, document.Sections[0].ColumnsSpace);
+                Assert.True(document.Sections[0].HasColumnSeparator);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections[0].ColumnCount);
+                Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
+                Assert.True(reloaded.Sections[0].HasColumnSeparator);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEvenOddHeaderDocumentFlag() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFacingPagesDop("Facing pages body");
 
@@ -3941,17 +3971,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionColumnsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionColumnsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Columns");
+                    document.Sections[0].ColumnCount = 2;
+                    document.Sections[0].ColumnsSpace = 720;
+                    document.Sections[0].HasColumnSeparator = true;
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x500B, 1);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x900C, 720);
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x3019, 1);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Columns", Assert.Single(reloaded.Paragraphs).Text);
+                Assert.Equal(2, reloaded.Sections[0].ColumnCount);
+                Assert.Equal(720, reloaded.Sections[0].ColumnsSpace);
+                Assert.True(reloaded.Sections[0].HasColumnSeparator);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnequalSectionColumnsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Columns");
+                document.AddParagraph("Unequal columns");
                 document.Sections[0].ColumnCount = 2;
+                Columns columns = document.Sections[0]._sectionProperties.GetFirstChild<Columns>()!;
+                columns.EqualWidth = false;
+                columns.Append(new Column { Width = "3000", Space = "360" });
+                columns.Append(new Column { Width = "4000", Space = "0" });
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("section property", exception.Message.ToLowerInvariant());
+                Assert.Contains("equal-width section columns", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -4754,6 +4821,32 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithSectionColumns() {
+                const string paragraph = "Column section";
+                string text = paragraph + "\r";
+                const int sepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(columnCount: 2, columnSpacing: 720, columnSeparator: true));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
@@ -5166,7 +5259,10 @@ namespace OfficeIMO.Tests {
                 int? marginRight = null,
                 int? marginTop = null,
                 int? marginBottom = null,
-                bool titlePage = false) {
+                bool titlePage = false,
+                int? columnCount = null,
+                int? columnSpacing = null,
+                bool columnSeparator = false) {
                 var grpprl = new List<byte>();
                 if (sectionBreakType != null) {
                     AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
@@ -5178,6 +5274,15 @@ namespace OfficeIMO.Tests {
 
                 if (orientation != null) {
                     AddSingleByteSprm(grpprl, 0x301D, orientation.Value);
+                }
+
+                if (columnCount != null) {
+                    AddUInt16SprmIfPresent(grpprl, 0x500B, columnCount.Value - 1);
+                }
+
+                AddUInt16SprmIfPresent(grpprl, 0x900C, columnSpacing);
+                if (columnSeparator) {
+                    AddSingleByteSprm(grpprl, 0x3019, 1);
                 }
 
                 AddUInt16SprmIfPresent(grpprl, 0xB01F, pageWidth);
@@ -6564,6 +6669,31 @@ namespace OfficeIMO.Tests {
             Assert.True(
                 ContainsBytePattern(wordDocumentStream.Skip(fcSepx + 2).Take(cbSepx).ToArray(), sprmLow, sprmHigh, operand),
                 $"SEPX did not contain sprm 0x{sprm:X4} with operand 0x{operand:X2}.");
+        }
+
+        private static void AssertSectionSepxContainsUInt16Sprm(byte[] wordDocumentStream, byte[] tableStream, ushort sprm, ushort operand) {
+            int fcPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCA);
+            int lcbPlcfSed = BitConverter.ToInt32(wordDocumentStream, 0xCE);
+            Assert.True(fcPlcfSed >= 0);
+            Assert.True(lcbPlcfSed >= 20);
+            Assert.True(fcPlcfSed + lcbPlcfSed <= tableStream.Length);
+
+            int sectionCount = (lcbPlcfSed - 4) / 16;
+            Assert.True(sectionCount > 0);
+            int sedOffset = fcPlcfSed + ((sectionCount + 1) * 4);
+            int fcSepx = BitConverter.ToInt32(tableStream, sedOffset + 2);
+            Assert.True(fcSepx > 0);
+            Assert.True(fcSepx + 2 <= wordDocumentStream.Length);
+
+            int cbSepx = BitConverter.ToUInt16(wordDocumentStream, fcSepx);
+            Assert.True(fcSepx + 2 + cbSepx <= wordDocumentStream.Length);
+            byte sprmLow = (byte)(sprm & 0xFF);
+            byte sprmHigh = (byte)(sprm >> 8);
+            byte operandLow = (byte)(operand & 0xFF);
+            byte operandHigh = (byte)(operand >> 8);
+            Assert.True(
+                ContainsBytePattern(wordDocumentStream.Skip(fcSepx + 2).Take(cbSepx).ToArray(), sprmLow, sprmHigh, operandLow, operandHigh),
+                $"SEPX did not contain sprm 0x{sprm:X4} with operand 0x{operand:X4}.");
         }
 
         private static bool ContainsBytePattern(byte[] bytes, params byte[] pattern) {

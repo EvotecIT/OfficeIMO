@@ -202,6 +202,18 @@ namespace OfficeIMO.Word {
                     pageMargin.Gutter = (DocumentFormat.OpenXml.UInt32Value)(uint)sectionFormat.GutterTwips.Value;
                 }
             }
+
+            if (sectionFormat.ColumnCount != null) {
+                section.ColumnCount = sectionFormat.ColumnCount.Value;
+            }
+
+            if (sectionFormat.ColumnSpacingTwips != null) {
+                section.ColumnsSpace = sectionFormat.ColumnSpacingTwips.Value;
+            }
+
+            if (sectionFormat.HasColumnSeparator) {
+                section.HasColumnSeparator = true;
+            }
         }
 
         private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet) {

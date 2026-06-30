@@ -14,7 +14,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? headerDistanceTwips,
             int? footerDistanceTwips,
             int? gutterTwips,
-            bool differentFirstPage = false) {
+            bool differentFirstPage = false,
+            int? columnCount = null,
+            int? columnSpacingTwips = null,
+            bool hasColumnSeparator = false) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -27,6 +30,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FooterDistanceTwips = footerDistanceTwips;
             GutterTwips = gutterTwips;
             DifferentFirstPage = differentFirstPage;
+            ColumnCount = columnCount;
+            ColumnSpacingTwips = columnSpacingTwips;
+            HasColumnSeparator = hasColumnSeparator;
         }
 
         internal SectionMarkValues? SectionBreakType { get; }
@@ -53,6 +59,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool DifferentFirstPage { get; }
 
+        internal int? ColumnCount { get; }
+
+        internal int? ColumnSpacingTwips { get; }
+
+        internal bool HasColumnSeparator { get; }
+
         internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
             || PageWidthTwips != null
             || PageHeightTwips != null
@@ -64,7 +76,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || HeaderDistanceTwips != null
             || FooterDistanceTwips != null
             || GutterTwips != null
-            || DifferentFirstPage;
+            || DifferentFirstPage
+            || ColumnCount != null
+            || ColumnSpacingTwips != null
+            || HasColumnSeparator;
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
@@ -83,7 +98,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 HeaderDistanceTwips,
                 FooterDistanceTwips,
                 GutterTwips,
-                DifferentFirstPage);
+                DifferentFirstPage,
+                ColumnCount,
+                ColumnSpacingTwips,
+                HasColumnSeparator);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);
