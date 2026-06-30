@@ -601,7 +601,7 @@ namespace OfficeIMO.Word {
             LegacyDocTextRun firstRun = sourceParagraph.Runs[0];
             WordParagraph paragraph;
             int remainingRunStartIndex;
-            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text) || !string.IsNullOrEmpty(firstRun.HyperlinkUri)) {
+            if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text) || firstRun.HyperlinkTarget.HasValue) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
                 remainingRunStartIndex = 0;
             } else {
@@ -632,11 +632,11 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes) {
             for (int index = startIndex; index < paragraphRuns.Count; index++) {
                 LegacyDocTextRun legacyRun = paragraphRuns[index];
-                if (!string.IsNullOrEmpty(legacyRun.HyperlinkUri)) {
+                if (legacyRun.HyperlinkTarget.HasValue) {
                     int hyperlinkStartIndex = index;
-                    string hyperlinkUri = legacyRun.HyperlinkUri!;
+                    LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
                     while (index + 1 < paragraphRuns.Count
-                        && string.Equals(paragraphRuns[index + 1].HyperlinkUri, hyperlinkUri, StringComparison.Ordinal)) {
+                        && paragraphRuns[index + 1].HyperlinkTarget == hyperlinkTarget) {
                         index++;
                     }
 
@@ -649,7 +649,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes) {
-            if (!string.IsNullOrEmpty(legacyRun.HyperlinkUri)) {
+            if (legacyRun.HyperlinkTarget.HasValue) {
                 AddLegacyDocHyperlinkRunContent(paragraph, legacyRun, notes);
                 return;
             }
@@ -871,7 +871,8 @@ namespace OfficeIMO.Word {
 
         private static void AddLegacyDocHyperlinkRunsContent(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> legacyRuns, int startIndex, int count, LegacyDocNoteProjection notes) {
             LegacyDocTextRun firstRun = legacyRuns[startIndex];
-            if (!Uri.TryCreate(firstRun.HyperlinkUri, UriKind.Absolute, out Uri? uri)) {
+            LegacyDocHyperlinkTarget target = firstRun.HyperlinkTarget;
+            if (target.Uri == null && target.Anchor == null) {
                 for (int index = startIndex; index < startIndex + count; index++) {
                     AddLegacyDocRunContent(paragraph, CreateLegacyDocRunWithoutHyperlink(legacyRuns[index]), notes);
                 }
@@ -879,13 +880,27 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            OpenXmlPart relationshipOwner = ResolveLegacyDocHyperlinkRelationshipPart(paragraph)
-                ?? throw new InvalidOperationException("Legacy DOC hyperlink projection requires a document relationship owner.");
-            HyperlinkRelationship relationship = relationshipOwner.AddHyperlinkRelationship(uri, true);
-            var hyperlink = new Hyperlink {
-                Id = relationship.Id,
-                History = true
-            };
+            Hyperlink hyperlink;
+            if (target.Uri != null && Uri.TryCreate(target.Uri, UriKind.Absolute, out Uri? uri)) {
+                OpenXmlPart relationshipOwner = ResolveLegacyDocHyperlinkRelationshipPart(paragraph)
+                    ?? throw new InvalidOperationException("Legacy DOC hyperlink projection requires a document relationship owner.");
+                HyperlinkRelationship relationship = relationshipOwner.AddHyperlinkRelationship(uri, true);
+                hyperlink = new Hyperlink {
+                    Id = relationship.Id,
+                    History = true
+                };
+            } else if (target.Anchor != null) {
+                hyperlink = new Hyperlink {
+                    Anchor = target.Anchor,
+                    History = true
+                };
+            } else {
+                for (int index = startIndex; index < startIndex + count; index++) {
+                    AddLegacyDocRunContent(paragraph, CreateLegacyDocRunWithoutHyperlink(legacyRuns[index]), notes);
+                }
+
+                return;
+            }
 
             for (int index = startIndex; index < startIndex + count; index++) {
                 AppendLegacyDocHyperlinkRunContent(hyperlink, paragraph, legacyRuns[index]);

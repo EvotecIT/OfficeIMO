@@ -4,14 +4,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal const char Separator = '\u0014';
         internal const char End = '\u0015';
 
-        internal static bool TryReadExternalHyperlink(
+        internal static bool TryReadHyperlink(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
-            out string? uri,
+            out LegacyDocHyperlinkTarget target,
             out int resultStartIndex,
             out int resultEndIndex,
             out int fieldEndIndex) {
-            uri = null;
+            target = default;
             resultStartIndex = -1;
             resultEndIndex = -1;
             fieldEndIndex = -1;
@@ -62,7 +62,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 .Select(character => character.Character)
                 .ToArray());
 
-            if (!TryReadExternalHyperlinkInstruction(instruction, out uri)) {
+            if (!TryReadHyperlinkInstruction(instruction, out target)) {
                 return false;
             }
 
@@ -72,8 +72,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return true;
         }
 
-        private static bool TryReadExternalHyperlinkInstruction(string instruction, out string? uri) {
-            uri = null;
+        private static bool TryReadHyperlinkInstruction(string instruction, out LegacyDocHyperlinkTarget target) {
+            target = default;
             string trimmed = instruction.Trim();
             if (!trimmed.StartsWith("HYPERLINK", StringComparison.OrdinalIgnoreCase)) {
                 return false;
@@ -84,19 +84,98 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return false;
             }
 
-            int quoteStart = trimmed.IndexOf('"', position);
-            int quoteEnd = quoteStart >= 0 ? trimmed.IndexOf('"', quoteStart + 1) : -1;
-            if (quoteStart < 0 || quoteEnd <= quoteStart + 1) {
+            int anchorSwitch = IndexOfHyperlinkAnchorSwitch(trimmed, position);
+            if (anchorSwitch >= 0) {
+                int anchorPosition = anchorSwitch + 2;
+                if (!TryReadQuotedValue(trimmed, anchorPosition, out string? anchor)) {
+                    return false;
+                }
+
+                target = LegacyDocHyperlinkTarget.ForAnchor(anchor);
+                return true;
+            }
+
+            if (!TryReadQuotedValue(trimmed, position, out string? uriText)) {
                 return false;
             }
 
-            string target = trimmed.Substring(quoteStart + 1, quoteEnd - quoteStart - 1);
-            if (!Uri.TryCreate(target, UriKind.Absolute, out Uri? parsed) || string.IsNullOrEmpty(parsed.Scheme)) {
+            if (!Uri.TryCreate(uriText, UriKind.Absolute, out Uri? parsed) || string.IsNullOrEmpty(parsed.Scheme)) {
                 return false;
             }
 
-            uri = parsed.ToString();
+            target = LegacyDocHyperlinkTarget.ForUri(parsed.ToString());
             return true;
+        }
+
+        private static int IndexOfHyperlinkAnchorSwitch(string instruction, int startIndex) {
+            bool inQuotedText = false;
+            bool escaped = false;
+            for (int index = startIndex; index < instruction.Length - 1; index++) {
+                char current = instruction[index];
+                if (escaped) {
+                    escaped = false;
+                    continue;
+                }
+
+                if (current == '\\' && inQuotedText) {
+                    escaped = true;
+                    continue;
+                }
+
+                if (current == '"') {
+                    inQuotedText = !inQuotedText;
+                    continue;
+                }
+
+                if (inQuotedText) {
+                    continue;
+                }
+
+                if (instruction[index] != '\\' || char.ToUpperInvariant(instruction[index + 1]) != 'L') {
+                    continue;
+                }
+
+                bool hasTokenStart = index == 0 || char.IsWhiteSpace(instruction[index - 1]);
+                bool hasTokenEnd = index + 2 >= instruction.Length || char.IsWhiteSpace(instruction[index + 2]);
+                if (hasTokenStart && hasTokenEnd) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static bool TryReadQuotedValue(string text, int startIndex, out string value) {
+            value = string.Empty;
+            int quoteStart = text.IndexOf('"', startIndex);
+            if (quoteStart < 0) {
+                return false;
+            }
+
+            var builder = new System.Text.StringBuilder();
+            bool escaped = false;
+            for (int index = quoteStart + 1; index < text.Length; index++) {
+                char character = text[index];
+                if (escaped) {
+                    builder.Append(character);
+                    escaped = false;
+                    continue;
+                }
+
+                if (character == '\\') {
+                    escaped = true;
+                    continue;
+                }
+
+                if (character == '"') {
+                    value = builder.ToString();
+                    return !string.IsNullOrWhiteSpace(value);
+                }
+
+                builder.Append(character);
+            }
+
+            return false;
         }
 
         private static bool IsBodyBoundary(char character) {

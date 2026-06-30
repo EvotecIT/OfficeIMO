@@ -687,8 +687,11 @@ just to reserve names.
   - [x] Read and write simple external body, table, header, footer, footnote,
     and endnote hyperlinks with supported text, tab, and break display runs
     through native DOC `HYPERLINK` field characters, then reload them as normal
-    OfficeIMO `WordHyperLink` objects while continuing to block internal
-    bookmark links before bytes are committed.
+    OfficeIMO `WordHyperLink` objects.
+  - [x] Read simple internal bookmark `HYPERLINK \l` field targets into normal
+    OfficeIMO `WordHyperLink.Anchor` objects while continuing to block authored
+    internal bookmark hyperlink writes until native DOC bookmark records are
+    implemented.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

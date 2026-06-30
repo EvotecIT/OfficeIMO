@@ -1213,6 +1213,33 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
         }
 
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsInternalBookmarkHyperlinkFields() {
+            string fieldText = LegacyDocField.Begin
+                + " HYPERLINK \\l \"TargetBookmark\" "
+                + LegacyDocField.Separator
+                + "inside"
+                + LegacyDocField.End;
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Jump " + fieldText + " now", "Target");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Empty(result.UnsupportedFeatures);
+            string visibleText = string.Concat(result.Document.Paragraphs[0].GetRuns().Select(run => GetNoteRunText(run)));
+            Assert.Equal("Jump inside now", visibleText);
+            Assert.DoesNotContain("HYPERLINK", visibleText, StringComparison.Ordinal);
+            Assert.DoesNotContain(visibleText, character => character == LegacyDocField.Begin);
+            Assert.DoesNotContain(visibleText, character => character == LegacyDocField.Separator);
+            Assert.DoesNotContain(visibleText, character => character == LegacyDocField.End);
+
+            WordHyperLink hyperlink = Assert.Single(result.Document.HyperLinks);
+            Assert.Equal("inside", hyperlink.Text);
+            Assert.Equal("TargetBookmark", hyperlink.Anchor);
+            Assert.Null(hyperlink.Uri);
+        }
+
         private static string GetNoteRunText(WordParagraph run) {
             return run.IsHyperLink
                 ? GetHyperlinkDisplayText(run.Hyperlink!._hyperlink)

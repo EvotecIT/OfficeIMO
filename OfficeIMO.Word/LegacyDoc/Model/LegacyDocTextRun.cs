@@ -18,7 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? fontSizeHalfPoints,
             string? colorHex,
             string? fontFamily,
-            string? hyperlinkUri = null)
+            string? hyperlinkUri = null,
+            string? hyperlinkAnchor = null)
             : this(
                 text,
                 bold,
@@ -38,7 +39,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 colorHex,
                 fontFamily,
                 Array.Empty<int>(),
-                hyperlinkUri) {
+                hyperlinkUri,
+                hyperlinkAnchor) {
         }
 
         internal LegacyDocTextRun(
@@ -60,7 +62,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? colorHex,
             string? fontFamily,
             IReadOnlyList<int> characterPositions,
-            string? hyperlinkUri = null) {
+            string? hyperlinkUri = null,
+            string? hyperlinkAnchor = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -82,6 +85,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? Array.Empty<int>()
                 : characterPositions.ToArray();
             HyperlinkUri = string.IsNullOrWhiteSpace(hyperlinkUri) ? null : hyperlinkUri;
+            HyperlinkAnchor = string.IsNullOrWhiteSpace(hyperlinkAnchor) ? null : hyperlinkAnchor;
         }
 
         internal string Text { get; }
@@ -121,5 +125,21 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal IReadOnlyList<int> CharacterPositions { get; }
 
         internal string? HyperlinkUri { get; }
+
+        internal string? HyperlinkAnchor { get; }
+
+        internal LegacyDocHyperlinkTarget HyperlinkTarget {
+            get {
+                if (HyperlinkUri != null) {
+                    return LegacyDocHyperlinkTarget.ForUri(HyperlinkUri);
+                }
+
+                if (HyperlinkAnchor != null) {
+                    return LegacyDocHyperlinkTarget.ForAnchor(HyperlinkAnchor);
+                }
+
+                return default;
+            }
+        }
     }
 }

@@ -474,7 +474,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var runText = new System.Text.StringBuilder();
             var runCharacterPositions = new List<int>();
             LegacyDocCharacterFormat currentFormat = LegacyDocCharacterFormat.Default;
-            string? currentHyperlinkUri = null;
+            LegacyDocHyperlinkTarget currentHyperlinkTarget = default;
             bool hasCurrentRun = false;
             bool inTable = false;
             bool justClosedCell = false;
@@ -486,14 +486,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             for (int characterIndex = 0; characterIndex < characters.Count; characterIndex++) {
                 LegacyDocTextCharacter textCharacter = characters[characterIndex];
-                if (LegacyDocField.TryReadExternalHyperlink(
+                if (LegacyDocField.TryReadHyperlink(
                     characters,
                     characterIndex,
-                    out string? hyperlinkUri,
+                    out LegacyDocHyperlinkTarget hyperlinkTarget,
                     out int resultStartIndex,
                     out int resultEndIndex,
                     out int fieldEndIndex)) {
-                    AppendHyperlinkResult(hyperlinkUri!, resultStartIndex, resultEndIndex);
+                    AppendHyperlinkResult(hyperlinkTarget, resultStartIndex, resultEndIndex);
                     characterIndex = fieldEndIndex;
                     continue;
                 }
@@ -594,7 +594,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     detailCode: "Fib:PlcfSed"));
             }
 
-            void AppendHyperlinkResult(string hyperlinkUri, int resultStartIndex, int resultEndIndex) {
+            void AppendHyperlinkResult(LegacyDocHyperlinkTarget hyperlinkTarget, int resultStartIndex, int resultEndIndex) {
                 for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
                     LegacyDocTextCharacter resultCharacter = characters[resultIndex];
                     char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
@@ -603,18 +603,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
-                    AppendRunCharacter(normalized.Value, format, resultCharacter.CharacterPosition, hyperlinkUri);
+                    AppendRunCharacter(normalized.Value, format, resultCharacter.CharacterPosition, hyperlinkTarget);
                     bodyText.Append(normalized.Value);
                 }
             }
 
-            void AppendRunCharacter(char character, LegacyDocCharacterFormat format, int characterPosition, string? hyperlinkUri = null) {
+            void AppendRunCharacter(char character, LegacyDocCharacterFormat format, int characterPosition, LegacyDocHyperlinkTarget hyperlinkTarget = default) {
                 if (!hasCurrentRun
                     || !format.Equals(currentFormat)
-                    || !string.Equals(hyperlinkUri, currentHyperlinkUri, StringComparison.Ordinal)) {
+                    || hyperlinkTarget != currentHyperlinkTarget) {
                     FlushRun();
                     currentFormat = format;
-                    currentHyperlinkUri = hyperlinkUri;
+                    currentHyperlinkTarget = hyperlinkTarget;
                     hasCurrentRun = true;
                 }
 
@@ -649,10 +649,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.ColorHex,
                     currentFormat.FontFamily,
                     runCharacterPositions,
-                    currentHyperlinkUri));
+                    currentHyperlinkTarget.Uri,
+                    currentHyperlinkTarget.Anchor));
                 runText.Clear();
                 runCharacterPositions.Clear();
-                currentHyperlinkUri = null;
+                currentHyperlinkTarget = default;
             }
 
             void AddCurrentTextAsParagraph(LegacyDocParagraphFormat paragraphFormat) {
