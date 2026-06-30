@@ -366,6 +366,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-atx-heading-attribute-stays-literal", "> # Heading {#h .wide}" };
         yield return new object[] { "blockquote-setext-heading-attribute-stays-literal", "> Heading {#h .wide}\n> -------" };
         yield return new object[] { "nested-blockquote-paragraph-attribute-stays-literal", "> > quote {#q .lead}" };
+        yield return new object[] { "blockquote-standalone-attribute-before-unordered-list", "> {#list .wide}\n> - item" };
+        yield return new object[] { "blockquote-standalone-attribute-before-ordered-list", "> {#list .wide}\n> 1. item" };
         yield return new object[] { "unordered-list-item-attribute-is-consumed", "- item {#li .selected}" };
         yield return new object[] { "ordered-list-item-attribute-is-consumed", "1. item {#li .selected}" };
         yield return new object[] { "blockquote-list-item-attribute-is-consumed", "> - item {#li .selected}" };
@@ -417,6 +419,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     public static IEnumerable<object[]> GenericAttributesTaskListExtensionCases() {
+        yield return new object[] { "blockquote-standalone-attribute-before-task-list", "> {#list .wide}\n> - [x] task" };
         yield return new object[] { "task-list-item-attribute-is-consumed", "- [x] task {#task .done}" };
         yield return new object[] { "unchecked-task-list-item-attribute-is-consumed", "- [ ] task {#task .todo}" };
         yield return new object[] { "nested-task-list-item-attribute-is-consumed", "- outer\n  - [x] task {#task .done}" };

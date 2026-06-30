@@ -61,15 +61,14 @@ public static partial class MarkdownReader {
         MarkdownReaderOptions options,
         MarkdownReaderState state) =>
         ShouldParseBlockGenericAttributes(options, state)
-        || IsQuoteStandaloneAttributeBeforeFencedCode(lines, lineIndex, options, state);
+        || IsQuoteStandaloneAttributeBeforeSupportedBlock(lines, lineIndex, options, state);
 
-    private static bool IsQuoteStandaloneAttributeBeforeFencedCode(
+    private static bool IsQuoteStandaloneAttributeBeforeSupportedBlock(
         string[] lines,
         int lineIndex,
         MarkdownReaderOptions options,
         MarkdownReaderState state) {
         if (options?.GenericAttributes != true
-            || options.FencedCode != true
             || state?.SuppressBlockGenericAttributes != true
             || lines == null
             || lineIndex < 0
@@ -84,11 +83,16 @@ public static partial class MarkdownReader {
             }
 
             return state.QuoteContainerLines.Contains(i)
-                && IsCodeFenceOpen(lines[i], out _, out _, out _);
+                && IsQuoteStandaloneAttributeSupportedBlock(lines[i], options);
         }
 
         return false;
     }
+
+    private static bool IsQuoteStandaloneAttributeSupportedBlock(string line, MarkdownReaderOptions options) =>
+        (options.FencedCode && IsCodeFenceOpen(line, out _, out _, out _))
+        || (options.UnorderedLists && IsUnorderedListLine(line, out _, out _, out _, out _))
+        || (options.OrderedLists && IsOrderedListLine(line, out _, out _));
 
     private static bool HasFollowingConsumedStandaloneAttributeTarget(
         string[] lines,

@@ -244,6 +244,60 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void BlockquoteContained_Standalone_GenericAttributes_Attach_To_Following_List_With_Source_Backup() {
+        const string markdown = "> {#list .wide}\n> - item\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var quoteBlock = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
+        var listBlock = Assert.IsType<UnorderedListBlock>(Assert.Single(quoteBlock.Children));
+
+        Assert.Equal("list", listBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, listBlock.Attributes.Classes);
+        Assert.Equal(
+            "<blockquote><ul id=\"list\" class=\"wide\"><li>item</li></ul></blockquote>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var list = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.UnorderedList);
+        var attributes = Assert.Single(list.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var item = Assert.Single(list.Descendants(), node => node.Kind == MarkdownSyntaxKind.ListItem);
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 2, 8), list.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 8), item.SourceSpan);
+        Assert.Equal("{#list .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 15), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#list .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeQuote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var nativeList = Assert.Single(nativeQuote.Children.OfType<MarkdownNativeListBlock>());
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(nativeList, field.Block);
+        Assert.Equal("{#list .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 15), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#docs .items}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("> {#docs .items}\n> - item\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_PipeTable_With_Source_Backup() {
         const string markdown = "{#tbl .wide}\n| A |\n|---|\n| B |\n";
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
