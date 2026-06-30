@@ -93,6 +93,7 @@ public sealed class MarkdownReaderOptions {
             PreserveHtmlBlockBlankLineContent = false,
             SingleTildeStrikethrough = true,
             Subscript = false,
+            CjkFriendlyEmphasis = false,
             AutolinkUrls = true,
             AutolinkAllowDomainWithoutPeriod = false,
             AutolinkAllowQueryAndFragmentSpecialCharacters = true,
@@ -202,6 +203,14 @@ public sealed class MarkdownReaderOptions {
     /// delimiter for single-tilde strikethrough.
     /// </summary>
     public bool Subscript { get; set; } = true;
+
+    /// <summary>
+    /// When <c>true</c>, star emphasis uses Markdig's CJK-friendly delimiter behavior so emphasis can
+    /// open or close next to CJK text and CJK punctuation without relaxing underscore intraword rules.
+    /// This mirrors Markdig's <c>UseCjkFriendlyEmphasis</c> pipeline option.
+    /// </summary>
+    public bool CjkFriendlyEmphasis { get; set; } = false;
+
     /// <summary>
     /// When <c>true</c>, isolated single-line <c>Term: Definition</c> patterns stay as narrative paragraphs.
     /// Consecutive definition-like lines still parse as a definition list.

@@ -19,6 +19,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkEmails);
         Assert.False(options.SoftLineBreaksAsHardLineBreaks);
         Assert.False(options.Subscript);
+        Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.Tables);
         Assert.True(options.AllowHeaderlessTables);
         Assert.True(options.ParseTableCellBlocks);
@@ -49,6 +50,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkEmails);
         Assert.False(options.SoftLineBreaksAsHardLineBreaks);
         Assert.False(options.Subscript);
+        Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.HtmlBlocks);
         Assert.True(options.InlineHtml);
         Assert.Empty(options.BlockParserExtensions);
@@ -72,6 +74,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.StandaloneImageBlocks);
         Assert.True(options.SingleTildeStrikethrough);
         Assert.False(options.Subscript);
+        Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.AutolinkUrls);
         Assert.False(options.AutolinkAllowDomainWithoutPeriod);
         Assert.True(options.AutolinkAllowQueryAndFragmentSpecialCharacters);
@@ -105,6 +108,27 @@ public class Markdown_Reader_Profile_Tests {
 
         Assert.Equal("<p>Use <del>this</del></p>", html);
         Assert.DoesNotContain("<sub>", html);
+    }
+
+    [Fact]
+    public void CjkFriendlyEmphasis_Is_OptIn_And_Preserves_Markdown_Writing() {
+        const string markdown = "これは**強調？**です";
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+
+        var defaultHtml = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.CjkFriendlyEmphasis = true;
+        var document = MarkdownReader.Parse(markdown, options);
+        var optInHtml = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Equal("<p>これは**強調？**です</p>", defaultHtml);
+        Assert.Equal("<p>これは<strong>強調？</strong>です</p>", optInHtml);
+        Assert.Equal(markdown, document.ToMarkdown().Trim());
     }
 
     [Fact]

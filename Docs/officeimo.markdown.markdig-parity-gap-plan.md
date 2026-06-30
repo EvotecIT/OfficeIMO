@@ -13,7 +13,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [x] GFM tracked fixtures are green: 52 tracked GFM fixtures, 52 passing, 0 failing in the generated GFM inventory.
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
-- [ ] Markdig extension parity is not closed: 11 rows are covered, 8 partial, 3 intentional, and 11 gap.
+- [ ] Markdig extension parity is not closed: 12 rows are covered, 7 partial, 3 intentional, and 11 gap.
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
@@ -36,9 +36,9 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Add an opt-in Markdig-style alert HTML fallback for no-title GitHub alert syntax while preserving OfficeIMO titled callouts as richer AST semantics.
   - [ ] Decide whether titled OfficeIMO callouts are an intentional superset or need a Markdig-compatible boundary mode.
   - [ ] Align the remaining callout/alert syntax fields, native source fields, writer output, and broader comparison fixtures around that boundary.
-- [ ] `UseCjkFriendlyEmphasis` decision: parser option or intentional gap.
-  - [ ] Decide whether to add a Markdig-compatible delimiter option.
-  - [ ] If in scope, implement delimiter behavior in the inline parser and prove source-token/writer behavior with CJK comparison cases.
+- [x] `UseCjkFriendlyEmphasis` decision: parser option or intentional gap.
+  - [x] Add a Markdig-compatible opt-in delimiter option.
+  - [x] Implement delimiter behavior in the inline parser and prove source-token/writer behavior with CJK comparison cases.
 - [ ] `UsePreciseSourceLocation` promotion: cross-cutting AST/source architecture.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
@@ -151,8 +151,8 @@ Current active row: `UseDefinitionLists`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
   - [ ] Decide whether titled OfficeIMO callouts are an intentional superset or need a Markdig-compatible boundary mode.
   - [ ] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
-- [ ] Decide and close `UseCjkFriendlyEmphasis`.
-  - [ ] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof, or document it as deferred/intentional.
+- [x] Decide and close `UseCjkFriendlyEmphasis`.
+  - [x] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof.
 - [ ] Keep `UsePreciseSourceLocation` partial until lossless trivia, original mapping, generated-node diagnostics, and broader source edits are complete.
 
 ## P2 - Make Scope Decisions Before Optional Syntax

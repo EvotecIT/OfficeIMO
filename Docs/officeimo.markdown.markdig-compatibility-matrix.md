@@ -10,13 +10,13 @@ Use it as the control board for parity slices:
 
 ## Summary
 
-Current inventory: 33 Markdig extension-family rows; 11 covered, 8 partial, 3 intentional, 11 gap.
+Current inventory: 33 Markdig extension-family rows; 12 covered, 7 partial, 3 intentional, 11 gap.
 
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 11 |
-| Partial | 8 |
+| Covered | 12 |
+| Partial | 7 |
 | Intentional | 3 |
 | Gap | 11 |
 
@@ -30,7 +30,7 @@ Current inventory: 33 Markdig extension-family rows; 11 covered, 8 partial, 3 in
 | `UseAutoIdentifiers` | `Covered` | Renderer/host policy | Covered | Covered | Covered | Covered | Keep slug-style and heading-source fixtures aligned as broader renderer profiles evolve. |
 | `UseAutoLinks` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep broader GFM fixture breadth separate from the Markdig UseAutoLinks row. |
 | `UseBootstrap` | `Intentional` | Renderer/host policy | Not planned | Not planned | Intentional difference | Documented | Keep theme/rendering presets separate from parser parity. |
-| `UseCjkFriendlyEmphasis` | `Partial` | Core delimiter option | Partial delimiter behavior | Needs delimiter token proof | Mostly shared with emphasis rendering | Needs CJK comparison fixtures | Fold into the CommonMark emphasis delimiter rewrite and keep CJK-specific fixtures explicit. |
+| `UseCjkFriendlyEmphasis` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep the CJK-friendly option aligned with future emphasis delimiter rewrites and do not enable it by default in CommonMark/GFM profiles. |
 | `UseCitations` | `Gap` | Deferred | Deferred | Deferred | Deferred | Needs real consumer requirement | Decide whether citations are in scope after core CommonMark/GFM closure. |
 | `UseCustomContainers` | `Gap` | Optional/core block extension | Missing colon-fence parser | Missing child-block source mapping | Missing renderer/writer seams | Missing Markdig comparison fixtures | Route to block parser extensions plus renderer/writer source-slice contracts. |
 | `UseDefinitionLists` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep definition-list comparison, native source, no generated-child diagnostic, and writer reparse fixtures aligned as lossless trivia work expands. |
@@ -70,5 +70,5 @@ Current inventory: 33 Markdig extension-family rows; 11 covered, 8 partial, 3 in
 
 - [ ] Continue `UseGenericAttributes` only after probing remaining Markdig-supported block and inline targets. Avoid another standalone-attribute sweep unless Markdig evidence requires it.
 - [x] Keep `UseDefinitionLists` covered while broader source/trivia work evolves; do not reopen it without new Markdig evidence.
-- [ ] Decide the titled-callout boundary for `UseAlertBlocks` and the delimiter option boundary for `UseCjkFriendlyEmphasis` before adding more fixtures.
+- [ ] Decide the titled-callout boundary for `UseAlertBlocks` before adding more alert fixtures.
 - [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.

@@ -274,6 +274,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "subscript-with-whitespace-before-close-stays-literal", "H~2 ~" };
     }
 
+    public static IEnumerable<object[]> CjkFriendlyEmphasisExtensionCases() {
+        yield return new object[] { "japanese-closing-punctuation-strong", "これは**強調？**です" };
+        yield return new object[] { "chinese-code-span-strong", "我可以强调**这个`code`**吗（Can I emphasize **this `code`**）？" };
+        yield return new object[] { "cjk-neighbor-with-latin-parentheses-strong", "漢**(abc)**字" };
+        yield return new object[] { "cjk-neighbor-with-fullwidth-punctuation-emphasis", "漢*（abc）*字" };
+        yield return new object[] { "cjk-underscore-remains-literal", "漢__（abc）__字" };
+    }
+
     public static IEnumerable<object[]> AbbreviationExtensionCases() {
         yield return new object[] { "basic", "*[HTML]: Hyper Text Markup Language\nHTML test" };
         yield return new object[] { "multiple-occurrences", "*[HTML]: Hyper Text Markup Language\nHTML and HTML." };
@@ -547,6 +555,29 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
         officeOptions.Subscript = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(CjkFriendlyEmphasisExtensionCases))]
+    public void MarkdownReader_CjkFriendlyEmphasis_Match_Markdig_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseCjkFriendlyEmphasis(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.CjkFriendlyEmphasis = true;
 
         var office = MarkdownReader
             .Parse(markdown, officeOptions)

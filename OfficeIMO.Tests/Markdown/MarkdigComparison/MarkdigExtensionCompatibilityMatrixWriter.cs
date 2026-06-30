@@ -54,7 +54,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
         } else {
             sb.AppendLine("- [ ] Promote or explicitly bound `UseDefinitionLists` after closing remaining source-map and writer edge breadth.");
         }
-        sb.AppendLine("- [ ] Decide the titled-callout boundary for `UseAlertBlocks` and the delimiter option boundary for `UseCjkFriendlyEmphasis` before adding more fixtures.");
+        sb.AppendLine("- [ ] Decide the titled-callout boundary for `UseAlertBlocks` before adding more alert fixtures.");
         sb.AppendLine("- [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.");
 
         return sb.ToString().Replace("\r\n", "\n");

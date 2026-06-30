@@ -706,15 +706,15 @@ public static partial class MarkdownReader {
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
 
-                bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack);
+                bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis);
 
-                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, out int literalRunLength)) {
+                if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, options.CjkFriendlyEmphasis, out int literalRunLength)) {
                     AddTextNode(new string(marker, literalRunLength), pos, literalRunLength);
                     pos += literalRunLength;
                     continue;
                 }
 
-                if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack)) {
+                if (ShouldTreatSingleMarkerAsLiteralInsideBold(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
                     continue;
@@ -747,15 +747,15 @@ public static partial class MarkdownReader {
                     continue;
                 }
 
-                GetDelimiterFlags(text, pos, marker, runLen, out bool canOpen, out bool canClose);
+                GetDelimiterFlags(text, pos, marker, runLen, options.CjkFriendlyEmphasis, out bool canOpen, out bool canClose);
 
-                if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack)) {
+                if (ShouldTreatMixedSingleMarkerAsLiteral(text, pos, marker, runLen, canOpen, canClose, stack, options.CjkFriendlyEmphasis)) {
                     AddTextNode(marker.ToString(), pos, 1);
                     pos++;
                     continue;
                 }
 
-                if (ShouldTreatOppositeMarkerBeforeOuterCloseAsLiteral(text, pos, marker, runLen, stack)) {
+                if (ShouldTreatOppositeMarkerBeforeOuterCloseAsLiteral(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis)) {
                     AddTextNode(new string(marker, runLen), pos, runLen);
                     pos += runLen;
                     continue;
@@ -764,7 +764,7 @@ public static partial class MarkdownReader {
                 int remaining = runLen;
                 if (canClose) {
                     while (remaining > 0) {
-                        if (TryRebalanceParentBoldWithInnerItalicIntoDualItalic(text, pos, stack, marker, remaining, out int dualItalicRebalanced)) {
+                        if (TryRebalanceParentBoldWithInnerItalicIntoDualItalic(text, pos, stack, marker, remaining, options.CjkFriendlyEmphasis, out int dualItalicRebalanced)) {
                             remaining -= dualItalicRebalanced;
                             continue;
                         }
@@ -776,8 +776,8 @@ public static partial class MarkdownReader {
 
                 bool preferInnerBold = ShouldPreferInnerBold(stack, marker, remaining, canOpen, canClose);
                 bool splitDoubleUnderscoreOpener = ShouldSplitDoubleUnderscoreToLiteralAndItalic(text, pos, remaining, canOpen, canClose);
-                bool splitDoubleRunIntoRootDualItalic = ShouldSplitDoubleRunIntoRootDualItalic(text, pos, marker, remaining, canOpen, canClose, stack);
-                int literalPrefixForOddCloser = GetLiteralPrefixLengthForOddCloser(text, pos, marker, remaining, canOpen, canClose);
+                bool splitDoubleRunIntoRootDualItalic = ShouldSplitDoubleRunIntoRootDualItalic(text, pos, marker, remaining, canOpen, canClose, stack, options.CjkFriendlyEmphasis);
+                int literalPrefixForOddCloser = GetLiteralPrefixLengthForOddCloser(text, pos, marker, remaining, canOpen, canClose, options.CjkFriendlyEmphasis);
 
                 if (canClose && !preferInnerBold) {
                     while (remaining > 0) {

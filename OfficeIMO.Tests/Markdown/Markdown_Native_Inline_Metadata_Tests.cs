@@ -219,6 +219,39 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void CjkFriendlyEmphasis_Strong_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
+        const string markdown = "これは**強調？**です\n";
+        var options = new MarkdownReaderOptions {
+            CjkFriendlyEmphasis = true,
+            PreserveTrivia = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var strong = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+
+        Assert.Equal("強調？", strong.Text);
+        var opening = Assert.Single(strong.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(strong.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("**", opening.Value);
+        Assert.Equal("**", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 5), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), closing.SourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.InlineStrong, strong.SyntaxNode.Kind);
+
+        var edited = native.CreateReplaceEdit(closing, "__").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(opening, "__").Apply(edited);
+        Assert.Equal("これは__強調？__です\n", edited);
+
+        var snapshotStrong = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+        Assert.Equal("**", snapshotStrong.Metadata["openingMarker"]);
+        Assert.Equal("**", snapshotStrong.Metadata["closingMarker"]);
+        Assert.Equal(4, snapshotStrong.MetadataSourceSpans["openingMarker"]!.StartColumn);
+        Assert.Equal(10, snapshotStrong.MetadataSourceSpans["closingMarker"]!.EndColumn);
+    }
+
+    [Fact]
     public void Code_Span_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Use ``code ` tick`` now\n";
 
