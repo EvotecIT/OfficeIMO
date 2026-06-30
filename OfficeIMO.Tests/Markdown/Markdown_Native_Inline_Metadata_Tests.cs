@@ -179,6 +179,55 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Emphasis_Extra_Markers_Are_Source_Ordered_And_Source_Editable_In_Native_Snapshots() {
+        const string markdown = "Mix ~~gone~~ ==mark== ++add++ ^up^ ~down~\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var strike = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strikethrough);
+        var highlight = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Highlight);
+        var inserted = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Inserted);
+        var superscript = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Superscript);
+        var subscript = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Subscript);
+
+        AssertMarkerPair(strike, "~~", 5, 6, 11, 12);
+        AssertMarkerPair(highlight, "==", 14, 15, 20, 21);
+        AssertMarkerPair(inserted, "++", 23, 24, 28, 29);
+        AssertMarkerPair(superscript, "^", 31, 31, 34, 34);
+        AssertMarkerPair(subscript, "~", 36, 36, 41, 41);
+
+        var edited = native.CreateReplaceEdit(GetClosing(subscript), "</sub>").Apply(native.SourceMarkdown);
+        edited = native.CreateReplaceEdit(GetOpening(subscript), "<sub>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetClosing(superscript), "</sup>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetOpening(superscript), "<sup>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetClosing(inserted), "</ins>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetOpening(inserted), "<ins>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetClosing(highlight), "</mark>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetOpening(highlight), "<mark>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetClosing(strike), "</del>").Apply(edited);
+        edited = native.CreateReplaceEdit(GetOpening(strike), "<del>").Apply(edited);
+        Assert.Equal("Mix <del>gone</del> <mark>mark</mark> <ins>add</ins> <sup>up</sup> <sub>down</sub>\n", edited);
+
+        var snapshotFields = native.ToSnapshot().Blocks[0].Inlines
+            .Where(inline => inline.Kind is MarkdownNativeInlineKind.Strikethrough
+                or MarkdownNativeInlineKind.Highlight
+                or MarkdownNativeInlineKind.Inserted
+                or MarkdownNativeInlineKind.Superscript
+                or MarkdownNativeInlineKind.Subscript)
+            .SelectMany(inline => inline.MetadataFields)
+            .ToArray();
+
+        Assert.Equal(
+            new[] { "~~", "~~", "==", "==", "++", "++", "^", "^", "~", "~" },
+            snapshotFields.Select(field => field.Value).ToArray());
+        Assert.Equal(
+            new[] { 5, 11, 14, 20, 23, 28, 31, 34, 36, 41 },
+            snapshotFields.Select(field => field.SourceSpan!.StartColumn!.Value).ToArray());
+        Assert.All(snapshotFields.Where((_, index) => index % 2 == 0), field => Assert.Equal("openingMarker", field.Name));
+        Assert.All(snapshotFields.Where((_, index) => index % 2 == 1), field => Assert.Equal("closingMarker", field.Name));
+    }
+
+    [Fact]
     public void Formatting_Marker_Metadata_Is_Source_Addressable_In_Nested_Native_Inlines_And_Snapshots() {
         const string markdown = "Start **bold and _em_** end\n";
 
@@ -250,6 +299,25 @@ public class Markdown_Native_Inline_Metadata_Tests {
         Assert.Equal(4, snapshotStrong.MetadataSourceSpans["openingMarker"]!.StartColumn);
         Assert.Equal(10, snapshotStrong.MetadataSourceSpans["closingMarker"]!.EndColumn);
     }
+
+    private static void AssertMarkerPair(MarkdownNativeInline inline, string marker, int openingStart, int openingEnd, int closingStart, int closingEnd) {
+        var opening = GetOpening(inline);
+        var closing = GetClosing(inline);
+
+        Assert.Equal(marker, opening.Value);
+        Assert.Equal(marker, closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, openingStart, 1, openingEnd), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, closingStart, 1, closingEnd), closing.SourceSpan);
+        Assert.Equal(new[] { "openingMarker", "closingMarker" }, inline.Metadata.Select(metadata => metadata.Name).ToArray());
+        Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, inline.SyntaxNode.Children.First().Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, inline.SyntaxNode.Children.Last().Kind);
+    }
+
+    private static MarkdownNativeInlineMetadata GetOpening(MarkdownNativeInline inline) =>
+        Assert.Single(inline.Metadata, metadata => metadata.Name == "openingMarker");
+
+    private static MarkdownNativeInlineMetadata GetClosing(MarkdownNativeInline inline) =>
+        Assert.Single(inline.Metadata, metadata => metadata.Name == "closingMarker");
 
     [Fact]
     public void Code_Span_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
