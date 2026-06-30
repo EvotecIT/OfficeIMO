@@ -1283,6 +1283,54 @@ namespace OfficeIMO.Tests {
             Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
         }
 
+        private static void AssertCrossParagraphBookmarkContent(WordParagraph firstParagraph, WordParagraph secondParagraph, string bookmarkName, string firstText, string secondText) {
+            OpenXmlElement[] firstContent = firstParagraph._paragraph.ChildElements
+                .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
+                .ToArray();
+            OpenXmlElement[] secondContent = secondParagraph._paragraph.ChildElements
+                .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
+                .ToArray();
+            Assert.Equal(2, firstContent.Length);
+            Assert.Equal(2, secondContent.Length);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[0]);
+            Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
+            Assert.Equal(firstText, Assert.IsType<Text>(Assert.IsType<Run>(firstContent[1]).FirstChild).Text);
+            Assert.Equal(secondText, Assert.IsType<Text>(Assert.IsType<Run>(secondContent[0]).FirstChild).Text);
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(secondContent[1]);
+            Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            Assert.DoesNotContain(firstContent, element => element is BookmarkEnd);
+            Assert.DoesNotContain(secondContent, element => element is BookmarkStart);
+        }
+
+        private static WordParagraph AssertSingleParagraphWithBookmarkStart(IEnumerable<WordParagraph> paragraphs, string bookmarkName) {
+            return Assert.Single(
+                DistinctParagraphNodes(paragraphs),
+                paragraph => paragraph._paragraph.ChildElements.OfType<BookmarkStart>().Any(bookmark => bookmark.Name?.Value == bookmarkName));
+        }
+
+        private static WordParagraph AssertSingleParagraphWithBookmarkEnd(IEnumerable<WordParagraph> paragraphs, string bookmarkId) {
+            return Assert.Single(
+                DistinctParagraphNodes(paragraphs),
+                paragraph => paragraph._paragraph.ChildElements.OfType<BookmarkEnd>().Any(bookmark => bookmark.Id?.Value == bookmarkId));
+        }
+
+        private static string AssertBookmarkStartId(WordParagraph paragraph, string bookmarkName) {
+            BookmarkStart bookmarkStart = Assert.Single(
+                paragraph._paragraph.ChildElements.OfType<BookmarkStart>(),
+                bookmark => bookmark.Name?.Value == bookmarkName);
+            Assert.False(string.IsNullOrWhiteSpace(bookmarkStart.Id?.Value));
+            return bookmarkStart.Id!.Value!;
+        }
+
+        private static IEnumerable<WordParagraph> DistinctParagraphNodes(IEnumerable<WordParagraph> paragraphs) {
+            var seen = new HashSet<Paragraph>();
+            foreach (WordParagraph paragraph in paragraphs) {
+                if (seen.Add(paragraph._paragraph)) {
+                    yield return paragraph;
+                }
+            }
+        }
+
         private static bool ContainsNoteReferenceMark(OpenXmlElement element) {
             return element.Descendants<FootnoteReferenceMark>().Any()
                 || element.Descendants<EndnoteReferenceMark>().Any();
@@ -2144,6 +2192,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderCrossParagraphBookmarkRangesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with cross header bookmark");
+                    document.AddHeadersAndFooters();
+                    WordHeader header = document.Sections[0].Header.Default!;
+
+                    WordParagraph firstHeaderParagraph = header.AddParagraph();
+                    firstHeaderParagraph._paragraph.RemoveAllChildren<Run>();
+                    firstHeaderParagraph._paragraph.Append(
+                        new BookmarkStart { Id = "62", Name = "HeaderCrossBookmark" },
+                        new Run(new Text("HeaderFirst") { Space = SpaceProcessingModeValues.Preserve }));
+
+                    WordParagraph secondHeaderParagraph = header.AddParagraph();
+                    secondHeaderParagraph._paragraph.RemoveAllChildren<Run>();
+                    secondHeaderParagraph._paragraph.Append(
+                        new Run(new Text("HeaderSecond") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "62" });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderCrossBookmark");
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                WordParagraph firstReloadedHeaderParagraph = AssertSingleParagraphWithBookmarkStart(reloadedSection.Header.Default!.Paragraphs, "HeaderCrossBookmark");
+                WordParagraph secondReloadedHeaderParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    reloadedSection.Header.Default!.Paragraphs,
+                    AssertBookmarkStartId(firstReloadedHeaderParagraph, "HeaderCrossBookmark"));
+                AssertCrossParagraphBookmarkContent(firstReloadedHeaderParagraph, secondReloadedHeaderParagraph, "HeaderCrossBookmark", "HeaderFirst", "HeaderSecond");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterExternalHyperlinksAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2308,6 +2398,66 @@ namespace OfficeIMO.Tests {
                     paragraph => paragraph.Bookmark?.Name == "EndnoteBookmark");
                 Assert.Equal("EndnoteMarked", reloadedEndnoteParagraph._paragraph.InnerText);
                 AssertNoteBookmarkContent(reloadedEndnoteParagraph, "EndnoteBookmark", "EndnoteMarked");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteCrossParagraphBookmarkRangesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with cross bookmarked notes");
+
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph firstFootnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    firstFootnoteBody._paragraph.RemoveAllChildren<Run>();
+                    firstFootnoteBody._paragraph.Append(
+                        new BookmarkStart { Id = "73", Name = "FootnoteCrossBookmark" },
+                        new Run(new Text("FootnoteFirst") { Space = SpaceProcessingModeValues.Preserve }));
+                    WordParagraph secondFootnoteBody = firstFootnoteBody.AddParagraph();
+                    secondFootnoteBody._paragraph.RemoveAllChildren<Run>();
+                    secondFootnoteBody._paragraph.Append(
+                        new Run(new Text("FootnoteSecond") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "73" });
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph firstEndnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    firstEndnoteBody._paragraph.RemoveAllChildren<Run>();
+                    firstEndnoteBody._paragraph.Append(
+                        new BookmarkStart { Id = "74", Name = "EndnoteCrossBookmark" },
+                        new Run(new Text("EndnoteFirst") { Space = SpaceProcessingModeValues.Preserve }));
+                    WordParagraph secondEndnoteBody = firstEndnoteBody.AddParagraph();
+                    secondEndnoteBody._paragraph.RemoveAllChildren<Run>();
+                    secondEndnoteBody._paragraph.Append(
+                        new Run(new Text("EndnoteSecond") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "74" });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteCrossBookmark");
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteCrossBookmark");
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                WordParagraph firstFootnoteParagraph = AssertSingleParagraphWithBookmarkStart(footnote.Paragraphs!, "FootnoteCrossBookmark");
+                WordParagraph secondFootnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    footnote.Paragraphs!,
+                    AssertBookmarkStartId(firstFootnoteParagraph, "FootnoteCrossBookmark"));
+                AssertCrossParagraphBookmarkContent(firstFootnoteParagraph, secondFootnoteParagraph, "FootnoteCrossBookmark", "FootnoteFirst", "FootnoteSecond");
+
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                WordParagraph firstEndnoteParagraph = AssertSingleParagraphWithBookmarkStart(endnote.Paragraphs!, "EndnoteCrossBookmark");
+                WordParagraph secondEndnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    endnote.Paragraphs!,
+                    AssertBookmarkStartId(firstEndnoteParagraph, "EndnoteCrossBookmark"));
+                AssertCrossParagraphBookmarkContent(firstEndnoteParagraph, secondEndnoteParagraph, "EndnoteCrossBookmark", "EndnoteFirst", "EndnoteSecond");
             } finally {
                 DeleteIfExists(docPath);
             }
