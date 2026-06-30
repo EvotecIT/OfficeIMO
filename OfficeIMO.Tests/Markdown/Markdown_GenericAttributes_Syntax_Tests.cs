@@ -157,6 +157,65 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Attach_To_Following_PipeTable_With_Source_Backup() {
+        const string markdown = "{#tbl .wide}\n| A |\n|---|\n| B |\n";
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var tableBlock = Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("tbl", tableBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, tableBlock.Attributes.Classes);
+        Assert.Equal(
+            "| A {#tbl .wide} |\n| --- |\n| B |",
+            ((IMarkdownBlock)tableBlock).RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal(
+            "<table id=\"tbl\" class=\"wide\"><thead><tr><th>A</th></tr></thead><tbody><tr><td>B</td></tr></tbody></table>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var table = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(table.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var header = Assert.Single(table.Children, node => node.Kind == MarkdownSyntaxKind.TableHeader);
+        var alignment = Assert.Single(table.Children, node => node.Kind == MarkdownSyntaxKind.TableAlignmentRow);
+        var row = Assert.Single(table.Children, node => node.Kind == MarkdownSyntaxKind.TableRow);
+
+        Assert.Equal(MarkdownSyntaxKind.Table, table.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 4, 5), table.SourceSpan);
+        Assert.Equal("{#tbl .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 12), attributes.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 3), Assert.Single(header.Children).SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 5), alignment.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 3, 4, 3), Assert.Single(row.Children).SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#tbl .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeTable = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(nativeTable, field.Block);
+        Assert.Equal("{#tbl .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 12), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#docs .grid}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("{#docs .grid}\n| A |\n|---|\n| B |\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_FencedCode_With_Source_Backup() {
         const string markdown = "{#code .wide}\n```cs\nvar x = 1;\n```\n";
         var options = new MarkdownReaderOptions {

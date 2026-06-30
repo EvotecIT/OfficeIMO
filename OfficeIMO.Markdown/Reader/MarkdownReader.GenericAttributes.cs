@@ -147,6 +147,10 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (StartsTable(lines, i, options)) {
+                return true;
+            }
+
             if (options.Headings
                 && LooksLikeHr(lines[i])
                 && TryGetSetextHeadingUnderlineLevel(lines[i], out _)) {

@@ -111,6 +111,7 @@ Current active row: `UseDefinitionLists`.
   - [ ] Extend from covered shapes to arbitrary Markdig-supported block families.
   - [ ] Extend source-backed inline attributes across the remaining supported inline families.
   - [ ] Prove container interactions such as blockquotes, lists, tables, footnotes, and definition lists by contract, not incidental HTML output.
+    - [x] Standalone generic attributes before pipe tables now target the semantic table, match Markdig HTML, expose syntax/native `attributes` source fields, and support source edits.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [ ] Decide and close `UseAlertBlocks`.
   - [ ] Decide whether Markdig alert rendering callbacks become an OfficeIMO renderer contract or remain an intentional callout difference.
