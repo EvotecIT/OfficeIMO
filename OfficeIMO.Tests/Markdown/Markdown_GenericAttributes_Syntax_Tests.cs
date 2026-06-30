@@ -1301,6 +1301,27 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void ListItem_GenericAttributes_Preserve_Consumed_Separator_Whitespace_In_Markdown_Writer() {
+        const string markdown = "- item  {#li .selected}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Equal("  ", item.GenericAttributeConsumedWhitespace);
+        Assert.Equal(
+            "- item  {#li .selected}",
+            ((IMarkdownBlock)list).RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal(
+            "- item  {#li .selected}\n",
+            document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }));
+    }
+
+    [Fact]
     public void ListItem_Heading_GenericAttributes_Remain_Literal_While_FencedCode_Attributes_Stay_SourceBacked() {
         const string markdown = "- # Heading {#h .wide}\n- ```cs {#code .wide}\n  x\n  ```\n";
         var options = new MarkdownReaderOptions {

@@ -92,7 +92,10 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     internal string RenderMarkdown() {
         var parts = Paragraphs().Select(p => p.RenderMarkdown()).ToList();
         if (!Attributes.IsEmpty && parts.Count > 0) {
-            parts[0] = parts[0].TrimEnd() + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
+            var separator = string.IsNullOrEmpty(GenericAttributeConsumedWhitespace)
+                ? " "
+                : GenericAttributeConsumedWhitespace;
+            parts[0] = parts[0].TrimEnd() + separator + MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
         }
 
         return string.Join("\n\n", parts);
