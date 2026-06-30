@@ -301,6 +301,8 @@ just to reserve names.
     with a custom style inheriting from a formatted Heading 1 fixture.
   - [x] Project built-in style-level paragraph shading from DOC `sprmPShd80`
     into the merged OpenXML style definition.
+  - [x] Preserve custom-to-custom DOC paragraph style inheritance, keeping the
+    child style's OpenXML `basedOn` link and the base style's own formatting.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.

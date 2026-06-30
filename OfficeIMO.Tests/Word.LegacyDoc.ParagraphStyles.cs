@@ -99,6 +99,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_PreservesCustomParagraphStyleInheritance() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleInheritance();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Styled Custom Child");
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocCustomChild", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Styles styles = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style baseStyle = styles
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomBase");
+            Assert.Equal("Custom Base", baseStyle.StyleName?.Val?.Value);
+            StyleParagraphProperties baseParagraphProperties = Assert.IsType<StyleParagraphProperties>(baseStyle.GetFirstChild<StyleParagraphProperties>());
+            Assert.Equal(JustificationValues.Center, baseParagraphProperties.GetFirstChild<Justification>()?.Val?.Value);
+            StyleRunProperties baseRunProperties = Assert.IsType<StyleRunProperties>(baseStyle.GetFirstChild<StyleRunProperties>());
+            Assert.NotNull(baseRunProperties.GetFirstChild<Bold>());
+            Assert.NotNull(baseRunProperties.GetFirstChild<BoldComplexScript>());
+
+            Style childStyle = styles
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomChild");
+            Assert.Equal("Custom Child", childStyle.StyleName?.Val?.Value);
+            Assert.Equal("LegacyDocCustomBase", childStyle.BasedOn?.Val?.Value);
+            StyleRunProperties childRunProperties = Assert.IsType<StyleRunProperties>(childStyle.GetFirstChild<StyleRunProperties>());
+            Assert.NotNull(childRunProperties.GetFirstChild<Italic>());
+            Assert.NotNull(childRunProperties.GetFirstChild<ItalicComplexScript>());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStylePaginationFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStylePaginationFlags();
 
@@ -258,6 +293,7 @@ namespace OfficeIMO.Tests {
             private const ushort SprmCHps = 0x4A43;
             private const ushort SprmCRgFtc0 = 0x4A4F;
             private const ushort CustomStyleIndex = 10;
+            private const ushort ChildStyleIndex = 11;
 
             internal static byte[] CreateDocWithHeadingStyles() {
                 const string text = "Heading One\rHeading Two\rBody\r";
@@ -292,6 +328,37 @@ namespace OfficeIMO.Tests {
                     FontTableOffset,
                     fontTable.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet, fontTable);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithCustomParagraphStyleInheritance() {
+                const string text = "Styled Custom Child\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [CustomStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Base",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: CreateStyleParagraphUpx(CreateParagraphSprm(SprmPJc, 1)),
+                        characterUpx: CreateStyleCharacterUpx(CreateCharacterSprm(SprmCFBold, 1))),
+                    [ChildStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Child",
+                        basedOnStyleIndex: CustomStyleIndex,
+                        paragraphUpx: null,
+                        characterUpx: CreateStyleCharacterUpx(CreateCharacterSprm(SprmCFItalic, 1)))
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(ChildStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
