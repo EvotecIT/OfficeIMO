@@ -341,6 +341,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "standalone-attribute-before-heading", "{#intro .wide}\n# Heading" };
         yield return new object[] { "standalone-attribute-before-paragraph", "{#intro .wide}\nParagraph" };
         yield return new object[] { "standalone-attribute-before-fenced-code", "{#code .wide}\n```cs\nvar x = 1;\n```" };
+        yield return new object[] { "fenced-code-attribute-only-info-string", "```{#code .wide}\nvar x = 1;\n```" };
+        yield return new object[] { "fenced-code-language-info-attributes", "```cs {#code .wide}\nvar x = 1;\n```" };
+        yield return new object[] { "tilde-fenced-code-attribute-only-info-string", "~~~{#code .wide}\nvar x = 1;\n~~~" };
         yield return new object[] { "standalone-attribute-before-unordered-list", "{#list .wide}\n- item" };
         yield return new object[] { "standalone-attribute-before-ordered-list", "{#list .wide}\n1. item" };
         yield return new object[] { "standalone-attribute-before-inline-image-paragraph", "{#img .wide}\n![Alt](image.png)" };

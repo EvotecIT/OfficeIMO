@@ -202,6 +202,18 @@ public sealed class MarkdownCodeFenceInfo {
                 hasExplicitAttributes: false);
         }
 
+        if (StartsWithAttributeBlock(normalized)) {
+            ParseMetadata(normalized, out var attributeOnlyElementId, out var attributeOnlyClasses, out var attributeOnlyAttributes, out var attributeOnlyHasExplicitAttributes);
+            return new MarkdownCodeFenceInfo(
+                normalized,
+                string.Empty,
+                normalized,
+                attributeOnlyElementId,
+                attributeOnlyClasses,
+                attributeOnlyAttributes,
+                attributeOnlyHasExplicitAttributes);
+        }
+
         int split = 0;
         while (split < normalized.Length && !char.IsWhiteSpace(normalized[split])) {
             split++;
@@ -215,6 +227,15 @@ public sealed class MarkdownCodeFenceInfo {
         ParseMetadata(additionalInfo, out var elementId, out var classes, out var attributes, out var hasExplicitAttributes);
 
         return new MarkdownCodeFenceInfo(normalized, language, additionalInfo, elementId, classes, attributes, hasExplicitAttributes);
+    }
+
+    private static bool StartsWithAttributeBlock(string value) {
+        if (value.Length == 0 || value[0] != '{') {
+            return false;
+        }
+
+        int index = 0;
+        return TryReadAttributeBlock(value, ref index, out _);
     }
 
     private static string DecodeInfoStringToken(string token) {

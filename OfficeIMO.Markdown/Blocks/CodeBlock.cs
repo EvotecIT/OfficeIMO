@@ -98,7 +98,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             return overridden;
         }
 
-        bool renderGenericAttributesOnCode = ShouldRenderStandaloneGenericAttributes();
+        bool renderGenericAttributesOnCode = ShouldRenderGenericAttributesOnCode();
         string attrs = renderGenericAttributesOnCode ? string.Empty : MarkdownHtmlAttributes.Render(Attributes, options);
         string lang = renderGenericAttributesOnCode
             ? RenderCodeAttributes(options)
@@ -116,18 +116,26 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     private bool ShouldRenderStandaloneGenericAttributes() =>
         !Attributes.IsEmpty && MarkdownGenericAttributeSourceSpans.GetSourceSpan(this).HasValue;
 
+    private bool ShouldRenderGenericAttributesOnCode() =>
+        !Attributes.IsEmpty && (FenceInfo.HasExplicitAttributes || ShouldRenderStandaloneGenericAttributes());
+
     private string RenderCodeAttributes(HtmlOptions? options) {
         if (Attributes.IsEmpty && string.IsNullOrEmpty(Language)) {
             return string.Empty;
         }
 
         var classes = new List<string>();
-        if (!string.IsNullOrEmpty(Language)) {
+        bool renderFenceInfoAttributesFirst = FenceInfo.HasExplicitAttributes && !ShouldRenderStandaloneGenericAttributes();
+        if (!renderFenceInfoAttributesFirst && !string.IsNullOrEmpty(Language)) {
             classes.Add("language-" + Language);
         }
 
         for (int i = 0; i < Attributes.Classes.Count; i++) {
             classes.Add(Attributes.Classes[i]);
+        }
+
+        if (renderFenceInfoAttributesFirst && !string.IsNullOrEmpty(Language)) {
+            classes.Add("language-" + Language);
         }
 
         var codeAttributes = MarkdownAttributeSet.Create(

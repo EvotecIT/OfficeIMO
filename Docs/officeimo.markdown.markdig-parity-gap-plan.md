@@ -163,6 +163,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
     - [x] Paragraph-contained attributes embedded at the end of nested link labels, image alt text, linked-image alt text, emphasis content, and strong content now promote to the paragraph owner like Markdig, with syntax/native source proof.
     - [x] No-space paragraph attributes now match Markdig around escaped final punctuation and valid character references, with syntax/native source proof.
     - [x] No-space paragraph attributes now match Markdig for unmatched trailing backtick runs while valid code spans still own inline attributes.
+    - [x] Fenced-code info-string attributes now parse attribute-only info strings as metadata, render ordinary code-block attributes on `<code>` like Markdig, and keep source-backed `CodeFenceInfo` spans for native edits.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [x] Decide and close `UseAlertBlocks`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
