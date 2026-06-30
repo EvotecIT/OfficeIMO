@@ -117,6 +117,10 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new SuppressLineNumbers());
             }
 
+            if (paragraphFormat.SuppressAutoHyphens == true) {
+                ReplaceStyleProperty(properties, new SuppressAutoHyphens());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 ReplaceStyleProperty(properties, new BiDi());
             }

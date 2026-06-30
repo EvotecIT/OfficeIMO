@@ -1223,6 +1223,10 @@ namespace OfficeIMO.Word {
                 EnsureLegacyDocParagraphProperties(paragraph).Append(new SuppressLineNumbers());
             }
 
+            if (paragraphFormat.SuppressAutoHyphens == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new SuppressAutoHyphens());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 paragraph.BiDi = true;
             }
@@ -1678,6 +1682,11 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.SuppressLineNumbers == true) {
                 properties.Append(new SuppressLineNumbers());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.SuppressAutoHyphens == true) {
+                properties.Append(new SuppressAutoHyphens());
                 hasProperties = true;
             }
 

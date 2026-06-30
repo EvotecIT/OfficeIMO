@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
             bool? suppressLineNumbers = null;
+            bool? suppressAutoHyphens = null;
             bool? bidirectional = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
@@ -71,6 +72,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SuppressLineNumbers lineNumbers:
                         suppressLineNumbers = ReadOnOffValue(lineNumbers);
                         break;
+                    case SuppressAutoHyphens autoHyphens:
+                        suppressAutoHyphens = ReadOnOffValue(autoHyphens);
+                        break;
                     case BiDi bidi:
                         bidirectional = ReadOnOffValue(bidi);
                         break;
@@ -93,7 +97,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, vertical character alignment, bidirectional layout, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, vertical character alignment, bidirectional layout, suppressing automatic hyphenation, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
@@ -111,6 +115,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 pageBreakBefore,
                 avoidWidowAndOrphan,
                 suppressLineNumbers,
+                suppressAutoHyphens,
                 bidirectional,
                 numberingListIndex,
                 numberingLevel,

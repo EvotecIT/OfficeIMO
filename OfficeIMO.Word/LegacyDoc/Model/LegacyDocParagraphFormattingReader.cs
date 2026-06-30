@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPFKeepFollow = 0x2406;
         private const ushort SprmPFPageBreakBefore = 0x2407;
         private const ushort SprmPFNoLineNumb = 0x240C;
+        private const ushort SprmPFNoAutoHyph = 0x242A;
         private const ushort SprmPFInTable = 0x2416;
         private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
@@ -180,6 +181,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
             bool? suppressLineNumbers = null;
+            bool? suppressAutoHyphens = null;
             bool? bidirectional = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
@@ -232,6 +234,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || sprm == SprmPFKeepFollow
                     || sprm == SprmPFPageBreakBefore
                     || sprm == SprmPFNoLineNumb
+                    || sprm == SprmPFNoAutoHyph
                     || sprm == SprmPFWidowControl
                     || sprm == SprmPFBiDi
                     || sprm == SprmPFInTable
@@ -256,6 +259,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmPFNoLineNumb:
                             suppressLineNumbers = value;
+                            break;
+                        case SprmPFNoAutoHyph:
+                            suppressAutoHyphens = value;
                             break;
                         case SprmPFBiDi:
                             bidirectional = value;
@@ -578,6 +584,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 pageBreakBefore,
                 avoidWidowAndOrphan,
                 suppressLineNumbers,
+                suppressAutoHyphens,
                 bidirectional,
                 numberingListIndex,
                 numberingLevel,

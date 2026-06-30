@@ -722,6 +722,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphSuppressAutoHyphens() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphSuppressAutoHyphens();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("suppress auto hyphens", paragraph.Text);
+            Assert.NotNull(paragraph._paragraphProperties?.GetFirstChild<SuppressAutoHyphens>());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphBiDi() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphBiDi();
 
@@ -3620,6 +3634,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphSuppressAutoHyphensAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("suppress auto hyphens");
+                    paragraph._paragraphProperties!.Append(new SuppressAutoHyphens());
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x2A, 0x24, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmPFNoAutoHyph for suppressing automatic paragraph hyphenation.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("suppress auto hyphens", reloadedParagraph.Text);
+                Assert.NotNull(reloadedParagraph._paragraphProperties?.GetFirstChild<SuppressAutoHyphens>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphBiDiAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -3929,6 +3971,40 @@ namespace OfficeIMO.Tests {
                 Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
                 StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
                 Assert.NotNull(paragraphProperties.GetFirstChild<SuppressLineNumbers>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleSuppressAutoHyphensAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocSuppressAutoHyphensStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCSuppressAutoHyphensStyle";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Suppress Auto Hyphens Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleParagraphProperties(new SuppressAutoHyphens()));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled suppress auto hyphens").SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled suppress auto hyphens", paragraph.Text);
+                Assert.Equal(projectedStyleId, paragraph.StyleId);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
+                Assert.NotNull(paragraphProperties.GetFirstChild<SuppressAutoHyphens>());
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8171,6 +8247,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithParagraphSuppressAutoHyphens() {
+                const string text = "suppress auto hyphens\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphSuppressAutoHyphens(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithParagraphBiDi() {
                 const string text = "bidirectional paragraph\r";
                 const int textOffset = 0x200;
@@ -9255,6 +9347,36 @@ namespace OfficeIMO.Tests {
                     new[] { textOffset, end },
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x240C, 1))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphSuppressAutoHyphens(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int end = textOffset + textBytes.Length;
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, end },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x242A, 1))
                     });
 
                 if (stream.Length < fibLength) {

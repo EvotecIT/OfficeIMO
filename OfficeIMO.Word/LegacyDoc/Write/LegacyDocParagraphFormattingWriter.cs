@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPFKeepFollow = 0x2406;
         private const ushort SprmPFPageBreakBefore = 0x2407;
         private const ushort SprmPFNoLineNumb = 0x240C;
+        private const ushort SprmPFNoAutoHyph = 0x242A;
         private const ushort SprmPFInTable = 0x2416;
         private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
@@ -117,6 +118,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.SuppressLineNumbers == true) {
                 AddSingleByteSprm(grpprl, SprmPFNoLineNumb, 1);
+            }
+
+            if (formatting.SuppressAutoHyphens == true) {
+                AddSingleByteSprm(grpprl, SprmPFNoAutoHyph, 1);
             }
 
             if (formatting.Bidirectional == true) {
@@ -811,6 +816,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             pageBreakBefore: null,
             avoidWidowAndOrphan: null,
             suppressLineNumbers: null,
+            suppressAutoHyphens: null,
             bidirectional: null,
             numberingListIndex: null,
             numberingLevel: null,
@@ -852,6 +858,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? pageBreakBefore,
             bool? avoidWidowAndOrphan,
             bool? suppressLineNumbers,
+            bool? suppressAutoHyphens,
             bool? bidirectional,
             ushort? numberingListIndex,
             byte? numberingLevel,
@@ -895,6 +902,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             PageBreakBefore = pageBreakBefore;
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
             SuppressLineNumbers = suppressLineNumbers;
+            SuppressAutoHyphens = suppressAutoHyphens;
             Bidirectional = bidirectional;
             NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
                 ? numberingListIndex
@@ -993,6 +1001,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? SuppressLineNumbers { get; }
 
+        internal bool? SuppressAutoHyphens { get; }
+
         internal bool? Bidirectional { get; }
 
         internal ushort? NumberingListIndex { get; }
@@ -1066,6 +1076,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || PageBreakBefore != null
             || AvoidWidowAndOrphan != null
             || SuppressLineNumbers != null
+            || SuppressAutoHyphens != null
             || Bidirectional != null
             || NumberingListIndex != null
             || NumberingLevel != null
@@ -1111,6 +1122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PageBreakBefore,
                 AvoidWidowAndOrphan,
                 SuppressLineNumbers,
+                SuppressAutoHyphens,
                 Bidirectional,
                 NumberingListIndex,
                 NumberingLevel,
@@ -1162,6 +1174,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PageBreakBefore ?? inherited.PageBreakBefore,
                 AvoidWidowAndOrphan ?? inherited.AvoidWidowAndOrphan,
                 SuppressLineNumbers ?? inherited.SuppressLineNumbers,
+                SuppressAutoHyphens ?? inherited.SuppressAutoHyphens,
                 Bidirectional ?? inherited.Bidirectional,
                 NumberingListIndex ?? inherited.NumberingListIndex,
                 NumberingLevel ?? inherited.NumberingLevel,
@@ -1231,6 +1244,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 PageBreakBefore,
                 AvoidWidowAndOrphan,
                 SuppressLineNumbers,
+                SuppressAutoHyphens,
                 Bidirectional,
                 NumberingListIndex,
                 NumberingLevel,
@@ -1277,6 +1291,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && PageBreakBefore == other.PageBreakBefore
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
                 && SuppressLineNumbers == other.SuppressLineNumbers
+                && SuppressAutoHyphens == other.SuppressAutoHyphens
                 && Bidirectional == other.Bidirectional
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
@@ -1328,6 +1343,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + PageBreakBefore.GetHashCode();
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + SuppressLineNumbers.GetHashCode();
+            hash = (hash * 31) + SuppressAutoHyphens.GetHashCode();
             hash = (hash * 31) + Bidirectional.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();
