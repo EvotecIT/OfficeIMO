@@ -25,7 +25,7 @@ namespace OfficeIMO.Word {
                 .Where(comment => options.CompareCommentReplies || !comment.IsReply)
                 .Select(comment => new CommentSnapshot(
                     comment.Index,
-                    GetCommentMatchKey(comment),
+                    GetCommentMatchKey(comment, options),
                     GetCommentSignature(comment, options),
                     GetCommentDisplayText(comment),
                     GetCommentDetailedLocation(comment),
@@ -33,13 +33,17 @@ namespace OfficeIMO.Word {
                 .ToList();
         }
 
-        private static string GetCommentMatchKey(WordCommentInfo comment) {
+        private static string GetCommentMatchKey(WordCommentInfo comment, WordComparisonOptions options) {
             return string.Join(
                 "|",
                 comment.TargetLocationKind?.ToString() ?? string.Empty,
                 comment.TargetPartUri ?? string.Empty,
-                comment.Index.ToString(System.Globalization.CultureInfo.InvariantCulture),
-                comment.IsReply ? "reply" : "comment");
+                comment.IsReply ? "reply" : "comment",
+                options.CompareCommentAuthors ? NormalizeComparisonText(comment.Author ?? string.Empty, options) : string.Empty,
+                options.CompareCommentAuthors ? NormalizeComparisonText(comment.Initials ?? string.Empty, options) : string.Empty,
+                options.CompareCommentText ? NormalizeComparisonText(comment.Text, options) : string.Empty,
+                options.CompareCommentTargets ? NormalizeComparisonText(comment.TargetText, options) : string.Empty,
+                options.CompareCommentResolvedState ? FormatReviewBoolean(comment.IsResolved) : string.Empty);
         }
 
         private static string GetCommentSignature(WordCommentInfo comment, WordComparisonOptions options) {

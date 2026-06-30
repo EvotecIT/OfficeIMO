@@ -726,7 +726,13 @@ namespace OfficeIMO.Word {
 
         private static void SetResultText(MutableFieldCandidate candidate, string value) {
             if (candidate.SimpleField != null) {
-                SetText(candidate.SimpleField.Descendants<Text>().ToList(), value);
+                List<Text> simpleTexts = candidate.SimpleField.Descendants<Text>().ToList();
+                if (simpleTexts.Count > 0) {
+                    SetText(simpleTexts, value);
+                } else {
+                    candidate.SimpleField.Append(new Run(CreateResultText(value)));
+                }
+
                 return;
             }
 
@@ -736,7 +742,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            var run = new Run(new Text(value));
+            var run = new Run(CreateResultText(value));
             if (candidate.EndRun != null) {
                 candidate.EndRun.InsertBeforeSelf(run);
             } else {
@@ -744,6 +750,12 @@ namespace OfficeIMO.Word {
             }
 
             candidate.ResultRuns.Add(run);
+        }
+
+        private static Text CreateResultText(string value) {
+            var text = new Text(value);
+            ApplyTextSpacePreservation(text, value);
+            return text;
         }
 
         private static void SetText(IReadOnlyList<Text> texts, string value) {

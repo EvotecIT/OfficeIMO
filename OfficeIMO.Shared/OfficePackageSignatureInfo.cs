@@ -576,11 +576,11 @@ namespace OfficeIMO.Shared {
                 return null;
             }
 
-            if (Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? absoluteUri) && !string.IsNullOrWhiteSpace(absoluteUri.Scheme)) {
-                return null;
-            }
-
             if (!trimmed.StartsWith("/", StringComparison.Ordinal)) {
+                if (Uri.TryCreate(trimmed, UriKind.Absolute, out Uri? absoluteUri) && !string.IsNullOrWhiteSpace(absoluteUri.Scheme)) {
+                    return null;
+                }
+
                 return null;
             }
 

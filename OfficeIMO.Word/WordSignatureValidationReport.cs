@@ -107,7 +107,8 @@ namespace OfficeIMO.Word {
         public bool IsStructurallyValid =>
             PackageStructureStatus == WordSignatureValidationState.Passed &&
             XmlSignatureStatus == WordSignatureValidationState.Passed &&
-            SignedPartCoverageStatus == WordSignatureValidationState.Passed;
+            SignedPartCoverageStatus == WordSignatureValidationState.Passed &&
+            SignedPartDigestStatus != WordSignatureValidationState.Failed;
 
         /// <summary>
         /// Creates a validation report from signature inspection metadata without performing cryptographic trust checks.

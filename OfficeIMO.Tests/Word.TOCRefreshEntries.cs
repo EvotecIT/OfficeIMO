@@ -2659,6 +2659,29 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_TableOfContent_RefreshIndexCombinesSplitXeFieldInstructions() {
+            string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshSplitXe.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent index = document.AddTableOfContent();
+                Paragraph paragraph = document.AddParagraph("Split topic")._paragraph;
+                paragraph.Append(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" XE \"Split") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldCode(" Topic\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text(string.Empty)),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+
+                WordIndexRefreshReport report = index.RefreshIndex("Split Index");
+
+                WordIndexEntry entry = Assert.Single(report.Entries);
+                Assert.Equal("Split Topic", entry.Term);
+                Assert.Contains("Split Topic", TocText(index));
+            }
+        }
+
         private static void AssertGeneratedEntries(WordTableOfContent toc, params string[] expectedEntries) {
             string text = TocText(toc);
             foreach (string expectedEntry in expectedEntries) {

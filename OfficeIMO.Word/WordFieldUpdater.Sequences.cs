@@ -49,7 +49,7 @@ namespace OfficeIMO.Word {
                 state.Sequences[sequenceName] = currentValue;
             }
 
-            value = FormatSequenceValue(currentValue, parsed.FormatSwitches);
+            value = switches.HiddenResult ? string.Empty : FormatSequenceValue(currentValue, parsed.FormatSwitches);
             status = WordFieldUpdateStatus.Updated;
             message = switches.ResetValue.HasValue
                 ? $"Updated sequence {sequenceName} from reset value {currentValue.ToString(CultureInfo.InvariantCulture)}."
@@ -69,6 +69,7 @@ namespace OfficeIMO.Word {
             int? resetValue = null;
             bool repeatCurrent = false;
             int? headingResetLevel = null;
+            bool hiddenResult = false;
             unsupportedSwitch = null;
             error = null;
 
@@ -79,8 +80,12 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (string.Equals(trimmed, "\\n", StringComparison.OrdinalIgnoreCase) ||
-                    string.Equals(trimmed, "\\h", StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(trimmed, "\\n", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                if (string.Equals(trimmed, "\\h", StringComparison.OrdinalIgnoreCase)) {
+                    hiddenResult = true;
                     continue;
                 }
 
@@ -135,7 +140,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            switches = new SequenceSwitches(resetValue, repeatCurrent, headingResetLevel);
+            switches = new SequenceSwitches(resetValue, repeatCurrent, headingResetLevel, hiddenResult);
             return true;
         }
 
@@ -470,10 +475,11 @@ namespace OfficeIMO.Word {
         }
 
         private readonly struct SequenceSwitches {
-            internal SequenceSwitches(int? resetValue, bool repeatCurrent, int? headingResetLevel) {
+            internal SequenceSwitches(int? resetValue, bool repeatCurrent, int? headingResetLevel, bool hiddenResult) {
                 ResetValue = resetValue;
                 RepeatCurrent = repeatCurrent;
                 HeadingResetLevel = headingResetLevel;
+                HiddenResult = hiddenResult;
             }
 
             internal int? ResetValue { get; }
@@ -481,6 +487,8 @@ namespace OfficeIMO.Word {
             internal bool RepeatCurrent { get; }
 
             internal int? HeadingResetLevel { get; }
+
+            internal bool HiddenResult { get; }
         }
     }
 }
