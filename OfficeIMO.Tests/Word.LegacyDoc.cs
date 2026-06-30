@@ -4521,6 +4521,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocConditionalTableStyleTableFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocFirstColumnVisualTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC First Column Visual Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+
+                    var firstColumnTableProperties = new TableStyleConditionalFormattingTableProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "ffff00" },
+                        new TableBorders(
+                            new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U },
+                            new BottomBorder { Val = BorderValues.Double, Color = "0000ff", Size = 8U },
+                            new RightBorder { Val = BorderValues.Dotted, Color = "000000", Size = 5U },
+                            new InsideHorizontalBorder { Val = BorderValues.Dashed, Color = "00ff00", Size = 6U }));
+                    style.Append(new TableStyleProperties(firstColumnTableProperties) { Type = TableStyleOverrideValues.FirstColumn });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table._tableProperties.TableLook = new TableLook { FirstRow = false, LastRow = false, FirstColumn = true, LastColumn = false, NoHorizontalBand = true, NoVerticalBand = true };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("ffff00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
+                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].Borders.TopColorHex);
+                Assert.Equal(BorderValues.Dashed, reloadedTable.Rows[0].Cells[0].Borders.BottomStyle);
+                Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[0].Borders.BottomColorHex);
+                Assert.Equal(BorderValues.Dotted, reloadedTable.Rows[0].Cells[0].Borders.RightStyle);
+                Assert.Equal("000000", reloadedTable.Rows[0].Cells[0].Borders.RightColorHex);
+                Assert.Equal("A2", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("ffff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal(BorderValues.Double, reloadedTable.Rows[1].Cells[0].Borders.BottomStyle);
+                Assert.Equal("0000ff", reloadedTable.Rows[1].Cells[0].Borders.BottomColorHex);
+                Assert.Equal("B1", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
+                Assert.Equal(string.Empty, reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Null(reloadedTable.Rows[0].Cells[1].Borders.TopStyle);
+                Assert.Null(reloadedTable.Rows[0].Cells[1].Borders.RightStyle);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedVisualTableStyleBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

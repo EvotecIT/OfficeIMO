@@ -27,11 +27,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException($"Native DOC saving supports table style '{style.StyleId?.Value}' conditional formatting only when the conditional type is specified.");
                 }
 
+                TableStyleConditionalFormattingTableProperties? tableProperties = properties.GetFirstChild<TableStyleConditionalFormattingTableProperties>();
                 TableStyleConditionalFormattingTableCellProperties? cellProperties = properties.GetFirstChild<TableStyleConditionalFormattingTableCellProperties>();
-                LegacyDocTableCellShading shading = ReadSupportedConditionalTableStyleShading(cellProperties);
-                LegacyDocTableCellBorders borders = ReadSupportedConditionalTableStyleBorders(cellProperties);
-                if (shading.HasAny || borders.HasAny) {
-                    conditionalStyles.Add(new LegacyDocTableConditionalStyle(type.Value, shading, borders));
+                LegacyDocTableCellShading tableShading = ReadSupportedConditionalTableStyleShading(tableProperties?.GetFirstChild<Shading>());
+                LegacyDocTableBorders tableBorders = ReadSupportedConditionalTableStyleBorders(tableProperties?.GetFirstChild<TableBorders>());
+                LegacyDocTableCellShading cellShading = ReadSupportedConditionalTableStyleShading(cellProperties?.GetFirstChild<Shading>());
+                LegacyDocTableCellBorders cellBorders = ReadSupportedConditionalTableStyleBorders(cellProperties);
+                if (tableShading.HasAny || tableBorders.HasAny || cellShading.HasAny || cellBorders.HasAny) {
+                    conditionalStyles.Add(new LegacyDocTableConditionalStyle(type.Value, tableShading, tableBorders, cellShading, cellBorders));
                 }
             }
 
@@ -95,7 +98,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocTableCellShading ReadSupportedConditionalTableStyleShading(TableStyleConditionalFormattingTableCellProperties? cellProperties) {
             Shading? shading = cellProperties?.GetFirstChild<Shading>();
+            return ReadSupportedConditionalTableStyleShading(shading);
+        }
+
+        private static LegacyDocTableCellShading ReadSupportedConditionalTableStyleShading(Shading? shading) {
             return shading == null ? default : ReadSupportedTableCellShading(shading, "conditional table style shading");
+        }
+
+        private static LegacyDocTableBorders ReadSupportedConditionalTableStyleBorders(TableBorders? borders) {
+            return borders == null ? default : ReadSupportedTableBorders(borders);
         }
 
         private static LegacyDocTableCellBorders ReadSupportedConditionalTableStyleBorders(TableStyleConditionalFormattingTableCellProperties? cellProperties) {
@@ -129,12 +140,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         continue;
                     }
 
-                    if (!cell.Shading.HasAny && conditionalStyle.Shading.HasAny) {
-                        cell = cell.WithShading(conditionalStyle.Shading);
+                    if (!cell.Shading.HasAny && conditionalStyle.CellShading.HasAny) {
+                        cell = cell.WithShading(conditionalStyle.CellShading);
                     }
 
-                    if (conditionalStyle.Borders.HasAny) {
-                        cell = cell.WithBorders(MergeSupportedTableCellBorders(cell.Borders, conditionalStyle.Borders));
+                    if (!cell.Shading.HasAny && conditionalStyle.TableShading.HasAny) {
+                        cell = cell.WithShading(conditionalStyle.TableShading);
+                    }
+
+                    if (conditionalStyle.CellBorders.HasAny) {
+                        cell = cell.WithBorders(MergeSupportedTableCellBorders(cell.Borders, conditionalStyle.CellBorders));
+                    }
+
+                    if (conditionalStyle.TableBorders.HasAny) {
+                        LegacyDocTableCellBorders regionBorders = CreateSupportedConditionalTableBorders(conditionalStyle.Type, conditionalStyle.TableBorders, tableLook, conditionalStyles.RowBandSize, conditionalStyles.ColumnBandSize, rowIndex, rowCount, columnIndex, writableCells.Count);
+                        cell = cell.WithBorders(MergeSupportedTableCellBorders(cell.Borders, regionBorders));
                     }
                 }
 
@@ -153,6 +173,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int rowCount,
             int columnIndex,
             int columnCount) {
+            if (rowIndex < 0 || rowIndex >= rowCount || columnIndex < 0 || columnIndex >= columnCount) {
+                return false;
+            }
+
             if (type == TableStyleOverrideValues.FirstRow) {
                 return tableLook.FirstRow && rowIndex == 0;
             }
@@ -196,6 +220,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving does not support table style conditional type '{type}'.");
         }
 
+        private static LegacyDocTableCellBorders CreateSupportedConditionalTableBorders(
+            TableStyleOverrideValues type,
+            LegacyDocTableBorders tableBorders,
+            LegacyDocTableLook tableLook,
+            int rowBandSize,
+            int columnBandSize,
+            int rowIndex,
+            int rowCount,
+            int columnIndex,
+            int columnCount) {
+            LegacyDocTableCellBorder top = AppliesToCell(type, tableLook, rowBandSize, columnBandSize, rowIndex - 1, rowCount, columnIndex, columnCount)
+                ? tableBorders.InsideHorizontal
+                : tableBorders.Top;
+            LegacyDocTableCellBorder bottom = AppliesToCell(type, tableLook, rowBandSize, columnBandSize, rowIndex + 1, rowCount, columnIndex, columnCount)
+                ? tableBorders.InsideHorizontal
+                : tableBorders.Bottom;
+            LegacyDocTableCellBorder left = AppliesToCell(type, tableLook, rowBandSize, columnBandSize, rowIndex, rowCount, columnIndex - 1, columnCount)
+                ? tableBorders.InsideVertical
+                : tableBorders.Left;
+            LegacyDocTableCellBorder right = AppliesToCell(type, tableLook, rowBandSize, columnBandSize, rowIndex, rowCount, columnIndex + 1, columnCount)
+                ? tableBorders.InsideVertical
+                : tableBorders.Right;
+
+            return new LegacyDocTableCellBorders(top, left, bottom, right);
+        }
+
         private static bool TryGetBandType(int index, bool skipFirst, int bandSize, bool expectedBand1) {
             int adjustedIndex = skipFirst ? index - 1 : index;
             if (adjustedIndex < 0) {
@@ -234,17 +284,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocTableConditionalStyle {
-            internal LegacyDocTableConditionalStyle(TableStyleOverrideValues type, LegacyDocTableCellShading shading, LegacyDocTableCellBorders borders) {
+            internal LegacyDocTableConditionalStyle(
+                TableStyleOverrideValues type,
+                LegacyDocTableCellShading tableShading,
+                LegacyDocTableBorders tableBorders,
+                LegacyDocTableCellShading cellShading,
+                LegacyDocTableCellBorders cellBorders) {
                 Type = type;
-                Shading = shading;
-                Borders = borders;
+                TableShading = tableShading;
+                TableBorders = tableBorders;
+                CellShading = cellShading;
+                CellBorders = cellBorders;
             }
 
             internal TableStyleOverrideValues Type { get; }
 
-            internal LegacyDocTableCellShading Shading { get; }
+            internal LegacyDocTableCellShading TableShading { get; }
 
-            internal LegacyDocTableCellBorders Borders { get; }
+            internal LegacyDocTableBorders TableBorders { get; }
+
+            internal LegacyDocTableCellShading CellShading { get; }
+
+            internal LegacyDocTableCellBorders CellBorders { get; }
         }
 
         private readonly struct LegacyDocTableLook {

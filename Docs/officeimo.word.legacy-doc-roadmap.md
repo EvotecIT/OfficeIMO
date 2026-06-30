@@ -661,6 +661,11 @@ just to reserve names.
     conditional effects into native DOC `TC80` values, while keeping direct
     cell formatting as an override and blocking conditional paragraph, run, and
     table effects before bytes are committed.
+  - [x] Write supported conditional table-style table-level shading and borders
+    by flattening conditional `tblPr` first/last row, first/last column,
+    corner, and banded effects into native DOC cell shading and `TC80` border
+    values, while keeping direct and conditional cell formatting as stronger
+    overrides.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
@@ -730,9 +735,9 @@ just to reserve names.
   - [x] Read the native even/odd header document flag (`DopBase.fFacingPages`)
     and project it into the normal OfficeIMO `DifferentOddAndEvenPages`
     section/header-footer surface.
-  - [ ] Add richer visual table style effects, nested tables, section breaks
-    inside richer body shapes, and richer section writing as separate
-    preflight-backed slices.
+  - [ ] Add the remaining richer visual table style effects, nested tables,
+    section breaks inside richer body shapes, and richer section writing as
+    separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

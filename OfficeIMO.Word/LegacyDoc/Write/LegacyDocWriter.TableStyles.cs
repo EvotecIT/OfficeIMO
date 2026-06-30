@@ -261,9 +261,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ThrowIfUnsupportedTableStyleConditionalTableProperties(string styleId, TableStyleConditionalFormattingTableProperties tableProperties) {
-            if (tableProperties.HasChildren) {
-                OpenXmlElement child = tableProperties.ChildElements[0];
-                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with cell border and shading effects. Unsupported conditional table property: {child.LocalName}.");
+            foreach (OpenXmlElement child in tableProperties.ChildElements) {
+                switch (child) {
+                    case TableBorders tableBorders:
+                        ReadSupportedTableBorders(tableBorders);
+                        break;
+                    case Shading shading:
+                        ReadSupportedTableCellShading(shading, "conditional table style shading");
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional table formatting only with supported borders and shading. Unsupported conditional table property: {child.LocalName}.");
+                }
             }
         }
     }
