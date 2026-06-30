@@ -748,6 +748,10 @@ namespace OfficeIMO.Word {
 
             var run = new Run(CreateResultText(value));
             if (candidate.EndRun != null) {
+                if (!candidate.HasSeparator) {
+                    candidate.EndRun.InsertBeforeSelf(new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }));
+                }
+
                 candidate.EndRun.InsertBeforeSelf(run);
             } else {
                 candidate.AnchorElement.InsertAfterSelf(run);
@@ -896,6 +900,7 @@ namespace OfficeIMO.Word {
                 SimpleField? simpleField,
                 List<Run> resultRuns,
                 Run? endRun,
+                bool hasSeparator,
                 bool isLocked) {
                 Sequence = sequence;
                 Representation = representation;
@@ -908,6 +913,7 @@ namespace OfficeIMO.Word {
                 SimpleField = simpleField;
                 ResultRuns = resultRuns;
                 EndRun = endRun;
+                HasSeparator = hasSeparator;
                 IsLocked = isLocked;
             }
 
@@ -937,6 +943,8 @@ namespace OfficeIMO.Word {
 
             internal Run? EndRun { get; }
 
+            internal bool HasSeparator { get; }
+
             internal bool IsLocked { get; }
 
             internal static MutableFieldCandidate ForSimple(WordFieldInventory.FieldRoot root, int sequence, int nestingLevel, SimpleField simpleField) {
@@ -952,6 +960,7 @@ namespace OfficeIMO.Word {
                     simpleField,
                     simpleField.Elements<Run>().ToList(),
                     null,
+                    true,
                     simpleField.FieldLock?.Value ?? false);
             }
 
@@ -981,6 +990,7 @@ namespace OfficeIMO.Word {
                     null,
                     builder.ResultRuns,
                     builder.EndRun,
+                    builder.HasSeparator,
                     builder.IsLocked);
             }
         }

@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
             using WordDocument document = WordDocument.Load(outputPath);
             HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyRunFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options, rewrittenParagraphs);
-            ApplyContentControlFindings(document._wordprocessingDocument, result, options);
+            ApplyContentControlFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyImageFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
 
             ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);

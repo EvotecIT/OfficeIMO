@@ -4,12 +4,17 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void ApplyContentControlFindings(WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+        private static void ApplyContentControlFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            List<RedlineContentControlEntry> sourceControls = GetRedlineContentControlEntries(sourceDocument);
             List<RedlineContentControlEntry> targetControls = GetRedlineContentControlEntries(targetDocument);
             HashSet<int> redlineTargetIndexes = GetContentControlRedlineTargetIndexes(result, options, targetControls);
             var rewrittenControls = new HashSet<int>();
 
             foreach (WordComparisonFinding finding in result.Findings) {
+                if (TryApplyDeletedContentControlFinding(finding, options, sourceControls, targetDocument)) {
+                    continue;
+                }
+
                 if (!TryGetContentControlRedlineTargetIndex(finding, options, targetControls, out int targetIndex)) {
                     continue;
                 }
@@ -44,6 +49,36 @@ namespace OfficeIMO.Word {
                         break;
                 }
             }
+        }
+
+        private static bool TryApplyDeletedContentControlFinding(
+            WordComparisonFinding finding,
+            WordComparisonRedlineOptions options,
+            IReadOnlyList<RedlineContentControlEntry> sourceControls,
+            WordprocessingDocument targetDocument) {
+            if (!ShouldTrackFinding(finding, options) ||
+                finding.Scope != WordComparisonScope.ContentControl ||
+                finding.ChangeKind != WordComparisonChangeKind.Deleted ||
+                !HasTrackedText(finding)) {
+                return false;
+            }
+
+            int sourceIndex = finding.SourceIndex ?? -1;
+            if (sourceIndex < 0 && !TryParseIndexedLocation(finding.Location, "content-control", out sourceIndex)) {
+                return false;
+            }
+
+            if (sourceIndex < 0 || sourceIndex >= sourceControls.Count) {
+                return false;
+            }
+
+            SdtElement deletedControl = (SdtElement)sourceControls[sourceIndex].ContentControl.CloneNode(true);
+            if (!RewriteContentControlWithTrackedText(deletedControl, ExtractContentControlFindingText(finding.SourceText), null, options)) {
+                return false;
+            }
+
+            InsertDeletedContentControl(targetDocument, deletedControl);
+            return true;
         }
 
         private static List<RedlineContentControlEntry> GetRedlineContentControlEntries(WordprocessingDocument document) {
@@ -240,12 +275,39 @@ namespace OfficeIMO.Word {
             }
 
             const string textMarker = "; text=";
-            int markerIndex = displayText.LastIndexOf(textMarker, StringComparison.Ordinal);
+            int markerIndex = displayText.IndexOf(textMarker, StringComparison.Ordinal);
             if (markerIndex < 0) {
                 return displayText;
             }
 
             return displayText.Substring(markerIndex + textMarker.Length);
+        }
+
+        private static void InsertDeletedContentControl(WordprocessingDocument targetDocument, SdtElement deletedControl) {
+            Body? body = targetDocument.MainDocumentPart?.Document?.Body;
+            if (body == null) {
+                return;
+            }
+
+            OpenXmlElement block = deletedControl switch {
+                SdtBlock => deletedControl,
+                SdtRun => new Paragraph(deletedControl),
+                SdtCell => new Table(new TableRow(deletedControl)),
+                SdtRow => new Table(deletedControl),
+                _ => new Paragraph()
+            };
+
+            InsertBodyRedlineElement(body, block);
+        }
+
+        private static void InsertBodyRedlineElement(Body body, OpenXmlElement element) {
+            SectionProperties? sectionProperties = body.Elements<SectionProperties>().LastOrDefault();
+            if (sectionProperties != null) {
+                body.InsertBefore(element, sectionProperties);
+                return;
+            }
+
+            body.Append(element);
         }
 
         private static bool TryParseIndexedLocation(string location, string prefix, out int index) {

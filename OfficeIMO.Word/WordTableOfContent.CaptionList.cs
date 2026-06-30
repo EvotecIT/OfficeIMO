@@ -256,7 +256,7 @@ namespace OfficeIMO.Word {
                 bookmarkName = "_OfficeIMO_Caption_" + safeSequence + "_" + captionIndex.ToString(CultureInfo.InvariantCulture) + "_" + existingBookmarkNames.Count.ToString(CultureInfo.InvariantCulture);
             } while (!existingBookmarkNames.Add(bookmarkName));
 
-            string bookmarkId = _document.BookmarkId.ToString(CultureInfo.InvariantCulture);
+            string bookmarkId = GetNextCaptionBookmarkId().ToString(CultureInfo.InvariantCulture);
             var bookmarkStart = new BookmarkStart {
                 Name = bookmarkName,
                 Id = bookmarkId
@@ -274,6 +274,30 @@ namespace OfficeIMO.Word {
 
             paragraph.Append(bookmarkEnd);
             return bookmarkName;
+        }
+
+        private int GetNextCaptionBookmarkId() {
+            MainDocumentPart? mainPart = _document._wordprocessingDocument.MainDocumentPart;
+            if (mainPart == null) {
+                return _document.BookmarkId;
+            }
+
+            int maxId = -1;
+            foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
+                foreach (OpenXmlElement bookmark in root.Root.Descendants<BookmarkStart>().Cast<OpenXmlElement>().Concat(root.Root.Descendants<BookmarkEnd>())) {
+                    string? value = bookmark switch {
+                        BookmarkStart start => start.Id?.Value,
+                        BookmarkEnd end => end.Id?.Value,
+                        _ => null
+                    };
+
+                    if (int.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out int id)) {
+                        maxId = Math.Max(maxId, id);
+                    }
+                }
+            }
+
+            return maxId + 1;
         }
 
         private static bool IsVisibleNote(Footnote footnote) {
