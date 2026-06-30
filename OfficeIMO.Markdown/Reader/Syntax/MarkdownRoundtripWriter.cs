@@ -83,7 +83,10 @@ public static class MarkdownRoundtripWriter {
                 PreserveTriviaRequiredId,
                 "The parse result does not contain original reader input. Source edits were applied to normalized markdown. Parse with PreserveTrivia enabled before requesting a lossless source-edit roundtrip.",
                 editList[0].SourceSpan));
-            AddKnownOriginalSourceFailureDiagnostics(editList, diagnostics);
+            AddKnownOriginalSourceFailureDiagnostics(
+                editList,
+                diagnostics,
+                MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved);
         } else if (TryCreateOriginalReplacements(result, editList, diagnostics, out var originalReplacements)) {
             return ApplyReplacements(result.OriginalMarkdown, originalReplacements, diagnostics);
         }
@@ -178,10 +181,16 @@ public static class MarkdownRoundtripWriter {
 
     private static void AddKnownOriginalSourceFailureDiagnostics(
         IReadOnlyList<MarkdownNativeSourceEdit> edits,
-        ICollection<MarkdownRoundtripDiagnostic> diagnostics) {
+        ICollection<MarkdownRoundtripDiagnostic> diagnostics,
+        MarkdownOriginalSourceSliceFailureReason? suppressFailureReason = null) {
         for (var i = 0; i < edits.Count; i++) {
             var edit = edits[i];
             if (!edit.OriginalSourceFailureReason.HasValue) {
+                continue;
+            }
+
+            if (suppressFailureReason.HasValue &&
+                edit.OriginalSourceFailureReason.Value == suppressFailureReason.Value) {
                 continue;
             }
 

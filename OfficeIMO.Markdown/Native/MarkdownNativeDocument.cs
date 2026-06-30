@@ -255,7 +255,7 @@ public sealed partial class MarkdownNativeDocument {
             startOffset,
             endOffsetInclusive,
             replacementMarkdown,
-            originalSourceFailureReason);
+            ResolveOriginalSourceFailureReason(sourceSpan, originalSourceFailureReason));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native block.</summary>
@@ -428,6 +428,18 @@ public sealed partial class MarkdownNativeDocument {
         return syntaxNode?.IsGenerated == true
             ? MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode
             : null;
+    }
+
+    private MarkdownOriginalSourceSliceFailureReason? ResolveOriginalSourceFailureReason(
+        MarkdownSourceSpan sourceSpan,
+        MarkdownOriginalSourceSliceFailureReason? preferredFailureReason) {
+        if (preferredFailureReason.HasValue) {
+            return preferredFailureReason.Value;
+        }
+
+        return ParseResult.TryCreateOriginalSourceSlice(sourceSpan, out _, out var failureReason)
+            ? null
+            : failureReason;
     }
 
     private static MarkdownNativeBlock? FindBlockAtLine(MarkdownNativeBlock block, int lineNumber) {

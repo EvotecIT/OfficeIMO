@@ -230,6 +230,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Return a dedicated original-source failure reason for generated syntax nodes so parse/native callers do not treat fallback anchors as byte-exact source.
 - [x] Reject generated native inline and inline-metadata original-source slices before span-only mapping so editor hosts do not overclaim exact original bytes for regenerated inline content.
 - [x] Carry generated-node original-source failure reasons on native source edits for generated block, inline, list-item, list-item paragraph, table-cell, definition-list, block-field, and metadata targets so roundtrip diagnostics do not overclaim exact original-source edits.
+- [x] Carry known original-source failure reasons on native source edits at creation time, including missing preserved trivia and original-input equivalence failures, while keeping roundtrip diagnostics de-duplicated around the primary preserve-trivia message.
 - [x] Expose live native-block and UI-safe snapshot source-field accessors so editor hosts can select repeated source fields by name and occurrence index without falling back to raw-string rescans.
 - [x] Return exact original-source slice failure reasons for parse/native callers and include those reasons in roundtrip source-edit fallback diagnostics.
 - [x] Expose native inline and inline-metadata source-slice APIs for normalized/original text so link targets, titles, formatting content, and similar inline source-backed values do not require raw-string rescans.

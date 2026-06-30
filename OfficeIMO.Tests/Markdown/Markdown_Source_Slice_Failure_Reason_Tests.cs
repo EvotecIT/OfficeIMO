@@ -110,10 +110,28 @@ public class Markdown_Source_Slice_Failure_Reason_Tests {
         var heading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
         var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New");
 
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent, edit.OriginalSourceFailureReason);
+
         var roundtrip = native.WriteWithSourceEdit(edit);
 
         var diagnostic = Assert.Single(roundtrip.Diagnostics);
         Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
         Assert.Contains("original reader input is not equivalent to normalized markdown", diagnostic.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void NativeSourceEdit_Carries_NotPreserved_Reason_Without_Duplicating_Roundtrip_Diagnostics() {
+        var native = MarkdownNativeDocument.Parse("# Old\n");
+        var heading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+        var edit = native.CreateReplaceEdit(heading.TextSourceSpan!.Value, "New");
+
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, edit.OriginalSourceFailureReason);
+
+        var roundtrip = native.WriteWithSourceEdit(edit);
+
+        var diagnostic = Assert.Single(roundtrip.Diagnostics);
+        Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+        Assert.Contains("PreserveTrivia enabled", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Equal("# New\n", roundtrip.Markdown);
     }
 }
