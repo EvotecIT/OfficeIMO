@@ -54,6 +54,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose link/image opening, separator, and closing delimiters through source-order inline metadata snapshots and source edits.
   - [x] Engine: expose emphasis-extra opening and closing delimiters for strikethrough, highlight, inserted, superscript, and subscript through source-order native metadata snapshots and source edits.
   - [x] Engine: expose footnote definition opening/separator markers and front-matter opening/closing fences through native source fields, snapshots, and source edits.
+  - [x] Engine: expose code and semantic fenced-block opening/closing marker values through native source fields, snapshots, position lookup, and source edits.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
@@ -214,6 +215,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
   - [x] Pipe-table alignment rows now expose per-column `alignmentCell` native/snapshot source fields with occurrence indexes and source edits, so editor hosts can target one alignment marker without rewriting the whole row.
   - [x] Escaped-character markers, decoded entity source text, and hard-break markers now expose native inline metadata, source-order snapshot metadata fields, source slices, position lookup, and source edits.
   - [x] Inline link and image opening, separator, and closing delimiters now expose source-order native metadata snapshots, position lookup, and source edits.
+  - [x] Code fences and semantic fenced extension nodes now expose value-bearing opening/closing fence markers in native source fields and snapshots, with position lookup and source-edit proof.
 - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, transformed nodes, generated nodes, and normalized paragraph text.
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [ ] Add precise fallback diagnostics when exact source preservation is unavailable.

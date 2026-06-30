@@ -52,12 +52,14 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Text = code.Content;
                 snapshot.Markdown = RenderBlock(code.Code);
                 snapshot.Fields = Fields(
+                    ("openingFence", code.OpeningFence),
                     ("language", code.Language),
                     ("infoString", code.InfoString),
                     ("attributes", MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceText(code.FenceInfo)),
                     ("caption", code.Caption),
                     ("title", code.Title),
-                    ("elementId", code.ElementId));
+                    ("elementId", code.ElementId),
+                    ("closingFence", code.ClosingFence));
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("openingFence", code.OpeningFenceSourceSpan),
                     ("infoString", code.InfoStringSourceSpan),
@@ -72,6 +74,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Text = visual.Content;
                 snapshot.Markdown = RenderBlock(visual.Visual);
                 snapshot.Fields = Fields(
+                    ("openingFence", visual.OpeningFence),
                     ("semanticKind", visual.SemanticKind),
                     ("language", visual.Language),
                     ("infoString", visual.InfoString),
@@ -81,7 +84,8 @@ internal static class MarkdownNativeSnapshotFactory {
                     ("elementId", visual.ElementId),
                     ("payloadFormat", visual.Payload.Format.ToString()),
                     ("payloadDetectedSemanticKind", visual.Payload.DetectedSemanticKind),
-                    ("payloadJsonType", visual.Payload.JsonType));
+                    ("payloadJsonType", visual.Payload.JsonType),
+                    ("closingFence", visual.ClosingFence));
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("openingFence", visual.OpeningFenceSourceSpan),
                     ("infoString", visual.InfoStringSourceSpan),

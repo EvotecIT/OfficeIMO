@@ -7,6 +7,66 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Block_Source_Field_Tests {
     [Fact]
+    public void CodeFence_SourceFields_Expose_Fence_Token_Values() {
+        const string markdown = "~~~~csharp {#code .wide}\nConsole.WriteLine(1);\n~~~~\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var code = Assert.IsType<MarkdownNativeCodeBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal("~~~~", code.OpeningFence);
+        Assert.Equal("~~~~", code.ClosingFence);
+
+        var openingFence = Assert.Single(native.EnumerateBlockSourceFields("openingFence"));
+        Assert.Same(code, openingFence.Block);
+        Assert.Equal("~~~~", openingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), openingFence.SourceSpan);
+
+        var infoString = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+        Assert.Equal("csharp {#code .wide}", infoString.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 24), infoString.SourceSpan);
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Equal("{#code .wide}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 24), attributes.SourceSpan);
+
+        var content = Assert.Single(native.EnumerateBlockSourceFields("content"));
+        Assert.Equal("Console.WriteLine(1);", content.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 21), content.SourceSpan);
+
+        var closingFence = Assert.Single(native.EnumerateBlockSourceFields("closingFence"));
+        Assert.Equal("~~~~", closingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), closingFence.SourceSpan);
+
+        Assert.Equal("openingFence", native.FindBlockSourceFieldAtPosition(1, 2)?.Name);
+        Assert.Equal("closingFence", native.FindBlockSourceFieldAtPosition(3, 3)?.Name);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal("~~~~", snapshot.Fields["openingFence"]);
+        Assert.Equal("~~~~", snapshot.Fields["closingFence"]);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "openingFence"
+            && field.Value == "~~~~"
+            && field.SourceSpan.StartColumn == 1
+            && field.SourceSpan.EndColumn == 4);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "closingFence"
+            && field.Value == "~~~~"
+            && field.SourceSpan.StartLine == 3
+            && field.SourceSpan.StartColumn == 1
+            && field.SourceSpan.EndColumn == 4);
+
+        var openingEdited = native.CreateReplaceEdit(openingFence, "```").Apply(native.SourceMarkdown);
+        Assert.StartsWith("```csharp {#code .wide}", openingEdited.Replace("\r\n", "\n"), System.StringComparison.Ordinal);
+
+        var closingEdited = native.CreateReplaceEdit(closingFence, "```").Apply(native.SourceMarkdown);
+        Assert.Contains("\n```\n", closingEdited.Replace("\r\n", "\n"), System.StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GenericAttributes_Block_SourceField_Is_Source_Addressable() {
         const string markdown = "Alpha paragraph {#intro .lead}\n";
         var options = new MarkdownReaderOptions {

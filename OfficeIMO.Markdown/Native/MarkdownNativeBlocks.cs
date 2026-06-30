@@ -120,6 +120,8 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
         Classes = code.Attributes.Classes;
         ElementId = code.Attributes.ElementId;
         Title = code.Attributes.GetAttribute("title");
+        OpeningFence = code.IsFenced ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? new string(code.FenceChar, code.FenceLength) : null;
+        ClosingFence = code.IsFenced && code.HasClosingFence ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? new string(code.FenceChar, code.ClosingFenceLength) : null;
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? code.OpeningFenceSourceSpan;
         InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
         AttributeSourceSpan = MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceSpan(FenceInfo, InfoStringSourceSpan);
@@ -157,6 +159,12 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
     /// <summary>Convenience title resolved from fence metadata.</summary>
     public string? Title { get; }
 
+    /// <summary>Opening fence marker text, preserving the parsed marker character and length when source-backed.</summary>
+    public string? OpeningFence { get; }
+
+    /// <summary>Closing fence marker text, preserving the parsed marker character and length when source-backed.</summary>
+    public string? ClosingFence { get; }
+
     /// <summary>Source span for the opening fence marker when the block was parsed from a fenced source block.</summary>
     public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }
 
@@ -174,6 +182,9 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
 
     private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
         syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
+
+    private static string? GetChildLiteral(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.Literal;
 }
 
 /// <summary>
@@ -219,6 +230,8 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
         ElementId = visual.FenceInfo.ElementId;
         Title = visual.FenceInfo.Title;
         Payload = MarkdownNativeVisualPayload.Create(visual);
+        OpeningFence = visual.IsFenced ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? new string(visual.FenceChar, visual.FenceLength) : null;
+        ClosingFence = visual.IsFenced && visual.HasClosingFence ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? new string(visual.FenceChar, visual.ClosingFenceLength) : null;
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? visual.OpeningFenceSourceSpan;
         InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
         AttributeSourceSpan = MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceSpan(FenceInfo, InfoStringSourceSpan);
@@ -262,6 +275,12 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
     /// <summary>Dependency-free typed payload hints for visual UI hosts.</summary>
     public MarkdownNativeVisualPayload Payload { get; }
 
+    /// <summary>Opening fence marker text, preserving the parsed marker character and length when source-backed.</summary>
+    public string? OpeningFence { get; }
+
+    /// <summary>Closing fence marker text, preserving the parsed marker character and length when source-backed.</summary>
+    public string? ClosingFence { get; }
+
     /// <summary>Source span for the opening fence marker when the block was parsed from a fenced source block.</summary>
     public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }
 
@@ -279,6 +298,9 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
 
     private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
         syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
+
+    private static string? GetChildLiteral(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.Literal;
 }
 
 /// <summary>

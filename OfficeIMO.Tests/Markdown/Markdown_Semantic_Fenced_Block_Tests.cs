@@ -124,6 +124,63 @@ _Chart caption_
     }
 
     [Fact]
+    public void SemanticFencedBlock_Native_SourceFields_Expose_Fence_Token_Values() {
+        var options = CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart);
+        const string markdown = "~~~~ix-chart {#chart .wide}\n{\"type\":\"bar\"}\n~~~~\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var visual = Assert.IsType<MarkdownNativeVisualBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal("~~~~", visual.OpeningFence);
+        Assert.Equal("~~~~", visual.ClosingFence);
+
+        var openingFence = Assert.Single(native.EnumerateBlockSourceFields("openingFence"));
+        Assert.Same(visual, openingFence.Block);
+        Assert.Equal("~~~~", openingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), openingFence.SourceSpan);
+
+        var infoString = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+        Assert.Equal("ix-chart {#chart .wide}", infoString.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 27), infoString.SourceSpan);
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Equal("{#chart .wide}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 27), attributes.SourceSpan);
+
+        var content = Assert.Single(native.EnumerateBlockSourceFields("content"));
+        Assert.Equal("{\"type\":\"bar\"}", content.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 14), content.SourceSpan);
+
+        var closingFence = Assert.Single(native.EnumerateBlockSourceFields("closingFence"));
+        Assert.Equal("~~~~", closingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), closingFence.SourceSpan);
+
+        Assert.Equal("openingFence", native.FindBlockSourceFieldAtPosition(1, 2)?.Name);
+        Assert.Equal("closingFence", native.FindBlockSourceFieldAtPosition(3, 3)?.Name);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal("~~~~", snapshot.Fields["openingFence"]);
+        Assert.Equal("~~~~", snapshot.Fields["closingFence"]);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "openingFence"
+            && field.Value == "~~~~"
+            && field.SourceSpan.StartColumn == 1
+            && field.SourceSpan.EndColumn == 4);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "closingFence"
+            && field.Value == "~~~~"
+            && field.SourceSpan.StartLine == 3
+            && field.SourceSpan.StartColumn == 1
+            && field.SourceSpan.EndColumn == 4);
+
+        var openingEdited = native.CreateReplaceEdit(openingFence, "```").Apply(native.SourceMarkdown);
+        Assert.StartsWith("```ix-chart {#chart .wide}", openingEdited.Replace("\r\n", "\n"), System.StringComparison.Ordinal);
+
+        var closingEdited = native.CreateReplaceEdit(closingFence, "```").Apply(native.SourceMarkdown);
+        Assert.Contains("\n```\n", closingEdited.Replace("\r\n", "\n"), System.StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SemanticFencedBlock_RenderHtml_Projects_GenericAttributes_To_Default_Pre() {
         var options = CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart);
         var markdown = """

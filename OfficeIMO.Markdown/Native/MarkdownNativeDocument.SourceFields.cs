@@ -360,7 +360,7 @@ public sealed partial class MarkdownNativeDocument {
 
     private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateCodeFields(MarkdownNativeCodeBlock code) {
         if (code.OpeningFenceSourceSpan.HasValue) {
-            yield return new MarkdownNativeBlockSourceField("openingFence", null, code.OpeningFenceSourceSpan.Value, code);
+            yield return new MarkdownNativeBlockSourceField("openingFence", code.OpeningFence, code.OpeningFenceSourceSpan.Value, code);
         }
 
         if (code.InfoStringSourceSpan.HasValue) {
@@ -380,13 +380,13 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         if (code.ClosingFenceSourceSpan.HasValue) {
-            yield return new MarkdownNativeBlockSourceField("closingFence", null, code.ClosingFenceSourceSpan.Value, code);
+            yield return new MarkdownNativeBlockSourceField("closingFence", code.ClosingFence, code.ClosingFenceSourceSpan.Value, code);
         }
     }
 
     private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateVisualFields(MarkdownNativeVisualBlock visual) {
         if (visual.OpeningFenceSourceSpan.HasValue) {
-            yield return new MarkdownNativeBlockSourceField("openingFence", null, visual.OpeningFenceSourceSpan.Value, visual);
+            yield return new MarkdownNativeBlockSourceField("openingFence", visual.OpeningFence, visual.OpeningFenceSourceSpan.Value, visual);
         }
 
         if (visual.InfoStringSourceSpan.HasValue) {
@@ -406,7 +406,7 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         if (visual.ClosingFenceSourceSpan.HasValue) {
-            yield return new MarkdownNativeBlockSourceField("closingFence", null, visual.ClosingFenceSourceSpan.Value, visual);
+            yield return new MarkdownNativeBlockSourceField("closingFence", visual.ClosingFence, visual.ClosingFenceSourceSpan.Value, visual);
         }
     }
 
