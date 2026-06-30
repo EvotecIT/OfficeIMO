@@ -600,18 +600,18 @@ namespace OfficeIMO.Word {
 
             LegacyDocTextRun firstRun = sourceParagraph.Runs[0];
             WordParagraph paragraph;
+            int remainingRunStartIndex;
             if (ContainsLegacyDocSpecialRunCharacter(firstRun.Text) || !string.IsNullOrEmpty(firstRun.HyperlinkUri)) {
                 paragraph = cell.AddParagraph(string.Empty, removeExistingParagraphs: removeExistingParagraphs);
-                AddLegacyDocRunContent(paragraph, firstRun, notes);
+                remainingRunStartIndex = 0;
             } else {
                 paragraph = cell.AddParagraph(firstRun.Text, removeExistingParagraphs: removeExistingParagraphs);
                 ApplyLegacyDocRunFormatting(paragraph, firstRun);
+                remainingRunStartIndex = 1;
             }
 
             ApplyLegacyDocParagraphFormatting(paragraph, sourceParagraph.Format, styleSheet);
-            for (int index = 1; index < sourceParagraph.Runs.Count; index++) {
-                AddLegacyDocRunContent(paragraph, sourceParagraph.Runs[index], notes);
-            }
+            AddLegacyDocRuns(paragraph, sourceParagraph.Runs, remainingRunStartIndex, notes);
         }
 
         private static void AddLegacyDocParagraph(WordSection section, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
@@ -626,12 +626,34 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, LegacyDocNoteProjection notes) {
-            foreach (LegacyDocTextRun legacyRun in paragraphRuns) {
+            AddLegacyDocRuns(paragraph, paragraphRuns, 0, notes);
+        }
+
+        private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes) {
+            for (int index = startIndex; index < paragraphRuns.Count; index++) {
+                LegacyDocTextRun legacyRun = paragraphRuns[index];
+                if (!string.IsNullOrEmpty(legacyRun.HyperlinkUri)) {
+                    int hyperlinkStartIndex = index;
+                    string hyperlinkUri = legacyRun.HyperlinkUri!;
+                    while (index + 1 < paragraphRuns.Count
+                        && string.Equals(paragraphRuns[index + 1].HyperlinkUri, hyperlinkUri, StringComparison.Ordinal)) {
+                        index++;
+                    }
+
+                    AddLegacyDocHyperlinkRunsContent(paragraph, paragraphRuns, hyperlinkStartIndex, index - hyperlinkStartIndex + 1, notes);
+                    continue;
+                }
+
                 AddLegacyDocRunContent(paragraph, legacyRun, notes);
             }
         }
 
         private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes) {
+            if (!string.IsNullOrEmpty(legacyRun.HyperlinkUri)) {
+                AddLegacyDocHyperlinkRunContent(paragraph, legacyRun, notes);
+                return;
+            }
+
             string text = legacyRun.Text;
             int segmentStart = 0;
             for (int index = 0; index < text.Length; index++) {
@@ -798,6 +820,34 @@ namespace OfficeIMO.Word {
                 || character == LegacyDocFootnoteReader.FootnoteReferenceCharacter;
         }
 
+        private static bool IsLegacyDocHyperlinkSpecialRunCharacter(char character) {
+            return character == '\t'
+                || character == '\v'
+                || character == '\f';
+        }
+
+        private static LegacyDocTextRun CreateLegacyDocRunWithoutHyperlink(LegacyDocTextRun source) {
+            return new LegacyDocTextRun(
+                source.Text,
+                source.Bold,
+                source.Italic,
+                source.Strike,
+                source.DoubleStrike,
+                source.Outline,
+                source.Shadow,
+                source.Emboss,
+                source.Imprint,
+                source.Hidden,
+                source.Caps,
+                source.VerticalPosition,
+                source.Underline,
+                source.Highlight,
+                source.FontSizeHalfPoints,
+                source.ColorHex,
+                source.FontFamily,
+                source.CharacterPositions);
+        }
+
         private static void AddLegacyDocBreak(WordParagraph paragraph, LegacyDocTextRun legacyRun, BreakValues? breakType) {
             var run = new Run();
             run.Append(breakType == null ? new Break() : new Break { Type = breakType });
@@ -811,20 +861,21 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            if (!string.IsNullOrEmpty(legacyRun.HyperlinkUri)) {
-                AddLegacyDocHyperlinkTextSegment(paragraph, legacyRun, startIndex, length);
-                return;
-            }
-
             WordParagraph run = paragraph.AddText(legacyRun.Text.Substring(startIndex, length));
             ApplyLegacyDocRunFormatting(run, legacyRun);
         }
 
-        private static void AddLegacyDocHyperlinkTextSegment(WordParagraph paragraph, LegacyDocTextRun legacyRun, int startIndex, int length) {
-            string text = legacyRun.Text.Substring(startIndex, length);
-            if (!Uri.TryCreate(legacyRun.HyperlinkUri, UriKind.Absolute, out Uri? uri)) {
-                WordParagraph fallbackRun = paragraph.AddText(text);
-                ApplyLegacyDocRunFormatting(fallbackRun, legacyRun);
+        private static void AddLegacyDocHyperlinkRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes) {
+            AddLegacyDocHyperlinkRunsContent(paragraph, new[] { legacyRun }, 0, 1, notes);
+        }
+
+        private static void AddLegacyDocHyperlinkRunsContent(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> legacyRuns, int startIndex, int count, LegacyDocNoteProjection notes) {
+            LegacyDocTextRun firstRun = legacyRuns[startIndex];
+            if (!Uri.TryCreate(firstRun.HyperlinkUri, UriKind.Absolute, out Uri? uri)) {
+                for (int index = startIndex; index < startIndex + count; index++) {
+                    AddLegacyDocRunContent(paragraph, CreateLegacyDocRunWithoutHyperlink(legacyRuns[index]), notes);
+                }
+
                 return;
             }
 
@@ -835,16 +886,54 @@ namespace OfficeIMO.Word {
                 Id = relationship.Id,
                 History = true
             };
-            var run = new Run(new Text(text) {
+
+            for (int index = startIndex; index < startIndex + count; index++) {
+                AppendLegacyDocHyperlinkRunContent(hyperlink, paragraph, legacyRuns[index]);
+            }
+
+            paragraph._paragraph.Append(hyperlink);
+            paragraph._hyperlink = hyperlink;
+        }
+
+        private static void AppendLegacyDocHyperlinkRunContent(Hyperlink hyperlink, WordParagraph paragraph, LegacyDocTextRun legacyRun) {
+            string text = legacyRun.Text;
+            int segmentStart = 0;
+            for (int index = 0; index < text.Length; index++) {
+                char character = text[index];
+                if (!IsLegacyDocHyperlinkSpecialRunCharacter(character)) {
+                    continue;
+                }
+
+                AppendLegacyDocHyperlinkTextRun(hyperlink, paragraph, legacyRun, segmentStart, index - segmentStart);
+                if (character == '\t') {
+                    AppendLegacyDocHyperlinkSpecialRun(hyperlink, paragraph, legacyRun, new TabChar());
+                } else {
+                    AppendLegacyDocHyperlinkSpecialRun(hyperlink, paragraph, legacyRun, character == '\f' ? new Break { Type = BreakValues.Page } : new Break());
+                }
+
+                segmentStart = index + 1;
+            }
+
+            AppendLegacyDocHyperlinkTextRun(hyperlink, paragraph, legacyRun, segmentStart, text.Length - segmentStart);
+        }
+
+        private static void AppendLegacyDocHyperlinkTextRun(Hyperlink hyperlink, WordParagraph paragraph, LegacyDocTextRun legacyRun, int startIndex, int length) {
+            if (length <= 0) {
+                return;
+            }
+
+            var run = new Run(new Text(legacyRun.Text.Substring(startIndex, length)) {
                 Space = SpaceProcessingModeValues.Preserve
             });
             hyperlink.Append(run);
-            paragraph._paragraph.Append(hyperlink);
-            paragraph._hyperlink = hyperlink;
-            var hyperlinkRun = new WordParagraph(paragraph._document, paragraph._paragraph, run) {
-                _hyperlink = hyperlink
-            };
-            ApplyLegacyDocRunFormatting(hyperlinkRun, legacyRun);
+            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
+        }
+
+        private static void AppendLegacyDocHyperlinkSpecialRun(Hyperlink hyperlink, WordParagraph paragraph, LegacyDocTextRun legacyRun, OpenXmlElement element) {
+            var run = new Run();
+            run.Append(element);
+            hyperlink.Append(run);
+            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
         }
 
         private static OpenXmlPart? ResolveLegacyDocHyperlinkRelationshipPart(WordParagraph paragraph) {

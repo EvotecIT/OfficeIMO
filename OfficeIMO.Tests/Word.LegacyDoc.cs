@@ -4,6 +4,7 @@ using OfficeIMO.Word.LegacyDoc.Diagnostics;
 using OfficeIMO.Word.LegacyDoc.Model;
 using OfficeIMO.Shared;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OpenMcdf;
@@ -1212,6 +1213,37 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
         }
 
+        private static string GetNoteRunText(WordParagraph run) {
+            return run.IsHyperLink
+                ? GetHyperlinkDisplayText(run.Hyperlink!._hyperlink)
+                : run.Text;
+        }
+
+        private static string GetHyperlinkDisplayText(Hyperlink hyperlink) {
+            var builder = new StringBuilder();
+            foreach (Run run in hyperlink.Elements<Run>()) {
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    switch (child) {
+                        case Text text:
+                            builder.Append(text.Text);
+                            break;
+                        case TabChar:
+                            builder.Append('\t');
+                            break;
+                        case Break breakNode:
+                            builder.Append(breakNode.Type?.Value == BreakValues.Page ? '\f' : '\v');
+                            break;
+                    }
+                }
+            }
+
+            return builder.ToString();
+        }
+
+        private static string GetHyperlinkText(Hyperlink hyperlink) {
+            return string.Concat(hyperlink.Descendants<Text>().Select(text => text.Text));
+        }
+
         private static void AssertFormattedHeaderFooterRuns(IReadOnlyList<WordParagraph> paragraphs) {
             WordParagraph[] runs = paragraphs.Where(paragraph => paragraph.Text.Length > 0).ToArray();
             Assert.Equal(3, runs.Length);
@@ -1778,6 +1810,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocExternalHyperlinksWithTabsAndBreaksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Mixed ");
+                    paragraph.AddHyperLink("A", new Uri("https://officeimo.net/mixed"), addStyle: true);
+                    Hyperlink hyperlink = paragraph.Hyperlink!._hyperlink;
+                    hyperlink.Append(new Run(new TabChar()));
+                    hyperlink.Append(new Run(new Text("B") { Space = SpaceProcessingModeValues.Preserve }));
+                    hyperlink.Append(new Run(new Break()));
+                    hyperlink.Append(new Run(new Text("C") { Space = SpaceProcessingModeValues.Preserve }));
+                    hyperlink.Append(new Run(new Break { Type = BreakValues.Page }));
+                    hyperlink.Append(new Run(new Text("D") { Space = SpaceProcessingModeValues.Preserve }));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                WordHyperLink mixedLink = Assert.Single(reloaded.HyperLinks, link => link.Uri?.ToString() == "https://officeimo.net/mixed");
+                Assert.Equal("ABCD", GetHyperlinkText(mixedLink._hyperlink));
+                Assert.Single(mixedLink._hyperlink.Descendants<TabChar>());
+                IReadOnlyList<Break> breaks = mixedLink._hyperlink.Descendants<Break>().ToArray();
+                Assert.Equal(2, breaks.Count);
+                Assert.Null(breaks[0].Type);
+                Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksInternalHyperlinksBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -1803,11 +1870,11 @@ namespace OfficeIMO.Tests {
                 using WordDocument document = WordDocument.Create();
                 WordParagraph paragraph = document.AddParagraph("Open ");
                 paragraph.AddHyperLink("site", new Uri("https://officeimo.net/docs"), addStyle: true);
-                paragraph.Hyperlink!._hyperlink.AppendChild(new Run(new Break()));
+                paragraph.Hyperlink!._hyperlink.AppendChild(new Run(new FootnoteReference { Id = 1 }));
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("plain text", exception.Message.ToLowerInvariant());
+                Assert.Contains("footnote and endnote references", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -1909,10 +1976,14 @@ namespace OfficeIMO.Tests {
                     WordParagraph footnoteReference = paragraph.AddFootNote("footnote ");
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
                     footnoteBody.AddHyperLink("site", new Uri("https://officeimo.net/footnote"), addStyle: true);
+                    footnoteBody.Hyperlink!._hyperlink.Append(new Run(new TabChar()));
+                    footnoteBody.Hyperlink!._hyperlink.Append(new Run(new Text("tab") { Space = SpaceProcessingModeValues.Preserve }));
 
                     WordParagraph endnoteReference = paragraph.AddEndNote("endnote ");
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
                     endnoteBody.AddHyperLink("mail", new Uri("mailto:endnote@example.org"), addStyle: true);
+                    endnoteBody.Hyperlink!._hyperlink.Append(new Run(new Break()));
+                    endnoteBody.Hyperlink!._hyperlink.Append(new Run(new Text("break") { Space = SpaceProcessingModeValues.Preserve }));
 
                     document.Save(docPath);
                 }
@@ -1925,27 +1996,30 @@ namespace OfficeIMO.Tests {
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 IReadOnlyList<WordParagraph> footnoteRuns = footnote.Paragraphs!;
-                string footnoteText = string.Concat(footnoteRuns.Select(run => run.IsHyperLink ? run.Hyperlink!.Text : run.Text));
-                Assert.Equal("footnote site", footnoteText);
+                string footnoteText = string.Concat(footnoteRuns.Select(GetNoteRunText));
+                Assert.Equal("footnote site\ttab", footnoteText);
                 Assert.DoesNotContain("HYPERLINK", footnoteText, StringComparison.Ordinal);
                 WordHyperLink? footnoteLink = footnoteRuns
                     .Where(run => run.IsHyperLink)
                     .Select(run => run.Hyperlink)
-                    .FirstOrDefault(link => link?.Text == "site");
+                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "sitetab");
                 Assert.NotNull(footnoteLink);
                 Assert.Equal("https://officeimo.net/footnote", footnoteLink.Uri?.ToString());
+                Assert.Single(footnoteLink._hyperlink.Descendants<TabChar>());
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 IReadOnlyList<WordParagraph> endnoteRuns = endnote.Paragraphs!;
-                string endnoteText = string.Concat(endnoteRuns.Select(run => run.IsHyperLink ? run.Hyperlink!.Text : run.Text));
-                Assert.Equal("endnote mail", endnoteText);
+                string endnoteText = string.Concat(endnoteRuns.Select(GetNoteRunText));
+                Assert.Equal("endnote mail\vbreak", endnoteText);
                 Assert.DoesNotContain("HYPERLINK", endnoteText, StringComparison.Ordinal);
                 WordHyperLink? endnoteLink = endnoteRuns
                     .Where(run => run.IsHyperLink)
                     .Select(run => run.Hyperlink)
-                    .FirstOrDefault(link => link?.Text == "mail");
+                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "mailbreak");
                 Assert.NotNull(endnoteLink);
                 Assert.Equal("mailto:endnote@example.org", endnoteLink.Uri?.ToString());
+                Break endnoteBreak = Assert.Single(endnoteLink._hyperlink.Descendants<Break>());
+                Assert.Null(endnoteBreak.Type);
             } finally {
                 DeleteIfExists(docPath);
             }

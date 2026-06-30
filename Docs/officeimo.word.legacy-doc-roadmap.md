@@ -685,10 +685,10 @@ just to reserve names.
     paragraph PAPX records for matching table regions, while preserving direct
     paragraph formatting as the override.
   - [x] Read and write simple external body, table, header, footer, footnote,
-    and endnote
-    hyperlinks through native DOC `HYPERLINK` field characters, then reload
-    them as normal OfficeIMO `WordHyperLink` objects while continuing to block
-    internal bookmark links before bytes are committed.
+    and endnote hyperlinks with supported text, tab, and break display runs
+    through native DOC `HYPERLINK` field characters, then reload them as normal
+    OfficeIMO `WordHyperLink` objects while continuing to block internal
+    bookmark links before bytes are committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

@@ -70,15 +70,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case RunProperties:
                     case Text:
+                    case TabChar:
+                    case Break:
                         break;
                     case FootnoteReference:
                     case EndnoteReference:
                         throw new NotSupportedException("Native DOC saving supports hyperlink display text only as regular text runs. Footnote and endnote references inside hyperlinks are not supported yet.");
-                    case TabChar:
-                    case Break:
-                        throw new NotSupportedException("Native DOC saving supports simple external hyperlinks only when their display text is plain text. Tabs and breaks inside hyperlinks are not supported yet.");
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple external hyperlinks only when their display text is plain text. Unsupported hyperlink run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple external hyperlinks only when their display text contains text, tabs, and supported breaks. Unsupported hyperlink run element: {child.LocalName}.");
                 }
             }
         }

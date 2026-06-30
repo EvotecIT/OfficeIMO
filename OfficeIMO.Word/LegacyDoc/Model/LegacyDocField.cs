@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     break;
                 }
 
-                if (character == Begin || character == Separator || IsBodyBoundary(character) || char.IsControl(character)) {
+                if (character == Begin || character == Separator || IsBodyBoundary(character) || !IsSupportedResultCharacter(character)) {
                     return false;
                 }
             }
@@ -101,6 +101,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         private static bool IsBodyBoundary(char character) {
             return character == '\r' || character == '\n' || character == '\a';
+        }
+
+        private static bool IsSupportedResultCharacter(char character) {
+            return !char.IsControl(character)
+                || character == '\t'
+                || character == '\v'
+                || character == '\f';
         }
     }
 }

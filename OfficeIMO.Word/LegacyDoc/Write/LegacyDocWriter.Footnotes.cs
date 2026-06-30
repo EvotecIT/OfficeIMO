@@ -218,10 +218,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Text textNode:
                         AppendFormattedNoteText(text, runs, textNode.Text, formatting, storyStart);
                         break;
+                    case TabChar:
+                        AppendFormattedNoteText(text, runs, "\t", formatting, storyStart);
+                        break;
+                    case Break breakNode:
+                        AppendSupportedNoteHyperlinkBreak(text, runs, breakNode, id, noteKind, storyStart, formatting);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with plain text display runs. Unsupported hyperlink run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text, tabs, and text-wrapping break display runs. Unsupported hyperlink run element: {child.LocalName}.");
                 }
             }
+        }
+
+        private static void AppendSupportedNoteHyperlinkBreak(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            Break breakNode,
+            long id,
+            string noteKind,
+            int storyStart,
+            LegacyDocWritableFormatting formatting) {
+            BreakValues? breakType = breakNode.Type?.Value;
+            if (breakType == null || breakType == BreakValues.TextWrapping) {
+                AppendFormattedNoteText(text, runs, "\v", formatting, storyStart);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text-wrapping breaks.");
         }
 
         private sealed class LegacyDocWritableFootnotes {
