@@ -29,6 +29,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? keepWithNext = null;
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
+            bool? suppressLineNumbers = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
             byte? verticalCharacterAlignment = null;
@@ -66,6 +67,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case WidowControl widowControl:
                         avoidWidowAndOrphan = ReadOnOffValue(widowControl);
                         break;
+                    case SuppressLineNumbers lineNumbers:
+                        suppressLineNumbers = ReadOnOffValue(lineNumbers);
+                        break;
                     case NumberingProperties numberingProperties:
                         ReadSupportedNumberingProperties(numberingProperties, out numberingListIndex, out numberingLevel);
                         break;
@@ -102,6 +106,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 keepWithNext,
                 pageBreakBefore,
                 avoidWidowAndOrphan,
+                suppressLineNumbers,
                 numberingListIndex,
                 numberingLevel,
                 verticalCharacterAlignment,

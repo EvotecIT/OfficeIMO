@@ -1219,6 +1219,10 @@ namespace OfficeIMO.Word {
                 paragraph.AvoidWidowAndOrphan = true;
             }
 
+            if (paragraphFormat.SuppressLineNumbers == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new SuppressLineNumbers());
+            }
+
             if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
                 paragraph.ShadingFillColorHex = paragraphFormat.ParagraphShading.Value.FillColorHex!;
             }
@@ -1261,11 +1265,7 @@ namespace OfficeIMO.Word {
         private static void ApplyLegacyDocParagraphNumbering(WordParagraph paragraph, ushort listIndex, byte level) {
             EnsureLegacyDocNumberingDefinition(paragraph._document, listIndex);
 
-            if (paragraph._paragraph.ParagraphProperties == null) {
-                paragraph._paragraph.ParagraphProperties = new ParagraphProperties();
-            }
-
-            ParagraphProperties paragraphProperties = paragraph._paragraph.ParagraphProperties!;
+            ParagraphProperties paragraphProperties = EnsureLegacyDocParagraphProperties(paragraph);
             NumberingProperties? numberingProperties = paragraphProperties.GetFirstChild<NumberingProperties>();
             if (numberingProperties == null) {
                 numberingProperties = new NumberingProperties();
@@ -1288,6 +1288,14 @@ namespace OfficeIMO.Word {
             numberingProperties.Append(
                 new NumberingLevelReference { Val = level },
                 new NumberingId { Val = listIndex });
+        }
+
+        private static ParagraphProperties EnsureLegacyDocParagraphProperties(WordParagraph paragraph) {
+            if (paragraph._paragraph.ParagraphProperties == null) {
+                paragraph._paragraph.ParagraphProperties = new ParagraphProperties();
+            }
+
+            return paragraph._paragraph.ParagraphProperties!;
         }
 
         private static void EnsureLegacyDocNumberingDefinition(WordDocument document, int numberId) {
@@ -1661,6 +1669,11 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.AvoidWidowAndOrphan == true) {
                 properties.Append(new WidowControl());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.SuppressLineNumbers == true) {
+                properties.Append(new SuppressLineNumbers());
                 hasProperties = true;
             }
 

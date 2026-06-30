@@ -6,6 +6,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPFKeep = 0x2405;
         private const ushort SprmPFKeepFollow = 0x2406;
         private const ushort SprmPFPageBreakBefore = 0x2407;
+        private const ushort SprmPFNoLineNumb = 0x240C;
         private const ushort SprmPFInTable = 0x2416;
         private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
@@ -111,6 +112,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.AvoidWidowAndOrphan == true) {
                 AddSingleByteSprm(grpprl, SprmPFWidowControl, 1);
+            }
+
+            if (formatting.SuppressLineNumbers == true) {
+                AddSingleByteSprm(grpprl, SprmPFNoLineNumb, 1);
             }
 
             if (formatting.NumberingLevel != null) {
@@ -787,7 +792,45 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(
+            alignment: null,
+            styleIndex: null,
+            spacingBeforeTwips: null,
+            spacingAfterTwips: null,
+            lineSpacingTwips: null,
+            leftIndentTwips: null,
+            rightIndentTwips: null,
+            firstLineIndentTwips: null,
+            keepLinesTogether: null,
+            keepWithNext: null,
+            pageBreakBefore: null,
+            avoidWidowAndOrphan: null,
+            suppressLineNumbers: null,
+            numberingListIndex: null,
+            numberingLevel: null,
+            verticalCharacterAlignment: null,
+            isInTable: null,
+            isTableTerminatingParagraph: null,
+            tabStops: null,
+            tableCellWidthsTwips: null,
+            tableLeftIndentTwips: null,
+            tableRowHeightTwips: null,
+            tableRowHeightIsExact: false,
+            tableRowCantSplit: null,
+            tableRowIsHeader: null,
+            tableAlignment: null,
+            tablePreferredWidth: null,
+            tableAutofit: null,
+            tableCellHorizontalMerges: null,
+            tableCellVerticalMerges: null,
+            tableCellVerticalAlignments: null,
+            tableCellTextDirections: null,
+            tableCellFitTexts: null,
+            tableCellNoWraps: null,
+            tableCellHideMarks: null,
+            tableCellMargins: null,
+            tableCellShadings: null,
+            tableCellBorders: null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -802,6 +845,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? keepWithNext,
             bool? pageBreakBefore,
             bool? avoidWidowAndOrphan,
+            bool? suppressLineNumbers,
             ushort? numberingListIndex,
             byte? numberingLevel,
             byte? verticalCharacterAlignment,
@@ -843,6 +887,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             KeepWithNext = keepWithNext;
             PageBreakBefore = pageBreakBefore;
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
+            SuppressLineNumbers = suppressLineNumbers;
             NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
                 ? numberingListIndex
                 : null;
@@ -938,6 +983,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? AvoidWidowAndOrphan { get; }
 
+        internal bool? SuppressLineNumbers { get; }
+
         internal ushort? NumberingListIndex { get; }
 
         internal byte? NumberingLevel { get; }
@@ -1008,6 +1055,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || KeepWithNext != null
             || PageBreakBefore != null
             || AvoidWidowAndOrphan != null
+            || SuppressLineNumbers != null
             || NumberingListIndex != null
             || NumberingLevel != null
             || VerticalCharacterAlignment != null
@@ -1051,6 +1099,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 KeepWithNext,
                 PageBreakBefore,
                 AvoidWidowAndOrphan,
+                SuppressLineNumbers,
                 NumberingListIndex,
                 NumberingLevel,
                 VerticalCharacterAlignment,
@@ -1100,6 +1149,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 KeepWithNext ?? inherited.KeepWithNext,
                 PageBreakBefore ?? inherited.PageBreakBefore,
                 AvoidWidowAndOrphan ?? inherited.AvoidWidowAndOrphan,
+                SuppressLineNumbers ?? inherited.SuppressLineNumbers,
                 NumberingListIndex ?? inherited.NumberingListIndex,
                 NumberingLevel ?? inherited.NumberingLevel,
                 VerticalCharacterAlignment ?? inherited.VerticalCharacterAlignment,
@@ -1167,6 +1217,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 KeepWithNext,
                 PageBreakBefore,
                 AvoidWidowAndOrphan,
+                SuppressLineNumbers,
                 NumberingListIndex,
                 NumberingLevel,
                 VerticalCharacterAlignment,
@@ -1211,6 +1262,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && KeepWithNext == other.KeepWithNext
                 && PageBreakBefore == other.PageBreakBefore
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
+                && SuppressLineNumbers == other.SuppressLineNumbers
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
                 && VerticalCharacterAlignment == other.VerticalCharacterAlignment
@@ -1260,6 +1312,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + KeepWithNext.GetHashCode();
             hash = (hash * 31) + PageBreakBefore.GetHashCode();
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
+            hash = (hash * 31) + SuppressLineNumbers.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();
             hash = (hash * 31) + VerticalCharacterAlignment.GetHashCode();

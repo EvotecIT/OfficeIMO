@@ -113,6 +113,10 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new WidowControl());
             }
 
+            if (paragraphFormat.SuppressLineNumbers == true) {
+                ReplaceStyleProperty(properties, new SuppressLineNumbers());
+            }
+
             if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
                 ReplaceStyleProperty(properties, new Shading {
                     Val = ShadingPatternValues.Clear,
