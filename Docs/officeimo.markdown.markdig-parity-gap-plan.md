@@ -13,7 +13,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [x] GFM tracked fixtures are green: 52 tracked GFM fixtures, 52 passing, 0 failing in the generated GFM inventory.
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
-- [ ] Markdig extension parity is not closed: 12 rows are covered, 7 partial, 3 intentional, and 11 gap.
+- [ ] Markdig extension parity is not closed: 13 rows are covered, 6 partial, 3 intentional, and 11 gap.
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
@@ -32,10 +32,10 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [ ] Engine: keep attributes attached to the semantic owner and syntax/source owner through containers such as blockquotes, lists, tables, footnotes, and definition lists.
   - [ ] Writer/render: preserve attributes through HTML rendering and Markdown writing where the row claims support.
   - [ ] Proof: add target-by-target Markdig comparison and source/native fixtures only after each target exists in the engine.
-- [ ] `UseAlertBlocks` decision: scope first, then engine.
+- [x] `UseAlertBlocks` decision: scope first, then engine.
   - [x] Add an opt-in Markdig-style alert HTML fallback for no-title GitHub alert syntax while preserving OfficeIMO titled callouts as richer AST semantics.
   - [x] Decide the titled-callout boundary: OfficeIMO mode keeps rich titled callouts; Markdig-compatible mode treats titled alert markers as ordinary blockquotes.
-  - [ ] Align the remaining callout/alert syntax fields, native source fields, writer output, and broader comparison fixtures around that boundary.
+  - [x] Align the remaining callout/alert syntax fields, native source fields, writer output, and broader comparison fixtures around that boundary.
 - [x] `UseCjkFriendlyEmphasis` decision: parser option or intentional gap.
   - [x] Add a Markdig-compatible opt-in delimiter option.
   - [x] Implement delimiter behavior in the inline parser and prove source-token/writer behavior with CJK comparison cases.
@@ -158,7 +158,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
     - [x] Standalone generic attribute continuation lines at the end of paragraphs now match Markdig by being consumed without attributes or rendered output, including soft and hard line-break forms.
     - [x] Paragraph-contained attributes embedded at the end of nested link labels, image alt text, linked-image alt text, emphasis content, and strong content now promote to the paragraph owner like Markdig, with syntax/native source proof.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
-- [ ] Decide and close `UseAlertBlocks`.
+- [x] Decide and close `UseAlertBlocks`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
   - [x] Make titled OfficeIMO callouts an intentional default with an explicit Markdig-compatible boundary mode.
   - [x] Expose GitHub alert header marker tokens (`[!` and `]`) as syntax/native source fields so editor hosts can address the full alert header without raw-string rescans.
@@ -166,7 +166,8 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
   - [x] Broaden curated no-title alert fixture coverage across standard GitHub alert kinds, rich inline bodies, nested quotes, fenced code, lists, custom kinds, and multi-paragraph bodies.
   - [x] Cover Markdig alert parser boundaries for empty alerts, lazy-continuation body lines, lowercase kinds, and malformed markers that stay blockquotes.
   - [x] Prove lazy-continuation alert body syntax/native source spans and source edits stay addressable across mixed unquoted and quoted body lines.
-  - [ ] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
+  - [x] Run the upstream-style GitHub alert sweep, including all five GitHub Docs examples, separated alert documents, paragraph boundaries, and nested-list blockquote boundaries.
+  - [x] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
 - [x] Decide and close `UseCjkFriendlyEmphasis`.
   - [x] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof.
 - [ ] Keep `UsePreciseSourceLocation` partial until lossless trivia, original mapping, generated-node diagnostics, and broader source edits are complete.

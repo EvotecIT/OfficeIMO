@@ -10,13 +10,13 @@ Use it as the control board for parity slices:
 
 ## Summary
 
-Current inventory: 33 Markdig extension-family rows; 12 covered, 7 partial, 3 intentional, 11 gap.
+Current inventory: 33 Markdig extension-family rows; 13 covered, 6 partial, 3 intentional, 11 gap.
 
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 12 |
-| Partial | 7 |
+| Covered | 13 |
+| Partial | 6 |
 | Intentional | 3 |
 | Gap | 11 |
 
@@ -26,7 +26,7 @@ Current inventory: 33 Markdig extension-family rows; 12 covered, 7 partial, 3 in
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `UseAbbreviations` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep abbreviation comparison, list-contained source-token, native source-edit, and writer fixtures aligned as lossless trivia work expands. |
 | `UseAdvancedExtensions` | `Intentional` | Intentional difference | Not planned | Not planned | Intentional difference | Documented | Keep this row as a roll-up guard; do not implement as a broad on switch. |
-| `UseAlertBlocks` | `Partial` | Core plus renderer policy | No-title, empty, lazy-continuation, lowercase, malformed-marker, and titled-boundary behavior covered | Callout/alert marker, kind, title, body, lazy-continuation body, and quote source fields are exposed | Has opt-in Markdig alert HTML fallback plus curated writer/reparse proof | Has expanded alert comparison plus lazy-continuation syntax/native/source-edit proof; needs upstream-style GFM sweep | Run an upstream-style GFM alert sweep and close any source edge cases it reveals. |
+| `UseAlertBlocks` | `Covered` | Renderer/host policy | Covered | Covered | Covered | Covered | Keep alert comparison, source/native, and writer fixtures aligned as broader GFM and lossless trivia work expands. |
 | `UseAutoIdentifiers` | `Covered` | Renderer/host policy | Covered | Covered | Covered | Covered | Keep slug-style and heading-source fixtures aligned as broader renderer profiles evolve. |
 | `UseAutoLinks` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep broader GFM fixture breadth separate from the Markdig UseAutoLinks row. |
 | `UseBootstrap` | `Intentional` | Renderer/host policy | Not planned | Not planned | Intentional difference | Documented | Keep theme/rendering presets separate from parser parity. |

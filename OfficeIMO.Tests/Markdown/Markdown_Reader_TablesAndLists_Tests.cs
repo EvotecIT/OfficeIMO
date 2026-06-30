@@ -455,7 +455,7 @@ continuation
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<ul><li>item continuation</li></ul>", html, StringComparison.Ordinal);
+            Assert.Contains("<ul><li>item\ncontinuation</li></ul>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -470,7 +470,7 @@ continuation
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<ol><li>item continuation</li></ol>", html, StringComparison.Ordinal);
+            Assert.Contains("<ol><li>item\ncontinuation</li></ol>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -515,7 +515,7 @@ after
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<ul><li><p>item</p><p>code after</p></li></ul>", html, StringComparison.Ordinal);
+            Assert.Contains("<ul><li><p>item</p><p>code\nafter</p></li></ul>", html, StringComparison.Ordinal);
         }
 
         [Fact]

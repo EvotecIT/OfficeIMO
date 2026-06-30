@@ -418,13 +418,25 @@ public static partial class MarkdownReader {
 
         if (collected.Count == 0) return false;
 
-        var (blocks, _) = ParseNestedMarkdownBlocks(collectedSourceLines, options, state);
+        var nestedQuoteOptions = GetNestedListQuoteOptions(options);
+        var (blocks, _) = ParseNestedMarkdownBlocks(collectedSourceLines, nestedQuoteOptions, state);
         if (blocks.Count > 0 && blocks[0] is QuoteBlock parsedQuote) {
             quote = parsedQuote;
             index = j;
             return true;
         }
         return false;
+    }
+
+    private static MarkdownReaderOptions GetNestedListQuoteOptions(MarkdownReaderOptions options) {
+        if (!options.Callouts
+            || options.CalloutTitleMode != MarkdownCalloutTitleMode.MarkdigCompatible) {
+            return options;
+        }
+
+        var nestedOptions = CloneOptionsWithoutFrontMatter(options);
+        nestedOptions.Callouts = false;
+        return nestedOptions;
     }
 
     private static bool IsNestedListLineForParentItem(string line, int itemLevelAbs, int continuationIndent, MarkdownReaderOptions options) {

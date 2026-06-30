@@ -427,6 +427,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "note-title-stays-blockquote", "> [!NOTE] Title\n> Body" };
         yield return new object[] { "note-strong-title-stays-blockquote", "> [!NOTE] **Title**\n> Body" };
         yield return new object[] { "custom-title-stays-blockquote", "> [!CUSTOM] Title\n> Body" };
+        yield return new object[] { "github-docs-note", "> [!NOTE]\n> Useful information that users should know, even when skimming content." };
+        yield return new object[] { "github-docs-tip", "> [!TIP]\n> Helpful advice for doing things better or more easily." };
+        yield return new object[] { "github-docs-important", "> [!IMPORTANT]\n> Key information users need to know to achieve their goal." };
+        yield return new object[] { "github-docs-warning", "> [!WARNING]\n> Urgent info that needs immediate user attention to avoid problems." };
+        yield return new object[] { "github-docs-caution", "> [!CAUTION]\n> Advises about risks or negative outcomes of certain actions." };
+        yield return new object[] { "github-docs-five-alerts-separated", "> [!NOTE]\n> Useful information that users should know, even when skimming content.\n\n> [!TIP]\n> Helpful advice for doing things better or more easily.\n\n> [!IMPORTANT]\n> Key information users need to know to achieve their goal.\n\n> [!WARNING]\n> Urgent info that needs immediate user attention to avoid problems.\n\n> [!CAUTION]\n> Advises about risks or negative outcomes of certain actions." };
+        yield return new object[] { "alert-between-paragraphs", "Before\n\n> [!NOTE]\n> Body\n\nAfter" };
+        yield return new object[] { "alert-inside-list-item-boundary", "- item\n  > [!NOTE]\n  > Body" };
     }
 
     [Theory]

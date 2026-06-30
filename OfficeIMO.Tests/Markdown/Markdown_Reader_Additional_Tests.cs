@@ -887,7 +887,7 @@ Other: Value
             Assert.Equal(2, defList.Entries.Count);
             Assert.Equal("Term", defList.Entries[0].Term.RenderMarkdown());
             Assert.Collection(defList.Entries[0].DefinitionBlocks,
-                block => Assert.Equal("First paragraph continued", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => Assert.Equal("First paragraph\ncontinued", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.Equal("Second paragraph", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
             Assert.Equal("Other", defList.Entries[1].Term.RenderMarkdown());
             Assert.Equal("Value", Assert.IsType<ParagraphBlock>(Assert.Single(defList.Entries[1].DefinitionBlocks)).Inlines.RenderMarkdown());
