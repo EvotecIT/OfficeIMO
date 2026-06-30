@@ -275,5 +275,24 @@ namespace OfficeIMO.Tests {
                 Assert.Throws<InvalidOperationException>(() => result.EnsureValid());
             }
         }
+
+        [Fact]
+        public void Test_ContentControlFormValidationJsonEscapesControlCharacters() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithControlCharacterFormKeys.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddStructuredDocumentTag("Contoso", "Client", "ClientName");
+
+                WordContentControlFormValidationResult result = document.ValidateContentControlValues(new Dictionary<string, object?> {
+                    ["Bad\u0001Key"] = "Northwind"
+                });
+
+                string json = result.ToJson();
+
+                Assert.Contains("Bad\\u0001Key", json, StringComparison.Ordinal);
+                using JsonDocument parsed = JsonDocument.Parse(json);
+                Assert.Equal("Bad\u0001Key", parsed.RootElement.GetProperty("suppliedKeys")[0].GetString());
+            }
+        }
     }
 }

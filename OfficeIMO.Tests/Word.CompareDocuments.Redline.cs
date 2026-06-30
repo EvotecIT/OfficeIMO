@@ -6,6 +6,8 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -167,6 +169,38 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(body.Descendants<DeletedRun>());
                 Assert.Contains(redline.Paragraphs, paragraph => paragraph.Text.Contains("Run formatting changed.", StringComparison.Ordinal));
             }
+        }
+
+        [Fact]
+        public void CompareStructureRedlineTracksReviewFindingsWhenFeatureFindingsAreDisabled() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_review_without_feature_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Source note.");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_review_without_feature_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Review target").AddComment("Alice Reviewer", "AR", "Target note.");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_review_without_feature_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    TrackFeatureFindings = false,
+                    TrackReviewFindings = true
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.Comment);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            Assert.Contains(body.Descendants<InsertedRun>(), run => run.InnerText.Contains("Target note.", StringComparison.Ordinal));
+            Assert.Contains(body.Descendants<DeletedRun>(), run => run.InnerText.Contains("Source note.", StringComparison.Ordinal));
         }
 
         [Fact]
@@ -1143,6 +1177,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureImageRedlineSkipsNonImageDrawingsWhenMappingIndexes() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_non_image_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Before drawing");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_non_image_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Before drawing");
+                document._document.Body!.Append(new Paragraph(new Run(CreateNonImageDrawing())));
+                document.AddParagraph().AddImage(Path.Combine(_directoryWithImages, "EvotecLogo.png"), 80, 40);
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_non_image_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new HashSet<WordComparisonScope> {
+                            WordComparisonScope.Image
+                        }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            InsertedRun insertedImage = Assert.Single(body.Descendants<InsertedRun>(), run => run.Descendants<A.Blip>().Any());
+            Assert.Equal("OfficeIMO Tests", insertedImage.Author?.Value);
+            Assert.DoesNotContain(body.Descendants<InsertedRun>(), run =>
+                run.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() &&
+                !run.Descendants<A.Blip>().Any());
+        }
+
+        [Fact]
         public void CompareStructureCreatesInPlaceTargetRedlineForDeletedImages() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -2005,6 +2079,20 @@ namespace OfficeIMO.Tests {
             }
 
             return table;
+        }
+
+        private static DocumentFormat.OpenXml.Wordprocessing.Drawing CreateNonImageDrawing() {
+            return new DocumentFormat.OpenXml.Wordprocessing.Drawing(
+                new DW.Inline(
+                    new DW.Extent { Cx = 914400L, Cy = 457200L },
+                    new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
+                    new DW.DocProperties { Id = 9001U, Name = "Non-image drawing" },
+                    new DW.NonVisualGraphicFrameDrawingProperties(),
+                    new A.Graphic(
+                        new A.GraphicData(
+                            new A.ShapeProperties()) {
+                            Uri = "http://schemas.microsoft.com/office/word/2010/wordprocessingShape"
+                        })));
         }
     }
 }

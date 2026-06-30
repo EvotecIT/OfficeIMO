@@ -1,4 +1,5 @@
 using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace OfficeIMO.Word {
@@ -201,8 +202,20 @@ namespace OfficeIMO.Word {
                     case '\t':
                         builder.Append("\\t");
                         break;
+                    case '\b':
+                        builder.Append("\\b");
+                        break;
+                    case '\f':
+                        builder.Append("\\f");
+                        break;
                     default:
-                        builder.Append(character);
+                        if (char.IsControl(character)) {
+                            builder.Append("\\u");
+                            builder.Append(((int)character).ToString("x4", CultureInfo.InvariantCulture));
+                        } else {
+                            builder.Append(character);
+                        }
+
                         break;
                 }
             }
