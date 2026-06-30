@@ -31,6 +31,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? avoidWidowAndOrphan = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
+            byte? verticalCharacterAlignment = null;
             LegacyDocParagraphShading? paragraphShading = null;
             LegacyDocParagraphBorders? paragraphBorders = null;
             IReadOnlyList<LegacyDocTabStop>? tabStops = null;
@@ -72,6 +73,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         ReadSupportedNumberingProperties(numberingProperties, out numberingListIndex, out numberingLevel);
                         break;
+                    case TextAlignment textAlignment:
+                        verticalCharacterAlignment = ReadSupportedVerticalCharacterAlignment(textAlignment);
+                        break;
                     case Shading shading:
                         paragraphShading = ReadSupportedParagraphShading(shading);
                         break;
@@ -85,7 +89,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, vertical character alignment, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
@@ -104,6 +108,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 avoidWidowAndOrphan,
                 numberingListIndex,
                 numberingLevel,
+                verticalCharacterAlignment,
                 null,
                 null,
                 tabStops,
@@ -128,6 +133,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 paragraphShading,
                 paragraphBorders);
+        }
+
+        private static byte ReadSupportedVerticalCharacterAlignment(TextAlignment textAlignment) {
+            VerticalTextAlignmentValues value = textAlignment.Val?.Value ?? VerticalTextAlignmentValues.Auto;
+            if (value == VerticalTextAlignmentValues.Auto) {
+                return 0;
+            } else if (value == VerticalTextAlignmentValues.Baseline) {
+                return 1;
+            } else if (value == VerticalTextAlignmentValues.Top) {
+                return 2;
+            } else if (value == VerticalTextAlignmentValues.Center) {
+                return 3;
+            } else if (value == VerticalTextAlignmentValues.Bottom) {
+                return 4;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support paragraph vertical character alignment '{value}'.");
         }
 
         private static void ReadSupportedNumberingProperties(NumberingProperties numberingProperties, out ushort? numberingListIndex, out byte? numberingLevel) {

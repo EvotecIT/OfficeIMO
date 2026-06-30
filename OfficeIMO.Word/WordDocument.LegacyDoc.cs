@@ -1171,6 +1171,10 @@ namespace OfficeIMO.Word {
                 paragraph.ParagraphAlignment = alignment;
             }
 
+            if (paragraphFormat.VerticalCharacterAlignment != null && TryMapVerticalCharacterAlignment(paragraphFormat.VerticalCharacterAlignment.Value, out VerticalTextAlignmentValues verticalCharacterAlignment)) {
+                paragraph.VerticalCharacterAlignmentOnLine = verticalCharacterAlignment;
+            }
+
             if (paragraphFormat.SpacingBeforeTwips != null) {
                 paragraph.LineSpacingBefore = paragraphFormat.SpacingBeforeTwips;
             }
@@ -1228,6 +1232,29 @@ namespace OfficeIMO.Word {
                     && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
                     paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment, leader);
                 }
+            }
+        }
+
+        private static bool TryMapVerticalCharacterAlignment(byte alignment, out VerticalTextAlignmentValues verticalCharacterAlignment) {
+            switch (alignment) {
+                case 0:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Auto;
+                    return true;
+                case 1:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Baseline;
+                    return true;
+                case 2:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Top;
+                    return true;
+                case 3:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Center;
+                    return true;
+                case 4:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Bottom;
+                    return true;
+                default:
+                    verticalCharacterAlignment = VerticalTextAlignmentValues.Auto;
+                    return false;
             }
         }
 

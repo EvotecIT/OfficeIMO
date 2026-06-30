@@ -26,6 +26,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmPIlvl = 0x260A;
         private const ushort SprmPIlfo = 0x460B;
+        private const ushort SprmPWAlignFont = 0x4439;
         private const ushort SprmTFCantSplit = 0x3403;
         private const ushort SprmTTableHeader = 0x3404;
         private const ushort SprmTFCantSplit90 = 0x3466;
@@ -178,6 +179,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? avoidWidowAndOrphan = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
+            byte? verticalCharacterAlignment = null;
             LegacyDocParagraphShading? paragraphShading = null;
             LegacyDocParagraphBorder paragraphTopBorder = default;
             LegacyDocParagraphBorder paragraphLeftBorder = default;
@@ -290,6 +292,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     ushort ilfo = LegacyDocFib.ReadUInt16(bytes, offset + 2);
                     if (ilfo > 0) {
                         numberingListIndex = ilfo;
+                    }
+
+                    offset += 4;
+                    continue;
+                }
+
+                if (sprm == SprmPWAlignFont) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    ushort verticalAlignment = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    if (verticalAlignment <= 4) {
+                        verticalCharacterAlignment = (byte)verticalAlignment;
                     }
 
                     offset += 4;
@@ -551,6 +567,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 avoidWidowAndOrphan,
                 numberingListIndex,
                 numberingLevel,
+                verticalCharacterAlignment,
                 isInTable,
                 isTableTerminatingParagraph,
                 tabStops,

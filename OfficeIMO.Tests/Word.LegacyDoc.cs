@@ -694,6 +694,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphVerticalCharacterAlignment() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphVerticalCharacterAlignment();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("vertical alignment", paragraph.Text);
+            Assert.Equal(VerticalTextAlignmentValues.Center, paragraph.VerticalCharacterAlignmentOnLine);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelParagraphTabStops() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelParagraphTabStops();
 
@@ -3522,6 +3536,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphVerticalCharacterAlignmentAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("vertical alignment");
+                    paragraph.VerticalCharacterAlignmentOnLine = VerticalTextAlignmentValues.Center;
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x39, 0x44, 0x03, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmPWAlignFont for centered vertical character alignment.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph reloadedParagraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("vertical alignment", reloadedParagraph.Text);
+                Assert.Equal(VerticalTextAlignmentValues.Center, reloadedParagraph.VerticalCharacterAlignmentOnLine);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphPaginationFlagsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -5812,11 +5854,11 @@ namespace OfficeIMO.Tests {
                     paragraphProperties = headerParagraph._paragraph.PrependChild(new ParagraphProperties());
                 }
 
-                paragraphProperties.Append(new TextAlignment { Val = VerticalTextAlignmentValues.Center });
+                paragraphProperties.Append(new SuppressLineNumbers());
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("Unsupported paragraph property: textAlignment", exception.Message);
+                Assert.Contains("Unsupported paragraph property: suppressLineNumbers", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -5837,12 +5879,12 @@ namespace OfficeIMO.Tests {
                     paragraphProperties = footnoteBody._paragraph.PrependChild(new ParagraphProperties());
                 }
 
-                paragraphProperties.Append(new TextAlignment { Val = VerticalTextAlignmentValues.Center });
+                paragraphProperties.Append(new SuppressLineNumbers());
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("supported paragraph formatting", exception.Message);
-                Assert.Contains("Unsupported paragraph property: textAlignment", exception.Message);
+                Assert.Contains("Unsupported paragraph property: suppressLineNumbers", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -7821,6 +7863,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithParagraphVerticalCharacterAlignment() {
+                const string text = "vertical alignment\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithParagraphVerticalCharacterAlignment(text, textOffset, papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithStyleLevelParagraphTabStops() {
                 const string text = "style tabs\r";
                 const int textOffset = 0x200;
@@ -8829,6 +8887,36 @@ namespace OfficeIMO.Tests {
                         [2] = CreateParagraphPropertiesPapx(
                             CreateParagraphSprm(0x260A, 1),
                             CreateParagraphSprm(0x460B, 1, 0))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithParagraphVerticalCharacterAlignment(string text, int textOffset, int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int end = textOffset + textBytes.Length;
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, end },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x4439, 3, 0))
                     });
 
                 if (stream.Length < fibLength) {

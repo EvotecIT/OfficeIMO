@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? avoidWidowAndOrphan = null,
             ushort? numberingListIndex = null,
             byte? numberingLevel = null,
+            byte? verticalCharacterAlignment = null,
             bool? isInTable = null,
             bool? isTableTerminatingParagraph = null,
             IReadOnlyList<LegacyDocTabStop>? tabStops = null,
@@ -59,6 +60,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : null;
             NumberingLevel = numberingLevel.HasValue && numberingLevel.Value <= 8
                 ? numberingLevel
+                : null;
+            VerticalCharacterAlignment = verticalCharacterAlignment.HasValue && verticalCharacterAlignment.Value <= 4
+                ? verticalCharacterAlignment
                 : null;
             IsInTable = isInTable;
             IsTableTerminatingParagraph = isTableTerminatingParagraph;
@@ -151,6 +155,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal byte? NumberingLevel { get; }
 
+        internal byte? VerticalCharacterAlignment { get; }
+
         internal bool? IsInTable { get; }
 
         internal bool? IsTableTerminatingParagraph { get; }
@@ -219,6 +225,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || AvoidWidowAndOrphan != null
             || NumberingListIndex != null
             || NumberingLevel != null
+            || VerticalCharacterAlignment != null
             || IsInTable != null
             || IsTableTerminatingParagraph != null
             || TabStops.Count > 0
@@ -263,6 +270,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
+                && VerticalCharacterAlignment == other.VerticalCharacterAlignment
                 && IsInTable == other.IsInTable
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
                 && TabStopsEqual(TabStops, other.TabStops)
@@ -312,6 +320,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();
+            hash = (hash * 31) + VerticalCharacterAlignment.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
             hash = (hash * 31) + TableLeftIndentTwips.GetHashCode();
