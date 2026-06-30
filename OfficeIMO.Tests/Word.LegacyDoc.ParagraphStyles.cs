@@ -160,6 +160,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStyleNextStyle() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStyleNextStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Heading Next");
+            Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Styles styles = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style headingStyle = styles
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == WordParagraphStyles.Heading1.ToStringStyle());
+            Assert.Equal(
+                WordParagraphStyles.Heading2.ToStringStyle(),
+                headingStyle.GetFirstChild<NextParagraphStyle>()?.Val?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStylePaginationFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStylePaginationFlags();
 
@@ -341,6 +363,45 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInParagraphStyleNextStyleAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string heading1StyleId = WordParagraphStyles.Heading1.ToStringStyle();
+            string heading2StyleId = WordParagraphStyles.Heading2.ToStringStyle();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == heading1StyleId)
+                        ?? new Style { Type = StyleValues.Paragraph, StyleId = heading1StyleId };
+                    if (headingStyle.Parent == null) {
+                        styles.Append(headingStyle);
+                    }
+
+                    headingStyle.GetFirstChild<NextParagraphStyle>()?.Remove();
+                    headingStyle.Append(new NextParagraphStyle { Val = heading2StyleId });
+
+                    document.AddParagraph("Native built-in next style source").SetStyle(WordParagraphStyles.Heading1);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Native built-in next style source", paragraph.Text);
+                Assert.Equal(heading1StyleId, paragraph.StyleId);
+
+                Styles reloadedStyles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style headingStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == heading1StyleId);
+                Assert.Equal(heading2StyleId, headingStyleAfterReload.GetFirstChild<NextParagraphStyle>()?.Val?.Value);
+            } finally {
+                if (File.Exists(docPath)) {
+                    File.Delete(docPath);
+                }
+            }
+        }
+
         private static class LegacyDocParagraphStyleFixture {
             private const int FibLength = 0x1AA;
             private const int TextOffset = 0x200;
@@ -462,6 +523,38 @@ namespace OfficeIMO.Tests {
                     text,
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithBuiltInParagraphStyleNextStyle() {
+                const string text = "Heading Next\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [1] = new LegacyDocStyleDefinition(
+                        "heading 1",
+                        basedOnStyleIndex: 0,
+                        nextStyleIndex: 2,
+                        paragraphUpx: null,
+                        characterUpx: null),
+                    [2] = new LegacyDocStyleDefinition(
+                        "heading 2",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: null,
+                        characterUpx: null)
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(1)
                     },
                     styleSheet.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet);

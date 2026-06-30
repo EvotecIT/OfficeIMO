@@ -304,7 +304,8 @@ just to reserve names.
   - [x] Preserve custom-to-custom DOC paragraph style inheritance, keeping the
     child style's OpenXML `basedOn` link and the base style's own formatting.
   - [x] Project DOC paragraph style next-style metadata from STSH records into
-    OpenXML `w:next` style links for supported built-in and custom styles.
+    OpenXML `w:next` style links for fixture-backed built-in Heading and custom
+    styles.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
@@ -497,8 +498,8 @@ just to reserve names.
     built-in Heading styles by emitting the required built-in base style records
     even when the Heading style is not used directly.
   - [x] Write supported paragraph style next-style metadata into native DOC STSH
-    records and reload it through the legacy reader for built-in and custom
-    next-style links.
+    records and reload it through the legacy reader for fixture-backed built-in
+    Heading and custom next-style links.
   - [x] Write direct paragraph tab-stop PAPX records, including clear stops,
     and reload them through the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word
