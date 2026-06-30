@@ -214,6 +214,10 @@ namespace OfficeIMO.Word {
             if (sectionFormat.HasColumnSeparator) {
                 section.HasColumnSeparator = true;
             }
+
+            if (sectionFormat.PageNumberStart != null || sectionFormat.PageNumberFormat != null) {
+                section.AddPageNumbering(sectionFormat.PageNumberStart, sectionFormat.PageNumberFormat);
+            }
         }
 
         private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet) {

@@ -6,6 +6,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSBkc = 0x3009;
         private const ushort SprmSCcolumns = 0x500B;
         private const ushort SprmSDxaColumns = 0x900C;
+        private const ushort SprmSNfcPgn = 0x300E;
+        private const ushort SprmSFPgnRestart = 0x3011;
+        private const ushort SprmSPgnStart97 = 0x501C;
+        private const ushort SprmSPgnStart = 0x7044;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSFTitlePage = 0x300A;
@@ -110,6 +114,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? columnCount = null;
             int? columnSpacing = null;
             bool hasColumnSeparator = false;
+            bool restartPageNumbering = false;
+            int? pageNumberStart = null;
+            NumberFormatValues? pageNumberFormat = null;
             SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
@@ -154,10 +161,31 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmSNfcPgn) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    pageNumberFormat = ReadPageNumberFormat(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmSFPgnRestart) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    restartPageNumbering = bytes[offset + 2] != 0;
+                    offset += 3;
+                    continue;
+                }
+
                 if (sprm == SprmSDyaHdrTop
                     || sprm == SprmSDyaHdrBottom
                     || sprm == SprmSCcolumns
                     || sprm == SprmSDxaColumns
+                    || sprm == SprmSPgnStart97
                     || sprm == SprmSXaPage
                     || sprm == SprmSYaPage
                     || sprm == SprmSDxaLeft
@@ -182,6 +210,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmSDxaColumns:
                             columnSpacing = value;
+                            break;
+                        case SprmSPgnStart97:
+                            pageNumberStart = value;
                             break;
                         case SprmSXaPage:
                             pageWidth = value;
@@ -210,6 +241,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmSPgnStart) {
+                    if (offset + 6 > end) {
+                        break;
+                    }
+
+                    int value = LegacyDocFib.ReadInt32(bytes, offset + 2);
+                    if (value >= 0) {
+                        pageNumberStart = value;
+                    }
+
+                    offset += 6;
+                    continue;
+                }
+
                 if (!TryGetSprmOperandLength(bytes, offset, end, out int operandLength)) {
                     break;
                 }
@@ -221,7 +266,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 orientation = PageOrientationValues.Landscape;
             }
 
-            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator);
+            return new LegacyDocSectionFormat(sectionBreakType, pageWidth, pageHeight, orientation, marginTop, marginRight, marginBottom, marginLeft, headerDistance, footerDistance, gutter, differentFirstPage, columnCount, columnSpacing, hasColumnSeparator, restartPageNumbering ? pageNumberStart ?? 0 : null, pageNumberFormat);
+        }
+
+        private static NumberFormatValues? ReadPageNumberFormat(byte value) {
+            switch (value) {
+                case 0:
+                    return NumberFormatValues.Decimal;
+                case 1:
+                    return NumberFormatValues.UpperRoman;
+                case 2:
+                    return NumberFormatValues.LowerRoman;
+                case 3:
+                    return NumberFormatValues.UpperLetter;
+                case 4:
+                    return NumberFormatValues.LowerLetter;
+                default:
+                    return null;
+            }
         }
 
         private static SectionMarkValues? ReadSectionBreakType(byte value) {

@@ -388,6 +388,12 @@ just to reserve names.
   - [x] Project single-section page size, orientation, margins, header/footer
     distance, and gutter from DOC `PlcfSed`/`Sepx` records into normal
     OfficeIMO section properties.
+  - [x] Project simple equal-width section columns and separator lines from
+    DOC section records into normal OfficeIMO section properties, and preserve
+    them through native DOC save/reload.
+  - [x] Project simple section page numbering start and decimal/roman/letter
+    formats from DOC section records into normal OfficeIMO section properties,
+    and preserve them through native DOC save/reload.
   - [x] Report multiple section descriptor records as unsupported/preserve-only
     before multi-section projection exists, so native DOC re-save is blocked
     instead of flattening section boundaries.
@@ -596,6 +602,13 @@ just to reserve names.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
+  - [x] Write simple equal-width section column count, spacing, and separator
+    settings, then reload them through the legacy reader while blocking
+    unequal section columns before native `.doc` bytes are committed.
+  - [x] Write simple section page numbering restart/start and
+    decimal/roman/letter formats, then reload them through the legacy reader
+    while blocking unsupported page-number formats before native `.doc` bytes
+    are committed.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

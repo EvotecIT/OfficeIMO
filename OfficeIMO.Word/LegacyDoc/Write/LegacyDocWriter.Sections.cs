@@ -13,6 +13,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSBkc = 0x3009;
         private const ushort SprmSCcolumns = 0x500B;
         private const ushort SprmSDxaColumns = 0x900C;
+        private const ushort SprmSNfcPgn = 0x300E;
+        private const ushort SprmSFPgnRestart = 0x3011;
+        private const ushort SprmSPgnStart97 = 0x501C;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
         private const ushort SprmSFTitlePage = 0x300A;
@@ -41,6 +44,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? columnCount = null;
             int? columnSpacing = null;
             bool hasColumnSeparator = false;
+            int? pageNumberStart = null;
+            NumberFormatValues? pageNumberFormat = null;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
@@ -78,6 +83,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Columns columns:
                         ReadSupportedColumns(columns, out columnCount, out columnSpacing, out hasColumnSeparator);
                         break;
+                    case PageNumberType pageNumberType:
+                        pageNumberStart = ReadPageNumberStart(pageNumberType.Start);
+                        pageNumberFormat = ReadPageNumberFormat(pageNumberType.Format);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports simple section page setup only. Unsupported section property: {property.LocalName}.");
                 }
@@ -98,7 +107,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 differentFirstPage,
                 columnCount,
                 columnSpacing,
-                hasColumnSeparator);
+                hasColumnSeparator,
+                pageNumberStart,
+                pageNumberFormat);
         }
 
         private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
@@ -157,6 +168,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return actual;
         }
 
+        private static int? ReadPageNumberStart(OpenXmlSimpleType? value) {
+            if (value == null) {
+                return null;
+            }
+
+            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+                || actual < 0
+                || actual > ushort.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports section page number starts only within the Word 97-2003 unsigned range.");
+            }
+
+            return actual;
+        }
+
+        private static NumberFormatValues? ReadPageNumberFormat(EnumValue<NumberFormatValues>? value) {
+            if (value == null) {
+                return null;
+            }
+
+            return GetPageNumberFormatOperand(value.Value) != null
+                ? value.Value
+                : throw new NotSupportedException($"Native DOC saving does not support section page number format '{value.Value}'.");
+        }
+
         private static byte[] CreateSepx(LegacyDocSectionFormat sectionFormat) {
             var grpprl = new List<byte>();
 
@@ -174,6 +209,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (sectionFormat.HasColumnSeparator) {
                 AddSingleByteSprm(grpprl, SprmSLBetween, 1);
+            }
+
+            if (sectionFormat.PageNumberFormat != null) {
+                AddSingleByteSprm(grpprl, SprmSNfcPgn, GetPageNumberFormatOperand(sectionFormat.PageNumberFormat.Value)!.Value);
+            }
+
+            if (sectionFormat.PageNumberStart != null) {
+                AddSingleByteSprm(grpprl, SprmSFPgnRestart, 1);
+                AddUInt16Sprm(grpprl, SprmSPgnStart97, sectionFormat.PageNumberStart.Value);
             }
 
             if (sectionFormat.HeaderDistanceTwips != null) {
@@ -253,6 +297,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving does not support section break type '{sectionBreakType}'.");
+        }
+
+        private static byte? GetPageNumberFormatOperand(NumberFormatValues format) {
+            if (format == NumberFormatValues.Decimal) {
+                return 0;
+            }
+
+            if (format == NumberFormatValues.UpperRoman) {
+                return 1;
+            }
+
+            if (format == NumberFormatValues.LowerRoman) {
+                return 2;
+            }
+
+            if (format == NumberFormatValues.UpperLetter) {
+                return 3;
+            }
+
+            if (format == NumberFormatValues.LowerLetter) {
+                return 4;
+            }
+
+            return null;
         }
 
         private static void WritePlcfSed(byte[] table, int offset, IReadOnlyList<LegacyDocWritableSectionRecord> sectionRecords) {

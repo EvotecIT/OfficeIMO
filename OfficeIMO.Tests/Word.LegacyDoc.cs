@@ -1284,6 +1284,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionPageNumbering() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionPageNumbering();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.Empty(result.UnsupportedFeatures);
+
+                WordDocument document = result.Document;
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal("Page-numbered section", Assert.Single(document.Paragraphs).Text);
+                PageNumberType pageNumberType = document.Sections[0].PageNumberType;
+                Assert.Equal(3, pageNumberType.Start?.Value);
+                Assert.Equal(NumberFormatValues.UpperRoman, pageNumberType.Format?.Value);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                PageNumberType reloadedPageNumberType = reloaded.Sections[0].PageNumberType;
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(3, reloadedPageNumberType.Start?.Value);
+                Assert.Equal(NumberFormatValues.UpperRoman, reloadedPageNumberType.Format?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEvenOddHeaderDocumentFlag() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFacingPagesDop("Facing pages body");
 
@@ -4004,6 +4034,55 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionPageNumberingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Page numbers");
+                    document.Sections[0].AddPageNumbering(3, NumberFormatValues.UpperRoman);
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x300E, 1);
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x3011, 1);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x501C, 3);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Page numbers", Assert.Single(reloaded.Paragraphs).Text);
+                PageNumberType pageNumberType = reloaded.Sections[0].PageNumberType;
+                Assert.Equal(3, pageNumberType.Start?.Value);
+                Assert.Equal(NumberFormatValues.UpperRoman, pageNumberType.Format?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionPageNumberFormatBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Unsupported page number format");
+                document.Sections[0].AddPageNumbering(1, NumberFormatValues.Bullet);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("page number format", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnequalSectionColumnsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4847,6 +4926,32 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithSectionPageNumbering() {
+                const string paragraph = "Page-numbered section";
+                string text = paragraph + "\r";
+                const int sepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(pageNumberStart: 3, pageNumberFormat: 1, restartPageNumbering: true));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
@@ -5262,7 +5367,10 @@ namespace OfficeIMO.Tests {
                 bool titlePage = false,
                 int? columnCount = null,
                 int? columnSpacing = null,
-                bool columnSeparator = false) {
+                bool columnSeparator = false,
+                int? pageNumberStart = null,
+                byte? pageNumberFormat = null,
+                bool restartPageNumbering = false) {
                 var grpprl = new List<byte>();
                 if (sectionBreakType != null) {
                     AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
@@ -5285,6 +5393,15 @@ namespace OfficeIMO.Tests {
                     AddSingleByteSprm(grpprl, 0x3019, 1);
                 }
 
+                if (pageNumberFormat != null) {
+                    AddSingleByteSprm(grpprl, 0x300E, pageNumberFormat.Value);
+                }
+
+                if (restartPageNumbering) {
+                    AddSingleByteSprm(grpprl, 0x3011, 1);
+                }
+
+                AddUInt16SprmIfPresent(grpprl, 0x501C, pageNumberStart);
                 AddUInt16SprmIfPresent(grpprl, 0xB01F, pageWidth);
                 AddUInt16SprmIfPresent(grpprl, 0xB020, pageHeight);
                 AddUInt16SprmIfPresent(grpprl, 0xB021, marginLeft);
