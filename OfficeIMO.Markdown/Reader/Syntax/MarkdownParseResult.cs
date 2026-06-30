@@ -145,7 +145,19 @@ public sealed class MarkdownParseResult {
         MarkdownSyntaxNode node,
         out MarkdownSourceSlice slice,
         out MarkdownOriginalSourceSliceFailureReason failureReason) {
-        if (node == null || !node.SourceSpan.HasValue) {
+        if (node == null) {
+            slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
+            return false;
+        }
+
+        if (node.IsGenerated) {
+            slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode;
+            return false;
+        }
+
+        if (!node.SourceSpan.HasValue) {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
             return false;

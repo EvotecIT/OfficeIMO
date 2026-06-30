@@ -2136,7 +2136,7 @@ beta
 
     [Fact]
     public void Parse_Reports_Generated_Definition_Child_Diagnostics_For_Rebuilt_Paragraph_Wrappers() {
-        var options = new MarkdownReaderOptions();
+        var options = new MarkdownReaderOptions { PreserveTrivia = true };
         options.DocumentTransforms.Add(new RewriteFirstDefinitionBodyTransform("generated"));
 
         var native = MarkdownNativeDocument.Parse("Term: original", options);
@@ -2161,6 +2161,11 @@ beta
         Assert.Equal(nameof(ParagraphBlock), generatedParagraph.AssociatedObjectType);
         Assert.Same(paragraph.SyntaxNode, generatedParagraph.SyntaxNode);
         Assert.Same(paragraph.SourceBlock, generatedParagraph.AssociatedObject);
+
+        Assert.False(native.ParseResult.TryCreateOriginalSourceSlice(paragraph.SyntaxNode, out _, out var parseFailureReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, parseFailureReason);
+        Assert.False(native.TryCreateOriginalSourceSlice(paragraph, out _, out var nativeFailureReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, nativeFailureReason);
     }
 
     [Fact]

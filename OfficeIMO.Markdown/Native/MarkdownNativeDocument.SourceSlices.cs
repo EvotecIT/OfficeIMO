@@ -230,6 +230,10 @@ public sealed partial class MarkdownNativeDocument {
             return false;
         }
 
+        if (block.SyntaxNode.IsGenerated) {
+            return ParseResult.TryCreateOriginalSourceSlice(block.SyntaxNode, out slice, out failureReason);
+        }
+
         return TryCreateOriginalSourceSlice(block.SourceSpan, out slice, out failureReason);
     }
 

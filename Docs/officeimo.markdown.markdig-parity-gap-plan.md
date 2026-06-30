@@ -59,6 +59,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
   - [x] Diagnostics: report generated final syntax nodes at parse-result level, including path, index path, source fallback anchor, and associated semantic object details.
+  - [x] Diagnostics: original-source slice APIs reject generated syntax-node fallback anchors with a dedicated generated-node failure reason instead of treating them as exact original source.
   - [ ] Diagnostics: report precise fallback reasons when exact source preservation is unavailable.
   - [ ] Proof: add source-map and roundtrip tests after the mapping rules exist.
 - [ ] Optional parser gaps need product scope before implementation.
@@ -222,6 +223,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [ ] Add precise fallback diagnostics when exact source preservation is unavailable.
 - [x] Expose parse-result generated syntax diagnostics so final syntax nodes rebuilt from semantic content are visible without native-projection-specific checks.
+- [x] Return a dedicated original-source failure reason for generated syntax nodes so parse/native callers do not treat fallback anchors as byte-exact source.
 - [x] Expose live native-block and UI-safe snapshot source-field accessors so editor hosts can select repeated source fields by name and occurrence index without falling back to raw-string rescans.
 - [x] Return exact original-source slice failure reasons for parse/native callers and include those reasons in roundtrip source-edit fallback diagnostics.
 - [x] Expose native inline and inline-metadata source-slice APIs for normalized/original text so link targets, titles, formatting content, and similar inline source-backed values do not require raw-string rescans.

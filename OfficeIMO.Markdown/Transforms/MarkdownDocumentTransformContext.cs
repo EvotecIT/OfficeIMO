@@ -225,7 +225,19 @@ public sealed class MarkdownDocumentTransformContext {
         MarkdownSyntaxNode syntaxNode,
         out MarkdownSourceSlice slice,
         out MarkdownOriginalSourceSliceFailureReason failureReason) {
-        if (syntaxNode == null || !syntaxNode.SourceSpan.HasValue) {
+        if (syntaxNode == null) {
+            slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
+            return false;
+        }
+
+        if (syntaxNode.IsGenerated) {
+            slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode;
+            return false;
+        }
+
+        if (!syntaxNode.SourceSpan.HasValue) {
             slice = default;
             failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
             return false;

@@ -174,6 +174,7 @@ public static class MarkdownRoundtripWriter {
             MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved => "original reader input was not preserved",
             MarkdownOriginalSourceSliceFailureReason.AssociatedObjectNotFound => "no final syntax node was found for the associated object",
             MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable => "the requested node or field has no source span",
+            MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode => "the requested node was generated from semantic content and has no exact original source",
             MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent => "original reader input is not equivalent to normalized markdown",
             MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable => "the source span could not be mapped into original reader input",
             _ => "unknown original-source mapping failure"
