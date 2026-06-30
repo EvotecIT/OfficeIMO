@@ -323,6 +323,10 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "paragraph-backslash-hardbreak-continuation-standalone-attribute-is-consumed", "Paragraph\\\n{#intro .wide}" };
         yield return new object[] { "plain-text-no-space-attribute", "word{#plain .wide}" };
         yield return new object[] { "plain-text-plus-ending-no-space-attribute", "C++{#plain .wide}" };
+        yield return new object[] { "plain-text-trailing-backtick-no-space-attribute", "text`{#plain .wide}" };
+        yield return new object[] { "plain-text-trailing-double-backtick-no-space-attribute", "text``{#plain .wide}" };
+        yield return new object[] { "plain-text-only-backtick-no-space-attribute", "`{#plain .wide}" };
+        yield return new object[] { "plain-text-only-double-backtick-no-space-attribute", "``{#plain .wide}" };
         yield return new object[] { "escaped-star-no-space-attribute", "\\*{#esc .wide}" };
         yield return new object[] { "escaped-underscore-no-space-attribute", "\\_{#esc .wide}" };
         yield return new object[] { "escaped-backtick-no-space-attribute", "\\`{#esc .wide}" };

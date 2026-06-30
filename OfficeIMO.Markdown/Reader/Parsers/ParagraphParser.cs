@@ -412,11 +412,14 @@ public static partial class MarkdownReader {
 
             if (last == ')'
                 || last == ']'
-                || last == '`'
                 || last == '*'
                 || last == '_'
                 || last == '>') {
                 return true;
+            }
+
+            if (last == '`') {
+                return EndsWithClosingCodeSpan(candidate);
             }
 
             return last switch {
@@ -439,6 +442,20 @@ public static partial class MarkdownReader {
             }
 
             return slashCount % 2 == 1;
+        }
+
+        private static bool EndsWithClosingCodeSpan(string candidate) {
+            var closingStart = candidate.Length - 1;
+            while (closingStart > 0 && candidate[closingStart - 1] == '`') {
+                closingStart--;
+            }
+
+            if (closingStart == 0) {
+                return false;
+            }
+
+            var delimiter = candidate.Substring(closingStart);
+            return candidate.LastIndexOf(delimiter, closingStart - 1, StringComparison.Ordinal) >= 0;
         }
 
         private static bool EndsWithDelimitedRun(string candidate, string delimiter) =>

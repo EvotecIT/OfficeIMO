@@ -486,6 +486,46 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Theory]
+    [InlineData("text`{#plain .wide}\n", "text`", 6, 19)]
+    [InlineData("text``{#plain .wide}\n", "text``", 7, 20)]
+    [InlineData("`{#plain .wide}\n", "`", 2, 15)]
+    [InlineData("``{#plain .wide}\n", "``", 3, 16)]
+    public void UnmatchedBacktickRun_Paragraph_GenericAttributes_Preserve_NoSpace_Source_And_Target_Paragraph(
+        string markdown,
+        string expectedText,
+        int attributeStartColumn,
+        int attributeEndColumn) {
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        var attributes = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#plain .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, attributeStartColumn, 1, attributeEndColumn), attributes.SourceSpan);
+        Assert.True(paragraph.SourceSpan!.Value.Contains(attributes.SourceSpan!.Value));
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#plain .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal(expectedText, nativeParagraph.Text);
+        Assert.Same(nativeParagraph, field.Block);
+        Assert.Equal("{#plain .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, attributeStartColumn, 1, attributeEndColumn), field.SourceSpan);
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Theory]
     [InlineData("\\*{#esc .wide}\n", "*")]
     [InlineData("\\_{#esc .wide}\n", "_")]
     [InlineData("\\`{#esc .wide}\n", "`")]
