@@ -621,13 +621,13 @@ namespace OfficeIMO.Word {
             if (paragraphRuns.Count == 0) {
                 WordParagraph emptyParagraph = section.AddParagraph();
                 ApplyLegacyDocParagraphFormatting(emptyParagraph, paragraphFormat, styleSheet);
-                LegacyDocBookmarkProjection.Create(emptyParagraph, paragraphBlock.Bookmarks).EmitRemaining(emptyParagraph._paragraph);
+                LegacyDocBookmarkProjection.Create(paragraphBlock.Bookmarks, paragraphBlock.StartCharacter, paragraphBlock.EndCharacter).EmitRemaining(emptyParagraph._paragraph);
                 return;
             }
 
             WordParagraph paragraph = section.AddParagraph(string.Empty);
             ApplyLegacyDocParagraphFormatting(paragraph, paragraphFormat, styleSheet);
-            LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(paragraph, paragraphBlock.Bookmarks);
+            LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(paragraphBlock.Bookmarks, paragraphBlock.StartCharacter, paragraphBlock.EndCharacter);
             AddLegacyDocRuns(paragraph, paragraphRuns, notes, bookmarks);
             bookmarks.EmitRemaining(paragraph._paragraph);
         }

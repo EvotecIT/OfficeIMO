@@ -492,7 +492,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int nextSectionIndex = sections.Count > 1 ? 1 : sections.Count;
             bool reportedUnprojectedSectionBoundary = false;
             int currentParagraphStartCharacter = 0;
-            var projectedBookmarks = new HashSet<LegacyDocBookmark>();
+            var projectedBookmarkStarts = new HashSet<LegacyDocBookmark>();
+            var projectedBookmarkEnds = new HashSet<LegacyDocBookmark>();
             bool reportedUnprojectedBookmark = false;
 
             for (int characterIndex = 0; characterIndex < characters.Count; characterIndex++) {
@@ -679,6 +680,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 _bodyBlocks.Add(new LegacyDocParagraphBlock(
                     runs,
                     paragraphFormat,
+                    currentParagraphStartCharacter,
+                    paragraphEndCharacter,
                     ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter)));
                 currentRuns.Clear();
                 hasCurrentRun = false;
@@ -691,13 +694,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 var result = new List<LegacyDocBookmark>();
                 foreach (LegacyDocBookmark bookmark in bookmarks) {
-                    if (bookmark.StartCharacter < paragraphStartCharacter
-                        || bookmark.EndCharacter > paragraphEndCharacter) {
+                    bool containsStart = bookmark.StartCharacter >= paragraphStartCharacter
+                        && bookmark.StartCharacter <= paragraphEndCharacter;
+                    bool containsEnd = bookmark.EndCharacter >= paragraphStartCharacter
+                        && bookmark.EndCharacter <= paragraphEndCharacter;
+                    if (!containsStart && !containsEnd) {
                         continue;
                     }
 
                     result.Add(bookmark);
-                    projectedBookmarks.Add(bookmark);
+                    if (containsStart) {
+                        projectedBookmarkStarts.Add(bookmark);
+                    }
+
+                    if (containsEnd) {
+                        projectedBookmarkEnds.Add(bookmark);
+                    }
                 }
 
                 return result;
@@ -709,7 +721,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 foreach (LegacyDocBookmark bookmark in bookmarks) {
-                    if (!projectedBookmarks.Contains(bookmark)) {
+                    if (!projectedBookmarkStarts.Contains(bookmark) || !projectedBookmarkEnds.Contains(bookmark)) {
                         ReportUnprojectedBookmark(bookmark);
                     }
                 }
@@ -724,7 +736,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                     LegacyDocUnsupportedFeatureKind.Bookmark,
                     "DOC-BOOKMARK-RANGE-PRESENT",
-                    $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported same-paragraph body bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
+                    $"The legacy DOC contains bookmark '{bookmark.Name}' at character range {bookmark.StartCharacter}-{bookmark.EndCharacter} outside the currently supported body paragraph bookmark projection. The bookmark is preserved in the source file but is not projected into the OfficeIMO document.",
                     detailCode: "Fib:PlcfBkf"));
             }
 

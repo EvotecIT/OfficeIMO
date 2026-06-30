@@ -52,7 +52,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return Array.Empty<LegacyDocBookmark>();
                 }
 
-                bookmarks.Add(new LegacyDocBookmark(names[index], startCharacter, endCharacter));
+                bookmarks.Add(new LegacyDocBookmark(names[index], startCharacter, endCharacter, checked(index + 1).ToString()));
             }
 
             return bookmarks;

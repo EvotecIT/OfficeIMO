@@ -7,35 +7,42 @@ namespace OfficeIMO.Word {
         private sealed class LegacyDocBookmarkProjection {
             internal static LegacyDocBookmarkProjection Empty { get; } = new LegacyDocBookmarkProjection(Array.Empty<LegacyDocProjectedBookmark>());
 
-            private readonly IReadOnlyList<LegacyDocProjectedBookmark> _bookmarks;
             private readonly Dictionary<int, List<LegacyDocProjectedBookmark>> _starts;
             private readonly Dictionary<int, List<LegacyDocProjectedBookmark>> _ends;
             private readonly HashSet<int> _emittedPositions = new();
 
             private LegacyDocBookmarkProjection(IReadOnlyList<LegacyDocProjectedBookmark> bookmarks) {
-                _bookmarks = bookmarks;
                 _starts = bookmarks
+                    .Where(bookmark => bookmark.ProjectStart)
                     .GroupBy(bookmark => bookmark.StartCharacter)
                     .ToDictionary(group => group.Key, group => group.OrderByDescending(bookmark => bookmark.EndCharacter).ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal).ToList());
                 _ends = bookmarks
+                    .Where(bookmark => bookmark.ProjectEnd)
                     .GroupBy(bookmark => bookmark.EndCharacter)
                     .ToDictionary(group => group.Key, group => group.OrderByDescending(bookmark => bookmark.StartCharacter).ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal).ToList());
             }
 
-            internal static LegacyDocBookmarkProjection Create(WordParagraph paragraph, IReadOnlyList<LegacyDocBookmark> bookmarks) {
+            internal static LegacyDocBookmarkProjection Create(IReadOnlyList<LegacyDocBookmark> bookmarks, int paragraphStartCharacter, int paragraphEndCharacter) {
                 if (bookmarks.Count == 0) {
                     return Empty;
                 }
 
-                int nextBookmarkId = paragraph._document.BookmarkId;
                 LegacyDocProjectedBookmark[] projected = bookmarks
                     .OrderBy(bookmark => bookmark.StartCharacter)
                     .ThenByDescending(bookmark => bookmark.EndCharacter)
                     .ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal)
-                    .Select(bookmark => new LegacyDocProjectedBookmark(bookmark, (nextBookmarkId++).ToString()))
+                    .Select(bookmark => new LegacyDocProjectedBookmark(
+                        bookmark,
+                        IsWithinParagraph(bookmark.StartCharacter, paragraphStartCharacter, paragraphEndCharacter),
+                        IsWithinParagraph(bookmark.EndCharacter, paragraphStartCharacter, paragraphEndCharacter)))
+                    .Where(bookmark => bookmark.ProjectStart || bookmark.ProjectEnd)
                     .ToArray();
 
                 return new LegacyDocBookmarkProjection(projected);
+            }
+
+            private static bool IsWithinParagraph(int characterPosition, int paragraphStartCharacter, int paragraphEndCharacter) {
+                return characterPosition >= paragraphStartCharacter && characterPosition <= paragraphEndCharacter;
             }
 
             internal bool HasMarkers(int? characterPosition) {
@@ -74,8 +81,8 @@ namespace OfficeIMO.Word {
             }
 
             internal void EmitRemaining(OpenXmlCompositeElement target) {
-                foreach (int position in _bookmarks
-                    .SelectMany(bookmark => new[] { bookmark.StartCharacter, bookmark.EndCharacter })
+                foreach (int position in _starts.Keys
+                    .Concat(_ends.Keys)
                     .Distinct()
                     .OrderBy(position => position)) {
                     EmitAt(target, position);
@@ -84,11 +91,13 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class LegacyDocProjectedBookmark {
-            internal LegacyDocProjectedBookmark(LegacyDocBookmark bookmark, string id) {
+            internal LegacyDocProjectedBookmark(LegacyDocBookmark bookmark, bool projectStart, bool projectEnd) {
                 Name = bookmark.Name;
                 StartCharacter = bookmark.StartCharacter;
                 EndCharacter = bookmark.EndCharacter;
-                Id = id;
+                Id = bookmark.ProjectionId;
+                ProjectStart = projectStart;
+                ProjectEnd = projectEnd;
             }
 
             internal string Name { get; }
@@ -98,6 +107,10 @@ namespace OfficeIMO.Word {
             internal int EndCharacter { get; }
 
             internal string Id { get; }
+
+            internal bool ProjectStart { get; }
+
+            internal bool ProjectEnd { get; }
 
             internal bool IsZeroLength => StartCharacter == EndCharacter;
         }

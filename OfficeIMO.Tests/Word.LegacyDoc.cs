@@ -1934,6 +1934,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCrossParagraphBookmarkRangesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph firstParagraph = document.AddParagraph();
+                    firstParagraph._paragraph.RemoveAllChildren<Run>();
+                    firstParagraph._paragraph.Append(
+                        new BookmarkStart { Id = "43", Name = "CrossParagraphBookmark" },
+                        new Run(new Text("First") { Space = SpaceProcessingModeValues.Preserve }));
+
+                    WordParagraph secondParagraph = document.AddParagraph();
+                    secondParagraph._paragraph.RemoveAllChildren<Run>();
+                    secondParagraph._paragraph.Append(
+                        new Run(new Text("Second") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "43" });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "CrossParagraphBookmark");
+
+                Paragraph[] paragraphs = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>().ToArray();
+                Assert.Equal(2, paragraphs.Length);
+                OpenXmlElement[] firstContent = paragraphs[0].ChildElements
+                    .Where(element => element is not ParagraphProperties)
+                    .ToArray();
+                OpenXmlElement[] secondContent = paragraphs[1].ChildElements
+                    .Where(element => element is not ParagraphProperties)
+                    .ToArray();
+                Assert.Equal(2, firstContent.Length);
+                Assert.Equal(2, secondContent.Length);
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[0]);
+                Assert.Equal("CrossParagraphBookmark", bookmarkStart.Name?.Value);
+                Assert.Equal("First", Assert.IsType<Text>(Assert.IsType<Run>(firstContent[1]).FirstChild).Text);
+                Assert.Equal("Second", Assert.IsType<Text>(Assert.IsType<Run>(secondContent[0]).FirstChild).Text);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(secondContent[1]);
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+                Assert.DoesNotContain(firstContent, element => element is BookmarkEnd);
+                Assert.DoesNotContain(secondContent, element => element is BookmarkStart);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedHyperlinkRunsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

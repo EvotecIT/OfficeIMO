@@ -235,15 +235,23 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal LegacyDocParagraphBlock(
             IReadOnlyList<LegacyDocTextRun> runs,
             LegacyDocParagraphFormat format,
+            int startCharacter,
+            int endCharacter,
             IReadOnlyList<LegacyDocBookmark>? bookmarks = null) {
             Runs = runs;
             Format = format;
+            StartCharacter = startCharacter;
+            EndCharacter = endCharacter;
             Bookmarks = bookmarks ?? Array.Empty<LegacyDocBookmark>();
         }
 
         internal IReadOnlyList<LegacyDocTextRun> Runs { get; }
 
         internal LegacyDocParagraphFormat Format { get; }
+
+        internal int StartCharacter { get; }
+
+        internal int EndCharacter { get; }
 
         internal IReadOnlyList<LegacyDocBookmark> Bookmarks { get; }
     }
