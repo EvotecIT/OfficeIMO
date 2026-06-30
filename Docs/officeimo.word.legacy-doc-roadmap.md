@@ -484,6 +484,10 @@ just to reserve names.
   - [x] Write simple palette-backed paragraph shading with `sprmPShd80`, then
     reload it through the legacy reader while blocking non-palette fill colors
     before bytes are committed.
+  - [x] Write simple palette-backed paragraph borders with `sprmPBrc*80`
+    `Brc80` records, then reload top/left/bottom/right borders through the
+    legacy reader while blocking unsupported border styles and non-palette
+    colors before bytes are committed.
   - [x] Write built-in paragraph style PAPX records and reload them through
     the legacy reader.
   - [x] Write supported custom paragraph styles as native DOC STSH records,

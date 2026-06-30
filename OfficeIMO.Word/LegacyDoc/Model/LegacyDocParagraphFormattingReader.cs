@@ -16,6 +16,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPDyaLine = 0x6412;
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
+        private const ushort SprmPBrcTop80 = 0x6424;
+        private const ushort SprmPBrcLeft80 = 0x6425;
+        private const ushort SprmPBrcBottom80 = 0x6426;
+        private const ushort SprmPBrcRight80 = 0x6427;
+        private const ushort SprmPBrcBetween80 = 0x6428;
         private const ushort SprmPShd80 = 0x442D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
@@ -170,6 +175,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
             LegacyDocParagraphShading? paragraphShading = null;
+            LegacyDocParagraphBorder paragraphTopBorder = default;
+            LegacyDocParagraphBorder paragraphLeftBorder = default;
+            LegacyDocParagraphBorder paragraphBottomBorder = default;
+            LegacyDocParagraphBorder paragraphRightBorder = default;
+            LegacyDocParagraphBorder paragraphBetweenBorder = default;
             bool? isInTable = null;
             bool? isTableTerminatingParagraph = null;
             var tabStops = new List<LegacyDocTabStop>();
@@ -353,6 +363,38 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmPBrcTop80
+                    || sprm == SprmPBrcLeft80
+                    || sprm == SprmPBrcBottom80
+                    || sprm == SprmPBrcRight80
+                    || sprm == SprmPBrcBetween80) {
+                    if (offset + 6 > end) {
+                        break;
+                    }
+
+                    LegacyDocParagraphBorder border = ReadParagraphBorder(bytes, offset + 2);
+                    switch (sprm) {
+                        case SprmPBrcTop80:
+                            paragraphTopBorder = border;
+                            break;
+                        case SprmPBrcLeft80:
+                            paragraphLeftBorder = border;
+                            break;
+                        case SprmPBrcBottom80:
+                            paragraphBottomBorder = border;
+                            break;
+                        case SprmPBrcRight80:
+                            paragraphRightBorder = border;
+                            break;
+                        case SprmPBrcBetween80:
+                            paragraphBetweenBorder = border;
+                            break;
+                    }
+
+                    offset += 6;
+                    continue;
+                }
+
                 if (sprm == SprmPChgTabsPapx) {
                     if (offset + 3 > end) {
                         break;
@@ -500,7 +542,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 defaultTableCellMargins,
                 defaultTableCellSpacingTwips,
                 hasMergedTableCells,
-                paragraphShading);
+                paragraphShading,
+                new LegacyDocParagraphBorders(
+                    paragraphTopBorder,
+                    paragraphLeftBorder,
+                    paragraphBottomBorder,
+                    paragraphRightBorder,
+                    paragraphBetweenBorder));
         }
 
         private static LegacyDocParagraphShading ReadParagraphShading(ushort shd80) {
@@ -513,6 +561,46 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return string.IsNullOrEmpty(fillColorHex)
                 ? default
                 : new LegacyDocParagraphShading(fillColorHex);
+        }
+
+        private static LegacyDocParagraphBorder ReadParagraphBorder(byte[] bytes, int offset) {
+            if (offset + 4 > bytes.Length) {
+                return default;
+            }
+
+            if (bytes[offset] == 0xFF
+                && bytes[offset + 1] == 0xFF
+                && bytes[offset + 2] == 0xFF
+                && bytes[offset + 3] == 0xFF) {
+                return default;
+            }
+
+            byte sizeEighthPoints = bytes[offset];
+            byte borderType = bytes[offset + 1];
+            byte colorIndex = bytes[offset + 2];
+            byte spacePoints = bytes[offset + 3];
+            LegacyDocParagraphBorderStyle style = MapParagraphBorderStyle(borderType);
+            if (style == LegacyDocParagraphBorderStyle.None) {
+                return default;
+            }
+
+            string? colorHex = LegacyDocColorPalette.GetHexForIco(colorIndex);
+            return new LegacyDocParagraphBorder(style, colorHex, sizeEighthPoints, spacePoints);
+        }
+
+        private static LegacyDocParagraphBorderStyle MapParagraphBorderStyle(byte borderType) {
+            switch (borderType) {
+                case 0x01:
+                    return LegacyDocParagraphBorderStyle.Single;
+                case 0x03:
+                    return LegacyDocParagraphBorderStyle.Double;
+                case 0x06:
+                    return LegacyDocParagraphBorderStyle.Dotted;
+                case 0x07:
+                    return LegacyDocParagraphBorderStyle.Dashed;
+                default:
+                    return LegacyDocParagraphBorderStyle.None;
+            }
         }
 
         private static bool TryReadTableDefinition(

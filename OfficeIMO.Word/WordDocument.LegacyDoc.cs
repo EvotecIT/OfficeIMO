@@ -628,11 +628,111 @@ namespace OfficeIMO.Word {
                 paragraph.ShadingFillColorHex = paragraphFormat.ParagraphShading.Value.FillColorHex!;
             }
 
+            if (paragraphFormat.ParagraphBorders != null && paragraphFormat.ParagraphBorders.Value.HasAny) {
+                ApplyLegacyDocParagraphBorders(paragraph, paragraphFormat.ParagraphBorders.Value);
+            }
+
             foreach (LegacyDocTabStop tabStop in paragraphFormat.TabStops) {
                 if (TryMapTabStopAlignment(tabStop.Alignment, out TabStopValues tabAlignment)
                     && TryMapTabStopLeader(tabStop.Leader, out TabStopLeaderCharValues leader)) {
                     paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment, leader);
                 }
+            }
+        }
+
+        private static void ApplyLegacyDocParagraphBorders(WordParagraph paragraph, LegacyDocParagraphBorders borders) {
+            ApplyLegacyDocParagraphBorder(
+                borders.Top,
+                style => paragraph.Borders.TopStyle = style,
+                color => paragraph.Borders.TopColorHex = color,
+                size => paragraph.Borders.TopSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => paragraph.Borders.TopSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+            ApplyLegacyDocParagraphBorder(
+                borders.Left,
+                style => paragraph.Borders.LeftStyle = style,
+                color => paragraph.Borders.LeftColorHex = color,
+                size => paragraph.Borders.LeftSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => paragraph.Borders.LeftSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+            ApplyLegacyDocParagraphBorder(
+                borders.Bottom,
+                style => paragraph.Borders.BottomStyle = style,
+                color => paragraph.Borders.BottomColorHex = color,
+                size => paragraph.Borders.BottomSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => paragraph.Borders.BottomSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+            ApplyLegacyDocParagraphBorder(
+                borders.Right,
+                style => paragraph.Borders.RightStyle = style,
+                color => paragraph.Borders.RightColorHex = color,
+                size => paragraph.Borders.RightSize = (DocumentFormat.OpenXml.UInt32Value)(uint)size,
+                space => paragraph.Borders.RightSpace = (DocumentFormat.OpenXml.UInt32Value)(uint)space);
+
+            if (borders.Between.HasAny) {
+                ParagraphBorders paragraphBorders = GetOrCreateParagraphBorders(paragraph);
+                paragraphBorders.BetweenBorder = CreateLegacyDocParagraphBorder<BetweenBorder>(borders.Between);
+            }
+        }
+
+        private static void ApplyLegacyDocParagraphBorder(
+            LegacyDocParagraphBorder border,
+            Action<BorderValues> setStyle,
+            Action<string> setColor,
+            Action<int> setSize,
+            Action<int> setSpace) {
+            BorderValues? style = MapLegacyDocParagraphBorderStyle(border.Style);
+            if (style == null) {
+                return;
+            }
+
+            setStyle(style.Value);
+            if (!string.IsNullOrEmpty(border.ColorHex)) {
+                setColor(border.ColorHex!);
+            }
+
+            if (border.SizeEighthPoints > 0) {
+                setSize(border.SizeEighthPoints);
+            }
+
+            if (border.SpacePoints > 0) {
+                setSpace(border.SpacePoints);
+            }
+        }
+
+        private static ParagraphBorders GetOrCreateParagraphBorders(WordParagraph paragraph) {
+            ParagraphBorders? borders = paragraph._paragraphProperties?.GetFirstChild<ParagraphBorders>();
+            if (borders == null) {
+                borders = new ParagraphBorders();
+                paragraph._paragraphProperties!.Append(borders);
+            }
+
+            return borders;
+        }
+
+        private static TBorder CreateLegacyDocParagraphBorder<TBorder>(LegacyDocParagraphBorder border) where TBorder : BorderType, new() {
+            BorderValues? style = MapLegacyDocParagraphBorderStyle(border.Style);
+            var paragraphBorder = new TBorder {
+                Val = style.GetValueOrDefault(),
+                Size = (DocumentFormat.OpenXml.UInt32Value)(uint)border.SizeEighthPoints,
+                Space = (DocumentFormat.OpenXml.UInt32Value)(uint)border.SpacePoints
+            };
+            if (!string.IsNullOrEmpty(border.ColorHex)) {
+                paragraphBorder.Color = border.ColorHex!;
+            }
+
+            return paragraphBorder;
+        }
+
+        private static BorderValues? MapLegacyDocParagraphBorderStyle(LegacyDocParagraphBorderStyle style) {
+            switch (style) {
+                case LegacyDocParagraphBorderStyle.Single:
+                    return BorderValues.Single;
+                case LegacyDocParagraphBorderStyle.Double:
+                    return BorderValues.Double;
+                case LegacyDocParagraphBorderStyle.Dotted:
+                    return BorderValues.Dotted;
+                case LegacyDocParagraphBorderStyle.Dashed:
+                    return BorderValues.Dashed;
+                default:
+                    return null;
             }
         }
 
@@ -849,7 +949,37 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (paragraphFormat.ParagraphBorders != null && paragraphFormat.ParagraphBorders.Value.HasAny) {
+                properties.Append(CreateLegacyDocStyleParagraphBorders(paragraphFormat.ParagraphBorders.Value));
+                hasProperties = true;
+            }
+
             return hasProperties ? properties : null;
+        }
+
+        private static ParagraphBorders CreateLegacyDocStyleParagraphBorders(LegacyDocParagraphBorders borders) {
+            var paragraphBorders = new ParagraphBorders();
+            if (borders.Top.HasAny) {
+                paragraphBorders.TopBorder = CreateLegacyDocParagraphBorder<TopBorder>(borders.Top);
+            }
+
+            if (borders.Left.HasAny) {
+                paragraphBorders.LeftBorder = CreateLegacyDocParagraphBorder<LeftBorder>(borders.Left);
+            }
+
+            if (borders.Bottom.HasAny) {
+                paragraphBorders.BottomBorder = CreateLegacyDocParagraphBorder<BottomBorder>(borders.Bottom);
+            }
+
+            if (borders.Right.HasAny) {
+                paragraphBorders.RightBorder = CreateLegacyDocParagraphBorder<RightBorder>(borders.Right);
+            }
+
+            if (borders.Between.HasAny) {
+                paragraphBorders.BetweenBorder = CreateLegacyDocParagraphBorder<BetweenBorder>(borders.Between);
+            }
+
+            return paragraphBorders;
         }
 
         private static Tabs? CreateLegacyDocTabs(IReadOnlyList<LegacyDocTabStop> tabStops) {

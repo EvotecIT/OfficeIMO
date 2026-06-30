@@ -15,6 +15,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPDyaLine = 0x6412;
         private const ushort SprmPDyaBefore = 0xA413;
         private const ushort SprmPDyaAfter = 0xA414;
+        private const ushort SprmPBrcTop80 = 0x6424;
+        private const ushort SprmPBrcLeft80 = 0x6425;
+        private const ushort SprmPBrcBottom80 = 0x6426;
+        private const ushort SprmPBrcRight80 = 0x6427;
+        private const ushort SprmPBrcBetween80 = 0x6428;
         private const ushort SprmPShd80 = 0x442D;
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
@@ -151,6 +156,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddParagraphShadingSprm(grpprl, formatting.ParagraphShading.Value);
             }
 
+            if (formatting.ParagraphBorders != null && formatting.ParagraphBorders.Value.HasAny) {
+                AddParagraphBorderSprms(grpprl, formatting.ParagraphBorders.Value);
+            }
+
             if (formatting.TableCellWidthsTwips.Count > 0) {
                 AddTableDefinitionSprm(
                     grpprl,
@@ -255,6 +264,63 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add((byte)(SprmPShd80 >> 8));
             grpprl.Add((byte)(shd80 & 0xFF));
             grpprl.Add((byte)(shd80 >> 8));
+        }
+
+        private static void AddParagraphBorderSprms(List<byte> grpprl, LegacyDocParagraphBorders borders) {
+            AddParagraphBorderSprmIfPresent(grpprl, SprmPBrcTop80, borders.Top);
+            AddParagraphBorderSprmIfPresent(grpprl, SprmPBrcLeft80, borders.Left);
+            AddParagraphBorderSprmIfPresent(grpprl, SprmPBrcBottom80, borders.Bottom);
+            AddParagraphBorderSprmIfPresent(grpprl, SprmPBrcRight80, borders.Right);
+            AddParagraphBorderSprmIfPresent(grpprl, SprmPBrcBetween80, borders.Between);
+        }
+
+        private static void AddParagraphBorderSprmIfPresent(List<byte> grpprl, ushort sprm, LegacyDocParagraphBorder border) {
+            if (!border.HasAny) {
+                return;
+            }
+
+            AddParagraphBorderSprm(grpprl, sprm, border);
+        }
+
+        private static void AddParagraphBorderSprm(List<byte> grpprl, ushort sprm, LegacyDocParagraphBorder border) {
+            if (border.SizeEighthPoints <= 0 || border.SizeEighthPoints > byte.MaxValue || border.SpacePoints < 0 || border.SpacePoints > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports paragraph border size and spacing only within Word 97-2003 BRC80 byte ranges.");
+            }
+
+            if (!TryMapParagraphBorderStyle(border.Style, out byte borderType)) {
+                throw new NotSupportedException($"Native DOC saving does not support paragraph border style '{border.Style}'.");
+            }
+
+            if (!LegacyDocColorPalette.TryGetIcoForHex(border.ColorHex, out byte colorIndex)) {
+                throw new NotSupportedException("Native DOC saving supports paragraph borders only with Word 97-2003 palette colors.");
+            }
+
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add(checked((byte)border.SizeEighthPoints));
+            grpprl.Add(borderType);
+            grpprl.Add(colorIndex);
+            grpprl.Add(checked((byte)border.SpacePoints));
+        }
+
+        private static bool TryMapParagraphBorderStyle(LegacyDocParagraphBorderStyle style, out byte borderType) {
+            switch (style) {
+                case LegacyDocParagraphBorderStyle.Single:
+                    borderType = 0x01;
+                    return true;
+                case LegacyDocParagraphBorderStyle.Double:
+                    borderType = 0x03;
+                    return true;
+                case LegacyDocParagraphBorderStyle.Dotted:
+                    borderType = 0x06;
+                    return true;
+                case LegacyDocParagraphBorderStyle.Dashed:
+                    borderType = 0x07;
+                    return true;
+                default:
+                    borderType = 0;
+                    return false;
+            }
         }
 
         private static void AddTableRowHeightSprm(List<byte> grpprl, int rowHeightTwips, bool isExact) {
@@ -693,7 +759,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     }
 
     internal readonly struct LegacyDocWritableParagraphFormatting : IEquatable<LegacyDocWritableParagraphFormatting> {
-        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
+        internal static readonly LegacyDocWritableParagraphFormatting Plain = new LegacyDocWritableParagraphFormatting(null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, false, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null, null);
 
         internal LegacyDocWritableParagraphFormatting(
             byte? alignment,
@@ -731,6 +797,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings,
             IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders,
             LegacyDocParagraphShading? paragraphShading = null,
+            LegacyDocParagraphBorders? paragraphBorders = null,
             LegacyDocTableCellMargins? defaultTableCellMargins = null,
             int? defaultTableCellSpacingTwips = null) {
             Alignment = alignment;
@@ -801,6 +868,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             TableAutofit = tableAutofit;
             ParagraphShading = paragraphShading.HasValue && paragraphShading.Value.HasAny
                 ? paragraphShading
+                : null;
+            ParagraphBorders = paragraphBorders.HasValue && paragraphBorders.Value.HasAny
+                ? paragraphBorders
                 : null;
         }
 
@@ -878,6 +948,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal LegacyDocParagraphShading? ParagraphShading { get; }
 
+        internal LegacyDocParagraphBorders? ParagraphBorders { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -913,7 +985,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || TableAlignment != null
             || TablePreferredWidth != null
             || TableAutofit != null
-            || ParagraphShading != null;
+            || ParagraphShading != null
+            || ParagraphBorders != null;
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
             bool isTableTerminatingParagraph,
@@ -974,6 +1047,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 tableCellShadings,
                 tableCellBorders,
                 ParagraphShading,
+                ParagraphBorders,
                 defaultTableCellMargins,
                 defaultTableCellSpacingTwips);
         }
@@ -1015,7 +1089,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && TableAlignment == other.TableAlignment
                 && TablePreferredWidth.Equals(other.TablePreferredWidth)
                 && TableAutofit == other.TableAutofit
-                && ParagraphShading.Equals(other.ParagraphShading);
+                && ParagraphShading.Equals(other.ParagraphShading)
+                && ParagraphBorders.Equals(other.ParagraphBorders);
         }
 
         public override bool Equals(object? obj) {
@@ -1047,6 +1122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + TablePreferredWidth.GetHashCode();
             hash = (hash * 31) + TableAutofit.GetHashCode();
             hash = (hash * 31) + ParagraphShading.GetHashCode();
+            hash = (hash * 31) + ParagraphBorders.GetHashCode();
             hash = (hash * 31) + DefaultTableCellMargins.GetHashCode();
             hash = (hash * 31) + DefaultTableCellSpacingTwips.GetHashCode();
             foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {

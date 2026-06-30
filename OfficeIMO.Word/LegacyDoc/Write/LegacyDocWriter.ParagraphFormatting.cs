@@ -30,6 +30,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
             LegacyDocParagraphShading? paragraphShading = null;
+            LegacyDocParagraphBorders? paragraphBorders = null;
             IReadOnlyList<LegacyDocTabStop>? tabStops = null;
             ushort? styleIndex = null;
             foreach (OpenXmlElement property in paragraphProperties.ChildElements) {
@@ -64,6 +65,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Shading shading:
                         paragraphShading = ReadSupportedParagraphShading(shading);
+                        break;
+                    case ParagraphBorders borders:
+                        paragraphBorders = ReadSupportedParagraphBorders(borders);
                         break;
                     case Tabs tabs:
                         tabStops = ReadSupportedTabStops(tabs);
@@ -111,7 +115,79 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 null,
                 null,
-                paragraphShading);
+                paragraphShading,
+                paragraphBorders);
+        }
+
+        private static LegacyDocParagraphBorders ReadSupportedParagraphBorders(ParagraphBorders borders) {
+            foreach (OpenXmlElement child in borders.ChildElements) {
+                switch (child) {
+                    case TopBorder:
+                    case LeftBorder:
+                    case BottomBorder:
+                    case RightBorder:
+                    case BetweenBorder:
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple paragraph borders only. Unsupported paragraph border: {child.LocalName}.");
+                }
+            }
+
+            return new LegacyDocParagraphBorders(
+                ReadSupportedParagraphBorder(borders.TopBorder),
+                ReadSupportedParagraphBorder(borders.LeftBorder),
+                ReadSupportedParagraphBorder(borders.BottomBorder),
+                ReadSupportedParagraphBorder(borders.RightBorder),
+                ReadSupportedParagraphBorder(borders.BetweenBorder));
+        }
+
+        private static LegacyDocParagraphBorder ReadSupportedParagraphBorder(BorderType? border) {
+            if (border == null) {
+                return default;
+            }
+
+            BorderValues? value = border.Val?.Value;
+            if (value == null || value == BorderValues.None || value == BorderValues.Nil) {
+                return default;
+            }
+
+            LegacyDocParagraphBorderStyle style = MapSupportedParagraphBorderStyle(value.Value);
+            string? colorHex = border.Color?.Value;
+            if (string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
+                colorHex = null;
+            }
+
+            if (!LegacyDocColorPalette.TryGetIcoForHex(colorHex, out _)) {
+                throw new NotSupportedException("Native DOC saving supports paragraph borders only with Word 97-2003 palette colors.");
+            }
+
+            int size = border.Size?.Value == null ? 4 : checked((int)border.Size.Value);
+            int space = border.Space?.Value == null ? 0 : checked((int)border.Space.Value);
+            if (size <= 0 || size > byte.MaxValue || space < 0 || space > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports paragraph border size and spacing only within Word 97-2003 BRC80 byte ranges.");
+            }
+
+            return new LegacyDocParagraphBorder(style, colorHex, size, space);
+        }
+
+        private static LegacyDocParagraphBorderStyle MapSupportedParagraphBorderStyle(BorderValues value) {
+            if (value == BorderValues.Single) {
+                return LegacyDocParagraphBorderStyle.Single;
+            }
+
+            if (value == BorderValues.Double) {
+                return LegacyDocParagraphBorderStyle.Double;
+            }
+
+            if (value == BorderValues.Dotted) {
+                return LegacyDocParagraphBorderStyle.Dotted;
+            }
+
+            if (value == BorderValues.Dashed || value == BorderValues.DashSmallGap) {
+                return LegacyDocParagraphBorderStyle.Dashed;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support paragraph border style '{value}'.");
         }
 
         private static LegacyDocParagraphShading ReadSupportedParagraphShading(Shading shading) {
