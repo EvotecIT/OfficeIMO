@@ -110,6 +110,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : ReadSupportedStyleParagraphFormatting(style.StyleParagraphProperties);
         }
 
+        private static LegacyDocWritableFormatting ReadSupportedTableStyleRunFormatting(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            string? styleId = tableStyle?.Val?.Value;
+            if (IsNoOpTableStyle(styleId) || string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+                return LegacyDocWritableFormatting.Plain;
+            }
+
+            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
+            return style == null
+                ? LegacyDocWritableFormatting.Plain
+                : ReadSupportedRunFormatting(style.StyleRunProperties);
+        }
+
         private static Style? ResolveSupportedTableStyle(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             string? styleId = tableStyle?.Val?.Value;
             if (IsNoOpTableStyle(styleId)) {
@@ -165,8 +177,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StyleParagraphProperties styleParagraphProperties:
                         ThrowIfUnsupportedTableStyleParagraphProperties(styleId, styleParagraphProperties);
                         break;
-                    case StyleRunProperties:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it contains supported table-level formatting, supported paragraph formatting, and supported conditional table or cell effects without run style effects.");
+                    case StyleRunProperties styleRunProperties:
+                        ThrowIfUnsupportedTableStyleRunProperties(styleId, styleRunProperties);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving does not support table style '{styleId}' element '{child.LocalName}'.");
                 }
@@ -178,6 +191,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 _ = ReadSupportedStyleParagraphFormatting(paragraphProperties);
             } catch (NotSupportedException exception) {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' paragraph formatting only with supported paragraph properties. {exception.Message}", exception);
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableStyleRunProperties(string styleId, StyleRunProperties runProperties) {
+            try {
+                _ = ReadSupportedRunFormatting(runProperties);
+            } catch (NotSupportedException exception) {
+                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' run formatting only with supported run properties. {exception.Message}", exception);
             }
         }
 

@@ -659,6 +659,9 @@ just to reserve names.
   - [x] Write supported table-style paragraph formatting by flattening style
     paragraph properties into native DOC cell paragraph PAPX records, while
     preserving direct cell paragraph formatting as the override.
+  - [x] Write supported table-style run formatting by flattening style run
+    properties into native DOC cell text CHPX records, while preserving direct
+    cell run formatting as the override.
   - [x] Write supported conditional table-style cell shading and cell borders
     by flattening first/last row, first/last column, corner, and banded
     conditional effects into native DOC `TC80` values, while keeping direct

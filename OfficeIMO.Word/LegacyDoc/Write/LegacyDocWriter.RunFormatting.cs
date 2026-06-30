@@ -6,6 +6,10 @@ using System.Text;
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+            AppendSupportedRunText(text, runs, run, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
+        }
+
+        private static void AppendSupportedRunText(StringBuilder text, List<LegacyDocWritableRun> runs, Run run, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, LegacyDocWritableFormatting inheritedFormatting) {
             if (run.Elements<FootnoteReference>().Any()) {
                 AppendFootnoteReferenceRun(text, runs, footnotes, run);
                 return;
@@ -16,7 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
-            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
+            LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties)
+                .WithInheritedFormatting(inheritedFormatting);
 
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
@@ -129,66 +134,87 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
             string? fontFamily = null;
+            LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None;
             foreach (OpenXmlElement property in runProperties.ChildElements) {
                 switch (property) {
                     case Bold boldProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Bold;
                         bold = MergeSingleRunToggle(bold, IsEnabled(boldProperty), "bold", "Bold", "BoldComplexScript");
                         break;
                     case BoldComplexScript boldComplexScript:
+                        specified |= LegacyDocWritableFormattingProperties.Bold;
                         bold = MergeSingleRunToggle(bold, IsEnabled(boldComplexScript), "bold", "Bold", "BoldComplexScript");
                         break;
                     case Italic italicProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Italic;
                         italic = MergeSingleRunToggle(italic, IsEnabled(italicProperty), "italic", "Italic", "ItalicComplexScript");
                         break;
                     case ItalicComplexScript italicComplexScript:
+                        specified |= LegacyDocWritableFormattingProperties.Italic;
                         italic = MergeSingleRunToggle(italic, IsEnabled(italicComplexScript), "italic", "Italic", "ItalicComplexScript");
                         break;
                     case Strike strikeProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Strike;
                         strike = IsEnabled(strikeProperty);
                         break;
                     case DoubleStrike doubleStrikeProperty:
+                        specified |= LegacyDocWritableFormattingProperties.DoubleStrike;
                         doubleStrike = IsEnabled(doubleStrikeProperty);
                         break;
                     case Outline outlineProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Outline;
                         outline = IsEnabled(outlineProperty);
                         break;
                     case Shadow shadowProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Shadow;
                         shadow = IsEnabled(shadowProperty);
                         break;
                     case Emboss embossProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Emboss;
                         emboss = IsEnabled(embossProperty);
                         break;
                     case Imprint imprintProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Imprint;
                         imprint = IsEnabled(imprintProperty);
                         break;
                     case Vanish vanishProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Hidden;
                         hidden = IsEnabled(vanishProperty);
                         break;
                     case Caps capsProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Caps;
                         caps = MergeCapsKind(caps, IsEnabled(capsProperty), 1);
                         break;
                     case SmallCaps smallCapsProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Caps;
                         caps = MergeCapsKind(caps, IsEnabled(smallCapsProperty), 2);
                         break;
                     case VerticalTextAlignment verticalTextAlignment:
+                        specified |= LegacyDocWritableFormattingProperties.VerticalPosition;
                         verticalPosition = ReadSupportedVerticalPosition(verticalTextAlignment);
                         break;
                     case Underline underlineProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Underline;
                         underline = ReadSupportedUnderline(underlineProperty);
                         break;
                     case Highlight highlightProperty:
+                        specified |= LegacyDocWritableFormattingProperties.Highlight;
                         highlight = ReadSupportedHighlight(highlightProperty);
                         break;
                     case FontSize fontSize:
+                        specified |= LegacyDocWritableFormattingProperties.FontSize;
                         fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(fontSize.Val?.Value));
                         break;
                     case FontSizeComplexScript fontSizeComplexScript:
+                        specified |= LegacyDocWritableFormattingProperties.FontSize;
                         fontSizeHalfPoints = MergeFontSizeHalfPoints(fontSizeHalfPoints, ReadFontSizeHalfPoints(fontSizeComplexScript.Val?.Value));
                         break;
                     case Color color:
+                        specified |= LegacyDocWritableFormattingProperties.Color;
                         colorHex = ReadSupportedColorHex(color);
                         break;
                     case RunFonts runFonts:
+                        specified |= LegacyDocWritableFormattingProperties.FontFamily;
                         fontFamily = ReadSupportedRunFontFamily(runFonts);
                         break;
                     default:
@@ -196,7 +222,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -581,11 +607,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add(0);
         }
 
+        [Flags]
+        private enum LegacyDocWritableFormattingProperties {
+            None = 0,
+            Bold = 1 << 0,
+            Italic = 1 << 1,
+            Strike = 1 << 2,
+            DoubleStrike = 1 << 3,
+            Outline = 1 << 4,
+            Shadow = 1 << 5,
+            Emboss = 1 << 6,
+            Imprint = 1 << 7,
+            Hidden = 1 << 8,
+            Special = 1 << 9,
+            Caps = 1 << 10,
+            VerticalPosition = 1 << 11,
+            Underline = 1 << 12,
+            Highlight = 1 << 13,
+            FontSize = 1 << 14,
+            Color = 1 << 15,
+            FontFamily = 1 << 16
+        }
+
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
             internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
-            internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null);
+            internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null, LegacyDocWritableFormattingProperties.Special);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -603,6 +651,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 FontSizeHalfPoints = fontSizeHalfPoints;
                 ColorHex = colorHex;
                 FontFamily = fontFamily;
+                Specified = specified;
             }
 
             internal bool Bold { get; }
@@ -640,6 +689,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal string? FontFamily { get; }
 
             internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+
+            private LegacyDocWritableFormattingProperties Specified { get; }
+
+            internal LegacyDocWritableFormatting WithInheritedFormatting(LegacyDocWritableFormatting inherited) {
+                if (!inherited.HasFormatting || Special) {
+                    return this;
+                }
+
+                return new LegacyDocWritableFormatting(
+                    IsSpecified(LegacyDocWritableFormattingProperties.Bold) ? Bold : inherited.Bold,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Italic) ? Italic : inherited.Italic,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Strike) ? Strike : inherited.Strike,
+                    IsSpecified(LegacyDocWritableFormattingProperties.DoubleStrike) ? DoubleStrike : inherited.DoubleStrike,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Outline) ? Outline : inherited.Outline,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Shadow) ? Shadow : inherited.Shadow,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Emboss) ? Emboss : inherited.Emboss,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Imprint) ? Imprint : inherited.Imprint,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Hidden) ? Hidden : inherited.Hidden,
+                    Special,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Caps) ? Caps : inherited.Caps,
+                    IsSpecified(LegacyDocWritableFormattingProperties.VerticalPosition) ? VerticalPosition : inherited.VerticalPosition,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Underline) ? Underline : inherited.Underline,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Highlight) ? Highlight : inherited.Highlight,
+                    IsSpecified(LegacyDocWritableFormattingProperties.FontSize) ? FontSizeHalfPoints : inherited.FontSizeHalfPoints,
+                    IsSpecified(LegacyDocWritableFormattingProperties.Color) ? ColorHex : inherited.ColorHex,
+                    IsSpecified(LegacyDocWritableFormattingProperties.FontFamily) ? FontFamily : inherited.FontFamily,
+                    Specified | inherited.Specified);
+            }
+
+            private bool IsSpecified(LegacyDocWritableFormattingProperties property) {
+                return (Specified & property) != 0;
+            }
 
             public bool Equals(LegacyDocWritableFormatting other) {
                 return Bold == other.Bold

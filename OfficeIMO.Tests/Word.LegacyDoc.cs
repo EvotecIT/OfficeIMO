@@ -4695,6 +4695,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableStyleRunFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocTableRunFormatting";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Table Run Formatting" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new StyleRunProperties(
+                        new Bold(),
+                        new Color { Val = "ff0000" },
+                        new FontSize { Val = "28" }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table.Rows[0].Cells[0].AddParagraph("Inherited", removeExistingParagraphs: true);
+                    WordParagraph directOverride = table.Rows[0].Cells[1].AddParagraph("Direct", removeExistingParagraphs: true);
+                    directOverride._run!.RunProperties ??= new RunProperties();
+                    directOverride._run.RunProperties.Bold = new Bold { Val = false };
+                    directOverride._run.RunProperties.Italic = new Italic();
+                    directOverride._run.RunProperties.Color = new Color { Val = "0000ff" };
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                WordParagraph inheritedRun = row.Cells[0].Paragraphs[0];
+                Assert.Equal("Inherited", inheritedRun.Text);
+                Assert.True(inheritedRun.Bold);
+                Assert.False(inheritedRun.Italic);
+                Assert.Equal("ff0000", inheritedRun.ColorHex);
+                Assert.Equal(14, inheritedRun.FontSize);
+
+                WordParagraph directRun = row.Cells[1].Paragraphs[0];
+                Assert.Equal("Direct", directRun.Text);
+                Assert.False(directRun.Bold);
+                Assert.True(directRun.Italic);
+                Assert.Equal("0000ff", directRun.ColorHex);
+                Assert.Equal(14, directRun.FontSize);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedVisualTableStyleBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
