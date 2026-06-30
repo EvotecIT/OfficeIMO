@@ -385,12 +385,31 @@ public static partial class MarkdownReader {
             }
 
             var candidate = lineWithoutAttributeBlock.TrimEnd();
+            if (EndsWithCharacterReference(candidate)) {
+                return false;
+            }
+
             return candidate.Length > 0
                 && !EndsWithNoSpaceInlineGenericAttributeTarget(candidate);
         }
 
+        private static bool EndsWithCharacterReference(string candidate) {
+            if (string.IsNullOrEmpty(candidate) || candidate[candidate.Length - 1] != ';') {
+                return false;
+            }
+
+            var ampersand = candidate.LastIndexOf('&');
+            return ampersand >= 0
+                && CommonMarkCharacterReference.TryDecode(candidate, ampersand, out int consumed, out _)
+                && ampersand + consumed == candidate.Length;
+        }
+
         private static bool EndsWithNoSpaceInlineGenericAttributeTarget(string candidate) {
             var last = candidate[candidate.Length - 1];
+            if (IsEscapedFinalCharacter(candidate)) {
+                return false;
+            }
+
             if (last == ')'
                 || last == ']'
                 || last == '`'
@@ -407,6 +426,19 @@ public static partial class MarkdownReader {
                 '=' => EndsWithDelimitedRun(candidate, "=="),
                 _ => false
             };
+        }
+
+        private static bool IsEscapedFinalCharacter(string candidate) {
+            if (string.IsNullOrEmpty(candidate) || candidate.Length < 2 || !IsBackslashEscapable(candidate[candidate.Length - 1])) {
+                return false;
+            }
+
+            var slashCount = 0;
+            for (var index = candidate.Length - 2; index >= 0 && candidate[index] == '\\'; index--) {
+                slashCount++;
+            }
+
+            return slashCount % 2 == 1;
         }
 
         private static bool EndsWithDelimitedRun(string candidate, string delimiter) =>

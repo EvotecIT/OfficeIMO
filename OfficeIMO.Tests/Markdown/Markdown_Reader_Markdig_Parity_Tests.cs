@@ -323,6 +323,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "paragraph-backslash-hardbreak-continuation-standalone-attribute-is-consumed", "Paragraph\\\n{#intro .wide}" };
         yield return new object[] { "plain-text-no-space-attribute", "word{#plain .wide}" };
         yield return new object[] { "plain-text-plus-ending-no-space-attribute", "C++{#plain .wide}" };
+        yield return new object[] { "escaped-star-no-space-attribute", "\\*{#esc .wide}" };
+        yield return new object[] { "escaped-underscore-no-space-attribute", "\\_{#esc .wide}" };
+        yield return new object[] { "escaped-backtick-no-space-attribute", "\\`{#esc .wide}" };
+        yield return new object[] { "escaped-closing-paren-no-space-attribute", "\\){#esc .wide}" };
+        yield return new object[] { "escaped-closing-bracket-no-space-attribute", "\\]{#esc .wide}" };
+        yield return new object[] { "named-entity-no-space-attribute-stays-literal", "&copy;{#e .wide}" };
+        yield return new object[] { "decimal-entity-no-space-attribute-stays-literal", "&#42;{#e .wide}" };
+        yield return new object[] { "hex-entity-no-space-attribute-stays-literal", "&#x2A;{#e .wide}" };
         yield return new object[] { "thematic-break-like-line-is-attributed-paragraph", "--- {#hr .wide}" };
         yield return new object[] { "asterisk-thematic-break-like-line-is-attributed-paragraph", "*** {#hr .wide}" };
         yield return new object[] { "underscore-thematic-break-like-line-is-attributed-paragraph", "___ {#hr .wide}" };

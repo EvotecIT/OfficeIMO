@@ -161,6 +161,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
     - [x] Standalone generic attributes before reference-definition-looking lines now match Markdig by producing attributed literal paragraphs without registering reference definitions, with syntax/native/source-edit proof.
     - [x] Standalone generic attribute continuation lines at the end of paragraphs now match Markdig by being consumed without attributes or rendered output, including soft and hard line-break forms.
     - [x] Paragraph-contained attributes embedded at the end of nested link labels, image alt text, linked-image alt text, emphasis content, and strong content now promote to the paragraph owner like Markdig, with syntax/native source proof.
+    - [x] No-space paragraph attributes now match Markdig around escaped final punctuation and valid character references, with syntax/native source proof.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [x] Decide and close `UseAlertBlocks`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
