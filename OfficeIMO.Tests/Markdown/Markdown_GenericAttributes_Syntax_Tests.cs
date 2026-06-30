@@ -108,6 +108,61 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("{#docs .anchor}\n# Heading\n", roundtrip.Markdown);
     }
 
+    [Theory]
+    [InlineData("{#intro .wide}\nHeading\n=====\n", 2, 3, "{#docs .anchor}\nHeading\n=====\n")]
+    [InlineData("{#intro .wide}\n\nHeading\n=====\n", 3, 4, "{#docs .anchor}\n\nHeading\n=====\n")]
+    public void Standalone_GenericAttributes_Attach_To_Following_SetextHeading_With_Source_Backup(
+        string markdown,
+        int headingTextLine,
+        int underlineLine,
+        string expectedEditedMarkdown) {
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(1, headingBlock.Level);
+        Assert.Equal("Heading", headingBlock.Text);
+        Assert.Equal("intro", headingBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var heading = Assert.Single(result.FinalSyntaxTree.Children);
+        var attributes = Assert.Single(heading.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        var headingText = Assert.Single(heading.Descendants(), node => node.Kind == MarkdownSyntaxKind.HeadingText);
+        var underline = Assert.Single(heading.Children, node => node.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
+
+        Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
+        Assert.Equal(new MarkdownSourceSpan(headingTextLine, 1, headingTextLine, 7), headingText.SourceSpan);
+        Assert.Equal("=====", underline.Literal);
+        Assert.Equal(new MarkdownSourceSpan(underlineLine, 1, underlineLine, 5), underline.SourceSpan);
+        Assert.Equal("{#intro .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 14), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#intro .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeHeading = Assert.IsType<MarkdownNativeHeadingBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("Heading", nativeHeading.Text);
+        Assert.Same(nativeHeading, field.Block);
+        Assert.Equal("{#intro .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 14), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#docs .anchor}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal(expectedEditedMarkdown, roundtrip.Markdown);
+    }
+
     [Fact]
     public void AtxHeading_GenericAttributes_After_ClosingMarker_Are_SourceBacked() {
         const string markdown = "# Heading # {#intro .wide}\n";

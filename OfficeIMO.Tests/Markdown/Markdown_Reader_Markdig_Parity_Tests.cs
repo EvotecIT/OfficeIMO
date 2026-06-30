@@ -344,6 +344,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "asterisk-thematic-break-like-line-is-attributed-paragraph", "*** {#hr .wide}" };
         yield return new object[] { "underscore-thematic-break-like-line-is-attributed-paragraph", "___ {#hr .wide}" };
         yield return new object[] { "standalone-attribute-before-heading", "{#intro .wide}\n# Heading" };
+        yield return new object[] { "standalone-attribute-before-setext-heading", "{#intro .wide}\nHeading\n=====" };
+        yield return new object[] { "standalone-attribute-before-setext-heading-after-blank", "{#intro .wide}\n\nHeading\n=====" };
         yield return new object[] { "standalone-single-character-id-before-setext-heading-stays-literal", "{#h .wide}\nHeading\n=====" };
         yield return new object[] { "standalone-attribute-before-paragraph", "{#intro .wide}\nParagraph" };
         yield return new object[] { "standalone-attribute-before-fenced-code", "{#code .wide}\n```cs\nvar x = 1;\n```" };
