@@ -98,10 +98,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         hidden = IsEnabled(vanishProperty);
                         break;
                     case Caps capsProperty:
-                        caps = IsEnabled(capsProperty) ? (byte)1 : null;
+                        caps = MergeCapsKind(caps, IsEnabled(capsProperty), 1);
                         break;
                     case SmallCaps smallCapsProperty:
-                        caps = IsEnabled(smallCapsProperty) ? (byte)2 : null;
+                        caps = MergeCapsKind(caps, IsEnabled(smallCapsProperty), 2);
                         break;
                     case VerticalTextAlignment verticalTextAlignment:
                         verticalPosition = ReadSupportedVerticalPosition(verticalTextAlignment);
@@ -142,6 +142,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return nextValue;
+        }
+
+        private static byte? MergeCapsKind(byte? currentKind, bool enabled, byte nextKind) {
+            if (!enabled) {
+                return currentKind;
+            }
+
+            if (currentKind != null && currentKind.Value != nextKind) {
+                throw new NotSupportedException("Native DOC saving supports either all-caps or small-caps per text run. Caps and SmallCaps cannot both be enabled.");
+            }
+
+            return nextKind;
         }
 
         private static byte? ReadSupportedUnderline(Underline underline) {

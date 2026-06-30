@@ -442,6 +442,9 @@ just to reserve names.
     the legacy reader.
   - [x] Write direct all-caps and small-caps CHPX runs and reload them through
     the legacy reader.
+  - [x] Preserve all-caps/small-caps when the sibling OpenXML toggle is off,
+    while blocking simultaneous enabled all-caps and small-caps before bytes
+    are committed.
   - [x] Write direct superscript/subscript CHPX runs and reload them through
     the legacy reader.
   - [x] Write direct highlight CHPX runs and reload them through the legacy

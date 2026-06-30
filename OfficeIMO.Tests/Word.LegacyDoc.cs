@@ -1441,6 +1441,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCapsWhenSiblingToggleIsOffAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    WordParagraph caps = paragraph.AddText("caps ");
+                    caps._run!.RunProperties ??= new RunProperties();
+                    caps._run.RunProperties.Caps = new Caps();
+                    caps._run.RunProperties.SmallCaps = new SmallCaps {
+                        Val = false
+                    };
+
+                    WordParagraph smallCaps = paragraph.AddText("small");
+                    smallCaps._run!.RunProperties ??= new RunProperties();
+                    smallCaps._run.RunProperties.Caps = new Caps {
+                        Val = false
+                    };
+                    smallCaps._run.RunProperties.SmallCaps = new SmallCaps();
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] runs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(2, runs.Length);
+                Assert.Equal("caps ", runs[0].Text);
+                Assert.Equal(CapsStyle.Caps, runs[0].CapsStyle);
+                Assert.Equal("small", runs[1].Text);
+                Assert.Equal(CapsStyle.SmallCaps, runs[1].CapsStyle);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocComplexScriptBoldItalicAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2805,6 +2843,26 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("bold", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksAllCapsAndSmallCapsTogetherBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph formatted = document.AddParagraph("Formatted");
+                formatted._run!.RunProperties ??= new RunProperties();
+                formatted._run.RunProperties.Caps = new Caps();
+                formatted._run.RunProperties.SmallCaps = new SmallCaps();
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("small-caps", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
