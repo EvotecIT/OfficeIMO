@@ -134,6 +134,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleNextStyle() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleNextStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Styled Next");
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocCustomNextSource", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Styles styles = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style sourceStyle = styles
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomNextSource");
+            Assert.Equal("LegacyDocCustomNextTarget", sourceStyle.GetFirstChild<NextParagraphStyle>()?.Val?.Value);
+
+            Style targetStyle = styles
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomNextTarget");
+            Assert.Equal("Custom Next Target", targetStyle.StyleName?.Val?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStylePaginationFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStylePaginationFlags();
 
@@ -267,6 +293,54 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphStyleNextStyleAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string sourceStyleId = "NativeDocNextSource";
+            const string targetStyleId = "NativeDocNextTarget";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    var sourceStyle = new Style { Type = StyleValues.Paragraph, StyleId = sourceStyleId, CustomStyle = true };
+                    sourceStyle.Append(new StyleName { Val = "Native DOC Next Source" });
+                    sourceStyle.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    sourceStyle.Append(new NextParagraphStyle { Val = targetStyleId });
+                    styles.Append(sourceStyle);
+
+                    var targetStyle = new Style { Type = StyleValues.Paragraph, StyleId = targetStyleId, CustomStyle = true };
+                    targetStyle.Append(new StyleName { Val = "Native DOC Next Target" });
+                    targetStyle.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    targetStyle.Append(new StyleRunProperties(new Italic()));
+                    styles.Append(targetStyle);
+
+                    document.AddParagraph("Native next style source").SetStyleId(sourceStyleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Native next style source", paragraph.Text);
+                Assert.Equal("LegacyDocNativeDOCNextSource", paragraph.StyleId);
+
+                Styles reloadedStyles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style sourceStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == "LegacyDocNativeDOCNextSource");
+                Assert.Equal("LegacyDocNativeDOCNextTarget", sourceStyleAfterReload.GetFirstChild<NextParagraphStyle>()?.Val?.Value);
+
+                Style targetStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == "LegacyDocNativeDOCNextTarget");
+                Assert.Equal("Native DOC Next Target", targetStyleAfterReload.StyleName?.Val?.Value);
+                StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(targetStyleAfterReload.StyleRunProperties);
+                Assert.NotNull(runProperties.GetFirstChild<Italic>());
+                Assert.NotNull(runProperties.GetFirstChild<ItalicComplexScript>());
+            } finally {
+                if (File.Exists(docPath)) {
+                    File.Delete(docPath);
+                }
+            }
+        }
+
         private static class LegacyDocParagraphStyleFixture {
             private const int FibLength = 0x1AA;
             private const int TextOffset = 0x200;
@@ -356,6 +430,38 @@ namespace OfficeIMO.Tests {
                     text,
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphStylePapx(ChildStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithCustomParagraphStyleNextStyle() {
+                const string text = "Styled Next\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [CustomStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Next Source",
+                        basedOnStyleIndex: 0,
+                        nextStyleIndex: ChildStyleIndex,
+                        paragraphUpx: null,
+                        characterUpx: null),
+                    [ChildStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Next Target",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: null,
+                        characterUpx: CreateStyleCharacterUpx(CreateCharacterSprm(SprmCFItalic, 1)))
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(CustomStyleIndex)
                     },
                     styleSheet.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet);
@@ -641,7 +747,7 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(bytes, 0x0FFE);
                 WriteUInt16(bytes, 0x0001 | (definition.BasedOnStyleIndex << 4));
                 int upxCount = (definition.ParagraphUpx == null && definition.CharacterUpx == null) ? 0 : 2;
-                WriteUInt16(bytes, upxCount);
+                WriteUInt16(bytes, upxCount | (definition.NextStyleIndex << 4));
                 WriteUInt16(bytes, 0);
                 WriteUInt16(bytes, 0);
                 WriteUInt16(bytes, checked((ushort)definition.Name.Length));
@@ -810,6 +916,15 @@ namespace OfficeIMO.Tests {
                 internal LegacyDocStyleDefinition(string name, ushort basedOnStyleIndex, byte[]? paragraphUpx, byte[]? characterUpx) {
                     Name = name;
                     BasedOnStyleIndex = basedOnStyleIndex;
+                    NextStyleIndex = 0;
+                    ParagraphUpx = paragraphUpx;
+                    CharacterUpx = characterUpx;
+                }
+
+                internal LegacyDocStyleDefinition(string name, ushort basedOnStyleIndex, ushort nextStyleIndex, byte[]? paragraphUpx, byte[]? characterUpx) {
+                    Name = name;
+                    BasedOnStyleIndex = basedOnStyleIndex;
+                    NextStyleIndex = nextStyleIndex;
                     ParagraphUpx = paragraphUpx;
                     CharacterUpx = characterUpx;
                 }
@@ -817,6 +932,8 @@ namespace OfficeIMO.Tests {
                 internal string Name { get; }
 
                 internal ushort BasedOnStyleIndex { get; }
+
+                internal ushort NextStyleIndex { get; }
 
                 internal byte[]? ParagraphUpx { get; }
 

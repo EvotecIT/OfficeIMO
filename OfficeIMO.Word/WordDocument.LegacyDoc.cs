@@ -672,6 +672,7 @@ namespace OfficeIMO.Word {
                     string builtInStyleId = legacyStyle.BuiltInStyle.Value.ToStringStyle();
                     Style builtInStyle = GetOrCreateLegacyDocBuiltInStyle(styles, builtInStyleId, legacyStyle.Name);
                     MergeLegacyDocBuiltInStyleFormatting(builtInStyle, legacyStyle, styleSheet);
+                    AddOrReplaceLegacyDocNextStyle(builtInStyle, legacyStyle, styleSheet);
                     continue;
                 }
 
@@ -686,6 +687,11 @@ namespace OfficeIMO.Word {
                 var customStyle = new Style { Type = StyleValues.Paragraph, StyleId = legacyStyle.StyleId, CustomStyle = true };
                 customStyle.Append(new StyleName { Val = legacyStyle.Name });
                 customStyle.Append(new BasedOn { Val = ResolveLegacyDocBasedOnStyleId(legacyStyle, styleSheet) });
+                string? nextStyleId = ResolveLegacyDocNextStyleId(legacyStyle, styleSheet);
+                if (!string.IsNullOrWhiteSpace(nextStyleId)) {
+                    customStyle.Append(new NextParagraphStyle { Val = nextStyleId });
+                }
+
                 StyleParagraphProperties? styleParagraphProperties = CreateLegacyDocStyleParagraphProperties(legacyStyle.ParagraphFormat);
                 if (styleParagraphProperties != null) {
                     customStyle.Append(styleParagraphProperties);
@@ -721,6 +727,35 @@ namespace OfficeIMO.Word {
             }
 
             return WordParagraphStyles.Normal.ToStringStyle();
+        }
+
+        private static void AddOrReplaceLegacyDocNextStyle(Style style, LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
+            string? nextStyleId = ResolveLegacyDocNextStyleId(legacyStyle, styleSheet);
+            if (!string.IsNullOrWhiteSpace(nextStyleId)) {
+                ReplaceStyleProperty(style, new NextParagraphStyle { Val = nextStyleId });
+            }
+        }
+
+        private static string? ResolveLegacyDocNextStyleId(LegacyDocParagraphStyle legacyStyle, LegacyDocStyleSheet styleSheet) {
+            if (legacyStyle.NextStyleIndex == null || legacyStyle.NextStyleIndex.Value == legacyStyle.Index) {
+                return null;
+            }
+
+            if (styleSheet.TryGetParagraphStyle(legacyStyle.NextStyleIndex.Value, out LegacyDocParagraphStyle nextStyle)) {
+                if (nextStyle.BuiltInStyle != null) {
+                    return nextStyle.BuiltInStyle.Value.ToStringStyle();
+                }
+
+                if (!string.IsNullOrWhiteSpace(nextStyle.StyleId)) {
+                    return nextStyle.StyleId!;
+                }
+            }
+
+            if (TryMapBuiltInParagraphStyle(legacyStyle.NextStyleIndex.Value, out WordParagraphStyles builtInStyle)) {
+                return builtInStyle.ToStringStyle();
+            }
+
+            return null;
         }
 
         private static StyleParagraphProperties? CreateLegacyDocStyleParagraphProperties(LegacyDocParagraphFormat paragraphFormat) {

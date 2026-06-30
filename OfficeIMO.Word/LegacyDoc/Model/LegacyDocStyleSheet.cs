@@ -99,6 +99,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ushort baseStyleIndex = (ushort)(second >> 4);
             ushort? basedOnStyleIndex = baseStyleIndex == 0x0FFF ? null : baseStyleIndex;
             int upxCount = third & 0x000F;
+            ushort nextStyleIndex = (ushort)(third >> 4);
+            ushort? nextParagraphStyleIndex = nextStyleIndex == 0 ? null : nextStyleIndex;
             int nameOffset = offset + cbStdBaseInFile;
             int end = offset + count;
             string? name = ReadXstz(bytes, nameOffset, end, out int upxOffset);
@@ -116,12 +118,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 out LegacyDocCharacterFormat characterFormat);
 
             if (TryMapBuiltInParagraphStyle(sti, name!, out WordParagraphStyles builtInStyle)) {
-                style = LegacyDocParagraphStyle.ForBuiltIn(styleIndex, name!, builtInStyle, basedOnStyleIndex, paragraphFormat, characterFormat);
+                style = LegacyDocParagraphStyle.ForBuiltIn(styleIndex, name!, builtInStyle, basedOnStyleIndex, nextParagraphStyleIndex, paragraphFormat, characterFormat);
                 return true;
             }
 
             string styleId = CreateCustomStyleId(name!, styleIndex, usedStyleIds);
-            style = LegacyDocParagraphStyle.ForCustom(styleIndex, name!, styleId, basedOnStyleIndex, paragraphFormat, characterFormat);
+            style = LegacyDocParagraphStyle.ForCustom(styleIndex, name!, styleId, basedOnStyleIndex, nextParagraphStyleIndex, paragraphFormat, characterFormat);
             return true;
         }
 
@@ -329,6 +331,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? styleId,
             WordParagraphStyles? builtInStyle,
             ushort? basedOnStyleIndex,
+            ushort? nextStyleIndex,
             LegacyDocParagraphFormat paragraphFormat,
             LegacyDocCharacterFormat characterFormat) {
             Index = index;
@@ -336,6 +339,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             StyleId = styleId;
             BuiltInStyle = builtInStyle;
             BasedOnStyleIndex = basedOnStyleIndex;
+            NextStyleIndex = nextStyleIndex;
             ParagraphFormat = paragraphFormat;
             CharacterFormat = characterFormat;
         }
@@ -350,6 +354,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal ushort? BasedOnStyleIndex { get; }
 
+        internal ushort? NextStyleIndex { get; }
+
         internal LegacyDocParagraphFormat ParagraphFormat { get; }
 
         internal LegacyDocCharacterFormat CharacterFormat { get; }
@@ -359,9 +365,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string name,
             WordParagraphStyles style,
             ushort? basedOnStyleIndex,
+            ushort? nextStyleIndex,
             LegacyDocParagraphFormat paragraphFormat,
             LegacyDocCharacterFormat characterFormat) {
-            return new LegacyDocParagraphStyle(index, name, null, style, basedOnStyleIndex, paragraphFormat, characterFormat);
+            return new LegacyDocParagraphStyle(index, name, null, style, basedOnStyleIndex, nextStyleIndex, paragraphFormat, characterFormat);
         }
 
         internal static LegacyDocParagraphStyle ForCustom(
@@ -369,9 +376,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string name,
             string styleId,
             ushort? basedOnStyleIndex,
+            ushort? nextStyleIndex,
             LegacyDocParagraphFormat paragraphFormat,
             LegacyDocCharacterFormat characterFormat) {
-            return new LegacyDocParagraphStyle(index, name, styleId, null, basedOnStyleIndex, paragraphFormat, characterFormat);
+            return new LegacyDocParagraphStyle(index, name, styleId, null, basedOnStyleIndex, nextStyleIndex, paragraphFormat, characterFormat);
         }
     }
 }
