@@ -3592,6 +3592,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleLayoutAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocLayoutTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Layout Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new StyleTableProperties(
+                        new TableJustification { Val = TableRowAlignmentValues.Right },
+                        new TableIndentation { Width = 720, Type = TableWidthUnitValues.Dxa },
+                        new TableWidth { Width = "3750", Type = TableWidthUnitValues.Pct },
+                        new TableLayout { Type = TableLayoutValues.Fixed }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable styledTable = document.AddTable(1, 2, WordTableStyle.TableNormal);
+                    styledTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    styledTable.Rows[0].Cells[0].WidthType = TableWidthUnitValues.Dxa;
+                    styledTable.Rows[0].Cells[0].Width = 1440;
+                    styledTable.Rows[0].Cells[0].AddParagraph("Styled layout", removeExistingParagraphs: true);
+                    styledTable.Rows[0].Cells[1].WidthType = TableWidthUnitValues.Dxa;
+                    styledTable.Rows[0].Cells[1].Width = 1440;
+                    styledTable.Rows[0].Cells[1].AddParagraph("Table", removeExistingParagraphs: true);
+
+                    WordTable directTable = document.AddTable(1, 1, WordTableStyle.TableNormal);
+                    directTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    directTable.Alignment = TableRowAlignmentValues.Center;
+                    directTable.StyleDetails!.TableIndentationWidth = 240;
+                    directTable.WidthType = TableWidthUnitValues.Dxa;
+                    directTable.Width = 2160;
+                    directTable.LayoutType = TableLayoutValues.Autofit;
+                    directTable.Rows[0].Cells[0].AddParagraph("Direct layout", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x14, 0xF6, 0x02, 0xA6, 0x0E),
+                    "Expected the native DOC paragraph property stream to contain sprmTTableWidth from the table style.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x15, 0x36, 0x00),
+                    "Expected the native DOC paragraph property stream to contain sprmTFAutofit from the table style.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Tables.Count);
+
+                WordTable styledReloaded = reloaded.Tables[0];
+                Assert.Equal(TableRowAlignmentValues.Right, styledReloaded.Alignment);
+                Assert.Equal((short)720, styledReloaded.StyleDetails!.TableIndentationWidth);
+                Assert.Equal(TableWidthUnitValues.Pct, styledReloaded.WidthType);
+                Assert.Equal(3750, styledReloaded.Width);
+                Assert.Equal(TableLayoutValues.Fixed, styledReloaded.LayoutType);
+                WordTableRow styledRow = Assert.Single(styledReloaded.Rows);
+                Assert.Equal("Styled layout", styledRow.Cells[0].Paragraphs[0].Text);
+                Assert.Equal(1440, styledRow.Cells[0].Width);
+                Assert.Equal("Table", styledRow.Cells[1].Paragraphs[0].Text);
+                Assert.Equal(1440, styledRow.Cells[1].Width);
+
+                WordTable directReloaded = reloaded.Tables[1];
+                Assert.Equal(TableRowAlignmentValues.Center, directReloaded.Alignment);
+                Assert.Equal((short)240, directReloaded.StyleDetails!.TableIndentationWidth);
+                Assert.Equal(TableWidthUnitValues.Dxa, directReloaded.WidthType);
+                Assert.Equal(2160, directReloaded.Width);
+                Assert.Equal(TableLayoutValues.Autofit, directReloaded.LayoutType);
+                WordTableRow directRow = Assert.Single(directReloaded.Rows);
+                Assert.Equal("Direct layout", directRow.Cells[0].Paragraphs[0].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHorizontalMergedTableCellsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4244,6 +4320,33 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains("cell spacing", exception.Message.ToLowerInvariant());
                 Assert.Contains("dxa", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedCustomTableStylePreferredWidthBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocUnsupportedWidthTable";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                style.Append(new StyleName { Val = "Native DOC Unsupported Width Table" });
+                style.Append(new BasedOn { Val = "TableNormal" });
+                style.Append(new StyleTableProperties(
+                    new TableWidth { Width = "42", Type = TableWidthUnitValues.Auto }));
+                document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                WordTable table = document.AddTable(1, 1);
+                table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("automatic table widths", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

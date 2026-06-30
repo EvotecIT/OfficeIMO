@@ -16,9 +16,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             TableProperties? tableProperties = table.GetFirstChild<TableProperties>();
             LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
+            tableAlignment ??= ReadSupportedTableStyleAlignment(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             int? tableLeftIndentTwips = ReadSupportedTableIndentation(tableProperties);
+            tableLeftIndentTwips ??= ReadSupportedTableStyleIndentation(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTablePreferredWidth? tablePreferredWidth = ReadSupportedTablePreferredWidth(tableProperties);
+            tablePreferredWidth ??= ReadSupportedTableStylePreferredWidth(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
+            tableAutofit ??= ReadSupportedTableStyleAutofit(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
             defaultCellMargins ??= ReadSupportedTableStyleDefaultCellMargins(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);

@@ -74,6 +74,30 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return spacing == null ? null : ReadSupportedTableDefaultCellSpacing(spacing);
         }
 
+        private static LegacyDocTableAlignment? ReadSupportedTableStyleAlignment(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
+            TableJustification? justification = style?.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableJustification>();
+            return justification == null ? null : ReadSupportedTableAlignment(justification);
+        }
+
+        private static int? ReadSupportedTableStyleIndentation(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
+            TableIndentation? indentation = style?.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableIndentation>();
+            return indentation == null ? null : ReadSupportedTableIndentation(indentation);
+        }
+
+        private static LegacyDocTablePreferredWidth? ReadSupportedTableStylePreferredWidth(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
+            TableWidth? width = style?.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableWidth>();
+            return width == null ? null : ReadSupportedTablePreferredWidth(width);
+        }
+
+        private static bool? ReadSupportedTableStyleAutofit(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
+            TableLayout? layout = style?.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableLayout>();
+            return layout == null ? null : ReadSupportedTableAutofit(layout);
+        }
+
         private static Style? ResolveSupportedTableStyle(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             string? styleId = tableStyle?.Val?.Value;
             if (IsNoOpTableStyle(styleId)) {
@@ -157,8 +181,20 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableCellSpacing tableCellSpacing:
                         ReadSupportedTableDefaultCellSpacing(tableCellSpacing);
                         break;
+                    case TableJustification tableJustification:
+                        ReadSupportedTableAlignment(tableJustification);
+                        break;
+                    case TableIndentation tableIndentation:
+                        ReadSupportedTableIndentation(tableIndentation);
+                        break;
+                    case TableWidth tableWidth:
+                        ReadSupportedTablePreferredWidth(tableWidth);
+                        break;
+                    case TableLayout tableLayout:
+                        ReadSupportedTableAutofit(tableLayout);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with table-level borders, shading, default cell margins, and default cell spacing. Unsupported table style property: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with supported table-level layout, borders, shading, default cell margins, and default cell spacing. Unsupported table style property: {child.LocalName}.");
                 }
             }
         }
