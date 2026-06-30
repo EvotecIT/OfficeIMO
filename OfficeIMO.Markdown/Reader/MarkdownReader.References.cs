@@ -313,6 +313,7 @@ public static partial class MarkdownReader {
         separatorMarkerSpan = null;
 
         if (index < 0 || index >= lines.Length) return false;
+        if (state?.LazyQuoteContinuationLines.Contains(index) == true) return false;
         if (!TryParseReferenceDefinitionLabel(
             lines,
             index,

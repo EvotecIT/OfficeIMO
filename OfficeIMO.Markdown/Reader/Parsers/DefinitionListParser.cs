@@ -79,6 +79,7 @@ public static partial class MarkdownReader {
                     definitionSourceLines,
                     continuationIndentSourceSpans,
                     state,
+                    options,
                     allowLazyContinuation: false);
                 var (definitionBlocks, definitionSyntaxChildren) = ParseDefinitionBody(definitionSourceLines, options, state);
                 if (definitionSyntaxChildren.Count > 0) {
@@ -431,6 +432,7 @@ public static partial class MarkdownReader {
             definitionSourceLines,
             continuationIndentSourceSpans,
             state,
+            options,
             allowLazyContinuation: true);
         index = next;
 
@@ -524,6 +526,7 @@ public static partial class MarkdownReader {
         List<MarkdownSourceLineSlice> definitionSourceLines,
         List<MarkdownSourceSpan> continuationIndentSourceSpans,
         MarkdownReaderState state,
+        MarkdownReaderOptions options,
         bool allowLazyContinuation) {
         if (lines == null || definitionSourceLines == null) {
             return false;
@@ -571,7 +574,7 @@ public static partial class MarkdownReader {
 
             if (CountLeadingIndentColumns(line) < effectiveContinuationIndent) {
                 if (!allowLazyContinuation ||
-                    !ShouldConsumeMarkdigDefinitionLazyContinuation(lines, index, definitionSourceLines)) {
+                    !ShouldConsumeMarkdigDefinitionLazyContinuation(lines, index, definitionSourceLines, options)) {
                     return consumedLeadingBlankLine;
                 }
 
@@ -618,7 +621,8 @@ public static partial class MarkdownReader {
     private static bool ShouldConsumeMarkdigDefinitionLazyContinuation(
         string[] lines,
         int index,
-        List<MarkdownSourceLineSlice> definitionSourceLines) {
+        List<MarkdownSourceLineSlice> definitionSourceLines,
+        MarkdownReaderOptions options) {
         if (lines == null || index < 0 || index >= lines.Length) {
             return false;
         }
@@ -641,9 +645,15 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (PreviousDefinitionLinesContainActiveNestedBlock(definitionSourceLines) &&
-            CurrentLineInterruptsNestedDefinitionBlock(line)) {
-            return false;
+        if (PreviousDefinitionLinesContainActiveNestedBlock(definitionSourceLines)) {
+            if (PreviousDefinitionLinesEndActiveNestedBlockquote(definitionSourceLines) &&
+                trimmed.StartsWith(">", StringComparison.Ordinal)) {
+                return true;
+            }
+
+            if (CurrentLineInterruptsNestedDefinitionBlock(line, options)) {
+                return false;
+            }
         }
 
         if (PreviousDefinitionLinesEndActiveNestedBlockquote(definitionSourceLines) &&
@@ -739,14 +749,17 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static bool CurrentLineInterruptsNestedDefinitionBlock(string line) {
+    private static bool CurrentLineInterruptsNestedDefinitionBlock(string line, MarkdownReaderOptions options) {
         if (string.IsNullOrWhiteSpace(line)) {
             return false;
         }
 
+        var trimmed = line.TrimStart();
         return IsAtxHeading(line, out _, out _) ||
             LooksLikeHr(line) ||
-            line.TrimStart().StartsWith(">", StringComparison.Ordinal);
+            IsCodeFenceOpen(trimmed, out _, out _, out _) ||
+            HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(trimmed, options) ||
+            trimmed.StartsWith(">", StringComparison.Ordinal);
     }
 
     private static bool CurrentLineStartsListBlock(string line) {

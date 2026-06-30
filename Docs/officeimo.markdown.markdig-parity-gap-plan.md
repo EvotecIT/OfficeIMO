@@ -96,12 +96,14 @@ Current active row: `UseDefinitionLists`.
   - [ ] Remaining list-like and table-like interruption starts, with pipe tables on and off.
 - [ ] Broaden nested-body cases.
   - [ ] Blockquote source breadth beyond the already-covered heading/thematic/table-shaped cases.
+    - [x] Unindented blockquote continuations remain inside active nested blockquotes while unindented fenced code, HTML, and reference-definition-looking lazy text follow Markdig ownership.
   - [ ] Fenced-code variants beyond the marker-line and empty-marker boundary cases already closed.
     - [x] Unclosed fenced-code bodies consume lazy-looking trailing lines like Markdig and write a closing fence for stable reparse.
   - [ ] List-tail variants after nested body boundaries.
     - [x] Mixed unordered-to-ordered list tails stay inside the definition body as separate list children, with syntax/native source spans and writer reparse proof.
     - [x] Unindented blockquote tails after nested list bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
     - [x] Unindented list tails after nested blockquote bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
+    - [x] Unindented raw HTML after nested list bodies now closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
 - [ ] Finish definition-list source mapping.
   - [x] Marker lines are source-backed through parsed `DefinitionMarker` syntax tokens and native `definitionMarker` source fields; generated marker tokens remain source-less by design.
   - [x] Continuation indentation stripped from definition body lines now surfaces as native `definitionContinuationIndent` source fields with precise caret lookup.
