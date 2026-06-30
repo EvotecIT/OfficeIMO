@@ -29,6 +29,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             defaultCellSpacingTwips ??= ReadSupportedTableStyleDefaultCellSpacing(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties, tableStyleDefinitions);
             LegacyDocTableCellShading tableShading = ReadSupportedTableShading(tableProperties, tableStyleDefinitions);
+            LegacyDocTableConditionalStyleSet conditionalStyles = ReadSupportedTableConditionalStyles(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
+            LegacyDocTableLook tableLook = ReadSupportedTableLook(tableProperties?.GetFirstChild<TableLook>());
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());
             for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
                 TableRow row = rows[rowIndex];
@@ -37,7 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
                 }
 
-                IReadOnlyList<LegacyDocWritableTableCell> writableCells = ExpandSupportedTableCells(cells, gridColumnWidthsTwips, tableBorders, tableShading, rowIndex, rows.Length);
+                IReadOnlyList<LegacyDocWritableTableCell> writableCells = ExpandSupportedTableCells(cells, gridColumnWidthsTwips, tableBorders, tableShading, conditionalStyles, tableLook, rowIndex, rows.Length);
                 IReadOnlyList<int> cellWidthsTwips = ReadSupportedTableCellWidths(writableCells);
                 IReadOnlyList<LegacyDocTableCellHorizontalMerge> cellHorizontalMerges = ReadSupportedTableCellHorizontalMerges(writableCells);
                 IReadOnlyList<LegacyDocTableCellVerticalMerge> cellVerticalMerges = ReadSupportedTableCellVerticalMerges(writableCells);
@@ -445,6 +447,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             IReadOnlyList<int> gridColumnWidthsTwips,
             LegacyDocTableBorders tableBorders,
             LegacyDocTableCellShading tableShading,
+            LegacyDocTableConditionalStyleSet conditionalStyles,
+            LegacyDocTableLook tableLook,
             int rowIndex,
             int rowCount) {
             var writableCells = new List<LegacyDocWritableTableCell>();
@@ -479,7 +483,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 logicalColumnIndex += gridSpan;
             }
 
-            return ApplySupportedTableBorders(ApplySupportedTableShading(writableCells, tableShading), tableBorders, rowIndex, rowCount);
+            IReadOnlyList<LegacyDocWritableTableCell> conditionallyStyledCells = ApplySupportedTableConditionalStyles(writableCells, conditionalStyles, tableLook, rowIndex, rowCount);
+            return ApplySupportedTableBorders(ApplySupportedTableShading(conditionallyStyledCells, tableShading), tableBorders, rowIndex, rowCount);
         }
 
         private static IReadOnlyList<LegacyDocWritableTableCell> ApplySupportedTableShading(

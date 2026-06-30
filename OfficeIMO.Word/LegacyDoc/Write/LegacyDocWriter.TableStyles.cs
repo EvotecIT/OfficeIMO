@@ -147,10 +147,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StyleTableProperties styleTableProperties:
                         ThrowIfUnsupportedStyleTableProperties(styleId, styleTableProperties);
                         break;
+                    case TableStyleProperties tableStyleProperties:
+                        ThrowIfUnsupportedTableStyleConditionalProperties(styleId, tableStyleProperties);
+                        break;
                     case StyleParagraphProperties:
                     case StyleRunProperties:
-                    case TableStyleProperties:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it contains table-level border formatting without conditional, paragraph, or run style effects.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it contains table-level formatting and supported conditional cell border or shading effects without paragraph or run style effects.");
                     default:
                         throw new NotSupportedException($"Native DOC saving does not support table style '{styleId}' element '{child.LocalName}'.");
                 }
@@ -193,9 +195,75 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableLayout tableLayout:
                         ReadSupportedTableAutofit(tableLayout);
                         break;
+                    case TableStyleRowBandSize rowBandSize:
+                        ReadSupportedTableStyleBandSize(rowBandSize.Val, "row");
+                        break;
+                    case TableStyleColumnBandSize columnBandSize:
+                        ReadSupportedTableStyleBandSize(columnBandSize.Val, "column");
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with supported table-level layout, borders, shading, default cell margins, and default cell spacing. Unsupported table style property: {child.LocalName}.");
                 }
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableStyleConditionalProperties(string styleId, TableStyleProperties tableStyleProperties) {
+            if (tableStyleProperties.Type?.Value == null) {
+                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only when the conditional type is specified.");
+            }
+
+            foreach (OpenXmlElement child in tableStyleProperties.ChildElements) {
+                switch (child) {
+                    case TableStyleConditionalFormattingTableCellProperties cellProperties:
+                        ThrowIfUnsupportedTableStyleConditionalCellProperties(styleId, cellProperties);
+                        break;
+                    case TableStyleConditionalFormattingTableProperties tableProperties:
+                        ThrowIfUnsupportedTableStyleConditionalTableProperties(styleId, tableProperties);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with supported cell border and shading effects. Unsupported conditional style element: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableStyleConditionalCellProperties(string styleId, TableStyleConditionalFormattingTableCellProperties cellProperties) {
+            foreach (OpenXmlElement child in cellProperties.ChildElements) {
+                switch (child) {
+                    case Shading shading:
+                        ReadSupportedTableCellShading(shading, "conditional table style shading");
+                        break;
+                    case TableCellBorders borders:
+                        ThrowIfUnsupportedTableStyleConditionalCellBorders(styleId, borders);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional cell formatting only with supported borders and shading. Unsupported conditional cell property: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static void ThrowIfUnsupportedTableStyleConditionalCellBorders(string styleId, TableCellBorders borders) {
+            foreach (OpenXmlElement child in borders.ChildElements) {
+                switch (child) {
+                    case TopBorder:
+                    case LeftBorder:
+                    case BottomBorder:
+                    case RightBorder:
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional borders only on top, left, bottom, and right cell edges. Unsupported conditional border: {child.LocalName}.");
+                }
+            }
+
+            ReadSupportedTableCellBorder(borders.TopBorder);
+            ReadSupportedTableCellBorder(borders.LeftBorder);
+            ReadSupportedTableCellBorder(borders.BottomBorder);
+            ReadSupportedTableCellBorder(borders.RightBorder);
+        }
+
+        private static void ThrowIfUnsupportedTableStyleConditionalTableProperties(string styleId, TableStyleConditionalFormattingTableProperties tableProperties) {
+            if (tableProperties.HasChildren) {
+                OpenXmlElement child = tableProperties.ChildElements[0];
+                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with cell border and shading effects. Unsupported conditional table property: {child.LocalName}.");
             }
         }
     }
