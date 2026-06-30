@@ -112,6 +112,15 @@ _Chart caption_
         Assert.Equal("{#chart .wide data-panel=main pinned}", attributes.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 13, 1, 49), attributes.SourceSpan);
         Assert.Equal("attributes", native.FindBlockSourceFieldAtPosition(1, 13)?.Name);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        var snapshotAttributes = Assert.Single(snapshot.EnumerateSourceFields("attributes"));
+        Assert.Equal("{#chart .wide data-panel=main pinned}", snapshot.Fields["attributes"]);
+        Assert.Equal(13, snapshot.FieldSourceSpans["attributes"]!.StartColumn);
+        Assert.Equal(49, snapshot.FieldSourceSpans["attributes"]!.EndColumn);
+        Assert.Equal("{#chart .wide data-panel=main pinned}", snapshotAttributes.Value);
+        Assert.Equal(13, snapshotAttributes.SourceSpan.StartColumn);
+        Assert.Equal(49, snapshotAttributes.SourceSpan.EndColumn);
     }
 
     [Fact]

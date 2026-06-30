@@ -54,6 +54,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.Fields = Fields(
                     ("language", code.Language),
                     ("infoString", code.InfoString),
+                    ("attributes", MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceText(code.FenceInfo)),
                     ("caption", code.Caption),
                     ("title", code.Title),
                     ("elementId", code.ElementId));
@@ -74,6 +75,7 @@ internal static class MarkdownNativeSnapshotFactory {
                     ("semanticKind", visual.SemanticKind),
                     ("language", visual.Language),
                     ("infoString", visual.InfoString),
+                    ("attributes", MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceText(visual.FenceInfo)),
                     ("caption", visual.Caption),
                     ("title", visual.Title),
                     ("elementId", visual.ElementId),

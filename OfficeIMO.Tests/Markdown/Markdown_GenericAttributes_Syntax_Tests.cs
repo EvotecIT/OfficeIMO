@@ -379,6 +379,15 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("attributes", selectedField?.Name);
         Assert.Equal(attributeField.SourceSpan, selectedField?.SourceSpan);
 
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        var snapshotAttributes = Assert.Single(snapshot.EnumerateSourceFields("attributes"));
+        Assert.Equal("{#code .wide}", snapshot.Fields["attributes"]);
+        Assert.Equal(4, snapshot.FieldSourceSpans["attributes"]!.StartColumn);
+        Assert.Equal(16, snapshot.FieldSourceSpans["attributes"]!.EndColumn);
+        Assert.Equal("{#code .wide}", snapshotAttributes.Value);
+        Assert.Equal(4, snapshotAttributes.SourceSpan.StartColumn);
+        Assert.Equal(16, snapshotAttributes.SourceSpan.EndColumn);
+
         var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributeField, "{#sample .snippet}"));
 
         Assert.True(roundtrip.IsLossless);
@@ -421,6 +430,15 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 19), attributeField.SourceSpan);
         Assert.Equal("attributes", selectedField?.Name);
         Assert.Equal(attributeField.SourceSpan, selectedField?.SourceSpan);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        var snapshotAttributes = Assert.Single(snapshot.EnumerateSourceFields("attributes"));
+        Assert.Equal("{#code .wide}", snapshot.Fields["attributes"]);
+        Assert.Equal(7, snapshot.FieldSourceSpans["attributes"]!.StartColumn);
+        Assert.Equal(19, snapshot.FieldSourceSpans["attributes"]!.EndColumn);
+        Assert.Equal("{#code .wide}", snapshotAttributes.Value);
+        Assert.Equal(7, snapshotAttributes.SourceSpan.StartColumn);
+        Assert.Equal(19, snapshotAttributes.SourceSpan.EndColumn);
 
         var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributeField, "{#sample .snippet}"));
 
