@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using OfficeIMO.Word.LegacyDoc.Model;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
@@ -38,6 +39,27 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ThrowIfUnsupportedTableStyle(styleId!, style);
             TableBorders? customBorders = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
             return customBorders == null ? default : ReadSupportedTableBorders(customBorders);
+        }
+
+        private static LegacyDocTableCellShading ReadSupportedTableStyleShading(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            string? styleId = tableStyle?.Val?.Value;
+            if (IsNoOpTableStyle(styleId)) {
+                return default;
+            }
+
+            if (string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+                Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
+                Shading? shading = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
+                return shading == null ? default : ReadSupportedTableCellShading(shading, "table style shading");
+            }
+
+            if (string.IsNullOrWhiteSpace(styleId) || !tableStyleDefinitions.TryGetValue(styleId!, out Style? style)) {
+                throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
+            }
+
+            ThrowIfUnsupportedTableStyle(styleId!, style);
+            Shading? customShading = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
+            return customShading == null ? default : ReadSupportedTableCellShading(customShading, "table style shading");
         }
 
         private static bool IsNoOpTableStyle(string? styleId) {
@@ -96,8 +118,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableBorders tableBorders:
                         ReadSupportedTableBorders(tableBorders);
                         break;
+                    case Shading shading:
+                        ReadSupportedTableCellShading(shading, "table style shading");
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with table-level borders. Unsupported table style property: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with table-level borders and shading. Unsupported table style property: {child.LocalName}.");
                 }
             }
         }

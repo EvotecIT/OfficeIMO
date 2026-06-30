@@ -638,6 +638,11 @@ just to reserve names.
     DOC `TC80` values, while continuing to block conditional, paragraph, run,
     non-palette, or otherwise richer visual table styles before bytes are
     committed.
+  - [x] Write custom table styles whose only table-level formatting is
+    supported palette-backed shading by expanding the style fill to native DOC
+    `sprmTDefTableShd80` cell shading, while preserving direct cell shading as
+    an override and continuing to block richer visual style effects before
+    bytes are committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
