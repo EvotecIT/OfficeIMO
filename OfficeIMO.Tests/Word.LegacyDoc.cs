@@ -3474,6 +3474,50 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionBreakAfterMultiParagraphTableAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("A1 first", removeExistingParagraphs: true);
+                    WordParagraph secondCellParagraph = table.Rows[0].Cells[0].AddParagraph("A1 second");
+                    secondCellParagraph.ParagraphAlignment = JustificationValues.Right;
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+
+                    WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+                    secondSection.PageSettings.PageSize = WordPageSize.Letter;
+                    secondSection.PageOrientation = PageOrientationValues.Landscape;
+                    secondSection.SetMargins(WordMargin.Narrow);
+                    secondSection.AddParagraph("Landscape after rich table");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                WordTable reloadedTable = Assert.Single(reloaded.Sections[0].Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("A1 first", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal("A1 second", row.Cells[0].Paragraphs[1].Text);
+                Assert.Equal(JustificationValues.Right, row.Cells[0].Paragraphs[1].ParagraphAlignment);
+                Assert.Equal("B1", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal("Landscape after rich table", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Equal(PageOrientationValues.Landscape, reloaded.Sections[1].PageOrientation);
+                Assert.Equal((uint)15840, reloaded.Sections[1].PageSettings.Width!.Value);
+                Assert.Equal((uint)12240, reloaded.Sections[1].PageSettings.Height!.Value);
+                Assert.Equal(720, reloaded.Sections[1].Margins.Top);
+                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right!.Value);
+                Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
+                Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         [Theory]
         [InlineData("continuous", "Continuous section")]
         [InlineData("nextColumn", "Next-column section")]

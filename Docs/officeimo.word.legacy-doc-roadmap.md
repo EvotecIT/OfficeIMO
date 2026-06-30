@@ -591,6 +591,9 @@ just to reserve names.
   - [x] Write paragraph-boundary section breaks after simple table body blocks,
     then reload the table and following section page setup through the legacy
     reader.
+  - [x] Write paragraph-boundary section breaks after richer table body blocks
+    with multi-paragraph cells, then reload both the cell paragraphs and the
+    following section page setup through the legacy reader.
   - [ ] Add visual table styles, nested tables, section breaks inside richer body
     shapes, and richer section writing as separate preflight-backed slices.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
