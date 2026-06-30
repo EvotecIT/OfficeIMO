@@ -43,7 +43,8 @@ namespace OfficeIMO.Word {
         /// </summary>
         public System.Uri? Uri {
             get {
-                var list = _document._wordprocessingDocument!.MainDocumentPart!.HyperlinkRelationships;
+                var part = ResolveRelationshipPart();
+                var list = part?.HyperlinkRelationships ?? Enumerable.Empty<HyperlinkRelationship>();
                 foreach (var l in list) {
                     if (l.Id == _hyperlink.Id) {
                         return l.Uri;
@@ -54,7 +55,9 @@ namespace OfficeIMO.Word {
             }
             set {
                 if (value != null) {
-                    var rel = _document._wordprocessingDocument!.MainDocumentPart!.AddHyperlinkRelationship(value, true);
+                    var part = ResolveRelationshipPart()
+                        ?? throw new InvalidOperationException("Unable to resolve hyperlink relationship owner.");
+                    var rel = part.AddHyperlinkRelationship(value, true);
                     _hyperlink.Id = rel.Id;
                 }
             }
@@ -86,6 +89,25 @@ namespace OfficeIMO.Word {
             get {
                 return _run?.RunProperties;
             }
+        }
+
+        private OpenXmlPart? ResolveRelationshipPart() {
+            OpenXmlElement? parent = _paragraph.Parent;
+            while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
+                parent = parent.Parent;
+            }
+
+            HeaderPart? headerPart = (parent as Header)?.HeaderPart;
+            if (headerPart != null) {
+                return headerPart;
+            }
+
+            FooterPart? footerPart = (parent as Footer)?.FooterPart;
+            if (footerPart != null) {
+                return footerPart;
+            }
+
+            return _document._wordprocessingDocument?.MainDocumentPart;
         }
 
         /// <summary>
@@ -248,21 +270,7 @@ namespace OfficeIMO.Word {
         /// <param name="includingParagraph"></param>
         public void RemoveHyperLink(bool includingParagraph = true) {
             if (!string.IsNullOrEmpty(_hyperlink.Id)) {
-                OpenXmlElement? parent = _paragraph.Parent;
-                while (parent != null && parent is not Body && parent is not Header && parent is not Footer) {
-                    parent = parent.Parent;
-                }
-
-                OpenXmlPart? part = _document._wordprocessingDocument?.MainDocumentPart;
-                var headerPart = (parent as Header)?.HeaderPart;
-                var footerPart = (parent as Footer)?.FooterPart;
-
-                if (headerPart != null) {
-                    part = headerPart;
-                } else if (footerPart != null) {
-                    part = footerPart;
-                }
-
+                OpenXmlPart? part = ResolveRelationshipPart();
                 var rel = part?.HyperlinkRelationships?.FirstOrDefault(r => r.Id == _hyperlink.Id);
                 if (rel != null) {
                     part!.DeleteReferenceRelationship(rel);

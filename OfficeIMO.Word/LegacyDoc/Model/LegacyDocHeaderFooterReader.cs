@@ -117,15 +117,34 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var runText = new System.Text.StringBuilder(endCharacter - startCharacter);
             var runCharacterPositions = new List<int>();
             LegacyDocCharacterFormat currentFormat = LegacyDocCharacterFormat.Default;
+            string? currentHyperlinkUri = null;
             bool hasCurrentRun = false;
 
-            foreach (LegacyDocTextCharacter character in characters) {
-                if (character.CharacterPosition < startCharacter) {
-                    continue;
-                }
+            LegacyDocTextCharacter[] storyCharacters = characters
+                .Where(character => character.CharacterPosition >= startCharacter && character.CharacterPosition < endCharacter)
+                .ToArray();
 
-                if (character.CharacterPosition >= endCharacter) {
-                    break;
+            for (int index = 0; index < storyCharacters.Length; index++) {
+                LegacyDocTextCharacter character = storyCharacters[index];
+
+                if (LegacyDocField.TryReadExternalHyperlink(
+                    storyCharacters,
+                    index,
+                    out string? hyperlinkUri,
+                    out int resultStartIndex,
+                    out int resultEndIndex,
+                    out int fieldEndIndex)) {
+                    for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                        LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
+                        AppendRunCharacter(
+                            resultCharacter.Character,
+                            GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset),
+                            resultCharacter.CharacterPosition,
+                            hyperlinkUri);
+                    }
+
+                    index = fieldEndIndex;
+                    continue;
                 }
 
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
@@ -144,16 +163,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 AppendRunCharacter(
                     normalized,
                     GetFormatForFileOffset(formattingRanges, character.FileOffset),
-                    character.CharacterPosition);
+                    character.CharacterPosition,
+                    null);
             }
 
             AddCurrentParagraph(LegacyDocParagraphFormat.Default);
             return paragraphs;
 
-            void AppendRunCharacter(char value, LegacyDocCharacterFormat format, int characterPosition) {
-                if (!hasCurrentRun || !format.Equals(currentFormat)) {
+            void AppendRunCharacter(char value, LegacyDocCharacterFormat format, int characterPosition, string? hyperlinkUri) {
+                if (!hasCurrentRun
+                    || !format.Equals(currentFormat)
+                    || !string.Equals(hyperlinkUri, currentHyperlinkUri, StringComparison.Ordinal)) {
                     FlushRun();
                     currentFormat = format;
+                    currentHyperlinkUri = hyperlinkUri;
                     hasCurrentRun = true;
                 }
 
@@ -169,6 +192,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 hasCurrentRun = false;
+                currentHyperlinkUri = null;
             }
 
             void FlushRun() {
@@ -194,7 +218,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.FontSizeHalfPoints,
                     currentFormat.ColorHex,
                     currentFormat.FontFamily,
-                    runCharacterPositions));
+                    runCharacterPositions,
+                    currentHyperlinkUri));
                 runText.Clear();
                 runCharacterPositions.Clear();
             }

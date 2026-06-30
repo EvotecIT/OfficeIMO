@@ -104,7 +104,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             HeaderPart headerPart = GetReferencedPart<HeaderPart>(mainPart, reference.Id?.Value, kind);
-            return ReadSimpleHeaderFooterStory(headerPart.Header, kind, styleIndexes);
+            return ReadSimpleHeaderFooterStory(headerPart.Header, headerPart, kind, styleIndexes);
         }
 
         private static LegacyDocWritableHeaderFooterStory? ReadFooterStory(MainDocumentPart mainPart, SectionProperties sectionProperties, HeaderFooterValues type, IReadOnlyDictionary<string, ushort> styleIndexes) {
@@ -120,7 +120,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             FooterPart footerPart = GetReferencedPart<FooterPart>(mainPart, reference.Id?.Value, kind);
-            return ReadSimpleHeaderFooterStory(footerPart.Footer, kind, styleIndexes);
+            return ReadSimpleHeaderFooterStory(footerPart.Footer, footerPart, kind, styleIndexes);
         }
 
         private static TPart GetReferencedPart<TPart>(MainDocumentPart mainPart, string? relationshipId, string kind)
@@ -192,7 +192,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return GetHeaderFooterDescription(type, kind);
         }
 
-        private static LegacyDocWritableHeaderFooterStory? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, string kind, IReadOnlyDictionary<string, ushort> styleIndexes) {
+        private static LegacyDocWritableHeaderFooterStory? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes) {
             if (container == null || !container.HasChildren) {
                 return null;
             }
@@ -207,7 +207,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 int paragraphStart = storyText.Length;
-                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, paragraph, kind, styleIndexes, out string paragraphText);
+                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
                 paragraphs.Add(paragraphText);
                 storyText.Append('\r');
                 if (paragraphFormatting.HasFormatting) {
@@ -228,7 +228,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableHeaderFooterStory(storyText.ToString(), formattedRuns, formattedParagraphs);
         }
 
-        private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, Paragraph paragraph, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
+        private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, Paragraph paragraph, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
             var text = new StringBuilder();
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             foreach (OpenXmlElement child in paragraph.ChildElements) {
@@ -238,13 +238,29 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Run run:
                         AppendFormattedHeaderFooterRun(storyText, formattedRuns, text, run, kind);
                         break;
+                    case Hyperlink hyperlink:
+                        AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, hyperlink, relationshipOwner, kind);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs and simple external hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
                 }
             }
 
             paragraphText = text.ToString();
             return paragraphFormatting;
+        }
+
+        private static void AppendFormattedHeaderFooterHyperlink(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner, string kind) {
+            int before = storyText.Length;
+            try {
+                AppendSupportedHyperlinkText(storyText, formattedRuns, hyperlink, relationshipOwner, LegacyDocWritableFootnotes.Empty, LegacyDocWritableEndnotes.Empty);
+            } catch (NotSupportedException exception) {
+                throw new NotSupportedException($"Native DOC saving supports simple {kind} hyperlinks only when they are external plain-text hyperlinks. {exception.Message}", exception);
+            }
+
+            if (storyText.Length > before) {
+                paragraphText.Append(storyText.ToString(before, storyText.Length - before));
+            }
         }
 
         private static void AppendFormattedHeaderFooterRun(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Run run, string kind) {

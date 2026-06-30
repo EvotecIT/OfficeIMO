@@ -1848,6 +1848,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterExternalHyperlinksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with linked header footer");
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.Header.Default!.AddParagraph("Header ");
+                    header.AddHyperLink("site", new Uri("https://officeimo.net/header"), addStyle: true);
+                    header.AddText(" done");
+                    WordParagraph footer = section.Footer.Default!.AddParagraph("Footer ");
+                    footer.AddHyperLink("mail", new Uri("mailto:footer@example.org"), addStyle: true);
+                    footer.AddText(" done");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                IReadOnlyList<WordParagraph> headerParagraphs = reloadedSection.Header.Default!.Paragraphs;
+                IReadOnlyList<WordParagraph> footerParagraphs = reloadedSection.Footer.Default!.Paragraphs;
+                Assert.NotEmpty(headerParagraphs);
+                Assert.NotEmpty(footerParagraphs);
+                Assert.DoesNotContain(headerParagraphs, paragraph => paragraph.Text.Contains("HYPERLINK", StringComparison.Ordinal));
+                Assert.DoesNotContain(footerParagraphs, paragraph => paragraph.Text.Contains("HYPERLINK", StringComparison.Ordinal));
+
+                WordHyperLink? headerLink = headerParagraphs
+                    .SelectMany(paragraph => paragraph.GetRuns())
+                    .Where(run => run.IsHyperLink)
+                    .Select(run => run.Hyperlink)
+                    .FirstOrDefault(link => link?.Text == "site");
+                Assert.NotNull(headerLink);
+                Assert.Equal("https://officeimo.net/header", headerLink.Uri?.ToString());
+
+                WordHyperLink? footerLink = footerParagraphs
+                    .SelectMany(paragraph => paragraph.GetRuns())
+                    .Where(run => run.IsHyperLink)
+                    .Select(run => run.Hyperlink)
+                    .FirstOrDefault(link => link?.Text == "mail");
+                Assert.NotNull(footerLink);
+                Assert.Equal("mailto:footer@example.org", footerLink.Uri?.ToString());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedHeaderFooterRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string bodyText = "Body with formatted header footer";

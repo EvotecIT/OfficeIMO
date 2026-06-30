@@ -828,9 +828,9 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            MainDocumentPart mainPart = paragraph._document._wordprocessingDocument?.MainDocumentPart
-                ?? throw new InvalidOperationException("Legacy DOC hyperlink projection requires a main document part.");
-            HyperlinkRelationship relationship = mainPart.AddHyperlinkRelationship(uri, true);
+            OpenXmlPart relationshipOwner = ResolveLegacyDocHyperlinkRelationshipPart(paragraph)
+                ?? throw new InvalidOperationException("Legacy DOC hyperlink projection requires a document relationship owner.");
+            HyperlinkRelationship relationship = relationshipOwner.AddHyperlinkRelationship(uri, true);
             var hyperlink = new Hyperlink {
                 Id = relationship.Id,
                 History = true
@@ -845,6 +845,28 @@ namespace OfficeIMO.Word {
                 _hyperlink = hyperlink
             };
             ApplyLegacyDocRunFormatting(hyperlinkRun, legacyRun);
+        }
+
+        private static OpenXmlPart? ResolveLegacyDocHyperlinkRelationshipPart(WordParagraph paragraph) {
+            OpenXmlElement? parent = paragraph._paragraph.Parent;
+            while (parent != null
+                && parent is not Body
+                && parent is not DocumentFormat.OpenXml.Wordprocessing.Header
+                && parent is not DocumentFormat.OpenXml.Wordprocessing.Footer) {
+                parent = parent.Parent;
+            }
+
+            HeaderPart? headerPart = (parent as DocumentFormat.OpenXml.Wordprocessing.Header)?.HeaderPart;
+            if (headerPart != null) {
+                return headerPart;
+            }
+
+            FooterPart? footerPart = (parent as DocumentFormat.OpenXml.Wordprocessing.Footer)?.FooterPart;
+            if (footerPart != null) {
+                return footerPart;
+            }
+
+            return paragraph._document._wordprocessingDocument?.MainDocumentPart;
         }
 
         private static void ApplyLegacyDocParagraphFormatting(WordParagraph paragraph, LegacyDocParagraphFormat paragraphFormat, LegacyDocStyleSheet styleSheet) {

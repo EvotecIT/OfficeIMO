@@ -10,21 +10,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             Hyperlink hyperlink,
-            MainDocumentPart mainPart,
+            OpenXmlPartContainer relationshipOwner,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes) {
-            AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
+            AppendSupportedHyperlinkText(text, runs, hyperlink, relationshipOwner, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
         }
 
         private static void AppendSupportedHyperlinkText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             Hyperlink hyperlink,
-            MainDocumentPart mainPart,
+            OpenXmlPartContainer relationshipOwner,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
             LegacyDocWritableFormatting inheritedFormatting) {
-            Uri uri = ReadSupportedExternalHyperlinkUri(hyperlink, mainPart);
+            Uri uri = ReadSupportedExternalHyperlinkUri(hyperlink, relationshipOwner);
             AppendFormattedText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
             AppendFormattedText(text, runs, " HYPERLINK \"" + EscapeFieldString(uri.ToString()) + "\" ", LegacyDocWritableFormatting.Plain);
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
@@ -48,12 +48,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
-        private static Uri ReadSupportedExternalHyperlinkUri(Hyperlink hyperlink, MainDocumentPart mainPart) {
+        private static Uri ReadSupportedExternalHyperlinkUri(Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner) {
             if (string.IsNullOrEmpty(hyperlink.Id)) {
                 throw new NotSupportedException("Native DOC saving supports external hyperlinks only. Internal bookmark hyperlinks are not supported yet.");
             }
 
-            HyperlinkRelationship? relationship = mainPart.HyperlinkRelationships.FirstOrDefault(item => item.Id == hyperlink.Id);
+            HyperlinkRelationship? relationship = relationshipOwner.HyperlinkRelationships.FirstOrDefault(item => item.Id == hyperlink.Id);
             if (relationship == null) {
                 throw new NotSupportedException($"Native DOC saving could not find hyperlink relationship '{hyperlink.Id}'.");
             }
