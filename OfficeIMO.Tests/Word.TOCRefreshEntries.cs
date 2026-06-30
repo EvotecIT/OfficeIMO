@@ -552,6 +552,80 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshEntriesHonorsTcOnlySourceSwitches() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesTcOnlySources.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 3);
+                SetTocInstruction(toc, " TOC \\f \"A\" \\h \\z ");
+
+                document.AddParagraph("Heading should stay out").SetStyle(WordParagraphStyles.Heading1);
+                AppendBodyParagraph(document, new Paragraph(
+                    new SimpleField { Instruction = " TC \"TC only entry\" \\f \"A\" \\l \"1\" " }));
+
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                Assert.Single(report.Entries);
+                Assert.Equal("TC only entry", report.Entries[0].Text);
+                AssertGeneratedEntries(toc, "TC only entry");
+                Assert.DoesNotContain("Heading should stay out", TocText(toc));
+                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
+                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\f \"A\"", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
+        public void Test_TableOfContent_RefreshEntriesHonorsCustomStyleOnlySourceSwitches() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesCustomStyleOnlySources.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 3);
+                SetTocInstruction(toc, " TOC \\t \"CustomOnly,1\" \\h \\z ");
+
+                document.AddParagraph("Heading should stay out").SetStyle(WordParagraphStyles.Heading1);
+                AppendBodyParagraph(document, new Paragraph(
+                    new ParagraphProperties(new ParagraphStyleId { Val = "CustomOnly" }),
+                    new Run(new Text("Custom style entry") { Space = SpaceProcessingModeValues.Preserve })));
+
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                Assert.Single(report.Entries);
+                Assert.Equal("Custom style entry", report.Entries[0].Text);
+                AssertGeneratedEntries(toc, "Custom style entry");
+                Assert.DoesNotContain("Heading should stay out", TocText(toc));
+                Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
+                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"CustomOnly,1\"", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
+        public void Test_TableOfContent_RefreshEntriesIgnoresPageRefSimpleFieldsWhenFindingInstruction() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesIgnorePageRefSimpleFields.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 1);
+                SdtContentBlock content = toc.SdtBlock.SdtContentBlock!;
+                content.RemoveAllChildren();
+                content.Append(new Paragraph(
+                    new SimpleField(new Run(new Text("1"))) {
+                        Instruction = " PAGEREF _TocGenerated \\h "
+                    }));
+                content.Append(CreateComplexFieldParagraph(" TOC \\o \"1-1\" \\h \\z ", "No table of contents entries found."));
+                document.AddParagraph("Real TOC Heading").SetStyle(WordParagraphStyles.Heading1);
+
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                Assert.Single(report.Entries);
+                Assert.Equal("Real TOC Heading", report.Entries[0].Text);
+                AssertGeneratedEntries(toc, "Real TOC Heading");
+                SimpleField generatedField = toc.SdtBlock.Descendants<SimpleField>().Single(field =>
+                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("TOC", StringComparison.OrdinalIgnoreCase));
+                Assert.Contains("\\o \"1-1\"", generatedField.Instruction?.Value ?? generatedField.Instruction ?? string.Empty);
+                Assert.DoesNotContain("PAGEREF", generatedField.Instruction?.Value ?? generatedField.Instruction ?? string.Empty, StringComparison.OrdinalIgnoreCase);
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshEntriesSupportsWordGeneratedCustomStyleToc() {
             string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "FieldEvaluation", "word-generated-custom-style-toc.docx"));
             Assert.True(File.Exists(sourcePath), $"Missing Word-generated custom-style TOC fixture: {sourcePath}");
@@ -2886,6 +2960,15 @@ namespace OfficeIMO.Tests {
         private static void SetTocInstruction(WordTableOfContent toc, string instruction) {
             SimpleField field = toc.SdtBlock.Descendants<SimpleField>().First();
             field.Instruction = instruction;
+        }
+
+        private static Paragraph CreateComplexFieldParagraph(string instruction, string resultText) {
+            return new Paragraph(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(instruction) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text(resultText) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
         }
 
         private static void AppendBodyParagraph(WordDocument document, Paragraph paragraph) {

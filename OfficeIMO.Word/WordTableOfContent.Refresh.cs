@@ -28,7 +28,8 @@ namespace OfficeIMO.Word {
             ISet<int> pageNumberSuppressedLevels = GetTocPageNumberSuppressedLevels(instruction);
             string pageNumberSeparator = GetTocPageNumberSeparator(instruction);
             IReadOnlyDictionary<string, int> customStyleLevels = GetTocCustomStyleLevels(instruction);
-            var headings = CollectHeadingEntries(tcEntryTypeFilter, customStyleLevels, bookmarkScope).ToArray();
+            TocSourceOptions sourceOptions = GetTocSourceOptions(instruction, customStyleLevels);
+            var headings = CollectHeadingEntries(tcEntryTypeFilter, customStyleLevels, bookmarkScope, sourceOptions).ToArray();
             var included = headings
                 .Where(heading => heading.Level >= MinLevel && heading.Level <= MaxLevel)
                 .ToArray();
@@ -43,7 +44,11 @@ namespace OfficeIMO.Word {
                 "Estimated from explicit page breaks; Word may recalculate layout on open.");
         }
 
-        private IReadOnlyList<TocHeadingEntry> CollectHeadingEntries(string? tcEntryTypeFilter, IReadOnlyDictionary<string, int> customStyleLevels, string? bookmarkScope) {
+        private IReadOnlyList<TocHeadingEntry> CollectHeadingEntries(
+            string? tcEntryTypeFilter,
+            IReadOnlyDictionary<string, int> customStyleLevels,
+            string? bookmarkScope,
+            TocSourceOptions sourceOptions) {
             Body body = _document._wordprocessingDocument.MainDocumentPart?.Document?.Body
                 ?? throw new InvalidOperationException("Document body is missing.");
 
@@ -67,11 +72,11 @@ namespace OfficeIMO.Word {
                 }
 
                 if (child is Paragraph paragraph) {
-                    foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(paragraph, customStyleLevels)) {
-                        ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, ref pageNumber, ref headingIndex);
+                    foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(paragraph, customStyleLevels, sourceOptions)) {
+                        ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                     }
 
-                    ProcessHeadingParagraph(paragraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, ref pageNumber, ref headingIndex);
+                    ProcessHeadingParagraph(paragraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                     continue;
                 }
 
@@ -81,11 +86,11 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(nestedParagraph, customStyleLevels)) {
-                            ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, ref pageNumber, ref headingIndex);
+                        foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(nestedParagraph, customStyleLevels, sourceOptions)) {
+                            ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                         }
 
-                        ProcessHeadingParagraph(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, ref pageNumber, ref headingIndex);
+                        ProcessHeadingParagraph(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                     }
 
                     continue;
@@ -97,11 +102,11 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(nestedParagraph, customStyleLevels)) {
-                            ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, ref pageNumber, ref headingIndex);
+                        foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(nestedParagraph, customStyleLevels, sourceOptions)) {
+                            ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                         }
 
-                        ProcessHeadingParagraph(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, ref pageNumber, ref headingIndex);
+                        ProcessHeadingParagraph(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                     }
                 }
             }
@@ -109,7 +114,10 @@ namespace OfficeIMO.Word {
             return entries;
         }
 
-        private static IReadOnlyList<Paragraph> GetBodyTextBoxHeadingParagraphs(Paragraph paragraph, IReadOnlyDictionary<string, int> customStyleLevels) {
+        private static IReadOnlyList<Paragraph> GetBodyTextBoxHeadingParagraphs(
+            Paragraph paragraph,
+            IReadOnlyDictionary<string, int> customStyleLevels,
+            TocSourceOptions sourceOptions) {
             if (paragraph.Ancestors<TextBoxContent>().Any()) {
                 return Array.Empty<Paragraph>();
             }
@@ -118,7 +126,7 @@ namespace OfficeIMO.Word {
             var seenWordParagraphIds = new HashSet<string>(StringComparer.Ordinal);
             foreach (Paragraph candidate in paragraph.Descendants<TextBoxContent>()
                 .SelectMany(textBoxContent => textBoxContent.Descendants<Paragraph>())) {
-                if (GetHeadingLevel(candidate, customStyleLevels) == null) {
+                if (GetHeadingLevel(candidate, customStyleLevels, sourceOptions) == null) {
                     continue;
                 }
 
@@ -141,6 +149,7 @@ namespace OfficeIMO.Word {
             BookmarkRange? bookmarkRange,
             List<TocHeadingEntry> entries,
             HashSet<string> existingBookmarkNames,
+            TocSourceOptions sourceOptions,
             ref int pageNumber,
             ref int headingIndex) {
             if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
@@ -149,7 +158,7 @@ namespace OfficeIMO.Word {
 
             bool isInsideScope = bookmarkScope == null || (bookmarkRange.HasValue && IsParagraphInsideBookmarkRange(paragraph, bookmarkRange.Value));
             if (isInsideScope) {
-                int? headingLevel = GetHeadingLevel(paragraph, customStyleLevels);
+                int? headingLevel = GetHeadingLevel(paragraph, customStyleLevels, sourceOptions);
                 if (headingLevel != null) {
                     string headingText = GetParagraphText(paragraph);
                     if (!string.IsNullOrWhiteSpace(headingText)) {
@@ -160,7 +169,7 @@ namespace OfficeIMO.Word {
                     }
                 }
 
-                if (tcEntryTypeFilter != null) {
+                if (sourceOptions.IncludeTocEntryFields) {
                     foreach (string instruction in EnumerateTocEntryInstructions(paragraph)) {
                         if (TryCreateTocEntry(instruction, tcEntryTypeFilter, paragraph, existingBookmarkNames, headingIndex, pageNumber, out TocHeadingEntry? entry)) {
                             entries.Add(entry!);
@@ -228,7 +237,7 @@ namespace OfficeIMO.Word {
 
         private bool TryCreateTocEntry(
             string instruction,
-            string tcEntryTypeFilter,
+            string? tcEntryTypeFilter,
             Paragraph paragraph,
             HashSet<string> existingBookmarkNames,
             int entryIndex,
@@ -246,13 +255,13 @@ namespace OfficeIMO.Word {
             }
 
             string? entryType = GetSingleSwitchValue(parsed, "\\f", normalizeQuotes: true);
-            if (tcEntryTypeFilter.Length > 0 &&
+            if (!string.IsNullOrEmpty(tcEntryTypeFilter) &&
                 !string.Equals(entryType, tcEntryTypeFilter, StringComparison.OrdinalIgnoreCase)) {
                 return false;
             }
 
             int level = 1;
-            string? levelValue = GetSingleSwitchValue(parsed, "\\l", normalizeQuotes: false);
+            string? levelValue = GetSingleSwitchValue(parsed, "\\l", normalizeQuotes: true);
             if (levelValue != null) {
                 if (!int.TryParse(levelValue, NumberStyles.None, CultureInfo.InvariantCulture, out int parsedLevel)) {
                     return false;
@@ -323,8 +332,7 @@ namespace OfficeIMO.Word {
             foreach (SimpleField simpleField in _sdtBlock.Descendants<SimpleField>()) {
                 string? instruction = simpleField.Instruction?.Value ?? simpleField.Instruction;
                 string instructionText = instruction ?? string.Empty;
-                if (!string.IsNullOrWhiteSpace(instructionText) &&
-                    instructionText.IndexOf("TOC", StringComparison.OrdinalIgnoreCase) >= 0) {
+                if (IsTocInstruction(instructionText)) {
                     return instructionText;
                 }
             }
@@ -497,19 +505,21 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static int? GetHeadingLevel(Paragraph paragraph, IReadOnlyDictionary<string, int> customStyleLevels) {
+        private static int? GetHeadingLevel(Paragraph paragraph, IReadOnlyDictionary<string, int> customStyleLevels, TocSourceOptions sourceOptions) {
             int? outlineLevel = paragraph.ParagraphProperties?.OutlineLevel?.Val?.Value;
-            if (outlineLevel >= 0 && outlineLevel <= 8) {
+            if (sourceOptions.IncludeOutlineLevels && outlineLevel >= 0 && outlineLevel <= 8) {
                 return outlineLevel.Value + 1;
             }
 
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
-            if (string.IsNullOrWhiteSpace(styleId)) {
-                return null;
+            if (!string.IsNullOrWhiteSpace(styleId) &&
+                sourceOptions.IncludeCustomStyles &&
+                customStyleLevels.TryGetValue(styleId!, out int customLevel)) {
+                return customLevel;
             }
 
-            if (customStyleLevels.TryGetValue(styleId!, out int customLevel)) {
-                return customLevel;
+            if (string.IsNullOrWhiteSpace(styleId) || !sourceOptions.IncludeHeadingStyles) {
+                return null;
             }
 
             Match match = Regex.Match(styleId, "^Heading(?<level>[1-9])$", RegexOptions.IgnoreCase);
@@ -518,6 +528,29 @@ namespace OfficeIMO.Word {
             }
 
             return level;
+        }
+
+        private static TocSourceOptions GetTocSourceOptions(string instruction, IReadOnlyDictionary<string, int> customStyleLevels) {
+            WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction);
+            if (parsed.FieldType != WordFieldType.TOC || parsed.Diagnostics.Count > 0) {
+                return TocSourceOptions.Default;
+            }
+
+            bool hasOutlineRange = HasTocSwitch(parsed, "\\o");
+            bool hasOutlineLevels = HasTocSwitch(parsed, "\\u");
+            bool hasCustomStyles = HasTocSwitch(parsed, "\\t") && customStyleLevels.Count > 0;
+            bool hasTocEntryFields = HasTocSwitch(parsed, "\\f");
+            bool hasCaptionSequence = HasTocSwitch(parsed, "\\c");
+            bool hasExplicitSource = hasOutlineRange || hasOutlineLevels || hasCustomStyles || hasTocEntryFields || hasCaptionSequence;
+            return new TocSourceOptions(
+                includeHeadingStyles: hasOutlineRange || !hasExplicitSource,
+                includeOutlineLevels: hasOutlineLevels || !hasExplicitSource,
+                includeCustomStyles: hasCustomStyles,
+                includeTocEntryFields: hasTocEntryFields);
+        }
+
+        private static bool HasTocSwitch(WordFieldInventory.ParsedFieldInstruction parsed, string switchName) {
+            return parsed.Switches.Any(item => item.Trim().StartsWith(switchName, StringComparison.OrdinalIgnoreCase));
         }
 
         private static string GetParagraphText(Paragraph paragraph) {
@@ -746,6 +779,29 @@ namespace OfficeIMO.Word {
             internal WordTableOfContentEntry ToPublicEntry() {
                 return new WordTableOfContentEntry(Text, Level, PageNumber, BookmarkName);
             }
+        }
+
+        private readonly struct TocSourceOptions {
+            internal static TocSourceOptions Default { get; } = new TocSourceOptions(
+                includeHeadingStyles: true,
+                includeOutlineLevels: true,
+                includeCustomStyles: false,
+                includeTocEntryFields: false);
+
+            internal TocSourceOptions(bool includeHeadingStyles, bool includeOutlineLevels, bool includeCustomStyles, bool includeTocEntryFields) {
+                IncludeHeadingStyles = includeHeadingStyles;
+                IncludeOutlineLevels = includeOutlineLevels;
+                IncludeCustomStyles = includeCustomStyles;
+                IncludeTocEntryFields = includeTocEntryFields;
+            }
+
+            internal bool IncludeHeadingStyles { get; }
+
+            internal bool IncludeOutlineLevels { get; }
+
+            internal bool IncludeCustomStyles { get; }
+
+            internal bool IncludeTocEntryFields { get; }
         }
     }
 }
