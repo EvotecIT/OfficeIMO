@@ -107,7 +107,12 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
                 if (ChildBlocks[i] == null) continue;
                 var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(ChildBlocks[i]);
                 if (string.IsNullOrEmpty(rendered)) continue;
-                inner.AppendLine(rendered.TrimEnd());
+                if (inner.Length > 0) {
+                    inner.AppendLine();
+                    inner.AppendLine();
+                }
+
+                inner.Append(rendered.TrimEnd());
             }
             bodyMarkdown = inner.ToString().TrimEnd();
         } else {

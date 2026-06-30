@@ -413,7 +413,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> AlertBlocksExtensionCases() {
         yield return new object[] { "note-paragraph", "> [!NOTE]\n> Body" };
+        yield return new object[] { "tip-rich-inline-body", "> [!TIP]\n> Use **strong** [links](https://example.com)." };
+        yield return new object[] { "important-multiple-paragraphs", "> [!IMPORTANT]\n> First paragraph\n>\n> Second paragraph" };
         yield return new object[] { "warning-list", "> [!WARNING]\n> - Item" };
+        yield return new object[] { "caution-fenced-code", "> [!CAUTION]\n> ```ps1\n> Get-Item .\n> ```" };
+        yield return new object[] { "note-nested-blockquote", "> [!NOTE]\n> > Nested quote" };
         yield return new object[] { "custom-kind", "> [!CUSTOM]\n> Body" };
         yield return new object[] { "note-title-stays-blockquote", "> [!NOTE] Title\n> Body" };
         yield return new object[] { "note-strong-title-stays-blockquote", "> [!NOTE] **Title**\n> Body" };
