@@ -109,14 +109,14 @@ Current active row: `UseDefinitionLists`.
     - [x] Multiple lazy lines inside a nested blockquote now stay in the definition body while a following unindented list closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
   - [x] Remaining list-like and table-like interruption starts, with pipe tables on and off.
     - [x] Compact Markdig comparison now matches for unordered, ordered, task-list-shaped, non-`1` ordered, ordered-parenthesis, escaped-pipe table-shaped, and pipe-table delimiter-mismatch tails across nested paragraph, list, ordered-list, and blockquote definition bodies.
-- [ ] Broaden nested-body cases.
-  - [ ] Blockquote source breadth beyond the already-covered heading/thematic/table-shaped cases.
+- [x] Broaden nested-body cases.
+  - [x] Blockquote source breadth beyond the already-covered heading/thematic/table-shaped cases.
     - [x] Unindented blockquote continuations remain inside active nested blockquotes while unindented fenced code, HTML, and reference-definition-looking lazy text follow Markdig ownership.
-  - [ ] Fenced-code variants beyond the marker-line and empty-marker boundary cases already closed.
+  - [x] Fenced-code variants beyond the marker-line and empty-marker boundary cases already closed.
     - [x] Unclosed fenced-code bodies consume lazy-looking trailing lines like Markdig and write a closing fence for stable reparse.
-  - [ ] List-tail variants after nested body boundaries.
+  - [x] List-tail variants after nested body boundaries.
     - [x] Mixed unordered-to-ordered list tails stay inside the definition body as separate list children, with syntax/native source spans and writer reparse proof.
-    - [x] Non-`1` ordered lazy tails after nested lists and blockquotes now follow Markdig ownership, while adjacent semantic list blocks write blank boundaries when needed for stable reparse.
+    - [x] Non-`1` ordered lazy tails after nested lists stay inside the definition body, while non-`1` ordered list starts after active nested blockquotes close the definition list like Markdig.
     - [x] Ordered `)` lazy tails after ordered-list bodies split from `.` marker lists like Markdig and write stable Markdown.
     - [x] Unindented blockquote tails after nested list bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
     - [x] Unindented list tails after nested blockquote bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
@@ -128,9 +128,9 @@ Current active row: `UseDefinitionLists`.
   - [x] Generated paragraph wrappers are now honest in the final syntax/native model: rebuilt semantic children carry `MarkdownSyntaxNode.IsGenerated`, and definition-list native projection reports `native.generated-definition-child` instead of presenting fallback anchors as exact parsed source.
   - [x] Normalized native `definitionBody` values versus original source spans are now explicit: `definitionBody.Value` stays semantic/normalized while `MarkdownNativeDocument` can materialize normalized or original source slices for the span-backed native field.
 - [ ] Promote `UseDefinitionLists` only after parser behavior, AST/source/native projection, HTML rendering, Markdown writing, reparse stability, generated inventory, and the compatibility matrix all agree.
-  - [ ] Focused definition-list tests are green.
-  - [ ] Broad CommonMark/GFM/Markdig comparison lane is green.
-  - [ ] Compact Markdig comparison matrix has zero failures for the final definition-list probe.
+  - [x] Focused definition-list tests are green.
+  - [x] Broad CommonMark/GFM/Markdig comparison lane is green.
+  - [x] Compact Markdig comparison matrix has zero failures for the final definition-list probe.
   - [ ] Markdig extension inventory and compatibility docs mark `UseDefinitionLists` as `Covered` with current proof.
   - [ ] No new source-map, native-projection, or writer diagnostics are hiding unresolved exactness gaps.
 

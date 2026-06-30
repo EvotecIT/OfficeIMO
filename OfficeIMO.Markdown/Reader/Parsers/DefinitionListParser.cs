@@ -651,14 +651,14 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (PreviousDefinitionLinesEndActiveNestedBlockquote(definitionSourceLines) &&
+                CurrentLineStartsListBlock(line)) {
+                return false;
+            }
+
             if (CurrentLineInterruptsNestedDefinitionBlock(line, options)) {
                 return false;
             }
-        }
-
-        if (PreviousDefinitionLinesEndActiveNestedBlockquote(definitionSourceLines) &&
-            CurrentLineStartsListBlock(line)) {
-            return CurrentLineStartsNonInterruptingOrderedListBlock(line);
         }
 
         return true;
@@ -770,15 +770,6 @@ public static partial class MarkdownReader {
         var trimmed = line.TrimStart();
         return IsUnorderedListLine(trimmed, out _, out _, out _) ||
             IsOrderedListLine(trimmed, out _, out _);
-    }
-
-    private static bool CurrentLineStartsNonInterruptingOrderedListBlock(string line) {
-        if (string.IsNullOrWhiteSpace(line)) {
-            return false;
-        }
-
-        var trimmed = line.TrimStart();
-        return IsOrderedListLine(trimmed, out _, out int number, out _) && number != 1;
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {
