@@ -466,6 +466,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, runs[1].Underline);
             Assert.Equal("sized ", runs[2].Text);
             Assert.Equal(14, runs[2].FontSize);
+            FontSizeComplexScript complexScriptSize = Assert.IsType<FontSizeComplexScript>(runs[2]._runProperties?.FontSizeComplexScript);
+            Assert.Equal("28", complexScriptSize.Val!.Value);
             Assert.Equal("red ", runs[3].Text);
             Assert.Equal("ff0000", runs[3].ColorHex);
             Assert.Equal("strike ", runs[4].Text);

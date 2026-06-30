@@ -1027,10 +1027,14 @@ namespace OfficeIMO.Word {
             }
 
             if (legacyRun.FontSizeHalfPoints != null) {
+                string fontSize = legacyRun.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
                 RunProperties runProperties = run._runProperties ?? new RunProperties();
                 run._runProperties = runProperties;
                 runProperties.FontSize = new FontSize {
-                    Val = legacyRun.FontSizeHalfPoints.Value.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                    Val = fontSize
+                };
+                runProperties.FontSizeComplexScript = new FontSizeComplexScript {
+                    Val = fontSize
                 };
             }
 
