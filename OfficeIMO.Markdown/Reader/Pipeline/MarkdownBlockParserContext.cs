@@ -171,6 +171,35 @@ public sealed class MarkdownBlockParserContext {
     }
 
     /// <summary>
+    /// Creates a normalized source slice for a token or field source span captured during parsing.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownSourceSpan sourceSpan, out MarkdownSourceSlice slice) {
+        var sourceMap = State.SourceTextMap;
+        if (sourceMap == null) {
+            slice = default;
+            return false;
+        }
+
+        return MarkdownSourceSlice.TryCreate(sourceMap.Text, sourceSpan, MarkdownSourceTextKind.Normalized, out slice);
+    }
+
+    /// <summary>
+    /// Creates a normalized source slice for a line range relative to the current parser position.
+    /// </summary>
+    /// <param name="relativeStartLine">Zero-based line offset from the current parser position.</param>
+    /// <param name="lineCount">Number of source lines covered by the slice.</param>
+    /// <param name="slice">Materialized normalized source slice when the method returns <c>true</c>.</param>
+    /// <returns><c>true</c> when the normalized source text is available and the range can be materialized.</returns>
+    public bool TryCreateSourceSlice(int relativeStartLine, int lineCount, out MarkdownSourceSlice slice) {
+        if (lineCount <= 0) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateSourceSlice(CreateLineSpan(relativeStartLine, lineCount), out slice);
+    }
+
+    /// <summary>
     /// Parses an inline slice from a source line while preserving source spans for inline syntax.
     /// </summary>
     /// <param name="relativeLine">Zero-based line offset from the current parser position.</param>

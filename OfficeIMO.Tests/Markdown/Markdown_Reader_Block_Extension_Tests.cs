@@ -77,6 +77,38 @@ Paragraph line
     }
 
     [Fact]
+    public void Block_Parser_Context_Can_Create_Normalized_SourceSlices_For_Custom_Parsers() {
+        const string markdown = "::claim alpha\r\ncontinued\r\n\r\n";
+        MarkdownSourceSlice sourceSlice = default;
+        bool sourceSliceOk = false;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "source-aware-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext context, out MarkdownBlockParseResult result) => {
+                result = default;
+                if (!context.CurrentLine.StartsWith("::claim", StringComparison.Ordinal)) {
+                    return false;
+                }
+
+                sourceSliceOk = context.TryCreateSourceSlice(0, 2, out sourceSlice);
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("claimed")),
+                    consumedLineCount: 2);
+                return true;
+            })));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("claimed", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.True(sourceSliceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, sourceSlice.TextKind);
+        Assert.Equal("::claim alpha\ncontinued", sourceSlice.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 9), sourceSlice.SourceSpan);
+    }
+
+    [Fact]
     public void Context_SyntaxBuilder_Can_Associate_Inline_Container_Syntax_With_Custom_Owner() {
         var markdown = """
 :::panel Ops Notes

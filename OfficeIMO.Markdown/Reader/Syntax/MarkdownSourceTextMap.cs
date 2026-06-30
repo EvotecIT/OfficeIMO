@@ -9,6 +9,8 @@ internal sealed class MarkdownSourceTextMap {
         _lineStarts = BuildLineStarts(_text);
     }
 
+    internal string Text => _text;
+
     internal MarkdownSourceSpan CreateLineSpan(int startLine, int endLine) {
         startLine = Math.Max(1, startLine);
         endLine = Math.Max(startLine, endLine);
