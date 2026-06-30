@@ -1213,6 +1213,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_CountsParagraphPageStartsForPageReferences() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.PageReferenceParagraphStarts.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("First page");
+                Paragraph pageStart = document.AddParagraph("Page-start bookmark target")._paragraph;
+                pageStart.ParagraphProperties = new ParagraphProperties(new PageBreakBefore());
+                pageStart.InsertBefore(new BookmarkStart { Name = "PageStartBookmark", Id = "101" }, pageStart.GetFirstChild<Run>());
+                pageStart.Append(new BookmarkEnd { Id = "101" });
+                pageStart.Append(new Run(new Text(" Current page: ") { Space = SpaceProcessingModeValues.Preserve }));
+                pageStart.Append(BuildSimpleField(" PAGE ", "stale-page"));
+                document.AddParagraph("Page reference: ")._paragraph.Append(BuildSimpleField(" PAGEREF PageStartBookmark ", "stale-pageref"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Equal(2, report.TotalCount);
+                Assert.Equal(2, report.UpdatedCount);
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Page &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "2");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.PageRef &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "2");
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_ReportsUnsupportedReferenceFormatSwitches() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ReferenceUnsupportedFormats.docx");
 
@@ -1608,6 +1640,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Fixed decimal: ")._paragraph.Append(BuildSimpleField(" = 7 / 2 \\# \"0.00\" ", "stale-decimal"));
+                document.AddParagraph("Trailing mergeformat: ")._paragraph.Append(BuildSimpleField(" = 7 / 2 \\# \"0.00\" \\* MERGEFORMAT ", "stale-trailing-mergeformat"));
                 document.AddParagraph("Thousands: ")._paragraph.Append(BuildSimpleField(" = 1234.5 \\# \"#,##0.00\" ", "stale-thousands"));
                 document.AddParagraph("Percent: ")._paragraph.Append(BuildSimpleField(" = 1 / 4 \\# \"0.0%\" ", "stale-percent"));
                 document.AddParagraph("Literal suffix: ")._paragraph.Append(BuildSimpleField(" = 5 \\# \"0.00 USD\" ", "stale-literal"));
@@ -1625,12 +1658,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(12, report.TotalCount);
-                Assert.Equal(11, report.UpdatedCount);
+                Assert.Equal(13, report.TotalCount);
+                Assert.Equal(12, report.UpdatedCount);
                 Assert.Equal(1, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
 
-                Assert.Equal(new[] { "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD", "5.00" }, report.Results
+                Assert.Equal(new[] { "3.50", "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD", "5.00" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.Formula && result.Status == WordFieldUpdateStatus.Updated)
                     .Select(result => result.ResultText)
                     .ToArray());
@@ -1650,7 +1683,7 @@ namespace OfficeIMO.Tests {
                     .Where(field => field.FieldType == WordFieldType.Formula)
                     .ToArray();
 
-                Assert.Equal(new[] { "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD", "5.00", "stale-dangling-fill" }, fields.Select(field => field.ResultText).ToArray());
+                Assert.Equal(new[] { "3.50", "3.50", "1,234.50", "25.0%", "5.00 USD", "5.00", "(5.00)", "Zero", "150.0 high", "50.0 low", "5.00 USD", "5.00", "stale-dangling-fill" }, fields.Select(field => field.ResultText).ToArray());
             }
         }
 

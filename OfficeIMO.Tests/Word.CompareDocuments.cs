@@ -412,7 +412,12 @@ namespace OfficeIMO.Tests {
                 doc.Save(false);
             }
 
-            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(
+                sourcePath,
+                targetPath,
+                new WordComparisonOptions {
+                    CompareRunFormatting = false
+                });
 
             Assert.Empty(result.Findings);
         }

@@ -18,7 +18,7 @@ namespace OfficeIMO.Word {
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex FormulaNumericPicturePattern = new Regex(
-            @"^(?<expression>.*?)\s+\\#\s*(?<format>""[^""]*""|\S+)\s*$",
+            @"^(?<expression>.*?)\s+\\#\s*(?<format>""[^""]*""|\S+)(?:\s+\\\*\s*(?:""[^""]*""|\S+))*\s*$",
             RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
         private static bool TryEvaluateFormula(

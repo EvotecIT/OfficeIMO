@@ -15,6 +15,7 @@ namespace OfficeIMO.Word {
             List<RunSnapshot> targetRuns = GetRunSnapshots(targetParagraph, options);
             if (string.Equals(sourceParagraph.ComparisonText, targetParagraph.ComparisonText, StringComparison.Ordinal) &&
                 !sourceRuns.Select(run => run.ComparisonText).SequenceEqual(targetRuns.Select(run => run.ComparisonText), StringComparer.Ordinal)) {
+                AnalyzeResegmentedRunFormatting(sourceRuns, targetRuns, targetParagraphIndex, result, options);
                 return;
             }
 
@@ -40,6 +41,66 @@ namespace OfficeIMO.Word {
             }
 
             AddRunRangeFindings(sourceRuns, targetRuns, sourceStart, sourceRuns.Count, targetStart, targetRuns.Count, targetParagraphIndex, result);
+        }
+
+        private static void AnalyzeResegmentedRunFormatting(
+            IReadOnlyList<RunSnapshot> sourceRuns,
+            IReadOnlyList<RunSnapshot> targetRuns,
+            int targetParagraphIndex,
+            WordComparisonResult result,
+            WordComparisonOptions options) {
+            if (!options.CompareRunFormatting) {
+                return;
+            }
+
+            List<RunTextSegment> sourceSegments = CreateRunTextSegments(sourceRuns);
+            List<RunTextSegment> targetSegments = CreateRunTextSegments(targetRuns);
+            foreach (RunTextSegment targetSegment in targetSegments) {
+                if (targetSegment.Length == 0) {
+                    continue;
+                }
+
+                bool overlaps = false;
+                bool formattingChanged = false;
+                foreach (RunTextSegment sourceSegment in sourceSegments) {
+                    if (!sourceSegment.Overlaps(targetSegment)) {
+                        continue;
+                    }
+
+                    overlaps = true;
+                    if (!string.Equals(sourceSegment.FormatSignature, targetSegment.FormatSignature, StringComparison.Ordinal)) {
+                        formattingChanged = true;
+                        break;
+                    }
+                }
+
+                if (!overlaps || !formattingChanged) {
+                    continue;
+                }
+
+                result.Add(new WordComparisonFinding(
+                    WordComparisonScope.Run,
+                    WordComparisonChangeKind.Modified,
+                    RunLocation(targetParagraphIndex, targetSegment.Run.Index),
+                    targetSegment.Run.Index,
+                    targetSegment.Run.Index,
+                    targetSegment.Run.Text,
+                    targetSegment.Run.Text,
+                    "Run formatting changed."),
+                    targetSegment.Run.DocumentOrder);
+            }
+        }
+
+        private static List<RunTextSegment> CreateRunTextSegments(IReadOnlyList<RunSnapshot> runs) {
+            var segments = new List<RunTextSegment>();
+            int offset = 0;
+            foreach (RunSnapshot run in runs) {
+                int length = run.ComparisonText.Length;
+                segments.Add(new RunTextSegment(run, offset, offset + length));
+                offset += length;
+            }
+
+            return segments;
         }
 
         private static void AddRunRangeFindings(
@@ -278,6 +339,28 @@ namespace OfficeIMO.Word {
             internal string FormatSignature { get; }
 
             internal int DocumentOrder { get; }
+        }
+
+        private readonly struct RunTextSegment {
+            internal RunTextSegment(RunSnapshot run, int start, int end) {
+                Run = run;
+                Start = start;
+                End = end;
+            }
+
+            internal RunSnapshot Run { get; }
+
+            internal int Start { get; }
+
+            internal int End { get; }
+
+            internal int Length => End - Start;
+
+            internal string FormatSignature => Run.FormatSignature;
+
+            internal bool Overlaps(RunTextSegment other) {
+                return Start < other.End && other.Start < End;
+            }
         }
 
         private sealed class RunSnapshotEqualityComparer : IEqualityComparer<RunSnapshot> {

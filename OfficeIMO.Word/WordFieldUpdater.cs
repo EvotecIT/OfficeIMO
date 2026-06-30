@@ -687,6 +687,26 @@ namespace OfficeIMO.Word {
         }
 
         private static int EstimateTotalPages(WordDocument document) {
+            Body? body = document._wordprocessingDocument.MainDocumentPart?.Document?.Body;
+            if (body != null) {
+                int estimatedPage = 1;
+                foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
+                    if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+                        estimatedPage++;
+                    }
+
+                    if (paragraph.Descendants<Break>().Any(documentBreak => documentBreak.Type?.Value == BreakValues.Page)) {
+                        estimatedPage++;
+                    }
+
+                    if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {
+                        estimatedPage++;
+                    }
+                }
+
+                return estimatedPage;
+            }
+
             int page = 1;
             foreach (WordParagraph paragraph in document.Paragraphs) {
                 if (paragraph.IsPageBreak) {
@@ -709,6 +729,10 @@ namespace OfficeIMO.Word {
 
             int page = 1;
             foreach (Paragraph currentParagraph in body.Descendants<Paragraph>()) {
+                if (currentParagraph.ParagraphProperties?.PageBreakBefore != null) {
+                    page++;
+                }
+
                 if (ReferenceEquals(currentParagraph, targetParagraph)) {
                     return page;
                 }
@@ -716,9 +740,26 @@ namespace OfficeIMO.Word {
                 if (currentParagraph.Descendants<Break>().Any(documentBreak => documentBreak.Type?.Value == BreakValues.Page)) {
                     page++;
                 }
+
+                if (StartsNewPage(currentParagraph.ParagraphProperties?.SectionProperties)) {
+                    page++;
+                }
             }
 
             return null;
+        }
+
+        private static bool StartsNewPage(SectionProperties? sectionProperties) {
+            if (sectionProperties == null) {
+                return false;
+            }
+
+            SectionType? sectionType = sectionProperties.GetFirstChild<SectionType>();
+            SectionMarkValues? value = sectionType?.Val?.Value;
+            return value == null ||
+                   value == SectionMarkValues.NextPage ||
+                   value == SectionMarkValues.OddPage ||
+                   value == SectionMarkValues.EvenPage;
         }
 
         private static string FormatValue(object? value) {

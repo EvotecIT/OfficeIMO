@@ -55,22 +55,52 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Approved", run.TargetText);
         }
 
+        [Fact]
+        public void CompareStructureReportsRunFormattingWhenUnchangedTextIsResegmented() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_resegmented_run_format.docx");
+            CreateDocumentWithRuns(sourcePath, ("A", true), ("B", false));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_resegmented_run_format.docx");
+            CreateDocumentWithRuns(targetPath, ("AB", false));
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.Message == "Paragraph text changed.");
+
+            WordComparisonFinding run = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Run &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.Message == "Run formatting changed.");
+            Assert.Equal("paragraph[0]/run[0]", run.Location);
+            Assert.Equal("AB", run.SourceText);
+            Assert.Equal("AB", run.TargetText);
+        }
+
         private static void CreateDocumentWithSplitRuns(string path, string firstText, string secondText, bool boldSecondRun) {
+            CreateDocumentWithRuns(path, (firstText, false), (secondText, boldSecondRun));
+        }
+
+        private static void CreateDocumentWithRuns(string path, params (string Text, bool Bold)[] runs) {
             using WordDocument doc = WordDocument.Create(path);
             doc.AddParagraph("Placeholder");
             doc.Save(false);
 
             using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
             Body body = document.MainDocumentPart!.Document.Body!;
-            var secondRun = new Run(new Text(secondText));
-            if (boldSecondRun) {
-                secondRun.RunProperties = new RunProperties(new Bold());
+            var paragraph = new Paragraph();
+            foreach ((string text, bool bold) in runs) {
+                var run = new Run(new Text(text));
+                if (bold) {
+                    run.RunProperties = new RunProperties(new Bold());
+                }
+
+                paragraph.Append(run);
             }
 
             body.RemoveAllChildren<Paragraph>();
-            body.PrependChild(new Paragraph(
-                new Run(new Text(firstText)),
-                secondRun));
+            body.PrependChild(paragraph);
             document.MainDocumentPart.Document.Save();
         }
     }
