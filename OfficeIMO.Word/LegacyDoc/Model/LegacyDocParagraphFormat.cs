@@ -14,6 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? pageBreakBefore = null,
             bool? avoidWidowAndOrphan = null,
             bool? suppressLineNumbers = null,
+            bool? bidirectional = null,
             ushort? numberingListIndex = null,
             byte? numberingLevel = null,
             byte? verticalCharacterAlignment = null,
@@ -57,6 +58,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             PageBreakBefore = pageBreakBefore;
             AvoidWidowAndOrphan = avoidWidowAndOrphan;
             SuppressLineNumbers = suppressLineNumbers;
+            Bidirectional = bidirectional;
             NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
                 ? numberingListIndex
                 : null;
@@ -155,6 +157,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool? SuppressLineNumbers { get; }
 
+        internal bool? Bidirectional { get; }
+
         internal ushort? NumberingListIndex { get; }
 
         internal byte? NumberingLevel { get; }
@@ -228,6 +232,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || PageBreakBefore != null
             || AvoidWidowAndOrphan != null
             || SuppressLineNumbers != null
+            || Bidirectional != null
             || NumberingListIndex != null
             || NumberingLevel != null
             || VerticalCharacterAlignment != null
@@ -274,6 +279,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && PageBreakBefore == other.PageBreakBefore
                 && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
                 && SuppressLineNumbers == other.SuppressLineNumbers
+                && Bidirectional == other.Bidirectional
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
                 && VerticalCharacterAlignment == other.VerticalCharacterAlignment
@@ -325,6 +331,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + PageBreakBefore.GetHashCode();
             hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
             hash = (hash * 31) + SuppressLineNumbers.GetHashCode();
+            hash = (hash * 31) + Bidirectional.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();
             hash = (hash * 31) + VerticalCharacterAlignment.GetHashCode();

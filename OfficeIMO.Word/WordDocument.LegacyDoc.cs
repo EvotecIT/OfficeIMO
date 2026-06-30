@@ -1223,6 +1223,10 @@ namespace OfficeIMO.Word {
                 EnsureLegacyDocParagraphProperties(paragraph).Append(new SuppressLineNumbers());
             }
 
+            if (paragraphFormat.Bidirectional == true) {
+                paragraph.BiDi = true;
+            }
+
             if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
                 paragraph.ShadingFillColorHex = paragraphFormat.ParagraphShading.Value.FillColorHex!;
             }
@@ -1674,6 +1678,11 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.SuppressLineNumbers == true) {
                 properties.Append(new SuppressLineNumbers());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.Bidirectional == true) {
+                properties.Append(new BiDi());
                 hasProperties = true;
             }
 

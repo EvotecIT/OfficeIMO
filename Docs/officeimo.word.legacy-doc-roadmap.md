@@ -282,6 +282,8 @@ just to reserve names.
     keep-lines, keep-next, page-break-before, and widow-control formatting into
     normal OfficeIMO paragraphs and custom DOCX style definitions with
     synthetic legacy DOC fixture proof.
+  - [x] Project direct PAPX bidirectional paragraph layout from DOC `sprmPFBiDi`
+    into normal OfficeIMO paragraphs with synthetic legacy DOC fixture proof.
   - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
     `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
     fixture proof.
@@ -530,6 +532,8 @@ just to reserve names.
   - [x] Write direct paragraph pagination flags and reload keep-lines,
     keep-next, page-break-before, and widow-control formatting through the
     legacy reader.
+  - [x] Write direct and custom paragraph-style bidirectional layout with
+    `sprmPFBiDi`, then reload it through the legacy reader.
   - [x] Write simple palette-backed paragraph shading with `sprmPShd80`, then
     reload it through the legacy reader while blocking non-palette fill colors
     before bytes are committed.

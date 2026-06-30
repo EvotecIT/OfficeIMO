@@ -117,6 +117,10 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new SuppressLineNumbers());
             }
 
+            if (paragraphFormat.Bidirectional == true) {
+                ReplaceStyleProperty(properties, new BiDi());
+            }
+
             if (paragraphFormat.VerticalCharacterAlignment != null && TryMapVerticalCharacterAlignment(paragraphFormat.VerticalCharacterAlignment.Value, out VerticalTextAlignmentValues verticalCharacterAlignment)) {
                 ReplaceStyleProperty(properties, new TextAlignment { Val = verticalCharacterAlignment });
             }

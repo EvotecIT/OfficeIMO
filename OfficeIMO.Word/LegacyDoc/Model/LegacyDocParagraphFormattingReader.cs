@@ -11,6 +11,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPJc80 = 0x2403;
+        private const ushort SprmPFBiDi = 0x2441;
         private const ushort SprmPDxaRight = 0x840E;
         private const ushort SprmPDxaLeft = 0x840F;
         private const ushort SprmPDxaLeft1 = 0x8411;
@@ -179,6 +180,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? pageBreakBefore = null;
             bool? avoidWidowAndOrphan = null;
             bool? suppressLineNumbers = null;
+            bool? bidirectional = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
             byte? verticalCharacterAlignment = null;
@@ -231,6 +233,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || sprm == SprmPFPageBreakBefore
                     || sprm == SprmPFNoLineNumb
                     || sprm == SprmPFWidowControl
+                    || sprm == SprmPFBiDi
                     || sprm == SprmPFInTable
                     || sprm == SprmPFTtp) {
                     if (offset + 3 > end) {
@@ -253,6 +256,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmPFNoLineNumb:
                             suppressLineNumbers = value;
+                            break;
+                        case SprmPFBiDi:
+                            bidirectional = value;
                             break;
                         case SprmPFInTable:
                             isInTable = value;
@@ -572,6 +578,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 pageBreakBefore,
                 avoidWidowAndOrphan,
                 suppressLineNumbers,
+                bidirectional,
                 numberingListIndex,
                 numberingLevel,
                 verticalCharacterAlignment,
