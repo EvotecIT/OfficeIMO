@@ -160,11 +160,12 @@ namespace OfficeIMO.Word {
             List<Paragraph> paragraphs = body.Elements<Paragraph>().ToList();
             for (int index = 0; index < paragraphs.Count; index++) {
                 Paragraph paragraph = paragraphs[index];
-                if (!ContainsTocOrIndexInstruction(paragraph) || !paragraph.Descendants<FieldChar>().Any(IsFieldBegin)) {
+                int? fieldStartChildIndex = FindTocOrIndexComplexFieldStart(paragraph);
+                if (fieldStartChildIndex == null) {
                     continue;
                 }
 
-                ComplexFieldEnd? fieldEnd = FindComplexFieldEnd(paragraphs, index);
+                ComplexFieldEnd? fieldEnd = FindComplexFieldEnd(paragraphs, index, fieldStartChildIndex.Value);
                 if (fieldEnd == null) {
                     continue;
                 }
@@ -172,6 +173,7 @@ namespace OfficeIMO.Word {
                 SdtBlock sdtBlock = CreateImportedTableOfContentBlock();
                 SdtContentBlock content = sdtBlock.SdtContentBlock!;
                 int insertIndex = body.ChildElements.ToList().IndexOf(paragraph);
+                Paragraph? fieldStartPrefix = SplitFieldStartPrefix(paragraph, fieldStartChildIndex.Value);
                 foreach (Paragraph tocParagraph in paragraphs.Skip(index).Take(fieldEnd.ParagraphIndex - index + 1)) {
                     if (ReferenceEquals(tocParagraph, paragraphs[fieldEnd.ParagraphIndex])) {
                         Paragraph? fieldEndPrefix = SplitFieldEndPrefix(tocParagraph, fieldEnd.ChildIndex);
@@ -187,12 +189,46 @@ namespace OfficeIMO.Word {
 
                 document.AssignNewSdtIds(sdtBlock);
                 if (insertIndex >= 0 && insertIndex <= body.ChildElements.Count) {
+                    if (fieldStartPrefix != null) {
+                        body.InsertAt(fieldStartPrefix, insertIndex);
+                        insertIndex++;
+                    }
+
                     body.InsertAt(sdtBlock, insertIndex);
                 } else {
+                    if (fieldStartPrefix != null) {
+                        body.Append(fieldStartPrefix);
+                    }
+
                     body.Append(sdtBlock);
                 }
 
                 return new WordTableOfContent(document, sdtBlock, queueUpdateOnOpen: false);
+            }
+
+            return null;
+        }
+
+        private static int? FindTocOrIndexComplexFieldStart(Paragraph paragraph) {
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            var fieldStarts = new Stack<int>();
+            for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+                OpenXmlElement child = children[childIndex];
+                foreach (FieldChar fieldChar in child.Descendants<FieldChar>()) {
+                    if (IsFieldBegin(fieldChar)) {
+                        fieldStarts.Push(childIndex);
+                    } else if (IsFieldEnd(fieldChar) && fieldStarts.Count > 0) {
+                        fieldStarts.Pop();
+                    }
+                }
+
+                foreach (FieldCode fieldCode in child.Descendants<FieldCode>()) {
+                    if (!string.IsNullOrWhiteSpace(fieldCode.Text) &&
+                        IsTocOrIndexInstruction(fieldCode.Text) &&
+                        fieldStarts.Count > 0) {
+                        return fieldStarts.Peek();
+                    }
+                }
             }
 
             return null;
@@ -216,25 +252,20 @@ namespace OfficeIMO.Word {
             return null;
         }
 
-        private static bool ContainsTocOrIndexInstruction(Paragraph paragraph) {
-            return paragraph.Descendants<FieldCode>()
-                .Any(fieldCode => !string.IsNullOrWhiteSpace(fieldCode.Text) &&
-                                  IsTocOrIndexInstruction(fieldCode.Text));
-        }
-
         private static bool IsTocOrIndexInstruction(string instruction) {
             WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction);
             return parsed.FieldType == WordFieldType.TOC ||
                    parsed.FieldType == WordFieldType.Index;
         }
 
-        private static ComplexFieldEnd? FindComplexFieldEnd(IReadOnlyList<Paragraph> paragraphs, int startIndex) {
+        private static ComplexFieldEnd? FindComplexFieldEnd(IReadOnlyList<Paragraph> paragraphs, int startIndex, int startChildIndex) {
             int depth = 0;
             bool started = false;
 
             for (int index = startIndex; index < paragraphs.Count; index++) {
                 List<OpenXmlElement> children = paragraphs[index].ChildElements.ToList();
-                for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+                int firstChildIndex = index == startIndex ? startChildIndex : 0;
+                for (int childIndex = firstChildIndex; childIndex < children.Count; childIndex++) {
                     foreach (FieldChar fieldChar in children[childIndex].Descendants<FieldChar>()) {
                         if (IsFieldBegin(fieldChar)) {
                             depth++;
@@ -279,6 +310,37 @@ namespace OfficeIMO.Word {
             }
 
             for (int index = endChildIndex; index >= 0; index--) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                children[index].Remove();
+            }
+
+            return prefix;
+        }
+
+        private static Paragraph? SplitFieldStartPrefix(Paragraph paragraph, int startChildIndex) {
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            if (startChildIndex <= 0 || !children.Take(startChildIndex).Any(HasMeaningfulContent)) {
+                return null;
+            }
+
+            var prefix = new Paragraph();
+            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            if (properties != null) {
+                prefix.Append((ParagraphProperties)properties.CloneNode(true));
+            }
+
+            for (int index = 0; index < startChildIndex; index++) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                prefix.Append(children[index].CloneNode(true));
+            }
+
+            for (int index = startChildIndex - 1; index >= 0; index--) {
                 if (children[index] is ParagraphProperties) {
                     continue;
                 }

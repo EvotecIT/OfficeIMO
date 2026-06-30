@@ -865,6 +865,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_AppliesTextFormatSwitchesToMetadataFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.MetadataTextFormats.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.BuiltinDocumentProperties.Creator = "Ada Lovelace";
+                document.BuiltinDocumentProperties.Title = "MIXED TITLE";
+                document.BuiltinDocumentProperties.Subject = "release status";
+                document.AddParagraph("Author upper: ")._paragraph.Append(BuildSimpleField(" AUTHOR \\* Upper ", "stale-author"));
+                document.AddParagraph("Title lower: ")._paragraph.Append(BuildSimpleField(" TITLE \\* Lower ", "stale-title"));
+                document.AddParagraph("Subject caps: ")._paragraph.Append(BuildSimpleField(" SUBJECT \\* Caps ", "stale-subject"));
+                document.AddParagraph("Unsupported author: ")._paragraph.Append(BuildSimpleField(" AUTHOR \\* Roman ", "stale-roman-author"));
+                document.AddParagraph("Unsupported property: ")._paragraph.Append(BuildSimpleField(" DOCPROPERTY Author \\* Roman ", "stale-roman-property"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Equal(5, report.TotalCount);
+                Assert.Equal(3, report.UpdatedCount);
+                Assert.Equal(2, report.UnsupportedCount);
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Author &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "ADA LOVELACE");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Title &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "mixed title");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Subject &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "Release Status");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Author &&
+                    result.Status == WordFieldUpdateStatus.Unsupported &&
+                    result.Message.Contains("Roman", StringComparison.Ordinal));
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.DocProperty &&
+                    result.Status == WordFieldUpdateStatus.Unsupported &&
+                    result.Message.Contains("Roman", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_HandlesNestedComplexFieldsWithoutCorruptingContainingResults() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.NestedComplexFields.docx");
 

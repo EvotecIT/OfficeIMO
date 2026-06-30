@@ -69,42 +69,86 @@ namespace OfficeIMO.Word {
             int targetIndex = targetStart;
 
             while (sourceIndex < sourceEnd && targetIndex < targetEnd) {
-                AddFeatureModifiedFinding(sourceItems[sourceIndex], targetItems[targetIndex], scope, locationPrefix, label, result);
-                sourceIndex++;
-                targetIndex++;
+                TSnapshot sourceItem = sourceItems[sourceIndex];
+                TSnapshot targetItem = targetItems[targetIndex];
+                if (CanPairUnmatchedFeatureItems(sourceItem, targetItem)) {
+                    AddFeatureModifiedFinding(sourceItem, targetItem, scope, locationPrefix, label, result);
+                    sourceIndex++;
+                    targetIndex++;
+                    continue;
+                }
+
+                if (sourceItem.DocumentOrder <= targetItem.DocumentOrder) {
+                    AddFeatureDeletedFinding(sourceItem, scope, locationPrefix, label, result);
+                    sourceIndex++;
+                } else {
+                    AddFeatureInsertedFinding(targetItem, scope, locationPrefix, label, result);
+                    targetIndex++;
+                }
             }
 
             while (targetIndex < targetEnd) {
-                TSnapshot targetItem = targetItems[targetIndex];
-                result.Add(new WordComparisonFinding(
-                    scope,
-                    WordComparisonChangeKind.Inserted,
-                    FeatureLocation(locationPrefix, targetItem.Index),
-                    null,
-                    targetItem.Index,
-                    null,
-                    targetItem.DisplayText,
-                    label + " inserted.",
-                    targetItem.DetailedLocation),
-                    targetItem.DocumentOrder);
+                AddFeatureInsertedFinding(targetItems[targetIndex], scope, locationPrefix, label, result);
                 targetIndex++;
             }
 
             while (sourceIndex < sourceEnd) {
-                TSnapshot sourceItem = sourceItems[sourceIndex];
-                result.Add(new WordComparisonFinding(
-                    scope,
-                    WordComparisonChangeKind.Deleted,
-                    FeatureLocation(locationPrefix, sourceItem.Index),
-                    sourceItem.Index,
-                    null,
-                    sourceItem.DisplayText,
-                    null,
-                    label + " deleted.",
-                    sourceItem.DetailedLocation),
-                    sourceItem.DocumentOrder);
+                AddFeatureDeletedFinding(sourceItems[sourceIndex], scope, locationPrefix, label, result);
                 sourceIndex++;
             }
+        }
+
+        private static bool CanPairUnmatchedFeatureItems<TSnapshot>(TSnapshot sourceItem, TSnapshot targetItem)
+            where TSnapshot : IFeatureSnapshot {
+            if (sourceItem is FieldSnapshot sourceField && targetItem is FieldSnapshot targetField) {
+                return string.Equals(sourceField.LocationKey, targetField.LocationKey, StringComparison.Ordinal);
+            }
+
+            if (sourceItem is ContentControlSnapshot sourceControl && targetItem is ContentControlSnapshot targetControl) {
+                return string.Equals(sourceControl.LocationKey, targetControl.LocationKey, StringComparison.Ordinal);
+            }
+
+            return true;
+        }
+
+        private static void AddFeatureInsertedFinding<TSnapshot>(
+            TSnapshot targetItem,
+            WordComparisonScope scope,
+            string locationPrefix,
+            string label,
+            WordComparisonResult result)
+            where TSnapshot : IFeatureSnapshot {
+            result.Add(new WordComparisonFinding(
+                scope,
+                WordComparisonChangeKind.Inserted,
+                FeatureLocation(locationPrefix, targetItem.Index),
+                null,
+                targetItem.Index,
+                null,
+                targetItem.DisplayText,
+                label + " inserted.",
+                targetItem.DetailedLocation),
+                targetItem.DocumentOrder);
+        }
+
+        private static void AddFeatureDeletedFinding<TSnapshot>(
+            TSnapshot sourceItem,
+            WordComparisonScope scope,
+            string locationPrefix,
+            string label,
+            WordComparisonResult result)
+            where TSnapshot : IFeatureSnapshot {
+            result.Add(new WordComparisonFinding(
+                scope,
+                WordComparisonChangeKind.Deleted,
+                FeatureLocation(locationPrefix, sourceItem.Index),
+                sourceItem.Index,
+                null,
+                sourceItem.DisplayText,
+                null,
+                label + " deleted.",
+                sourceItem.DetailedLocation),
+                sourceItem.DocumentOrder);
         }
 
         private static void AddFeatureModifiedFinding<TSnapshot>(
@@ -136,12 +180,24 @@ namespace OfficeIMO.Word {
             return document.InspectFields()
                 .Select(field => new FieldSnapshot(
                     field.Index,
+                    GetFieldLocationKey(field),
                     GetFieldMatchKey(field, options),
                     GetFieldSignature(field, options),
                     GetFieldDisplayText(field),
                     GetFieldDetailedLocation(field),
                     GetFeatureDocumentOrder(field.LocationKind, field.Index)))
                 .ToList();
+        }
+
+        private static string GetFieldLocationKey(WordFieldInfo field) {
+            return string.Join(
+                "|",
+                field.LocationKind.ToString(),
+                field.PartUri,
+                field.Representation.ToString(),
+                field.IsInTable ? "table" : string.Empty,
+                field.IsInContentControl ? "content-control" : string.Empty,
+                field.IsInTextBox ? "text-box" : string.Empty);
         }
 
         private static string GetFieldMatchKey(WordFieldInfo field, WordComparisonOptions options) {
@@ -234,6 +290,7 @@ namespace OfficeIMO.Word {
 
                     snapshots.Add(new ContentControlSnapshot(
                         snapshots.Count,
+                        GetContentControlLocationKey(root, contentControl),
                         key,
                         signature,
                         displayText,
@@ -250,6 +307,17 @@ namespace OfficeIMO.Word {
             }
 
             return snapshots;
+        }
+
+        private static string GetContentControlLocationKey(WordFieldInventory.FieldRoot root, SdtElement contentControl) {
+            return string.Join(
+                "|",
+                root.LocationKind.ToString(),
+                root.PartUri,
+                contentControl.LocalName,
+                IsInTableFeature(contentControl) ? "table" : string.Empty,
+                IsInContentControlFeature(contentControl) ? "nested-content-control" : string.Empty,
+                IsInTextBoxFeature(contentControl) ? "text-box" : string.Empty);
         }
 
         private static string FormatDataBinding(DataBinding? binding) {
@@ -311,8 +379,9 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class FieldSnapshot : IFeatureSnapshot {
-            internal FieldSnapshot(int index, string matchKey, string signature, string displayText, string detailedLocation, int documentOrder) {
+            internal FieldSnapshot(int index, string locationKey, string matchKey, string signature, string displayText, string detailedLocation, int documentOrder) {
                 Index = index;
+                LocationKey = locationKey;
                 MatchKey = matchKey;
                 Signature = signature;
                 DisplayText = displayText;
@@ -321,6 +390,8 @@ namespace OfficeIMO.Word {
             }
 
             public int Index { get; }
+
+            public string LocationKey { get; }
 
             public string MatchKey { get; }
 
@@ -334,8 +405,9 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ContentControlSnapshot : IFeatureSnapshot {
-            internal ContentControlSnapshot(int index, string matchKey, string signature, string displayText, string detailedLocation, int documentOrder) {
+            internal ContentControlSnapshot(int index, string locationKey, string matchKey, string signature, string displayText, string detailedLocation, int documentOrder) {
                 Index = index;
+                LocationKey = locationKey;
                 MatchKey = matchKey;
                 Signature = signature;
                 DisplayText = displayText;
@@ -344,6 +416,8 @@ namespace OfficeIMO.Word {
             }
 
             public int Index { get; }
+
+            public string LocationKey { get; }
 
             public string MatchKey { get; }
 

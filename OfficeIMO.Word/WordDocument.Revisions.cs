@@ -245,10 +245,16 @@ namespace OfficeIMO.Word {
 
         private static void PromoteRevisionRuns(OpenXmlElement revisionElement, string revisionAttributeName, bool restoreDeletedText) {
             OpenXmlElement next = revisionElement;
-            foreach (Run run in revisionElement.Elements<Run>().ToList()) {
-                Run promoted = new Run(run.OuterXml);
+            foreach (OpenXmlElement child in revisionElement.ChildElements.ToList()) {
+                OpenXmlElement promoted = child.CloneNode(true);
                 if (restoreDeletedText) {
-                    RestoreDeletedText(promoted);
+                    if (promoted is Run promotedRun) {
+                        RestoreDeletedText(promotedRun);
+                    }
+
+                    foreach (Run run in promoted.Descendants<Run>()) {
+                        RestoreDeletedText(run);
+                    }
                 }
 
                 RemoveNestedRevisionMarkup(promoted);
@@ -273,8 +279,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void RemoveNestedRevisionMarkup(Run run) {
-            foreach (OpenXmlElement revision in run.Descendants().Where(element => TryGetRevisionType(element, out _)).ToList()) {
+        private static void RemoveNestedRevisionMarkup(OpenXmlElement element) {
+            foreach (OpenXmlElement revision in element.Descendants().Where(item => TryGetRevisionType(item, out _)).ToList()) {
                 revision.Remove();
             }
         }

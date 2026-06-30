@@ -87,17 +87,17 @@ namespace OfficeIMO.Word {
 
             switch (parsed.FieldType) {
                 case WordFieldType.Author:
-                    return TrySetValue(document.BuiltinDocumentProperties.Creator, "Updated from built-in document property Creator.", out value, out status, out message);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
                 case WordFieldType.Title:
-                    return TrySetValue(document.BuiltinDocumentProperties.Title, "Updated from built-in document property Title.", out value, out status, out message);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
                 case WordFieldType.Subject:
-                    return TrySetValue(document.BuiltinDocumentProperties.Subject, "Updated from built-in document property Subject.", out value, out status, out message);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
                 case WordFieldType.Keywords:
-                    return TrySetValue(document.BuiltinDocumentProperties.Keywords, "Updated from built-in document property Keywords.", out value, out status, out message);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
                 case WordFieldType.Comments:
-                    return TrySetValue(document.BuiltinDocumentProperties.Description, "Updated from built-in document property Description.", out value, out status, out message);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
                 case WordFieldType.LastSavedBy:
-                    return TrySetValue(document.BuiltinDocumentProperties.LastModifiedBy, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
                 case WordFieldType.CreateDate:
                     return TrySetDate(document.BuiltinDocumentProperties.Created, parsed, "Updated from built-in document property Created.", out value, out status, out message);
                 case WordFieldType.Date:
@@ -137,7 +137,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.NumPages:
                     return TryFormatNumericField(totalPages, parsed.NumericPictureSwitch, "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
-                    return TrySetValue(document.BuiltinDocumentProperties.Revision, "Updated from built-in document property Revision.", out value, out status, out message);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case WordFieldType.Section:
                     return TryEvaluateSectionNumber(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.SectionPages:
@@ -167,9 +167,12 @@ namespace OfficeIMO.Word {
             }
 
             propertyName = TrimQuotes(propertyName);
-            if (TryEvaluateBuiltInDocumentProperty(document, propertyName, out value, out message)) {
-                status = WordFieldUpdateStatus.Updated;
+            if (TryEvaluateBuiltInDocumentProperty(document, propertyName, parsed, out value, out status, out message)) {
                 return true;
+            }
+
+            if (status == WordFieldUpdateStatus.Unsupported) {
+                return false;
             }
 
             status = WordFieldUpdateStatus.Skipped;
@@ -194,19 +197,19 @@ namespace OfficeIMO.Word {
 
             propertyName = TrimQuotes(propertyName);
 
-            if (TryEvaluateBuiltInDocumentProperty(document, propertyName, out value, out message)) {
-                status = WordFieldUpdateStatus.Updated;
+            if (TryEvaluateBuiltInDocumentProperty(document, propertyName, parsed, out value, out status, out message)) {
                 return true;
+            }
+
+            if (status == WordFieldUpdateStatus.Unsupported) {
+                return false;
             }
 
             KeyValuePair<string, WordCustomProperty> customProperty = document.CustomDocumentProperties
                 .FirstOrDefault(pair => string.Equals(pair.Key, propertyName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrEmpty(customProperty.Key)) {
-                value = FormatValue(customProperty.Value.Value);
-                status = WordFieldUpdateStatus.Updated;
-                message = $"Updated from custom document property {customProperty.Key}.";
-                return true;
+                return TrySetTextValue(FormatValue(customProperty.Value.Value), parsed, $"Updated from custom document property {customProperty.Key}.", out value, out status, out message);
             }
 
             status = WordFieldUpdateStatus.Skipped;
@@ -391,66 +394,49 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static bool TryEvaluateBuiltInDocumentProperty(WordDocument document, string propertyName, out string? value, out string message) {
+        private static bool TryEvaluateBuiltInDocumentProperty(
+            WordDocument document,
+            string propertyName,
+            WordFieldInventory.ParsedFieldInstruction parsed,
+            out string? value,
+            out WordFieldUpdateStatus status,
+            out string message) {
             value = null;
+            status = WordFieldUpdateStatus.Skipped;
             message = string.Empty;
 
             switch (propertyName.Replace(" ", string.Empty).ToUpperInvariant()) {
                 case "AUTHOR":
                 case "CREATOR":
-                    value = document.BuiltinDocumentProperties.Creator;
-                    message = "Updated from built-in document property Creator.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Creator, parsed, "Updated from built-in document property Creator.", out value, out status, out message);
                 case "TITLE":
-                    value = document.BuiltinDocumentProperties.Title;
-                    message = "Updated from built-in document property Title.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Title, parsed, "Updated from built-in document property Title.", out value, out status, out message);
                 case "SUBJECT":
-                    value = document.BuiltinDocumentProperties.Subject;
-                    message = "Updated from built-in document property Subject.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Subject, parsed, "Updated from built-in document property Subject.", out value, out status, out message);
                 case "CATEGORY":
-                    value = document.BuiltinDocumentProperties.Category;
-                    message = "Updated from built-in document property Category.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Category, parsed, "Updated from built-in document property Category.", out value, out status, out message);
                 case "KEYWORDS":
-                    value = document.BuiltinDocumentProperties.Keywords;
-                    message = "Updated from built-in document property Keywords.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Keywords, parsed, "Updated from built-in document property Keywords.", out value, out status, out message);
                 case "COMMENTS":
                 case "DESCRIPTION":
-                    value = document.BuiltinDocumentProperties.Description;
-                    message = "Updated from built-in document property Description.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Description, parsed, "Updated from built-in document property Description.", out value, out status, out message);
                 case "LASTSAVEDBY":
                 case "LASTMODIFIEDBY":
-                    value = document.BuiltinDocumentProperties.LastModifiedBy;
-                    message = "Updated from built-in document property LastModifiedBy.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.LastModifiedBy, parsed, "Updated from built-in document property LastModifiedBy.", out value, out status, out message);
                 case "LASTPRINTED":
                 case "PRINTDATE":
-                    value = FormatValue(document.BuiltinDocumentProperties.LastPrinted);
-                    message = "Updated from built-in document property LastPrinted.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(FormatValue(document.BuiltinDocumentProperties.LastPrinted), parsed, "Updated from built-in document property LastPrinted.", out value, out status, out message);
                 case "CREATED":
                 case "CREATEDATE":
-                    value = FormatValue(document.BuiltinDocumentProperties.Created);
-                    message = "Updated from built-in document property Created.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(FormatValue(document.BuiltinDocumentProperties.Created), parsed, "Updated from built-in document property Created.", out value, out status, out message);
                 case "MODIFIED":
                 case "SAVEDATE":
-                    value = FormatValue(document.BuiltinDocumentProperties.Modified);
-                    message = "Updated from built-in document property Modified.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(FormatValue(document.BuiltinDocumentProperties.Modified), parsed, "Updated from built-in document property Modified.", out value, out status, out message);
                 case "REVISION":
                 case "REVNUM":
-                    value = document.BuiltinDocumentProperties.Revision;
-                    message = "Updated from built-in document property Revision.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Revision, parsed, "Updated from built-in document property Revision.", out value, out status, out message);
                 case "VERSION":
-                    value = document.BuiltinDocumentProperties.Version;
-                    message = "Updated from built-in document property Version.";
-                    return !string.IsNullOrEmpty(value);
+                    return TrySetTextValue(document.BuiltinDocumentProperties.Version, parsed, "Updated from built-in document property Version.", out value, out status, out message);
                 default:
                     return false;
             }
@@ -606,6 +592,36 @@ namespace OfficeIMO.Word {
             status = WordFieldUpdateStatus.Skipped;
             message = "Source document property is empty.";
             return false;
+        }
+
+        private static bool TrySetTextValue(
+            string? source,
+            WordFieldInventory.ParsedFieldInstruction parsed,
+            string successMessage,
+            out string? value,
+            out WordFieldUpdateStatus status,
+            out string message) {
+            if (string.IsNullOrEmpty(source)) {
+                value = null;
+                status = WordFieldUpdateStatus.Skipped;
+                message = "Source document property is empty.";
+                return false;
+            }
+
+            string sourceText = source!;
+            if (!TryApplyReferenceTextFormat(parsed.FormatSwitches, sourceText, out string formattedValue, out string? unsupportedFormat)) {
+                value = null;
+                status = WordFieldUpdateStatus.Unsupported;
+                message = $"Field format switch {unsupportedFormat} is not supported for deterministic metadata refresh.";
+                return false;
+            }
+
+            value = formattedValue;
+            status = WordFieldUpdateStatus.Updated;
+            message = GetLastMeaningfulFormat(parsed.FormatSwitches) == null
+                ? successMessage
+                : successMessage + " Text format switch was applied.";
+            return true;
         }
 
         private static bool TrySetDate(DateTime? source, WordFieldInventory.ParsedFieldInstruction parsed, string successMessage, out string? value, out WordFieldUpdateStatus status, out string message) {
