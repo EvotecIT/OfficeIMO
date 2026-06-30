@@ -42,11 +42,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 IReadOnlyList<LegacyDocTableCellShading> cellShadings = ReadSupportedTableCellShadings(writableCells);
                 IReadOnlyList<LegacyDocTableCellBorders> cellBorders = ReadSupportedTableCellBorders(writableCells);
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
-                    int cellStart = text.Length;
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, writableCell.SourceCell)
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, writableCell.SourceCell, out int finalParagraphStart)
                         .WithTableMarkers(isTableTerminatingParagraph: false);
                     text.Append('\a');
-                    paragraphFormats.Add(new LegacyDocWritableParagraph(cellStart, text.Length - cellStart, paragraphFormatting));
+                    paragraphFormats.Add(new LegacyDocWritableParagraph(finalParagraphStart, text.Length - finalParagraphStart, paragraphFormatting));
                 }
 
                 int rowTerminatorStart = text.Length;
@@ -996,7 +995,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return span;
         }
 
-        private static LegacyDocWritableParagraphFormatting AppendTableCell(StringBuilder text, List<LegacyDocWritableRun> runs, TableCell? cell) {
+        private static LegacyDocWritableParagraphFormatting AppendTableCell(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            List<LegacyDocWritableParagraph> paragraphFormats,
+            TableCell? cell,
+            out int finalParagraphStart) {
+            finalParagraphStart = text.Length;
             if (cell == null) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
@@ -1005,29 +1010,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports simple tables only. Nested tables are not supported yet.");
             }
 
-            Paragraph? paragraph = null;
+            var paragraphs = new List<Paragraph>();
             foreach (OpenXmlElement child in cell.ChildElements) {
                 switch (child) {
                     case TableCellProperties cellProperties:
                         ThrowIfUnsupportedTableCellProperties(cellProperties);
                         break;
                     case Paragraph cellParagraph:
-                        if (paragraph != null) {
-                            throw new NotSupportedException("Native DOC saving supports simple tables only with one paragraph per cell.");
-                        }
-
-                        paragraph = cellParagraph;
+                        paragraphs.Add(cellParagraph);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell element: {child.LocalName}.");
                 }
             }
 
-            if (paragraph != null) {
-                return AppendTableCellParagraph(text, runs, paragraph);
+            if (paragraphs.Count == 0) {
+                return LegacyDocWritableParagraphFormatting.Plain;
             }
 
-            return LegacyDocWritableParagraphFormatting.Plain;
+            for (int index = 0; index < paragraphs.Count - 1; index++) {
+                int paragraphStart = text.Length;
+                LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, paragraphs[index])
+                    .WithTableMarkers(isTableTerminatingParagraph: false);
+                text.Append('\r');
+                paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
+            }
+
+            finalParagraphStart = text.Length;
+            return AppendTableCellParagraph(text, runs, paragraphs[paragraphs.Count - 1]);
         }
 
         private static void ThrowIfUnsupportedTableCellProperties(TableCellProperties cellProperties) {

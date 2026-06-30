@@ -505,9 +505,9 @@ just to reserve names.
     definition fallback when cells do not carry direct `tcW` widths, and block
     grid widths outside the Word 97-2003 signed twip range before bytes are
     committed.
-  - [x] Block multi-paragraph table cells before native `.doc` bytes are
-    committed until TAP-backed table parsing can disambiguate table-internal
-    paragraph marks from normal paragraphs before a table.
+  - [x] Write simple multi-paragraph table cells with table-internal paragraph
+    marks, then reload them through the legacy reader as multiple
+    `WordTableCell` paragraphs.
   - [x] Block nested table cells before native `.doc` bytes are committed until
     nested table projection has TAP-backed read/write coverage.
   - [x] Write simple table row heights with `sprmTDyaRowHeight`, reload them

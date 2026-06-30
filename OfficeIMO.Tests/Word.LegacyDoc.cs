@@ -2805,19 +2805,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedMultiParagraphTableCellsBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocMultiParagraphTableCellsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                WordTable table = document.AddTable(1, 1);
-                table.Rows[0].Cells[0].AddParagraph("First", removeExistingParagraphs: true);
-                table.Rows[0].Cells[0].AddParagraph("Second");
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("First", removeExistingParagraphs: true);
+                    WordParagraph second = table.Rows[0].Cells[0].AddParagraph("Second");
+                    second.ParagraphAlignment = JustificationValues.Right;
+                    table.Rows[0].Cells[1].AddParagraph("Single", removeExistingParagraphs: true);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("one paragraph per cell", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal(2, row.Cells.Count);
+                Assert.Equal(2, row.Cells[0].Paragraphs.Count);
+                Assert.Equal("First", row.Cells[0].Paragraphs[0].Text);
+                Assert.Null(row.Cells[0].Paragraphs[0].ParagraphAlignment);
+                Assert.Equal("Second", row.Cells[0].Paragraphs[1].Text);
+                Assert.Equal(JustificationValues.Right, row.Cells[0].Paragraphs[1].ParagraphAlignment);
+                Assert.Single(row.Cells[1].Paragraphs);
+                Assert.Equal("Single", row.Cells[1].Paragraphs[0].Text);
             } finally {
                 DeleteIfExists(docPath);
             }
