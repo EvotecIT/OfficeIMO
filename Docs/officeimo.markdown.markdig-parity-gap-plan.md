@@ -13,7 +13,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [x] GFM tracked fixtures are green: 52 tracked GFM fixtures, 52 passing, 0 failing in the generated GFM inventory.
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
-- [ ] Markdig extension parity is not closed: 10 rows are covered, 9 partial, 3 intentional, and 11 gap.
+- [ ] Markdig extension parity is not closed: 11 rows are covered, 8 partial, 3 intentional, and 11 gap.
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, generated-node diagnostics, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
@@ -22,11 +22,11 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 This is the non-looping checklist. A test-only slice is valid only when the matching engine behavior already exists and the open lane is proof.
 Each unchecked item should be treated as exactly one lane before work starts: engine behavior, AST/source model, writer/render behavior, product-scope decision, or proof. If a comparison exposes a behavior mismatch, fix the engine first; do not paper over it with tests.
 
-- [ ] `UseDefinitionLists` promotion: mostly engine plus proof.
+- [x] `UseDefinitionLists` promotion: mostly engine plus proof.
   - [x] Engine: generated/rebuilt definition body wrappers are marked through `MarkdownSyntaxNode.IsGenerated`, and native projection emits `native.generated-definition-child` diagnostics when definition children are regenerated from semantic content.
-  - [ ] Engine: broaden remaining lazy-continuation and nested-body parser cases where Markdig keeps lines literal or attaches them to definition bodies.
-  - [ ] Writer: prove Markdown output reparses to equivalent definition-list behavior for the remaining edge cases.
-  - [ ] Proof: refresh focused Markdig comparison, native/source-map, writer, and matrix evidence before changing the row to `Covered`.
+  - [x] Engine: broaden remaining lazy-continuation and nested-body parser cases where Markdig keeps lines literal or attaches them to definition bodies.
+  - [x] Writer: prove Markdown output reparses to equivalent definition-list behavior for the remaining edge cases.
+  - [x] Proof: refresh focused Markdig comparison, native/source-map, writer, and matrix evidence before changing the row to `Covered`.
 - [ ] `UseGenericAttributes` promotion: engine plus proof.
   - [ ] Engine: extend attribute ownership from the already-covered shapes to the remaining Markdig-supported block and inline families.
   - [ ] Engine: keep attributes attached to the semantic owner and syntax/source owner through containers such as blockquotes, lists, tables, footnotes, and definition lists.
@@ -102,7 +102,7 @@ Current active row: `UseDefinitionLists`.
   - [x] Nested blockquote lazy paragraph followed by `===` stays literal text when Markdig keeps it literal.
   - [x] Markdown writer escapes or preserves the shape so OfficeIMO reparse does not create a heading by accident.
   - [x] AST/source/native spans describe the nested paragraph and definition body correctly.
-- [ ] Broaden remaining lazy-continuation cases.
+- [x] Broaden remaining lazy-continuation cases.
   - [x] Paragraph-after-blank variants not already covered by the final compact probe.
     - [x] Blank-separated nested blockquote lazy tails preserve Markdig soft-break behavior with syntax/native source spans and writer reparse proof.
   - [x] Multiple lazy lines after nested blocks not already covered by the final compact probe.
@@ -127,12 +127,12 @@ Current active row: `UseDefinitionLists`.
   - [x] Blank separators now surface as native `definitionBlankLine` source fields with precise caret lookup while broad `definitionBody` spans remain available.
   - [x] Generated paragraph wrappers are now honest in the final syntax/native model: rebuilt semantic children carry `MarkdownSyntaxNode.IsGenerated`, and definition-list native projection reports `native.generated-definition-child` instead of presenting fallback anchors as exact parsed source.
   - [x] Normalized native `definitionBody` values versus original source spans are now explicit: `definitionBody.Value` stays semantic/normalized while `MarkdownNativeDocument` can materialize normalized or original source slices for the span-backed native field.
-- [ ] Promote `UseDefinitionLists` only after parser behavior, AST/source/native projection, HTML rendering, Markdown writing, reparse stability, generated inventory, and the compatibility matrix all agree.
+- [x] Promote `UseDefinitionLists` only after parser behavior, AST/source/native projection, HTML rendering, Markdown writing, reparse stability, generated inventory, and the compatibility matrix all agree.
   - [x] Focused definition-list tests are green.
   - [x] Broad CommonMark/GFM/Markdig comparison lane is green.
   - [x] Compact Markdig comparison matrix has zero failures for the final definition-list probe.
-  - [ ] Markdig extension inventory and compatibility docs mark `UseDefinitionLists` as `Covered` with current proof.
-  - [ ] No new source-map, native-projection, or writer diagnostics are hiding unresolved exactness gaps.
+  - [x] Markdig extension inventory and compatibility docs mark `UseDefinitionLists` as `Covered` with current proof.
+  - [x] No new source-map, native-projection, or writer diagnostics are hiding unresolved exactness gaps.
 
 ## P1 - Close High-Value Partial Rows
 

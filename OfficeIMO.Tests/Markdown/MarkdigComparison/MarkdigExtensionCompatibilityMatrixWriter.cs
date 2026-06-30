@@ -48,7 +48,12 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
         sb.AppendLine("## Immediate Queue");
         sb.AppendLine();
         sb.AppendLine("- [ ] Continue `UseGenericAttributes` only after probing remaining Markdig-supported block and inline targets. Avoid another standalone-attribute sweep unless Markdig evidence requires it.");
-        sb.AppendLine("- [ ] Promote or explicitly bound `UseDefinitionLists` after closing remaining source-map and writer edge breadth.");
+        var definitionLists = report.Rows.FirstOrDefault(static row => row.MethodName == "UseDefinitionLists");
+        if (definitionLists?.Status == MarkdigExtensionInventoryStatus.Covered) {
+            sb.AppendLine("- [x] Keep `UseDefinitionLists` covered while broader source/trivia work evolves; do not reopen it without new Markdig evidence.");
+        } else {
+            sb.AppendLine("- [ ] Promote or explicitly bound `UseDefinitionLists` after closing remaining source-map and writer edge breadth.");
+        }
         sb.AppendLine("- [ ] Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis` before adding more fixtures.");
         sb.AppendLine("- [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.");
 

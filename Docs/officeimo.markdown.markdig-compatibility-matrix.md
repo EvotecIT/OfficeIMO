@@ -10,13 +10,13 @@ Use it as the control board for parity slices:
 
 ## Summary
 
-Current inventory: 33 Markdig extension-family rows; 10 covered, 9 partial, 3 intentional, 11 gap.
+Current inventory: 33 Markdig extension-family rows; 11 covered, 8 partial, 3 intentional, 11 gap.
 
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
-| Covered | 10 |
-| Partial | 9 |
+| Covered | 11 |
+| Partial | 8 |
 | Intentional | 3 |
 | Gap | 11 |
 
@@ -33,7 +33,7 @@ Current inventory: 33 Markdig extension-family rows; 10 covered, 9 partial, 3 in
 | `UseCjkFriendlyEmphasis` | `Partial` | Core delimiter option | Partial delimiter behavior | Needs delimiter token proof | Mostly shared with emphasis rendering | Needs CJK comparison fixtures | Fold into the CommonMark emphasis delimiter rewrite and keep CJK-specific fixtures explicit. |
 | `UseCitations` | `Gap` | Deferred | Deferred | Deferred | Deferred | Needs real consumer requirement | Decide whether citations are in scope after core CommonMark/GFM closure. |
 | `UseCustomContainers` | `Gap` | Optional/core block extension | Missing colon-fence parser | Missing child-block source mapping | Missing renderer/writer seams | Missing Markdig comparison fixtures | Route to block parser extensions plus renderer/writer source-slice contracts. |
-| `UseDefinitionLists` | `Partial` | Core opt-in parser | Partial | Needs remaining source-map breadth | Needs writer/reparse edge breadth | Needs focused edge proof before promotion | Broaden remaining Markdig definition-list lazy-continuation variants, nested body source spans, multiline source mapping, writer, and reparse edge cases before promotion. |
+| `UseDefinitionLists` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep definition-list comparison, native source, no generated-child diagnostic, and writer reparse fixtures aligned as lossless trivia work expands. |
 | `UseDiagrams` | `Partial` | Renderer/host policy | Semantic fences exist | Needs language/source mapping decision | Needs renderer package ownership | Needs renderer comparison fixtures | Compare Mermaid/Nomnom-style cases and decide renderer-package ownership. |
 | `UseEmojiAndSmiley` | `Gap` | Optional inline transform | Missing shortcode/smiley transform | Needs source metadata policy | Needs writer literal/normalized policy | Needs opt-in transform fixtures | Keep normalization separate from an optional inline replacement extension. |
 | `UseEmphasisExtras` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep emphasis-extra delimiter cases aligned as broader GFM and lossless trivia coverage expands. |
@@ -69,6 +69,6 @@ Current inventory: 33 Markdig extension-family rows; 10 covered, 9 partial, 3 in
 ## Immediate Queue
 
 - [ ] Continue `UseGenericAttributes` only after probing remaining Markdig-supported block and inline targets. Avoid another standalone-attribute sweep unless Markdig evidence requires it.
-- [ ] Promote or explicitly bound `UseDefinitionLists` after closing remaining source-map and writer edge breadth.
+- [x] Keep `UseDefinitionLists` covered while broader source/trivia work evolves; do not reopen it without new Markdig evidence.
 - [ ] Decide `UseAlertBlocks` and `UseCjkFriendlyEmphasis` before adding more fixtures.
 - [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.

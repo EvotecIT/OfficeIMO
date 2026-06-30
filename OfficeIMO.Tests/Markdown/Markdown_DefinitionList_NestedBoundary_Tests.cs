@@ -239,9 +239,11 @@ Term
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = MarkdownReader.Parse(written, readerOptions).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, markdigPipeline);
+        var native = MarkdownNativeDocument.Parse(markdown, readerOptions);
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+        Assert.DoesNotContain(native.Diagnostics, diagnostic => diagnostic.Id == "native.generated-definition-child");
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
@@ -398,9 +400,11 @@ Term
         var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var reparsedOffice = MarkdownReader.Parse(written, readerOptions).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, markdigPipeline);
+        var native = MarkdownNativeDocument.Parse(markdown, readerOptions);
 
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+        Assert.DoesNotContain(native.Diagnostics, diagnostic => diagnostic.Id == "native.generated-definition-child");
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
