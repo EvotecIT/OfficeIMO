@@ -9,7 +9,14 @@ public static partial class MarkdownReader {
             }
 
             if (!LooksLikeTableRow(lines[i])) return false;
-            if (!TryGetTableExtent(lines, i, out int end, out _, allowHeaderlessTables: options.AllowHeaderlessTables, options: options)) return false;
+            if (!TryGetTableExtent(
+                lines,
+                i,
+                out int end,
+                out _,
+                allowHeaderlessTables: options.AllowHeaderlessTables,
+                options: options,
+                allowMismatchedAlignmentCells: state.IsMarkdigDefinitionListBody)) return false;
 
             var table = ParseTable(lines, i, end, options, state);
             doc.Add(table); i = end + 1; return true;

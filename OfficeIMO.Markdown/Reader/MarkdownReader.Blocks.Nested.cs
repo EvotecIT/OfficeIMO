@@ -38,7 +38,8 @@ public static partial class MarkdownReader {
         List<MarkdownSourceLineSlice>? sourceLines = null,
         int absoluteLineOffset = 0,
         int initialLineIndex = -1,
-        int initialStartColumn = 1) {
+        int initialStartColumn = 1,
+        MarkdownReaderState? state = null) {
         if (lines == null) return new List<string> { initialContent ?? string.Empty };
         if (nextIndex < 0) nextIndex = 0;
 
@@ -81,11 +82,13 @@ public static partial class MarkdownReader {
             bool underIndentedMarkerContinuation = options.StrictListIndentation
                 && lineIndentColumns > 3
                 && lineIndentColumns < continuationIndent;
+            bool breakOnOrderedListLine = breakOnAnyOrderedListLine ||
+                IsMarkdigDefinitionLazyOrderedListBoundary(state, k, line);
 
             // Stop before the next list item (including nested items).
             if (!underIndentedMarkerContinuation &&
                 (IsUnorderedListLine(line, out _, out _, out _, out _) ||
-                (breakOnAnyOrderedListLine ? IsOrderedListLine(line, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line)))) {
+                (breakOnOrderedListLine ? IsOrderedListLine(line, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(line)))) {
                 break;
             }
 
@@ -128,8 +131,10 @@ public static partial class MarkdownReader {
                 int peek = k + 1;
                 if (peek >= lines.Length) break;
                 var next = lines[peek] ?? string.Empty;
+                bool nextBreakOnOrderedListLine = breakOnAnyOrderedListLine ||
+                    IsMarkdigDefinitionLazyOrderedListBoundary(state, peek, next);
                 if (IsUnorderedListLine(next, out _, out _, out _, out _) ||
-                    (breakOnAnyOrderedListLine ? IsOrderedListLine(next, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next))) {
+                    (nextBreakOnOrderedListLine ? IsOrderedListLine(next, out _, out _, out _) : IsParagraphInterruptingOrderedListLine(next))) {
                     break;
                 }
                 int nextIndentColumns = CountLeadingIndentColumns(next);
@@ -146,7 +151,7 @@ public static partial class MarkdownReader {
                 if (collected.Count > 0 &&
                     !string.IsNullOrWhiteSpace(collected[collected.Count - 1]) &&
                     LooksLikeParagraphLine(collected, collected.Count - 1, options) &&
-                    TryNormalizeListLazyContinuationLine(lines, k, options, breakOnAnyOrderedListLine, out var normalizedLazyLine)) {
+                    TryNormalizeListLazyContinuationLine(lines, k, options, breakOnOrderedListLine, out var normalizedLazyLine)) {
                     collected.Add(normalizedLazyLine);
                     sourceLines?.Add(new MarkdownSourceLineSlice(
                         normalizedLazyLine,
@@ -172,6 +177,15 @@ public static partial class MarkdownReader {
 
         nextIndex = k;
         return collected;
+    }
+
+    private static bool IsMarkdigDefinitionLazyOrderedListBoundary(
+        MarkdownReaderState? state,
+        int lineIndex,
+        string line) {
+        return state?.IsMarkdigDefinitionListBody == true &&
+            state.LazyQuoteContinuationLines.Contains(lineIndex) &&
+            IsOrderedListLine(line, out _, out _, out _);
     }
 
     private static bool TryGetOpenLeadFencedCode(

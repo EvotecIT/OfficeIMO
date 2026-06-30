@@ -93,7 +93,8 @@ Current active row: `UseDefinitionLists`.
     - [x] Blank-separated nested blockquote lazy tails preserve Markdig soft-break behavior with syntax/native source spans and writer reparse proof.
   - [ ] Multiple lazy lines after nested blocks.
     - [x] Multiple lazy lines inside a nested blockquote now stay in the definition body while a following unindented list closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.
-  - [ ] Remaining list-like and table-like interruption starts, with pipe tables on and off.
+  - [x] Remaining list-like and table-like interruption starts, with pipe tables on and off.
+    - [x] Compact Markdig comparison now matches for unordered, ordered, task-list-shaped, non-`1` ordered, ordered-parenthesis, escaped-pipe table-shaped, and pipe-table delimiter-mismatch tails across nested paragraph, list, ordered-list, and blockquote definition bodies.
 - [ ] Broaden nested-body cases.
   - [ ] Blockquote source breadth beyond the already-covered heading/thematic/table-shaped cases.
     - [x] Unindented blockquote continuations remain inside active nested blockquotes while unindented fenced code, HTML, and reference-definition-looking lazy text follow Markdig ownership.
@@ -101,6 +102,8 @@ Current active row: `UseDefinitionLists`.
     - [x] Unclosed fenced-code bodies consume lazy-looking trailing lines like Markdig and write a closing fence for stable reparse.
   - [ ] List-tail variants after nested body boundaries.
     - [x] Mixed unordered-to-ordered list tails stay inside the definition body as separate list children, with syntax/native source spans and writer reparse proof.
+    - [x] Non-`1` ordered lazy tails after nested lists and blockquotes now follow Markdig ownership, while adjacent semantic list blocks write blank boundaries when needed for stable reparse.
+    - [x] Ordered `)` lazy tails after ordered-list bodies split from `.` marker lists like Markdig and write stable Markdown.
     - [x] Unindented blockquote tails after nested list bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
     - [x] Unindented list tails after nested blockquote bodies now close the definition list like Markdig, with syntax/native source spans and writer reparse proof.
     - [x] Unindented raw HTML after nested list bodies now closes the definition list like Markdig, with syntax/native source spans and writer reparse proof.

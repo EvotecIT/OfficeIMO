@@ -240,7 +240,8 @@ public static partial class MarkdownReader {
             sourceLines: paragraphSourceLines,
             absoluteLineOffset: state.SourceLineOffset,
             initialLineIndex: index,
-            initialStartColumn: firstStartColumn);
+            initialStartColumn: firstStartColumn,
+            state: state);
         paragraphs.AddRange(ParseParagraphBlocksFromSourceLines(paragraphSourceLines, options, state));
         AddParagraphSyntaxNodes(syntaxNodes, paragraphSourceLines, options, state);
 

@@ -173,9 +173,139 @@ Term
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Fact]
+    public void DefinitionList_NestedListLazyOrderedStartTwo_StaysInsideDefinition_AsOrderedChildList() {
+        const string markdown = """
+Term
+:   First
+    - item
+2. sibling
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definition = Assert.Single(Assert.Single(Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks)).Groups).Definitions);
+        var unordered = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var ordered = Assert.IsType<OrderedListBlock>(definition.Blocks[2]);
+        var definitionValue = result.SyntaxTree.Children[0].Children[0].Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsedOffice = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("item", Assert.Single(unordered.Items).Content.RenderMarkdown());
+        Assert.Equal(2, ordered.Start);
+        Assert.Equal("sibling", Assert.Single(ordered.Items).Content.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.UnorderedList,
+                MarkdownSyntaxKind.OrderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal("Term\n:   First\n    - item\n\n    2. sibling", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_NestedOrderedLazyParenDelimiter_SplitsOrderedListsLikeMarkdig() {
+        const string markdown = """
+Term
+:   First
+    1. item
+1) sibling
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definition = Assert.Single(Assert.Single(Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks)).Groups).Definitions);
+        var firstOrdered = Assert.IsType<OrderedListBlock>(definition.Blocks[1]);
+        var secondOrdered = Assert.IsType<OrderedListBlock>(definition.Blocks[2]);
+        var definitionValue = result.SyntaxTree.Children[0].Children[0].Children.Single(child => child.Kind == MarkdownSyntaxKind.DefinitionValue);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsedOffice = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("item", Assert.Single(firstOrdered.Items).Content.RenderMarkdown());
+        Assert.Equal("sibling", Assert.Single(secondOrdered.Items).Content.RenderMarkdown());
+        Assert.Equal(
+            new[] {
+                MarkdownSyntaxKind.Paragraph,
+                MarkdownSyntaxKind.OrderedList,
+                MarkdownSyntaxKind.OrderedList
+            },
+            definitionValue.Children.Select(child => child.Kind).ToArray());
+        Assert.Equal("Term\n:   First\n    1. item\n\n    1. sibling", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_NestedListEscapedPipeLazyText_RendersEscapedPipeLikeMarkdig() {
+        const string markdown = """
+Term
+:   First
+    - item
+A \| B | C
+---|---
+D | E
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var definition = Assert.Single(Assert.Single(Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks)).Groups).Definitions);
+        var unordered = Assert.IsType<UnorderedListBlock>(definition.Blocks[1]);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsedOffice = MarkdownReader.Parse(written, CreateMarkdigDefinitionListReaderOptions()).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
+
+        Assert.Equal("item\nA \\| B \\| C\n---\\|---\nD \\| E", Assert.Single(unordered.Items).Content.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Contains(@"A \| B \| C", written, StringComparison.Ordinal);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void DefinitionList_TableDelimiterWithFewerCells_PadsLikeMarkdig_WhenTablesAreOn() {
+        const string markdown = """
+Term
+:   First
+| A | B |
+|---|
+| C |
+""";
+
+        var readerOptions = CreateMarkdigDefinitionListReaderOptions();
+        readerOptions.Tables = true;
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        var definition = Assert.Single(Assert.Single(Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks)).Groups).Definitions);
+        var table = Assert.IsType<TableBlock>(definition.Blocks[1]);
+        var written = NormalizeMarkdown(result.Document.ToMarkdown());
+        var reparsedOffice = MarkdownReader.Parse(written, readerOptions).ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListAndPipeTablesPipeline());
+
+        Assert.Equal(new[] { "A", "B" }, table.Headers);
+        Assert.Equal(new[] { "C" }, Assert.Single(table.Rows));
+        Assert.Equal("Term\n:   First\n    | A | B |\n    | --- | --- |\n    | C |  |", written);
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);
+        return builder.Build();
+    }
+
+    private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListAndPipeTablesPipeline() {
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseDefinitionLists(builder);
+        Markdig.MarkdownExtensions.UsePipeTables(builder);
         return builder.Build();
     }
 

@@ -4,7 +4,9 @@ public static partial class MarkdownReader {
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) MergeMarkdigDefinitionLazyListContinuations(
         IReadOnlyList<IMarkdownBlock> blocks,
         IReadOnlyList<MarkdownSyntaxNode> syntaxChildren,
-        IReadOnlyList<MarkdownSourceLineSlice> sourceLines) {
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
         if (blocks == null || syntaxChildren == null || blocks.Count < 2 || blocks.Count != syntaxChildren.Count) {
             return (blocks ?? Array.Empty<IMarkdownBlock>(), syntaxChildren ?? Array.Empty<MarkdownSyntaxNode>());
         }
@@ -17,7 +19,7 @@ public static partial class MarkdownReader {
             var currentSyntax = syntaxChildren[index];
 
             while (index + 1 < blocks.Count &&
-                   TryMergeDefinitionLazyListContinuation(currentBlock, currentSyntax, blocks[index + 1], syntaxChildren[index + 1], sourceLines, out var combinedSyntax)) {
+                   TryMergeDefinitionLazyListContinuation(currentBlock, currentSyntax, blocks[index + 1], syntaxChildren[index + 1], sourceLines, options, state, out var combinedSyntax)) {
                 currentSyntax = combinedSyntax;
                 index++;
                 mergedAny = true;
@@ -38,13 +40,15 @@ public static partial class MarkdownReader {
         IMarkdownBlock nextBlock,
         MarkdownSyntaxNode nextSyntax,
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
         out MarkdownSyntaxNode combinedSyntax) {
         combinedSyntax = currentSyntax;
         if (currentBlock is IMarkdownListBlock currentList &&
             nextBlock is ParagraphBlock nextParagraph &&
             nextSyntax.Kind == MarkdownSyntaxKind.Paragraph &&
             IsDefinitionLazyParagraphContinuationCandidate(currentSyntax, nextSyntax) &&
-            TryAbsorbDefinitionLazyParagraphIntoLastListItem(currentList, nextParagraph, nextSyntax, sourceLines)) {
+            TryAbsorbDefinitionLazyParagraphIntoLastListItem(currentList, nextParagraph, nextSyntax, sourceLines, options, state)) {
             combinedSyntax = CombineDefinitionLazyListParagraphSyntax(currentSyntax, nextSyntax, currentList);
             return true;
         }
@@ -69,7 +73,11 @@ public static partial class MarkdownReader {
 
         if (IsDefinitionLazyListContinuationCandidate(currentSyntax, nextSyntax) &&
             currentBlock is OrderedListBlock currentOrdered &&
-            nextBlock is OrderedListBlock nextOrdered) {
+            nextBlock is OrderedListBlock nextOrdered &&
+            string.Equals(
+                GetFirstOrderedListMarkerDelimiter(currentSyntax),
+                GetFirstOrderedListMarkerDelimiter(nextSyntax),
+                StringComparison.Ordinal)) {
             currentOrdered.Items.AddRange(nextOrdered.Items);
             combinedSyntax = CombineDefinitionLazyListSyntax(currentSyntax, nextSyntax, currentOrdered);
             return true;
@@ -136,13 +144,15 @@ public static partial class MarkdownReader {
         IMarkdownListBlock listBlock,
         ParagraphBlock paragraph,
         MarkdownSyntaxNode paragraphSyntax,
-        IReadOnlyList<MarkdownSourceLineSlice> sourceLines) {
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
         if (listBlock == null || paragraph == null || listBlock.ListItems.Count == 0) {
             return false;
         }
 
         var item = listBlock.ListItems[listBlock.ListItems.Count - 1];
-        var continuationNodes = GetDefinitionLazyParagraphContinuationNodes(paragraph, paragraphSyntax, sourceLines);
+        var continuationNodes = GetDefinitionLazyParagraphContinuationNodes(paragraph, paragraphSyntax, sourceLines, options, state);
         var nodes = new List<IMarkdownInline>(item.Content.Nodes.Count + continuationNodes.Count + 1);
         nodes.AddRange(item.Content.Nodes);
         if (item.Content.Nodes.Count > 0 && continuationNodes.Count > 0) {
@@ -173,14 +183,44 @@ public static partial class MarkdownReader {
     private static IReadOnlyList<IMarkdownInline> GetDefinitionLazyParagraphContinuationNodes(
         ParagraphBlock paragraph,
         MarkdownSyntaxNode paragraphSyntax,
-        IReadOnlyList<MarkdownSourceLineSlice> sourceLines) {
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
         if (TryGetDefinitionLazyParagraphSourceText(paragraphSyntax, sourceLines, out var sourceText)) {
-            return new IMarkdownInline[] {
-                new TextRun(sourceText)
-            };
+            if (!ContainsBackslashEscapableCharacter(sourceText)) {
+                return new IMarkdownInline[] {
+                    new TextRun(sourceText)
+                };
+            }
+
+            return ParseDefinitionLazyListItemContinuationNodes(sourceText, options, state);
         }
 
         return paragraph.Inlines.Nodes;
+    }
+
+    private static IReadOnlyList<IMarkdownInline> ParseDefinitionLazyListItemContinuationNodes(
+        string sourceText,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        if (string.IsNullOrEmpty(sourceText)) {
+            return Array.Empty<IMarkdownInline>();
+        }
+
+        var nodes = new List<IMarkdownInline>();
+        var lines = sourceText.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
+        for (int lineIndex = 0; lineIndex < lines.Length; lineIndex++) {
+            if (lineIndex > 0) {
+                nodes.Add(new SoftBreakInline());
+            }
+
+            var parsed = ParseInlines(lines[lineIndex], options, state);
+            for (int nodeIndex = 0; nodeIndex < parsed.Nodes.Count; nodeIndex++) {
+                nodes.Add(parsed.Nodes[nodeIndex]);
+            }
+        }
+
+        return nodes;
     }
 
     private static bool TryGetDefinitionLazyParagraphSourceText(
@@ -375,5 +415,15 @@ public static partial class MarkdownReader {
         }
 
         return null;
+    }
+
+    private static string? GetFirstOrderedListMarkerDelimiter(MarkdownSyntaxNode listSyntax) {
+        var literal = GetFirstListMarkerLiteral(listSyntax);
+        if (string.IsNullOrEmpty(literal)) {
+            return null;
+        }
+
+        char delimiter = literal[literal.Length - 1];
+        return delimiter == '.' || delimiter == ')' ? delimiter.ToString() : null;
     }
 }

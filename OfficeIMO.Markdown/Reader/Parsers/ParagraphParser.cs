@@ -7,7 +7,7 @@ public static partial class MarkdownReader {
             // Paragraph begins when none of the other block starters match.
             if (IsAtxHeading(lines[i], out _, out _) ||
                 IsCodeFenceOpen(lines[i], out _, out _, out _) ||
-                StartsTable(lines, i, options) ||
+                StartsTable(lines, i, options, state) ||
                 IsParagraphInterruptingThematicBreakLine(lines[i]) ||
                 IsParagraphInterruptingUnorderedListLine(lines[i]) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
@@ -25,7 +25,7 @@ public static partial class MarkdownReader {
             while (j < lines.Length && !string.IsNullOrWhiteSpace(lines[j]) &&
                    !IsAtxHeading(lines[j], out _, out _) &&
                    !IsCodeFenceOpen(lines[j], out _, out _, out _) &&
-                   !StartsTable(lines, j, options) &&
+                   !StartsTable(lines, j, options, state) &&
                    !IsParagraphInterruptingThematicBreakLine(lines[j]) &&
                    !IsParagraphInterruptingUnorderedListLine(lines[j]) &&
                    !IsParagraphInterruptingOrderedListLine(lines[j]) &&

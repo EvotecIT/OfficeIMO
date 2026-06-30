@@ -658,7 +658,7 @@ public static partial class MarkdownReader {
 
         if (PreviousDefinitionLinesEndActiveNestedBlockquote(definitionSourceLines) &&
             CurrentLineStartsListBlock(line)) {
-            return false;
+            return CurrentLineStartsNonInterruptingOrderedListBlock(line);
         }
 
         return true;
@@ -772,6 +772,15 @@ public static partial class MarkdownReader {
             IsOrderedListLine(trimmed, out _, out _);
     }
 
+    private static bool CurrentLineStartsNonInterruptingOrderedListBlock(string line) {
+        if (string.IsNullOrWhiteSpace(line)) {
+            return false;
+        }
+
+        var trimmed = line.TrimStart();
+        return IsOrderedListLine(trimmed, out _, out int number, out _) && number != 1;
+    }
+
     private static int GetFirstNonWhitespaceIndex(string line) {
         if (string.IsNullOrEmpty(line)) {
             return 0;
@@ -802,8 +811,10 @@ public static partial class MarkdownReader {
             return (literalParagraphs, literalNodes);
         }
 
-        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(definitionSourceLines, options, state);
-        (blocks, syntaxChildren) = MergeMarkdigDefinitionLazyListContinuations(blocks, syntaxChildren, definitionSourceLines);
+        var definitionBodyState = CloneState(state);
+        definitionBodyState.IsMarkdigDefinitionListBody = true;
+        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(definitionSourceLines, options, definitionBodyState);
+        (blocks, syntaxChildren) = MergeMarkdigDefinitionLazyListContinuations(blocks, syntaxChildren, definitionSourceLines, options, state);
         (blocks, syntaxChildren) = PreserveMarkdigDefinitionLazyParagraphSoftBreaks(blocks, syntaxChildren, definitionSourceLines, options, state);
         if (blocks.Count > 0) {
             return (blocks, syntaxChildren);

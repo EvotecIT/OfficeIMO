@@ -28,9 +28,16 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool StartsTable(string[] lines, int index, MarkdownReaderOptions options) =>
+    private static bool StartsTable(string[] lines, int index, MarkdownReaderOptions options, MarkdownReaderState? state = null) =>
         options?.Tables == true &&
-        TryGetTableExtent(lines, index, out _, out _, allowHeaderlessTables: options.AllowHeaderlessTables, options: options);
+        TryGetTableExtent(
+            lines,
+            index,
+            out _,
+            out _,
+            allowHeaderlessTables: options.AllowHeaderlessTables,
+            options: options,
+            allowMismatchedAlignmentCells: state?.IsMarkdigDefinitionListBody == true);
 
     private static bool TryGetTableExtent(
         string[] lines,
@@ -39,7 +46,8 @@ public static partial class MarkdownReader {
         out bool hasOuterPipes,
         bool allowSingleRowHeaderless = false,
         bool allowHeaderlessTables = true,
-        MarkdownReaderOptions? options = null) {
+        MarkdownReaderOptions? options = null,
+        bool allowMismatchedAlignmentCells = false) {
         end = start;
         hasOuterPipes = false;
         options ??= new MarkdownReaderOptions();
@@ -60,7 +68,7 @@ public static partial class MarkdownReader {
             sawAlignmentRow = true;
             var headerCells = SplitTableRow(lines[start]);
             var alignmentCells = SplitTableRow(lines[j]);
-            if (headerCells.Count != alignmentCells.Count) {
+            if (!allowMismatchedAlignmentCells && headerCells.Count != alignmentCells.Count) {
                 return false;
             }
 

@@ -396,7 +396,20 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     private static bool ShouldSeparateDefinitionBlocksWithBlankLine(IMarkdownBlock previousBlock, IMarkdownBlock block) =>
         block is ParagraphBlock ||
         (previousBlock is ParagraphBlock && block is HorizontalRuleBlock) ||
-        (previousBlock is ParagraphBlock && block is HeadingBlock heading && heading.HasSetextUnderlineMarkerSourceInfo);
+        (previousBlock is ParagraphBlock && block is HeadingBlock heading && heading.HasSetextUnderlineMarkerSourceInfo) ||
+        ShouldSeparateAdjacentListBlocksWithBlankLine(previousBlock, block);
+
+    private static bool ShouldSeparateAdjacentListBlocksWithBlankLine(IMarkdownBlock previousBlock, IMarkdownBlock block) {
+        if (previousBlock is not IMarkdownListBlock || block is not IMarkdownListBlock) {
+            return false;
+        }
+
+        if (block is OrderedListBlock ordered && ordered.Start != 1) {
+            return true;
+        }
+
+        return previousBlock.GetType() == block.GetType();
+    }
 
     private static void AppendIndentedDefinitionBlockMarkdown(
         StringBuilder sb,
