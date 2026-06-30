@@ -238,6 +238,7 @@ internal static class MarkdownNativeInlineProjection {
         AddEscapedTextMetadata(node, metadata);
         AddDecodedEntityMetadata(node, metadata);
         AddHardBreakMarkerMetadata(node, metadata);
+        AddRawHtmlMetadata(node, metadata);
         AddAbbreviationMetadata(node, metadata);
         AddGenericAttributeMetadata(node, metadata);
 
@@ -348,6 +349,18 @@ internal static class MarkdownNativeInlineProjection {
                 node,
                 markerSpan));
         }
+    }
+
+    private static void AddRawHtmlMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
+        if (node.AssociatedObject is not HtmlRawInline html || !node.SourceSpan.HasValue) {
+            return;
+        }
+
+        metadata.Add(new MarkdownNativeInlineMetadata(
+            "html",
+            html.Html,
+            node,
+            node.SourceSpan));
     }
 
     private static void AddAbbreviationMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {

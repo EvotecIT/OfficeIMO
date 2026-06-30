@@ -204,6 +204,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Associate syntax nodes with semantic subobjects such as callout titles, list item paragraphs, definition groups/definitions, table rows/cells, and sequence-style inline wrappers.
 - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node diagnostics.
 - [ ] Complete delimiter-token coverage for emphasis extras, links/images, escapes/entities, breaks, HTML, footnotes, front matter, tables, and extension nodes.
+  - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.
 - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, transformed nodes, generated nodes, and normalized paragraph text.
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [ ] Add precise fallback diagnostics when exact source preservation is unavailable.

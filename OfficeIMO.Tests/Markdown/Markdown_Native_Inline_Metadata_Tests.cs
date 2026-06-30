@@ -426,6 +426,31 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void Raw_Inline_Html_Metadata_Preserves_Source_Fragment_For_Edits_And_Snapshots() {
+        const string markdown = "Use <custom data-x=\"1\"> now\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var rawHtml = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.HtmlRaw);
+        var html = Assert.Single(rawHtml.Metadata, metadata => metadata.Name == "html");
+
+        Assert.Equal("<custom data-x=\"1\">", rawHtml.Markdown);
+        Assert.Equal(string.Empty, rawHtml.Text);
+        Assert.Equal(MarkdownSyntaxKind.InlineHtmlRaw, rawHtml.SyntaxNode.Kind);
+        Assert.Equal("<custom data-x=\"1\">", html.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 23), rawHtml.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 23), html.SourceSpan);
+        Assert.Empty(rawHtml.Children);
+
+        Assert.Equal("Use <custom data-x=\"2\"> now\n", native.CreateReplaceEdit(html, "<custom data-x=\"2\">").Apply(native.SourceMarkdown));
+
+        var snapshotRawHtml = Assert.Single(native.ToSnapshot().Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.HtmlRaw);
+        Assert.Equal("<custom data-x=\"1\">", snapshotRawHtml.Metadata["html"]);
+        Assert.Equal(5, snapshotRawHtml.MetadataSourceSpans["html"]!.StartColumn);
+        Assert.Equal(23, snapshotRawHtml.MetadataSourceSpans["html"]!.EndColumn);
+    }
+
+    [Fact]
     public void Hard_Break_Marker_Metadata_Preserves_Source_Spelling_For_Edits_And_Snapshots() {
         var spaces = MarkdownNativeDocument.Parse("Alpha  \nbravo\n");
         var spacesBreak = Assert.Single(
