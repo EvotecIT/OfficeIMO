@@ -423,6 +423,9 @@ just to reserve names.
   sections only after preflight blocks all unsupported content.
   - [x] Write direct bold/italic CHPX runs and reload them through the legacy
     reader.
+  - [x] Accept matching or complex-script-only bold/italic run properties when
+    they map to DOC's single CHPX bold/italic bits, while blocking conflicting
+    script-specific values before bytes are committed.
   - [x] Write direct underline, size, and color CHPX runs and reload them
     through the legacy reader.
   - [x] Accept matching `FontSizeComplexScript` values when writing native

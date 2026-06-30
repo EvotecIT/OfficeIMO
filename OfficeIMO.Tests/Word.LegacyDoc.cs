@@ -1441,6 +1441,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocComplexScriptBoldItalicAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph.AddText("plain ");
+                    WordParagraph formatted = paragraph.AddText("formatted");
+                    formatted._run!.RunProperties ??= new RunProperties();
+                    formatted._run.RunProperties.BoldComplexScript = new BoldComplexScript();
+                    formatted._run.RunProperties.ItalicComplexScript = new ItalicComplexScript();
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph[] runs = reloaded.Paragraphs.ToArray();
+                Assert.Equal(2, runs.Length);
+                Assert.Equal("plain ", runs[0].Text);
+                Assert.False(runs[0].Bold);
+                Assert.False(runs[0].Italic);
+                Assert.Equal("formatted", runs[1].Text);
+                Assert.True(runs[1].Bold);
+                Assert.True(runs[1].Italic);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSingleScriptFontFamilyAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -2751,6 +2783,28 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("single font family", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksConflictingComplexScriptBoldBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordParagraph formatted = document.AddParagraph("Formatted");
+                formatted._run!.RunProperties ??= new RunProperties();
+                formatted._run.RunProperties.Bold = new Bold();
+                formatted._run.RunProperties.BoldComplexScript = new BoldComplexScript {
+                    Val = false
+                };
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("bold", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

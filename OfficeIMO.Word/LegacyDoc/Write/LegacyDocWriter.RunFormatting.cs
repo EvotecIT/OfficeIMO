@@ -46,8 +46,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return LegacyDocWritableFormatting.Plain;
             }
 
-            bool bold = false;
-            bool italic = false;
+            bool? bold = null;
+            bool? italic = null;
             bool strike = false;
             bool doubleStrike = false;
             bool outline = false;
@@ -65,16 +65,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement property in runProperties.ChildElements) {
                 switch (property) {
                     case Bold boldProperty:
-                        bold = IsEnabled(boldProperty);
+                        bold = MergeSingleRunToggle(bold, IsEnabled(boldProperty), "bold", "Bold", "BoldComplexScript");
                         break;
                     case BoldComplexScript boldComplexScript:
-                        bold = IsEnabled(boldComplexScript);
+                        bold = MergeSingleRunToggle(bold, IsEnabled(boldComplexScript), "bold", "Bold", "BoldComplexScript");
                         break;
                     case Italic italicProperty:
-                        italic = IsEnabled(italicProperty);
+                        italic = MergeSingleRunToggle(italic, IsEnabled(italicProperty), "italic", "Italic", "ItalicComplexScript");
                         break;
                     case ItalicComplexScript italicComplexScript:
-                        italic = IsEnabled(italicComplexScript);
+                        italic = MergeSingleRunToggle(italic, IsEnabled(italicComplexScript), "italic", "Italic", "ItalicComplexScript");
                         break;
                     case Strike strikeProperty:
                         strike = IsEnabled(strikeProperty);
@@ -129,11 +129,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
         }
 
         private static bool IsEnabled(OnOffType property) {
             return property.Val == null || property.Val.Value;
+        }
+
+        private static bool MergeSingleRunToggle(bool? currentValue, bool nextValue, string description, string directPropertyName, string complexScriptPropertyName) {
+            if (currentValue != null && currentValue.Value != nextValue) {
+                throw new NotSupportedException($"Native DOC saving supports one {description} value per text run. {directPropertyName} and {complexScriptPropertyName} must match.");
+            }
+
+            return nextValue;
         }
 
         private static byte? ReadSupportedUnderline(Underline underline) {
