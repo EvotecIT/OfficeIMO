@@ -209,13 +209,29 @@ public static partial class MarkdownReader {
                 int summaryClose = inner.IndexOf("</summary>", summaryTagEnd + 1, StringComparison.OrdinalIgnoreCase);
                 if (summaryClose < 0) return false;
 
-                string summaryInner = inner.Substring(summaryTagEnd + 1, summaryClose - summaryTagEnd - 1).Trim();
+                string summarySourceText = inner.Substring(summaryTagEnd + 1, summaryClose - summaryTagEnd - 1);
+                string summaryInner = summarySourceText.Trim();
                 var decoded = System.Net.WebUtility.HtmlDecode(summaryInner);
                 var inlines = ParseInlines(decoded, options, state);
-                summary = new SummaryBlock(inlines);
-                int summaryStartLine = state.SourceLineOffset + startLineIndex + CountNewLines(htmlContent, 0, tagEnd + 1) + CountNewLines(inner, 0, summaryStart) + 1;
-                int summaryEndLine = summaryStartLine + CountNewLines(inner, summaryStart, summaryClose + "</summary>".Length - summaryStart);
-                summary.SyntaxSpan = new MarkdownSourceSpan(summaryStartLine, summaryEndLine);
+                int summaryStartInHtml = tagEnd + 1 + summaryStart;
+                int summaryTagEndInHtml = tagEnd + 1 + summaryTagEnd;
+                int summaryCloseInHtml = tagEnd + 1 + summaryClose;
+                int summaryCloseEndInHtml = summaryCloseInHtml + "</summary>".Length - 1;
+                int summaryTextStartInHtml = tagEnd + 1 + summaryTagEnd + 1;
+                int summaryTextEndInHtml = summaryCloseInHtml - 1;
+                summary = new SummaryBlock(inlines) {
+                    SyntaxSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryStartInHtml, summaryCloseEndInHtml),
+                    OpeningTag = inner.Substring(summaryStart, summaryTagEnd - summaryStart + 1),
+                    ClosingTag = inner.Substring(summaryClose, "</summary>".Length),
+                    SourceText = summarySourceText,
+                    OpeningTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryStartInHtml, summaryTagEndInHtml),
+                    ClosingTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryCloseInHtml, summaryCloseEndInHtml)
+                };
+
+                if (summaryTextStartInHtml <= summaryTextEndInHtml) {
+                    summary.TextSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryTextStartInHtml, summaryTextEndInHtml);
+                }
+
                 bodyStart = summaryClose + "</summary>".Length;
             }
 

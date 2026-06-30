@@ -128,7 +128,16 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         SummaryInlines = details.Summary?.Inlines;
         Summary = SummaryInlines == null ? null : InlinePlainText.Extract(SummaryInlines);
         SummarySourceSpan = details.Summary?.SourceSpan ?? FindSummarySourceSpan(syntaxNode);
-        SummaryInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.Summary);
+        SummaryOpeningTag = details.Summary?.OpeningTag;
+        SummaryText = details.Summary?.SourceText;
+        SummaryClosingTag = details.Summary?.ClosingTag;
+        SummaryOpeningTagSourceSpan = details.Summary?.OpeningTagSourceSpan ?? FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryOpeningTag);
+        SummaryTextSourceSpan = details.Summary?.TextSourceSpan ?? FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryText);
+        SummaryClosingTagSourceSpan = details.Summary?.ClosingTagSourceSpan ?? FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryClosingTag);
+        SummaryInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerDescendant(syntaxNode, MarkdownSyntaxKind.SummaryText)
+            is { Count: > 0 } summaryTextRuns
+            ? summaryTextRuns
+            : MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.Summary);
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
     }
@@ -157,6 +166,24 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
     /// <summary>Source span for the summary element when available.</summary>
     public MarkdownSourceSpan? SummarySourceSpan { get; }
 
+    /// <summary>Exact parsed summary opening tag when available.</summary>
+    public string? SummaryOpeningTag { get; }
+
+    /// <summary>Exact parsed summary text when available.</summary>
+    public string? SummaryText { get; }
+
+    /// <summary>Exact parsed summary closing tag when available.</summary>
+    public string? SummaryClosingTag { get; }
+
+    /// <summary>Source span for the parsed summary opening tag when available.</summary>
+    public MarkdownSourceSpan? SummaryOpeningTagSourceSpan { get; }
+
+    /// <summary>Source span for the parsed summary text when available.</summary>
+    public MarkdownSourceSpan? SummaryTextSourceSpan { get; }
+
+    /// <summary>Source span for the parsed summary closing tag when available.</summary>
+    public MarkdownSourceSpan? SummaryClosingTagSourceSpan { get; }
+
     /// <summary>Structured summary inline nodes when available.</summary>
     public InlineSequence? SummaryInlines { get; }
 
@@ -173,6 +200,23 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         for (int i = 0; i < syntaxNode.Children.Count; i++) {
             if (syntaxNode.Children[i].Kind == MarkdownSyntaxKind.Summary) {
                 return syntaxNode.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
+
+    private static MarkdownSourceSpan? FindSummaryChildSourceSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) {
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            var child = syntaxNode.Children[i];
+            if (child.Kind != MarkdownSyntaxKind.Summary) {
+                continue;
+            }
+
+            for (int j = 0; j < child.Children.Count; j++) {
+                if (child.Children[j].Kind == kind) {
+                    return child.Children[j].SourceSpan;
+                }
             }
         }
 

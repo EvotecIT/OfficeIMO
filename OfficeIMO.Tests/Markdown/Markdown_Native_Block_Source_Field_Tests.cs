@@ -742,9 +742,17 @@ Inside
 
         Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 11), callout.BodySourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 9), details.OpeningTagSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 23), details.SummarySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 9), details.SummaryOpeningTagSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 10, 5, 13), details.SummaryTextSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 14, 5, 23), details.SummaryClosingTagSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), details.BodySourceSpan);
         Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 10), details.ClosingTagSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 9), Assert.Single(details.SyntaxNode.Children, child => child.Kind == MarkdownSyntaxKind.DetailsOpeningTag).SourceSpan);
+        var summaryNode = Assert.Single(details.SyntaxNode.Children, child => child.Kind == MarkdownSyntaxKind.Summary);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 9), Assert.Single(summaryNode.Children, child => child.Kind == MarkdownSyntaxKind.SummaryOpeningTag).SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 10, 5, 13), Assert.Single(summaryNode.Children, child => child.Kind == MarkdownSyntaxKind.SummaryText).SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 14, 5, 23), Assert.Single(summaryNode.Children, child => child.Kind == MarkdownSyntaxKind.SummaryClosingTag).SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(8, 1, 8, 10), Assert.Single(details.SyntaxNode.Children, child => child.Kind == MarkdownSyntaxKind.DetailsClosingTag).SourceSpan);
 
         var calloutBody = Assert.Single(native.EnumerateBlockSourceFields("calloutBody"));
@@ -756,6 +764,21 @@ Inside
         Assert.Same(details, detailsOpeningTag.Block);
         Assert.Equal("<details>", detailsOpeningTag.Value);
         Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 9), detailsOpeningTag.SourceSpan);
+
+        var summaryOpeningTag = Assert.Single(native.EnumerateBlockSourceFields("summaryOpeningTag"));
+        Assert.Same(details, summaryOpeningTag.Block);
+        Assert.Equal("<summary>", summaryOpeningTag.Value);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 9), summaryOpeningTag.SourceSpan);
+
+        var summaryText = Assert.Single(native.EnumerateBlockSourceFields("summaryText"));
+        Assert.Same(details, summaryText.Block);
+        Assert.Equal("More", summaryText.Value);
+        Assert.Equal(new MarkdownSourceSpan(5, 10, 5, 13), summaryText.SourceSpan);
+
+        var summaryClosingTag = Assert.Single(native.EnumerateBlockSourceFields("summaryClosingTag"));
+        Assert.Same(details, summaryClosingTag.Block);
+        Assert.Equal("</summary>", summaryClosingTag.Value);
+        Assert.Equal(new MarkdownSourceSpan(5, 14, 5, 23), summaryClosingTag.SourceSpan);
 
         var detailsBody = Assert.Single(native.EnumerateBlockSourceFields("detailsBody"));
         Assert.Same(details, detailsBody.Block);
@@ -769,6 +792,9 @@ Inside
 
         Assert.Equal("calloutBody", native.FindBlockSourceFieldAtPosition(2, 4)!.Name);
         Assert.Equal("detailsOpeningTag", native.FindBlockSourceFieldAtPosition(4, 3)!.Name);
+        Assert.Equal("summaryOpeningTag", native.FindBlockSourceFieldAtPosition(5, 3)!.Name);
+        Assert.Equal("summaryText", native.FindBlockSourceFieldAtPosition(5, 11)!.Name);
+        Assert.Equal("summaryClosingTag", native.FindBlockSourceFieldAtPosition(5, 15)!.Name);
         Assert.Equal("detailsBody", native.FindBlockSourceFieldAtPosition(7, 3)!.Name);
         Assert.Equal("detailsClosingTag", native.FindBlockSourceFieldAtPosition(8, 3)!.Name);
 
@@ -777,19 +803,49 @@ Inside
         Assert.Equal(11, snapshot.Blocks[0].FieldSourceSpans["calloutBody"]!.EndColumn);
         Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["detailsOpeningTag"]!.StartColumn);
         Assert.Equal(9, snapshot.Blocks[1].FieldSourceSpans["detailsOpeningTag"]!.EndColumn);
+        Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["summaryOpeningTag"]!.StartColumn);
+        Assert.Equal(9, snapshot.Blocks[1].FieldSourceSpans["summaryOpeningTag"]!.EndColumn);
+        Assert.Equal(10, snapshot.Blocks[1].FieldSourceSpans["summaryText"]!.StartColumn);
+        Assert.Equal(13, snapshot.Blocks[1].FieldSourceSpans["summaryText"]!.EndColumn);
+        Assert.Equal(14, snapshot.Blocks[1].FieldSourceSpans["summaryClosingTag"]!.StartColumn);
+        Assert.Equal(23, snapshot.Blocks[1].FieldSourceSpans["summaryClosingTag"]!.EndColumn);
         Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["detailsBody"]!.StartColumn);
         Assert.Equal(6, snapshot.Blocks[1].FieldSourceSpans["detailsBody"]!.EndColumn);
         Assert.Equal(1, snapshot.Blocks[1].FieldSourceSpans["detailsClosingTag"]!.StartColumn);
         Assert.Equal(10, snapshot.Blocks[1].FieldSourceSpans["detailsClosingTag"]!.EndColumn);
         Assert.Contains(snapshot.Blocks[0].SourceFields, field => field.Name == "calloutBody" && field.Value == "Body line");
         Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "detailsOpeningTag" && field.Value == "<details>");
+        Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "summaryOpeningTag" && field.Value == "<summary>");
+        Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "summaryText" && field.Value == "More");
+        Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "summaryClosingTag" && field.Value == "</summary>");
         Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "detailsBody" && field.Value == null);
         Assert.Contains(snapshot.Blocks[1].SourceFields, field => field.Name == "detailsClosingTag" && field.Value == "</details>");
 
         Assert.Contains("> Updated", native.CreateReplaceEdit(calloutBody, "Updated").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("<details open>", native.CreateReplaceEdit(detailsOpeningTag, "<details open>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("<summary class=\"lead\">", native.CreateReplaceEdit(summaryOpeningTag, "<summary class=\"lead\">").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("<summary>Less</summary>", native.CreateReplaceEdit(summaryText, "Less").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("</span>", native.CreateReplaceEdit(summaryClosingTag, "</span>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("Outside", native.CreateReplaceEdit(detailsBody, "Outside").Apply(native.SourceMarkdown), StringComparison.Ordinal);
         Assert.Contains("</section>", native.CreateReplaceEdit(detailsClosingTag, "</section>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Details_SummaryText_SourceField_Preserves_Source_Whitespace() {
+        var markdown = """
+<details>
+<summary>  More context  </summary>
+</details>
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var details = Assert.IsType<MarkdownNativeDetailsBlock>(Assert.Single(native.Blocks));
+        var summaryText = Assert.Single(native.EnumerateBlockSourceFields("summaryText"));
+
+        Assert.Equal("More context", details.Summary);
+        Assert.Equal("  More context  ", summaryText.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 25), summaryText.SourceSpan);
+        Assert.Contains("<summary>Less</summary>", native.CreateReplaceEdit(summaryText, "Less").Apply(native.SourceMarkdown), StringComparison.Ordinal);
     }
 
     [Fact]

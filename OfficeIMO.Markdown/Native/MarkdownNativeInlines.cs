@@ -152,6 +152,13 @@ internal static class MarkdownNativeInlineProjection {
         return Array.Empty<MarkdownNativeInline>();
     }
 
+    internal static IReadOnlyList<MarkdownNativeInline> FromInlineContainerDescendant(
+        MarkdownSyntaxNode? node,
+        MarkdownSyntaxKind descendantKind) {
+        var descendant = FindFirstDescendant(node, descendantKind);
+        return descendant == null ? Array.Empty<MarkdownNativeInline>() : FromInlineContainer(descendant);
+    }
+
     internal static IReadOnlyList<MarkdownNativeInline> FromFirstDescendantInlineContainer(MarkdownSyntaxNode? node) {
         var container = FindFirstInlineContainer(node);
         return container == null ? Array.Empty<MarkdownNativeInline>() : FromInlineContainer(container);
@@ -208,6 +215,26 @@ internal static class MarkdownNativeInlineProjection {
         }
 
         return inlines;
+    }
+
+    private static MarkdownSyntaxNode? FindFirstDescendant(MarkdownSyntaxNode? node, MarkdownSyntaxKind kind) {
+        if (node == null) {
+            return null;
+        }
+
+        for (int i = 0; i < node.Children.Count; i++) {
+            var child = node.Children[i];
+            if (child.Kind == kind) {
+                return child;
+            }
+
+            var nested = FindFirstDescendant(child, kind);
+            if (nested != null) {
+                return nested;
+            }
+        }
+
+        return null;
     }
 
     private static MarkdownNativeInline Create(MarkdownSyntaxNode node) {

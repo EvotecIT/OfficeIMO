@@ -124,6 +124,12 @@ public sealed class SummaryBlock : MarkdownBlock, IMarkdownBlock, IInlineSyntaxM
     /// <summary>Inline content inside the &lt;summary&gt; element.</summary>
     public InlineSequence Inlines { get; }
     internal MarkdownSourceSpan? SyntaxSpan { get; set; }
+    internal string? OpeningTag { get; set; }
+    internal string? ClosingTag { get; set; }
+    internal string? SourceText { get; set; }
+    internal MarkdownSourceSpan? OpeningTagSourceSpan { get; set; }
+    internal MarkdownSourceSpan? TextSourceSpan { get; set; }
+    internal MarkdownSourceSpan? ClosingTagSourceSpan { get; set; }
 
     /// <summary>Create a summary block from an inline sequence.</summary>
     public SummaryBlock(InlineSequence inlines) {
@@ -140,6 +146,35 @@ public sealed class SummaryBlock : MarkdownBlock, IMarkdownBlock, IInlineSyntaxM
     InlineSequence IInlineSyntaxMarkdownBlock.SyntaxInlines => Inlines;
     MarkdownSyntaxKind IInlineSyntaxMarkdownBlock.SyntaxKind => MarkdownSyntaxKind.Summary;
     MarkdownSourceSpan? IInlineSyntaxMarkdownBlock.ProvidedSyntaxSpan => SyntaxSpan;
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        MarkdownBlockSyntaxBuilder.BuildInlineBlock(this, span);
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var inlineChildren = MarkdownInlineSyntaxBuilder.BuildChildren(Inlines);
+        var children = new List<MarkdownSyntaxNode>();
+        if (OpeningTagSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.SummaryOpeningTag, OpeningTagSourceSpan, OpeningTag));
+        }
+
+        if (TextSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.SummaryText,
+                TextSourceSpan,
+                SourceText ?? Inlines.RenderMarkdown(),
+                inlineChildren,
+                Inlines));
+        } else {
+            for (int i = 0; i < inlineChildren.Count; i++) {
+                children.Add(inlineChildren[i]);
+            }
+        }
+
+        if (ClosingTagSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.SummaryClosingTag, ClosingTagSourceSpan, ClosingTag));
+        }
+
+        return new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.Summary,
+            span ?? SyntaxSpan ?? MarkdownBlockSyntaxBuilder.GetAggregateSpan(children),
+            Inlines.RenderMarkdown(),
+            children,
+            this);
+    }
 }

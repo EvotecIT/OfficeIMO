@@ -131,6 +131,9 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("detailsOpeningTag", details.OpeningTagSourceSpan),
                     ("summary", details.SummarySourceSpan),
+                    ("summaryOpeningTag", details.SummaryOpeningTagSourceSpan),
+                    ("summaryText", details.SummaryTextSourceSpan),
+                    ("summaryClosingTag", details.SummaryClosingTagSourceSpan),
                     ("detailsBody", details.BodySourceSpan),
                     ("detailsClosingTag", details.ClosingTagSourceSpan));
                 break;

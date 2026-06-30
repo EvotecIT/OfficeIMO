@@ -208,6 +208,12 @@ public enum MarkdownSyntaxKind {
     DetailsOpeningTag,
     /// <summary>Summary node inside a details block.</summary>
     Summary,
+    /// <summary>Opening <c>&lt;summary&gt;</c> tag token for a details summary.</summary>
+    SummaryOpeningTag,
+    /// <summary>Text content inside a details summary.</summary>
+    SummaryText,
+    /// <summary>Closing <c>&lt;/summary&gt;</c> tag token for a details summary.</summary>
+    SummaryClosingTag,
     /// <summary>Closing <c>&lt;/details&gt;</c> tag token for a details block.</summary>
     DetailsClosingTag,
     /// <summary>Front matter block.</summary>

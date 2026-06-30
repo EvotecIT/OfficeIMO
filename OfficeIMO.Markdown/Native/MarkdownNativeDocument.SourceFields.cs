@@ -182,6 +182,18 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("summary", details.Summary, details.SummarySourceSpan.Value, details);
                 }
 
+                if (details.SummaryOpeningTagSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("summaryOpeningTag", details.SummaryOpeningTag, details.SummaryOpeningTagSourceSpan.Value, details);
+                }
+
+                if (details.SummaryTextSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("summaryText", details.SummaryText ?? details.Summary, details.SummaryTextSourceSpan.Value, details);
+                }
+
+                if (details.SummaryClosingTagSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("summaryClosingTag", details.SummaryClosingTag, details.SummaryClosingTagSourceSpan.Value, details);
+                }
+
                 if (details.BodySourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("detailsBody", null, details.BodySourceSpan.Value, details);
                 }
