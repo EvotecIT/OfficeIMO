@@ -54,7 +54,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
         } else {
             sb.AppendLine("- [ ] Promote or explicitly bound `UseDefinitionLists` after closing remaining source-map and writer edge breadth.");
         }
-        sb.AppendLine("- [ ] Decide the titled-callout boundary for `UseAlertBlocks` before adding more alert fixtures.");
+        sb.AppendLine("- [x] Keep the `UseAlertBlocks` titled-callout boundary explicit: OfficeIMO mode keeps rich titles; Markdig-compatible mode treats titled markers as ordinary blockquotes.");
         sb.AppendLine("- [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.");
 
         return sb.ToString().Replace("\r\n", "\n");
@@ -71,7 +71,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
 
         switch (row.MethodName) {
             case "UseAlertBlocks":
-                return new MatrixCells("Core plus renderer policy", "No-title alert parser covered; titled callouts are OfficeIMO-specific", "Has callout source fields; needs boundary proof", "Has opt-in Markdig alert HTML fallback; needs writer/boundary contract", "Has core alert comparison; needs broader GFM proof", row.NextAction);
+                return new MatrixCells("Core plus renderer policy", "No-title alert parser covered; titled callout boundary is option-backed", "Has callout and quote source fields; needs broader alert source/native proof", "Has opt-in Markdig alert HTML fallback and title-boundary writer proof", "Has core alert comparison; needs broader GFM proof", row.NextAction);
             case "UseCjkFriendlyEmphasis":
                 return new MatrixCells("Core delimiter option", "Partial delimiter behavior", "Needs delimiter token proof", "Mostly shared with emphasis rendering", "Needs CJK comparison fixtures", row.NextAction);
             case "UseCustomContainers":

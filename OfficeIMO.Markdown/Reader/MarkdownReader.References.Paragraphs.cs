@@ -17,7 +17,7 @@ public static partial class MarkdownReader {
             IsParagraphInterruptingThematicBreakLine(line) ||
             IsParagraphInterruptingUnorderedListLine(line) ||
             IsParagraphInterruptingOrderedListLine(line) ||
-            (options.Callouts && IsCalloutHeader(line, out _, out _)) ||
+            (options.Callouts && IsCalloutHeader(line, options, out _, out _)) ||
             IsQuoteStarter(line) ||
             HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options) ||
             TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _) ||

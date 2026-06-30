@@ -415,6 +415,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "note-paragraph", "> [!NOTE]\n> Body" };
         yield return new object[] { "warning-list", "> [!WARNING]\n> - Item" };
         yield return new object[] { "custom-kind", "> [!CUSTOM]\n> Body" };
+        yield return new object[] { "note-title-stays-blockquote", "> [!NOTE] Title\n> Body" };
+        yield return new object[] { "note-strong-title-stays-blockquote", "> [!NOTE] **Title**\n> Body" };
+        yield return new object[] { "custom-title-stays-blockquote", "> [!CUSTOM] Title\n> Body" };
     }
 
     [Theory]
@@ -460,8 +463,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseAlertBlocks(builder, null);
 
+        var officeOptions = new MarkdownReaderOptions {
+            CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible
+        };
+
         var office = MarkdownReader
-            .Parse(markdown, new MarkdownReaderOptions())
+            .Parse(markdown, officeOptions)
             .ToHtmlFragment(htmlOptions);
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 

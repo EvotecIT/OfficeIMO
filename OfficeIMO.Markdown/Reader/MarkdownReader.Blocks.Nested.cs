@@ -227,7 +227,7 @@ public static partial class MarkdownReader {
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
-        if (options.Callouts && IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
         int sourceIndentColumns = CountLeadingIndentColumns(source);
         if (IsUnorderedListLine(trimmed, out _, out _, out _, out _)) {
             if (sourceIndentColumns <= 3) return false;

@@ -366,6 +366,11 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private static bool IsCalloutHeader(string line, MarkdownReaderOptions options, out string kind, out string title) {
+        if (!IsCalloutHeader(line, out kind, out title)) return false;
+        return options.CalloutTitleMode != MarkdownCalloutTitleMode.MarkdigCompatible || string.IsNullOrWhiteSpace(title);
+    }
+
     private static int GetListContinuationIndent(string line) {
         if (string.IsNullOrEmpty(line)) return 0;
         if (TryGetOrderedListMarkerInfo(line, out int orderedLeadingSpaces, out _, out int orderedContentStartIndex)) {

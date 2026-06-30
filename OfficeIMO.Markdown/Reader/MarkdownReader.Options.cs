@@ -10,6 +10,7 @@ public static partial class MarkdownReader {
         var clone = new MarkdownReaderOptions {
             FrontMatter = false,
             Callouts = source.Callouts,
+            CalloutTitleMode = source.CalloutTitleMode,
             Headings = source.Headings,
             FencedCode = source.FencedCode,
             IndentedCodeBlocks = source.IndentedCodeBlocks,

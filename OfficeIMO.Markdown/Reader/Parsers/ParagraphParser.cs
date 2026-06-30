@@ -11,7 +11,7 @@ public static partial class MarkdownReader {
                 IsParagraphInterruptingThematicBreakLine(lines[i]) ||
                 IsParagraphInterruptingUnorderedListLine(lines[i]) ||
                 IsOrderedListLine(lines[i], out _, out _) ||
-                (options.Callouts && IsCalloutHeader(lines[i], out _, out _)) ||
+                (options.Callouts && IsCalloutHeader(lines[i], options, out _, out _)) ||
                 IsQuoteStarter(lines[i]) ||
                 HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options) ||
                 (IsReferenceLinkDefinitionStarter(lines, i, options) && !ShouldTreatReferenceDefinitionAsGenericAttributeParagraph(lines, i, options, state)) ||
@@ -29,7 +29,7 @@ public static partial class MarkdownReader {
                    !IsParagraphInterruptingThematicBreakLine(lines[j]) &&
                    !IsParagraphInterruptingUnorderedListLine(lines[j]) &&
                    !IsParagraphInterruptingOrderedListLine(lines[j]) &&
-                   (!options.Callouts || !IsCalloutHeader(lines[j], out _, out _)) &&
+                   (!options.Callouts || !IsCalloutHeader(lines[j], options, out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&
                    !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[j], options) &&
                    !IsParagraphTerminatingReferenceLinkDefinition(lines, i, j, options, state) &&

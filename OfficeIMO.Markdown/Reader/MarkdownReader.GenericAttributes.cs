@@ -178,7 +178,7 @@ public static partial class MarkdownReader {
                 && !IsParagraphInterruptingThematicBreakLine(lines[i])
                 && !IsParagraphInterruptingUnorderedListLine(lines[i])
                 && !IsOrderedListLine(lines[i], out _, out _)
-                && (!options.Callouts || !IsCalloutHeader(lines[i], out _, out _))
+                && (!options.Callouts || !IsCalloutHeader(lines[i], options, out _, out _))
                 && !IsQuoteStarter(lines[i])
                 && !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options)
                 && !TryParseReferenceLinkDefinition(lines, i, options, out _, out _, out _, out _)

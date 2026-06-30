@@ -9,6 +9,7 @@ public class Markdown_Reader_Profile_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
 
         Assert.False(options.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, options.CalloutTitleMode);
         Assert.False(options.TaskLists);
         Assert.False(options.TocPlaceholders);
         Assert.False(options.Footnotes);
@@ -35,6 +36,7 @@ public class Markdown_Reader_Profile_Tests {
 
         Assert.False(options.FrontMatter);
         Assert.False(options.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, options.CalloutTitleMode);
         Assert.False(options.TaskLists);
         Assert.False(options.Tables);
         Assert.True(options.AllowHeaderlessTables);
@@ -63,6 +65,7 @@ public class Markdown_Reader_Profile_Tests {
 
         Assert.False(options.FrontMatter);
         Assert.False(options.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, options.CalloutTitleMode);
         Assert.True(options.TaskLists);
         Assert.True(options.Tables);
         Assert.False(options.AllowHeaderlessTables);
@@ -139,6 +142,7 @@ public class Markdown_Reader_Profile_Tests {
         var portable = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.Portable);
 
         Assert.True(office.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, office.CalloutTitleMode);
         Assert.False(office.PreserveTrivia);
         Assert.False(office.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
         Assert.False(office.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis);
@@ -766,6 +770,38 @@ Lead[^1]
         var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("note", callout.Kind);
         Assert.Equal("Example", callout.TitleInlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void Callout_Title_Mode_Can_Match_Markdig_Alert_Boundary() {
+        const string markdown = """
+> [!NOTE] Example
+> Body text
+""";
+        var options = new MarkdownReaderOptions {
+            CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var syntax = Assert.Single(result.SyntaxTree.Children);
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+        var written = result.Document.ToMarkdown();
+        var reparsed = MarkdownReader.Parse(written, options);
+
+        Assert.Equal("\\[!NOTE\\] Example Body text", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal(2, quote.MarkerSourceSpans.Count);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), quote.MarkerSourceSpans[0]);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), quote.MarkerSourceSpans[1]);
+        Assert.Equal(MarkdownSyntaxKind.Quote, syntax.Kind);
+        Assert.DoesNotContain("class=\"callout", html, StringComparison.OrdinalIgnoreCase);
+        Assert.IsType<QuoteBlock>(Assert.Single(reparsed.Blocks));
     }
 
     [Fact]

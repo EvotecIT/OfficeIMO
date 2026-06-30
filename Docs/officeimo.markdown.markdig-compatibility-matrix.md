@@ -26,7 +26,7 @@ Current inventory: 33 Markdig extension-family rows; 12 covered, 7 partial, 3 in
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | `UseAbbreviations` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep abbreviation comparison, list-contained source-token, native source-edit, and writer fixtures aligned as lossless trivia work expands. |
 | `UseAdvancedExtensions` | `Intentional` | Intentional difference | Not planned | Not planned | Intentional difference | Documented | Keep this row as a roll-up guard; do not implement as a broad on switch. |
-| `UseAlertBlocks` | `Partial` | Core plus renderer policy | No-title alert parser covered; titled callouts are OfficeIMO-specific | Has callout source fields; needs boundary proof | Has opt-in Markdig alert HTML fallback; needs writer/boundary contract | Has core alert comparison; needs broader GFM proof | Decide whether titled OfficeIMO callouts are an intentional superset, then close the remaining source/native/writer boundary and broader GFM alert fixtures. |
+| `UseAlertBlocks` | `Partial` | Core plus renderer policy | No-title alert parser covered; titled callout boundary is option-backed | Has callout and quote source fields; needs broader alert source/native proof | Has opt-in Markdig alert HTML fallback and title-boundary writer proof | Has core alert comparison; needs broader GFM proof | Close the remaining alert source/native/writer boundary and broader GFM alert fixtures. |
 | `UseAutoIdentifiers` | `Covered` | Renderer/host policy | Covered | Covered | Covered | Covered | Keep slug-style and heading-source fixtures aligned as broader renderer profiles evolve. |
 | `UseAutoLinks` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep broader GFM fixture breadth separate from the Markdig UseAutoLinks row. |
 | `UseBootstrap` | `Intentional` | Renderer/host policy | Not planned | Not planned | Intentional difference | Documented | Keep theme/rendering presets separate from parser parity. |
@@ -70,5 +70,5 @@ Current inventory: 33 Markdig extension-family rows; 12 covered, 7 partial, 3 in
 
 - [ ] Continue `UseGenericAttributes` only after probing remaining Markdig-supported block and inline targets. Avoid another standalone-attribute sweep unless Markdig evidence requires it.
 - [x] Keep `UseDefinitionLists` covered while broader source/trivia work evolves; do not reopen it without new Markdig evidence.
-- [ ] Decide the titled-callout boundary for `UseAlertBlocks` before adding more alert fixtures.
+- [x] Keep the `UseAlertBlocks` titled-callout boundary explicit: OfficeIMO mode keeps rich titles; Markdig-compatible mode treats titled markers as ordinary blockquotes.
 - [ ] Return to `UsePreciseSourceLocation` and the broader lossless AST/source model once the active extension rows stop moving.

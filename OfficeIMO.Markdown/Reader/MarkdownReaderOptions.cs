@@ -1,6 +1,16 @@
 namespace OfficeIMO.Markdown;
 
 /// <summary>
+/// Controls how OfficeIMO callout headers handle text after the <c>[!KIND]</c> marker.
+/// </summary>
+public enum MarkdownCalloutTitleMode {
+    /// <summary>Parse trailing header text as an OfficeIMO callout title.</summary>
+    OfficeIMO,
+    /// <summary>Match Markdig's alert extension boundary: only no-title alert headers are parsed as callouts.</summary>
+    MarkdigCompatible
+}
+
+/// <summary>
 /// Options for the Markdown reader. Profiles and feature toggles shape the generic markdown core,
 /// while <see cref="BlockParserExtensions"/> and <see cref="InlineParserExtensions"/> control opt-in
 /// syntax such as OfficeIMO callouts, TOC placeholders, footnotes, or custom inline tokens.
@@ -137,6 +147,10 @@ public sealed class MarkdownReaderOptions {
     public bool FrontMatter { get; set; } = true;
     /// <summary>Enable recognition of Docs-style callouts ("> [!KIND] Title" blocks).</summary>
     public bool Callouts { get; set; } = true;
+    /// <summary>
+    /// Controls whether trailing callout header text is parsed as an OfficeIMO title or left as ordinary blockquote text for Markdig-compatible alert parsing.
+    /// </summary>
+    public MarkdownCalloutTitleMode CalloutTitleMode { get; set; } = MarkdownCalloutTitleMode.OfficeIMO;
     /// <summary>Enable ATX headings (#, ##, ...).</summary>
     public bool Headings { get; set; } = true;
     /// <summary>Enable fenced code blocks (```lang ... ```), including caption on the following _line_ if present.</summary>

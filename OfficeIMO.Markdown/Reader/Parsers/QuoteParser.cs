@@ -9,12 +9,7 @@ public static partial class MarkdownReader {
             var trimmed = t.TrimStart();
             if (!trimmed.StartsWith(">")) return false;
             if (options.Callouts &&
-                trimmed.StartsWith(">") &&
-                trimmed.Length > 1 &&
-                trimmed[1] == ' ' &&
-                trimmed.Length > 3 &&
-                trimmed[2] == '[' &&
-                trimmed[3] == '!') return false;
+                IsCalloutHeader(trimmed, options, out _, out _)) return false;
 
             // Collect contiguous quote lines and un-prefix one ">" level
             var inner = new System.Collections.Generic.List<string>();
@@ -31,7 +26,7 @@ public static partial class MarkdownReader {
                     if (sawQuotedLine
                         && options.Callouts
                         && inner.Count > 0
-                        && IsCalloutHeader(ltrim, out _, out _)) {
+                        && IsCalloutHeader(ltrim, options, out _, out _)) {
                         break;
                     }
 
@@ -178,7 +173,7 @@ public static partial class MarkdownReader {
         if (IsUnorderedListLine(t, out _, out _, out _)) return false;
         if (IsParagraphInterruptingOrderedListLine(t)) return false;
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
-        if (options.Callouts && IsCalloutHeader("> " + t, out _, out _)) return false; // callout marker is quote-prefixed in source
+        if (options.Callouts && IsCalloutHeader("> " + t, options, out _, out _)) return false; // callout marker is quote-prefixed in source
 
         return true;
     }
@@ -238,7 +233,7 @@ public static partial class MarkdownReader {
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
-        if (options.Callouts && IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
 
         if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) {
             normalized = "\\" + trimmed;
@@ -284,7 +279,7 @@ public static partial class MarkdownReader {
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
-        if (options.Callouts && IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
         if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) return false;
 
         int continuationIndent = GetListContinuationIndent(previous);
@@ -321,7 +316,7 @@ public static partial class MarkdownReader {
         if (IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
-        if (options.Callouts && IsCalloutHeader("> " + trimmed, out _, out _)) return false;
+        if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
         if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) return false;
 
         normalized = trimmed;

@@ -34,7 +34,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [ ] Proof: add target-by-target Markdig comparison and source/native fixtures only after each target exists in the engine.
 - [ ] `UseAlertBlocks` decision: scope first, then engine.
   - [x] Add an opt-in Markdig-style alert HTML fallback for no-title GitHub alert syntax while preserving OfficeIMO titled callouts as richer AST semantics.
-  - [ ] Decide whether titled OfficeIMO callouts are an intentional superset or need a Markdig-compatible boundary mode.
+  - [x] Decide the titled-callout boundary: OfficeIMO mode keeps rich titled callouts; Markdig-compatible mode treats titled alert markers as ordinary blockquotes.
   - [ ] Align the remaining callout/alert syntax fields, native source fields, writer output, and broader comparison fixtures around that boundary.
 - [x] `UseCjkFriendlyEmphasis` decision: parser option or intentional gap.
   - [x] Add a Markdig-compatible opt-in delimiter option.
@@ -149,7 +149,7 @@ Current active row: `UseDefinitionLists`.
   - [ ] Keep writer behavior and source edits stable across attributed shapes.
 - [ ] Decide and close `UseAlertBlocks`.
   - [x] Add focused Markdig comparison proof for no-title note, list, and custom alert rendering through an opt-in Markdig-style HTML fallback.
-  - [ ] Decide whether titled OfficeIMO callouts are an intentional superset or need a Markdig-compatible boundary mode.
+  - [x] Make titled OfficeIMO callouts an intentional default with an explicit Markdig-compatible boundary mode.
   - [ ] Align callout/alert AST fields, source spans, writer output, and broader comparison fixtures around that decision.
 - [x] Decide and close `UseCjkFriendlyEmphasis`.
   - [x] Add a Markdig-compatible delimiter option with CJK comparison/source-token proof.
