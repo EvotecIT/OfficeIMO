@@ -108,33 +108,43 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     private string GetSourceLinePrefix(int lineNumber, int startColumn) {
-        if (!TryGetSourceLine(lineNumber, out var line) || line.Length == 0) {
+        if (!TryGetSourceLineBounds(lineNumber, out var lineStart, out var lineEndExclusive) || lineEndExclusive <= lineStart) {
             return string.Empty;
         }
 
-        var prefixLength = Math.Min(line.Length, Math.Max(0, startColumn - 1));
-        return line.Substring(0, prefixLength);
+        var prefixEnd = MarkdownSourceColumns.ResolveVisualColumnStartOffset(
+            SourceMarkdown,
+            lineStart,
+            lineEndExclusive,
+            startColumn);
+        return SourceMarkdown.Substring(lineStart, prefixEnd - lineStart);
     }
 
     private bool TryGetSourceLine(int lineNumber, out string line) {
         line = string.Empty;
-        if (!TryGetLineStartOffset(lineNumber, out var lineStart)) {
+        if (!TryGetSourceLineBounds(lineNumber, out var lineStart, out var lineEndExclusive)) {
             return false;
         }
 
-        var lineEndExclusive = SourceMarkdown.Length;
+        line = SourceMarkdown.Substring(lineStart, lineEndExclusive - lineStart);
+        return true;
+    }
+
+    private bool TryGetSourceLineBounds(int lineNumber, out int lineStart, out int lineEndExclusive) {
+        lineStart = 0;
+        lineEndExclusive = 0;
+        if (!TryGetLineStartOffset(lineNumber, out lineStart)) {
+            return false;
+        }
+
+        lineEndExclusive = SourceMarkdown.Length;
         for (var i = lineStart; i < SourceMarkdown.Length; i++) {
-            if (SourceMarkdown[i] == '\n') {
+            if (MarkdownSourceColumns.IsLineBreakStart(SourceMarkdown, i, out _)) {
                 lineEndExclusive = i;
                 break;
             }
         }
 
-        if (lineEndExclusive > lineStart && SourceMarkdown[lineEndExclusive - 1] == '\r') {
-            lineEndExclusive--;
-        }
-
-        line = SourceMarkdown.Substring(lineStart, lineEndExclusive - lineStart);
         return true;
     }
 

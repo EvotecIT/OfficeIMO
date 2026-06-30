@@ -203,6 +203,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Resolve offset-less line/column source slices with source-map-aligned tab-expanded columns so fallback slices do not drift on tabbed input.
 - [x] Centralize tab-expanded source-column mapping so source maps, source slices, and document-level trivia share one column model instead of parallel local implementations.
 - [x] Align native source-edit offset fallback with the shared tab-expanded column model so offset-less line/column edit spans do not drift on tabbed input.
+- [x] Add shared visual-column start-offset mapping so prefix/trivia preservation code can slice text before a tab-expanded column without raw-character drift.
 - [x] Expose native document-level line-ending trivia and original-source slices/edits that preserve CRLF, LF, and standalone CR spelling around line-ending-equivalent mapping.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit

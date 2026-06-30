@@ -48,6 +48,27 @@ internal static class MarkdownSourceColumns {
         return Math.Min(sourceText.Length - 1, lastCharacterOffset);
     }
 
+    internal static int ResolveVisualColumnStartOffset(string sourceText, int lineStart, int lineEndExclusive, int columnNumber) {
+        sourceText ??= string.Empty;
+        if (sourceText.Length == 0) {
+            return 0;
+        }
+
+        var normalizedLineStart = Math.Max(0, Math.Min(sourceText.Length, lineStart));
+        var normalizedLineEndExclusive = Math.Max(normalizedLineStart, Math.Min(sourceText.Length, lineEndExclusive));
+        var normalizedColumn = Math.Max(1, columnNumber);
+        var columns = 0;
+        for (var index = normalizedLineStart; index < normalizedLineEndExclusive; index++) {
+            if (normalizedColumn <= columns + 1) {
+                return index;
+            }
+
+            columns += GetColumnWidth(columns, sourceText[index]);
+        }
+
+        return normalizedLineEndExclusive;
+    }
+
     internal static int GetColumnNumber(string sourceText, int offset) {
         sourceText ??= string.Empty;
         var column = 1;

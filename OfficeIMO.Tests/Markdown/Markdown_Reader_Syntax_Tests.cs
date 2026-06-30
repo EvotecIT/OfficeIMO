@@ -107,6 +107,20 @@ Paragraph text
     }
 
     [Fact]
+    public void SourceColumns_StartOffset_Uses_TabExpanded_Columns() {
+        const string source = ":\tTabbed\n";
+
+        var offset = MarkdownSourceColumns.ResolveVisualColumnStartOffset(
+            source,
+            lineStart: 0,
+            lineEndExclusive: 8,
+            columnNumber: 5);
+
+        Assert.Equal(2, offset);
+        Assert.Equal(":\t", source.Substring(0, offset));
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_PreserveTrivia_Creates_Original_SourceSlices_For_LineEndingEquivalent_Input() {
         const string markdown = "# Title\r\n\r\nParagraph one\r\n";
         var options = new MarkdownReaderOptions {
