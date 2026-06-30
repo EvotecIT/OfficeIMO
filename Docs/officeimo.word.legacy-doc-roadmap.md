@@ -643,6 +643,11 @@ just to reserve names.
     `sprmTDefTableShd80` cell shading, while preserving direct cell shading as
     an override and continuing to block richer visual style effects before
     bytes are committed.
+  - [x] Write custom table styles whose only table-level layout formatting is
+    supported default cell margins and default cell spacing by expanding those
+    style defaults to native DOC row sprms, while preserving direct table or
+    cell overrides and continuing to block unsupported spacing units before
+    bytes are committed.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.

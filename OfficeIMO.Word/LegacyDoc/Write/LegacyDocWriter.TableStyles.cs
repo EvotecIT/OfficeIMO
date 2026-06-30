@@ -62,6 +62,36 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return customShading == null ? default : ReadSupportedTableCellShading(customShading, "table style shading");
         }
 
+        private static LegacyDocTableCellMargins? ReadSupportedTableStyleDefaultCellMargins(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
+            TableCellMarginDefault? margins = style?.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableCellMarginDefault>();
+            return margins == null ? null : ReadSupportedTableDefaultCellMargins(margins);
+        }
+
+        private static int? ReadSupportedTableStyleDefaultCellSpacing(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
+            TableCellSpacing? spacing = style?.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableCellSpacing>();
+            return spacing == null ? null : ReadSupportedTableDefaultCellSpacing(spacing);
+        }
+
+        private static Style? ResolveSupportedTableStyle(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            string? styleId = tableStyle?.Val?.Value;
+            if (IsNoOpTableStyle(styleId)) {
+                return null;
+            }
+
+            if (string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+                return WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
+            }
+
+            if (string.IsNullOrWhiteSpace(styleId) || !tableStyleDefinitions.TryGetValue(styleId!, out Style? style)) {
+                throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
+            }
+
+            ThrowIfUnsupportedTableStyle(styleId!, style);
+            return style;
+        }
+
         private static bool IsNoOpTableStyle(string? styleId) {
             if (string.IsNullOrWhiteSpace(styleId)) {
                 return true;
@@ -121,8 +151,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Shading shading:
                         ReadSupportedTableCellShading(shading, "table style shading");
                         break;
+                    case TableCellMarginDefault tableCellMarginDefault:
+                        ReadSupportedTableDefaultCellMargins(tableCellMarginDefault);
+                        break;
+                    case TableCellSpacing tableCellSpacing:
+                        ReadSupportedTableDefaultCellSpacing(tableCellSpacing);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with table-level borders and shading. Unsupported table style property: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only with table-level borders, shading, default cell margins, and default cell spacing. Unsupported table style property: {child.LocalName}.");
                 }
             }
         }

@@ -20,7 +20,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocTablePreferredWidth? tablePreferredWidth = ReadSupportedTablePreferredWidth(tableProperties);
             bool? tableAutofit = ReadSupportedTableAutofit(tableProperties);
             LegacyDocTableCellMargins? defaultCellMargins = ReadSupportedTableDefaultCellMargins(tableProperties);
+            defaultCellMargins ??= ReadSupportedTableStyleDefaultCellMargins(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             int? defaultCellSpacingTwips = ReadSupportedTableDefaultCellSpacing(tableProperties);
+            defaultCellSpacingTwips ??= ReadSupportedTableStyleDefaultCellSpacing(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
             LegacyDocTableBorders tableBorders = ReadSupportedTableBorders(tableProperties, tableStyleDefinitions);
             LegacyDocTableCellShading tableShading = ReadSupportedTableShading(tableProperties, tableStyleDefinitions);
             IReadOnlyList<int> gridColumnWidthsTwips = ReadSupportedTableGridWidths(table.GetFirstChild<TableGrid>());

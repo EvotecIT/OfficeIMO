@@ -3909,6 +3909,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleMarginsAndSpacingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocDefaultMarginSpacingTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Default Margin Spacing Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new StyleTableProperties(
+                        new TableCellMarginDefault(
+                            new TopMargin { Width = "120", Type = TableWidthUnitValues.Dxa },
+                            new TableCellLeftMargin { Width = 180, Type = TableWidthValues.Dxa },
+                            new BottomMargin { Width = "160", Type = TableWidthUnitValues.Dxa },
+                            new TableCellRightMargin { Width = 300, Type = TableWidthValues.Dxa }),
+                        new TableCellSpacing { Width = "240", Type = TableWidthUnitValues.Dxa }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable styledTable = document.AddTable(1, 2, WordTableStyle.TableNormal);
+                    styledTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    styledTable.Rows[0].Cells[0].AddParagraph("Styled defaults", removeExistingParagraphs: true);
+                    styledTable.Rows[0].Cells[1].AddParagraph("Styled override", removeExistingParagraphs: true);
+                    styledTable.Rows[0].Cells[1].MarginLeftWidth = 240;
+
+                    WordTable directSpacingTable = document.AddTable(1, 1, WordTableStyle.TableNormal);
+                    directSpacingTable._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    directSpacingTable._tableProperties.TableCellSpacing = new TableCellSpacing {
+                        Width = "80",
+                        Type = TableWidthUnitValues.Dxa
+                    };
+                    directSpacingTable.Rows[0].Cells[0].AddParagraph("Direct spacing", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x34, 0xD6, 0x06),
+                    "Expected the native DOC paragraph property stream to contain sprmTCellPaddingDefault from the table style.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x33, 0xD6, 0x06),
+                    "Expected the native DOC paragraph property stream to contain sprmTCellSpacingDefault from the table style.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Tables.Count);
+
+                WordTable styledReloaded = reloaded.Tables[0];
+                Assert.Equal((short)240, styledReloaded.StyleDetails!.CellSpacing);
+                WordTableRow styledRow = Assert.Single(styledReloaded.Rows);
+                Assert.Equal("Styled defaults", styledRow.Cells[0].Paragraphs[0].Text);
+                Assert.Equal((short)120, styledRow.Cells[0].MarginTopWidth);
+                Assert.Equal((short)180, styledRow.Cells[0].MarginLeftWidth);
+                Assert.Equal((short)160, styledRow.Cells[0].MarginBottomWidth);
+                Assert.Equal((short)300, styledRow.Cells[0].MarginRightWidth);
+                Assert.Equal("Styled override", styledRow.Cells[1].Paragraphs[0].Text);
+                Assert.Equal((short)120, styledRow.Cells[1].MarginTopWidth);
+                Assert.Equal((short)240, styledRow.Cells[1].MarginLeftWidth);
+                Assert.Equal((short)160, styledRow.Cells[1].MarginBottomWidth);
+                Assert.Equal((short)300, styledRow.Cells[1].MarginRightWidth);
+
+                WordTable directSpacingReloaded = reloaded.Tables[1];
+                Assert.Equal((short)80, directSpacingReloaded.StyleDetails!.CellSpacing);
+                WordTableRow directRow = Assert.Single(directSpacingReloaded.Rows);
+                Assert.Equal("Direct spacing", directRow.Cells[0].Paragraphs[0].Text);
+                Assert.Equal((short)120, directRow.Cells[0].MarginTopWidth);
+                Assert.Equal((short)180, directRow.Cells[0].MarginLeftWidth);
+                Assert.Equal((short)160, directRow.Cells[0].MarginBottomWidth);
+                Assert.Equal((short)300, directRow.Cells[0].MarginRightWidth);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_IgnoresZeroAutoTableCellSpacingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4140,6 +4216,34 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains("table style shading", exception.Message.ToLowerInvariant());
                 Assert.Contains("palette fill colors", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedCustomTableStyleCellSpacingBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocUnsupportedSpacingTable";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                style.Append(new StyleName { Val = "Native DOC Unsupported Spacing Table" });
+                style.Append(new BasedOn { Val = "TableNormal" });
+                style.Append(new StyleTableProperties(
+                    new TableCellSpacing { Width = "500", Type = TableWidthUnitValues.Pct }));
+                document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                WordTable table = document.AddTable(1, 1);
+                table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("cell spacing", exception.Message.ToLowerInvariant());
+                Assert.Contains("dxa", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
