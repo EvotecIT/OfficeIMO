@@ -290,6 +290,9 @@ just to reserve names.
   - [x] Project direct PAPX contextual paragraph spacing from DOC
     `sprmPFContextualSpacing` into normal OfficeIMO paragraphs with synthetic
     legacy DOC fixture proof.
+  - [x] Project direct PAPX mirrored paragraph indents from DOC
+    `sprmPFMirrorIndents` into normal OfficeIMO paragraphs with synthetic
+    legacy DOC fixture proof.
   - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
     `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
     fixture proof.
@@ -545,6 +548,8 @@ just to reserve names.
     reader.
   - [x] Write direct and custom paragraph-style contextual spacing with
     `sprmPFContextualSpacing`, then reload it through the legacy reader.
+  - [x] Write direct and custom paragraph-style mirror indents with
+    `sprmPFMirrorIndents`, then reload it through the legacy reader.
   - [x] Write simple palette-backed paragraph shading with `sprmPShd80`, then
     reload it through the legacy reader while blocking non-palette fill colors
     before bytes are committed.

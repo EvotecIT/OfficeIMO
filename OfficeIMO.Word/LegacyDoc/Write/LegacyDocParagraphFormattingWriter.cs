@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPFNoLineNumb = 0x240C;
         private const ushort SprmPFNoAutoHyph = 0x242A;
         private const ushort SprmPFContextualSpacing = 0x246D;
+        private const ushort SprmPFMirrorIndents = 0x2470;
         private const ushort SprmPFInTable = 0x2416;
         private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
@@ -127,6 +128,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.ContextualSpacing == true) {
                 AddSingleByteSprm(grpprl, SprmPFContextualSpacing, 1);
+            }
+
+            if (formatting.MirrorIndents == true) {
+                AddSingleByteSprm(grpprl, SprmPFMirrorIndents, 1);
             }
 
             if (formatting.Bidirectional == true) {
@@ -823,6 +828,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             suppressLineNumbers: null,
             suppressAutoHyphens: null,
             contextualSpacing: null,
+            mirrorIndents: null,
             bidirectional: null,
             numberingListIndex: null,
             numberingLevel: null,
@@ -866,6 +872,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? suppressLineNumbers,
             bool? suppressAutoHyphens,
             bool? contextualSpacing,
+            bool? mirrorIndents,
             bool? bidirectional,
             ushort? numberingListIndex,
             byte? numberingLevel,
@@ -911,6 +918,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             SuppressLineNumbers = suppressLineNumbers;
             SuppressAutoHyphens = suppressAutoHyphens;
             ContextualSpacing = contextualSpacing;
+            MirrorIndents = mirrorIndents;
             Bidirectional = bidirectional;
             NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
                 ? numberingListIndex
@@ -1013,6 +1021,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? ContextualSpacing { get; }
 
+        internal bool? MirrorIndents { get; }
+
         internal bool? Bidirectional { get; }
 
         internal ushort? NumberingListIndex { get; }
@@ -1088,6 +1098,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || SuppressLineNumbers != null
             || SuppressAutoHyphens != null
             || ContextualSpacing != null
+            || MirrorIndents != null
             || Bidirectional != null
             || NumberingListIndex != null
             || NumberingLevel != null
@@ -1135,6 +1146,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 SuppressLineNumbers,
                 SuppressAutoHyphens,
                 ContextualSpacing,
+                MirrorIndents,
                 Bidirectional,
                 NumberingListIndex,
                 NumberingLevel,
@@ -1188,6 +1200,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 SuppressLineNumbers ?? inherited.SuppressLineNumbers,
                 SuppressAutoHyphens ?? inherited.SuppressAutoHyphens,
                 ContextualSpacing ?? inherited.ContextualSpacing,
+                MirrorIndents ?? inherited.MirrorIndents,
                 Bidirectional ?? inherited.Bidirectional,
                 NumberingListIndex ?? inherited.NumberingListIndex,
                 NumberingLevel ?? inherited.NumberingLevel,
@@ -1259,6 +1272,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 SuppressLineNumbers,
                 SuppressAutoHyphens,
                 ContextualSpacing,
+                MirrorIndents,
                 Bidirectional,
                 NumberingListIndex,
                 NumberingLevel,
@@ -1307,6 +1321,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && SuppressLineNumbers == other.SuppressLineNumbers
                 && SuppressAutoHyphens == other.SuppressAutoHyphens
                 && ContextualSpacing == other.ContextualSpacing
+                && MirrorIndents == other.MirrorIndents
                 && Bidirectional == other.Bidirectional
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
@@ -1360,6 +1375,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + SuppressLineNumbers.GetHashCode();
             hash = (hash * 31) + SuppressAutoHyphens.GetHashCode();
             hash = (hash * 31) + ContextualSpacing.GetHashCode();
+            hash = (hash * 31) + MirrorIndents.GetHashCode();
             hash = (hash * 31) + Bidirectional.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();

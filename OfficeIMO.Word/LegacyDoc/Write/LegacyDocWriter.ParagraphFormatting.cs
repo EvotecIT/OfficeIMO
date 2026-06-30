@@ -32,6 +32,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool? suppressLineNumbers = null;
             bool? suppressAutoHyphens = null;
             bool? contextualSpacing = null;
+            bool? mirrorIndents = null;
             bool? bidirectional = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
@@ -79,6 +80,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case ContextualSpacing contextualSpacingProperty:
                         contextualSpacing = ReadOnOffValue(contextualSpacingProperty);
                         break;
+                    case MirrorIndents mirrorIndentsProperty:
+                        mirrorIndents = ReadOnOffValue(mirrorIndentsProperty);
+                        break;
                     case BiDi bidi:
                         bidirectional = ReadOnOffValue(bidi);
                         break;
@@ -101,7 +105,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, vertical character alignment, bidirectional layout, contextual spacing, suppressing automatic hyphenation, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, vertical character alignment, bidirectional layout, mirror indents, contextual spacing, suppressing automatic hyphenation, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");
                 }
             }
 
@@ -121,6 +125,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 suppressLineNumbers,
                 suppressAutoHyphens,
                 contextualSpacing,
+                mirrorIndents,
                 bidirectional,
                 numberingListIndex,
                 numberingLevel,

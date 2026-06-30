@@ -9,6 +9,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPFNoLineNumb = 0x240C;
         private const ushort SprmPFNoAutoHyph = 0x242A;
         private const ushort SprmPFContextualSpacing = 0x246D;
+        private const ushort SprmPFMirrorIndents = 0x2470;
         private const ushort SprmPFInTable = 0x2416;
         private const ushort SprmPFTtp = 0x2417;
         private const ushort SprmPJc = 0x2461;
@@ -184,6 +185,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? suppressLineNumbers = null;
             bool? suppressAutoHyphens = null;
             bool? contextualSpacing = null;
+            bool? mirrorIndents = null;
             bool? bidirectional = null;
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
@@ -238,6 +240,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || sprm == SprmPFNoLineNumb
                     || sprm == SprmPFNoAutoHyph
                     || sprm == SprmPFContextualSpacing
+                    || sprm == SprmPFMirrorIndents
                     || sprm == SprmPFWidowControl
                     || sprm == SprmPFBiDi
                     || sprm == SprmPFInTable
@@ -268,6 +271,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmPFContextualSpacing:
                             contextualSpacing = value;
+                            break;
+                        case SprmPFMirrorIndents:
+                            mirrorIndents = value;
                             break;
                         case SprmPFBiDi:
                             bidirectional = value;
@@ -592,6 +598,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 suppressLineNumbers,
                 suppressAutoHyphens,
                 contextualSpacing,
+                mirrorIndents,
                 bidirectional,
                 numberingListIndex,
                 numberingLevel,

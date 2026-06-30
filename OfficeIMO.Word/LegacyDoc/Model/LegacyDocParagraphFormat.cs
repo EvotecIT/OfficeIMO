@@ -16,6 +16,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? suppressLineNumbers = null,
             bool? suppressAutoHyphens = null,
             bool? contextualSpacing = null,
+            bool? mirrorIndents = null,
             bool? bidirectional = null,
             ushort? numberingListIndex = null,
             byte? numberingLevel = null,
@@ -62,6 +63,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             SuppressLineNumbers = suppressLineNumbers;
             SuppressAutoHyphens = suppressAutoHyphens;
             ContextualSpacing = contextualSpacing;
+            MirrorIndents = mirrorIndents;
             Bidirectional = bidirectional;
             NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
                 ? numberingListIndex
@@ -165,6 +167,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool? ContextualSpacing { get; }
 
+        internal bool? MirrorIndents { get; }
+
         internal bool? Bidirectional { get; }
 
         internal ushort? NumberingListIndex { get; }
@@ -242,6 +246,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || SuppressLineNumbers != null
             || SuppressAutoHyphens != null
             || ContextualSpacing != null
+            || MirrorIndents != null
             || Bidirectional != null
             || NumberingListIndex != null
             || NumberingLevel != null
@@ -291,6 +296,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && SuppressLineNumbers == other.SuppressLineNumbers
                 && SuppressAutoHyphens == other.SuppressAutoHyphens
                 && ContextualSpacing == other.ContextualSpacing
+                && MirrorIndents == other.MirrorIndents
                 && Bidirectional == other.Bidirectional
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
@@ -345,6 +351,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + SuppressLineNumbers.GetHashCode();
             hash = (hash * 31) + SuppressAutoHyphens.GetHashCode();
             hash = (hash * 31) + ContextualSpacing.GetHashCode();
+            hash = (hash * 31) + MirrorIndents.GetHashCode();
             hash = (hash * 31) + Bidirectional.GetHashCode();
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();

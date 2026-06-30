@@ -125,6 +125,10 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new ContextualSpacing());
             }
 
+            if (paragraphFormat.MirrorIndents == true) {
+                ReplaceStyleProperty(properties, new MirrorIndents());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 ReplaceStyleProperty(properties, new BiDi());
             }

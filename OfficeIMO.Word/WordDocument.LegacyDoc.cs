@@ -1231,6 +1231,10 @@ namespace OfficeIMO.Word {
                 EnsureLegacyDocParagraphProperties(paragraph).Append(new ContextualSpacing());
             }
 
+            if (paragraphFormat.MirrorIndents == true) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new MirrorIndents());
+            }
+
             if (paragraphFormat.Bidirectional == true) {
                 paragraph.BiDi = true;
             }
@@ -1696,6 +1700,11 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.ContextualSpacing == true) {
                 properties.Append(new ContextualSpacing());
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.MirrorIndents == true) {
+                properties.Append(new MirrorIndents());
                 hasProperties = true;
             }
 
