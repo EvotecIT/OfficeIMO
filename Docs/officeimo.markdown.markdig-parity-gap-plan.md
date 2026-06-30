@@ -41,6 +41,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Implement delimiter behavior in the inline parser and prove source-token/writer behavior with CJK comparison cases.
 - [ ] `UsePreciseSourceLocation` promotion: cross-cutting AST/source architecture.
   - [x] Engine: expose addressable native block and snapshot source-field accessors so repeated fields such as quote/list markers can be selected by occurrence index without consumers rescanning or relying on lossy dictionaries.
+  - [x] Diagnostics: expose reason-aware original-source slice failures and include the mapping reason in source-edit roundtrip fallback diagnostics.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated nodes, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
@@ -186,6 +187,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [ ] Add precise fallback diagnostics when exact source preservation is unavailable.
 - [x] Expose live native-block and UI-safe snapshot source-field accessors so editor hosts can select repeated source fields by name and occurrence index without falling back to raw-string rescans.
+- [x] Return exact original-source slice failure reasons for parse/native callers and include those reasons in roundtrip source-edit fallback diagnostics.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit
 

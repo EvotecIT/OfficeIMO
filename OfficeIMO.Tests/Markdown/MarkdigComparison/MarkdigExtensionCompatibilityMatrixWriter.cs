@@ -95,7 +95,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
             case "UseMediaLinks":
                 return new MatrixCells("Renderer policy plus optional parser", "Missing shortcut parser", "Needs source metadata for providers", "Needs safe renderer output policy", "Needs provider comparison fixtures", row.NextAction);
             case "UsePreciseSourceLocation":
-                return new MatrixCells("Cross-cutting source architecture", "Partial parser spans", "Has native block/snapshot field accessors; still needs full lossless trivia and mapping", "Has explicit source edits and fallback diagnostics; needs broader roundtrip behavior", "Needs broader source-edit and original-mapping proof", row.NextAction);
+                return new MatrixCells("Cross-cutting source architecture", "Partial parser spans", "Has native block/snapshot field accessors and reason-aware original mapping failures; still needs full lossless trivia and mapping", "Has explicit source edits and fallback diagnostics; needs broader roundtrip behavior", "Needs broader source-edit and original-mapping proof", row.NextAction);
             case "UseReferralLinks":
                 return new MatrixCells("Renderer policy", "Not parser-owned", "Needs link metadata decision", "Missing opt-in rel policy", "Needs renderer-policy tests", row.NextAction);
             case "UseSmartyPants":

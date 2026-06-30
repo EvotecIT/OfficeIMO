@@ -90,13 +90,24 @@ public sealed class MarkdownParseResult {
     /// Creates an original-input source slice for the final syntax node associated with the supplied model object.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(object associatedObject, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(associatedObject, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates an original-input source slice for the final syntax node associated with the supplied model object.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        object associatedObject,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
         var node = FindFinalNodeForAssociatedObject(associatedObject);
         if (node == null) {
             slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.AssociatedObjectNotFound;
             return false;
         }
 
-        return TryCreateOriginalSourceSlice(node, out slice);
+        return TryCreateOriginalSourceSlice(node, out slice, out failureReason);
     }
 
     /// <summary>
@@ -121,33 +132,68 @@ public sealed class MarkdownParseResult {
     /// Creates a source slice over the original reader input when it is safely equivalent to the normalized span text.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(MarkdownSyntaxNode node, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(node, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input when it is safely equivalent to the normalized span text.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        MarkdownSyntaxNode node,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
         if (node == null || !node.SourceSpan.HasValue) {
             slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
             return false;
         }
 
-        return TryCreateOriginalSourceSlice(node.SourceSpan.Value, out slice);
+        return TryCreateOriginalSourceSlice(node.SourceSpan.Value, out slice, out failureReason);
     }
 
     /// <summary>
     /// Creates a source slice over the original reader input when it is safely equivalent to the normalized span text.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(MarkdownSourceSpan span, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(span, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input when it is safely equivalent to the normalized span text.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        MarkdownSourceSpan span,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
         if (!PreservesOriginalMarkdown) {
             slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;
             return false;
         }
 
         if (string.Equals(OriginalMarkdown, SourceMarkdown, StringComparison.Ordinal)) {
-            return MarkdownSourceSlice.TryCreate(OriginalMarkdown, span, MarkdownSourceTextKind.Original, out slice);
+            if (MarkdownSourceSlice.TryCreate(OriginalMarkdown, span, MarkdownSourceTextKind.Original, out slice)) {
+                failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+                return true;
+            }
+
+            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable;
+            return false;
         }
 
         if (!LineEndingsAreEquivalent(OriginalMarkdown, SourceMarkdown)) {
             slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent;
             return false;
         }
 
-        return MarkdownSourceSlice.TryCreateFromLineColumns(OriginalMarkdown, span, MarkdownSourceTextKind.Original, out slice);
+        if (MarkdownSourceSlice.TryCreateFromLineColumns(OriginalMarkdown, span, MarkdownSourceTextKind.Original, out slice)) {
+            failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+            return true;
+        }
+
+        failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable;
+        return false;
     }
 
     /// <summary>Finds the deepest syntax node whose source span contains the given 1-based line number.</summary>

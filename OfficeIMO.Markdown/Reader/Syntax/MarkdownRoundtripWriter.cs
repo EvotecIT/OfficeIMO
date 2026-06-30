@@ -153,10 +153,10 @@ public static class MarkdownRoundtripWriter {
         var replacementList = new List<SourceReplacement>(edits.Count);
         for (var i = 0; i < edits.Count; i++) {
             var edit = edits[i];
-            if (!result.TryCreateOriginalSourceSlice(edit.SourceSpan, out var slice)) {
+            if (!result.TryCreateOriginalSourceSlice(edit.SourceSpan, out var slice, out var failureReason)) {
                 diagnostics.Add(new MarkdownRoundtripDiagnostic(
                     OriginalSourceSliceUnavailableId,
-                    "At least one source edit could not be mapped back to original reader input. Source edits were applied to normalized markdown instead.",
+                    "At least one source edit could not be mapped back to original reader input. Source edits were applied to normalized markdown instead. Reason: " + FormatOriginalSourceSliceFailureReason(failureReason),
                     edit.SourceSpan));
                 replacements = Array.Empty<SourceReplacement>();
                 return false;
@@ -168,6 +168,16 @@ public static class MarkdownRoundtripWriter {
         replacements = replacementList.ToArray();
         return true;
     }
+
+    private static string FormatOriginalSourceSliceFailureReason(MarkdownOriginalSourceSliceFailureReason failureReason) =>
+        failureReason switch {
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved => "original reader input was not preserved",
+            MarkdownOriginalSourceSliceFailureReason.AssociatedObjectNotFound => "no final syntax node was found for the associated object",
+            MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable => "the requested node or field has no source span",
+            MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent => "original reader input is not equivalent to normalized markdown",
+            MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable => "the source span could not be mapped into original reader input",
+            _ => "unknown original-source mapping failure"
+        };
 
     private static MarkdownRoundtripResult ApplyReplacements(
         string sourceMarkdown,
