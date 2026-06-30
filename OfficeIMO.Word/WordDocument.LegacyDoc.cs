@@ -255,6 +255,27 @@ namespace OfficeIMO.Word {
             if (sectionFormat.PageNumberStart != null || sectionFormat.PageNumberFormat != null) {
                 section.AddPageNumbering(sectionFormat.PageNumberStart, sectionFormat.PageNumberFormat);
             }
+
+            if (sectionFormat.FootnotePosition != null
+                || sectionFormat.FootnoteRestart != null
+                || sectionFormat.FootnoteStart != null
+                || sectionFormat.FootnoteNumberFormat != null) {
+                section.AddFootnoteProperties(
+                    sectionFormat.FootnoteNumberFormat,
+                    sectionFormat.FootnotePosition,
+                    sectionFormat.FootnoteRestart,
+                    sectionFormat.FootnoteStart);
+            }
+
+            if (sectionFormat.EndnoteRestart != null
+                || sectionFormat.EndnoteStart != null
+                || sectionFormat.EndnoteNumberFormat != null) {
+                section.AddEndnoteProperties(
+                    numberingFormat: sectionFormat.EndnoteNumberFormat,
+                    position: null,
+                    restartNumbering: sectionFormat.EndnoteRestart,
+                    startNumber: sectionFormat.EndnoteStart);
+            }
         }
 
         private static void AddLegacyDocTable(WordSection section, LegacyDocTableBlock tableBlock, LegacyDocStyleSheet styleSheet) {

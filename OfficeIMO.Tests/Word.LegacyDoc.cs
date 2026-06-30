@@ -1406,6 +1406,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionNoteSettings() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionNoteSettings();
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.Empty(result.UnsupportedFeatures);
+
+                WordDocument document = result.Document;
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal("Note settings section", Assert.Single(document.Paragraphs).Text);
+                Assert.Equal(FootnotePositionValues.BeneathText, document.Sections[0].FootnoteProperties.FootnotePosition?.Val?.Value);
+                Assert.Equal(RestartNumberValues.EachPage, document.Sections[0].FootnoteProperties.NumberingRestart?.Val?.Value);
+                Assert.Equal(3, (int?)document.Sections[0].FootnoteProperties.NumberingStart?.Val?.Value);
+                Assert.Equal(NumberFormatValues.UpperLetter, document.Sections[0].FootnoteProperties.NumberingFormat?.Val?.Value);
+                Assert.Equal(RestartNumberValues.EachSection, document.Sections[0].EndnoteProperties.NumberingRestart?.Val?.Value);
+                Assert.Equal(9, (int?)document.Sections[0].EndnoteProperties.NumberingStart?.Val?.Value);
+                Assert.Equal(NumberFormatValues.LowerLetter, document.Sections[0].EndnoteProperties.NumberingFormat?.Val?.Value);
+
+                document.Save(docPath);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(FootnotePositionValues.BeneathText, reloaded.Sections[0].FootnoteProperties.FootnotePosition?.Val?.Value);
+                Assert.Equal(RestartNumberValues.EachPage, reloaded.Sections[0].FootnoteProperties.NumberingRestart?.Val?.Value);
+                Assert.Equal(3, (int?)reloaded.Sections[0].FootnoteProperties.NumberingStart?.Val?.Value);
+                Assert.Equal(NumberFormatValues.UpperLetter, reloaded.Sections[0].FootnoteProperties.NumberingFormat?.Val?.Value);
+                Assert.Equal(RestartNumberValues.EachSection, reloaded.Sections[0].EndnoteProperties.NumberingRestart?.Val?.Value);
+                Assert.Equal(9, (int?)reloaded.Sections[0].EndnoteProperties.NumberingStart?.Val?.Value);
+                Assert.Equal(NumberFormatValues.LowerLetter, reloaded.Sections[0].EndnoteProperties.NumberingFormat?.Val?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsEvenOddHeaderDocumentFlag() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithFacingPagesDop("Facing pages body");
 
@@ -4253,6 +4291,54 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionNoteSettingsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Note settings");
+                    document.Sections[0].AddFootnoteProperties(
+                        NumberFormatValues.UpperLetter,
+                        FootnotePositionValues.BeneathText,
+                        RestartNumberValues.EachPage,
+                        startNumber: 3);
+                    document.Sections[0].AddEndnoteProperties(
+                        numberingFormat: NumberFormatValues.LowerLetter,
+                        position: null,
+                        restartNumbering: RestartNumberValues.EachSection,
+                        startNumber: 9);
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x303B, 2);
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x303C, 2);
+                AssertSectionSepxContainsSingleByteSprm(wordDocumentStream, tableStream, 0x303E, 1);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x503F, 3);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x5040, 3);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x5041, 9);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x5042, 4);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Note settings", Assert.Single(reloaded.Paragraphs).Text);
+                Assert.Equal(FootnotePositionValues.BeneathText, reloaded.Sections[0].FootnoteProperties.FootnotePosition?.Val?.Value);
+                Assert.Equal(RestartNumberValues.EachPage, reloaded.Sections[0].FootnoteProperties.NumberingRestart?.Val?.Value);
+                Assert.Equal(3, (int?)reloaded.Sections[0].FootnoteProperties.NumberingStart?.Val?.Value);
+                Assert.Equal(NumberFormatValues.UpperLetter, reloaded.Sections[0].FootnoteProperties.NumberingFormat?.Val?.Value);
+                Assert.Equal(RestartNumberValues.EachSection, reloaded.Sections[0].EndnoteProperties.NumberingRestart?.Val?.Value);
+                Assert.Equal(9, (int?)reloaded.Sections[0].EndnoteProperties.NumberingStart?.Val?.Value);
+                Assert.Equal(NumberFormatValues.LowerLetter, reloaded.Sections[0].EndnoteProperties.NumberingFormat?.Val?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionPageNumberFormatBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4264,6 +4350,24 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("page number format", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionEndnotePlacementBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Unsupported endnote placement");
+                document.Sections[0].AddEndnoteProperties(position: EndnotePositionValues.SectionEnd);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("endnote placement", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -5243,6 +5347,42 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithSectionNoteSettings() {
+                const string paragraph = "Note settings section";
+                string text = paragraph + "\r";
+                const int sepxOffset = 0x300;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfSed = tableStream.Length;
+                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
+                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
+                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    fcPlcfSed: fcPlcfSed,
+                    lcbPlcfSed: sectionDescriptorPlc.Length);
+                WriteBytesAt(
+                    ref wordDocumentStream,
+                    sepxOffset,
+                    CreateSectionSepx(
+                        footnotePosition: 2,
+                        footnoteRestart: 2,
+                        endnoteRestart: 1,
+                        footnoteStart: 3,
+                        footnoteNumberFormat: 3,
+                        endnoteStart: 9,
+                        endnoteNumberFormat: 4));
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithSectionBreakKind(int sectionBreakOperand, string secondParagraph) {
                 const string firstParagraph = "Before continuous section";
                 string text = firstParagraph + "\r" + secondParagraph + "\r";
@@ -5667,7 +5807,14 @@ namespace OfficeIMO.Tests {
                 byte? lineNumberRestart = null,
                 int? lineNumberCountBy = null,
                 int? lineNumberDistance = null,
-                int? lineNumberStartMinusOne = null) {
+                int? lineNumberStartMinusOne = null,
+                byte? footnotePosition = null,
+                byte? footnoteRestart = null,
+                byte? endnoteRestart = null,
+                int? footnoteStart = null,
+                int? footnoteNumberFormat = null,
+                int? endnoteStart = null,
+                int? endnoteNumberFormat = null) {
                 var grpprl = new List<byte>();
                 if (sectionBreakType != null) {
                     AddSingleByteSprm(grpprl, 0x3009, sectionBreakType.Value);
@@ -5717,6 +5864,19 @@ namespace OfficeIMO.Tests {
                 AddUInt16SprmIfPresent(grpprl, 0x5015, lineNumberCountBy);
                 AddUInt16SprmIfPresent(grpprl, 0x9016, lineNumberDistance);
                 AddUInt16SprmIfPresent(grpprl, 0x501B, lineNumberStartMinusOne);
+                if (footnotePosition != null) {
+                    AddSingleByteSprm(grpprl, 0x303B, footnotePosition.Value);
+                }
+                if (footnoteRestart != null) {
+                    AddSingleByteSprm(grpprl, 0x303C, footnoteRestart.Value);
+                }
+                if (endnoteRestart != null) {
+                    AddSingleByteSprm(grpprl, 0x303E, endnoteRestart.Value);
+                }
+                AddUInt16SprmIfPresent(grpprl, 0x503F, footnoteStart);
+                AddUInt16SprmIfPresent(grpprl, 0x5040, footnoteNumberFormat);
+                AddUInt16SprmIfPresent(grpprl, 0x5041, endnoteStart);
+                AddUInt16SprmIfPresent(grpprl, 0x5042, endnoteNumberFormat);
 
                 var sepx = new byte[2 + grpprl.Count];
                 WriteUInt16(sepx, 0, (ushort)grpprl.Count);

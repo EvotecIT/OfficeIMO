@@ -152,7 +152,7 @@ if (result.HasDocument) {
 }
 ```
 
-Legacy `.doc` support is first-party and dependency-free at runtime. The current reader projects supported Word 97-2003 body paragraphs, common run and paragraph formatting, simple tables, single-section page setup, and document properties into the normal `WordDocument` model. Native `.doc` saving is available for the supported simple subset: paragraphs, common run and paragraph formatting, tabs, line/page breaks, simple body tables, final-section page setup, and scalar document properties. Unsupported features such as macros, embedded OLE objects, header/footer stories, footnotes, endnotes, comments, text boxes, images, complex table formatting, merged/nested tables, and multiple sections are diagnosed or blocked rather than silently flattened.
+Legacy `.doc` support is first-party and dependency-free at runtime. The current reader projects supported Word 97-2003 body paragraphs, common run and paragraph formatting, built-in and custom paragraph styles, simple tables, paragraph-boundary sections, page setup, simple header/footer stories, section note numbering settings, and document properties into the normal `WordDocument` model. Native `.doc` saving is available for the supported simple subset: paragraphs, common run and paragraph formatting, tabs, line/page breaks, simple body tables, paragraph-boundary sections, page setup, simple header/footer stories, supported section note numbering settings, and scalar document properties. Unsupported features such as macros, embedded OLE objects, actual footnote/endnote bodies, comments, text boxes, images, visual table styles, nested tables, and richer header/footer or section shapes are diagnosed or blocked rather than silently flattened.
 
 ### Protection
 

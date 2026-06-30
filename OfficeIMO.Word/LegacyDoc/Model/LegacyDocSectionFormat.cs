@@ -25,7 +25,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? lineNumberCountBy = null,
             int? lineNumberDistanceTwips = null,
             int? lineNumberStart = null,
-            LineNumberRestartValues? lineNumberRestart = null) {
+            LineNumberRestartValues? lineNumberRestart = null,
+            FootnotePositionValues? footnotePosition = null,
+            RestartNumberValues? footnoteRestart = null,
+            int? footnoteStart = null,
+            NumberFormatValues? footnoteNumberFormat = null,
+            RestartNumberValues? endnoteRestart = null,
+            int? endnoteStart = null,
+            NumberFormatValues? endnoteNumberFormat = null) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -49,6 +56,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LineNumberDistanceTwips = lineNumberDistanceTwips;
             LineNumberStart = lineNumberStart;
             LineNumberRestart = lineNumberRestart;
+            FootnotePosition = footnotePosition;
+            FootnoteRestart = footnoteRestart;
+            FootnoteStart = footnoteStart;
+            FootnoteNumberFormat = footnoteNumberFormat;
+            EndnoteRestart = endnoteRestart;
+            EndnoteStart = endnoteStart;
+            EndnoteNumberFormat = endnoteNumberFormat;
         }
 
         internal SectionMarkValues? SectionBreakType { get; }
@@ -97,6 +111,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LineNumberRestartValues? LineNumberRestart { get; }
 
+        internal FootnotePositionValues? FootnotePosition { get; }
+
+        internal RestartNumberValues? FootnoteRestart { get; }
+
+        internal int? FootnoteStart { get; }
+
+        internal NumberFormatValues? FootnoteNumberFormat { get; }
+
+        internal RestartNumberValues? EndnoteRestart { get; }
+
+        internal int? EndnoteStart { get; }
+
+        internal NumberFormatValues? EndnoteNumberFormat { get; }
+
         internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
             || PageWidthTwips != null
             || PageHeightTwips != null
@@ -119,7 +147,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || LineNumberCountBy != null
             || LineNumberDistanceTwips != null
             || LineNumberStart != null
-            || LineNumberRestart != null;
+            || LineNumberRestart != null
+            || FootnotePosition != null
+            || FootnoteRestart != null
+            || FootnoteStart != null
+            || FootnoteNumberFormat != null
+            || EndnoteRestart != null
+            || EndnoteStart != null
+            || EndnoteNumberFormat != null;
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
@@ -149,7 +184,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 LineNumberCountBy,
                 LineNumberDistanceTwips,
                 LineNumberStart,
-                LineNumberRestart);
+                LineNumberRestart,
+                FootnotePosition,
+                FootnoteRestart,
+                FootnoteStart,
+                FootnoteNumberFormat,
+                EndnoteRestart,
+                EndnoteStart,
+                EndnoteNumberFormat);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);

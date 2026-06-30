@@ -403,6 +403,10 @@ just to reserve names.
   - [x] Project simple section line numbering interval, distance, start, and
     restart mode from DOC section records into normal OfficeIMO section
     properties, and preserve it through native DOC save/reload.
+  - [x] Project simple section footnote placement plus footnote/endnote
+    numbering restart, start, and format settings from DOC section records into
+    normal OfficeIMO section note properties, and preserve the supported subset
+    through native DOC save/reload.
   - [x] Report multiple section descriptor records as unsupported/preserve-only
     before multi-section projection exists, so native DOC re-save is blocked
     instead of flattening section boundaries.
@@ -626,6 +630,10 @@ just to reserve names.
     restart mode, then reload it through the legacy reader while blocking
     out-of-range line-number intervals before native `.doc` bytes are
     committed.
+  - [x] Write simple section footnote placement and footnote/endnote numbering
+    settings, then reload them through the legacy reader while continuing to
+    block endnote placement and actual note bodies before native `.doc` bytes
+    are committed.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

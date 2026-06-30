@@ -16,9 +16,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSNfcPgn = 0x300E;
         private const ushort SprmSFPgnRestart = 0x3011;
         private const ushort SprmSLnc = 0x3013;
+        private const ushort SprmSFpc = 0x303B;
+        private const ushort SprmSRncFtn = 0x303C;
+        private const ushort SprmSRncEdn = 0x303E;
         private const ushort SprmSNLnnMod = 0x5015;
         private const ushort SprmSDxaLnn = 0x9016;
         private const ushort SprmSLnnMin = 0x501B;
+        private const ushort SprmSNFtn = 0x503F;
+        private const ushort SprmSNfcFtnRef = 0x5040;
+        private const ushort SprmSNEdn = 0x5041;
+        private const ushort SprmSNfcEdnRef = 0x5042;
         private const ushort SprmSPgnStart97 = 0x501C;
         private const ushort SprmSDyaHdrTop = 0xB017;
         private const ushort SprmSDyaHdrBottom = 0xB018;
@@ -58,6 +65,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? lineNumberDistance = null;
             int? lineNumberStart = null;
             LineNumberRestartValues? lineNumberRestart = null;
+            FootnotePositionValues? footnotePosition = null;
+            RestartNumberValues? footnoteRestart = null;
+            int? footnoteStart = null;
+            NumberFormatValues? footnoteNumberFormat = null;
+            RestartNumberValues? endnoteRestart = null;
+            int? endnoteStart = null;
+            NumberFormatValues? endnoteNumberFormat = null;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
@@ -102,6 +116,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case LineNumberType lineNumberType:
                         ReadSupportedLineNumbering(lineNumberType, out lineNumberCountBy, out lineNumberDistance, out lineNumberStart, out lineNumberRestart);
                         break;
+                    case FootnoteProperties footnoteProperties:
+                        ReadSupportedFootnoteProperties(footnoteProperties, out footnotePosition, out footnoteRestart, out footnoteStart, out footnoteNumberFormat);
+                        break;
+                    case EndnoteProperties endnoteProperties:
+                        ReadSupportedEndnoteProperties(endnoteProperties, out endnoteRestart, out endnoteStart, out endnoteNumberFormat);
+                        break;
                     case GutterOnRight gutterOnRight:
                         rtlGutter = IsOnOffEnabled(gutterOnRight);
                         break;
@@ -136,7 +156,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 lineNumberCountBy,
                 lineNumberDistance,
                 lineNumberStart,
-                lineNumberRestart);
+                lineNumberRestart,
+                footnotePosition,
+                footnoteRestart,
+                footnoteStart,
+                footnoteNumberFormat,
+                endnoteRestart,
+                endnoteStart,
+                endnoteNumberFormat);
         }
 
         private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
@@ -163,6 +190,65 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             distance = ReadLineNumberDistance(lineNumberType.Distance);
             start = ReadLineNumberStart(lineNumberType.Start);
             restart = ReadLineNumberRestart(lineNumberType.Restart);
+        }
+
+        private static void ReadSupportedFootnoteProperties(
+            FootnoteProperties footnoteProperties,
+            out FootnotePositionValues? position,
+            out RestartNumberValues? restart,
+            out int? start,
+            out NumberFormatValues? numberFormat) {
+            position = null;
+            restart = null;
+            start = null;
+            numberFormat = null;
+
+            foreach (OpenXmlElement property in footnoteProperties.ChildElements) {
+                switch (property) {
+                    case FootnotePosition footnotePosition:
+                        position = ReadFootnotePosition(footnotePosition.Val);
+                        break;
+                    case NumberingRestart numberingRestart:
+                        restart = ReadFootnoteRestart(numberingRestart.Val);
+                        break;
+                    case NumberingStart numberingStart:
+                        start = ReadNoteNumberStart(numberingStart.Val, "section footnote start");
+                        break;
+                    case NumberingFormat numberingFormat:
+                        numberFormat = ReadPageNumberFormat(numberingFormat.Val);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving does not support section footnote property '{property.LocalName}'.");
+                }
+            }
+        }
+
+        private static void ReadSupportedEndnoteProperties(
+            EndnoteProperties endnoteProperties,
+            out RestartNumberValues? restart,
+            out int? start,
+            out NumberFormatValues? numberFormat) {
+            restart = null;
+            start = null;
+            numberFormat = null;
+
+            foreach (OpenXmlElement property in endnoteProperties.ChildElements) {
+                switch (property) {
+                    case EndnotePosition:
+                        throw new NotSupportedException("Native DOC saving does not support section endnote placement yet.");
+                    case NumberingRestart numberingRestart:
+                        restart = ReadEndnoteRestart(numberingRestart.Val);
+                        break;
+                    case NumberingStart numberingStart:
+                        start = ReadNoteNumberStart(numberingStart.Val, "section endnote start");
+                        break;
+                    case NumberingFormat numberingFormat:
+                        numberFormat = ReadPageNumberFormat(numberingFormat.Val);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving does not support section endnote property '{property.LocalName}'.");
+                }
+            }
         }
 
         private static int? ReadTwipValue(OpenXmlSimpleType? value, int defaultValue, string description) {
@@ -229,6 +315,54 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return GetPageNumberFormatOperand(value.Value) != null
                 ? value.Value
                 : throw new NotSupportedException($"Native DOC saving does not support section page number format '{value.Value}'.");
+        }
+
+        private static FootnotePositionValues? ReadFootnotePosition(EnumValue<FootnotePositionValues>? value) {
+            if (value == null) {
+                return null;
+            }
+
+            return GetFootnotePositionOperand(value.Value) != null
+                ? value.Value
+                : throw new NotSupportedException($"Native DOC saving does not support section footnote placement '{value.Value}'.");
+        }
+
+        private static RestartNumberValues? ReadFootnoteRestart(EnumValue<RestartNumberValues>? value) {
+            if (value == null) {
+                return null;
+            }
+
+            return GetNoteRestartOperand(value.Value) != null
+                ? value.Value
+                : throw new NotSupportedException($"Native DOC saving does not support section footnote numbering restart '{value.Value}'.");
+        }
+
+        private static RestartNumberValues? ReadEndnoteRestart(EnumValue<RestartNumberValues>? value) {
+            if (value == null) {
+                return null;
+            }
+
+            if (value.Value == RestartNumberValues.EachPage) {
+                throw new NotSupportedException("Native DOC saving does not support section endnote numbering restart for each page.");
+            }
+
+            return GetNoteRestartOperand(value.Value) != null
+                ? value.Value
+                : throw new NotSupportedException($"Native DOC saving does not support section endnote numbering restart '{value.Value}'.");
+        }
+
+        private static int? ReadNoteNumberStart(OpenXmlSimpleType? value, string description) {
+            if (value == null) {
+                return null;
+            }
+
+            if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
+                || actual < 1
+                || actual > 16383) {
+                throw new NotSupportedException($"Native DOC saving supports {description} only from 1 through 16383.");
+            }
+
+            return actual;
         }
 
         private static int? ReadLineNumberCountBy(OpenXmlSimpleType? value) {
@@ -319,6 +453,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (sectionFormat.PageNumberStart != null) {
                 AddSingleByteSprm(grpprl, SprmSFPgnRestart, 1);
                 AddUInt16Sprm(grpprl, SprmSPgnStart97, sectionFormat.PageNumberStart.Value);
+            }
+
+            if (sectionFormat.FootnotePosition != null) {
+                AddSingleByteSprm(grpprl, SprmSFpc, GetFootnotePositionOperand(sectionFormat.FootnotePosition.Value)!.Value);
+            }
+
+            if (sectionFormat.FootnoteRestart != null) {
+                AddSingleByteSprm(grpprl, SprmSRncFtn, GetNoteRestartOperand(sectionFormat.FootnoteRestart.Value)!.Value);
+            }
+
+            if (sectionFormat.EndnoteRestart != null) {
+                AddSingleByteSprm(grpprl, SprmSRncEdn, GetNoteRestartOperand(sectionFormat.EndnoteRestart.Value)!.Value);
+            }
+
+            if (sectionFormat.FootnoteStart != null) {
+                AddUInt16Sprm(grpprl, SprmSNFtn, sectionFormat.FootnoteStart.Value);
+            }
+
+            if (sectionFormat.FootnoteNumberFormat != null) {
+                AddUInt16Sprm(grpprl, SprmSNfcFtnRef, GetPageNumberFormatOperand(sectionFormat.FootnoteNumberFormat.Value)!.Value);
+            }
+
+            if (sectionFormat.EndnoteStart != null) {
+                AddUInt16Sprm(grpprl, SprmSNEdn, sectionFormat.EndnoteStart.Value);
+            }
+
+            if (sectionFormat.EndnoteNumberFormat != null) {
+                AddUInt16Sprm(grpprl, SprmSNfcEdnRef, GetPageNumberFormatOperand(sectionFormat.EndnoteNumberFormat.Value)!.Value);
             }
 
             if (sectionFormat.LineNumberRestart != null) {
@@ -458,6 +620,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             if (restart == LineNumberRestartValues.Continuous) {
+                return 2;
+            }
+
+            return null;
+        }
+
+        private static byte? GetFootnotePositionOperand(FootnotePositionValues position) {
+            if (position == FootnotePositionValues.PageBottom) {
+                return 1;
+            }
+
+            if (position == FootnotePositionValues.BeneathText) {
+                return 2;
+            }
+
+            return null;
+        }
+
+        private static byte? GetNoteRestartOperand(RestartNumberValues restart) {
+            if (restart == RestartNumberValues.Continuous) {
+                return 0;
+            }
+
+            if (restart == RestartNumberValues.EachSection) {
+                return 1;
+            }
+
+            if (restart == RestartNumberValues.EachPage) {
                 return 2;
             }
 

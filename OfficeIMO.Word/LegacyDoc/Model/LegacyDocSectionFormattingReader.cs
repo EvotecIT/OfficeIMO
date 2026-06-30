@@ -9,9 +9,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSNfcPgn = 0x300E;
         private const ushort SprmSFPgnRestart = 0x3011;
         private const ushort SprmSLnc = 0x3013;
+        private const ushort SprmSFpc = 0x303B;
+        private const ushort SprmSRncFtn = 0x303C;
+        private const ushort SprmSRncEdn = 0x303E;
         private const ushort SprmSNLnnMod = 0x5015;
         private const ushort SprmSDxaLnn = 0x9016;
         private const ushort SprmSLnnMin = 0x501B;
+        private const ushort SprmSNFtn = 0x503F;
+        private const ushort SprmSNfcFtnRef = 0x5040;
+        private const ushort SprmSNEdn = 0x5041;
+        private const ushort SprmSNfcEdnRef = 0x5042;
         private const ushort SprmSPgnStart97 = 0x501C;
         private const ushort SprmSPgnStart = 0x7044;
         private const ushort SprmSDyaHdrTop = 0xB017;
@@ -129,6 +136,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? lineNumberDistance = null;
             int? lineNumberStart = null;
             LineNumberRestartValues? lineNumberRestart = null;
+            FootnotePositionValues? footnotePosition = null;
+            RestartNumberValues? footnoteRestart = null;
+            int? footnoteStart = null;
+            NumberFormatValues? footnoteNumberFormat = null;
+            RestartNumberValues? endnoteRestart = null;
+            int? endnoteStart = null;
+            NumberFormatValues? endnoteNumberFormat = null;
             SectionMarkValues? sectionBreakType = null;
 
             while (offset + 2 <= end) {
@@ -203,6 +217,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmSFpc) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    footnotePosition = ReadFootnotePosition(bytes[offset + 2]);
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmSRncFtn || sprm == SprmSRncEdn) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    RestartNumberValues? restart = ReadNoteRestart(bytes[offset + 2]);
+                    if (sprm == SprmSRncFtn) {
+                        footnoteRestart = restart;
+                    } else {
+                        endnoteRestart = restart == RestartNumberValues.EachPage ? null : restart;
+                    }
+
+                    offset += 3;
+                    continue;
+                }
+
                 if (sprm == SprmSNfcPgn) {
                     if (offset + 3 > end) {
                         break;
@@ -230,6 +270,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || sprm == SprmSNLnnMod
                     || sprm == SprmSDxaLnn
                     || sprm == SprmSLnnMin
+                    || sprm == SprmSNFtn
+                    || sprm == SprmSNfcFtnRef
+                    || sprm == SprmSNEdn
+                    || sprm == SprmSNfcEdnRef
                     || sprm == SprmSPgnStart97
                     || sprm == SprmSXaPage
                     || sprm == SprmSYaPage
@@ -264,6 +308,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             break;
                         case SprmSLnnMin:
                             lineNumberStart = value + 1;
+                            break;
+                        case SprmSNFtn:
+                            footnoteStart = value == 0 ? null : value;
+                            break;
+                        case SprmSNfcFtnRef:
+                            footnoteNumberFormat = ReadPageNumberFormat(bytes[offset + 2]);
+                            break;
+                        case SprmSNEdn:
+                            endnoteStart = value == 0 ? null : value;
+                            break;
+                        case SprmSNfcEdnRef:
+                            endnoteNumberFormat = ReadPageNumberFormat(bytes[offset + 2]);
                             break;
                         case SprmSPgnStart97:
                             pageNumberStart = value;
@@ -343,7 +399,38 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 lineNumberCountBy,
                 lineNumberDistance,
                 lineNumberStart,
-                lineNumberRestart);
+                lineNumberRestart,
+                footnotePosition,
+                footnoteRestart,
+                footnoteStart,
+                footnoteNumberFormat,
+                endnoteRestart,
+                endnoteStart,
+                endnoteNumberFormat);
+        }
+
+        private static FootnotePositionValues? ReadFootnotePosition(byte value) {
+            switch (value) {
+                case 1:
+                    return FootnotePositionValues.PageBottom;
+                case 2:
+                    return FootnotePositionValues.BeneathText;
+                default:
+                    return null;
+            }
+        }
+
+        private static RestartNumberValues? ReadNoteRestart(byte value) {
+            switch (value) {
+                case 0:
+                    return RestartNumberValues.Continuous;
+                case 1:
+                    return RestartNumberValues.EachSection;
+                case 2:
+                    return RestartNumberValues.EachPage;
+                default:
+                    return null;
+            }
         }
 
         private static LineNumberRestartValues? ReadLineNumberRestart(byte value) {
