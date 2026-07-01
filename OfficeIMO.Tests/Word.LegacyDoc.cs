@@ -1538,10 +1538,12 @@ namespace OfficeIMO.Tests {
             Assert.NotEmpty(paragraphs);
             Paragraph paragraph = paragraphs[0]._paragraph;
             Assert.Single(paragraph.Descendants<TabChar>());
-            Break breakRun = Assert.Single(paragraph.Descendants<Break>());
-            Assert.Null(breakRun.Type);
-            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\t') || text.Text.Contains('\v'));
-            Assert.Equal(new[] { "Left", "Right", "Next" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+            Break[] breaks = paragraph.Descendants<Break>().ToArray();
+            Assert.Equal(2, breaks.Length);
+            Assert.Null(breaks[0].Type);
+            Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
+            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\t') || text.Text.Contains('\v') || text.Text.Contains('\f'));
+            Assert.Equal(new[] { "Left", "Right", "Next", "Page" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
 
         private static void AssertNoteTextWrappingBreak(WordParagraph paragraph, params string[] expectedText) {
@@ -3119,6 +3121,8 @@ namespace OfficeIMO.Tests {
                     header.AddText("Right");
                     header.AddBreak();
                     header.AddText("Next");
+                    header.AddBreak(BreakValues.Page);
+                    header.AddText("Page");
 
                     WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph();
                     footer.AddText("Left");
@@ -3126,6 +3130,8 @@ namespace OfficeIMO.Tests {
                     footer.AddText("Right");
                     footer.AddBreak();
                     footer.AddText("Next");
+                    footer.AddBreak(BreakValues.Page);
+                    footer.AddText("Page");
 
                     document.Save(docPath);
                 }

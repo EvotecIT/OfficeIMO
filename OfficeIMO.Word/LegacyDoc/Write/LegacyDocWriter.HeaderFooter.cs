@@ -313,7 +313,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports simple {kind}s only with text-wrapping breaks.");
+            if (breakType == BreakValues.Page) {
+                AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, "\f", formatting);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple {kind}s only with text-wrapping and page breaks.");
         }
 
         private static void ThrowIfUnreferencedHeaderFooterContent(MainDocumentPart mainPart, IEnumerable<SectionProperties> sectionPropertiesCollection) {
