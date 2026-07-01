@@ -1853,6 +1853,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshIndexIgnoresExistingIndexBlockForPageEstimates() {
+            string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshEntriesIgnoresExistingBlock.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent index = document.AddTableOfContent();
+                index.SdtBlock.SdtContentBlock!.Append(
+                    new Paragraph(new Run(new Break { Type = BreakValues.Page })),
+                    new Paragraph(new Run(new Break { Type = BreakValues.Page })));
+                AddIndexEntryParagraph(document, "Body topic", " XE \"BodyTopic\" ");
+
+                WordIndexRefreshReport report = index.RefreshIndex("Generated Index");
+
+                WordIndexEntry entry = Assert.Single(report.Entries);
+                Assert.Equal("BodyTopic", entry.Term);
+                Assert.Equal(new[] { 1 }, entry.PageNumbers);
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshIndexFindsXeFieldsInTablesAndContentControls() {
             string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshEntriesTablesContentControls.docx");
 

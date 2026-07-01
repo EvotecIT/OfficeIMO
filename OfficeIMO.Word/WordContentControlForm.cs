@@ -332,7 +332,7 @@ namespace OfficeIMO.Word {
                     dropDownList.Alias,
                     "Dropdown list",
                     requireAllControls,
-                    value => IsAllowedChoice(dropDownList.Items, value),
+                    value => IsAllowedChoice(EnumerateDropDownListChoices(dropDownList), value),
                     WordContentControlFormIssueKind.InvalidChoice,
                     "is not one of the configured dropdown choices.");
             }
@@ -349,7 +349,7 @@ namespace OfficeIMO.Word {
                     comboBox.Alias,
                     "Combo box",
                     requireAllControls,
-                    value => IsAllowedChoice(comboBox.Items, value),
+                    value => IsAllowedChoice(EnumerateComboBoxChoices(comboBox), value),
                     WordContentControlFormIssueKind.InvalidChoice,
                     "is not one of the configured combo box choices.");
             }
@@ -687,6 +687,34 @@ namespace OfficeIMO.Word {
             string? text = ConvertFormValueToString(value);
             return string.IsNullOrEmpty(text)
                 || allowedValues.Any(allowedValue => string.Equals(allowedValue, text, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static IEnumerable<string> EnumerateDropDownListChoices(WordDropDownList dropDownList) {
+            SdtContentDropDownList? list = dropDownList._sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault();
+            return list == null
+                ? dropDownList.Items
+                : EnumerateListItemChoices(list.Elements<ListItem>());
+        }
+
+        private static IEnumerable<string> EnumerateComboBoxChoices(WordComboBox comboBox) {
+            SdtContentComboBox? list = comboBox._sdtRun.SdtProperties?.Elements<SdtContentComboBox>().FirstOrDefault();
+            return list == null
+                ? comboBox.Items
+                : EnumerateListItemChoices(list.Elements<ListItem>());
+        }
+
+        private static IEnumerable<string> EnumerateListItemChoices(IEnumerable<ListItem> items) {
+            foreach (ListItem item in items) {
+                string? value = item.Value?.Value;
+                if (!string.IsNullOrEmpty(value)) {
+                    yield return value!;
+                }
+
+                string? displayText = item.DisplayText?.Value;
+                if (!string.IsNullOrEmpty(displayText) && !string.Equals(displayText, value, StringComparison.OrdinalIgnoreCase)) {
+                    yield return displayText!;
+                }
+            }
         }
 
         private static bool IsValidPictureFormValue(object? value) {

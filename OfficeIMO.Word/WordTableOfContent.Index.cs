@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
             BookmarkRange? bookmarkRange = options.BookmarkName == null
                 ? null
                 : FindBookmarkRange(body, options.BookmarkName);
-            Dictionary<Paragraph, int> paragraphPages = BuildParagraphPageMap(body);
+            Dictionary<Paragraph, int> paragraphPages = BuildParagraphPageMap(body, _sdtBlock);
             skippedEntryCount = 0;
 
             foreach (WordFieldInventory.FieldRoot root in roots) {
@@ -185,11 +185,11 @@ namespace OfficeIMO.Word {
             return parsed.FieldType == WordFieldType.XE;
         }
 
-        private static Dictionary<Paragraph, int> BuildParagraphPageMap(Body body) {
+        private static Dictionary<Paragraph, int> BuildParagraphPageMap(Body body, SdtBlock? excludedBlock) {
             var paragraphPages = new Dictionary<Paragraph, int>();
             int pageNumber = 1;
 
-            foreach (Paragraph paragraph in EnumerateIndexSourceParagraphs(body, excludedBlock: null)) {
+            foreach (Paragraph paragraph in EnumerateIndexSourceParagraphs(body, excludedBlock)) {
                 if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
                     pageNumber++;
                 }

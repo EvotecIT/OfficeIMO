@@ -210,10 +210,7 @@ namespace OfficeIMO.Word {
         }
 
         private static string FormatSequenceValue(int value, IReadOnlyList<WordFieldFormat> formatSwitches) {
-            WordFieldFormat? format = formatSwitches
-                .Where(item => item != WordFieldFormat.Mergeformat)
-                .Cast<WordFieldFormat?>()
-                .LastOrDefault();
+            WordFieldFormat? format = GetLastMeaningfulFormat(formatSwitches);
 
             switch (format) {
                 case WordFieldFormat.Roman:

@@ -1662,6 +1662,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_IgnoresCharFormatWhenFormattingSequences() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.SequenceCharFormat.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Roman figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure \\* Roman \\* CHARFORMAT ", "stale"));
+                document.AddParagraph("Plain figure ")._paragraph.Append(BuildSimpleField(" SEQ Figure ", "stale"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Equal(new[] { "I", "2" }, report.Results
+                    .Where(result => result.FieldType == WordFieldType.Seq)
+                    .Select(result => result.ResultText)
+                    .ToArray());
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_ResetsSequenceFieldsAtHeadingLevel() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.SequenceHeadingReset.docx");
 
