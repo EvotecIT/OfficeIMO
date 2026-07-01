@@ -913,8 +913,9 @@ just to reserve names.
   - [x] Write simple section vertical page alignment, then reload it through
     the legacy reader.
   - [x] Write simple section line numbering interval, distance, start, and
-    restart mode, then reload it through the legacy reader while blocking
-    out-of-range line-number intervals before native `.doc` bytes are
+    restart mode, including intervals above 100 within the WordprocessingML
+    signed 16-bit range, then reload it through the legacy reader while
+    blocking out-of-range line-number intervals before native `.doc` bytes are
     committed.
   - [x] Write simple section footnote placement, endnote placement, and
     footnote/endnote numbering settings, including extended DOC `nfc`

@@ -544,8 +544,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (!int.TryParse(value.InnerText, System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out int actual)
                 || actual < 0
-                || actual > 100) {
-                throw new NotSupportedException("Native DOC saving supports section line number intervals from 0 through 100.");
+                || actual > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports section line number intervals from 0 through the WordprocessingML signed 16-bit range.");
             }
 
             return actual;

@@ -10514,18 +10514,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionLineNumberIntervalBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocExtendedSectionLineNumberIntervalAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Unsupported line numbering");
-                document.Sections[0]._sectionProperties.Append(new LineNumberType { CountBy = 101 });
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Extended line numbering");
+                    document.Sections[0]._sectionProperties.Append(new LineNumberType {
+                        CountBy = 101,
+                        Distance = "720",
+                        Start = 4,
+                        Restart = LineNumberRestartValues.NewPage
+                    });
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("line number intervals", exception.Message);
-                Assert.False(File.Exists(docPath));
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x5015, 101);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x9016, 720);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x501B, 3);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Extended line numbering", Assert.Single(reloaded.Paragraphs).Text);
+                LineNumberType lineNumbering = reloaded.Sections[0]._sectionProperties.GetFirstChild<LineNumberType>()!;
+                Assert.NotNull(lineNumbering);
+                Assert.Equal(101, (int?)lineNumbering.CountBy?.Value);
+                Assert.Equal("720", lineNumbering.Distance?.Value);
+                Assert.Equal(4, (int?)lineNumbering.Start?.Value);
+                Assert.Equal(LineNumberRestartValues.NewPage, lineNumbering.Restart?.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
