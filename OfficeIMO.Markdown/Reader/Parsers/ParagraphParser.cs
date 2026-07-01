@@ -122,6 +122,7 @@ public static partial class MarkdownReader {
             string? paragraphAttributeSourceText = null;
             string paragraphAttributeConsumedWhitespace = string.Empty;
             bool suppressGenericAttributeSeparator = false;
+            bool suppressGenericAttributeMetadata = false;
             bool suppressInlineAutolinks = false;
             if (ShouldParseParagraphGenericAttributes(options, state, i) && paragraphLines.Count > 0) {
                 var lastLineIndex = paragraphLines.Count - 1;
@@ -139,17 +140,21 @@ public static partial class MarkdownReader {
                     out var attributeEnd,
                     out paragraphAttributeConsumedWhitespace,
                     out suppressGenericAttributeSeparator,
+                    out suppressGenericAttributeMetadata,
                     out suppressInlineAutolinks)) {
                     var attributeLine = paragraphLines[lastLineIndex];
                     var absoluteAttributeLine = state.SourceLineOffset + i + lastLineIndex + 1;
 
-                    paragraphAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
-                    paragraphAttributeSpan = CreateSpan(
-                        state,
-                        absoluteAttributeLine,
-                        attributeStart + 1,
-                        absoluteAttributeLine,
-                        attributeEnd + 1);
+                    if (!suppressGenericAttributeMetadata) {
+                        paragraphAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
+                        paragraphAttributeSpan = CreateSpan(
+                            state,
+                            absoluteAttributeLine,
+                            attributeStart + 1,
+                            absoluteAttributeLine,
+                            attributeEnd + 1);
+                    }
+
                     paragraphLines[lastLineIndex] = lineWithoutAttributeBlock;
                     while (paragraphLines.Count > 0 && string.IsNullOrWhiteSpace(paragraphLines[paragraphLines.Count - 1])) {
                         paragraphLines.RemoveAt(paragraphLines.Count - 1);
@@ -212,9 +217,11 @@ public static partial class MarkdownReader {
             out int attributeEnd,
             out string consumedWhitespace,
             out bool suppressGenericAttributeSeparator,
+            out bool suppressGenericAttributeMetadata,
             out bool suppressInlineAutolinks) {
             consumedWhitespace = string.Empty;
             suppressGenericAttributeSeparator = false;
+            suppressGenericAttributeMetadata = false;
             suppressInlineAutolinks = false;
 
             if (MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
@@ -251,6 +258,13 @@ public static partial class MarkdownReader {
 
             if (IsNoSpaceAbbreviationParagraphAttribute(line, lineWithoutAttributeBlock, attributeStart, options, state)) {
                 suppressGenericAttributeSeparator = true;
+                return true;
+            }
+
+            if (IsNoSpaceCharacterReferenceParagraphAttribute(line, lineWithoutAttributeBlock, attributeStart)) {
+                suppressGenericAttributeSeparator = true;
+                suppressGenericAttributeMetadata = true;
+                attributes = MarkdownAttributeSet.Empty;
                 return true;
             }
 
@@ -406,12 +420,33 @@ public static partial class MarkdownReader {
             }
 
             var candidate = lineWithoutAttributeBlock.TrimEnd();
+            if (EndsWithEscapedCharacterReference(candidate)) {
+                return true;
+            }
+
             if (EndsWithCharacterReference(candidate)) {
                 return false;
             }
 
             return candidate.Length > 0
                 && !EndsWithNoSpaceInlineGenericAttributeTarget(candidate);
+        }
+
+        private static bool IsNoSpaceCharacterReferenceParagraphAttribute(
+            string line,
+            string lineWithoutAttributeBlock,
+            int attributeStart) {
+            if (string.IsNullOrEmpty(line)
+                || string.IsNullOrWhiteSpace(lineWithoutAttributeBlock)
+                || attributeStart <= 0
+                || attributeStart > line.Length
+                || char.IsWhiteSpace(line[attributeStart - 1])) {
+                return false;
+            }
+
+            var candidate = lineWithoutAttributeBlock.TrimEnd();
+            return !EndsWithEscapedCharacterReference(candidate)
+                && EndsWithCharacterReference(candidate);
         }
 
         private static bool EndsWithCharacterReference(string candidate) {
@@ -421,6 +456,19 @@ public static partial class MarkdownReader {
 
             var ampersand = candidate.LastIndexOf('&');
             return ampersand >= 0
+                && CommonMarkCharacterReference.TryDecode(candidate, ampersand, out int consumed, out _)
+                && ampersand + consumed == candidate.Length;
+        }
+
+        private static bool EndsWithEscapedCharacterReference(string candidate) {
+            if (string.IsNullOrEmpty(candidate) || candidate[candidate.Length - 1] != ';') {
+                return false;
+            }
+
+            var ampersand = candidate.LastIndexOf('&');
+            return ampersand > 0
+                && candidate[ampersand - 1] == '\\'
+                && !IsEscapedFinalCharacter(candidate.Substring(0, ampersand))
                 && CommonMarkCharacterReference.TryDecode(candidate, ampersand, out int consumed, out _)
                 && ampersand + consumed == candidate.Length;
         }

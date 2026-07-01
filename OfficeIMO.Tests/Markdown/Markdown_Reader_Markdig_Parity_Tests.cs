@@ -337,9 +337,13 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "escaped-backtick-no-space-attribute", "\\`{#esc .wide}" };
         yield return new object[] { "escaped-closing-paren-no-space-attribute", "\\){#esc .wide}" };
         yield return new object[] { "escaped-closing-bracket-no-space-attribute", "\\]{#esc .wide}" };
-        yield return new object[] { "named-entity-no-space-attribute-stays-literal", "&copy;{#e .wide}" };
-        yield return new object[] { "decimal-entity-no-space-attribute-stays-literal", "&#42;{#e .wide}" };
-        yield return new object[] { "hex-entity-no-space-attribute-stays-literal", "&#x2A;{#e .wide}" };
+        yield return new object[] { "single-character-id-named-entity-no-space-attribute-stays-literal", "&copy;{#e .wide}" };
+        yield return new object[] { "single-character-id-decimal-entity-no-space-attribute-stays-literal", "&#42;{#e .wide}" };
+        yield return new object[] { "single-character-id-hex-entity-no-space-attribute-stays-literal", "&#x2A;{#e .wide}" };
+        yield return new object[] { "named-entity-no-space-attribute-consumed-without-metadata", "&copy;{#copy .wide}" };
+        yield return new object[] { "decimal-entity-no-space-attribute-consumed-without-metadata", "&#42;{#copy .wide}" };
+        yield return new object[] { "hex-entity-no-space-attribute-consumed-without-metadata", "&#x2A;{#copy .wide}" };
+        yield return new object[] { "escaped-named-entity-no-space-attribute-targets-paragraph", "\\&copy;{#copy .wide}" };
         yield return new object[] { "thematic-break-like-line-is-attributed-paragraph", "--- {#hr .wide}" };
         yield return new object[] { "asterisk-thematic-break-like-line-is-attributed-paragraph", "*** {#hr .wide}" };
         yield return new object[] { "underscore-thematic-break-like-line-is-attributed-paragraph", "___ {#hr .wide}" };

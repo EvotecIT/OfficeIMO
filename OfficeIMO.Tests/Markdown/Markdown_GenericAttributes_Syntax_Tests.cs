@@ -1359,7 +1359,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     [InlineData("&copy;{#e .wide}\n", "\u00A9{#e .wide}")]
     [InlineData("&#42;{#e .wide}\n", "*{#e .wide}")]
     [InlineData("&#x2A;{#e .wide}\n", "*{#e .wide}")]
-    public void CharacterReference_Paragraph_GenericAttributes_Stay_Literal_Without_Metadata(
+    public void SingleCharacterId_CharacterReference_Paragraph_GenericAttributes_Stay_Literal_Without_Metadata(
         string markdown,
         string expectedText) {
         var options = new MarkdownReaderOptions {
@@ -1387,6 +1387,73 @@ public class Markdown_GenericAttributes_Syntax_Tests {
 
         Assert.Equal(expectedText, nativeParagraph.Text);
         Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Theory]
+    [InlineData("&copy;{#copy .wide}\n", "\u00A9")]
+    [InlineData("&#42;{#copy .wide}\n", "*")]
+    [InlineData("&#x2A;{#copy .wide}\n", "*")]
+    public void CharacterReference_Paragraph_GenericAttributes_Are_Consumed_Without_Metadata(
+        string markdown,
+        string expectedText) {
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var block = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.True(block.Attributes.IsEmpty);
+        Assert.Equal(expectedText, InlinePlainText.Extract(block.Inlines));
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+
+        Assert.DoesNotContain(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(expectedText, nativeParagraph.Text);
+        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+    }
+
+    [Fact]
+    public void EscapedCharacterReference_Paragraph_GenericAttributes_Target_Paragraph() {
+        const string markdown = "\\&copy;{#copy .wide}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        var attributes = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#copy .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 20), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#copy .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("&copy;", nativeParagraph.Text);
+        Assert.Same(nativeParagraph, field.Block);
+        Assert.Equal("{#copy .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 20), field.SourceSpan);
         Assert.Empty(native.EnumerateInlineMetadata("attributes"));
     }
 
