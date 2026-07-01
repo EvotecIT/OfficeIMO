@@ -755,10 +755,10 @@ just to reserve names.
     properties into native DOC cell text CHPX records, while preserving direct
     cell run formatting as the override.
   - [x] Write supported conditional table-style cell shading and cell borders
-    by flattening first/last row, first/last column, corner, and banded
-    conditional effects into native DOC `TC80` values, while keeping direct
-    cell formatting as an override and blocking unsupported richer table
-    effects before bytes are committed.
+    by flattening whole-table, first/last row, first/last column, corner, and
+    banded conditional effects into native DOC `TC80` values, while keeping
+    direct cell formatting as an override and blocking unsupported richer
+    table effects before bytes are committed.
   - [x] Apply conditional table-style effects in specific-to-broad precedence
     order, so corner regions override broader row/column/band regions while
     direct cell formatting still remains the strongest override.

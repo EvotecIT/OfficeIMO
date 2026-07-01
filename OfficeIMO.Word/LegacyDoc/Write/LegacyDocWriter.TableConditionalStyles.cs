@@ -91,6 +91,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return 2;
             }
 
+            if (type == TableStyleOverrideValues.WholeTable) {
+                return 3;
+            }
+
             return 3;
         }
 
@@ -258,6 +262,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int columnCount) {
             if (rowIndex < 0 || rowIndex >= rowCount || columnIndex < 0 || columnIndex >= columnCount) {
                 return false;
+            }
+
+            if (type == TableStyleOverrideValues.WholeTable) {
+                return true;
             }
 
             if (type == TableStyleOverrideValues.FirstRow) {
