@@ -604,6 +604,9 @@ just to reserve names.
   - [x] Write direct paragraph pagination flags and reload keep-lines,
     keep-next, page-break-before, and widow-control formatting through the
     legacy reader.
+  - [x] Write custom paragraph style pagination flags into native DOC STSH
+    records and reload keep-lines, keep-next, page-break-before, and
+    widow-control formatting through the legacy reader.
   - [x] Write direct and custom paragraph-style bidirectional layout with
     `sprmPFBiDi`, then reload it through the legacy reader.
   - [x] Write direct and custom paragraph-style automatic hyphenation

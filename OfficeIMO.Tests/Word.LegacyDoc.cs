@@ -6228,6 +6228,61 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStylePaginationFlagsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocPaginationStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCPaginationStyle";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Pagination Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleParagraphProperties(
+                        new KeepLines(),
+                        new KeepNext(),
+                        new PageBreakBefore(),
+                        new WidowControl()));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled pagination flags").SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x05, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFKeep for style-level keep-lines.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x06, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFKeepFollow for style-level keep-next.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x07, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFPageBreakBefore for style-level page-break-before.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x31, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFWidowControl for style-level widow control.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled pagination flags", paragraph.Text);
+                Assert.Equal(projectedStyleId, paragraph.StyleId);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
+                Assert.NotNull(paragraphProperties.GetFirstChild<KeepLines>());
+                Assert.NotNull(paragraphProperties.GetFirstChild<KeepNext>());
+                Assert.NotNull(paragraphProperties.GetFirstChild<PageBreakBefore>());
+                Assert.NotNull(paragraphProperties.GetFirstChild<WidowControl>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         [Theory]
         [MemberData(nameof(LegacyDocParagraphTypographyPropertyCases))]
         public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleTypographyPropertiesAndReloadsThroughLegacyReader(string label, string text, ushort _, Type propertyType) {
