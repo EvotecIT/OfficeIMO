@@ -801,7 +801,8 @@ just to reserve names.
   - [x] Preserve tabs and text-wrapping breaks inside native-written simple
     header/footer story text, then reload them as real Word tab and break runs.
   - [x] Preserve page breaks inside native-written simple header/footer story
-    text, then reload them as real Word page break runs.
+    text and simple hyperlink display runs, then reload them as real Word page
+    break runs.
   - [x] Read and write supported simple paragraph formatting inside
     header/footer story paragraphs through native DOC PAPX records, then reload
     alignment, spacing, and indentation through the legacy reader.
