@@ -772,6 +772,11 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                if (legacyRun.IsNumPages) {
+                    AddLegacyDocNumberOfPages(paragraph, legacyRun, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.HyperlinkTarget.HasValue) {
                     int hyperlinkStartIndex = index;
                     LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
@@ -795,6 +800,11 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             if (legacyRun.IsPageNumber) {
                 AddLegacyDocPageNumber(paragraph, legacyRun, bookmarks);
+                return;
+            }
+
+            if (legacyRun.IsNumPages) {
+                AddLegacyDocNumberOfPages(paragraph, legacyRun, bookmarks);
                 return;
             }
 
@@ -1060,13 +1070,25 @@ namespace OfficeIMO.Word {
                 source.ColorHex,
                 source.FontFamily,
                 source.CharacterPositions,
-                isPageNumber: source.IsPageNumber);
+                fieldKind: source.FieldKind);
         }
 
         private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
             var run = new Run(new DocumentFormat.OpenXml.Wordprocessing.PageNumber());
             paragraph._paragraph.Append(run);
+            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
+        }
+
+        private static void AddLegacyDocNumberOfPages(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
+            var simpleField = new SimpleField { Instruction = " NUMPAGES  " };
+            var run = new Run(new Text(string.IsNullOrEmpty(legacyRun.Text) ? "1" : legacyRun.Text) {
+                Space = SpaceProcessingModeValues.Preserve
+            });
+            simpleField.Append(run);
+            paragraph._paragraph.Append(simpleField);
             ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }

@@ -166,6 +166,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadNumberOfPages(
+                    storyCharacters,
+                    index,
+                    out int numberOfPagesResultStartIndex,
+                    out int numberOfPagesResultEndIndex,
+                    out int numberOfPagesFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
+                    index = numberOfPagesFieldEndIndex;
+                    continue;
+                }
+
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (normalized == '\r') {
                     preserveEmptyParagraph = HasLaterHeaderFooterParagraphContent(storyCharacters, index + 1);
@@ -205,9 +216,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             void AppendPageNumberResult(int resultStartIndex, int resultEndIndex) {
+                AppendFieldResult(LegacyDocFieldKind.Page, resultStartIndex, resultEndIndex);
+            }
+
+            void AppendFieldResult(LegacyDocFieldKind fieldKind, int resultStartIndex, int resultEndIndex) {
                 FlushRun();
                 LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
                 var positions = new List<int>();
+                var resultText = new System.Text.StringBuilder();
                 for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
                     LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
                     if (char.IsControl(resultCharacter.Character)
@@ -219,10 +235,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
                     }
 
+                    resultText.Append(resultCharacter.Character);
                     positions.Add(resultCharacter.CharacterPosition);
                 }
 
-                currentRuns.Add(LegacyDocTextRunFactory.CreatePageNumberRun(format, positions));
+                currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
+                    fieldKind == LegacyDocFieldKind.Page ? string.Empty : resultText.ToString(),
+                    fieldKind,
+                    format,
+                    positions));
             }
 
             void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter, bool isFinalParagraph) {

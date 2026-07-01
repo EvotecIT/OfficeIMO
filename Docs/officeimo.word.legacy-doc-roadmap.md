@@ -614,6 +614,10 @@ just to reserve names.
   - [x] Write simple `PAGE` fields from OfficeIMO page-number runs/simple fields
     into native DOC field characters, then reload them as real OpenXML
     page-number runs instead of exposing field instructions as visible text.
+  - [x] Write simple `NUMPAGES` total-page fields from OfficeIMO's
+    `AddPageNumber(includeTotalPages: true)` path into native DOC field
+    characters, then reload them as supported OpenXML simple fields without
+    exposing field instructions as visible text.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

@@ -539,6 +539,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadNumberOfPages(
+                    characters,
+                    characterIndex,
+                    out int numberOfPagesResultStartIndex,
+                    out int numberOfPagesResultEndIndex,
+                    out int numberOfPagesFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
+                    characterIndex = numberOfPagesFieldEndIndex;
+                    continue;
+                }
+
                 if (textCharacter.Character == '\a') {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
                     if (paragraphFormat.IsInTable == true) {
@@ -651,9 +662,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             void AppendPageNumberResult(int resultStartIndex, int resultEndIndex) {
+                AppendFieldResult(LegacyDocFieldKind.Page, resultStartIndex, resultEndIndex);
+            }
+
+            void AppendFieldResult(LegacyDocFieldKind fieldKind, int resultStartIndex, int resultEndIndex) {
                 FlushRun();
                 LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
                 var positions = new List<int>();
+                var resultText = new System.Text.StringBuilder();
                 for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
                     LegacyDocTextCharacter resultCharacter = characters[resultIndex];
                     char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
@@ -665,10 +681,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
                     }
 
+                    resultText.Append(normalized.Value);
                     positions.Add(resultCharacter.CharacterPosition);
                 }
 
-                currentRuns.Add(LegacyDocTextRunFactory.CreatePageNumberRun(format, positions));
+                currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
+                    fieldKind == LegacyDocFieldKind.Page ? string.Empty : resultText.ToString(),
+                    fieldKind,
+                    format,
+                    positions));
                 if (inTable) {
                     justClosedCell = false;
                 }

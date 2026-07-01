@@ -1,8 +1,8 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocTextRunFactory {
-        internal static LegacyDocTextRun CreatePageNumberRun(LegacyDocCharacterFormat format, IReadOnlyList<int> characterPositions) {
+        internal static LegacyDocTextRun CreateFieldRun(string resultText, LegacyDocFieldKind fieldKind, LegacyDocCharacterFormat format, IReadOnlyList<int> characterPositions) {
             return new LegacyDocTextRun(
-                string.Empty,
+                resultText,
                 format.Bold,
                 format.Italic,
                 format.Strike,
@@ -21,7 +21,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 format.ColorHex,
                 format.FontFamily,
                 characterPositions,
-                isPageNumber: true);
+                fieldKind: fieldKind);
         }
     }
 }

@@ -95,6 +95,29 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return IsPageNumberInstruction(instruction);
         }
 
+        internal static bool TryReadNumberOfPages(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (!TryReadField(
+                characters,
+                startIndex,
+                out string instruction,
+                out resultStartIndex,
+                out resultEndIndex,
+                out fieldEndIndex)) {
+                return false;
+            }
+
+            return IsNumberOfPagesInstruction(instruction);
+        }
+
         private static bool TryReadHyperlinkInstruction(string instruction, out LegacyDocHyperlinkTarget target) {
             target = default;
             string trimmed = instruction.Trim();
@@ -202,6 +225,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             return trimmed.Length == "PAGE".Length
                 || char.IsWhiteSpace(trimmed["PAGE".Length]);
+        }
+
+        private static bool IsNumberOfPagesInstruction(string instruction) {
+            string trimmed = instruction.Trim();
+            if (!trimmed.StartsWith("NUMPAGES", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            return trimmed.Length == "NUMPAGES".Length
+                || char.IsWhiteSpace(trimmed["NUMPAGES".Length]);
         }
 
         private static int IndexOfHyperlinkAnchorSwitch(string instruction, int startIndex) {
