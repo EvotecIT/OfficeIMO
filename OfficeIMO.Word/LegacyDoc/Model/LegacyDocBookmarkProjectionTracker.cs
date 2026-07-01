@@ -109,7 +109,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return characterPosition == paragraphStartCharacter;
             }
 
-            return characterPosition >= paragraphStartCharacter && characterPosition < paragraphEndCharacter;
+            return characterPosition >= paragraphStartCharacter && characterPosition <= paragraphEndCharacter;
         }
 
         internal IEnumerable<LegacyDocBookmark> GetUnprojectedBookmarks() {
