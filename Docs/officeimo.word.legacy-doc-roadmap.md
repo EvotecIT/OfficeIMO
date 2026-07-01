@@ -278,8 +278,9 @@ just to reserve names.
   - [x] Project direct CHPX highlight runs plus stylesheet-level highlight run
     formatting into normal OfficeIMO runs and custom DOCX style definitions
     with synthetic legacy DOC fixture proof.
-  - [x] Preserve direct CHPX explicit off underline, highlight, and
-    vertical-position values as OpenXML `none` / `baseline` run properties.
+  - [x] Preserve direct CHPX explicit off boolean toggles, underline,
+    highlight, and vertical-position values as OpenXML `false`, `none`, and
+    `baseline` run properties.
   - [x] Project custom stylesheet underline and highlight run formatting into
     custom DOCX style definitions and write custom paragraph style
     underline/highlight back through native DOC save/reload.

@@ -5,6 +5,9 @@ namespace OfficeIMO.Word {
     /// Manages run property settings.
     /// </summary>
     public partial class WordParagraph {
+        private static bool IsOnOffPropertyEnabled(OnOffType? property) {
+            return property != null && (property.Val == null || property.Val.Value);
+        }
 
         /// <summary>
         /// Gets or sets a value indicating whether the run is bold.
@@ -12,11 +15,7 @@ namespace OfficeIMO.Word {
         public bool Bold {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                if (runProperties != null && runProperties.Bold != null) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return IsOnOffPropertyEnabled(runProperties?.Bold);
             }
             set {
                 RunProperties runProperties;
@@ -47,11 +46,7 @@ namespace OfficeIMO.Word {
         public bool Italic {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                if (runProperties != null && runProperties.Italic != null) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return IsOnOffPropertyEnabled(runProperties?.Italic);
             }
             set {
                 RunProperties runProperties;
@@ -106,11 +101,7 @@ namespace OfficeIMO.Word {
         public bool DoNotCheckSpellingOrGrammar {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                if (runProperties != null && runProperties.NoProof != null) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return IsOnOffPropertyEnabled(runProperties?.NoProof);
             }
             set {
                 RunProperties runProperties;
@@ -163,11 +154,7 @@ namespace OfficeIMO.Word {
         public bool Strike {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                if (runProperties != null && runProperties.Strike != null) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return IsOnOffPropertyEnabled(runProperties?.Strike);
             }
             set {
                 RunProperties runProperties;
@@ -191,11 +178,7 @@ namespace OfficeIMO.Word {
         public bool DoubleStrike {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                if (runProperties != null && runProperties.DoubleStrike != null) {
-                    return true;
-                } else {
-                    return false;
-                }
+                return IsOnOffPropertyEnabled(runProperties?.DoubleStrike);
             }
             set {
                 RunProperties runProperties;
@@ -219,7 +202,7 @@ namespace OfficeIMO.Word {
         public bool Outline {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                return runProperties != null && runProperties.Outline != null;
+                return IsOnOffPropertyEnabled(runProperties?.Outline);
             }
             set {
                 RunProperties runProperties;
@@ -243,7 +226,7 @@ namespace OfficeIMO.Word {
         public bool Shadow {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                return runProperties != null && runProperties.Shadow != null;
+                return IsOnOffPropertyEnabled(runProperties?.Shadow);
             }
             set {
                 RunProperties runProperties;
@@ -267,7 +250,7 @@ namespace OfficeIMO.Word {
         public bool Emboss {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                return runProperties != null && runProperties.Emboss != null;
+                return IsOnOffPropertyEnabled(runProperties?.Emboss);
             }
             set {
                 RunProperties runProperties;
@@ -427,9 +410,9 @@ namespace OfficeIMO.Word {
         public CapsStyle CapsStyle {
             get {
                 var runProperties = IsHyperLink ? this.Hyperlink?._runProperties : _runProperties;
-                if (runProperties != null && runProperties.Caps != null) {
+                if (IsOnOffPropertyEnabled(runProperties?.Caps)) {
                     return CapsStyle.Caps;
-                } else if (runProperties != null && runProperties.SmallCaps != null) {
+                } else if (IsOnOffPropertyEnabled(runProperties?.SmallCaps)) {
                     return CapsStyle.SmallCaps;
                 } else {
                     return CapsStyle.None;

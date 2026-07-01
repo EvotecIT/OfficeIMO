@@ -544,7 +544,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectExplicitOffUnderlineHighlightAndVerticalPositionRuns() {
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectExplicitOffRunFormatting() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleRunFormattingAndDirectExplicitOffRunFormatting();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
@@ -553,8 +553,31 @@ namespace OfficeIMO.Tests {
             WordParagraph run = Assert.Single(result.Document.Paragraphs);
             Assert.Equal("direct off", run.Text);
             Assert.Equal("LegacyDocInheritedRunStyle", run.StyleId);
+            Assert.False(run.Bold);
+            Assert.False(run.Italic);
+            Assert.False(run.Strike);
+            Assert.False(run.DoubleStrike);
+            Assert.False(run.Outline);
+            Assert.False(run.Shadow);
+            Assert.False(run.Emboss);
+            Assert.False(run.DoNotCheckSpellingOrGrammar);
+            Assert.Equal(CapsStyle.None, run.CapsStyle);
 
             RunProperties runProperties = Assert.IsType<RunProperties>(run._runProperties);
+            Assert.False(Assert.IsType<Bold>(runProperties.GetFirstChild<Bold>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<BoldComplexScript>(runProperties.GetFirstChild<BoldComplexScript>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Italic>(runProperties.GetFirstChild<Italic>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<ItalicComplexScript>(runProperties.GetFirstChild<ItalicComplexScript>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Strike>(runProperties.GetFirstChild<Strike>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<DoubleStrike>(runProperties.GetFirstChild<DoubleStrike>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Outline>(runProperties.GetFirstChild<Outline>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Shadow>(runProperties.GetFirstChild<Shadow>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Emboss>(runProperties.GetFirstChild<Emboss>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Imprint>(runProperties.GetFirstChild<Imprint>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Vanish>(runProperties.GetFirstChild<Vanish>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<NoProof>(runProperties.GetFirstChild<NoProof>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<Caps>(runProperties.GetFirstChild<Caps>()).Val?.Value ?? true);
+            Assert.False(Assert.IsType<SmallCaps>(runProperties.GetFirstChild<SmallCaps>()).Val?.Value ?? true);
             Assert.Equal(UnderlineValues.None, runProperties.GetFirstChild<Underline>()?.Val?.Value);
             Assert.Equal(HighlightColorValues.None, runProperties.GetFirstChild<Highlight>()?.Val?.Value);
             Assert.Equal(VerticalPositionValues.Baseline, runProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
@@ -563,6 +586,19 @@ namespace OfficeIMO.Tests {
                 result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>(),
                 styleDefinition => styleDefinition.StyleId == "LegacyDocInheritedRunStyle");
             StyleRunProperties styleRunProperties = Assert.IsType<StyleRunProperties>(style.StyleRunProperties);
+            Assert.NotNull(styleRunProperties.GetFirstChild<Bold>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<BoldComplexScript>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Italic>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<ItalicComplexScript>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Strike>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<DoubleStrike>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Outline>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Shadow>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Emboss>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Imprint>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Vanish>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<NoProof>());
+            Assert.NotNull(styleRunProperties.GetFirstChild<Caps>());
             Assert.Equal(UnderlineValues.Single, styleRunProperties.GetFirstChild<Underline>()?.Val?.Value);
             Assert.Equal(HighlightColorValues.Yellow, styleRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
             Assert.Equal(VerticalPositionValues.Superscript, styleRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
@@ -11882,6 +11918,17 @@ namespace OfficeIMO.Tests {
                         "Inherited Run Style",
                         Array.Empty<byte>(),
                         CreateStyleCharacterFormatting(
+                            CreateCharacterSprm(0x0835, 1),
+                            CreateCharacterSprm(0x0836, 1),
+                            CreateCharacterSprm(0x0837, 1),
+                            CreateCharacterSprm(0x2A53, 1),
+                            CreateCharacterSprm(0x0838, 1),
+                            CreateCharacterSprm(0x0839, 1),
+                            CreateCharacterSprm(0x0858, 1),
+                            CreateCharacterSprm(0x0854, 1),
+                            CreateCharacterSprm(0x083C, 1),
+                            CreateCharacterSprm(0x0875, 1),
+                            CreateCharacterSprm(0x083B, 1),
                             CreateCharacterSprm(0x2A3E, 1),
                             CreateCharacterSprm(0x2A0C, 7),
                             CreateCharacterSprm(0x2A48, 1))));
@@ -11893,6 +11940,18 @@ namespace OfficeIMO.Tests {
                     styleSheet.Length,
                     1,
                     CreateChpx(
+                        CreateCharacterSprm(0x0835, 0),
+                        CreateCharacterSprm(0x0836, 0),
+                        CreateCharacterSprm(0x0837, 0),
+                        CreateCharacterSprm(0x2A53, 0),
+                        CreateCharacterSprm(0x0838, 0),
+                        CreateCharacterSprm(0x0839, 0),
+                        CreateCharacterSprm(0x0858, 0),
+                        CreateCharacterSprm(0x0854, 0),
+                        CreateCharacterSprm(0x083C, 0),
+                        CreateCharacterSprm(0x0875, 0),
+                        CreateCharacterSprm(0x083B, 0),
+                        CreateCharacterSprm(0x083A, 0),
                         CreateCharacterSprm(0x2A3E, 0),
                         CreateCharacterSprm(0x2A0C, 0),
                         CreateCharacterSprm(0x2A48, 0)));

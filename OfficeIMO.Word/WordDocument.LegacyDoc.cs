@@ -2076,6 +2076,23 @@ namespace OfficeIMO.Word {
             return true;
         }
 
+        private static void ApplyLegacyDocRunOnOffProperty<T>(WordParagraph run, bool enabled, bool specified) where T : OnOffType, new() {
+            if (!enabled && !specified) {
+                return;
+            }
+
+            RunProperties runProperties = run._runProperties ?? new RunProperties();
+            run._runProperties = runProperties;
+            runProperties.RemoveAllChildren<T>();
+
+            var property = new T();
+            if (!enabled) {
+                property.Val = false;
+            }
+
+            runProperties.Append(property);
+        }
+
         private static bool TryMapBuiltInParagraphStyle(ushort styleIndex, out WordParagraphStyles style) {
             switch (styleIndex) {
                 case 0:
@@ -2115,63 +2132,20 @@ namespace OfficeIMO.Word {
         }
 
         private static void ApplyLegacyDocRunFormatting(WordParagraph run, LegacyDocTextRun legacyRun) {
-            if (legacyRun.Bold) {
-                run.SetBold();
-                RunProperties runProperties = run._runProperties ?? new RunProperties();
-                run._runProperties = runProperties;
-                runProperties.BoldComplexScript = new BoldComplexScript();
-            }
-
-            if (legacyRun.Italic) {
-                run.SetItalic();
-                RunProperties runProperties = run._runProperties ?? new RunProperties();
-                run._runProperties = runProperties;
-                runProperties.ItalicComplexScript = new ItalicComplexScript();
-            }
-
-            if (legacyRun.Strike) {
-                run.SetStrike();
-            }
-
-            if (legacyRun.DoubleStrike) {
-                run.SetDoubleStrike();
-            }
-
-            if (legacyRun.Outline) {
-                run.SetOutline();
-            }
-
-            if (legacyRun.Shadow) {
-                run.SetShadow();
-            }
-
-            if (legacyRun.Emboss) {
-                run.SetEmboss();
-            }
-
-            if (legacyRun.Imprint) {
-                RunProperties runProperties = run._runProperties ?? new RunProperties();
-                run._runProperties = runProperties;
-                runProperties.Imprint = new Imprint();
-            }
-
-            if (legacyRun.Hidden) {
-                RunProperties runProperties = run._runProperties ?? new RunProperties();
-                run._runProperties = runProperties;
-                runProperties.Vanish = new Vanish();
-            }
-
-            if (legacyRun.NoProof) {
-                RunProperties runProperties = run._runProperties ?? new RunProperties();
-                run._runProperties = runProperties;
-                runProperties.NoProof = new NoProof();
-            }
-
-            if (legacyRun.Caps == LegacyDocCapsKind.Caps) {
-                run.CapsStyle = CapsStyle.Caps;
-            } else if (legacyRun.Caps == LegacyDocCapsKind.SmallCaps) {
-                run.CapsStyle = CapsStyle.SmallCaps;
-            }
+            ApplyLegacyDocRunOnOffProperty<Bold>(run, legacyRun.Bold, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            ApplyLegacyDocRunOnOffProperty<BoldComplexScript>(run, legacyRun.Bold, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            ApplyLegacyDocRunOnOffProperty<Italic>(run, legacyRun.Italic, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            ApplyLegacyDocRunOnOffProperty<ItalicComplexScript>(run, legacyRun.Italic, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            ApplyLegacyDocRunOnOffProperty<Strike>(run, legacyRun.Strike, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
+            ApplyLegacyDocRunOnOffProperty<DoubleStrike>(run, legacyRun.DoubleStrike, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
+            ApplyLegacyDocRunOnOffProperty<Outline>(run, legacyRun.Outline, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
+            ApplyLegacyDocRunOnOffProperty<Shadow>(run, legacyRun.Shadow, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
+            ApplyLegacyDocRunOnOffProperty<Emboss>(run, legacyRun.Emboss, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
+            ApplyLegacyDocRunOnOffProperty<Imprint>(run, legacyRun.Imprint, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
+            ApplyLegacyDocRunOnOffProperty<Vanish>(run, legacyRun.Hidden, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
+            ApplyLegacyDocRunOnOffProperty<NoProof>(run, legacyRun.NoProof, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
+            ApplyLegacyDocRunOnOffProperty<Caps>(run, legacyRun.Caps == LegacyDocCapsKind.Caps, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
+            ApplyLegacyDocRunOnOffProperty<SmallCaps>(run, legacyRun.Caps == LegacyDocCapsKind.SmallCaps, legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
 
             if (legacyRun.VerticalPosition != null && TryMapVerticalPosition(legacyRun.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
                 run.VerticalTextAlignment = verticalPosition;
