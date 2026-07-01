@@ -247,6 +247,7 @@ public class Markdown_Reader_Abbreviations_Tests {
             paragraph => {
                 Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraph.Kind);
                 var inline = Assert.Single(paragraph.Children);
+                var abbreviationInline = Assert.IsType<AbbreviationInline>(inline.AssociatedObject);
                 Assert.Equal(MarkdownSyntaxKind.InlineAbbreviation, inline.Kind);
                 Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 4), inline.SourceSpan);
                 Assert.Collection(inline.Children,
@@ -254,11 +255,13 @@ public class Markdown_Reader_Abbreviations_Tests {
                         Assert.Equal(MarkdownSyntaxKind.InlineAbbreviationText, text.Kind);
                         Assert.Equal("HTML", text.Literal);
                         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 4), text.SourceSpan);
+                        Assert.Equal(text.SourceSpan, abbreviationInline.TextSourceSpan);
                     },
                     title => {
                         Assert.Equal(MarkdownSyntaxKind.InlineAbbreviationTitle, title.Kind);
                         Assert.Equal("Hyper Text Markup Language", title.Literal);
                         Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 35), title.SourceSpan);
+                        Assert.Equal(title.SourceSpan, abbreviationInline.TitleSourceSpan);
                     });
             });
     }

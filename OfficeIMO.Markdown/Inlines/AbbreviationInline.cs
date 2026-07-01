@@ -10,10 +10,23 @@ public sealed class AbbreviationInline : MarkdownInline, IRenderableMarkdownInli
     /// <summary>Expanded title shown by HTML renderers.</summary>
     public string Title { get; }
 
+    /// <summary>Source span for the visible abbreviation text when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TextSourceSpan { get; internal set; }
+
+    /// <summary>Source span for the abbreviation definition title used by this inline.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+
     /// <summary>Creates an abbreviation inline.</summary>
     public AbbreviationInline(string text, string title) {
         Text = text ?? string.Empty;
         Title = title ?? string.Empty;
+    }
+
+    internal void SetMarkdownSyntaxMetadataSpans(
+        MarkdownSourceSpan? textSourceSpan,
+        MarkdownSourceSpan? titleSourceSpan) {
+        TextSourceSpan = textSourceSpan;
+        TitleSourceSpan = titleSourceSpan;
     }
 
     internal string RenderMarkdown() => MarkdownEscaper.EscapeText(Text);

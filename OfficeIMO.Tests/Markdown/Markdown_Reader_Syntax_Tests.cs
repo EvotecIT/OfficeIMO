@@ -680,6 +680,7 @@ baz*
         Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 39), link.Children[3].SourceSpan);
 
         var code = paragraph.Children[5];
+        var codeInline = Assert.IsType<CodeSpanInline>(code.AssociatedObject);
         Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, code.Kind);
         Assert.Equal("code", code.Literal);
         Assert.Collection(code.Children,
@@ -692,6 +693,7 @@ baz*
                 Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, content.Kind);
                 Assert.Equal("code", content.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 47, 1, 50), content.SourceSpan);
+                Assert.Equal(content.SourceSpan, codeInline.ContentSourceSpan);
             },
             closingMarker => {
                 Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, closingMarker.Kind);
@@ -707,6 +709,7 @@ baz*
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var code = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineCodeSpan);
+        var codeInline = Assert.IsType<CodeSpanInline>(code.AssociatedObject);
 
         Assert.Equal("code ` tick", code.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 19), code.SourceSpan);
@@ -721,6 +724,7 @@ baz*
                 Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, content.Kind);
                 Assert.Equal("code ` tick", content.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 17), content.SourceSpan);
+                Assert.Equal(content.SourceSpan, codeInline.ContentSourceSpan);
                 Assert.Null(content.AssociatedObject);
             },
             closingMarker => {

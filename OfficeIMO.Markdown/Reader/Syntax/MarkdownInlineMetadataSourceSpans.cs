@@ -295,10 +295,12 @@ internal static class MarkdownInlineMetadataSourceSpans {
         holder.State = new CodeSpanState {
             ContentSpan = contentSpan
         };
+        inline.SetMarkdownSyntaxMetadataSpans(contentSpan);
     }
 
     internal static MarkdownSourceSpan? GetCodeSpanContentSpan(CodeSpanInline? inline) =>
-        inline != null && _codeSpanSpans.TryGetValue(inline, out var holder) ? holder.State?.ContentSpan : null;
+        inline?.ContentSourceSpan
+        ?? (inline != null && _codeSpanSpans.TryGetValue(inline, out var holder) ? holder.State?.ContentSpan : null);
 
     internal static void SetEscapedText(
         TextRun? inline,
@@ -401,11 +403,14 @@ internal static class MarkdownInlineMetadataSourceSpans {
             TextSpan = textSpan,
             TitleSpan = titleSpan
         };
+        inline.SetMarkdownSyntaxMetadataSpans(textSpan, titleSpan);
     }
 
     internal static MarkdownSourceSpan? GetAbbreviationTextSpan(AbbreviationInline? inline) =>
-        inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TextSpan : null;
+        inline?.TextSourceSpan
+        ?? (inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TextSpan : null);
 
     internal static MarkdownSourceSpan? GetAbbreviationTitleSpan(AbbreviationInline? inline) =>
-        inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null;
+        inline?.TitleSourceSpan
+        ?? (inline != null && _abbreviationSpans.TryGetValue(inline, out var holder) ? holder.State?.TitleSpan : null);
 }

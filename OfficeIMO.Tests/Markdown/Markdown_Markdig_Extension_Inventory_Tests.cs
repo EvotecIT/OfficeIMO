@@ -55,6 +55,8 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains("Writer/render", markdigCompatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains("semantic HeadingBlock level/text source spans", markdigCompatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains("semantic LinkInline/ImageInline/ImageLinkInline source spans", markdigCompatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains("semantic CodeSpanInline content source spans", markdigCompatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains("semantic AbbreviationInline text/title source spans", markdigCompatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains("semantic ImageBlock source spans", markdigCompatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains("semantic CodeBlock and SemanticFencedBlock info/content source spans", markdigCompatibilityMatrix, StringComparison.Ordinal);
 
@@ -66,6 +68,8 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains("Scope decision", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("semantic HeadingBlock level/text source spans", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("semantic LinkInline/ImageInline/ImageLinkInline source spans", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains("semantic CodeSpanInline content source spans", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains("semantic AbbreviationInline text/title source spans", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("semantic ImageBlock source spans", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("semantic CodeBlock and SemanticFencedBlock info/content source spans", parityGapPlan, StringComparison.Ordinal);
     }
