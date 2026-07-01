@@ -65,7 +65,6 @@ namespace OfficeIMO.Word {
                     .Cast<string>(),
                 StringComparer.Ordinal);
 
-            int pageNumber = 1;
             int captionIndex = 0;
             skippedCaptionCount = 0;
 
