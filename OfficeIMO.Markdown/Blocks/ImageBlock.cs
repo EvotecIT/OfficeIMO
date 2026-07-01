@@ -18,6 +18,16 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     public string? Alt { get; }
     /// <summary>Plain-text alternate text used for HTML rendering and text extraction.</summary>
     public string? PlainAlt { get; }
+    /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan => AltSyntaxSpan;
+    /// <summary>Source span for the image path token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? PathSourceSpan => SourceSyntaxSpan;
+    /// <summary>Source span for the image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan => TitleSyntaxSpan;
+    /// <summary>Source span for the wrapping link URL token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkUrlSourceSpan => LinkTargetSyntaxSpan;
+    /// <summary>Source span for the wrapping link title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkTitleSourceSpan => LinkTitleSyntaxSpan;
     /// <summary>Optional title attribute.</summary>
     public string? Title { get; }
     /// <summary>Optional width hint (points/pixels as provided).</summary>

@@ -303,11 +303,11 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
         LinkRel = image.LinkRel;
         PictureFallbackPath = image.PictureFallbackPath;
         PictureSources = image.PictureSources.ToArray();
-        AltSourceSpan = image.AltSyntaxSpan;
-        SourceSourceSpan = image.SourceSyntaxSpan;
-        TitleSourceSpan = image.TitleSyntaxSpan;
-        LinkUrlSourceSpan = image.LinkTargetSyntaxSpan;
-        LinkTitleSourceSpan = image.LinkTitleSyntaxSpan;
+        AltSourceSpan = image.AltSourceSpan;
+        SourceSourceSpan = image.PathSourceSpan;
+        TitleSourceSpan = image.TitleSourceSpan;
+        LinkUrlSourceSpan = image.LinkUrlSourceSpan;
+        LinkTitleSourceSpan = image.LinkTitleSourceSpan;
     }
 
     /// <summary>Source image block.</summary>
