@@ -156,11 +156,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case CarriageReturn:
                         AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
                         break;
+                    case NoBreakHyphen:
+                        AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.NoBreakHyphen.ToString(), formatting, storyStart);
+                        break;
+                    case SoftHyphen:
+                        AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.SoftHyphen.ToString(), formatting, storyStart);
+                        break;
                     case Break breakNode:
                         AppendSimpleFootnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text, tabs, carriage returns, and text-wrapping/page/column breaks. Unsupported footnote run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks. Unsupported footnote run element: {child.LocalName}.");
                 }
             }
         }
@@ -250,11 +256,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case CarriageReturn:
                         AppendFormattedNoteText(text, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
                         break;
+                    case NoBreakHyphen:
+                        AppendFormattedNoteText(text, runs, LegacyDocSpecialCharacters.NoBreakHyphen.ToString(), formatting, storyStart);
+                        break;
+                    case SoftHyphen:
+                        AppendFormattedNoteText(text, runs, LegacyDocSpecialCharacters.SoftHyphen.ToString(), formatting, storyStart);
+                        break;
                     case Break breakNode:
                         AppendSupportedNoteHyperlinkBreak(text, runs, breakNode, id, noteKind, storyStart, formatting);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text, tabs, carriage returns, and text-wrapping/page/column break display runs. Unsupported hyperlink run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column break display runs. Unsupported hyperlink run element: {child.LocalName}.");
                 }
             }
         }

@@ -602,6 +602,9 @@ just to reserve names.
   - [x] Project imported line/page/column break characters and native-written
     text-wrapping, carriage-return, page, and column breaks as real Word break
     runs after legacy DOC reload.
+  - [x] Write OpenXML soft-hyphen and no-break-hyphen run elements as Unicode
+    DOC text and reload them through the legacy reader across body, hyperlink,
+    header/footer, and note story paths.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

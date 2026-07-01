@@ -293,11 +293,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case CarriageReturn:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting);
                         break;
+                    case NoBreakHyphen:
+                        AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, LegacyDocSpecialCharacters.NoBreakHyphen.ToString(), formatting);
+                        break;
+                    case SoftHyphen:
+                        AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, LegacyDocSpecialCharacters.SoftHyphen.ToString(), formatting);
+                        break;
                     case Break breakNode:
                         AppendFormattedHeaderFooterBreak(storyText, formattedRuns, paragraphText, breakNode, kind, formatting);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text, tabs, carriage returns, and text-wrapping/page/column breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
                 }
             }
         }

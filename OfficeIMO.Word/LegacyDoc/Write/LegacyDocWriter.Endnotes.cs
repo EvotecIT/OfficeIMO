@@ -132,11 +132,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case CarriageReturn:
                         AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
                         break;
+                    case NoBreakHyphen:
+                        AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.NoBreakHyphen.ToString(), formatting, storyStart);
+                        break;
+                    case SoftHyphen:
+                        AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.SoftHyphen.ToString(), formatting, storyStart);
+                        break;
                     case Break breakNode:
                         AppendSimpleEndnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text, tabs, carriage returns, and text-wrapping/page/column breaks. Unsupported endnote run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks. Unsupported endnote run element: {child.LocalName}.");
                 }
             }
         }

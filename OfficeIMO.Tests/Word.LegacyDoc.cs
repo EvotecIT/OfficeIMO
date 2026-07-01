@@ -4131,6 +4131,63 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSoftAndNoBreakHyphenRunsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string noBreak = LegacyDocSpecialCharacters.NoBreakHyphen.ToString();
+            string soft = LegacyDocSpecialCharacters.SoftHyphen.ToString();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph body = document.AddParagraph("Body");
+                    body._paragraph.Append(
+                        new Run(new NoBreakHyphen()),
+                        new Run(new Text("NoBreak") { Space = SpaceProcessingModeValues.Preserve }),
+                        new Run(new SoftHyphen()),
+                        new Run(new Text("Soft") { Space = SpaceProcessingModeValues.Preserve }));
+
+                    WordParagraph linked = document.AddParagraph("Link ");
+                    linked.AddHyperLink("A", new Uri("https://officeimo.net/hyphens"), addStyle: true);
+                    Hyperlink hyperlink = linked.Hyperlink!._hyperlink;
+                    hyperlink.Append(new Run(new NoBreakHyphen()));
+                    hyperlink.Append(new Run(new Text("B") { Space = SpaceProcessingModeValues.Preserve }));
+                    hyperlink.Append(new Run(new SoftHyphen()));
+                    hyperlink.Append(new Run(new Text("C") { Space = SpaceProcessingModeValues.Preserve }));
+
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header");
+                    header._paragraph.Append(new Run(new NoBreakHyphen()), new Run(new Text("NoBreak")), new Run(new SoftHyphen()), new Run(new Text("Soft")));
+                    WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer");
+                    footer._paragraph.Append(new Run(new NoBreakHyphen()), new Run(new Text("NoBreak")), new Run(new SoftHyphen()), new Run(new Text("Soft")));
+
+                    WordParagraph paragraph = document.AddParagraph("Notes");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote");
+                    footnoteReference.FootNote!.Paragraphs![1]._paragraph.Append(new Run(new NoBreakHyphen()), new Run(new Text("NoBreak")), new Run(new SoftHyphen()), new Run(new Text("Soft")));
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote");
+                    endnoteReference.EndNote!.Paragraphs![1]._paragraph.Append(new Run(new NoBreakHyphen()), new Run(new Text("NoBreak")), new Run(new SoftHyphen()), new Run(new Text("Soft")));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph._paragraph.InnerText == $"Body{noBreak}NoBreak{soft}Soft");
+
+                WordHyperLink link = Assert.Single(reloaded.HyperLinks, item => item.Uri?.ToString() == "https://officeimo.net/hyphens");
+                Assert.Equal($"A{noBreak}B{soft}C", GetHyperlinkText(link._hyperlink));
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.Equal($"Header{noBreak}NoBreak{soft}Soft", Assert.Single(reloadedSection.Header.Default!.Paragraphs)._paragraph.InnerText);
+                Assert.Equal($"Footer{noBreak}NoBreak{soft}Soft", Assert.Single(reloadedSection.Footer.Default!.Paragraphs)._paragraph.InnerText);
+                Assert.Equal($"Footnote{noBreak}NoBreak{soft}Soft", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal($"Endnote{noBreak}NoBreak{soft}Soft", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphAlignmentAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
