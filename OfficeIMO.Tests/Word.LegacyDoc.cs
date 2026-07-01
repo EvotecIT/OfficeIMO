@@ -8191,7 +8191,8 @@ namespace OfficeIMO.Tests {
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("inherited custom table-level formatting is supported borders and shading", exception.Message);
+                Assert.Contains("table cell spacing", exception.Message.ToLowerInvariant());
+                Assert.Contains("dxa", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

@@ -744,6 +744,10 @@ just to reserve names.
     table style by inheriting supported palette-backed borders and shading,
     while continuing to block richer inherited visual effects before native DOC
     bytes are committed.
+  - [x] Write custom table styles based on another custom table-level layout
+    style by inheriting supported alignment, indentation, preferred width,
+    fixed/autofit layout, default cell margins, default cell spacing, and band
+    sizes, while preserving child style and direct table/cell overrides.
   - [x] Write custom table styles whose only table-level formatting is
     supported palette-backed borders by expanding the style borders to native
     DOC `TC80` values, while continuing to block conditional, paragraph, run,

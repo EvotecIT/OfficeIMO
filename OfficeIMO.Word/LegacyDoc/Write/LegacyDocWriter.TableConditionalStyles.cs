@@ -17,9 +17,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return LegacyDocTableConditionalStyleSet.Empty;
             }
 
-            StyleTableProperties? styleTableProperties = style.GetFirstChild<StyleTableProperties>();
-            int rowBandSize = ReadSupportedTableStyleBandSize(styleTableProperties?.GetFirstChild<TableStyleRowBandSize>()?.Val, "row");
-            int columnBandSize = ReadSupportedTableStyleBandSize(styleTableProperties?.GetFirstChild<TableStyleColumnBandSize>()?.Val, "column");
+            int rowBandSize = ReadSupportedTableStyleOwnRowBandSize(style)
+                ?? ReadSupportedTableStyleBaseRowBandSize(style, tableStyleDefinitions)
+                ?? 1;
+            int columnBandSize = ReadSupportedTableStyleOwnColumnBandSize(style)
+                ?? ReadSupportedTableStyleBaseColumnBandSize(style, tableStyleDefinitions)
+                ?? 1;
             var conditionalStyles = new List<LegacyDocTableConditionalStyle>();
             foreach (TableStyleProperties properties in style.Elements<TableStyleProperties>()) {
                 TableStyleOverrideValues? type = properties.Type?.Value;
