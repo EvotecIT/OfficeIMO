@@ -275,6 +275,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [x] Add shared visual-column start-offset mapping so prefix/trivia preservation code can slice text before a tab-expanded column without raw-character drift.
 - [x] Expose native document-level line-ending trivia and original-source slices/edits that preserve CRLF, LF, and standalone CR spelling around line-ending-equivalent mapping.
 - [x] Expose callout/alert opening and closing marker spans in syntax and native projections so alert header source ownership covers marker, kind, title, and body fields.
+- [x] Expose custom-container name source spans and native `customContainerName` source fields so editor hosts can target the rendered class token without rescanning the full info string.
 
 ## P4 - Keep Renderer, Writer, Extension, And Security Policy Explicit
 

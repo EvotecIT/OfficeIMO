@@ -5,6 +5,7 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock, ITightListItemHtmlMarkdownBlock {
     private readonly IReadOnlyList<IMarkdownBlock> _childBlocks;
+    private MarkdownSourceSpan? _infoSourceSpan;
 
     /// <summary>First token from the container info string, used as the rendered CSS class.</summary>
     public string Name { get; }
@@ -28,7 +29,16 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
     public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
 
     /// <summary>Source span for the container info string.</summary>
-    public MarkdownSourceSpan? InfoSourceSpan { get; internal set; }
+    public MarkdownSourceSpan? InfoSourceSpan {
+        get => _infoSourceSpan;
+        internal set {
+            _infoSourceSpan = value;
+            NameSourceSpan = CreateNameSourceSpan(value, Name);
+        }
+    }
+
+    /// <summary>Source span for the first info token used as the rendered CSS class.</summary>
+    public MarkdownSourceSpan? NameSourceSpan { get; internal set; }
 
     /// <summary>Source span for the closing colon fence marker, when present.</summary>
     public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
@@ -190,5 +200,30 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
         }
 
         return trimmed.Substring(0, end);
+    }
+
+    internal static MarkdownSourceSpan? CreateNameSourceSpan(MarkdownSourceSpan? infoSourceSpan, string name) {
+        if (!infoSourceSpan.HasValue ||
+            string.IsNullOrEmpty(name) ||
+            !infoSourceSpan.Value.StartColumn.HasValue ||
+            !infoSourceSpan.Value.EndColumn.HasValue ||
+            infoSourceSpan.Value.StartLine != infoSourceSpan.Value.EndLine) {
+            return null;
+        }
+
+        var span = infoSourceSpan.Value;
+        var endColumn = span.StartColumn.Value + name.Length - 1;
+        int? endOffset = null;
+        if (span.StartOffset.HasValue) {
+            endOffset = span.StartOffset.Value + name.Length - 1;
+        }
+
+        return new MarkdownSourceSpan(
+            span.StartLine,
+            span.StartColumn.Value,
+            span.StartLine,
+            endColumn,
+            span.StartOffset,
+            endOffset);
     }
 }

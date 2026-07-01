@@ -182,6 +182,10 @@ public sealed partial class MarkdownNativeDocument {
                     yield return new MarkdownNativeBlockSourceField("customContainerInfo", customContainer.Info, customContainer.InfoSourceSpan.Value, customContainer);
                 }
 
+                if (customContainer.NameSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("customContainerName", customContainer.Name, customContainer.NameSourceSpan.Value, customContainer);
+                }
+
                 if (customContainer.BodySourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("customContainerBody", null, customContainer.BodySourceSpan.Value, customContainer);
                 }

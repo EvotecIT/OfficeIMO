@@ -136,6 +136,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("customContainerOpeningFence", customContainer.OpeningFenceSourceSpan),
                     ("customContainerInfo", customContainer.InfoSourceSpan),
+                    ("customContainerName", customContainer.NameSourceSpan),
                     ("customContainerBody", customContainer.BodySourceSpan),
                     ("customContainerClosingFence", customContainer.ClosingFenceSourceSpan));
                 break;

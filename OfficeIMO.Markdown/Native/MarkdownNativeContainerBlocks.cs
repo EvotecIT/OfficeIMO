@@ -126,6 +126,7 @@ public sealed class MarkdownNativeCustomContainerBlock : MarkdownNativeBlock {
         ClosingFence = new string(':', Math.Max(3, container.ClosingFenceLength));
         OpeningFenceSourceSpan = container.OpeningFenceSourceSpan ?? FindCustomContainerChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CustomContainerOpeningFence);
         InfoSourceSpan = container.InfoSourceSpan ?? FindCustomContainerChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CustomContainerInfo);
+        NameSourceSpan = container.NameSourceSpan ?? CustomContainerBlock.CreateNameSourceSpan(InfoSourceSpan, Name);
         ClosingFenceSourceSpan = container.ClosingFenceSourceSpan ?? FindCustomContainerChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CustomContainerClosingFence);
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
@@ -151,6 +152,9 @@ public sealed class MarkdownNativeCustomContainerBlock : MarkdownNativeBlock {
 
     /// <summary>Source span for the container info string when available.</summary>
     public MarkdownSourceSpan? InfoSourceSpan { get; }
+
+    /// <summary>Source span for the first info token used as the rendered CSS class when available.</summary>
+    public MarkdownSourceSpan? NameSourceSpan { get; }
 
     /// <summary>Source span for the structured container body when available.</summary>
     public MarkdownSourceSpan? BodySourceSpan { get; }
