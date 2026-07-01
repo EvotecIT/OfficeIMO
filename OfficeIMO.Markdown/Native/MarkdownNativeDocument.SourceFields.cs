@@ -109,17 +109,8 @@ public sealed partial class MarkdownNativeDocument {
 
                 break;
             case MarkdownNativeTableBlock table:
-                if (table.AlignmentRowSourceSpan.HasValue) {
-                    yield return new MarkdownNativeBlockSourceField("alignmentRow", null, table.AlignmentRowSourceSpan.Value, table);
-                }
-
-                for (var i = 0; i < table.AlignmentCells.Count; i++) {
-                    var cell = table.AlignmentCells[i];
-                    yield return new MarkdownNativeBlockSourceField("alignmentCell", cell.Markdown, cell.SourceSpan, table, i);
-                }
-
-                for (var i = 0; i < table.Pipes.Count; i++) {
-                    yield return new MarkdownNativeBlockSourceField("tablePipe", "|", table.Pipes[i].SourceSpan, table, i);
+                foreach (var field in EnumerateTableFields(table)) {
+                    yield return field;
                 }
 
                 break;
@@ -277,6 +268,70 @@ public sealed partial class MarkdownNativeDocument {
             MarkdownGenericAttributeSourceSpans.GetSourceText(markdownObject),
             sourceSpan.Value,
             block);
+    }
+
+    private static IEnumerable<MarkdownNativeBlockSourceField> EnumerateTableFields(MarkdownNativeTableBlock table) {
+        var fields = new List<MarkdownNativeBlockSourceField>();
+
+        if (table.AlignmentRowSourceSpan.HasValue) {
+            fields.Add(new MarkdownNativeBlockSourceField("alignmentRow", null, table.AlignmentRowSourceSpan.Value, table));
+        }
+
+        for (var i = 0; i < table.AlignmentCells.Count; i++) {
+            var cell = table.AlignmentCells[i];
+            fields.Add(new MarkdownNativeBlockSourceField("alignmentCell", cell.Markdown, cell.SourceSpan, table, i));
+        }
+
+        var cellIndex = 0;
+        AddTableCellFields(fields, table, table.HeaderCells, ref cellIndex);
+        for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+            AddTableCellFields(fields, table, table.Rows[rowIndex], ref cellIndex);
+        }
+
+        for (var i = 0; i < table.Pipes.Count; i++) {
+            fields.Add(new MarkdownNativeBlockSourceField("tablePipe", "|", table.Pipes[i].SourceSpan, table, i));
+        }
+
+        foreach (var field in fields
+            .OrderBy(field => field.SourceSpan.StartLine)
+            .ThenBy(field => field.SourceSpan.StartColumn ?? 0)
+            .ThenBy(field => field.SourceSpan.EndLine)
+            .ThenBy(field => field.SourceSpan.EndColumn ?? 0)
+            .ThenBy(field => GetTableSourceFieldSortWeight(field.Name))) {
+            yield return field;
+        }
+    }
+
+    private static void AddTableCellFields(
+        ICollection<MarkdownNativeBlockSourceField> fields,
+        MarkdownNativeTableBlock table,
+        IReadOnlyList<MarkdownNativeTableCell> cells,
+        ref int cellIndex) {
+        if (cells == null || cells.Count == 0) {
+            return;
+        }
+
+        for (var i = 0; i < cells.Count; i++) {
+            var cell = cells[i];
+            if (cell.SourceSpan.HasValue) {
+                fields.Add(new MarkdownNativeBlockSourceField("tableCell", cell.Markdown, cell.SourceSpan.Value, table, cellIndex));
+            }
+
+            cellIndex++;
+        }
+    }
+
+    private static int GetTableSourceFieldSortWeight(string name) {
+        if (string.Equals(name, "tablePipe", StringComparison.OrdinalIgnoreCase)) {
+            return 0;
+        }
+
+        if (string.Equals(name, "tableCell", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "alignmentCell", StringComparison.OrdinalIgnoreCase)) {
+            return 1;
+        }
+
+        return 2;
     }
 
     private static bool IsNarrowerSourceSpan(MarkdownSourceSpan candidate, MarkdownSourceSpan current) {

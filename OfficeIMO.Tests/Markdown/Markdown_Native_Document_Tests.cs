@@ -1546,6 +1546,14 @@ After
         Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 8), tablePipes[1].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 8), tablePipes[4].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(3, 7, 3, 7), tablePipes[7].SourceSpan);
+        var tableCells = table.EnumerateSourceFields("tableCell").ToArray();
+        Assert.Equal(4, tableCells.Length);
+        Assert.Equal(new[] { 0, 1, 2, 3 }, tableCells.Select(field => field.Index).ToArray());
+        Assert.Equal(new[] { "Name", "Value", "CPU", "42" }, tableCells.Select(field => field.Value).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 6), tableCells[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 14), tableCells[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 5), tableCells[2].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 10), tableCells[3].SourceSpan);
         var selectedAlignmentCell = native.FindBlockSourceFieldAtPosition(2, 3);
         Assert.NotNull(selectedAlignmentCell);
         Assert.Equal("alignmentCell", selectedAlignmentCell!.Name);
@@ -1554,6 +1562,10 @@ After
         Assert.NotNull(selectedPipe);
         Assert.Equal("tablePipe", selectedPipe!.Name);
         Assert.Equal(tablePipes[1].SourceSpan, selectedPipe.SourceSpan);
+        var selectedTableCell = native.FindBlockSourceFieldAtPosition(3, 9);
+        Assert.NotNull(selectedTableCell);
+        Assert.Equal("tableCell", selectedTableCell!.Name);
+        Assert.Equal(tableCells[3].SourceSpan, selectedTableCell.SourceSpan);
 
         var snapshotAlignmentCells = snapshot.EnumerateSourceFields("alignmentCell").ToArray();
         Assert.Equal(2, snapshotAlignmentCells.Length);
@@ -1567,6 +1579,12 @@ After
         Assert.Equal(8, snapshotPipes[8].Index);
         Assert.Equal(8, snapshotPipes[1].SourceSpan.StartColumn);
         Assert.Equal(12, snapshotPipes[8].SourceSpan.EndColumn);
+        var snapshotCells = snapshot.EnumerateSourceFields("tableCell").ToArray();
+        Assert.Equal(4, snapshotCells.Length);
+        Assert.Equal("Value", snapshotCells[1].Value);
+        Assert.Equal(1, snapshotCells[1].Index);
+        Assert.Equal(10, snapshotCells[1].SourceSpan.StartColumn);
+        Assert.Equal(14, snapshotCells[1].SourceSpan.EndColumn);
 
         var edited = native.CreateReplaceEdit(table.AlignmentRowSourceSpan!.Value, "| :---: | --- |").Apply(native.SourceMarkdown);
         Assert.Equal("| :---: | --- |", edited.Split('\n')[1]);
@@ -1574,6 +1592,8 @@ After
         Assert.Equal("| :---: | ---: |", editedCell.Split('\n')[1]);
         var editedPipe = native.CreateReplaceEdit(tablePipes[1], "||").Apply(native.SourceMarkdown);
         Assert.Equal("| Name || Value |", editedPipe.Split('\n')[0]);
+        var editedTableCell = native.CreateReplaceEdit(tableCells[3], "84").Apply(native.SourceMarkdown);
+        Assert.Equal("| CPU | 84 |", editedTableCell.Split('\n')[2]);
     }
 
     [Fact]
@@ -1620,6 +1640,13 @@ After
         Assert.Equal(10, snapshot.HeaderCells[1].SourceSpan!.EndColumn);
         Assert.Equal(8, snapshot.Rows[0][1].SourceSpan!.StartColumn);
         Assert.Equal(9, snapshot.Rows[0][1].SourceSpan!.EndColumn);
+        var tableCells = table.EnumerateSourceFields("tableCell").ToArray();
+        Assert.Equal(4, tableCells.Length);
+        Assert.Equal(string.Empty, tableCells[1].Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 10), tableCells[1].SourceSpan);
+        Assert.Equal(string.Empty, tableCells[3].Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 8, 3, 9), tableCells[3].SourceSpan);
+        Assert.Equal("tableCell", native.FindBlockSourceFieldAtPosition(3, 8)!.Name);
 
         var edited = native.CreateReplaceEdit(bodyEmpty.SourceSpan!.Value, " 2 ").Apply(native.SourceMarkdown);
         Assert.Equal("| One | 2 |", edited.Split('\n')[2]);
