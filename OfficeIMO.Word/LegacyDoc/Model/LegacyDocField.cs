@@ -145,6 +145,46 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return TryReadDateTimeFieldKind(instruction, out fieldKind);
         }
 
+        internal static bool TryReadDocumentPropertyField(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out string instruction,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            instruction = string.Empty;
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (!TryReadField(
+                characters,
+                startIndex,
+                out instruction,
+                out resultStartIndex,
+                out resultEndIndex,
+                out fieldEndIndex)) {
+                return false;
+            }
+
+            return IsDocumentPropertyInstruction(instruction);
+        }
+
+        internal static bool IsDocumentPropertyInstruction(string instruction) {
+            string trimmed = instruction.Trim();
+            if (IsInstruction(trimmed, "DOCPROPERTY")) {
+                return HasDocPropertyNameToken(trimmed, "DOCPROPERTY".Length);
+            }
+
+            return IsInstruction(trimmed, "AUTHOR")
+                || IsInstruction(trimmed, "TITLE")
+                || IsInstruction(trimmed, "SUBJECT")
+                || IsInstruction(trimmed, "KEYWORDS")
+                || IsInstruction(trimmed, "COMMENTS")
+                || IsInstruction(trimmed, "LASTSAVEDBY")
+                || IsInstruction(trimmed, "REVNUM");
+        }
+
         private static bool TryReadHyperlinkInstruction(string instruction, out LegacyDocHyperlinkTarget target) {
             target = default;
             string trimmed = instruction.Trim();
@@ -298,6 +338,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private static bool IsInstruction(string trimmedInstruction, string fieldName) {
             return trimmedInstruction.StartsWith(fieldName, StringComparison.OrdinalIgnoreCase)
                 && (trimmedInstruction.Length == fieldName.Length || char.IsWhiteSpace(trimmedInstruction[fieldName.Length]));
+        }
+
+        private static bool HasDocPropertyNameToken(string instruction, int startIndex) {
+            int index = startIndex;
+            while (index < instruction.Length && char.IsWhiteSpace(instruction[index])) {
+                index++;
+            }
+
+            if (index >= instruction.Length || instruction[index] == '\\') {
+                return false;
+            }
+
+            if (instruction[index] == '"') {
+                return TryReadQuotedValue(instruction, index, out string? value)
+                    && !string.IsNullOrWhiteSpace(value);
+            }
+
+            return true;
         }
 
         private static int IndexOfHyperlinkAnchorSwitch(string instruction, int startIndex) {

@@ -339,6 +339,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadDocumentPropertyField(
+                    storyCharacters,
+                    index,
+                    out string documentPropertyInstruction,
+                    out int documentPropertyResultStartIndex,
+                    out int documentPropertyResultEndIndex,
+                    out int documentPropertyFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.DocumentProperty, documentPropertyInstruction, documentPropertyResultStartIndex, documentPropertyResultEndIndex);
+                    index = documentPropertyFieldEndIndex;
+                    atParagraphStart = false;
+                    skipOptionalReferenceSpace = false;
+                    continue;
+                }
+
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (isFirstParagraph && atParagraphStart && normalized == FootnoteReferenceCharacter) {
                     skipOptionalReferenceSpace = true;

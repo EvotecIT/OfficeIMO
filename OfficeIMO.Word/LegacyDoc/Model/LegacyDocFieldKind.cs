@@ -7,6 +7,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Time,
         CreateDate,
         SaveDate,
-        PrintDate
+        PrintDate,
+        DocumentProperty
     }
 }

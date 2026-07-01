@@ -157,7 +157,8 @@ reader projects supported Word 97-2003 body paragraphs, simple zero-length,
 same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
 header/footer, and footnote/endnote paragraph bookmarks, simple external and
 internal bookmark hyperlink fields with supported text, tab, soft/no-break
-hyphen, and break display runs, simple static date/time field display results,
+hyphen, and break display runs, simple static date/time and document-property
+field display results,
 common run and paragraph formatting including proofing exclusion, bidirectional
 paragraph layout, mirror indents, contextual spacing, East Asian typography and
 punctuation spacing flags, and automatic hyphenation suppression, built-in and
@@ -171,8 +172,8 @@ is available for the supported simple subset: paragraphs, simple zero-length,
 same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
 header/footer, and footnote/endnote paragraph bookmarks, simple external and
 internal bookmark hyperlinks with supported text, tab, soft/no-break hyphen,
-break display runs, simple static date/time fields with static display text and
-supported inline result characters including inside flattened inline content
+break display runs, simple static date/time and document-property fields with
+static display text and supported inline result characters including inside flattened inline content
 controls, simple inline content-control display text, and simple block content
 controls with nested
 simple block controls plus nested inline content controls in

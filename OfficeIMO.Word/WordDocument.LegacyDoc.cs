@@ -871,8 +871,8 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (legacyRun.IsStaticDateTimeField) {
-                    AddLegacyDocStaticDateTimeField(paragraph, legacyRun, bookmarks);
+                if (legacyRun.IsStaticDisplayField) {
+                    AddLegacyDocStaticDisplayField(paragraph, legacyRun, bookmarks);
                     continue;
                 }
 
@@ -907,8 +907,8 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            if (legacyRun.IsStaticDateTimeField) {
-                AddLegacyDocStaticDateTimeField(paragraph, legacyRun, bookmarks);
+            if (legacyRun.IsStaticDisplayField) {
+                AddLegacyDocStaticDisplayField(paragraph, legacyRun, bookmarks);
                 return;
             }
 
@@ -1204,9 +1204,9 @@ namespace OfficeIMO.Word {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
-        private static void AddLegacyDocStaticDateTimeField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
+        private static void AddLegacyDocStaticDisplayField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
-            var simpleField = new SimpleField { Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction) ? GetLegacyDocStaticDateTimeInstruction(legacyRun.FieldKind) : legacyRun.FieldInstruction };
+            var simpleField = new SimpleField { Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction) ? GetLegacyDocStaticFieldInstruction(legacyRun.FieldKind) : legacyRun.FieldInstruction };
             AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text);
             paragraph._paragraph.Append(simpleField);
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
@@ -1261,12 +1261,13 @@ namespace OfficeIMO.Word {
             ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
         }
 
-        private static string GetLegacyDocStaticDateTimeInstruction(LegacyDocFieldKind fieldKind) {
+        private static string GetLegacyDocStaticFieldInstruction(LegacyDocFieldKind fieldKind) {
             return fieldKind switch {
                 LegacyDocFieldKind.Time => " TIME  ",
                 LegacyDocFieldKind.CreateDate => " CREATEDATE  ",
                 LegacyDocFieldKind.SaveDate => " SAVEDATE  ",
                 LegacyDocFieldKind.PrintDate => " PRINTDATE  ",
+                LegacyDocFieldKind.DocumentProperty => throw new NotSupportedException("Legacy DOC document-property field projection requires the source field instruction."),
                 _ => " DATE  "
             };
         }

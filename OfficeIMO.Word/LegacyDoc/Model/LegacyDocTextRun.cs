@@ -168,6 +168,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || FieldKind == LegacyDocFieldKind.SaveDate
             || FieldKind == LegacyDocFieldKind.PrintDate;
 
+        internal bool IsStaticDisplayField =>
+            IsStaticDateTimeField
+            || FieldKind == LegacyDocFieldKind.DocumentProperty;
+
         internal bool IsSpecified(LegacyDocCharacterFormatProperties property) {
             return (Specified & property) != 0;
         }

@@ -190,6 +190,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadDocumentPropertyField(
+                    storyCharacters,
+                    index,
+                    out string documentPropertyInstruction,
+                    out int documentPropertyResultStartIndex,
+                    out int documentPropertyResultEndIndex,
+                    out int documentPropertyFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.DocumentProperty, documentPropertyInstruction, documentPropertyResultStartIndex, documentPropertyResultEndIndex);
+                    index = documentPropertyFieldEndIndex;
+                    continue;
+                }
+
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (normalized == '\r') {
                     preserveEmptyParagraph = HasLaterHeaderFooterParagraphContent(storyCharacters, index + 1);

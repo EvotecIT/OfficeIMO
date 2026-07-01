@@ -250,6 +250,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocDocumentPropertyFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    AppendSimpleField(document.AddParagraph("Author ")._paragraph, " AUTHOR ", "Ada Writer");
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Title ", removeExistingParagraphs: true);
+                    AppendComplexField(cellParagraph._paragraph, " TITLE ", "Quarterly Plan");
+
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    AppendSimpleField(section.Header.Default!.AddParagraph("Client ")._paragraph, " DOCPROPERTY \"ClientName\" ", "Evotec");
+                    AppendComplexField(section.Footer.Default!.AddParagraph("Subject ")._paragraph, " SUBJECT ", "Legacy DOC subject");
+
+                    WordParagraph noteReferences = document.AddParagraph("Notes ");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    AppendSimpleField(footnoteBody._paragraph, " KEYWORDS ", "doc fields");
+
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    AppendComplexField(endnoteBody._paragraph, " LASTSAVEDBY ", "OfficeIMO");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                SimpleField[] documentPropertyFields = GetReloadedDocumentPropertyFields(mainPart).ToArray();
+                Assert.Equal(6, documentPropertyFields.Length);
+                Assert.Contains(documentPropertyFields, field => IsFieldWithText(field, "AUTHOR", "Ada Writer"));
+                Assert.Contains(documentPropertyFields, field => IsFieldWithText(field, "TITLE", "Quarterly Plan"));
+                Assert.Contains(documentPropertyFields, field => IsFieldWithText(field, "DOCPROPERTY", "Evotec"));
+                Assert.Contains(documentPropertyFields, field => IsFieldWithText(field, "SUBJECT", "Legacy DOC subject"));
+                Assert.Contains(documentPropertyFields, field => IsFieldWithText(field, "KEYWORDS", "doc fields"));
+                Assert.Contains(documentPropertyFields, field => IsFieldWithText(field, "LASTSAVEDBY", "OfficeIMO"));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocInlineContentControlStaticDateTimeFieldsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -386,37 +433,35 @@ namespace OfficeIMO.Tests {
         }
 
         private static IEnumerable<SimpleField> GetReloadedDateTimeFields(MainDocumentPart mainPart) {
-            foreach (SimpleField field in mainPart.Document.Body!.Descendants<SimpleField>()) {
-                if (IsStaticDateTimeField(field)) {
-                    yield return field;
-                }
+            return GetReloadedFields(mainPart, IsStaticDateTimeField);
+        }
+
+        private static IEnumerable<SimpleField> GetReloadedDocumentPropertyFields(MainDocumentPart mainPart) {
+            return GetReloadedFields(mainPart, IsDocumentPropertyField);
+        }
+
+        private static IEnumerable<SimpleField> GetReloadedFields(MainDocumentPart mainPart, Func<SimpleField, bool> predicate) {
+            foreach (SimpleField field in mainPart.Document.Body!.Descendants<SimpleField>().Where(predicate)) {
+                yield return field;
             }
 
-            foreach (SimpleField field in mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SimpleField>())) {
-                if (IsStaticDateTimeField(field)) {
-                    yield return field;
-                }
+            foreach (SimpleField field in mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SimpleField>()).Where(predicate)) {
+                yield return field;
             }
 
-            foreach (SimpleField field in mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SimpleField>())) {
-                if (IsStaticDateTimeField(field)) {
-                    yield return field;
-                }
+            foreach (SimpleField field in mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SimpleField>()).Where(predicate)) {
+                yield return field;
             }
 
             if (mainPart.FootnotesPart?.Footnotes != null) {
-                foreach (SimpleField field in mainPart.FootnotesPart.Footnotes.Descendants<SimpleField>()) {
-                    if (IsStaticDateTimeField(field)) {
-                        yield return field;
-                    }
+                foreach (SimpleField field in mainPart.FootnotesPart.Footnotes.Descendants<SimpleField>().Where(predicate)) {
+                    yield return field;
                 }
             }
 
             if (mainPart.EndnotesPart?.Endnotes != null) {
-                foreach (SimpleField field in mainPart.EndnotesPart.Endnotes.Descendants<SimpleField>()) {
-                    if (IsStaticDateTimeField(field)) {
-                        yield return field;
-                    }
+                foreach (SimpleField field in mainPart.EndnotesPart.Endnotes.Descendants<SimpleField>().Where(predicate)) {
+                    yield return field;
                 }
             }
         }
@@ -445,6 +490,17 @@ namespace OfficeIMO.Tests {
                 || IsFieldInstruction(field, "CREATEDATE")
                 || IsFieldInstruction(field, "SAVEDATE")
                 || IsFieldInstruction(field, "PRINTDATE");
+        }
+
+        private static bool IsDocumentPropertyField(SimpleField field) {
+            return IsFieldInstruction(field, "DOCPROPERTY")
+                || IsFieldInstruction(field, "AUTHOR")
+                || IsFieldInstruction(field, "TITLE")
+                || IsFieldInstruction(field, "SUBJECT")
+                || IsFieldInstruction(field, "KEYWORDS")
+                || IsFieldInstruction(field, "COMMENTS")
+                || IsFieldInstruction(field, "LASTSAVEDBY")
+                || IsFieldInstruction(field, "REVNUM");
         }
 
         private static bool IsFieldInstruction(SimpleField field, string fieldName) {

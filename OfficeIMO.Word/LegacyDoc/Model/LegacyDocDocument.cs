@@ -593,6 +593,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadDocumentPropertyField(
+                    characters,
+                    characterIndex,
+                    out string documentPropertyInstruction,
+                    out int documentPropertyResultStartIndex,
+                    out int documentPropertyResultEndIndex,
+                    out int documentPropertyFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.DocumentProperty, documentPropertyInstruction, documentPropertyResultStartIndex, documentPropertyResultEndIndex);
+                    characterIndex = documentPropertyFieldEndIndex;
+                    continue;
+                }
+
                 if (textCharacter.Character == '\a') {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
                     if (paragraphFormat.IsInTable == true) {
