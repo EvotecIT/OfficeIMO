@@ -587,6 +587,9 @@ just to reserve names.
     are committed.
   - [x] Write direct superscript/subscript CHPX runs and reload them through
     the legacy reader.
+  - [x] Write custom paragraph style all-caps, small-caps, superscript, and
+    subscript run formatting into native DOC STSH records, then reload the
+    style-level formatting through the legacy reader.
   - [x] Write direct highlight CHPX runs and reload them through the legacy
     reader.
   - [x] Read and write direct proofing-exclusion run formatting with

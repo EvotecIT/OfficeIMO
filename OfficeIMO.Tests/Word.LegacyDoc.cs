@@ -1632,6 +1632,19 @@ namespace OfficeIMO.Tests {
                 new SdtContentRun(children));
         }
 
+        private static void AddCustomParagraphStyle(Styles styles, string styleId, string styleName, StyleRunProperties runProperties) {
+            var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+            style.Append(new StyleName { Val = styleName });
+            style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+            style.Append(runProperties);
+            styles.Append(style);
+        }
+
+        private static StyleRunProperties AssertCustomStyleRunProperties(Styles styles, string styleId) {
+            Style style = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == styleId);
+            return Assert.IsType<StyleRunProperties>(style.StyleRunProperties);
+        }
+
         private static void AddProofErrorBoundary(Hyperlink hyperlink) {
             hyperlink.PrependChild(new ProofError { Type = ProofingErrorValues.SpellStart });
             hyperlink.Append(new ProofError { Type = ProofingErrorValues.SpellEnd });
@@ -6065,6 +6078,67 @@ namespace OfficeIMO.Tests {
                 StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.StyleRunProperties);
                 Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()!.Val!.Value);
                 Assert.Equal(HighlightColorValues.Yellow, runProperties.GetFirstChild<Highlight>()!.Val!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleCapsAndVerticalPositionAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    AddCustomParagraphStyle(styles, "NativeDocCapsStyle", "Native DOC Caps Style", new StyleRunProperties(new Caps()));
+                    AddCustomParagraphStyle(styles, "NativeDocSmallCapsStyle", "Native DOC Small Caps Style", new StyleRunProperties(new SmallCaps()));
+                    AddCustomParagraphStyle(styles, "NativeDocSuperStyle", "Native DOC Super Style", new StyleRunProperties(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript }));
+                    AddCustomParagraphStyle(styles, "NativeDocSubStyle", "Native DOC Sub Style", new StyleRunProperties(new VerticalTextAlignment { Val = VerticalPositionValues.Subscript }));
+                    document.AddParagraph("Styled caps paragraph").SetStyleId("NativeDocCapsStyle");
+                    document.AddParagraph("Styled small caps paragraph").SetStyleId("NativeDocSmallCapsStyle");
+                    document.AddParagraph("Styled superscript paragraph").SetStyleId("NativeDocSuperStyle");
+                    document.AddParagraph("Styled subscript paragraph").SetStyleId("NativeDocSubStyle");
+
+                    document.Save(docPath);
+                }
+
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3B, 0x08, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmCFCaps for custom paragraph style all-caps.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3A, 0x08, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmCFSmallCaps for custom paragraph style small-caps.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x48, 0x2A, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmCIss superscript for custom paragraph style vertical position.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x48, 0x2A, 0x02),
+                    "Expected the native DOC stylesheet stream to contain sprmCIss subscript for custom paragraph style vertical position.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(
+                    new[] {
+                        "Styled caps paragraph",
+                        "Styled small caps paragraph",
+                        "Styled superscript paragraph",
+                        "Styled subscript paragraph"
+                    },
+                    reloaded.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
+
+                Styles reloadedStyles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                StyleRunProperties capsProperties = AssertCustomStyleRunProperties(reloadedStyles, "LegacyDocNativeDOCCapsStyle");
+                Assert.NotNull(capsProperties.GetFirstChild<Caps>());
+                StyleRunProperties smallCapsProperties = AssertCustomStyleRunProperties(reloadedStyles, "LegacyDocNativeDOCSmallCapsStyle");
+                Assert.NotNull(smallCapsProperties.GetFirstChild<SmallCaps>());
+                StyleRunProperties superProperties = AssertCustomStyleRunProperties(reloadedStyles, "LegacyDocNativeDOCSuperStyle");
+                VerticalTextAlignment superPosition = Assert.IsType<VerticalTextAlignment>(superProperties.GetFirstChild<VerticalTextAlignment>());
+                Assert.Equal(VerticalPositionValues.Superscript, superPosition.Val!.Value);
+                StyleRunProperties subProperties = AssertCustomStyleRunProperties(reloadedStyles, "LegacyDocNativeDOCSubStyle");
+                VerticalTextAlignment subPosition = Assert.IsType<VerticalTextAlignment>(subProperties.GetFirstChild<VerticalTextAlignment>());
+                Assert.Equal(VerticalPositionValues.Subscript, subPosition.Val!.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
