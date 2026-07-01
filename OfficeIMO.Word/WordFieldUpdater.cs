@@ -131,9 +131,9 @@ namespace OfficeIMO.Word {
                 case WordFieldType.Page:
                     return TryEvaluatePage(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.NumChars:
-                    return TryFormatNumericField(document.Statistics.Characters, parsed.NumericPictureSwitch, "Updated from OfficeIMO document statistics Characters.", out value, out status, out message);
+                    return TryFormatIntegerField(document.Statistics.Characters, parsed, "Updated from OfficeIMO document statistics Characters.", out value, out status, out message);
                 case WordFieldType.NumWords:
-                    return TryFormatNumericField(document.Statistics.Words, parsed.NumericPictureSwitch, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
+                    return TryFormatIntegerField(document.Statistics.Words, parsed, "Updated from OfficeIMO document statistics Words.", out value, out status, out message);
                 case WordFieldType.NumPages:
                     return TryFormatIntegerField(totalPages, parsed, "Updated from OfficeIMO page-break count.", out value, out status, out message);
                 case WordFieldType.RevNum:
@@ -209,6 +209,10 @@ namespace OfficeIMO.Word {
                 .FirstOrDefault(pair => string.Equals(pair.Key, propertyName, StringComparison.OrdinalIgnoreCase));
 
             if (!string.IsNullOrEmpty(customProperty.Key)) {
+                if (customProperty.Value.Date.HasValue) {
+                    return TrySetDate(customProperty.Value.Date.Value, parsed, $"Updated from custom document property {customProperty.Key}.", out value, out status, out message);
+                }
+
                 return TrySetTextValue(FormatValue(customProperty.Value.Value), parsed, $"Updated from custom document property {customProperty.Key}.", out value, out status, out message);
             }
 
@@ -510,7 +514,7 @@ namespace OfficeIMO.Word {
                 _ => "bytes"
             };
 
-            return TryFormatNumericField(numericValue, parsed.NumericPictureSwitch, $"Updated from backing DOCX package file size in {unitMessage}.", out value, out status, out message);
+            return TryFormatIntegerField(numericValue, parsed, $"Updated from backing DOCX package file size in {unitMessage}.", out value, out status, out message);
         }
 
         private static bool TryGetFileSizeUnit(IReadOnlyList<string> switches, out FileSizeUnit unit, out string? unsupportedSwitch) {
@@ -557,7 +561,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            return TryFormatNumericField(page.Value, parsed.NumericPictureSwitch, "Updated from OfficeIMO page-break order.", out value, out status, out message);
+            return TryFormatIntegerField(page.Value, parsed, "Updated from OfficeIMO page-break order.", out value, out status, out message);
         }
 
         private static bool TryFormatNumericField(
@@ -585,7 +589,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool TryFormatIntegerField(
-            int numericValue,
+            decimal numericValue,
             WordFieldInventory.ParsedFieldInstruction parsed,
             string successMessage,
             out string? value,
@@ -607,7 +611,7 @@ namespace OfficeIMO.Word {
             switch (format) {
                 case null:
                 case WordFieldFormat.Arabic:
-                    value = numericValue.ToString(CultureInfo.InvariantCulture);
+                    value = numericValue.ToString("0", CultureInfo.InvariantCulture);
                     status = WordFieldUpdateStatus.Updated;
                     message = successMessage;
                     return true;
@@ -620,7 +624,20 @@ namespace OfficeIMO.Word {
                 case WordFieldFormat.CardText:
                 case WordFieldFormat.OrdText:
                 case WordFieldFormat.DollarText:
-                    value = FormatSequenceValue(numericValue, new[] { format.Value });
+                    if (numericValue != decimal.Truncate(numericValue) || numericValue < int.MinValue || numericValue > int.MaxValue) {
+                        status = WordFieldUpdateStatus.Unsupported;
+                        message = $"Field format switch {format.Value} requires an integer value in the deterministic refresh range.";
+                        return false;
+                    }
+
+                    int sequenceValue = decimal.ToInt32(numericValue);
+                    if (RequiresNonNegativeNumber(format.Value) && sequenceValue < 0) {
+                        status = WordFieldUpdateStatus.Unsupported;
+                        message = $"Field format switch {format.Value} requires a non-negative value for deterministic numeric refresh.";
+                        return false;
+                    }
+
+                    value = FormatSequenceValue(sequenceValue, new[] { format.Value });
                     status = WordFieldUpdateStatus.Updated;
                     message = successMessage + " General numeric format switch was applied.";
                     return true;

@@ -33,6 +33,7 @@ namespace OfficeIMO.Tests {
                 document.CustomDocumentProperties["ClientName"] = new WordCustomProperty("Evotec");
                 document.CustomDocumentProperties["Ticket"] = new WordCustomProperty(42);
                 document.CustomDocumentProperties["Reviewed"] = new WordCustomProperty(true);
+                document.CustomDocumentProperties["Due"] = new WordCustomProperty(new DateTime(2024, 2, 3, 12, 0, 0));
 
                 document.AddParagraph("Author: ").AddField(WordFieldType.Author);
                 document.AddParagraph("Title: ").AddField(WordFieldType.Title);
@@ -45,6 +46,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Client: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"ClientName\"" });
                 document.AddParagraph("Ticket: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Ticket\"" });
                 document.AddParagraph("Reviewed: ").AddField(WordFieldType.DocProperty, parameters: new List<string> { "\"Reviewed\"" });
+                document.AddParagraph("Due: ")._paragraph.Append(BuildSimpleField(" DOCPROPERTY Due \\@ \"yyyy-MM-dd\" ", "stale-due"));
                 document.AddParagraph("File: ").AddField(WordFieldType.FileName);
                 document.Save(false);
             }
@@ -52,8 +54,8 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(12, report.TotalCount);
-                Assert.Equal(12, report.UpdatedCount);
+                Assert.Equal(13, report.TotalCount);
+                Assert.Equal(13, report.UpdatedCount);
                 Assert.Equal(0, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
 
@@ -69,6 +71,7 @@ namespace OfficeIMO.Tests {
                 AssertDocPropertyUpdated(report, "ClientName", "Evotec");
                 AssertDocPropertyUpdated(report, "Ticket", "42");
                 AssertDocPropertyUpdated(report, "Reviewed", "True");
+                AssertDocPropertyUpdated(report, "Due", "2024-02-03");
 
                 document.Save(false);
             }
@@ -83,6 +86,10 @@ namespace OfficeIMO.Tests {
                     field.FieldType == WordFieldType.DocProperty &&
                     field.InstructionText.Contains("ClientName", StringComparison.Ordinal) &&
                     field.ResultText == "Evotec");
+                Assert.Contains(fields, field =>
+                    field.FieldType == WordFieldType.DocProperty &&
+                    field.InstructionText.Contains("Due", StringComparison.Ordinal) &&
+                    field.ResultText == "2024-02-03");
             }
         }
 
@@ -214,6 +221,7 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Page one: ").AddField(WordFieldType.Page);
                 document.AddPageBreak();
                 document.AddParagraph("Page two: ").AddField(WordFieldType.Page);
+                document.AddParagraph("Roman page: ")._paragraph.Append(BuildSimpleField(" PAGE \\* Roman ", "stale-page-roman"));
                 document.AddPageBreak();
                 document.AddParagraph("Two explicit breaks")._paragraph.Append(
                     new Run(new Break { Type = BreakValues.Page }),
@@ -230,12 +238,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(8, report.TotalCount);
-                Assert.Equal(6, report.UpdatedCount);
+                Assert.Equal(9, report.TotalCount);
+                Assert.Equal(7, report.UpdatedCount);
                 Assert.Equal(1, report.UnsupportedCount);
                 Assert.Equal(1, report.ParseErrorCount);
 
-                Assert.Equal(new[] { "1", "2", "005" }, report.Results
+                Assert.Equal(new[] { "1", "2", "II", "005" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.Page)
                     .Select(result => result.ResultText)
                     .ToArray());
@@ -269,7 +277,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 var fields = document.InspectFields();
 
-                Assert.Equal(new[] { "1", "2", "005" }, fields
+                Assert.Equal(new[] { "1", "2", "II", "005" }, fields
                     .Where(field => field.FieldType == WordFieldType.Page)
                     .Select(field => field.ResultText)
                     .ToArray());
@@ -367,12 +375,14 @@ namespace OfficeIMO.Tests {
             string expectedKilobytes = string.Empty;
             string expectedMegabytes = string.Empty;
             string expectedFormattedKilobytes = string.Empty;
+            string expectedRomanKilobytes = string.Empty;
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Default size: ").AddField(WordFieldType.FileSize);
                 document.AddParagraph("Kilobytes: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\k ", "stale-k"));
                 document.AddParagraph("Megabytes: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\m ", "stale-m"));
                 document.AddParagraph("Formatted kilobytes: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\k \\# \"000\" ", "stale-picture"));
+                document.AddParagraph("Roman kilobytes: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\k \\* Roman ", "stale-roman"));
                 document.AddParagraph("Unsupported switch: ")._paragraph.Append(BuildSimpleField(" FILESIZE \\p ", "stale-switch"));
                 document.Save(false);
             }
@@ -383,11 +393,12 @@ namespace OfficeIMO.Tests {
                 expectedKilobytes = Math.Round(bytes / 1000m, 0, MidpointRounding.AwayFromZero).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 expectedMegabytes = Math.Round(bytes / 1000000m, 0, MidpointRounding.AwayFromZero).ToString(System.Globalization.CultureInfo.InvariantCulture);
                 expectedFormattedKilobytes = Math.Round(bytes / 1000m, 0, MidpointRounding.AwayFromZero).ToString("000", System.Globalization.CultureInfo.InvariantCulture);
+                expectedRomanKilobytes = ToRoman((int)Math.Round(bytes / 1000m, 0, MidpointRounding.AwayFromZero));
 
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(5, report.TotalCount);
-                Assert.Equal(4, report.UpdatedCount);
+                Assert.Equal(6, report.TotalCount);
+                Assert.Equal(5, report.UpdatedCount);
                 Assert.Equal(1, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
 
@@ -414,6 +425,11 @@ namespace OfficeIMO.Tests {
                     result.Status == WordFieldUpdateStatus.Updated &&
                     result.InstructionText.Contains("\\#", StringComparison.Ordinal) &&
                     result.ResultText == expectedFormattedKilobytes);
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.FileSize &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.InstructionText.Contains("\\* Roman", StringComparison.Ordinal) &&
+                    result.ResultText == expectedRomanKilobytes);
 
                 WordFieldUpdateResult unsupported = Assert.Single(report.Results, result =>
                     result.FieldType == WordFieldType.FileSize &&
@@ -446,6 +462,10 @@ namespace OfficeIMO.Tests {
                     field.ResultText == expectedFormattedKilobytes);
                 Assert.Contains(fields, field =>
                     field.FieldType == WordFieldType.FileSize &&
+                    field.InstructionText.Contains("\\* Roman", StringComparison.Ordinal) &&
+                    field.ResultText == expectedRomanKilobytes);
+                Assert.Contains(fields, field =>
+                    field.FieldType == WordFieldType.FileSize &&
                     field.InstructionText.Contains("\\p", StringComparison.Ordinal) &&
                     field.ResultText == "stale-switch");
             }
@@ -463,22 +483,24 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Characters: ").AddField(WordFieldType.NumChars);
                 document.AddParagraph("Padded words: ")._paragraph.Append(BuildSimpleField(" NUMWORDS \\# \"000\" ", "stale-padded-words"));
                 document.AddParagraph("Grouped characters: ")._paragraph.Append(BuildSimpleField(" NUMCHARS \\# \"#,##0\" ", "stale-grouped-characters"));
+                document.AddParagraph("Roman words: ")._paragraph.Append(BuildSimpleField(" NUMWORDS \\* Roman ", "stale-roman-words"));
+                document.AddParagraph("Roman characters: ")._paragraph.Append(BuildSimpleField(" NUMCHARS \\* Roman ", "stale-roman-characters"));
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(4, report.TotalCount);
-                Assert.Equal(4, report.UpdatedCount);
+                Assert.Equal(6, report.TotalCount);
+                Assert.Equal(6, report.UpdatedCount);
                 Assert.Equal(0, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
 
-                Assert.Equal(new[] { "42", "042" }, report.Results
+                Assert.Equal(new[] { "42", "042", "XLII" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.NumWords)
                     .Select(result => result.ResultText)
                     .ToArray());
-                Assert.Equal(new[] { "1234", "1,234" }, report.Results
+                Assert.Equal(new[] { "1234", "1,234", "MCCXXXIV" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.NumChars)
                     .Select(result => result.ResultText)
                     .ToArray());
@@ -491,8 +513,10 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.NumWords && field.ResultText == "42");
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.NumWords && field.ResultText == "042");
+                Assert.Contains(fields, field => field.FieldType == WordFieldType.NumWords && field.ResultText == "XLII");
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.NumChars && field.ResultText == "1234");
                 Assert.Contains(fields, field => field.FieldType == WordFieldType.NumChars && field.ResultText == "1,234");
+                Assert.Contains(fields, field => field.FieldType == WordFieldType.NumChars && field.ResultText == "MCCXXXIV");
             }
         }
 
@@ -2453,6 +2477,29 @@ namespace OfficeIMO.Tests {
                 new BookmarkEnd { Id = id });
 
             document._document.Body!.Append(paragraph);
+        }
+
+        private static string ToRoman(int value) {
+            if (value <= 0 || value > 3999) {
+                return value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            (int Number, string Numeral)[] map = {
+                (1000, "M"), (900, "CM"), (500, "D"), (400, "CD"),
+                (100, "C"), (90, "XC"), (50, "L"), (40, "XL"),
+                (10, "X"), (9, "IX"), (5, "V"), (4, "IV"), (1, "I")
+            };
+
+            var builder = new System.Text.StringBuilder();
+            int remaining = value;
+            foreach ((int number, string numeral) in map) {
+                while (remaining >= number) {
+                    builder.Append(numeral);
+                    remaining -= number;
+                }
+            }
+
+            return builder.ToString();
         }
 
         private static void AssertUpdated(WordFieldUpdateReport report, WordFieldType fieldType, string expectedResult) {
