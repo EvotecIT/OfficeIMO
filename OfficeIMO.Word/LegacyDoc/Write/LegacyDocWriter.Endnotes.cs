@@ -45,31 +45,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool hasBodyText = false;
             bool isFirstParagraph = true;
             foreach (OpenXmlElement child in endnote.ChildElements) {
-                switch (child) {
-                    case Paragraph paragraph:
-                        int paragraphStart = isFirstParagraph ? 0 : builder.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
-                        if (!string.IsNullOrEmpty(paragraphText)) {
-                            hasBodyText = true;
-                        }
-
-                        builder.Append(paragraphText);
-                        builder.Append('\r');
-                        if (paragraphFormatting.HasFormatting) {
-                            formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, builder.Length - paragraphStart, paragraphFormatting));
-                        }
-
-                        isFirstParagraph = false;
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, builder.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, builder.Length);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs and bookmarks only. Unsupported endnote element: {child.LocalName}.");
-                }
+                AppendSimpleEndnoteStoryChild(
+                    child,
+                    id,
+                    relationshipOwner,
+                    builder,
+                    runs,
+                    formattedParagraphs,
+                    bookmarks,
+                    ref hasBodyText,
+                    ref isFirstParagraph,
+                    "endnote");
             }
 
             if (!hasBodyText) {
@@ -78,6 +64,86 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             builder.Append('\r');
             return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs, bookmarks.Create());
+        }
+
+        private static void AppendSimpleEndnoteStoryChild(
+            OpenXmlElement child,
+            long id,
+            EndnotesPart relationshipOwner,
+            StringBuilder builder,
+            List<LegacyDocWritableRun> runs,
+            List<LegacyDocWritableParagraph> formattedParagraphs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            ref bool hasBodyText,
+            ref bool isFirstParagraph,
+            string containerDescription) {
+            switch (child) {
+                case Paragraph paragraph:
+                    int paragraphStart = isFirstParagraph ? 0 : builder.Length;
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleEndnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
+                    if (!string.IsNullOrEmpty(paragraphText)) {
+                        hasBodyText = true;
+                    }
+
+                    builder.Append(paragraphText);
+                    builder.Append('\r');
+                    if (paragraphFormatting.HasFormatting) {
+                        formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, builder.Length - paragraphStart, paragraphFormatting));
+                    }
+
+                    isFirstParagraph = false;
+                    break;
+                case SdtBlock sdtBlock:
+                    AppendSimpleEndnoteContentControl(
+                        sdtBlock,
+                        id,
+                        relationshipOwner,
+                        builder,
+                        runs,
+                        formattedParagraphs,
+                        bookmarks,
+                        ref hasBodyText,
+                        ref isFirstParagraph);
+                    break;
+                case BookmarkStart bookmarkStart:
+                    bookmarks.AddStart(bookmarkStart, builder.Length);
+                    break;
+                case BookmarkEnd bookmarkEnd:
+                    bookmarks.AddEnd(bookmarkEnd, builder.Length);
+                    break;
+                default:
+                    throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs, content controls, and bookmarks only. Unsupported {containerDescription} element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendSimpleEndnoteContentControl(
+            SdtBlock sdtBlock,
+            long id,
+            EndnotesPart relationshipOwner,
+            StringBuilder builder,
+            List<LegacyDocWritableRun> runs,
+            List<LegacyDocWritableParagraph> formattedParagraphs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            ref bool hasBodyText,
+            ref bool isFirstParagraph) {
+            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
+            if (contentBlock == null) {
+                throw new NotSupportedException($"Native DOC saving supports endnote id '{id}' content controls only when they contain simple paragraphs and bookmarks.");
+            }
+
+            foreach (OpenXmlElement child in contentBlock.ChildElements) {
+                AppendSimpleEndnoteStoryChild(
+                    child,
+                    id,
+                    relationshipOwner,
+                    builder,
+                    runs,
+                    formattedParagraphs,
+                    bookmarks,
+                    ref hasBodyText,
+                    ref isFirstParagraph,
+                    "endnote content control");
+            }
         }
 
         private static LegacyDocWritableParagraphFormatting ReadSimpleEndnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, EndnotesPart relationshipOwner, out string paragraphText) {

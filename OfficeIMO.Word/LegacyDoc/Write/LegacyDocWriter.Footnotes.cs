@@ -57,31 +57,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             bool hasBodyText = false;
             bool isFirstParagraph = true;
             foreach (OpenXmlElement child in footnote.ChildElements) {
-                switch (child) {
-                    case Paragraph paragraph:
-                        int paragraphStart = isFirstParagraph ? 0 : builder.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
-                        if (!string.IsNullOrEmpty(paragraphText)) {
-                            hasBodyText = true;
-                        }
-
-                        builder.Append(paragraphText);
-                        builder.Append('\r');
-                        if (paragraphFormatting.HasFormatting) {
-                            formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, builder.Length - paragraphStart, paragraphFormatting));
-                        }
-
-                        isFirstParagraph = false;
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, builder.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, builder.Length);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs and bookmarks only. Unsupported footnote element: {child.LocalName}.");
-                }
+                AppendSimpleFootnoteStoryChild(
+                    child,
+                    id,
+                    relationshipOwner,
+                    builder,
+                    runs,
+                    formattedParagraphs,
+                    bookmarks,
+                    ref hasBodyText,
+                    ref isFirstParagraph,
+                    "footnote");
             }
 
             if (!hasBodyText) {
@@ -90,6 +76,86 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             builder.Append('\r');
             return new LegacyDocWritableNoteStory(builder.ToString(), runs, formattedParagraphs, bookmarks.Create());
+        }
+
+        private static void AppendSimpleFootnoteStoryChild(
+            OpenXmlElement child,
+            long id,
+            FootnotesPart relationshipOwner,
+            StringBuilder builder,
+            List<LegacyDocWritableRun> runs,
+            List<LegacyDocWritableParagraph> formattedParagraphs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            ref bool hasBodyText,
+            ref bool isFirstParagraph,
+            string containerDescription) {
+            switch (child) {
+                case Paragraph paragraph:
+                    int paragraphStart = isFirstParagraph ? 0 : builder.Length;
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
+                    if (!string.IsNullOrEmpty(paragraphText)) {
+                        hasBodyText = true;
+                    }
+
+                    builder.Append(paragraphText);
+                    builder.Append('\r');
+                    if (paragraphFormatting.HasFormatting) {
+                        formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, builder.Length - paragraphStart, paragraphFormatting));
+                    }
+
+                    isFirstParagraph = false;
+                    break;
+                case SdtBlock sdtBlock:
+                    AppendSimpleFootnoteContentControl(
+                        sdtBlock,
+                        id,
+                        relationshipOwner,
+                        builder,
+                        runs,
+                        formattedParagraphs,
+                        bookmarks,
+                        ref hasBodyText,
+                        ref isFirstParagraph);
+                    break;
+                case BookmarkStart bookmarkStart:
+                    bookmarks.AddStart(bookmarkStart, builder.Length);
+                    break;
+                case BookmarkEnd bookmarkEnd:
+                    bookmarks.AddEnd(bookmarkEnd, builder.Length);
+                    break;
+                default:
+                    throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs, content controls, and bookmarks only. Unsupported {containerDescription} element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendSimpleFootnoteContentControl(
+            SdtBlock sdtBlock,
+            long id,
+            FootnotesPart relationshipOwner,
+            StringBuilder builder,
+            List<LegacyDocWritableRun> runs,
+            List<LegacyDocWritableParagraph> formattedParagraphs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            ref bool hasBodyText,
+            ref bool isFirstParagraph) {
+            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
+            if (contentBlock == null) {
+                throw new NotSupportedException($"Native DOC saving supports footnote id '{id}' content controls only when they contain simple paragraphs and bookmarks.");
+            }
+
+            foreach (OpenXmlElement child in contentBlock.ChildElements) {
+                AppendSimpleFootnoteStoryChild(
+                    child,
+                    id,
+                    relationshipOwner,
+                    builder,
+                    runs,
+                    formattedParagraphs,
+                    bookmarks,
+                    ref hasBodyText,
+                    ref isFirstParagraph,
+                    "footnote content control");
+            }
         }
 
         private static LegacyDocWritableParagraphFormatting ReadSimpleFootnoteParagraph(Paragraph paragraph, long id, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, int storyStart, bool isFirstParagraph, FootnotesPart relationshipOwner, out string paragraphText) {

@@ -3194,6 +3194,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteContentControlsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with controlled notes");
+
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    footnoteBody._paragraph.RemoveAllChildren<Run>();
+                    footnoteBody._paragraph.Append(new Run(new Text("FootnoteContentOne") { Space = SpaceProcessingModeValues.Preserve }));
+                    Footnote sourceFootnote = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+                        .Elements<Footnote>()
+                        .Single(note => note.Id?.Value == footnoteReference.FootNote!.ReferenceId);
+                    sourceFootnote.RemoveAllChildren<Paragraph>();
+                    sourceFootnote.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC footnote content control" }),
+                        new SdtContentBlock(
+                            (Paragraph)footnoteBody._paragraph.CloneNode(true),
+                            new Paragraph(new Run(new Text("FootnoteContentTwo") { Space = SpaceProcessingModeValues.Preserve })))));
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    endnoteBody._paragraph.RemoveAllChildren<Run>();
+                    endnoteBody._paragraph.Append(new Run(new Text("EndnoteContentOne") { Space = SpaceProcessingModeValues.Preserve }));
+                    Endnote sourceEndnote = document._wordprocessingDocument.MainDocumentPart!.EndnotesPart!.Endnotes!
+                        .Elements<Endnote>()
+                        .Single(note => note.Id?.Value == endnoteReference.EndNote!.ReferenceId);
+                    sourceEndnote.RemoveAllChildren<Paragraph>();
+                    sourceEndnote.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC endnote content control" }),
+                        new SdtContentBlock(
+                            (Paragraph)endnoteBody._paragraph.CloneNode(true),
+                            new Paragraph(new Run(new Text("EndnoteContentTwo") { Space = SpaceProcessingModeValues.Preserve })))));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Equal("Body with controlled notes", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                string footnoteText = string.Concat(footnote.Paragraphs!.Select(GetNoteRunText));
+                Assert.Equal("FootnoteContentOneFootnoteContentTwo", footnoteText);
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.FootnotesPart!.Footnotes!.Descendants<SdtBlock>());
+
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                string endnoteText = string.Concat(endnote.Paragraphs!.Select(GetNoteRunText));
+                Assert.Equal("EndnoteContentOneEndnoteContentTwo", endnoteText);
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.EndnotesPart!.Endnotes!.Descendants<SdtBlock>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocNoteBookmarkRangesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
