@@ -1237,7 +1237,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);
+                        AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);
                         break;
                     case SimpleField simpleField:
                         AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, tableStyleRunFormatting);

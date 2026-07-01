@@ -750,7 +750,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 _paragraphTextRuns.Add(runs);
                 _paragraphFormats.Add(paragraphFormat);
                 _paragraphs.Add(string.Concat(runs.Select(run => run.Text)));
-                int paragraphEndCharacter = currentParagraphStartCharacter + runs.Sum(run => run.Text.Length);
+                int paragraphEndCharacter = Math.Max(currentParagraphStartCharacter + runs.Sum(run => run.Text.Length), GetRunEndCharacter(runs));
                 _bodyBlocks.Add(new LegacyDocParagraphBlock(
                     runs,
                     paragraphFormat,

@@ -9,16 +9,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSupportedHyperlinkText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
             Hyperlink hyperlink,
             OpenXmlPartContainer relationshipOwner,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes) {
-            AppendSupportedHyperlinkText(text, runs, hyperlink, relationshipOwner, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
+            AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, relationshipOwner, footnotes, endnotes, LegacyDocWritableFormatting.Plain);
         }
 
         private static void AppendSupportedHyperlinkText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
             Hyperlink hyperlink,
             OpenXmlPartContainer relationshipOwner,
             LegacyDocWritableFootnotes footnotes,
@@ -37,7 +39,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
                         break;
                     case SdtRun sdtRun:
-                        AppendSupportedHyperlinkInlineContentControlText(text, runs, sdtRun, footnotes, endnotes, inheritedFormatting);
+                        AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, sdtRun, footnotes, endnotes, inheritedFormatting);
+                        break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -100,6 +108,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSupportedHyperlinkInlineContentControlText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
             SdtRun sdtRun,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
@@ -112,7 +121,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
                         break;
                     case SdtRun nestedSdtRun:
-                        AppendSupportedHyperlinkInlineContentControlText(text, runs, nestedSdtRun, footnotes, endnotes, inheritedFormatting);
+                        AppendSupportedHyperlinkInlineContentControlText(text, runs, bookmarks, nestedSdtRun, footnotes, endnotes, inheritedFormatting);
+                        break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {

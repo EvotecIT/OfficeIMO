@@ -168,7 +168,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "endnote", storyStart);
+                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);
                         break;
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);

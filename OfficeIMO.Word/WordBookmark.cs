@@ -13,8 +13,14 @@ namespace OfficeIMO.Word {
             get {
                 var listElements = _document._wordprocessingDocument.MainDocumentPart?.Document?.Body?
                     .ChildElements.OfType<Paragraph>() ?? Enumerable.Empty<Paragraph>();
+                foreach (var bookmarkEnd in _paragraph.Descendants<BookmarkEnd>()) {
+                    if (bookmarkEnd.Id == _bookmarkStart.Id) {
+                        return bookmarkEnd;
+                    }
+                }
+
                 foreach (Paragraph paragraph in listElements) {
-                    var listBookmarkEnds = paragraph.ChildElements.OfType<BookmarkEnd>();
+                    var listBookmarkEnds = paragraph.Descendants<BookmarkEnd>();
                     foreach (var bookmarkEnd in listBookmarkEnds) {
                         if (bookmarkEnd.Id == _bookmarkStart.Id) {
                             return bookmarkEnd;

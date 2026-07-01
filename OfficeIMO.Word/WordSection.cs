@@ -285,12 +285,7 @@ namespace OfficeIMO.Word {
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
-                var paragraphs = Paragraphs.Where(p => p.IsBookmark).ToList();
-                foreach (var paragraph in paragraphs) {
-                    if (paragraph.Bookmark != null) {
-                        list.Add(paragraph.Bookmark);
-                    }
-                }
+                AddBookmarksFromParagraphs(Paragraphs, list);
 
                 foreach (var table in Tables) {
                     AddBookmarksFromTable(table, list);
@@ -320,9 +315,9 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            foreach (var paragraph in paragraphs.Where(p => p.IsBookmark)) {
-                if (paragraph.Bookmark != null) {
-                    list.Add(paragraph.Bookmark);
+            foreach (var paragraph in paragraphs) {
+                foreach (BookmarkStart bookmarkStart in paragraph._paragraph.Descendants<BookmarkStart>()) {
+                    list.Add(new WordBookmark(paragraph._document, paragraph._paragraph, bookmarkStart));
                 }
             }
         }
@@ -340,11 +335,7 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddBookmarksFromTable(WordTable table, List<WordBookmark> list) {
-            foreach (var paragraph in table.Paragraphs.Where(p => p.IsBookmark)) {
-                if (paragraph.Bookmark != null) {
-                    list.Add(paragraph.Bookmark);
-                }
-            }
+            AddBookmarksFromParagraphs(table.Paragraphs, list);
 
             foreach (var nestedTable in table.NestedTables) {
                 AddBookmarksFromTable(nestedTable, list);

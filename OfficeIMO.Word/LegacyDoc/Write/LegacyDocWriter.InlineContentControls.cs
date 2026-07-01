@@ -29,7 +29,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes, inheritedFormatting);
+                        AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, inheritedFormatting);
                         break;
                     case SimpleField simpleField:
                         AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, inheritedFormatting);
@@ -74,7 +74,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, paragraphText, hyperlink, relationshipOwner, kind);
+                        AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, paragraphText, bookmarks, hyperlink, relationshipOwner, kind);
                         break;
                     case SimpleField simpleField:
                         AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, paragraphText, simpleField, kind);
@@ -119,7 +119,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "footnote", storyStart);
+                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
@@ -164,7 +164,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "endnote", storyStart);
+                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);
                         break;
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);

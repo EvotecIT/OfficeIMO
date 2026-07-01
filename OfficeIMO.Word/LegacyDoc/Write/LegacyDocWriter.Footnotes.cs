@@ -180,7 +180,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "footnote", storyStart);
+                        AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
@@ -384,6 +384,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSupportedNoteHyperlinkText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
             Hyperlink hyperlink,
             OpenXmlPartContainer relationshipOwner,
             long id,
@@ -402,7 +403,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkRunText(text, runs, run, id, noteKind, storyStart);
                         break;
                     case SdtRun sdtRun:
-                        AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, sdtRun, id, noteKind, storyStart);
+                        AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, bookmarks, sdtRun, id, noteKind, storyStart);
+                        break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, storyStart + text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, storyStart + text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {
@@ -456,6 +463,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSupportedNoteHyperlinkInlineContentControlText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
             SdtRun sdtRun,
             long id,
             string noteKind,
@@ -468,7 +476,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkRunText(text, runs, run, id, noteKind, storyStart);
                         break;
                     case SdtRun nestedSdtRun:
-                        AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, nestedSdtRun, id, noteKind, storyStart);
+                        AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, bookmarks, nestedSdtRun, id, noteKind, storyStart);
+                        break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, storyStart + text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, storyStart + text.Length);
                         break;
                     default:
                         if (IsIgnorableParagraphMarkup(child)) {

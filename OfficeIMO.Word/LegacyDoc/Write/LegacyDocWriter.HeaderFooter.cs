@@ -303,7 +303,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                         break;
                     case Hyperlink hyperlink:
-                        AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, hyperlink, relationshipOwner, kind);
+                        AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, bookmarks, hyperlink, relationshipOwner, kind);
                         break;
                     case SimpleField simpleField:
                         AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, text, simpleField, kind);
@@ -347,10 +347,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 || string.Equals(styleId, "Footer", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static void AppendFormattedHeaderFooterHyperlink(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner, string kind) {
+        private static void AppendFormattedHeaderFooterHyperlink(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, LegacyDocWritableBookmarksBuilder bookmarks, Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner, string kind) {
             int before = storyText.Length;
             try {
-                AppendSupportedHyperlinkText(storyText, formattedRuns, hyperlink, relationshipOwner, LegacyDocWritableFootnotes.Empty, LegacyDocWritableEndnotes.Empty);
+                AppendSupportedHyperlinkText(storyText, formattedRuns, bookmarks, hyperlink, relationshipOwner, LegacyDocWritableFootnotes.Empty, LegacyDocWritableEndnotes.Empty);
             } catch (NotSupportedException exception) {
                 throw new NotSupportedException($"Native DOC saving supports simple {kind} hyperlinks only when they are external plain-text hyperlinks. {exception.Message}", exception);
             }
