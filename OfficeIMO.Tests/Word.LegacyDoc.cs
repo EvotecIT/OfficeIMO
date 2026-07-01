@@ -1752,6 +1752,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
         }
 
+        private static void AssertLeadingZeroLengthBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText) {
+            OpenXmlElement[] content = paragraph._paragraph.ChildElements
+                .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
+                .ToArray();
+
+            Assert.Equal(3, content.Length);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[0]);
+            Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[1]);
+            Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            Assert.Equal(expectedText, Assert.IsType<Text>(Assert.IsType<Run>(content[2]).FirstChild).Text);
+        }
+
         private static WordParagraph AssertSingleParagraphWithBookmarkStart(IEnumerable<WordParagraph> paragraphs, string bookmarkName) {
             return Assert.Single(
                 DistinctParagraphNodes(paragraphs),
@@ -3776,6 +3789,63 @@ namespace OfficeIMO.Tests {
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 string endnoteText = string.Concat(endnote.Paragraphs!.Select(GetNoteRunText));
                 Assert.Equal("EndnoteContentOneEndnoteContentNestedEndnoteContentTwo", endnoteText);
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.EndnotesPart!.Endnotes!.Descendants<SdtBlock>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBookmarkOnlyNoteContentControlsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with bookmark-only note content controls");
+
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    Footnote sourceFootnote = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+                        .Elements<Footnote>()
+                        .Single(note => note.Id?.Value == footnoteReference.FootNote!.ReferenceId);
+                    sourceFootnote.RemoveAllChildren<Paragraph>();
+                    sourceFootnote.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC footnote bookmark-only content control" }),
+                        new SdtContentBlock(
+                            new BookmarkStart { Id = "77", Name = "FootnoteBookmarkOnlyContentControl" },
+                            new BookmarkEnd { Id = "77" },
+                            new Paragraph(new Run(new Text("FootnoteAfterBookmark") { Space = SpaceProcessingModeValues.Preserve })))));
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    Endnote sourceEndnote = document._wordprocessingDocument.MainDocumentPart!.EndnotesPart!.Endnotes!
+                        .Elements<Endnote>()
+                        .Single(note => note.Id?.Value == endnoteReference.EndNote!.ReferenceId);
+                    sourceEndnote.RemoveAllChildren<Paragraph>();
+                    sourceEndnote.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC endnote bookmark-only content control" }),
+                        new SdtContentBlock(
+                            new BookmarkStart { Id = "78", Name = "EndnoteBookmarkOnlyContentControl" },
+                            new BookmarkEnd { Id = "78" },
+                            new Paragraph(new Run(new Text("EndnoteAfterBookmark") { Space = SpaceProcessingModeValues.Preserve })))));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteBookmarkOnlyContentControl");
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteBookmarkOnlyContentControl");
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                WordParagraph footnoteParagraph = AssertSingleParagraphWithBookmarkStart(footnote.Paragraphs!, "FootnoteBookmarkOnlyContentControl");
+                AssertLeadingZeroLengthBookmarkContent(footnoteParagraph, "FootnoteBookmarkOnlyContentControl", "FootnoteAfterBookmark");
+
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                WordParagraph endnoteParagraph = AssertSingleParagraphWithBookmarkStart(endnote.Paragraphs!, "EndnoteBookmarkOnlyContentControl");
+                AssertLeadingZeroLengthBookmarkContent(endnoteParagraph, "EndnoteBookmarkOnlyContentControl", "EndnoteAfterBookmark");
+
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.FootnotesPart!.Footnotes!.Descendants<SdtBlock>());
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.EndnotesPart!.Endnotes!.Descendants<SdtBlock>());
             } finally {
                 DeleteIfExists(docPath);

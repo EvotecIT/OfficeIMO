@@ -425,6 +425,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter, bool isFinalParagraph) {
                 FlushRun();
+                if (isFinalParagraph
+                    && currentRuns.Count == 0
+                    && pendingBookmarks.Count == 0
+                    && currentParagraphStartCharacter == paragraphEndCharacter) {
+                    hasCurrentRun = false;
+                    currentHyperlinkTarget = default;
+                    return;
+                }
+
                 IReadOnlyList<LegacyDocBookmark> paragraphBookmarks = bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter);
                 if (currentRuns.Count > 0) {
                     bool hasPendingBookmarks = pendingBookmarks.Count > 0;
@@ -438,7 +447,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     ClearPendingBookmarks();
                 } else {
                     AddPendingBookmarks(paragraphBookmarks);
-                    if (preserveEmptyParagraph) {
+                    if (preserveEmptyParagraph || paragraphBookmarks.Count > 0) {
                         paragraphs.Add(new LegacyDocNoteParagraph(
                             Array.Empty<LegacyDocTextRun>(),
                             format,

@@ -512,6 +512,9 @@ just to reserve names.
       flattening supported note paragraphs/bookmarks and nested simple block
       content controls into native DOC note stories, then reload the note text
       through the legacy reader.
+    - [x] Write bookmark-only footnote and endnote block content controls before
+      note text, then reload the zero-length bookmark markers scoped to the
+      correct note paragraph.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
   - [x] Report unsupported header/footer, footnote, endnote, comment, and text
@@ -1039,6 +1042,9 @@ just to reserve names.
       flattening supported child paragraphs and nested simple block content
       controls into native DOC note story text, while still blocking
       unsupported note content-control children before bytes are committed.
+    - [x] Write bookmark-only footnote and endnote block content controls before
+      note text, then reload the zero-length bookmark markers scoped to the
+      correct note paragraph.
     - [x] Block section properties inside header/footer, footnote, and endnote
       paragraphs before native DOC bytes are committed, keeping section breaks
       scoped to supported body paragraph boundaries.
