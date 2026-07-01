@@ -6,9 +6,9 @@ using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void AnalyzeParagraphs(WordDocument source, WordDocument target, WordComparisonResult result) {
-            List<ParagraphSnapshot> sourceParagraphs = GetLogicalBodyParagraphs(source);
-            List<ParagraphSnapshot> targetParagraphs = GetLogicalBodyParagraphs(target);
+        private static void AnalyzeParagraphs(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+            List<ParagraphSnapshot> sourceParagraphs = GetLogicalBodyParagraphs(source, options);
+            List<ParagraphSnapshot> targetParagraphs = GetLogicalBodyParagraphs(target, options);
             IReadOnlyList<MatchedIndexPair> matchedParagraphs = FindMatchingIndexes(
                 sourceParagraphs,
                 targetParagraphs,
@@ -18,12 +18,15 @@ namespace OfficeIMO.Word {
             int targetStart = 0;
 
             foreach (MatchedIndexPair match in matchedParagraphs) {
-                AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result);
+                AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, match.SourceIndex, targetStart, match.TargetIndex, result, options);
+                AnalyzeParagraphStyle(sourceParagraphs[match.SourceIndex], targetParagraphs[match.TargetIndex], match.SourceIndex, match.TargetIndex, result, options);
+                AnalyzeParagraphEffectiveFormatting(sourceParagraphs[match.SourceIndex], targetParagraphs[match.TargetIndex], match.SourceIndex, match.TargetIndex, result, options);
+                AnalyzeParagraphRuns(sourceParagraphs[match.SourceIndex], targetParagraphs[match.TargetIndex], match.SourceIndex, match.TargetIndex, result, options);
                 sourceStart = match.SourceIndex + 1;
                 targetStart = match.TargetIndex + 1;
             }
 
-            AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, sourceParagraphs.Count, targetStart, targetParagraphs.Count, result);
+            AddParagraphRangeFindings(sourceParagraphs, targetParagraphs, sourceStart, sourceParagraphs.Count, targetStart, targetParagraphs.Count, result, options);
         }
 
         private static void AddParagraphRangeFindings(
@@ -33,7 +36,8 @@ namespace OfficeIMO.Word {
             int sourceEnd,
             int targetStart,
             int targetEnd,
-            WordComparisonResult result) {
+            WordComparisonResult result,
+            WordComparisonOptions options) {
             int sourceIndex = sourceStart;
             int targetIndex = targetStart;
 
@@ -62,6 +66,15 @@ namespace OfficeIMO.Word {
                 string targetText = targetParagraphs[targetIndex].Text;
 
                 if (!string.Equals(sourceParagraphs[sourceIndex].PartKind, targetParagraphs[targetIndex].PartKind, StringComparison.Ordinal)) {
+                    if (AreEquivalentRenumberedNoteParagraphs(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex])) {
+                        AnalyzeParagraphStyle(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                        AnalyzeParagraphEffectiveFormatting(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                        AnalyzeParagraphRuns(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                        sourceIndex++;
+                        targetIndex++;
+                        continue;
+                    }
+
                     result.Add(new WordComparisonFinding(
                         WordComparisonScope.Paragraph,
                         WordComparisonChangeKind.Deleted,
@@ -100,6 +113,10 @@ namespace OfficeIMO.Word {
                         targetParagraphs[targetIndex].DocumentOrder);
                 }
 
+                AnalyzeParagraphStyle(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                AnalyzeParagraphEffectiveFormatting(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                AnalyzeParagraphRuns(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+
                 sourceIndex++;
                 targetIndex++;
             }
@@ -113,6 +130,85 @@ namespace OfficeIMO.Word {
                 AddDeletedParagraphFinding(sourceParagraphs, sourceIndex, result);
                 sourceIndex++;
             }
+        }
+
+        private static bool AreEquivalentRenumberedNoteParagraphs(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
+            if (!IsNotePartKind(sourceParagraph.PartKind) ||
+                !IsNotePartKind(targetParagraph.PartKind) ||
+                !string.Equals(GetNotePartKindPrefix(sourceParagraph.PartKind), GetNotePartKindPrefix(targetParagraph.PartKind), StringComparison.Ordinal)) {
+                return false;
+            }
+
+            return string.Equals(sourceParagraph.MatchText, targetParagraph.MatchText, StringComparison.Ordinal) &&
+                string.Equals(sourceParagraph.ComparisonText, targetParagraph.ComparisonText, StringComparison.Ordinal);
+        }
+
+        private static bool IsNotePartKind(string partKind) =>
+            partKind.StartsWith(FootnotePartKeyPrefix, StringComparison.Ordinal) ||
+            partKind.StartsWith(EndnotePartKeyPrefix, StringComparison.Ordinal);
+
+        private static string GetNotePartKindPrefix(string partKind) {
+            if (partKind.StartsWith(FootnotePartKeyPrefix, StringComparison.Ordinal)) {
+                return FootnotePartKeyPrefix;
+            }
+
+            return partKind.StartsWith(EndnotePartKeyPrefix, StringComparison.Ordinal)
+                ? EndnotePartKeyPrefix
+                : string.Empty;
+        }
+
+        private static void AnalyzeParagraphStyle(
+            ParagraphSnapshot sourceParagraph,
+            ParagraphSnapshot targetParagraph,
+            int sourceParagraphIndex,
+            int targetParagraphIndex,
+            WordComparisonResult result,
+            WordComparisonOptions options) {
+            if (!options.CompareParagraphStyleIds) {
+                return;
+            }
+
+            if (string.Equals(sourceParagraph.StyleId, targetParagraph.StyleId, StringComparison.Ordinal)) {
+                return;
+            }
+
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.Paragraph,
+                WordComparisonChangeKind.Modified,
+                ParagraphLocation(targetParagraphIndex),
+                sourceParagraphIndex,
+                targetParagraphIndex,
+                sourceParagraph.StyleId,
+                targetParagraph.StyleId,
+                "Paragraph style id changed."),
+                targetParagraph.DocumentOrder);
+        }
+
+        private static void AnalyzeParagraphEffectiveFormatting(
+            ParagraphSnapshot sourceParagraph,
+            ParagraphSnapshot targetParagraph,
+            int sourceParagraphIndex,
+            int targetParagraphIndex,
+            WordComparisonResult result,
+            WordComparisonOptions options) {
+            if (!options.CompareEffectiveFormatting) {
+                return;
+            }
+
+            if (string.Equals(sourceParagraph.FormatSignature, targetParagraph.FormatSignature, StringComparison.Ordinal)) {
+                return;
+            }
+
+            result.Add(new WordComparisonFinding(
+                WordComparisonScope.Paragraph,
+                WordComparisonChangeKind.Modified,
+                ParagraphLocation(targetParagraphIndex),
+                sourceParagraphIndex,
+                targetParagraphIndex,
+                sourceParagraph.StyleId,
+                targetParagraph.StyleId,
+                "Paragraph effective formatting changed."),
+                targetParagraph.DocumentOrder);
         }
 
         private static int FindBetterTargetAlignmentIndex(ParagraphSnapshot sourceParagraph, IReadOnlyList<ParagraphSnapshot> targetParagraphs, int targetStart, int targetEnd) {
@@ -176,7 +272,7 @@ namespace OfficeIMO.Word {
 
             return Math.Max(
                 GetTextSimilarity(sourceParagraph.MatchText, targetParagraph.MatchText),
-                GetTextSimilarity(sourceParagraph.Text, targetParagraph.Text));
+                GetTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText));
         }
 
         private static double GetParagraphVisibleTextSimilarity(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
@@ -184,14 +280,14 @@ namespace OfficeIMO.Word {
                 return 0;
             }
 
-            if (sourceParagraph.Text.Length > 0 &&
-                targetParagraph.Text.Length > 0 &&
-                (sourceParagraph.Text.IndexOf(targetParagraph.Text, StringComparison.Ordinal) >= 0 ||
-                 targetParagraph.Text.IndexOf(sourceParagraph.Text, StringComparison.Ordinal) >= 0)) {
-                return GetContainmentAwareTextSimilarity(sourceParagraph.Text, targetParagraph.Text);
+            if (sourceParagraph.ComparisonText.Length > 0 &&
+                targetParagraph.ComparisonText.Length > 0 &&
+                (sourceParagraph.ComparisonText.IndexOf(targetParagraph.ComparisonText, StringComparison.Ordinal) >= 0 ||
+                 targetParagraph.ComparisonText.IndexOf(sourceParagraph.ComparisonText, StringComparison.Ordinal) >= 0)) {
+                return GetContainmentAwareTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText);
             }
 
-            return GetTextSimilarity(sourceParagraph.Text, targetParagraph.Text);
+            return GetTextSimilarity(sourceParagraph.ComparisonText, targetParagraph.ComparisonText);
         }
 
         private static void AddInsertedParagraphFinding(IReadOnlyList<ParagraphSnapshot> targetParagraphs, int targetIndex, WordComparisonResult result) {
@@ -220,41 +316,43 @@ namespace OfficeIMO.Word {
                 sourceParagraphs[sourceIndex].DocumentOrder);
         }
 
-        private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordDocument document) {
+        private static List<ParagraphSnapshot> GetLogicalBodyParagraphs(WordDocument document, WordComparisonOptions options) {
             var snapshots = new List<ParagraphSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddParagraphSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
+            AddParagraphSnapshots(snapshots, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase, options);
 
             if (mainPart != null) {
                 int headerIndex = 0;
                 foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                    AddParagraphSnapshots(snapshots, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddParagraphSnapshots(snapshots, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride), options);
                     headerIndex++;
                 }
 
                 int footerIndex = 0;
                 foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                    AddParagraphSnapshots(snapshots, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddParagraphSnapshots(snapshots, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride), options);
                     footerIndex++;
                 }
 
                 List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    string noteId = footnotes[footnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                        footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddParagraphSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
                 }
 
                 List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddParagraphSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    string noteId = endnotes[endnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                        endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    AddParagraphSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
                 }
             }
 
             return snapshots;
         }
 
-        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, OpenXmlPart? part, OpenXmlElement? container, string partKind, int orderBase) {
+        private static void AddParagraphSnapshots(List<ParagraphSnapshot> snapshots, OpenXmlPart? part, OpenXmlElement? container, string partKind, int orderBase, WordComparisonOptions options) {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
                 if (ordered.Element is not Paragraph paragraph) {
                     continue;
@@ -264,13 +362,26 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                ParagraphTextSnapshot text = GetParagraphTextSnapshot(paragraph, part);
+                ParagraphTextSnapshot text = GetParagraphTextSnapshot(paragraph, part, options);
                 if (text.Text.Length == 0 && HasImageContent(paragraph)) {
                     continue;
                 }
 
-                snapshots.Add(new ParagraphSnapshot(partKind, text.Text, text.MatchText, ordered.DocumentOrder));
+                snapshots.Add(new ParagraphSnapshot(
+                    partKind,
+                    part,
+                    paragraph,
+                    text.Text,
+                    text.ComparisonText,
+                    text.MatchText,
+                    GetParagraphStyleId(paragraph),
+                    GetParagraphFormatSignature(paragraph, part, options),
+                    ordered.DocumentOrder));
             }
+        }
+
+        private static string GetParagraphStyleId(Paragraph paragraph) {
+            return paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value ?? string.Empty;
         }
 
         private static string GetParagraphText(Paragraph paragraph) {
@@ -285,11 +396,19 @@ namespace OfficeIMO.Word {
             return GetParagraphTextSnapshot(paragraph, part).MatchText;
         }
 
+        private static string GetParagraphMatchText(Paragraph paragraph, OpenXmlPart? part, WordComparisonOptions options) {
+            return GetParagraphTextSnapshot(paragraph, part, options).MatchText;
+        }
+
         private static ParagraphTextSnapshot GetParagraphTextSnapshot(Paragraph paragraph, OpenXmlPart? part) {
+            return GetParagraphTextSnapshot(paragraph, part, WordComparisonOptions.Default);
+        }
+
+        private static ParagraphTextSnapshot GetParagraphTextSnapshot(Paragraph paragraph, OpenXmlPart? part, WordComparisonOptions options) {
             var textBuilder = new StringBuilder();
             var matchBuilder = new StringBuilder();
             var pendingTextBuilder = new StringBuilder();
-            AppendNumberingMatchToken(matchBuilder, paragraph, part);
+            AppendNumberingMatchToken(matchBuilder, paragraph, part, options);
             foreach (OpenXmlElement element in EnumerateComparableDescendants(paragraph)) {
                 if (element.Ancestors<Paragraph>().FirstOrDefault() != paragraph) {
                     continue;
@@ -301,32 +420,32 @@ namespace OfficeIMO.Word {
                         pendingTextBuilder.Append(text.Text);
                         break;
                     case DeletedText deletedText:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         string deletedValue = deletedText.Text ?? string.Empty;
                         textBuilder.Append("[Deleted:");
                         textBuilder.Append(deletedValue);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "deletedText", deletedValue);
+                        AppendMatchToken(matchBuilder, "deletedText", NormalizeComparisonText(deletedValue, options));
                         break;
                     case Hyperlink hyperlink:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
-                        AppendMatchToken(matchBuilder, "hyperlink", GetHyperlinkSignature(part, hyperlink));
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
+                        AppendMatchToken(matchBuilder, "hyperlink", NormalizeComparisonText(GetHyperlinkSignature(part, hyperlink), options));
                         break;
                     case SimpleField simpleField:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
-                        AppendMatchToken(matchBuilder, "simpleField", simpleField.Instruction?.Value ?? string.Empty);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
+                        AppendMatchToken(matchBuilder, "simpleField", NormalizeComparisonText(simpleField.Instruction?.Value ?? string.Empty, options));
                         break;
                     case FieldCode fieldCode:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
-                        AppendMatchToken(matchBuilder, "fieldCode", fieldCode.Text ?? string.Empty);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
+                        AppendMatchToken(matchBuilder, "fieldCode", NormalizeComparisonText(fieldCode.Text ?? string.Empty, options));
                         break;
                     case TabChar:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append('\t');
                         AppendMatchToken(matchBuilder, "tab", string.Empty);
                         break;
                     case Break breakNode:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         if (breakNode.Type == null || breakNode.Type.Value == BreakValues.TextWrapping) {
                             textBuilder.Append('\n');
                             AppendMatchToken(matchBuilder, "break", "textWrapping");
@@ -346,23 +465,23 @@ namespace OfficeIMO.Word {
 
                         break;
                     case FootnoteReference footnoteReference:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         string footnoteReferenceId = footnoteReference.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
                         textBuilder.Append("[FootnoteReference:");
                         textBuilder.Append(footnoteReferenceId);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "footnoteReference", GetFootnoteReferenceSignature(part, footnoteReference.Id?.Value));
+                        AppendMatchToken(matchBuilder, "footnoteReference", NormalizeComparisonText(GetFootnoteReferenceSignature(part, footnoteReference.Id?.Value, options), options));
                         break;
                     case EndnoteReference endnoteReference:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         string endnoteReferenceId = endnoteReference.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
                         textBuilder.Append("[EndnoteReference:");
                         textBuilder.Append(endnoteReferenceId);
                         textBuilder.Append(']');
-                        AppendMatchToken(matchBuilder, "endnoteReference", GetEndnoteReferenceSignature(part, endnoteReference.Id?.Value));
+                        AppendMatchToken(matchBuilder, "endnoteReference", NormalizeComparisonText(GetEndnoteReferenceSignature(part, endnoteReference.Id?.Value, options), options));
                         break;
                     case SymbolChar symbol:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         string symbolFont = symbol.Font?.Value ?? string.Empty;
                         string symbolChar = symbol.Char?.Value ?? string.Empty;
                         textBuilder.Append("[Symbol:");
@@ -373,28 +492,29 @@ namespace OfficeIMO.Word {
                         AppendMatchToken(matchBuilder, "symbol", symbolFont + ":" + symbolChar);
                         break;
                     case NoBreakHyphen:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append('-');
                         AppendMatchToken(matchBuilder, "noBreakHyphen", string.Empty);
                         break;
                     case SoftHyphen:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append("[SoftHyphen]");
                         AppendMatchToken(matchBuilder, "softHyphen", string.Empty);
                         break;
                     case CarriageReturn:
-                        FlushPendingTextToken(matchBuilder, pendingTextBuilder);
+                        FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
                         textBuilder.Append('\n');
                         AppendMatchToken(matchBuilder, "carriageReturn", string.Empty);
                         break;
                 }
             }
 
-            FlushPendingTextToken(matchBuilder, pendingTextBuilder);
-            return new ParagraphTextSnapshot(textBuilder.ToString(), matchBuilder.ToString());
+            FlushPendingTextToken(matchBuilder, pendingTextBuilder, options);
+            string paragraphText = textBuilder.ToString();
+            return new ParagraphTextSnapshot(paragraphText, NormalizeComparisonText(paragraphText, options), matchBuilder.ToString());
         }
 
-        private static void AppendNumberingMatchToken(StringBuilder builder, Paragraph paragraph, OpenXmlPart? part) {
+        private static void AppendNumberingMatchToken(StringBuilder builder, Paragraph paragraph, OpenXmlPart? part, WordComparisonOptions options) {
             NumberingProperties? numberingProperties = paragraph.ParagraphProperties?.NumberingProperties;
             if (numberingProperties == null) {
                 return;
@@ -402,7 +522,7 @@ namespace OfficeIMO.Word {
 
             string level = numberingProperties.NumberingLevelReference?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
             int? numberingId = numberingProperties.NumberingId?.Val?.Value;
-            AppendMatchToken(builder, "numbering", "level=" + level + ";definition=" + GetNumberingDefinitionSignature(part, numberingId, level));
+            AppendMatchToken(builder, "numbering", "level=" + level + ";definition=" + NormalizeComparisonText(GetNumberingDefinitionSignature(part, numberingId, level), options));
         }
 
         private static string GetNumberingDefinitionSignature(OpenXmlPart? part, int? numberingId, string level) {
@@ -457,12 +577,12 @@ namespace OfficeIMO.Word {
             return (part?.OpenXmlPackage as WordprocessingDocument)?.MainDocumentPart;
         }
 
-        private static void FlushPendingTextToken(StringBuilder builder, StringBuilder pendingTextBuilder) {
+        private static void FlushPendingTextToken(StringBuilder builder, StringBuilder pendingTextBuilder, WordComparisonOptions options) {
             if (pendingTextBuilder.Length == 0) {
                 return;
             }
 
-            AppendMatchToken(builder, "text", pendingTextBuilder.ToString());
+            AppendMatchToken(builder, "text", NormalizeComparisonText(pendingTextBuilder.ToString(), options));
             pendingTextBuilder.Clear();
         }
 
@@ -519,30 +639,42 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetFootnoteReferenceSignature(OpenXmlPart? part, long? noteId) {
+            return GetFootnoteReferenceSignature(part, noteId, WordComparisonOptions.Default);
+        }
+
+        private static string GetFootnoteReferenceSignature(OpenXmlPart? part, long? noteId, WordComparisonOptions options) {
             if (part is not MainDocumentPart mainPart || noteId == null) {
                 return noteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
             }
 
             Footnote? footnote = mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
                 .FirstOrDefault(item => item.Id?.Value == noteId.Value && IsVisibleNote(item));
-            return footnote == null ? string.Empty : GetNoteContentSignature(mainPart.FootnotesPart, footnote);
+            return footnote == null ? string.Empty : GetNoteContentSignature(mainPart.FootnotesPart, footnote, options);
         }
 
         private static string GetEndnoteReferenceSignature(OpenXmlPart? part, long? noteId) {
+            return GetEndnoteReferenceSignature(part, noteId, WordComparisonOptions.Default);
+        }
+
+        private static string GetEndnoteReferenceSignature(OpenXmlPart? part, long? noteId, WordComparisonOptions options) {
             if (part is not MainDocumentPart mainPart || noteId == null) {
                 return noteId?.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
             }
 
             Endnote? endnote = mainPart.EndnotesPart?.Endnotes?.Elements<Endnote>()
                 .FirstOrDefault(item => item.Id?.Value == noteId.Value && IsVisibleNote(item));
-            return endnote == null ? string.Empty : GetNoteContentSignature(mainPart.EndnotesPart, endnote);
+            return endnote == null ? string.Empty : GetNoteContentSignature(mainPart.EndnotesPart, endnote, options);
         }
 
         private static string GetNoteContentSignature(OpenXmlPart? notePart, OpenXmlElement note) {
+            return GetNoteContentSignature(notePart, note, WordComparisonOptions.Default);
+        }
+
+        private static string GetNoteContentSignature(OpenXmlPart? notePart, OpenXmlElement note, WordComparisonOptions options) {
             return string.Join(
                 TableRowSeparator,
                 note.Elements<Paragraph>()
-                    .Select(paragraph => GetParagraphMatchText(paragraph, notePart))
+                    .Select(paragraph => GetParagraphMatchText(paragraph, notePart, options))
                     .ToArray());
         }
 
@@ -576,6 +708,22 @@ namespace OfficeIMO.Word {
             }
 
             return (double)GetCommonSubsequenceLength(source, target) / Math.Max(source.Length, target.Length);
+        }
+
+        private static bool AreComparisonTextEqual(string? source, string? target, WordComparisonOptions options) =>
+            string.Equals(NormalizeComparisonText(source ?? string.Empty, options), NormalizeComparisonText(target ?? string.Empty, options), StringComparison.Ordinal);
+
+        private static string NormalizeComparisonText(string value, WordComparisonOptions options) {
+            string normalized = value ?? string.Empty;
+            if (options.IgnoreWhitespace) {
+                normalized = string.Join(" ", normalized.Split((char[]?)null, StringSplitOptions.RemoveEmptyEntries));
+            }
+
+            if (options.IgnoreCase) {
+                normalized = normalized.ToUpperInvariant();
+            }
+
+            return normalized;
         }
 
         private static double GetBoundedTextSimilarity(string source, string target) {
@@ -618,29 +766,47 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class ParagraphSnapshot {
-            internal ParagraphSnapshot(string partKind, string text, string matchText, int documentOrder) {
+            internal ParagraphSnapshot(string partKind, OpenXmlPart? part, Paragraph paragraph, string text, string comparisonText, string matchText, string styleId, string formatSignature, int documentOrder) {
                 PartKind = partKind;
+                Part = part;
+                Paragraph = paragraph;
                 Text = text;
+                ComparisonText = comparisonText;
                 MatchText = matchText;
+                StyleId = styleId;
+                FormatSignature = formatSignature;
                 DocumentOrder = documentOrder;
             }
 
             internal string PartKind { get; }
 
+            internal OpenXmlPart? Part { get; }
+
+            internal Paragraph Paragraph { get; }
+
             internal string Text { get; }
 
+            internal string ComparisonText { get; }
+
             internal string MatchText { get; }
+
+            internal string StyleId { get; }
+
+            internal string FormatSignature { get; }
 
             internal int DocumentOrder { get; }
         }
 
         private readonly struct ParagraphTextSnapshot {
-            internal ParagraphTextSnapshot(string text, string matchText) {
+            internal ParagraphTextSnapshot(string text, string comparisonText, string matchText) {
                 Text = text;
+                ComparisonText = comparisonText;
                 MatchText = matchText;
             }
 
             internal string Text { get; }
+
+            internal string ComparisonText { get; }
 
             internal string MatchText { get; }
         }

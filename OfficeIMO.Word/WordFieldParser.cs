@@ -24,6 +24,14 @@ namespace OfficeIMO.Word {
             get { return _formatSwitches; }
         }
 
+        private readonly List<string> _diagnostics = new();
+        /// <summary>
+        /// Gets non-fatal parser diagnostics for unsupported switches that were still recognized structurally.
+        /// </summary>
+        public List<string> Diagnostics {
+            get { return _diagnostics; }
+        }
+
         private readonly List<String> _switches = new();
         /// <summary>
         /// Gets the list of general switches present in the field code.
@@ -80,12 +88,25 @@ namespace OfficeIMO.Word {
             Regex rgx = new Regex(formatSwitches);
             var matches = rgx.Matches(fieldCodeDeclaration);
             foreach (Match m in matches) {
-                var success = Enum.TryParse(m.Groups[2].ToString(), true, out WordFieldFormat fieldFormat);
+                string formatSwitch = m.Groups[2].ToString().Trim();
+                var success = Enum.TryParse(formatSwitch, false, out WordFieldFormat fieldFormat) ||
+                    Enum.TryParse(formatSwitch, true, out fieldFormat);
                 if (success) {
                     this._formatSwitches.Add(fieldFormat);
-
-                    fieldCodeDeclaration = fieldCodeDeclaration.Replace(m.ToString(), "").Trim();
+                } else {
+                    this._diagnostics.Add($"Field format switch \\* {formatSwitch} is not recognized by OfficeIMO.");
                 }
+
+                fieldCodeDeclaration = fieldCodeDeclaration.Replace(m.ToString(), "").Trim();
+            }
+
+            string numericPictureSwitches = @"(\\#)(?:\s*(""[^""]*""|[^\s\\]+))?";
+            rgx = new Regex(numericPictureSwitches);
+            matches = rgx.Matches(fieldCodeDeclaration);
+            foreach (Match m in matches) {
+                string switchText = m.ToString().Trim();
+                this._diagnostics.Add($"Field numeric picture switch {switchText} is not parsed by OfficeIMO for this field type.");
+                fieldCodeDeclaration = fieldCodeDeclaration.Replace(switchText, "").Trim();
             }
 
             // get normal switches

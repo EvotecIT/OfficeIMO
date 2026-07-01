@@ -226,34 +226,36 @@ public sealed class ReaderZipModularTests {
         var zipPath = Path.Combine(tempDirectory, "canonical.zip");
         var originalCurrentDirectory = Environment.CurrentDirectory;
 
-        try {
-            File.WriteAllBytes(zipPath, BuildSimpleZipBytes());
+        lock (ReaderCurrentDirectoryLock.Gate) {
+            try {
+                File.WriteAllBytes(zipPath, BuildSimpleZipBytes());
 
-            Environment.CurrentDirectory = tempDirectory;
-            var relativePath = Path.GetFileName(zipPath);
-            var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
+                Environment.CurrentDirectory = tempDirectory;
+                var relativePath = Path.GetFileName(zipPath);
+                var fullPath = Path.GetFullPath(relativePath).Replace('\\', '/');
 
-            var relativeChunk = DocumentReaderZipExtensions.ReadZip(
-                relativePath,
-                readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-                zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
-                .Single(c => c.Kind == ReaderInputKind.Markdown);
+                var relativeChunk = DocumentReaderZipExtensions.ReadZip(
+                    relativePath,
+                    readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+                    zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+                    .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-            var fullChunk = DocumentReaderZipExtensions.ReadZip(
-                zipPath,
-                readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
-                zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
-                .Single(c => c.Kind == ReaderInputKind.Markdown);
+                var fullChunk = DocumentReaderZipExtensions.ReadZip(
+                    zipPath,
+                    readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true },
+                    zipOptions: new ZipTraversalOptions { DeterministicOrder = true })
+                    .Single(c => c.Kind == ReaderInputKind.Markdown);
 
-            Assert.Equal(fullPath + "::docs/readme.md", relativeChunk.Location.Path);
-            Assert.Equal(relativeChunk.Location.Path, fullChunk.Location.Path);
-            Assert.Equal(relativeChunk.SourceId, fullChunk.SourceId);
-            Assert.Equal(relativeChunk.ChunkHash, fullChunk.ChunkHash);
-            Assert.Equal(relativeChunk.SourceHash, fullChunk.SourceHash);
-        } finally {
-            Environment.CurrentDirectory = originalCurrentDirectory;
-            if (File.Exists(zipPath)) File.Delete(zipPath);
-            if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory);
+                Assert.Equal(fullPath + "::docs/readme.md", relativeChunk.Location.Path);
+                Assert.Equal(relativeChunk.Location.Path, fullChunk.Location.Path);
+                Assert.Equal(relativeChunk.SourceId, fullChunk.SourceId);
+                Assert.Equal(relativeChunk.ChunkHash, fullChunk.ChunkHash);
+                Assert.Equal(relativeChunk.SourceHash, fullChunk.SourceHash);
+            } finally {
+                Environment.CurrentDirectory = originalCurrentDirectory;
+                if (File.Exists(zipPath)) File.Delete(zipPath);
+                if (Directory.Exists(tempDirectory)) Directory.Delete(tempDirectory, recursive: true);
+            }
         }
     }
 

@@ -35,15 +35,26 @@ namespace OfficeIMO.Tests
             }
 
             [Theory]
-            [InlineData(@"BIBLIOGRAPHY \* roman", WordFieldFormat.Roman)]
+            [InlineData(@"BIBLIOGRAPHY \* roman", WordFieldFormat.roman)]
             [InlineData(@"BIBLIOGRAPHY \*arabic", WordFieldFormat.Arabic)]
             [InlineData(@"Page \* FIRSTCAP \* MERGEFORMAT", WordFieldFormat.FirstCap)]
-            [InlineData(@"BIBLIOGRAPHY \* ALPHABETICAL", WordFieldFormat.Alphabetical)]
+            [InlineData(@"BIBLIOGRAPHY \* ALPHABETICAL", WordFieldFormat.ALPHABETICAL)]
             public void Test_CastFormatSwitches(String FieldCodeString, WordFieldFormat expected_field_format)
             {
                 var parser = new WordFieldParser(FieldCodeString);
 
                 Assert.Contains(expected_field_format, parser.FormatSwitches);
+            }
+
+            [Theory]
+            [InlineData(@"REF TargetBookmark \* FutureCase", WordFieldType.Ref, "FutureCase")]
+            [InlineData(@"PAGE \# ""000""", WordFieldType.Page, "numeric picture")]
+            public void Test_PreserveKnownFieldTypeForUnsupportedFormatDiagnostics(String FieldCodeString, WordFieldType expectedFieldType, string expectedDiagnostic)
+            {
+                var parser = new WordFieldParser(FieldCodeString);
+
+                Assert.Equal(expectedFieldType, parser.WordFieldType);
+                Assert.Contains(parser.Diagnostics, diagnostic => diagnostic.Contains(expectedDiagnostic, StringComparison.Ordinal));
             }
 
             [Theory]

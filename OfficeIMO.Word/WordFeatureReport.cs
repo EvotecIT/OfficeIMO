@@ -307,8 +307,11 @@ namespace OfficeIMO.Word {
                 "Sections, page settings, margins, columns, headers, and footers can be authored and inspected.");
             Add(features, "Media", "Images", WordFeatureSupportLevel.PartiallyEditable, Images.Count, null,
                 "Images can be inserted and inspected in common document/header/footer scenarios; advanced drawing behaviors remain partial.");
-            Add(features, "Content", "Fields", WordFeatureSupportLevel.PartiallyEditable, Fields.Count, null,
-                "Common field codes can be authored or updated; full Word field evaluation remains partial.");
+            IReadOnlyList<WordFieldInfo> fieldInventory = InspectFields();
+            WordReviewInfo reviewInfo = InspectReview();
+            Add(features, "Content", "Fields", WordFeatureSupportLevel.PartiallyEditable, Math.Max(Fields.Count, fieldInventory.Count), null,
+                "Common field codes can be authored, updated, and inventoried with InspectFields(); full Word field evaluation remains partial.",
+                DescribeFieldInventory(fieldInventory));
             Add(features, "Content", "Bookmarks", WordFeatureSupportLevel.Editable, Bookmarks.Count, null,
                 "Bookmarks can be authored, inspected, and used as hyperlink anchors.");
             Add(features, "Content", "Document variables", WordFeatureSupportLevel.Editable, DocumentVariables.Count, null,
@@ -342,13 +345,13 @@ namespace OfficeIMO.Word {
             Add(features, "Math", "Equations", WordFeatureSupportLevel.PartiallyEditable, Math.Max(Equations.Count, CountElementsByLocalName(allParts, "oMath")), null,
                 "Equations can be discovered across document parts; rich equation authoring and editing remains partial.",
                 equationDetails);
-            Add(features, "Review", "Comments", WordFeatureSupportLevel.PartiallyEditable, Comments.Count, null,
-                "Comments can be authored, inspected, and removed; threaded/resolved modern comment workflows remain partial.");
+            Add(features, "Review", "Comments", WordFeatureSupportLevel.PartiallyEditable, reviewInfo.CommentCount, null,
+                "Comments, replies, resolved state, target text, and authors can be inspected through InspectReview(); edit operations remain partial.",
+                DescribeReviewComments(reviewInfo));
 
-            int revisionCount = CountDescendantsByLocalName(document, "ins") + CountDescendantsByLocalName(document, "del")
-                + CountDescendantsByLocalName(document, "moveFrom") + CountDescendantsByLocalName(document, "moveTo");
-            Add(features, "Review", "Revisions", WordFeatureSupportLevel.PartiallyEditable, revisionCount, null,
-                "Inserted and deleted revisions can be authored, accepted, rejected, or converted to visible markup; full review metadata remains partial.");
+            Add(features, "Review", "Revisions", WordFeatureSupportLevel.PartiallyEditable, reviewInfo.RevisionCount, null,
+                "Inserted, deleted, move, and common formatting revisions can be inspected through InspectReview(); accept/reject operations remain broader but less granular.",
+                DescribeReviewRevisions(reviewInfo));
 
             int protectionCount = CountDescendantsByLocalName(mainPart.DocumentSettingsPart?.Settings, "documentProtection");
             Add(features, "Protection", "Document protection", WordFeatureSupportLevel.PartiallyEditable, protectionCount, null,
@@ -363,6 +366,7 @@ namespace OfficeIMO.Word {
             var modernCommentDetails = DescribePartsByUriOrContentType(allParts, "commentsExtended")
                 .Concat(DescribePartsByUriOrContentType(allParts, "commentsIds"))
                 .Concat(DescribePartsByUriOrContentType(allParts, "people"))
+                .Concat(reviewInfo.UnsupportedMetadata)
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
@@ -382,14 +386,7 @@ namespace OfficeIMO.Word {
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
             var customXmlDetails = DescribePartsByUri(allParts, "/customXml/");
-            var signatureDetails = DescribePartsByUriOrContentType(allParts, "signature")
-                .Concat(DescribePartsByUriOrContentType(allParts, "xmlsignatures"))
-                .Distinct(StringComparer.OrdinalIgnoreCase)
-                .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
-                .ToList();
-            if (ApplicationProperties.DigitalSignature != null) {
-                signatureDetails.Add("Extended application properties contain digital signature metadata.");
-            }
+            WordSignatureValidationReport signatureValidation = ValidateSignatures();
 
             Add(features, "Compatibility", "Alternative format imports", WordFeatureSupportLevel.PartiallyEditable, altChunkDetails.Count, null,
                 "Alternative-format imports can be authored, extracted, and removed through embedded document APIs; imported content remains package-backed until Word processes it.",
@@ -424,9 +421,9 @@ namespace OfficeIMO.Word {
             Add(features, "Compatibility", "Custom XML parts", WordFeatureSupportLevel.Preserved, customXmlDetails.Count, null,
                 "Custom XML parts are preserve-only package metadata.",
                 customXmlDetails);
-            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.Unsupported, signatureDetails.Count, null,
-                "Package signing and signature validation are not implemented; editing signed documents may invalidate signatures.",
-                signatureDetails);
+            Add(features, "Compatibility", "Digital signatures", WordFeatureSupportLevel.Unsupported, signatureValidation.SignatureInfo.FindingCount, null,
+                "Digital signature package metadata, XML signature structure, reference digest method/value metadata, and signed package-part references can be inspected; cryptographic validation, digest verification, certificate trust, revocation, timestamp, and package signing are not implemented.",
+                signatureValidation.SignatureInfo.Details.Concat(signatureValidation.Findings).Distinct(StringComparer.OrdinalIgnoreCase).ToArray());
 
             return new WordFeatureReport(features);
         }
@@ -504,6 +501,218 @@ namespace OfficeIMO.Word {
                 .Distinct(StringComparer.OrdinalIgnoreCase)
                 .OrderBy(detail => detail, StringComparer.OrdinalIgnoreCase)
                 .ToList();
+        }
+
+        private static List<string> DescribeFieldInventory(IReadOnlyList<WordFieldInfo> fields) {
+            if (fields.Count == 0) {
+                return new List<string>();
+            }
+
+            var refreshableFields = fields
+                .Where(field => field.FieldType != null && IsDeterministicFieldRefreshCandidate(field.FieldType.Value))
+                .ToArray();
+            var queuedOrManualFields = fields
+                .Where(field => field.FieldType != null && IsQueuedOrManualFieldRefresh(field.FieldType.Value))
+                .ToArray();
+            var knownUnsupportedFields = fields
+                .Where(field =>
+                    field.FieldType != null
+                    && !IsDeterministicFieldRefreshCandidate(field.FieldType.Value)
+                    && !IsQueuedOrManualFieldRefresh(field.FieldType.Value))
+                .ToArray();
+
+            var details = new List<string> {
+                $"Simple fields: {fields.Count(field => field.Representation == WordFieldRepresentation.Simple)}",
+                $"Complex fields: {fields.Count(field => field.Representation == WordFieldRepresentation.Complex)}",
+                $"Deterministic refresh candidates: {refreshableFields.Length}"
+            };
+
+            AddGroupedFieldTypes(details, "Refreshable field types", refreshableFields);
+            AddGroupedFieldTypes(details, "Queued/manual refresh fields", queuedOrManualFields);
+            AddGroupedFieldTypes(details, "Known unsupported refresh fields", knownUnsupportedFields);
+
+            string locations = string.Join(", ",
+                fields
+                    .GroupBy(field => field.LocationKind)
+                    .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal)
+                    .Select(group => $"{group.Key}: {group.Count()}"));
+            if (!string.IsNullOrWhiteSpace(locations)) {
+                details.Add("Locations: " + locations);
+            }
+
+            string parsedTypes = string.Join(", ",
+                fields
+                    .Where(field => field.FieldType != null)
+                    .Select(field => field.FieldType!.Value.ToString())
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(value => value, StringComparer.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(parsedTypes)) {
+                details.Add("Parsed field types: " + parsedTypes);
+            }
+
+            int unsupportedCount = fields.Count(field => field.UnsupportedParseDetails.Count > 0);
+            if (unsupportedCount > 0) {
+                details.Add($"Field parser diagnostics: {unsupportedCount}");
+            }
+
+            int dirtyCount = fields.Count(field => field.IsDirty);
+            if (dirtyCount > 0) {
+                details.Add($"Dirty fields: {dirtyCount}");
+            }
+
+            int lockedCount = fields.Count(field => field.IsLocked);
+            if (lockedCount > 0) {
+                details.Add($"Locked fields: {lockedCount}");
+            }
+
+            var containerDetails = new[] {
+                new { Name = "tables", Count = fields.Count(field => field.IsInTable) },
+                new { Name = "content controls", Count = fields.Count(field => field.IsInContentControl) },
+                new { Name = "text boxes", Count = fields.Count(field => field.IsInTextBox) }
+            }
+                .Where(item => item.Count > 0)
+                .Select(item => $"{item.Name}: {item.Count}")
+                .ToArray();
+            if (containerDetails.Length > 0) {
+                details.Add("Container fields: " + string.Join(", ", containerDetails));
+            }
+
+            return details;
+        }
+
+        private static void AddGroupedFieldTypes(List<string> details, string label, IReadOnlyList<WordFieldInfo> fields) {
+            if (fields.Count == 0) {
+                return;
+            }
+
+            string grouped = string.Join(", ",
+                fields
+                    .Where(field => field.FieldType != null)
+                    .GroupBy(field => field.FieldType!.Value)
+                    .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal)
+                    .Select(group => $"{group.Key}: {group.Count()}"));
+            if (!string.IsNullOrWhiteSpace(grouped)) {
+                details.Add(label + ": " + grouped);
+            }
+        }
+
+        private static bool IsDeterministicFieldRefreshCandidate(WordFieldType fieldType) {
+            switch (fieldType) {
+                case WordFieldType.Author:
+                case WordFieldType.Comments:
+                case WordFieldType.CreateDate:
+                case WordFieldType.Date:
+                case WordFieldType.DocProperty:
+                case WordFieldType.DocVariable:
+                case WordFieldType.FileName:
+                case WordFieldType.FileSize:
+                case WordFieldType.Formula:
+                case WordFieldType.Info:
+                case WordFieldType.Keywords:
+                case WordFieldType.LastSavedBy:
+                case WordFieldType.NumChars:
+                case WordFieldType.NumPages:
+                case WordFieldType.NumWords:
+                case WordFieldType.Page:
+                case WordFieldType.PageRef:
+                case WordFieldType.PrintDate:
+                case WordFieldType.Quote:
+                case WordFieldType.Ref:
+                case WordFieldType.RevNum:
+                case WordFieldType.SaveDate:
+                case WordFieldType.Section:
+                case WordFieldType.SectionPages:
+                case WordFieldType.Seq:
+                case WordFieldType.Subject:
+                case WordFieldType.Time:
+                case WordFieldType.Title:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static bool IsQueuedOrManualFieldRefresh(WordFieldType fieldType) {
+            switch (fieldType) {
+                case WordFieldType.Index:
+                case WordFieldType.TC:
+                case WordFieldType.TOC:
+                case WordFieldType.XE:
+                    return true;
+                default:
+                    return false;
+            }
+        }
+
+        private static List<string> DescribeReviewComments(WordReviewInfo reviewInfo) {
+            if (reviewInfo.CommentCount == 0) {
+                return new List<string>();
+            }
+
+            var details = new List<string> {
+                $"Replies: {reviewInfo.ReplyCount}",
+                $"Resolved: {reviewInfo.ResolvedCommentCount}",
+                $"Known unresolved: {reviewInfo.UnresolvedCommentCount}"
+            };
+
+            string authors = string.Join(", ",
+                reviewInfo.Comments
+                    .Select(comment => comment.Author)
+                    .Where(author => !string.IsNullOrWhiteSpace(author))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(author => author, StringComparer.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(authors)) {
+                details.Add("Authors: " + authors);
+            }
+
+            string locations = string.Join(", ",
+                reviewInfo.Comments
+                    .Where(comment => comment.TargetLocationKind != null)
+                    .GroupBy(comment => comment.TargetLocationKind!.Value)
+                    .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal)
+                    .Select(group => $"{group.Key}: {group.Count()}"));
+            if (!string.IsNullOrWhiteSpace(locations)) {
+                details.Add("Locations: " + locations);
+            }
+
+            return details;
+        }
+
+        private static List<string> DescribeReviewRevisions(WordReviewInfo reviewInfo) {
+            if (reviewInfo.RevisionCount == 0) {
+                return new List<string>();
+            }
+
+            var details = new List<string>();
+            string types = string.Join(", ",
+                reviewInfo.Revisions
+                    .GroupBy(revision => revision.RevisionType)
+                    .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal)
+                    .Select(group => $"{group.Key}: {group.Count()}"));
+            if (!string.IsNullOrWhiteSpace(types)) {
+                details.Add("Types: " + types);
+            }
+
+            string authors = string.Join(", ",
+                reviewInfo.Revisions
+                    .Select(revision => revision.Author)
+                    .Where(author => !string.IsNullOrWhiteSpace(author))
+                    .Distinct(StringComparer.OrdinalIgnoreCase)
+                    .OrderBy(author => author, StringComparer.OrdinalIgnoreCase));
+            if (!string.IsNullOrWhiteSpace(authors)) {
+                details.Add("Authors: " + authors);
+            }
+
+            string locations = string.Join(", ",
+                reviewInfo.Revisions
+                    .GroupBy(revision => revision.LocationKind)
+                    .OrderBy(group => group.Key.ToString(), StringComparer.Ordinal)
+                    .Select(group => $"{group.Key}: {group.Count()}"));
+            if (!string.IsNullOrWhiteSpace(locations)) {
+                details.Add("Locations: " + locations);
+            }
+
+            return details;
         }
 
         private static List<string> DescribeElementsByLocalName(IEnumerable<OpenXmlPart> parts, string localName) {

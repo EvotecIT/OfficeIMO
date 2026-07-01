@@ -12,7 +12,7 @@ using OfficeIMO.Word.Html;
 using OfficeIMO.Word.Markdown;
 
 namespace OfficeIMO.Examples.Word {
-    internal static class MarketReadinessProofGallery {
+    internal static partial class MarketReadinessProofGallery {
         public static void Example_GenerateWordMarketReadinessProof(string folderPath, bool openWord) {
             Console.WriteLine("[*] Word market readiness proof gallery");
 
@@ -23,6 +23,7 @@ namespace OfficeIMO.Examples.Word {
             CreateReviewDiffProof(galleryPath);
             CreateHtmlProof(galleryPath);
             CreateMarkdownProof(galleryPath);
+            CreatePremiumWorkflowReportsProof(galleryPath);
             WriteGalleryIndex(galleryPath);
             WriteProofManifest(galleryPath);
 
@@ -147,7 +148,7 @@ namespace OfficeIMO.Examples.Word {
             document.AddParagraph("Logo:").AddPictureControl(logoSourcePath, 24, 24, "Logo Alias", "Logo");
             document.AddParagraph("Tasks:").AddRepeatingSection("Tasks", "Tasks Alias", "Tasks");
 
-            var values = new Dictionary<string, object> {
+            var values = new Dictionary<string, object?> {
                 ["ClientName"] = "Northwind Traders",
                 ["Accepted"] = true,
                 ["DueDate"] = new DateTime(2026, 5, 29),
@@ -389,19 +390,19 @@ namespace OfficeIMO.Examples.Word {
             File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
         }
 
-        private static void WriteExtractedValues(string path, int updated, IReadOnlyDictionary<string, object> values) {
+        private static void WriteExtractedValues(string path, int updated, IReadOnlyDictionary<string, object?> values) {
             var builder = new StringBuilder();
             builder.AppendLine("# Filled Content-Control Values");
             builder.AppendLine();
             builder.AppendLine("- Updated controls: " + updated.ToString(System.Globalization.CultureInfo.InvariantCulture));
-            foreach (KeyValuePair<string, object> value in values.OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
+            foreach (KeyValuePair<string, object?> value in values.OrderBy(item => item.Key, StringComparer.OrdinalIgnoreCase)) {
                 builder.AppendLine("- " + value.Key + ": " + FormatValue(value.Value));
             }
 
             File.WriteAllText(path, builder.ToString(), Encoding.UTF8);
         }
 
-        private static string FormatValue(object value) {
+        private static string FormatValue(object? value) {
             return value switch {
                 null => string.Empty,
                 DateTime date => date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
@@ -487,7 +488,11 @@ namespace OfficeIMO.Examples.Word {
                 new ProofScenarioInfo(
                     "04-markdown-conversion",
                     "Markdown conversion",
-                    "Markdown import, generated DOCX, round-trip Markdown, diagnostics, and validation.")
+                    "Markdown import, generated DOCX, round-trip Markdown, diagnostics, and validation."),
+                new ProofScenarioInfo(
+                    "05-premium-workflow-reports",
+                    "Premium workflow reports",
+                    "Unknown-document feature preflight, review reports, comparison reports, generated redline artifact, field refresh diagnostics, template preflight, and signature preflight.")
             };
         }
 

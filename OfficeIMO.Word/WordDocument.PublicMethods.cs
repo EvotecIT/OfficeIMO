@@ -408,23 +408,15 @@ namespace OfficeIMO.Word {
         /// fields on open so Word can update the TOC.
         /// </summary>
         public void UpdateFields() {
-            int page = 1;
-            foreach (var paragraph in Paragraphs) {
-                var field = paragraph.Field;
-                if (field != null && field.FieldType == WordFieldType.Page) {
-                    field.Text = page.ToString();
-                }
+            UpdateFieldsAndGetReport();
+        }
 
-                if (paragraph.IsPageBreak) {
-                    page++;
-                }
-            }
-
-            foreach (var field in Fields.Where(f => f.FieldType == WordFieldType.NumPages)) {
-                field.Text = page.ToString();
-            }
-
-            TableOfContent?.Update();
+        /// <summary>
+        /// Updates page and total page number fields, using the supplied options for supported deterministic field refresh.
+        /// </summary>
+        /// <param name="options">Options controlling deterministic field refresh behavior.</param>
+        public void UpdateFields(WordFieldUpdateOptions options) {
+            UpdateFieldsAndGetReport(options);
         }
 
         /// <summary>

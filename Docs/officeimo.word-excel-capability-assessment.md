@@ -98,9 +98,10 @@ This assessment tracks where `OfficeIMO.Word` and `OfficeIMO.Excel` stand today,
 | Excel tests | `OfficeIMO.Tests/Excel.*.cs` |
 | Excel benchmarks | `OfficeIMO.Excel.Benchmarks/`, `Docs/benchmarks/` |
 | Word current capability matrix | `OfficeIMO.Word/COMPATIBILITY.md` |
+| Word premium gap implementation plan | `Docs/officeimo.word-premium-gap-plan.md` |
+| Word market-readiness proof docs | `Website/content/docs/word/market-readiness/index.md` |
 | Word README and detailed feature matrix | `OfficeIMO.Word/README.md` |
 | Word product page | `Website/content/products/word.md` |
-| Word existing review | `Docs/reviews/officeimo.word-review-2026-03-08.md` |
 | Word feature inspection report | `OfficeIMO.Word/WordFeatureReport.cs` |
 | Word source surface | `OfficeIMO.Word/`, `OfficeIMO.Word.Html/`, `OfficeIMO.Word.Markdown/`, `OfficeIMO.Word.Pdf/` |
 | Word tests | `OfficeIMO.Tests/Word*.cs`, `OfficeIMO.Tests/Pdf/Word.SaveAsPdf*.cs` |

@@ -34,9 +34,9 @@ namespace OfficeIMO.Word {
                 }
 
                 if (updateCustomXml && hasSuppliedValue
-                    && TrySelectCustomXmlBindingElement(mainPart, boundControl.Binding, customXmlCache, out CustomXmlPart? customXmlPart, out XElement? element)) {
-                    if (!string.Equals(element.Value, value, StringComparison.Ordinal)) {
-                        element.Value = value!;
+                    && TrySelectCustomXmlBindingNode(mainPart, boundControl.Binding, customXmlCache, out CustomXmlPart? customXmlPart, out BoundXmlNode node)) {
+                    if (!string.Equals(node.Value, value, StringComparison.Ordinal)) {
+                        node.Value = value!;
                         updatedCustomXmlNodes++;
                         dirtyCustomXmlParts.Add(customXmlPart);
                     }
@@ -76,6 +76,13 @@ namespace OfficeIMO.Word {
                 }
 
                 foreach (SdtCell control in root.Descendants<SdtCell>()) {
+                    DataBinding? binding = control.SdtProperties?.GetFirstChild<DataBinding>();
+                    if (binding != null) {
+                        yield return new BoundContentControl(part, control, control.SdtProperties!, binding);
+                    }
+                }
+
+                foreach (SdtRow control in root.Descendants<SdtRow>()) {
                     DataBinding? binding = control.SdtProperties?.GetFirstChild<DataBinding>();
                     if (binding != null) {
                         yield return new BoundContentControl(part, control, control.SdtProperties!, binding);
@@ -172,8 +179,8 @@ namespace OfficeIMO.Word {
         }
 
         private static bool TryGetCustomXmlBindingValue(MainDocumentPart mainPart, DataBinding binding, Dictionary<CustomXmlPart, XDocument> cache, out string? value) {
-            if (TrySelectCustomXmlBindingElement(mainPart, binding, cache, out _, out XElement? element)) {
-                value = element.Value;
+            if (TrySelectCustomXmlBindingNode(mainPart, binding, cache, out _, out BoundXmlNode node)) {
+                value = node.Value;
                 return true;
             }
 
@@ -181,30 +188,26 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static bool TrySelectCustomXmlBindingElement(MainDocumentPart mainPart, DataBinding binding, Dictionary<CustomXmlPart, XDocument> cache, out CustomXmlPart customXmlPart, out XElement element) {
+        private static bool TrySelectCustomXmlBindingNode(MainDocumentPart mainPart, DataBinding binding, Dictionary<CustomXmlPart, XDocument> cache, out CustomXmlPart customXmlPart, out BoundXmlNode node) {
             string? storeItemId = binding.StoreItemId?.Value;
             IEnumerable<CustomXmlPart> parts = mainPart.CustomXmlParts;
             if (!string.IsNullOrWhiteSpace(storeItemId)) {
                 var matchingParts = parts
                     .Where(part => string.Equals(GetCustomXmlStoreItemId(part), storeItemId, StringComparison.OrdinalIgnoreCase))
                     .ToList();
-                if (matchingParts.Count > 0) {
-                    parts = matchingParts;
-                }
+                parts = matchingParts;
             }
 
             foreach (CustomXmlPart part in parts) {
                 XDocument document = GetCustomXmlDocument(part, cache);
-                XElement? selected = SelectBoundElement(document, binding);
-                if (selected != null) {
+                if (TrySelectBoundNode(document, binding, out node)) {
                     customXmlPart = part;
-                    element = selected;
                     return true;
                 }
             }
 
             customXmlPart = null!;
-            element = null!;
+            node = default;
             return false;
         }
 
@@ -225,14 +228,31 @@ namespace OfficeIMO.Word {
             return document;
         }
 
-        private static XElement? SelectBoundElement(XDocument document, DataBinding binding) {
+        private static bool TrySelectBoundNode(XDocument document, DataBinding binding, out BoundXmlNode node) {
             string? xpath = binding.XPath?.Value;
             if (string.IsNullOrWhiteSpace(xpath)) {
-                return null;
+                node = default;
+                return false;
             }
 
             XmlNamespaceManager namespaceManager = CreateNamespaceManager(binding.PrefixMappings?.Value);
-            return document.XPathSelectElement(xpath!, namespaceManager);
+            object result = document.XPathEvaluate(xpath!, namespaceManager);
+            if (result is IEnumerable<object> nodes) {
+                foreach (object candidate in nodes) {
+                    if (candidate is XElement element) {
+                        node = BoundXmlNode.FromElement(element);
+                        return true;
+                    }
+
+                    if (candidate is XAttribute attribute) {
+                        node = BoundXmlNode.FromAttribute(attribute);
+                        return true;
+                    }
+                }
+            }
+
+            node = default;
+            return false;
         }
 
         private static XmlNamespaceManager CreateNamespaceManager(string? prefixMappings) {
@@ -284,9 +304,31 @@ namespace OfficeIMO.Word {
                         return tableCell.Descendants<Text>().First();
                     });
                     return true;
+                case SdtRow row:
+                    row.SdtContentRow ??= new SdtContentRow();
+                    SetTextInRowContent(row.SdtContentRow, value);
+                    return true;
                 default:
                     return false;
             }
+        }
+
+        private static void SetTextInRowContent(SdtContentRow rowContent, string value) {
+            TableCell? firstCell = rowContent.Descendants<TableCell>().FirstOrDefault();
+            if (firstCell != null) {
+                SetTextInComposite(firstCell, value, () => {
+                    var paragraph = new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }));
+                    firstCell.Append(paragraph);
+                    return paragraph.Descendants<Text>().First();
+                });
+                return;
+            }
+
+            SetTextInComposite(rowContent, value, () => {
+                var tableRow = new TableRow(new TableCell(new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }))));
+                rowContent.Append(tableRow);
+                return tableRow.Descendants<Text>().First();
+            });
         }
 
         private static void SetTextInComposite(OpenXmlCompositeElement container, string value, Func<Text> createText) {
@@ -311,6 +353,35 @@ namespace OfficeIMO.Word {
             internal OpenXmlElement ContentControl { get; }
             internal SdtProperties Properties { get; }
             internal DataBinding Binding { get; }
+        }
+
+        private readonly struct BoundXmlNode {
+            private readonly XElement? _element;
+            private readonly XAttribute? _attribute;
+
+            private BoundXmlNode(XElement? element, XAttribute? attribute) {
+                _element = element;
+                _attribute = attribute;
+            }
+
+            internal string Value {
+                get => _attribute?.Value ?? _element?.Value ?? string.Empty;
+                set {
+                    if (_attribute != null) {
+                        _attribute.Value = value;
+                    } else if (_element != null) {
+                        _element.Value = value;
+                    }
+                }
+            }
+
+            internal static BoundXmlNode FromElement(XElement element) {
+                return new BoundXmlNode(element, null);
+            }
+
+            internal static BoundXmlNode FromAttribute(XAttribute attribute) {
+                return new BoundXmlNode(null, attribute);
+            }
         }
     }
 }

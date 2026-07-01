@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents a table of contents within a Word document.
     /// </summary>
-    public class WordTableOfContent : WordElement {
+    public partial class WordTableOfContent : WordElement {
         private static readonly string TocLevelSwitchPattern = @"\\o\s+(?:""\d+-\d+""|&quot;\d+-\d+&quot;)";
         private readonly WordDocument _document;
         private readonly SdtBlock _sdtBlock;

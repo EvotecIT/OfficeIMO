@@ -1,0 +1,889 @@
+<?xml version="1.0" encoding="utf-8"?>
+<PremiumGapFixtures schemaVersion="1" scope="OfficeIMO.Word premium gaps excluding PDF and legacy DOC">
+  <Scenario id="signature-inspection-policy"
+            workstream="DigitalSignatures"
+            featureFamily="Digital signatures"
+            status="partially-covered"
+            expectedBehavior="inspect-preserve-warn"
+            sourceDocument="Documents/Word/PremiumGaps/DigitalSignatures/signed-valid.docx"
+            fixtureStatus="generated">
+    <Evidence>WordDocument.InspectSignatures() returns WordSignatureInfo with signature origin part presence, origin relationship id, XML signature part count/details, application-property signature metadata, parseable XML DSig signature/digest algorithms, signed Reference entries with digest method/value metadata and package-part target resolution, timestamp declarations, X509 subject names, and metadata-only unsupported diagnostics.</Evidence>
+    <Evidence>The reusable OPC signature metadata parser now lives in OfficeIMO.Shared, with WordDocument.InspectSignatures() acting as the Word-facing adapter over the shared package model.</Evidence>
+    <Evidence>WordDocument.ValidateSignatures() returns WordSignatureValidationReport with separate package structure, XML signature parsing, reference digest metadata, signed package-part reference coverage, bounded signed package-part digest verification, cryptographic validation, certificate-chain trust, revocation, timestamp, and unsupported validation states.</Evidence>
+    <Evidence>Tests cover parseable synthetic signature metadata, timestamp metadata readback without timestamp validation claims, missing reference digest values, missing signed package-part references, simple package-part digest match/mismatch, transform-aware digest-verification unsupported boundaries, malformed XML signature parts, application-metadata-only signatures, unsigned documents, and a sanitized real OPC package-services signed DOCX fixture without claiming cryptographic validity.</Evidence>
+    <Evidence>WordFeatureReport uses the signature inspection model and reports digital signatures as unsupported for signing/validation while exposing package metadata details.</Evidence>
+    <Evidence>No-op load/save preservation coverage exists for synthetic digital-signature origin and XML signature package parts when callers explicitly accept signature invalidation.</Evidence>
+    <Evidence>Signed-document save policy now blocks normal Save/stream save operations by default and requires WordSaveOptions.SignedDocumentPolicy = AllowSignatureInvalidation to continue.</Evidence>
+    <Evidence>The market-readiness gallery writes signature-preflight.docx and signature-preflight.md showing metadata inspection, timestamp metadata readback, and the default save-policy block.</Evidence>
+    <Evidence>The public examples runner supports --word-signature-preflight and writes SignaturePreflightWorkflow.docx plus SignaturePreflightWorkflow.md from the public InspectSignatures() and save-policy APIs.</Evidence>
+    <Evidence>WordDocument.TrySignPackage() and SignPackage() expose a bounded Windows .NET Framework package-signing adapter over PackageDigitalSignatureManager; callers can sign with an explicit X509Certificate2 or resolve a certificate by thumbprint from an explicit certificate store name/location. Unsupported target frameworks report that signing is unavailable, and the strict API fails closed when signing or structural readback cannot be proven.</Evidence>
+    <Evidence>Round-trip adapter proof creates a real OPC package-services signature from both explicit and store-resolved certificates, then reads it back through WordDocument.ValidateSignatures() with package structure, XML signature parsing, and signed package-part reference coverage passing while cryptographic trust dimensions remain NotChecked.</Evidence>
+    <Evidence>The sanitized signed DOCX fixture validates real OPC package-services signature structure, XML signature parsing, signed package-part reference coverage, digest metadata readback, bounded digest-verification status, timestamp metadata readback, and signer subject readback from the package certificate part without requiring signing at test runtime.</Evidence>
+    <Evidence>Broader external signed-document corpus validation, cryptographic validation, transform-aware OPC digest validation, certificate-chain trust, revocation, timestamp authority validation/timestamping services, macro-project signing, and cross-platform package signing remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_DigitalSignature</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_DigitalSignature_ValidateSignaturesVerifiesSimplePackagePartDigest</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net472 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_DigitalSignature_SignPackageCreatesStructurallyReadableSignatureOnSupportedAdapter</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net472 --filter FullyQualifiedName~Test_DigitalSignature_SignPackageCanResolveCertificateFromStoreOnSupportedAdapter</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_DigitalSignature_ValidateSignaturesSupportsSignedFixture</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.FeatureReport</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-signature-preflight</Validation>
+  </Scenario>
+  <Scenario id="review-thread-resolution-metadata"
+            workstream="ReviewRedline"
+            featureFamily="Comments"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/comments-replies-resolved.docx"
+            fixtureStatus="generated">
+    <Evidence>WordDocument.InspectReview() returns WordCommentInfo records for classic comments, replies, resolved state, authors, initials, dates, body target text, and target location where the document exposes it.</Evidence>
+    <Evidence>Tests cover generated/imported-shape comment target readback and JSON/Markdown report locations in headers, footers, footnotes, and endnotes.</Evidence>
+    <Evidence>Tests cover commentsExtensible package metadata as preserved-but-not-parsed unsupported review metadata in WordReviewInfo and JSON/Markdown review reports.</Evidence>
+    <Evidence>Tests cover imported commentsEx metadata stored out of comment order, with reply/resolution readback, grouped report threads, and mark-unresolved operations matched by comment paragraph id.</Evidence>
+    <Evidence>WordComment can add replies, mark comments resolved or unresolved, delete a single comment, and delete an entire comment thread while leaving unrelated comments in place.</Evidence>
+    <Evidence>Unsupported modern metadata such as durable comment ids and people parts is reported explicitly instead of silently flattening it.</Evidence>
+    <Evidence>Sanitized Microsoft Word-authored fixtures cover classic comment target readback, body/table comment location flags from a Word COM-authored corpus, Word COM-authored threaded/resolved comment metadata with cross-paragraph target readback, related-part inserted/deleted revisions from a Word COM-authored corpus, comment report output, and preserved modern metadata signals such as commentsIds, people, and commentsExtensible.</Evidence>
+    <Evidence>Broader real Word-authored document coverage beyond the sanitized comment fixtures remains open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.Comments</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~InspectReview</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_InspectReview_ReadsWordComAuthoredBodyTableFixture</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_InspectReview_ReadsWordComAuthoredThreadedCommentFixture</Validation>
+  </Scenario>
+  <Scenario id="revision-readback-report"
+            workstream="ReviewRedline"
+            featureFamily="Tracked changes"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/revisions-insert-delete-format.docx"
+            fixtureStatus="generated">
+    <Evidence>Revision accept and reject operations exist for the current tracked-change model.</Evidence>
+    <Evidence>WordDocument.InspectReview() returns WordRevisionInfo records with type, source element name, id, author, date, affected text, nearby location text, and document part location.</Evidence>
+    <Evidence>WordDocument.AcceptRevisions(WordRevisionFilter) and RejectRevisions(WordRevisionFilter) return WordRevisionOperationReport records for the matched revisions before mutation.</Evidence>
+    <Evidence>WordDocument.InspectReviewReport() and WordReviewReport.From(...) produce deterministic JSON and Markdown sections for comments, grouped commentThreads, unresolved threads, revisions, accept/reject actions, unsupported review metadata, and document locations.</Evidence>
+    <Evidence>The market-readiness gallery writes reviewed-contract.docx plus review-report.json and review-report.md without requiring Word or Office automation.</Evidence>
+    <Evidence>The public examples runner supports --word-review-reports and writes ReviewReportWorkflow.docx plus JSON/Markdown review reports from WordDocument.InspectReviewReport().</Evidence>
+    <Evidence>Tests cover inserted text, deleted text, paragraph formatting changes, generated/imported-shape header/footer/footnote/endnote revision locations, imported-style move ranges, imported-style run/table/cell formatting changes, author-filtered revision readback, and scoped accept/reject by author, date range, revision type, explicit revision id, paragraph scope, table scope, header/footer/footnote/endnote location, content-control/text-box location, move range type, sanitized Word-authored inserted/deleted/move revision markup, and property-formatting accept/reject semantics for run, paragraph, table, table-row, table-cell, and section revisions.</Evidence>
+    <Evidence>Tests cover review report JSON parsing, Markdown escaping, grouped comment-thread extraction, unresolved thread extraction, unsupported metadata reporting, action detail reporting, imported-style content-control/text-box review locations, header/footer/footnote/endnote review locations, imported commentsEx metadata matched by comment paragraph id, imported-style move ranges, and imported-style run/table/cell formatting changes.</Evidence>
+    <Evidence>Sanitized Microsoft Word-authored fixtures cover inserted/deleted revisions, move ranges, run/table/table-row/table-grid/cell/paragraph/section formatting revision readback, body/table comments plus inserted/deleted revisions from a Word COM-authored corpus, header/footer/footnote/endnote inserted/deleted revisions from a Word COM-authored corpus, scoped accept/reject operation proof for inserted/deleted/move revisions plus paragraph/section formatting revisions, review report output, and structured comparison findings including related-part revision metadata without requiring Word automation at test runtime.</Evidence>
+    <Evidence>Generated imported-shape proof covers accepting current formatting and rejecting back to stored previous properties for run, paragraph, table, table-row, table-cell, and section formatting revisions.</Evidence>
+    <Evidence>Broader Word-authored revision shapes beyond the initial sanitized fixtures remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.Revisions</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.TrackChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~InspectReview</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~ReviewReport</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_Revisions_WordComAuthoredFixtureSupportsScopedOperations</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_Revisions_WordAuthoredParagraphSectionFormattingFixtureSupportsScopedOperations</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-review-reports</Validation>
+  </Scenario>
+  <Scenario id="comparison-run-format-diff"
+            workstream="DocumentComparison"
+            featureFamily="Run-level comparison"
+            status="partially-covered"
+            expectedBehavior="compare-report"
+            sourceDocument="Documents/Word/PremiumGaps/DocumentComparison/run-format-before-after.docx"
+            fixtureStatus="generated">
+    <Evidence>Structured comparison coverage exists for paragraphs, tables, numbering, headers, and tracked deleted text.</Evidence>
+    <Evidence>CompareStructure() returns run-level findings for multi-run paragraph text changes and run formatting changes with stable paragraph/run locations.</Evidence>
+    <Evidence>Tests preserve the existing logical-paragraph contract where run segmentation alone does not create differences.</Evidence>
+    <Evidence>The public comparison workflow example now exercises run-formatting findings in the generated JSON, Markdown, text-summary, redline review artifact, and bounded in-place target run-property redline paths. Broader full in-place visual redline output remains open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructure</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-comparison-reports</Validation>
+  </Scenario>
+  <Scenario id="comparison-field-content-control-diff"
+            workstream="DocumentComparison"
+            featureFamily="Field and content-control comparison"
+            status="partially-covered"
+            expectedBehavior="compare-report"
+            sourceDocument="Documents/Word/PremiumGaps/DocumentComparison/fields-content-controls-before-after.docx"
+            fixtureStatus="generated">
+    <Evidence>Feature report identifies content controls and content-control data bindings.</Evidence>
+    <Evidence>CompareStructure() returns Field findings for field instruction/result changes and ContentControl findings for alias/tag/data-binding/text changes with stable short locations and richer DetailedLocation paths.</Evidence>
+    <Evidence>Tests cover stable repeated comparison ordering for richer field/content-control inputs across body, table, header, and content-control-hosted field findings.</Evidence>
+    <Evidence>The public comparison workflow example now exercises field and content-control findings in the generated JSON, Markdown, text-summary, and redline review artifact path. Full in-place visual redline output remains open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.CompareDocuments</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReturnsRichFieldAndContentControlFindingsInStableOrder</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.FeatureReport</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-comparison-reports</Validation>
+  </Scenario>
+  <Scenario id="comparison-bookmark-hyperlink-list-diff"
+            workstream="DocumentComparison"
+            featureFamily="Bookmark, hyperlink, and list comparison"
+            status="covered"
+            expectedBehavior="compare-report"
+            sourceDocument="Documents/Word/PremiumGaps/DocumentComparison/bookmarks-links-lists-before-after.docx"
+            fixtureStatus="generated">
+    <Evidence>CompareStructure() returns Bookmark findings for bookmark name/id/range-text changes, Hyperlink findings for text/anchor/target/relationship changes, and List findings for numbered or bulleted item changes.</Evidence>
+    <Evidence>WordComparisonOptions can disable CompareBookmarks, CompareHyperlinks, and CompareLists independently while keeping other comparison families available.</Evidence>
+    <Evidence>The public examples runner supports --word-comparison-reports and writes generated source/target DOCX files plus JSON, Markdown, text-summary, and redline review artifacts.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReportsBookmarkHyperlinkAndListChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanDisableBookmarkHyperlinkAndListFindings</Validation>
+  </Scenario>
+  <Scenario id="comparison-review-metadata-diff"
+            workstream="DocumentComparison"
+            featureFamily="Comment and revision comparison"
+            status="covered"
+            expectedBehavior="compare-report"
+            sourceDocument="Documents/Word/PremiumGaps/DocumentComparison/review-metadata-before-after.docx"
+            fixtureStatus="generated">
+    <Evidence>CompareStructure() returns Comment findings for comment text, author, target, reply, and resolved-state metadata changes through InspectReview().</Evidence>
+    <Evidence>CompareStructure() returns Revision findings for tracked insertion/deletion and formatting metadata changes through InspectReview().</Evidence>
+    <Evidence>WordComparisonOptions can disable CompareComments and CompareRevisions independently while keeping other comparison families available.</Evidence>
+    <Evidence>Review metadata subfilters are covered for comment author/text/resolution/target/reply and revision author/text/location switches.</Evidence>
+    <Evidence>Tests cover stable repeated comparison ordering for imported-style review metadata where comments-part storage order differs from body/table/header target document order.</Evidence>
+    <Evidence>Tests cover generated/imported-shape comment and revision comparison findings in headers, footers, footnotes, and endnotes.</Evidence>
+    <Evidence>Tests cover first-pass structured comparison proof against sanitized Microsoft Word-authored fixtures with one comment, inserted/deleted revisions, move ranges, and run/table/cell formatting revision markup.</Evidence>
+    <Evidence>Broader real-world imported review corpus proof beyond the initial Word-authored fixtures, and full in-place redline output, remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReportsCommentAndRevisionChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanDisableCommentAndRevisionFindings</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReturnsImportedReviewMetadataInTargetDocumentOrder</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReportsImportedReviewMetadataInHeadersFootersAndNotes</Validation>
+  </Scenario>
+  <Scenario id="comparison-report-serializers"
+            workstream="DocumentComparison"
+            featureFamily="Comparison report serializers"
+            status="covered"
+            expectedBehavior="compare-report"
+            sourceDocument="Documents/Word/PremiumGaps/DocumentComparison/report-serializers-before-after.docx"
+            fixtureStatus="generated">
+    <Evidence>WordComparisonReportWriter owns deterministic ToJson(), ToMarkdown(), and ToTextSummary() report output without changing comparer semantics.</Evidence>
+    <Evidence>WordComparisonResult keeps ToJson(), ToMarkdown(), and ToTextSummary() as compatibility wrappers over the dedicated writer.</Evidence>
+    <Evidence>JSON output includes source/target paths, hasChanges, finding counts, summary counts by scope/change kind, short location, detailedLocation, and the ordered findings list.</Evidence>
+    <Evidence>Markdown output includes summary, scope/change counts, escaped finding tables with detailed locations, and an explicit no-change state.</Evidence>
+    <Evidence>The market-readiness gallery writes comparison-report.json, comparison-report.md, and comparison-summary.txt through WordComparisonReportWriter from two generated DOCX files.</Evidence>
+    <Evidence>The public examples runner supports --word-comparison-reports and writes ComparisonReportWorkflow.json, .md, and .txt reports.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureExportsJsonMarkdownAndTextSummaryReports</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness</Validation>
+  </Scenario>
+  <Scenario id="comparison-options"
+            workstream="DocumentComparison"
+            featureFamily="Comparison options"
+            status="partially-covered"
+            expectedBehavior="compare-report"
+            sourceDocument="Documents/Word/PremiumGaps/DocumentComparison/options-before-after.docx"
+            fixtureStatus="generated">
+    <Evidence>WordComparisonOptions adds an overload for CompareStructure() with text normalization and feature-family switches.</Evidence>
+    <Evidence>Tests cover IgnoreWhitespace, IgnoreCase, CompareRunFormatting, CompareEffectiveFormatting, CompareParagraphStyleIds, CompareRunStyleIds, CompareFields, CompareContentControls, CompareBookmarks, CompareHyperlinks, CompareLists, CompareComments, CompareRevisions, CompareImages, CompareGeneratedIds, and CompareVolatileMetadata using generated DOCX artifacts.</Evidence>
+    <Evidence>IncludedScopes and ExcludedScopes can include or remove findings by WordComparisonScope after all enabled analyzers run, letting wrappers request focused report output without changing comparer semantics.</Evidence>
+    <Evidence>Review metadata subfilters can ignore comment authors, text, resolved state, targets, replies, and revision authors, text, and location metadata.</Evidence>
+    <Evidence>CompareBlockOrder is available as a first-pass block-order switch. Paragraph and run style-id switches are covered. Bounded effective-formatting comparison resolves document defaults, based-on paragraph/character style chains, paragraph-style run properties, and direct paragraph/run properties; full Word-compatible cascade parity, toggle-property semantics, theme resolution, and layout-derived effective formatting remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanIgnoreGeneratedIdsAndVolatileMetadata</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanDisableParagraphStyleIdFindings</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanDisableRunStyleIdFindings</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanFilterOutputByIncludedAndExcludedScopes</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanIgnoreCommentSubfamilies</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptionsCanIgnoreRevisionSubfamilies</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.CompareStructureReportsEffectiveFormattingChangesFromStyleDefinitions</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureOptions</Validation>
+  </Scenario>
+  <Scenario id="comparison-redline-document-generation"
+            workstream="DocumentComparison"
+            featureFamily="Redline document generation"
+            status="partially-covered"
+            expectedBehavior="redline-document"
+            sourceDocument="Documents/Word/PremiumGaps/DocumentComparison/redline-before-after.docx"
+            fixtureStatus="generated">
+    <Evidence>WordDocumentComparer.CreateRedlineDocument() compares two DOCX files and writes either a standalone review artifact with a summary/findings table/tracked snippets or a first-pass in-place target-layout redline for supported body/header/footer/note paragraph and run text changes, bounded run-formatting changes as tracked run-property revisions, content-control text changes including table-contained run/block controls, native table cell/row SDT variants, nested descendant run controls, and simple text-box-hosted run/block controls, inserted/deleted/changed Drawing and VML image runs, body table-cell text changes, body table-row insertions/deletions, body whole-table insertions/deletions, bounded note-contained table cell/row/deleted-table changes, bounded header/footer table cell/row/deleted-table changes, and inserted/deleted nested whole-table plus bounded nested table-cell modification redlines in matching parent cells.</Evidence>
+    <Evidence>WordComparisonRedlineOptions controls the redline mode, author, timestamp, comparison options, summary inclusion, findings table inclusion, whether text findings become tracked revisions, and whether feature, review, or formatting-only findings stay report-only.</Evidence>
+    <Evidence>Open XML validation covers the generated redline artifact and first-pass in-place target redline. Full Word-style in-place visual redline generation remains open for advanced nested-table move semantics and broader nested-table layout/modification cases, advanced note shapes beyond plain paragraphs/runs and bounded note-contained table cases, advanced text-box content-control shapes beyond simple run/block SDTs, advanced nested content-control container-wide semantics, full Word-compatible effective formatting semantics beyond the bounded style-chain comparer, advanced header/footer shapes beyond plain paragraphs/runs and bounded table cases, advanced image anchoring/layout semantics, and more complex table move/merge scenarios.</Evidence>
+    <Evidence>The market-readiness gallery writes comparison-redline.docx and comparison-redline-in-place.docx alongside the structured comparison reports.</Evidence>
+    <Evidence>The public examples runner supports --word-comparison-reports and writes ComparisonReportWorkflow.Redline.docx plus ComparisonReportWorkflow.InPlaceRedline.docx with Open XML validation over body/header/footer/note paragraph text, table-cell, table-row, whole-table, run-formatting, field, content-control, and comment metadata differences.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesRedlineDocumentWithTrackedChangesAndReport</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedline</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForHeaderAndFooterParagraphChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForHeaderTableCellChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForFooterInsertedTableRows</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedFooterTables</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForFootnoteAndEndnoteParagraphChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForFootnoteTableCellChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForEndnoteInsertedTableRows</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedFootnoteTables</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForTextBoxContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForTextBoxBlockContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForTableContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForTableBlockContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForTableCellContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForTableRowContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForNestedContentControlTextChanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForInsertedImages</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedImages</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForChangedImagePayloads</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForInsertedVmlImages</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedVmlImages</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForChangedVmlImagePayloads</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForModifiedTableCells</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForInsertedTableCells</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedTableCells</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForInsertedTableRows</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedTableRows</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForInsertedTables</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedTables</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForInsertedNestedTables</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForModifiedNestedTableCells</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureCreatesInPlaceTargetRedlineForDeletedNestedTables</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureRedlineCanKeepFeatureFindingsReportOnly</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureRedlineCanKeepReviewAndFormattingFindingsReportOnly</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-comparison-reports</Validation>
+  </Scenario>
+  <Scenario id="field-inventory-nested-fields"
+            workstream="FieldEvaluation"
+            featureFamily="Field inventory"
+            status="covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/nested-fields.docx"
+            fixtureStatus="generated">
+    <Evidence>WordDocument.InspectFields() normalizes simple and complex fields into WordFieldInfo records.</Evidence>
+    <Evidence>Tests cover body, headers, footers, tables, footnotes, endnotes, text boxes, content controls, nested fields, split field-code runs, dirty/locked state, result text, unsupported parser diagnostics, and recognized-but-unsupported format switches that preserve known field identity.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~InspectFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_PreserveKnownFieldTypeForUnsupportedFormatDiagnostics</Validation>
+  </Scenario>
+  <Scenario id="field-refresh-document-properties-toc"
+            workstream="FieldEvaluation"
+            featureFamily="Field refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/properties-and-toc.docx"
+            fixtureStatus="generated">
+    <Evidence>WordDocument.UpdateFieldsAndGetReport() refreshes deterministic built-in metadata fields, custom DOCPROPERTY fields, DOCVARIABLE fields backed by OfficeIMO document variables, FILENAME, bounded current DATE/TIME fields with WordFieldUpdateOptions.CurrentDateTime for reproducible refresh, property-backed CREATEDATE/SAVEDATE/PRINTDATE fields with bounded date/time format switches, direct REVNUM fields, bounded INFO built-in property fields, built-in DOCPROPERTY aliases for category/version/revision/last-printed metadata, document-statistics NUMWORDS and NUMCHARS fields with bounded numeric picture switches, saved-package FILESIZE fields with Word-style bytes, rounded decimal \k kilobytes, rounded decimal \m megabytes, and bounded numeric picture switches, body PAGE and NUMPAGES fields including bounded numeric picture switches, body SECTION and SECTIONPAGES fields using OfficeIMO section order and explicit page-break counts within the containing section, simple and imported-style complex literal QUOTE fields with text casing format switches, bounded numeric literal formats, and numeric picture switches over numeric quoted literals, REF bookmark text with text casing format switches, deterministic REF bookmark text resolution for header/footer/footnote/endnote bookmarks, REF list-number cross-reference switches for directly numbered body paragraphs, paragraph styles with numPr including simple basedOn inheritance, and numbering-level pStyle paragraph-style links (\n, \r, \w, and \t text suppression), PAGEREF body bookmark page estimates with Arabic, Roman, roman, Ordinal, Alphabetical, ALPHABETICAL, Hex, CardText, OrdText, DollarText, and bounded numeric picture format switches, generated-caption SEQ fields with explicit next, reset, repeat-current, heading-level reset, ordinal-format, hex-format, CardText, OrdText, and DollarText switches, bookmarked caption REF targets, bounded arithmetic/formula-function results for SUM, AVERAGE, MIN, MAX, PRODUCT, COUNT, IF, AND, OR, NOT, TRUE, FALSE, MOD, SIGN, ABS, INT, DEFINED, and ROUND with percent numeric literals, postfix percent on grouped/function expression results, comma or semicolon argument separators, bounded negative-place ROUND, short-circuit IF branch evaluation, short-circuit AND/OR logical evaluation, comparison operators, numeric picture switches for decimal/thousands/percent output, literal text suffixes/prefixes, backslash-escaped literal text, visual color tags, positive/negative/zero sections, explicit numeric condition sections, layout-neutral Word fill-token normalization, bounded result-hosted nested complex fields, bounded deterministic nested field-instruction refresh inside containing formula fields, and simple numeric table formula references over plain numeric and percent-valued cells such as SUM(ABOVE), SUM(BELOW), SUM(LEFT), COUNT(ABOVE), COUNT(LEFT), A1 + B1, SUM(B1:C2), SUM(A1; B1; R2C1), R1C1 + R2C2, and SUM(R1C1:R2C2), including imported-style split complex formula fields for supported table/percent scenarios, visual-column resolution across simple horizontally spanned table cells, filtering of vertical-merge continuation cells, and row gridBefore offsets.</Evidence>
+    <Evidence>The update report returns per-field Updated, Skipped, Unsupported, and ParseError diagnostics while UpdateFields() remains a compatibility wrapper. Recognized-but-unsupported parser diagnostics for known field types are reported as Unsupported instead of losing the field identity behind a generic parse error.</Evidence>
+    <Evidence>WordFeatureReport reuses InspectFields() to summarize deterministic refresh candidates, queued/manual refresh fields, known unsupported refresh field types, field parser diagnostics, and container placement for unknown-document preflight.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() generates visible TOC entries from body headings, body table-cell headings, body block content-control headings, generated VML text-box-hosted headings, Word-authored DrawingML/VML text-box-hosted headings, nested table-cell DrawingML/VML text-box-hosted headings, and direct paragraph outline levels with internal bookmarks, configurable level ranges, page-break-based page estimates, section-boundary page estimates for next-page, odd-page, and continuous section breaks, and imported TOC \p entry/page separator text where requested, including sanitized Word-generated raw complex-field fixtures.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() can normalize a sanitized Microsoft Word-generated raw complex-field TOC into the OfficeIMO TOC model, then regenerate visible entries without requiring Word automation at test runtime.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures(), RefreshListOfTables(), and RefreshCaptionList(...) generate visible caption-list entries from generated caption paragraphs and sanitized Microsoft Word-authored list-of-figures, list-of-tables, and generic list-of-equations fixtures that contain matching SEQ fields, including table-cell, body content-control, generated VML text-box-hosted, Word-authored DrawingML/VML text-box-hosted, nested table-cell DrawingML/VML text-box-hosted captions, and imported related-part header/footer and note-part list-of-figures fixtures, with internal bookmarks, hyperlink anchors, explicit page-break/section-start page estimates, imported TOC \n page-number suppression, and imported TOC \p entry/page separator text where requested.</Evidence>
+    <Evidence>WordTableOfContent.RefreshIndex() generates first-pass visible index entries from body, body table-cell, body block content-control, Word-authored DrawingML/VML text-box XE terms, and nested table-cell DrawingML/VML text-box XE terms, nested subentry paths, cross-reference text switches, bounded XE \r bookmark page ranges, typed-index INDEX \f / XE \f filters, paragraph-level INDEX \b bookmark scopes, bounded imported-style Latin letter-range INDEX \p filters, bounded imported-style Latin INDEX \h heading separators, bounded imported-style INDEX \c column-count readback and switch preservation, and imported-style INDEX \e / \l / \g / \k separators, merges duplicate page references, sorts deterministically, reports malformed or unsupported entries as skipped, and normalizes sanitized Microsoft Word-authored raw complex INDEX fixtures into the OfficeIMO TOC model. WordDocument.MarkIndexEntriesFromConcordance(...) adds bounded two-column concordance marking for body, body table-cell, body block content-control, and text-box-hosted matches before index refresh.</Evidence>
+    <Evidence>The market-readiness gallery writes field-refresh-report.docx and field-refresh-report.md showing refreshed metadata, custom property, REF, and PAGEREF fields.</Evidence>
+    <Evidence>Related-part PAGEREF and PAGE fields still need Word layout context and are reported as skipped. Layout-dependent cross-reference switches, advanced list-number cross-reference behavior beyond direct, style-numPr, and numbering-level pStyle body paragraphs, broader INFO field aliases beyond package-backed built-in properties, broader QUOTE container/general switch behavior, localized word/currency number formats, broader Word date/time format grammar beyond invariant custom format patterns, broader imported caption/list ecosystems beyond body/table-cell/body-content-control/text-box/table-text-box and the first header/footer and note-part fixtures, full Word-compatible index generation beyond bounded bookmark page ranges, bounded concordance marking, and body/table-cell/body-content-control/text-box/table-text-box XE containers, exact multi-column index layout, locale-specific index collation/yomi/heading behavior, broader complex table-layout formula interpretation, broader nested field-instruction evaluation beyond deterministic formula inputs, broader numeric picture switches over non-deterministic or non-numeric source fields, layout-dependent numeric picture fill expansion, locale-specific numeric picture tokens, and deeper imported TOC shape coverage beyond body, body table-cell, body content-control, text-box-hosted, and table text-box-hosted heading paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~WordFieldUpdateReportTests</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UsesVisualColumnsForMergedTableFormulaReferences</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_SkipsVerticalMergeContinuationsForTableFormulaReferences</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UsesGridBeforeOffsetsForTableFormulaReferences</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesLiteralQuoteFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_AppliesDeterministicQuoteFormatSwitches</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesDateTimeFieldsWithOptionsAndCustomFormats</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesInfoAndRevisionMetadataFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesDocumentStatisticsFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesFileSizeFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesDocumentVariableFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesSectionFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UsesExplicitTableCellReferencesAndRanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UsesRnCnTableCellReferencesAndRanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UpdatesRefListNumberSwitches</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UpdatesRefListNumberSwitchesFromParagraphStyles</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UpdatesRefListNumberSwitchesFromNumberingLevelParagraphStyles</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesRefFieldsForRelatedPartBookmarks</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_UpdatesBoundedFormulaFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UpdatesFormulaFieldsWithSemicolonArgumentSeparators</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UpdatesFormulaFieldsWithPercentLiterals</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_ReadsPercentValuedTableCellsForFormulaReferences</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UpdatesImportedStyleComplexFormulaFieldsWithPercentTableCells</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_UpdatesNestedInstructionComplexFieldsBeforeContainingFormula</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_UpdateFieldsAndGetReport_AppliesFormulaNumericPictureSwitches</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordFieldUpdateReportTests.Test_UpdateFieldsAndGetReport_ReportsUnsupportedDiagnosticsForKnownFieldFormatSwitches</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.TOC</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~TOCRefreshEntries</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesEstimatesSectionBreakPageNumbers</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesHonorsImportedPageNumberSeparator</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedPageNumberSeparatorToc</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshEntriesUsesDirectOutlineLevels</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedComplexToc</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTableCellHeadings</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshEntriesSupportsWordGeneratedContentControlHeadings</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsTextBoxHeadings</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedCaptions</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedPageNumberSeparator</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsTextBoxCaptions</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedTextBoxCaptions</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshCaptionListHonorsImportedPageNumberSeparator</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshCaptionListSupportsWordGeneratedEquationCaptions</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndex</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexHonorsImportedEntryTypeFilters</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexHonorsImportedBookmarkScopeFilters</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexHonorsImportedHeadingSeparators</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexReportsAndPreservesImportedColumnCount</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexHonorsImportedLetterRangeFilters</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexHonorsImportedLetterRangeFiltersWithSymbols</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~FieldUpdateReport</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness</Validation>
+  </Scenario>
+  <Scenario id="word-generated-complex-toc"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-toc.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC with level 1-2 heading entries and no OfficeIMO SDT wrapper.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex-field TOC into the OfficeIMO TOC model without requiring Word automation at test runtime.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() regenerates visible entries, keeps level filtering, creates hyperlinks/bookmarks, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC, caption/list, and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedComplexToc</Validation>
+  </Scenario>
+  <Scenario id="word-generated-toc-table-cell"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-toc-table-cell.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose level-2 Heading source paragraph lives inside a body table cell.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() walks body table paragraphs in document order, regenerates entries for body and body table-cell headings, creates validator-clean OfficeIMO anchors for imported table-cell TOC bookmarks, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC ecosystems beyond body and body table-cell heading paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTableCellHeadings</Validation>
+  </Scenario>
+  <Scenario id="word-generated-toc-content-control"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-toc-content-control.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose level-2 Heading source paragraph lives inside a body block content control.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() walks body content-control paragraphs in document order, regenerates entries for body, body table-cell, and body content-control headings, creates validator-clean OfficeIMO anchors inside the content control, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC ecosystems beyond body, body table-cell, and body content-control heading paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshEntriesSupportsWordGeneratedContentControlHeadings</Validation>
+  </Scenario>
+  <Scenario id="word-generated-toc-text-box"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-toc-text-box.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose level-2 Heading source paragraph lives inside a DrawingML text box with VML fallback content.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() walks direct body paragraph hosted text-box heading paragraphs, deduplicates Word alternate-content DrawingML/VML fallback copies by paragraph id, regenerates entries for body and text-box-hosted headings, preserves imported Word _Toc bookmarks inside the text box, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC ecosystems beyond body, body table-cell, body content-control, and text-box-hosted heading paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTextBoxHeadings</Validation>
+  </Scenario>
+  <Scenario id="word-generated-toc-table-text-box"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-toc-table-text-box.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose level-2 Heading source paragraph lives inside a DrawingML text box with VML fallback content anchored in a table cell.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() walks table-host paragraphs once, harvests nested text-box Heading paragraphs without double-counting Word alternate DrawingML/VML fallback paragraphs, regenerates entries for body and table text-box-hosted headings, preserves or generates bookmarks inside the text box, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC ecosystems beyond body, body table-cell, body content-control, text-box-hosted, and table text-box-hosted heading paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTableTextBoxHeadings</Validation>
+  </Scenario>
+  <Scenario id="word-generated-outline-toc"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-outline-toc.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose source paragraphs use direct outline levels instead of Heading styles.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex-field TOC into the OfficeIMO TOC model without requiring Word automation at test runtime.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() regenerates visible entries from direct paragraph outline levels, keeps level filtering, creates hyperlinks/bookmarks, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC, caption/list, and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedOutlineLevels</Validation>
+  </Scenario>
+  <Scenario id="word-generated-tc-toc"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-tc-toc.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC built from TC fields.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() reconstructs split complex TC instructions, honors TOC/TC \f identifiers and TC \l levels, skips out-of-range entries, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC, caption/list, and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTcFields</Validation>
+  </Scenario>
+  <Scenario id="word-generated-custom-style-toc"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-custom-style-toc.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw simple-field TOC whose instruction uses \t custom style mappings.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw simple-field TOC into the OfficeIMO TOC model without moving the first custom-styled source paragraph into the generated TOC wrapper.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() resolves Word style names to style ids, applies \t style-to-level mappings, skips out-of-range custom-style entries, creates hyperlinks/bookmarks, and saves the normalized TOC for later loads.</Evidence>
+    <Evidence>Broader imported TOC, caption/list, and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedCustomStyleToc</Validation>
+  </Scenario>
+  <Scenario id="word-generated-bookmark-scope-toc"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-bookmark-scope-toc.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose instruction uses \b bookmark scoping over Heading-style source paragraphs.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex-field TOC into the OfficeIMO TOC model without moving out-of-scope heading paragraphs into the generated TOC wrapper.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() applies the TOC \b bookmark scope before heading-level filtering, preserves the regenerated field filter, creates hyperlinks/bookmarks, and excludes out-of-scope headings without counting them as malformed or skipped.</Evidence>
+    <Evidence>Broader imported TOC, caption/list, and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedBookmarkScopeToc</Validation>
+  </Scenario>
+  <Scenario id="word-generated-page-number-suppression-toc"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-page-number-suppression-toc.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose instruction uses \n "2-3" page-number suppression.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex-field TOC into the OfficeIMO TOC model without retaining Word-generated TOC result paragraphs as the refresh title.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() keeps estimated page numbers in the report while suppressing visible tab/page-number runs for the requested TOC levels and preserving the regenerated field instruction.</Evidence>
+    <Evidence>Broader imported TOC, caption/list, and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedPageNumberSuppressionToc</Validation>
+  </Scenario>
+  <Scenario id="word-generated-page-number-separator-toc"
+            workstream="FieldEvaluation"
+            featureFamily="TOC refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-page-number-separator-toc.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex-field TOC whose instruction uses \p " -&gt; " page-number separator text.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex-field TOC into the OfficeIMO TOC model without retaining Word-generated TOC result paragraphs as the refresh title.</Evidence>
+    <Evidence>WordTableOfContent.RefreshEntries() keeps estimated page numbers in the report while rendering visible custom entry/page separator text and preserving the regenerated field instruction.</Evidence>
+    <Evidence>Broader imported TOC, caption/list, and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshEntriesSupportsWordGeneratedPageNumberSeparatorToc</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-figures"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-figures.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex list-of-figures TOC field with Word-authored SEQ Figure captions and a SEQ Table caption that should be excluded.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex list field into the OfficeIMO TOC model without moving the first real caption into the generated list wrapper.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() regenerates visible entries from Word-authored captions, keeps table captions out of the figure list, creates hyperlinks/bookmarks, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedCaptions</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-figures-table-cell"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-figures-table-cell.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex list-of-figures TOC field with one Word-authored SEQ Figure caption in a body paragraph and one Word-authored SEQ Figure caption inside a body table cell.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() walks body table paragraphs in document order, regenerates visible entries for both captions, preserves the matching imported TOC \c "Figure" instruction, creates hyperlinks/bookmarks, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body and table-cell caption paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedTableCellCaptions</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-figures-content-control"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-figures-content-control.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex list-of-figures TOC field with one Word-authored SEQ Figure caption in a body paragraph and one Word-authored SEQ Figure caption inside a body block content control.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() walks body block content-control paragraphs in document order, regenerates visible entries for both captions, preserves the matching imported TOC \c "Figure" instruction, creates hyperlinks/bookmarks, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body, table-cell, and body content-control caption paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedContentControlCaptions</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-figures-text-box"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-figures-text-box.docx"
+            fixtureStatus="available">
+    <Evidence>Microsoft Word-authored DOCX fixture covers a raw complex list-of-figures TOC field with one Word-authored SEQ Figure caption in a body paragraph and one Word-authored SEQ Figure caption inside a DrawingML text box with VML fallback content.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() walks text-box caption paragraphs without double-counting Word's alternate DrawingML/VML fallback markup, regenerates visible entries for both captions, preserves the matching imported TOC \c "Figure" instruction, creates hyperlinks/bookmarks, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body, table-cell, body content-control, and text-box caption paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedTextBoxCaptions</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-figures-table-text-box"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-figures-table-text-box.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex list-of-figures TOC field with one Word-authored SEQ Figure caption in a body paragraph and one Word-authored SEQ Figure caption inside a DrawingML text box with VML fallback content anchored in a table cell.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() walks the table-host paragraph once, harvests the nested text-box caption without double-counting Word alternate DrawingML/VML fallback paragraphs, regenerates visible entries for both captions, preserves the matching imported TOC \c "Figure" instruction, creates hyperlinks/bookmarks, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body, table-cell, body content-control, text-box, and nested table text-box caption paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedTableTextBoxCaptions</Validation>
+  </Scenario>
+  <Scenario id="generated-list-of-figures-header-footer"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/generated-list-of-figures-header-footer.docx"
+            fixtureStatus="generated">
+    <Evidence>Generated DOCX artifact test covers body, header, and footer SEQ Figure captions collected through shared field-root traversal.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() emits list entries and hyperlinks for related-part captions, creates bookmarks in header/footer parts, and keeps estimated page numbers explicit.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body, table-cell, body content-control, text-box, nested table text-box, and the first header/footer and note-part fixtures remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshListOfFiguresSupportsHeaderFooterCaptions</Validation>
+  </Scenario>
+  <Scenario id="imported-related-part-list-of-figures"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/imported-related-part-list-of-figures.docx"
+            fixtureStatus="available">
+    <Evidence>Imported DOCX fixture covers an existing list-of-figures document with body, header, and footer SEQ Figure captions plus saved list output.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() can load the saved related-part caption fixture, refresh visible entries, keep body/header/footer entries in document order, create or preserve hyperlinks/bookmarks in related parts, and save the normalized list for later loads without Word automation at test runtime.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body, table-cell, body content-control, text-box, nested table text-box, and the first header/footer and note-part fixtures remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshListOfFiguresSupportsImportedRelatedPartCaptionFixture</Validation>
+  </Scenario>
+  <Scenario id="generated-list-of-figures-footnote-endnote"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/generated-list-of-figures-footnote-endnote.docx"
+            fixtureStatus="generated">
+    <Evidence>Generated DOCX artifact test covers body, footnote, and endnote SEQ Figure captions collected through shared field-root traversal.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() descends into visible note records, emits list entries and hyperlinks for note-part captions, creates bookmarks in footnote/endnote parts, and keeps estimated page numbers explicit.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body, table-cell, body content-control, text-box, nested table text-box, header/footer, and footnote/endnote caption paragraphs remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshListOfFiguresSupportsFootnoteEndnoteCaptions</Validation>
+  </Scenario>
+  <Scenario id="imported-note-part-list-of-figures"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/imported-note-part-list-of-figures.docx"
+            fixtureStatus="available">
+    <Evidence>Imported DOCX fixture covers an existing list-of-figures document with body, footnote, and endnote SEQ Figure captions plus saved list output.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() can load the saved note-part caption fixture, refresh visible entries, keep body/footnote/endnote entries in document order, create or preserve hyperlinks/bookmarks in note parts, and save the normalized list for later loads without Word automation at test runtime.</Evidence>
+    <Evidence>Broader imported caption/list ecosystems beyond body, table-cell, body content-control, text-box, nested table text-box, header/footer, and footnote/endnote fixtures remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshListOfFiguresSupportsImportedNotePartCaptionFixture</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-figures-separator"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-figures-separator.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex list-of-figures TOC field with Word-authored SEQ Figure captions and imported TOC \p " :: " page-number separator text.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex list field into the OfficeIMO TOC model without moving the first real caption into the generated list wrapper.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() preserves the matching imported TOC \c "Figure" field instruction, keeps estimated page numbers in the report, renders visible custom entry/page separator text, creates hyperlinks/bookmarks, excludes non-Figure captions, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedPageNumberSeparator</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-figures-no-page-numbers"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-figures-no-page-numbers.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex list-of-figures TOC field with Word-authored SEQ Figure captions and imported TOC \n page-number suppression.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex list field into the OfficeIMO TOC model without requiring Word automation at test runtime.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfFigures() preserves the matching imported TOC \c "Figure" field instruction, keeps estimated page numbers in the report, suppresses visible tab/page-number runs, creates hyperlinks/bookmarks, excludes non-Figure captions, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfFiguresSupportsWordGeneratedPageNumberSuppression</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-tables"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-tables.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex list-of-tables TOC field with Word-authored SEQ Table captions and a SEQ Figure caption that should be excluded.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex list field into the OfficeIMO TOC model without moving the first real table caption into the generated list wrapper.</Evidence>
+    <Evidence>WordTableOfContent.RefreshListOfTables() regenerates visible entries from Word-authored table captions, keeps figure captions out of the table list, creates hyperlinks/bookmarks, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshListOfTablesSupportsWordGeneratedCaptions</Validation>
+  </Scenario>
+  <Scenario id="word-generated-list-of-equations"
+            workstream="FieldEvaluation"
+            featureFamily="Caption list refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-list-of-equations.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-generated DOCX fixture covers a raw complex generic caption-list TOC field with Word-authored SEQ Equation captions and a SEQ Figure caption that should be excluded.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex list field into the OfficeIMO TOC model without moving the first real equation caption into the generated list wrapper.</Evidence>
+    <Evidence>WordTableOfContent.RefreshCaptionList("Equation", ...) regenerates visible entries from Word-authored equation captions, keeps figure captions out of the equation list, creates hyperlinks/bookmarks, and saves the normalized list for later loads.</Evidence>
+    <Evidence>Broader imported caption/list and index ecosystems remain open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshCaptionListSupportsWordGeneratedEquationCaptions</Validation>
+  </Scenario>
+  <Scenario id="generated-index-refresh"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/index-refresh.docx"
+            fixtureStatus="generated">
+    <Evidence>Generated DOCX artifact tests cover body XE main terms, nested subterm paths, typed INDEX \f / XE \f entry filtering, paragraph-level INDEX \b bookmark-scope filtering, bounded imported-style Latin INDEX \p letter-range filtering including the documented special-character form, bounded imported-style Latin INDEX \h heading separators, bounded XE \r bookmark page ranges, imported-style INDEX \e / \l / \g / \k separators, duplicate page merging, explicit page-break page estimates, deterministic sorted output, generated Index3 styling for third-level entries, and saved Open XML validation.</Evidence>
+    <Evidence>WordDocument.MarkIndexEntriesFromConcordance(...) can read a Word-style two-column concordance document, mark body, body table-cell, body block content-control, and text-box-hosted paragraph matches as hidden XE fields with whole-word matching and duplicate prevention, reject unsafe index text, and feed the existing WordTableOfContent.RefreshIndex() path.</Evidence>
+    <Evidence>XE cross-reference text switches are rendered as visible "See ..." style index entries, bounded XE \r bookmark page ranges are rendered as page references such as 1-2, and malformed empty-path or missing-bookmark entries are reported as skipped rather than silently producing stale index output.</Evidence>
+    <Evidence>Full Word-compatible index generation remains open for advanced sorting beyond bounded Latin letter ranges, advanced page-range layout semantics, exact multi-column layout beyond bounded INDEX \c readback, broader imported index ecosystems beyond bounded concordance marking, locale-specific collation, yomi, and locale-specific heading behavior.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndex</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexSupportsBookmarkPageRanges</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexHonorsImportedCustomSeparators</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexHonorsImportedHeadingSeparators</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexReportsAndPreservesImportedColumnCount</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexCanUseConcordanceDocument</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexHonorsImportedLetterRangeFilters</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexHonorsImportedLetterRangeFiltersWithSymbols</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexSupportsWordGeneratedCustomSeparators</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexSupportsWordGeneratedContainerEntries</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexSupportsWordGeneratedTextBoxEntries</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexSupportsWordGeneratedTableTextBoxEntries</Validation>
+  </Scenario>
+  <Scenario id="word-generated-index-refresh"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-index.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers a raw complex INDEX field with Word-generated XE main-term, first-level subterm, and cross-reference entries without an OfficeIMO SDT wrapper.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex INDEX field into the OfficeIMO TOC model, then WordTableOfContent.RefreshIndex() regenerates deterministic visible entries without requiring Word automation at test runtime.</Evidence>
+    <Evidence>Broader imported index ecosystems remain open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation beyond the bounded concordance marking path.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexSupportsWordGeneratedComplexIndex</Validation>
+  </Scenario>
+  <Scenario id="word-generated-index-custom-separators"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-index-custom-separators.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers a raw complex INDEX field whose instruction uses imported-style INDEX \e, \l, \g, and \k custom separators.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex INDEX field into the OfficeIMO TOC model, then WordTableOfContent.RefreshIndex() regenerates deterministic visible entries with custom entry/page, page-reference, page-range, and cross-reference separators.</Evidence>
+    <Evidence>Full Word-compatible index generation remains open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation beyond the bounded concordance marking path.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexSupportsWordGeneratedCustomSeparators</Validation>
+  </Scenario>
+  <Scenario id="word-generated-index-page-range-refresh"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-index-page-range.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers a raw complex INDEX field and an XE \r page-range entry over a multi-page bookmark, including Word's body-level bookmark-end marker shape.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex INDEX field into the OfficeIMO TOC model, then WordTableOfContent.RefreshIndex() resolves the bookmark range into a deterministic page reference such as 1-2 without requiring Word automation at test runtime.</Evidence>
+    <Evidence>Full Word-compatible index generation remains open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation beyond the bounded concordance marking path.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_TableOfContent_RefreshIndexSupportsWordGeneratedBookmarkPageRange</Validation>
+  </Scenario>
+  <Scenario id="word-generated-index-containers"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-index-containers.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers a raw complex INDEX field with XE entries in a body paragraph, a body table cell, and a body block content control.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex INDEX field into the OfficeIMO TOC model, then WordTableOfContent.RefreshIndex() walks body, body table-cell, and body content-control XE paragraphs in document order and saves the normalized index for later loads.</Evidence>
+    <Evidence>Broader imported index ecosystems beyond body, body table-cell, body content-control XE containers, and bounded concordance marking remain open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexSupportsWordGeneratedContainerEntries</Validation>
+  </Scenario>
+  <Scenario id="word-generated-index-text-box"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-index-text-box.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers a raw complex INDEX field plus body and text-box XE entries, including DrawingML text-box content with VML fallback content.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex INDEX field into the OfficeIMO TOC model, then WordTableOfContent.RefreshIndex() includes body and text-box terms, avoids double-counting fallback text-box content, and saves the normalized index for later loads.</Evidence>
+    <Evidence>Broader imported index ecosystems beyond body, body table-cell, body content-control, text-box XE containers, and bounded concordance marking remain open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexSupportsWordGeneratedTextBoxEntries</Validation>
+  </Scenario>
+  <Scenario id="word-generated-index-table-text-box"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/word-generated-index-table-text-box.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers a raw complex INDEX field plus body and table text-box XE entries, including DrawingML text-box content with VML fallback content anchored in a table cell.</Evidence>
+    <Evidence>WordDocument.TableOfContent normalizes the imported raw complex INDEX field into the OfficeIMO TOC model, then WordTableOfContent.RefreshIndex() includes body and table text-box terms, avoids double-processing fallback text-box paragraphs during table traversal, and saves the normalized index for later loads.</Evidence>
+    <Evidence>Broader imported index ecosystems beyond body, body table-cell, body content-control, text-box, and table text-box XE containers plus bounded concordance marking remain open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexSupportsWordGeneratedTableTextBoxEntries</Validation>
+  </Scenario>
+  <Scenario id="generated-index-related-parts"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/generated-index-related-parts.docx"
+            fixtureStatus="generated">
+    <Evidence>Generated DOCX artifact test covers body, header, footer, footnote, and endnote XE entries collected through shared field-root traversal.</Evidence>
+    <Evidence>WordTableOfContent.RefreshIndex() includes related-part terms in the visible index while keeping body-scoped bookmark and page-range behaviors separate.</Evidence>
+    <Evidence>Broader imported index ecosystems beyond body, body table-cell, body content-control, text-box, table text-box, header/footer, and footnote/endnote XE containers plus bounded concordance marking remain open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexFindsXeFieldsInHeaderFooterAndNotes</Validation>
+  </Scenario>
+  <Scenario id="imported-related-part-index"
+            workstream="FieldEvaluation"
+            featureFamily="Index refresh"
+            status="partially-covered"
+            expectedBehavior="evaluate-refresh-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/FieldEvaluation/imported-related-part-index.docx"
+            fixtureStatus="available">
+    <Evidence>Imported DOCX fixture covers an existing visible index plus body, header, footer, footnote, and endnote XE entries loaded from a saved package.</Evidence>
+    <Evidence>WordTableOfContent.RefreshIndex() can reload the saved related-part index fixture, collect body/header/footer/footnote/endnote terms in deterministic index order, regenerate visible entries, and save the normalized index for later loads without Word automation at test runtime.</Evidence>
+    <Evidence>Broader imported index ecosystems beyond body, body table-cell, body content-control, text-box, table text-box, header/footer, and footnote/endnote XE fixtures plus bounded concordance marking remain open for advanced sorting, advanced page-range layout semantics, multi-column layout, and locale-specific collation.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_TableOfContent_RefreshIndexSupportsImportedRelatedPartIndexFixture</Validation>
+  </Scenario>
+  <Scenario id="mail-merge-template-preflight"
+            workstream="TemplateMailMerge"
+            featureFamily="Template and mail merge"
+            status="partially-covered"
+            expectedBehavior="preflight-merge-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/TemplateMailMerge/template-preflight.docx"
+            fixtureStatus="generated">
+    <Evidence>Current merge engine supports multiple merge and block-region paths.</Evidence>
+    <Evidence>WordMailMerge.PreflightTemplate() returns a WordTemplatePreflightReport over InspectTemplate() with can-bind checks, per-capability diagnostics, deterministic JSON, and Markdown output for merge fields, conditional blocks, repeated blocks, saved header/footer-hosted template markers, and unsupported Word-native mail-merge record-control fields such as NEXTIF and SKIPIF.</Evidence>
+    <Evidence>Tests cover clean preflight and separated diagnostics for missing merge values, conditional marker issues, and repeated-block marker issues.</Evidence>
+    <Evidence>Saved DOCX artifact proof covers table-cell-hosted merge fields, conditional markers, and repeated-block markers discovered by WordTemplatePreflightReport after save/load, with JSON and Markdown summaries.</Evidence>
+    <Evidence>Docs/officeimo.word-template-mail-merge-scenarios.md publishes the scenario matrix for merge fields, conditional blocks, repeated table rows, grouped table rows, repeated body blocks, nested regions, headers/footers, table cells, content controls, template diagnostics, and public workflows.</Evidence>
+    <Evidence>Formatting-preservation tests cover split-run complex fields, nested repeated regions inside table cells, section-shaped conditional/repeating regions, and content-control form-fill text formatting in saved DOCX artifacts.</Evidence>
+    <Evidence>WordContentControlFormValidationResult now owns deterministic JSON and Markdown diagnostics for content-control form-map validation, so examples and future wrappers can stay thin.</Evidence>
+    <Evidence>Tests cover a sanitized Microsoft Word-authored content-control form with body text, rich-text, checkbox, date, dropdown, combo-box, picture, and table-cell block SDTs through validation, fill, save, and extraction.</Evidence>
+    <Evidence>The market-readiness gallery writes template-preflight.docx plus clean and blocked template preflight reports in JSON and Markdown.</Evidence>
+    <Evidence>The public examples runner supports --word-mail-merge-workflows and writes invoice, grouped table report, proposal, review letter, header/footer approval package, and form-fill workflow DOCX outputs with preflight or JSON/Markdown form-validation diagnostics.</Evidence>
+    <Evidence>Section-region proof covers conditional include/remove flows, repeated regions that preserve section break, orientation, and margin properties, and a sanitized Microsoft Word-authored multi-section template with Word-created merge fields and conditional landscape-section include/remove flows.</Evidence>
+    <Evidence>Broader imported-template corpus coverage remains open for additional Word-authored section/page-setup shapes, nested region variants, table-cell templates, and SDT mapping scenarios.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.MailMerge</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_MailMerge_PreflightTemplateSeesTableCellTemplateMarkersAfterSaveLoad</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_MailMerge_PreflightTemplateSeesHeaderFooterTemplateMarkersAfterSaveLoad</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_MailMerge_PreflightTemplateReportsUnsupportedWordNativeRecordControlFields</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_ContentControlFormValidationReportsMissingInvalidAndUnusedValues</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_ContentControlForm_WordAuthoredFixtureCanValidateFillAndExtractValues</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness</Validation>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-mail-merge-workflows</Validation>
+  </Scenario>
+  <Scenario id="word-authored-multi-section-template"
+            workstream="TemplateMailMerge"
+            featureFamily="Template and mail merge"
+            status="partially-covered"
+            expectedBehavior="preflight-merge-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/TemplateMailMerge/word-authored-multi-section-template.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers Word-created MERGEFIELD fields, conditional template markers, and a landscape section bounded by Word-authored section breaks.</Evidence>
+    <Evidence>WordMailMerge.PreflightTemplate(), ExecuteConditionalBlocks(), and Execute() can bind the imported template, include the landscape appendix, or remove the appendix section without Word automation at test runtime.</Evidence>
+    <Evidence>Broader imported-template corpus coverage remains open for additional Word-authored section/page-setup shapes, nested region variants, table-cell templates, and SDT mapping scenarios.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_MailMerge_WordAuthoredMultiSectionTemplateCanBePreflightedAndBound</Validation>
+  </Scenario>
+  <Scenario id="word-authored-content-control-form"
+            workstream="TemplateMailMerge"
+            featureFamily="Content-control forms"
+            status="partially-covered"
+            expectedBehavior="preflight-merge-diagnose"
+            sourceDocument="Documents/Word/PremiumGaps/TemplateMailMerge/word-authored-content-control-form.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers plain text, rich text, checkbox, date picker, dropdown, combo box, picture replacement/extraction, and table-cell block content controls with Word-authored tag and alias metadata.</Evidence>
+    <Evidence>WordDocument.StructuredDocumentTags includes table-hosted block SDTs through the table projection, so ValidateContentControlValues(), FillContentControlValues(), ExtractContentControlValues(), and GetStructuredDocumentTagByTag() can use imported body and table-cell form controls consistently.</Evidence>
+    <Evidence>Broader imported SDT mapping and binding scenarios remain open for richer bound controls and advanced validation policies.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_ContentControlForm_WordAuthoredFixtureCanValidateFillAndExtractValues</Validation>
+  </Scenario>
+  <Scenario id="word-authored-review-corpus"
+            workstream="ReviewRedline"
+            featureFamily="Word-authored review corpus"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/word-authored-comments-revisions.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers a classic comment, modern comment metadata parts, and inserted/deleted revision markup.</Evidence>
+    <Evidence>OfficeIMO reads the fixture without Word automation at test runtime through WordDocument.InspectReview() and WordDocument.InspectReviewReport().</Evidence>
+    <Evidence>OfficeIMO can accept the Word-authored inserted revision by id and reject the Word-authored deleted revision by id, restoring deleted text as normal document text.</Evidence>
+    <Evidence>WordDocumentComparer.CompareStructure(...) reports the fixture's comment and revision metadata from the target document.</Evidence>
+    <Evidence>An opt-in live Word COM validation test can create a Microsoft Word-authored body/table comment and inserted/deleted tracked-change corpus when OFFICEIMO_RUN_WORD_COM_VALIDATION=1, then read and report it through OfficeIMO without checking the generated document into the static corpus.</Evidence>
+    <Evidence>Broader externally authored review corpus coverage remains open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_InspectReview_ReadsWordAuthoredReviewFixture</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_Revisions_WordAuthoredInsertDeleteFixtureSupportsScopedOperations</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReportsWordAuthoredReviewFixture</Validation>
+    <Validation>$env:OFFICEIMO_RUN_WORD_COM_VALIDATION='1'; dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_InspectReview_WordComGeneratedReviewDocumentWhenRequested</Validation>
+  </Scenario>
+  <Scenario id="imported-related-part-review-corpus"
+            workstream="ReviewRedline"
+            featureFamily="Imported related-part review corpus"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/imported-related-part-comments-revisions.docx"
+            fixtureStatus="available">
+    <Evidence>Stable imported-shape DOCX fixture covers comment targets and inserted revisions in header, footer, footnote, and endnote parts without generating the corpus during the test run.</Evidence>
+    <Evidence>OfficeIMO reads and reports related-part comment target locations through WordDocument.InspectReview() and WordDocument.InspectReviewReport(), including Header, Footer, Footnote, and Endnote target location metadata.</Evidence>
+    <Evidence>WordDocumentComparer.CompareStructure(...) reports the fixture's related-part comment and revision metadata from the target document with stable detailed locations and JSON/Markdown output.</Evidence>
+    <Evidence>Microsoft Word COM refuses to author comments in these related parts, so the corpus documents imported-package interoperability rather than claiming a Word-authored related-part comment path.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_InspectReview_ReadsImportedReviewMetadataInHeadersFootersAndNotes</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.CompareStructureReportsImportedRelatedPartCommentFixture</Validation>
+  </Scenario>
+  <Scenario id="word-com-authored-threaded-comment-corpus"
+            workstream="ReviewRedline"
+            featureFamily="Word-authored review corpus"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/word-authored-threaded-comments.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word COM-authored DOCX fixture covers a resolved parent comment, a reply linked through commentsEx paraIdParent, an unresolved sibling comment, people/commentsIds/commentsExtensible package metadata, and a comment range crossing a paragraph boundary.</Evidence>
+    <Evidence>OfficeIMO reads the fixture without Word automation at test runtime through WordDocument.InspectReview() and WordDocument.InspectReviewReport(), including grouped thread output and unresolved-thread output.</Evidence>
+    <Evidence>WordDocument.InspectReview() now reads cross-paragraph comment-range target text by walking document order to the matching commentRangeEnd instead of only same-paragraph siblings.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.Word.Test_InspectReview_ReadsWordComAuthoredThreadedCommentFixture</Validation>
+  </Scenario>
+  <Scenario id="word-com-authored-related-part-review-corpus"
+            workstream="ReviewRedline"
+            featureFamily="Word-authored review corpus"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/word-authored-related-part-revisions.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word COM-authored DOCX fixture covers inserted and deleted tracked revisions in header, footer, footnote, and endnote parts without requiring Word automation at test runtime.</Evidence>
+    <Evidence>OfficeIMO reads, reports, and can run scoped operations against the related-part revisions using deterministic review metadata.</Evidence>
+    <Evidence>WordDocumentComparer.CompareStructure(...) reports the fixture's related-part revision metadata from the target document with stable detailed locations.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_InspectReview_ReadsWordComAuthoredRelatedPartRevisionFixture</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_Revisions_WordComAuthoredRelatedPartFixtureSupportsScopedOperations</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReportsWordComAuthoredRelatedPartReviewFixture</Validation>
+  </Scenario>
+  <Scenario id="word-authored-move-formatting-corpus"
+            workstream="ReviewRedline"
+            featureFamily="Word-authored review corpus"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/word-authored-move-formatting-revisions.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers move ranges plus run, table, table-row property exception, table-grid, and table-cell formatting revision markup.</Evidence>
+    <Evidence>OfficeIMO reads the fixture without Word automation at test runtime through WordDocument.InspectReview() and WordDocument.InspectReviewReport().</Evidence>
+    <Evidence>OfficeIMO can accept the Word-authored move-to revision and reject the Word-authored move-from revision through scoped revision operations.</Evidence>
+    <Evidence>WordReviewReport Markdown now includes revision location text so formatting-only revisions are visible in human review reports.</Evidence>
+    <Evidence>WordDocumentComparer.CompareStructure(...) reports the fixture's move, run/table/table-row/table-grid/cell formatting revision metadata from the target document.</Evidence>
+    <Evidence>Broader externally authored review corpus coverage remains open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_InspectReview_ReadsWordAuthoredMoveAndFormattingFixture</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_Revisions_WordAuthoredMoveFixtureSupportsScopedOperations</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReportsWordAuthoredMoveAndFormattingFixture</Validation>
+  </Scenario>
+  <Scenario id="word-authored-paragraph-section-formatting-corpus"
+            workstream="ReviewRedline"
+            featureFamily="Word-authored review corpus"
+            status="partially-covered"
+            expectedBehavior="read-report"
+            sourceDocument="Documents/Word/PremiumGaps/ReviewRedline/word-authored-paragraph-section-formatting-revisions.docx"
+            fixtureStatus="available">
+    <Evidence>Sanitized Microsoft Word-authored DOCX fixture covers paragraph and section formatting revision markup.</Evidence>
+    <Evidence>OfficeIMO reads the fixture without Word automation at test runtime through WordDocument.InspectReview() and WordDocument.InspectReviewReport().</Evidence>
+    <Evidence>WordReviewReport Markdown includes location text for the Word-authored paragraph and section formatting revisions.</Evidence>
+    <Evidence>WordDocumentComparer.CompareStructure(...) reports the fixture's paragraph and section formatting revision metadata from the target document.</Evidence>
+    <Evidence>Broader externally authored review corpus coverage remains open.</Evidence>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Test_InspectReview_ReadsWordAuthoredParagraphAndSectionFormattingFixture</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~CompareStructureReportsWordAuthoredParagraphAndSectionFormattingFixture</Validation>
+  </Scenario>
+  <Scenario id="unknown-document-feature-preflight"
+            workstream="RealWorldCorpus"
+            featureFamily="Unknown document preflight"
+            status="partially-covered"
+            expectedBehavior="inspect-preserve-warn"
+            sourceDocument="Documents/Word/PremiumGaps/RealWorldCorpus/unknown-document-preflight.docx"
+            fixtureStatus="generated">
+    <Evidence>The market-readiness gallery writes unknown-document-preflight.docx plus feature-report.md and feature-report.json from the public InspectFeatures() model.</Evidence>
+    <Evidence>The generated preflight document combines editable content, tables, fields, comments, content controls, external relationships, preserve-only ActiveX package metadata, and synthetic digital-signature metadata.</Evidence>
+    <Evidence>WordFeatureReport field findings include refresh-readiness details from InspectFields() so unknown-document preflight can separate deterministic, queued/manual, unsupported, parser-diagnostic, and parse-error field families.</Evidence>
+    <Evidence>The gallery proof manifest validates generated DOCX artifacts and lists the report artifacts beside their source documents.</Evidence>
+    <Evidence>Sanitized Microsoft Word-authored review fixtures are now available for comment/revision readback, reports, and structured comparison proof.</Evidence>
+    <Evidence>The Word premium-gap plan and Word market-readiness docs are the current public source of truth; dated Word investigation-note references are kept out of the main Word docs.</Evidence>
+    <Evidence>Broader imported real-world documents remain open, especially externally authored signed packages, broader Word-authored review metadata, field-heavy reports, and multi-section templates.</Evidence>
+    <Validation>dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName~Word.FeatureReport</Validation>
+    <Validation>dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj -f net8.0 --filter FullyQualifiedName=OfficeIMO.Tests.WordPremiumGapFixtureTests.Test_WordPremiumGapFixtureManifest_DefinesProofContracts</Validation>
+  </Scenario>
+</PremiumGapFixtures>

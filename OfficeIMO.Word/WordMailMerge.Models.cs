@@ -32,7 +32,10 @@ namespace OfficeIMO.Word {
         UnmatchedRepeatingBlockEnd,
 
         /// <summary>A repeated block end marker closed a different block name than the current start marker.</summary>
-        MismatchedRepeatingBlockEnd
+        MismatchedRepeatingBlockEnd,
+
+        /// <summary>A Word-native mail-merge control field was found that OfficeIMO does not execute.</summary>
+        UnsupportedMailMergeControlField
     }
 
     /// <summary>
