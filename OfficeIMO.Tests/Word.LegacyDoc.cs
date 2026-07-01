@@ -2748,6 +2748,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteLevelBookmarkBoundariesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with note level bookmarks");
+
+                    WordParagraph footnoteReference = paragraph.AddFootNote("footnote placeholder");
+                    WordParagraph firstFootnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    firstFootnoteBody._paragraph.RemoveAllChildren<Run>();
+                    firstFootnoteBody._paragraph.Append(new Run(new Text("FootnoteFirst") { Space = SpaceProcessingModeValues.Preserve }));
+                    WordParagraph secondFootnoteBody = firstFootnoteBody.AddParagraph();
+                    secondFootnoteBody._paragraph.RemoveAllChildren<Run>();
+                    secondFootnoteBody._paragraph.Append(new Run(new Text("FootnoteSecond") { Space = SpaceProcessingModeValues.Preserve }));
+                    Footnote footnote = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!
+                        .Elements<Footnote>()
+                        .Single(note => note.Id?.Value == footnoteReference.FootNote!.ReferenceId);
+                    footnote.InsertBefore(new BookmarkStart { Id = "75", Name = "FootnoteLevelBookmark" }, firstFootnoteBody._paragraph);
+                    footnote.InsertBefore(new BookmarkEnd { Id = "75" }, secondFootnoteBody._paragraph);
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
+                    WordParagraph firstEndnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    firstEndnoteBody._paragraph.RemoveAllChildren<Run>();
+                    firstEndnoteBody._paragraph.Append(new Run(new Text("EndnoteFirst") { Space = SpaceProcessingModeValues.Preserve }));
+                    WordParagraph secondEndnoteBody = firstEndnoteBody.AddParagraph();
+                    secondEndnoteBody._paragraph.RemoveAllChildren<Run>();
+                    secondEndnoteBody._paragraph.Append(new Run(new Text("EndnoteSecond") { Space = SpaceProcessingModeValues.Preserve }));
+                    Endnote endnote = document._wordprocessingDocument.MainDocumentPart!.EndnotesPart!.Endnotes!
+                        .Elements<Endnote>()
+                        .Single(note => note.Id?.Value == endnoteReference.EndNote!.ReferenceId);
+                    endnote.InsertBefore(new BookmarkStart { Id = "76", Name = "EndnoteLevelBookmark" }, firstEndnoteBody._paragraph);
+                    endnote.InsertBefore(new BookmarkEnd { Id = "76" }, secondEndnoteBody._paragraph);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FootnoteLevelBookmark");
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EndnoteLevelBookmark");
+
+                WordFootNote reloadedFootnote = Assert.Single(reloaded.FootNotes);
+                WordParagraph firstReloadedFootnoteParagraph = AssertSingleParagraphWithBookmarkStart(reloadedFootnote.Paragraphs!, "FootnoteLevelBookmark");
+                WordParagraph secondReloadedFootnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    reloadedFootnote.Paragraphs!,
+                    AssertBookmarkStartId(firstReloadedFootnoteParagraph, "FootnoteLevelBookmark"));
+                AssertParagraphBoundaryBookmarkContent(firstReloadedFootnoteParagraph, secondReloadedFootnoteParagraph, "FootnoteLevelBookmark", "FootnoteFirst", "FootnoteSecond");
+
+                WordEndNote reloadedEndnote = Assert.Single(reloaded.EndNotes);
+                WordParagraph firstReloadedEndnoteParagraph = AssertSingleParagraphWithBookmarkStart(reloadedEndnote.Paragraphs!, "EndnoteLevelBookmark");
+                WordParagraph secondReloadedEndnoteParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    reloadedEndnote.Paragraphs!,
+                    AssertBookmarkStartId(firstReloadedEndnoteParagraph, "EndnoteLevelBookmark"));
+                AssertParagraphBoundaryBookmarkContent(firstReloadedEndnoteParagraph, secondReloadedEndnoteParagraph, "EndnoteLevelBookmark", "EndnoteFirst", "EndnoteSecond");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedHeaderFooterRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string bodyText = "Body with formatted header footer";
