@@ -127,5 +127,56 @@ namespace OfficeIMO.Tests {
                 DeleteIfExists(docPath);
             }
         }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleTabStopsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == headingStyleId)
+                        ?? new Style { Type = StyleValues.Paragraph, StyleId = headingStyleId };
+                    if (headingStyle.Parent == null) {
+                        styles.Append(headingStyle);
+                    }
+
+                    headingStyle.StyleParagraphProperties = new StyleParagraphProperties(
+                        new Tabs(
+                            new TabStop { Val = TabStopValues.Left, Position = 1440 },
+                            new TabStop { Val = TabStopValues.Decimal, Leader = TabStopLeaderCharValues.Dot, Position = 2880 },
+                            new TabStop { Val = TabStopValues.Right, Leader = TabStopLeaderCharValues.Underscore, Position = 4320 }));
+
+                    document.AddParagraph("Styled built-in tabs").SetStyle(WordParagraphStyles.Heading1);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled built-in tabs", paragraph.Text);
+                Assert.Equal(headingStyleId, paragraph.StyleId);
+
+                Styles stylesAfterReload = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style headingStyleAfterReload = Assert.Single(stylesAfterReload.Elements<Style>(), style => style.StyleId == headingStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyleAfterReload.StyleParagraphProperties);
+                Tabs tabs = Assert.IsType<Tabs>(paragraphProperties.GetFirstChild<Tabs>());
+                TabStop[] tabStops = tabs.Elements<TabStop>().ToArray();
+                Assert.Equal(3, tabStops.Length);
+                Assert.Equal(TabStopValues.Left, tabStops[0].Val!.Value);
+                Assert.Equal(1440, tabStops[0].Position!.Value);
+                Assert.Equal(TabStopValues.Decimal, tabStops[1].Val!.Value);
+                Assert.Equal(TabStopLeaderCharValues.Dot, tabStops[1].Leader!.Value);
+                Assert.Equal(2880, tabStops[1].Position!.Value);
+                Assert.Equal(TabStopValues.Right, tabStops[2].Val!.Value);
+                Assert.Equal(TabStopLeaderCharValues.Underscore, tabStops[2].Leader!.Value);
+                Assert.Equal(4320, tabStops[2].Position!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
     }
 }

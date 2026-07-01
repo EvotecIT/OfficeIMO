@@ -614,6 +614,8 @@ just to reserve names.
     East Asian typography/punctuation spacing flags.
   - [x] Preserve supported palette-backed built-in Heading paragraph style
     shading and borders through native DOC save/reload.
+  - [x] Preserve supported built-in Heading paragraph style tab stops through
+    native DOC save/reload.
   - [x] Preserve native DOC custom paragraph styles that inherit from formatted
     built-in Heading styles by emitting the required built-in base style records
     even when the Heading style is not used directly.
