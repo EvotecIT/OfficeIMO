@@ -8590,6 +8590,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksOrphanRowLevelTableBookmarkEndBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordTable table = document.AddTable(2, 1);
+                table.Rows[0].Cells[0].AddParagraph("First row", removeExistingParagraphs: true);
+                table.Rows[1].Cells[0].AddParagraph("Second row", removeExistingParagraphs: true);
+                TableRow[] rows = table._table.Elements<TableRow>().ToArray();
+                table._table.InsertAfter(new BookmarkEnd { Id = "62" }, rows[0]);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("row-level table bookmarks", exception.Message);
+                Assert.Contains("bookmarkEnd", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

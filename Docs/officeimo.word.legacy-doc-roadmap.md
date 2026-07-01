@@ -971,6 +971,9 @@ just to reserve names.
       rows into native DOC row-boundary bookmark positions, then reload them
       as direct table-child markers before the following row while non-zero
       row-level bookmark ranges remain blocked.
+    - [x] Block orphan or unsupported row-boundary table bookmark markers before
+      native DOC bytes are committed, so malformed direct table-child bookmark
+      placement is not silently dropped.
     - [x] Write simple body and table-cell block content controls by flattening
       supported child paragraphs/tables into native DOC content, while still
       blocking nested tables and unsupported child markup before bytes are

@@ -125,8 +125,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             OpenXmlElement? child = row.NextSibling();
             while (child != null && child is not TableRow) {
                 if (child is not BookmarkStart bookmarkStart) {
-                    child = child.NextSibling();
-                    continue;
+                    throw new NotSupportedException($"Native DOC saving supports row-level table bookmarks only as zero-length start/end marker pairs between table rows. Unsupported row-boundary table element: {child.LocalName}.");
                 }
 
                 OpenXmlElement? endMarker = child.NextSibling();
