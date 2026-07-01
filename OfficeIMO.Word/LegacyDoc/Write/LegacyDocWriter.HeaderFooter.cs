@@ -306,7 +306,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, bookmarks, hyperlink, relationshipOwner, kind);
                         break;
                     case SimpleField simpleField:
-                        AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, text, simpleField, kind);
+                        AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, text, bookmarks, simpleField, kind);
                         break;
                     case SdtRun sdtRun:
                         AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, text, bookmarks, sdtRun, relationshipOwner, kind);
@@ -360,10 +360,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendFormattedHeaderFooterPageNumberField(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, SimpleField simpleField, string kind) {
+        private static void AppendFormattedHeaderFooterPageNumberField(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField simpleField, string kind) {
             int before = storyText.Length;
             try {
-                AppendSupportedPageNumberFieldFromSimpleField(storyText, formattedRuns, simpleField, LegacyDocWritableFormatting.Plain);
+                AppendSupportedPageNumberFieldFromSimpleField(storyText, formattedRuns, bookmarks, simpleField, LegacyDocWritableFormatting.Plain);
             } catch (NotSupportedException exception) {
                 throw new NotSupportedException($"Native DOC saving supports simple {kind} PAGE and NUMPAGES fields only. {exception.Message}", exception);
             }

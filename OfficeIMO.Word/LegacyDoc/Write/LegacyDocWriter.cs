@@ -486,7 +486,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, LegacyDocWritableFormatting.Plain);
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, LegacyDocWritableFormatting.Plain);
                         break;
                     case SdtRun sdtRun:
                         AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, footnotes, endnotes, LegacyDocWritableFormatting.Plain, "body paragraph inline content control");

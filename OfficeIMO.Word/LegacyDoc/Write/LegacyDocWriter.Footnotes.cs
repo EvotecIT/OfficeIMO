@@ -183,7 +183,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
                         break;
                     case SdtRun sdtRun:
                         AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, id, storyStart);
@@ -294,13 +294,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping, page, and column breaks.");
         }
 
-        private static void AppendSupportedNoteFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, SimpleField field, int storyStart) {
+        private static void AppendSupportedNoteFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, int storyStart) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
                 throw new NotSupportedException("Native DOC saving currently supports only PAGE and NUMPAGES simple fields in note paragraphs. Other field types are not supported yet.");
             }
 
-            LegacyDocWritableFormatting formatting = ReadSimpleFieldResultFormatting(field);
-            AppendSupportedNoteField(text, runs, fieldKind, formatting, storyStart);
+            LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
+            AppendSupportedNoteField(text, runs, bookmarks, fieldKind, result.Formatting, result.BookmarkMarkers, storyStart);
         }
 
         private static void AppendSupportedNoteComplexPageNumberField(
@@ -378,6 +378,24 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedNoteText(text, runs, GetSupportedFieldInstruction(fieldKind), LegacyDocWritableFormatting.Plain, storyStart);
             AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
             AppendFormattedNoteText(text, runs, "1", formatting, storyStart);
+            AppendFormattedNoteText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+        }
+
+        private static void AppendSupportedNoteField(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            LegacyDocFieldKind fieldKind,
+            LegacyDocWritableFormatting formatting,
+            IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers,
+            int storyStart) {
+            AppendFormattedNoteText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+            AppendFormattedNoteText(text, runs, GetSupportedFieldInstruction(fieldKind), LegacyDocWritableFormatting.Plain, storyStart);
+            AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+            int resultStartCharacter = storyStart + text.Length;
+            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: 0);
+            AppendFormattedNoteText(text, runs, "1", formatting, storyStart);
+            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: 1);
             AppendFormattedNoteText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
         }
 

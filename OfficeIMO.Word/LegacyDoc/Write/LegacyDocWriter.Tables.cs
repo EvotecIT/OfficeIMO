@@ -1240,7 +1240,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, tableStyleRunFormatting);
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, tableStyleRunFormatting);
                         break;
                     case SdtRun sdtRun:
                         AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, footnotes, endnotes, tableStyleRunFormatting, "table cell inline content control");

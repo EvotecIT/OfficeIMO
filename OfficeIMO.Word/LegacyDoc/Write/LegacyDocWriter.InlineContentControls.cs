@@ -32,7 +32,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedHyperlinkText(text, runs, bookmarks, hyperlink, mainPart, footnotes, endnotes, inheritedFormatting);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, inheritedFormatting);
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, bookmarks, simpleField, inheritedFormatting);
                         break;
                     case SdtRun nestedSdtRun:
                         AppendSupportedInlineContentControlText(text, runs, bookmarks, nestedSdtRun, mainPart, footnotes, endnotes, inheritedFormatting, context);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, paragraphText, bookmarks, hyperlink, relationshipOwner, kind);
                         break;
                     case SimpleField simpleField:
-                        AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, paragraphText, simpleField, kind);
+                        AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, paragraphText, bookmarks, simpleField, kind);
                         break;
                     case SdtRun nestedSdtRun:
                         AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, paragraphText, bookmarks, nestedSdtRun, relationshipOwner, kind);
@@ -122,7 +122,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
                         break;
                     case SdtRun nestedSdtRun:
                         AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, id, storyStart);
@@ -167,7 +167,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkText(builder, runs, bookmarks, hyperlink, relationshipOwner, id, "endnote", storyStart);
                         break;
                     case SimpleField simpleField:
-                        AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, bookmarks, simpleField, storyStart);
                         break;
                     case SdtRun nestedSdtRun:
                         AppendSupportedEndnoteInlineContentControl(builder, runs, bookmarks, nestedSdtRun, relationshipOwner, id, storyStart);

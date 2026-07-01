@@ -935,6 +935,9 @@ just to reserve names.
     - [x] Write bookmark ranges inside simple hyperlink display text across
       body, table-cell, header/footer, footnote, and endnote stories through
       native DOC save/reload.
+    - [x] Write bookmark ranges inside simple PAGE/NUMPAGES field result
+      content across body, table-cell, header/footer, footnote, and endnote
+      stories through native DOC save/reload.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
