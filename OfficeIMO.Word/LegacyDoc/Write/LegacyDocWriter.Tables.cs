@@ -282,12 +282,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocTablePreferredWidth? ReadSupportedTablePreferredWidth(TableWidth tableWidth) {
             TableWidthUnitValues? type = tableWidth.Type?.Value;
             string? widthText = tableWidth.Width?.Value;
-            if (type == null || type == TableWidthUnitValues.Auto) {
+            if (type == TableWidthUnitValues.Auto) {
+                return null;
+            }
+
+            if (type == null) {
                 if (string.IsNullOrWhiteSpace(widthText) || widthText == "0") {
                     return null;
                 }
 
-                throw new NotSupportedException("Native DOC saving supports automatic table widths only with width 0.");
+                throw new NotSupportedException("Native DOC saving supports table widths without an explicit type only when width is 0.");
             }
 
             if (type != TableWidthUnitValues.Dxa && type != TableWidthUnitValues.Pct) {

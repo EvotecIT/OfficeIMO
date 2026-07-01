@@ -846,6 +846,9 @@ just to reserve names.
     fixed/autofit layout by expanding those style properties to native DOC row
     sprms, while preserving direct table overrides and continuing to block
     unsupported width shapes before bytes are committed.
+  - [x] Treat explicit automatic table preferred widths in custom table styles
+    as the native DOC default/no-op width, so WordprocessingML `auto` widths
+    with ignored nonzero values save and reload instead of being blocked.
   - [x] Write supported table-style paragraph formatting by flattening style
     paragraph properties into native DOC cell paragraph PAPX records, while
     preserving direct cell paragraph formatting as the override.

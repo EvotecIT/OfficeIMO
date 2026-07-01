@@ -9304,27 +9304,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedCustomTableStylePreferredWidthBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleAutoPreferredWidthAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string styleId = "NativeDocUnsupportedWidthTable";
+            const string styleId = "NativeDocAutoWidthTable";
 
             try {
-                using WordDocument document = WordDocument.Create();
-                var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
-                style.Append(new StyleName { Val = "Native DOC Unsupported Width Table" });
-                style.Append(new BasedOn { Val = "TableNormal" });
-                style.Append(new StyleTableProperties(
-                    new TableWidth { Width = "42", Type = TableWidthUnitValues.Auto }));
-                document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Auto Width Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new StyleTableProperties(
+                        new TableWidth { Width = "42", Type = TableWidthUnitValues.Auto }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
 
-                WordTable table = document.AddTable(1, 1);
-                table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
-                table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
+                    WordTable table = document.AddTable(1, 1);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("automatic table widths", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(TableWidthUnitValues.Auto, reloadedTable.WidthType);
+                Assert.Equal(0, reloadedTable.Width);
+                Assert.Equal("Styled", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
             } finally {
                 DeleteIfExists(docPath);
             }
