@@ -373,10 +373,25 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
 | One  | Two   |
 """, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
         var cell = native.EnumerateTableCells().Single(candidate => !candidate.IsHeader && candidate.ColumnIndex == 1);
+        var row = native.EnumerateTableRows().Single(candidate => !candidate.IsHeader);
 
         Assert.True(native.TryCreateSourceSlice(cell, out var slice));
+        Assert.True(native.TryCreateSourceSlice(row, out var rowSlice));
 
         Assert.Equal("Two", slice.Text.Trim());
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        var snapshotRow = Assert.Single(snapshot.BodyRows);
+        var snapshotCell = snapshot.Rows[0][1];
+        Assert.Equal(rowSlice.Text, snapshotRow.SourceText);
+        Assert.Null(snapshotRow.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotRow.OriginalSourceFailureReason);
+        Assert.Equal(slice.Text, snapshotCell.SourceText);
+        Assert.Null(snapshotCell.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotCell.OriginalSourceFailureReason);
         Assert.Contains("| One  | Three", native.CreateReplaceEdit(cell, "Three").Apply(native.SourceMarkdown));
     }
 

@@ -824,11 +824,17 @@ public sealed class MarkdownNativeTableRowSnapshot {
         bool isHeader,
         int rowIndex,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason,
         IReadOnlyList<MarkdownNativeTableCellSnapshot> cells) {
         Markdown = markdown ?? string.Empty;
         IsHeader = isHeader;
         RowIndex = rowIndex;
         SourceSpan = sourceSpan;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
         Cells = cells ?? Array.Empty<MarkdownNativeTableCellSnapshot>();
     }
 
@@ -843,6 +849,15 @@ public sealed class MarkdownNativeTableRowSnapshot {
 
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Normalized markdown text backing this table row when available.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Original reader input backing this table row when available.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this table row, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 
     /// <summary>Cell snapshots in document column order.</summary>
     public IReadOnlyList<MarkdownNativeTableCellSnapshot> Cells { get; }
@@ -860,6 +875,9 @@ public sealed class MarkdownNativeTableCellSnapshot {
         int columnIndex,
         ColumnAlignment alignment,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason,
         IReadOnlyList<MarkdownNativeInlineSnapshot> inlines,
         IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
         Text = text ?? string.Empty;
@@ -869,6 +887,9 @@ public sealed class MarkdownNativeTableCellSnapshot {
         ColumnIndex = columnIndex;
         Alignment = alignment;
         SourceSpan = sourceSpan;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
         Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
     }
@@ -893,6 +914,15 @@ public sealed class MarkdownNativeTableCellSnapshot {
 
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Normalized markdown text backing this table cell when available.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Original reader input backing this table cell when available.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this table cell, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 
     /// <summary>Inline snapshots for cell content when available.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }

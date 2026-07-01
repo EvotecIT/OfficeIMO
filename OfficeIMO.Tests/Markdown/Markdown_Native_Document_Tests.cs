@@ -372,9 +372,25 @@ After
         var snapshot = Assert.Single(native.ToSnapshot().Blocks);
         Assert.NotNull(snapshot.HeaderRow);
         Assert.Equal("Name | Value", snapshot.HeaderRow!.Markdown);
-        Assert.Equal(3, Assert.Single(snapshot.BodyRows).SourceSpan!.StartLine);
-        Assert.Equal("CPU | 42", Assert.Single(snapshot.BodyRows).Markdown);
-        Assert.Equal("42", Assert.Single(snapshot.BodyRows).Cells[1].Text);
+        Assert.True(native.TryCreateSourceSlice(rows[0], out var headerSourceSlice));
+        Assert.True(native.TryCreateOriginalSourceSlice(rows[0], out var originalHeaderSlice, out var originalHeaderReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalHeaderReason);
+        Assert.Equal(headerSourceSlice.Text, snapshot.HeaderRow.SourceText);
+        Assert.Equal(originalHeaderSlice.Text, snapshot.HeaderRow.OriginalSourceText);
+        Assert.Null(snapshot.HeaderRow.OriginalSourceFailureReason);
+        var bodyRowSnapshot = Assert.Single(snapshot.BodyRows);
+        Assert.Equal(3, bodyRowSnapshot.SourceSpan!.StartLine);
+        Assert.Equal("CPU | 42", bodyRowSnapshot.Markdown);
+        Assert.Equal(normalizedSlice.Text, bodyRowSnapshot.SourceText);
+        Assert.Equal(originalSlice.Text, bodyRowSnapshot.OriginalSourceText);
+        Assert.Null(bodyRowSnapshot.OriginalSourceFailureReason);
+        Assert.Equal("42", bodyRowSnapshot.Cells[1].Text);
+        Assert.True(native.TryCreateSourceSlice(rows[1].Cells[1], out var bodyValueSourceSlice));
+        Assert.True(native.TryCreateOriginalSourceSlice(rows[1].Cells[1], out var originalBodyValueSlice, out var originalBodyValueReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalBodyValueReason);
+        Assert.Equal(bodyValueSourceSlice.Text, bodyRowSnapshot.Cells[1].SourceText);
+        Assert.Equal(originalBodyValueSlice.Text, bodyRowSnapshot.Cells[1].OriginalSourceText);
+        Assert.Null(bodyRowSnapshot.Cells[1].OriginalSourceFailureReason);
 
         var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(rows[1], "GPU | 84"));
 

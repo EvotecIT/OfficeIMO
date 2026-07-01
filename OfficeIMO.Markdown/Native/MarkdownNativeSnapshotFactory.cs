@@ -535,6 +535,21 @@ internal static class MarkdownNativeSnapshotFactory {
     }
 
     private static MarkdownNativeTableCellSnapshot FromCell(MarkdownNativeDocument? document, MarkdownNativeTableCell cell) {
+        string? sourceText = null;
+        string? originalSourceText = null;
+        MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+        var failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+        if (document != null && document.TryCreateSourceSlice(cell, out var sourceSlice)) {
+            sourceText = sourceSlice.Text;
+        }
+
+        if (document != null && document.TryCreateOriginalSourceSlice(cell, out var originalSlice, out failureReason)) {
+            originalSourceText = originalSlice.Text;
+        } else if (document != null) {
+            originalFailureReason = failureReason;
+        }
+
         return new MarkdownNativeTableCellSnapshot(
             cell.Text,
             cell.Markdown,
@@ -543,6 +558,9 @@ internal static class MarkdownNativeSnapshotFactory {
             cell.ColumnIndex,
             cell.Alignment,
             ToSpanSnapshot(cell.SourceSpan),
+            sourceText,
+            originalSourceText,
+            originalFailureReason,
             FromInlines(document, cell.InlineRuns),
             FromBlocks(document, cell.Children));
     }
@@ -563,11 +581,29 @@ internal static class MarkdownNativeSnapshotFactory {
     }
 
     private static MarkdownNativeTableRowSnapshot FromRow(MarkdownNativeDocument? document, MarkdownNativeTableRow row) {
+        string? sourceText = null;
+        string? originalSourceText = null;
+        MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+        var failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+        if (document != null && document.TryCreateSourceSlice(row, out var sourceSlice)) {
+            sourceText = sourceSlice.Text;
+        }
+
+        if (document != null && document.TryCreateOriginalSourceSlice(row, out var originalSlice, out failureReason)) {
+            originalSourceText = originalSlice.Text;
+        } else if (document != null) {
+            originalFailureReason = failureReason;
+        }
+
         return new MarkdownNativeTableRowSnapshot(
             row.Markdown,
             row.IsHeader,
             row.RowIndex,
             ToSpanSnapshot(row.SourceSpan),
+            sourceText,
+            originalSourceText,
+            originalFailureReason,
             FromCells(document, row.Cells));
     }
 
