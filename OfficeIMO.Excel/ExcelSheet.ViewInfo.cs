@@ -21,7 +21,7 @@ namespace OfficeIMO.Excel {
                 VerticalSplit = pane?.VerticalSplit?.Value,
                 FrozenRowCount = frozen ? ConvertFrozenSplitToInt(pane?.VerticalSplit) : 0,
                 FrozenColumnCount = frozen ? ConvertFrozenSplitToInt(pane?.HorizontalSplit) : 0,
-                TopLeftCell = pane?.TopLeftCell?.Value,
+                TopLeftCell = pane?.TopLeftCell?.Value ?? sheetView?.TopLeftCell?.Value,
                 ActivePane = pane?.ActivePane?.InnerText,
                 ShowGridlines = sheetView?.ShowGridLines?.Value ?? true,
                 RightToLeft = sheetView?.RightToLeft?.Value ?? false,

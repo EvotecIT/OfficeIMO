@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     internal static partial class VisioShapeGeometry {
@@ -55,10 +56,14 @@ namespace OfficeIMO.Visio {
                 sweep = sweep > 0D ? sweep - (Math.PI * 2D) : sweep + (Math.PI * 2D);
             }
 
-            for (int i = 1; i <= ArcSegmentCount; i++) {
-                double angle = startAngle + (sweep * i / ArcSegmentCount);
-                path.Add((centerX + (Math.Cos(angle) * radius), centerY + (Math.Sin(angle) * radius)));
-            }
+            path.AddRange(OfficeGeometry.CreateEllipticalArcPointsAsTuples(
+                centerX,
+                centerY,
+                radius,
+                radius,
+                startAngle,
+                sweep,
+                ArcSegmentCount));
         }
 
         private static void AppendEllipticalArc(
@@ -93,11 +98,15 @@ namespace OfficeIMO.Visio {
 
             double inverseCos = Math.Cos(angle);
             double inverseSin = Math.Sin(angle);
-            for (int i = 1; i <= ArcSegmentCount; i++) {
-                double currentAngle = startAngle + (sweep * i / ArcSegmentCount);
-                double x = center.X + (Math.Cos(currentAngle) * radius);
-                double y = center.Y + (Math.Sin(currentAngle) * radius);
-                path.Add(InverseTransformEllipsePoint((x, y), inverseCos, inverseSin, ratio));
+            foreach ((double X, double Y) point in OfficeGeometry.CreateEllipticalArcPointsAsTuples(
+                center.X,
+                center.Y,
+                radius,
+                radius,
+                startAngle,
+                sweep,
+                ArcSegmentCount)) {
+                path.Add(InverseTransformEllipsePoint(point, inverseCos, inverseSin, ratio));
             }
         }
 
@@ -107,21 +116,7 @@ namespace OfficeIMO.Visio {
             (double X, double Y) control1,
             (double X, double Y) control2,
             (double X, double Y) end) {
-            for (int i = 1; i <= ArcSegmentCount; i++) {
-                double t = i / (double)ArcSegmentCount;
-                double inverse = 1D - t;
-                double inverseSquared = inverse * inverse;
-                double tSquared = t * t;
-                double x = (inverseSquared * inverse * start.X) +
-                           (3D * inverseSquared * t * control1.X) +
-                           (3D * inverse * tSquared * control2.X) +
-                           (tSquared * t * end.X);
-                double y = (inverseSquared * inverse * start.Y) +
-                           (3D * inverseSquared * t * control1.Y) +
-                           (3D * inverse * tSquared * control2.Y) +
-                           (tSquared * t * end.Y);
-                path.Add((x, y));
-            }
+            path.AddRange(OfficeGeometry.CreateCubicBezierPoints(start, control1, control2, end, ArcSegmentCount));
         }
 
         private static void AppendQuadraticBezier(
@@ -129,17 +124,7 @@ namespace OfficeIMO.Visio {
             (double X, double Y) start,
             (double X, double Y) control,
             (double X, double Y) end) {
-            for (int i = 1; i <= ArcSegmentCount; i++) {
-                double t = i / (double)ArcSegmentCount;
-                double inverse = 1D - t;
-                double x = (inverse * inverse * start.X) +
-                           (2D * inverse * t * control.X) +
-                           (t * t * end.X);
-                double y = (inverse * inverse * start.Y) +
-                           (2D * inverse * t * control.Y) +
-                           (t * t * end.Y);
-                path.Add((x, y));
-            }
+            path.AddRange(OfficeGeometry.CreateQuadraticBezierPoints(start, control, end, ArcSegmentCount));
         }
 
         private static void AppendSpline(

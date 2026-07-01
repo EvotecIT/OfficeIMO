@@ -18,6 +18,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Selection metadata from a Selection record.</summary>
         Selection,
 
+        /// <summary>Worksheet pane metadata from a Pane record.</summary>
+        Pane,
+
         /// <summary>VBA sheet object name from a CodeName record.</summary>
         CodeName,
 
@@ -29,6 +32,30 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Worksheet sort dialog metadata from a Sort record.</summary>
         Sort,
+
+        /// <summary>Worksheet recalculation-needed metadata from an Uncalced record.</summary>
+        Uncalced,
+
+        /// <summary>Worksheet-level phonetic display defaults from a PhoneticInfo record.</summary>
+        PhoneticSettings,
+
+        /// <summary>Worksheet hyperlink companion metadata such as HLinkTooltip records.</summary>
+        Hyperlink,
+
+        /// <summary>First/even-page header and footer metadata from a HeaderFooter record.</summary>
+        HeaderFooter,
+
+        /// <summary>Ignored formula error metadata from ISFFEC2 shared-feature records.</summary>
+        IgnoredErrors,
+
+        /// <summary>Watched-cell metadata from CellWatch records.</summary>
+        CellWatches,
+
+        /// <summary>Worksheet-level data-consolidation settings from a DCon record.</summary>
+        DataConsolidation,
+
+        /// <summary>Worksheet scenario metadata from ScenMan and SCENARIO records.</summary>
+        Scenarios,
 
         /// <summary>Preserve-only extended metadata from a future metadata record in the sheet substream.</summary>
         FutureMetadata

@@ -57,7 +57,7 @@
     <g data-visio-shape-id="risk" data-visio-nameu="Circle">
       <path d="M 789.231 309.12 L 788.871 306.387 L 787.816 303.84 L 786.138 301.653 L 783.951 299.975 L 781.404 298.92 L 778.671 298.56 L 775.938 298.92 L 773.391 299.975 L 771.204 301.653 L 769.526 303.84 L 768.471 306.387 L 768.111 309.12 L 768.471 311.853 L 769.526 314.4 L 771.204 316.587 L 773.391 318.265 L 775.938 319.32 L 778.671 319.68 L 781.404 319.32 L 783.951 318.265 L 786.138 316.587 L 787.816 314.4 L 788.871 311.853 Z" data-officeimo-preserved-geometry="true" fill="#7E57C2" stroke="#573D8E" stroke-width="1.728" />
       <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="security" opacity="0.42">
-        <path d="M 778.671 304.71 L 782.346 306.425 L 781.366 311.815 L 778.671 313.775 L 775.976 311.815 L 774.996 306.425 Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M778.671 304.71L782.346 306.425L781.366 311.815L778.671 313.775L775.976 311.815L774.996 306.425Z" fill="none" stroke="#FFFFFF" stroke-opacity="0.824" stroke-width="1" stroke-linecap="round" stroke-linejoin="round" />
       </g>
     </g>
     <g data-visio-shape-id="risk-label" data-visio-nameu="Rectangle">

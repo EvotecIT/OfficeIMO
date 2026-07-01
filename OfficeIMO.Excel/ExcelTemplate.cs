@@ -4,6 +4,7 @@ using System.Text.RegularExpressions;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -129,7 +130,7 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public static ExcelTemplateImage FromUrl(string url, int widthPixels = 96, int heightPixels = 32, int offsetXPixels = 0, int offsetYPixels = 0, string? name = null, string? altText = null, bool lockAspectRatio = true) {
             if (string.IsNullOrWhiteSpace(url)) throw new ArgumentNullException(nameof(url));
-            return new ExcelTemplateImage(null, url.Trim(), "image/png", widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
+            return new ExcelTemplateImage(null, url.Trim(), OfficeImageInfo.GetMimeType(OfficeImageFormat.Png), widthPixels, heightPixels, offsetXPixels, offsetYPixels, name, altText, lockAspectRatio);
         }
 
         internal bool TryAddToSheet(ExcelSheet sheet, int row, int column) {
@@ -149,7 +150,13 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizeContentType(string? contentType) {
-            return string.IsNullOrWhiteSpace(contentType) ? "image/png" : contentType!.Trim();
+            if (string.IsNullOrWhiteSpace(contentType)) {
+                return OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
+            }
+
+            return OfficeImageInfo.TryNormalizeImageContentType(contentType, out string normalizedContentType)
+                ? normalizedContentType
+                : contentType!.Trim();
         }
     }
 }

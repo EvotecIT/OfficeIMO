@@ -6,7 +6,7 @@
         <AssemblyName>OfficeIMO.PowerPoint</AssemblyName>
         <AssemblyTitle>OfficeIMO.PowerPoint</AssemblyTitle>
 
-        <VersionPrefix>1.0.44</VersionPrefix>
+        <VersionPrefix>1.0.46</VersionPrefix>
         <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
         <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">
             $(TargetFrameworks);net472
@@ -60,6 +60,10 @@
     </ItemGroup>
 
     <ItemGroup>
+        <ProjectReference Include="..\OfficeIMO.Drawing\OfficeIMO.Drawing.csproj" />
+    </ItemGroup>
+
+    <ItemGroup>
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.cs" Link="Shared\OfficeEncryption.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.AgileDescriptor.cs" Link="Shared\OfficeEncryption.AgileDescriptor.cs" />
         <Compile Include="..\OfficeIMO.Shared\OfficeEncryption.CompoundFile.cs" Link="Shared\OfficeEncryption.CompoundFile.cs" />
@@ -84,6 +88,7 @@
     <ItemGroup>
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Pdf" />
+        <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Html" />
     </ItemGroup>
 
   <ItemGroup>

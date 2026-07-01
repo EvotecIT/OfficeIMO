@@ -159,8 +159,8 @@ namespace OfficeIMO.Excel {
 
             uint numberFormatId = GetCellNumberFormatId(cell, textContext);
             string? formatCode = GetNumberFormatCode(numberFormatId, textContext);
-            if (!IsDateNumberFormat(numberFormatId, formatCode)
-                || !TryGetAutoFitDateSample(numberFormatId, formatCode, out string sample)) {
+            if (!ExcelNumberFormatDisplay.IsDateNumberFormat(numberFormatId, formatCode)
+                || !ExcelNumberFormatDisplay.TryGetDateSample(numberFormatId, formatCode, out string sample)) {
                 return false;
             }
 

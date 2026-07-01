@@ -9,37 +9,6 @@ using System.Text;
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
 
-        private static readonly IReadOnlyDictionary<uint, string> BuiltInNumberFormatCodes = new Dictionary<uint, string> {
-            [0U] = "General",
-            [1U] = "0",
-            [2U] = "0.00",
-            [3U] = "#,##0",
-            [4U] = "#,##0.00",
-            [9U] = "0%",
-            [10U] = "0.00%",
-            [11U] = "0.00E+00",
-            [12U] = "# ?/?",
-            [13U] = "# ??/??",
-            [14U] = "mm-dd-yy",
-            [15U] = "d-mmm-yy",
-            [16U] = "d-mmm",
-            [17U] = "mmm-yy",
-            [18U] = "h:mm AM/PM",
-            [19U] = "h:mm:ss AM/PM",
-            [20U] = "h:mm",
-            [21U] = "h:mm:ss",
-            [22U] = "m/d/yy h:mm",
-            [37U] = "#,##0 ;(#,##0)",
-            [38U] = "#,##0 ;[Red](#,##0)",
-            [39U] = "#,##0.00;(#,##0.00)",
-            [40U] = "#,##0.00;[Red](#,##0.00)",
-            [45U] = "mm:ss",
-            [46U] = "[h]:mm:ss",
-            [47U] = "mmss.0",
-            [48U] = "##0.0E+0",
-            [49U] = "@"
-        };
-
         private static readonly IReadOnlyDictionary<int, IReadOnlyList<int>> EmptyGeneratedPivotGroupingFieldMap =
             new Dictionary<int, IReadOnlyList<int>>(0);
 

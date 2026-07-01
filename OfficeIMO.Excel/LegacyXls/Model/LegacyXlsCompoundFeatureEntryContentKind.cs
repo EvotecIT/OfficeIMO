@@ -21,6 +21,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>The entry is an embedded OLE stream payload.</summary>
         OlePayloadStream,
 
+        /// <summary>The entry is a digital signature payload stream.</summary>
+        DigitalSignatureStream,
+
         /// <summary>The entry is a stream with bytes that are not modeled more specifically yet.</summary>
         BinaryStream
     }

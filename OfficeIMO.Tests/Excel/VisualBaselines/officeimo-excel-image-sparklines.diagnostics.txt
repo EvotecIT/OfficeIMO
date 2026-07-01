@@ -1,0 +1,3 @@
+Warning|ExcelSparklineRenderingApproximation|Sparklines!E2|Worksheet sparkline is rendered as a dependency-free approximation; Excel-specific date axis, hidden-data, and empty-cell behavior may differ.
+Warning|ExcelSparklineRenderingApproximation|Sparklines!E3|Worksheet sparkline is rendered as a dependency-free approximation; Excel-specific date axis, hidden-data, and empty-cell behavior may differ.
+Warning|ExcelSparklineRenderingApproximation|Sparklines!E4|Worksheet sparkline is rendered as a dependency-free approximation; Excel-specific date axis, hidden-data, and empty-cell behavior may differ.

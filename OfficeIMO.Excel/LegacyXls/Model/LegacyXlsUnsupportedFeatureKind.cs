@@ -44,6 +44,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         OleObject,
 
         /// <summary>
+        /// Digital signature storage or streams were discovered in the OLE compound container.
+        /// </summary>
+        DigitalSignature,
+
+        /// <summary>
+        /// A document property value was present but not projected.
+        /// </summary>
+        DocumentProperty,
+
+        /// <summary>
         /// A dialog sheet entry was discovered.
         /// </summary>
         DialogSheet,
@@ -104,6 +114,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         WorksheetProtection,
 
         /// <summary>
+        /// Worksheet view records were present but not fully projected.
+        /// </summary>
+        WorksheetView,
+
+        /// <summary>
+        /// Worksheet sort records were present but not fully projected.
+        /// </summary>
+        WorksheetSort,
+
+        /// <summary>
         /// Extended style formatting records were present but not projected.
         /// </summary>
         StyleExtension,
@@ -112,6 +132,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Extended table style records were present but not projected.
         /// </summary>
         TableStyle,
+
+        /// <summary>
+        /// Legacy worksheet table/list definition records were present but not projected.
+        /// </summary>
+        TableDefinition,
 
         /// <summary>
         /// Extended theme records were present but not projected.

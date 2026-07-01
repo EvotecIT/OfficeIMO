@@ -1,0 +1,292 @@
+using System;
+using System.Collections.Generic;
+
+namespace OfficeIMO.Drawing;
+
+public sealed partial class OfficeRasterCanvas {
+    /// <summary>
+    /// Draws a filled and/or stroked ellipse using a shared Office stroke dash style.
+    /// </summary>
+    /// <param name="centerX">Ellipse center X coordinate.</param>
+    /// <param name="centerY">Ellipse center Y coordinate.</param>
+    /// <param name="radiusX">Horizontal ellipse radius.</param>
+    /// <param name="radiusY">Vertical ellipse radius.</param>
+    /// <param name="fill">Fill color.</param>
+    /// <param name="stroke">Stroke color.</param>
+    /// <param name="thickness">Stroke thickness in canvas pixels.</param>
+    /// <param name="dashStyle">Shared Office stroke dash style.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="segments">Number of line segments used to approximate dashed outlines.</param>
+    public void DrawStyledEllipse(
+        double centerX,
+        double centerY,
+        double radiusX,
+        double radiusY,
+        OfficeColor fill,
+        OfficeColor stroke,
+        double thickness = 1D,
+        OfficeStrokeDashStyle dashStyle = OfficeStrokeDashStyle.Solid,
+        double rotationDegrees = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D,
+        int segments = 72) {
+        if (dashStyle == OfficeStrokeDashStyle.Solid || stroke.A == 0 || thickness <= 0D) {
+            DrawEllipse(centerX, centerY, radiusX, radiusY, fill, stroke, thickness, rotationDegrees, rotationCenterX, rotationCenterY);
+            return;
+        }
+
+        if (fill.A > 0) {
+            DrawEllipse(centerX, centerY, radiusX, radiusY, fill, OfficeColor.Transparent, 0D, rotationDegrees, rotationCenterX, rotationCenterY);
+        }
+
+        DrawPatternedEllipse(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            stroke,
+            thickness,
+            dashStyle.GetDashPattern(thickness),
+            rotationDegrees,
+            rotationCenterX,
+            rotationCenterY,
+            segments);
+    }
+
+    /// <summary>
+    /// Draws a dashed elliptical outline using center/radius coordinates and optional rotation.
+    /// </summary>
+    /// <param name="centerX">Ellipse center X coordinate.</param>
+    /// <param name="centerY">Ellipse center Y coordinate.</param>
+    /// <param name="radiusX">Horizontal ellipse radius.</param>
+    /// <param name="radiusY">Vertical ellipse radius.</param>
+    /// <param name="color">Stroke color.</param>
+    /// <param name="thickness">Stroke thickness in canvas pixels.</param>
+    /// <param name="dashLength">Visible dash length in canvas pixels.</param>
+    /// <param name="gapLength">Transparent gap length in canvas pixels.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="segments">Number of line segments used to approximate the ellipse.</param>
+    /// <param name="resetDashPatternForEachSegment">Whether the dash pattern should restart for every approximation segment.</param>
+    public void DrawDashedEllipse(
+        double centerX,
+        double centerY,
+        double radiusX,
+        double radiusY,
+        OfficeColor color,
+        double thickness = 1D,
+        double dashLength = 6D,
+        double gapLength = 4D,
+        double rotationDegrees = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D,
+        int segments = 72,
+        bool resetDashPatternForEachSegment = false) {
+        if (color.A == 0 || thickness <= 0D || radiusX <= 0D || radiusY <= 0D || dashLength <= 0D || gapLength < 0D || segments < 4) {
+            return;
+        }
+
+        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        double patternPosition = 0D;
+        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
+        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            0D,
+            Math.PI * 2D,
+            segments,
+            rotationRadians,
+            rotationCenterX,
+            rotationCenterY)) {
+            if (resetDashPatternForEachSegment) {
+                DrawDashedLine(previous.X, previous.Y, current.X, current.Y, color, thickness, dashLength, gapLength);
+            } else {
+                DrawDashedPathSegment(previous, current, color, thickness, dashLength, gapLength, ref patternPosition);
+            }
+
+            previous = current;
+        }
+    }
+
+    /// <summary>
+    /// Draws an elliptical outline using an alternating dash and gap pattern.
+    /// </summary>
+    /// <param name="centerX">Ellipse center X coordinate.</param>
+    /// <param name="centerY">Ellipse center Y coordinate.</param>
+    /// <param name="radiusX">Horizontal ellipse radius.</param>
+    /// <param name="radiusY">Vertical ellipse radius.</param>
+    /// <param name="color">Stroke color.</param>
+    /// <param name="thickness">Stroke thickness in canvas pixels.</param>
+    /// <param name="dashPattern">Alternating dash and gap lengths in canvas pixels.</param>
+    /// <param name="rotationDegrees">Clockwise rotation in degrees.</param>
+    /// <param name="rotationCenterX">Rotation center X coordinate.</param>
+    /// <param name="rotationCenterY">Rotation center Y coordinate.</param>
+    /// <param name="segments">Number of line segments used to approximate the ellipse.</param>
+    public void DrawPatternedEllipse(
+        double centerX,
+        double centerY,
+        double radiusX,
+        double radiusY,
+        OfficeColor color,
+        double thickness,
+        IReadOnlyList<double>? dashPattern,
+        double rotationDegrees = 0D,
+        double rotationCenterX = 0D,
+        double rotationCenterY = 0D,
+        int segments = 72) {
+        if (color.A == 0 || thickness <= 0D || radiusX <= 0D || radiusY <= 0D || segments < 4) {
+            return;
+        }
+
+        List<double> pattern = NormalizeDashPattern(dashPattern);
+        if (pattern.Count == 0) {
+            DrawEllipse(centerX, centerY, radiusX, radiusY, OfficeColor.Transparent, color, thickness, rotationDegrees, rotationCenterX, rotationCenterY);
+            return;
+        }
+
+        double rotationRadians = OfficeGeometry.DegreesToRadians(rotationDegrees);
+        double patternPosition = 0D;
+        OfficePoint previous = CreateArcStartPoint(centerX, centerY, radiusX, radiusY, 0D, rotationRadians, rotationCenterX, rotationCenterY);
+        foreach (OfficePoint current in OfficeGeometry.CreateEllipticalArcPoints(
+            centerX,
+            centerY,
+            radiusX,
+            radiusY,
+            0D,
+            Math.PI * 2D,
+            segments,
+            rotationRadians,
+            rotationCenterX,
+            rotationCenterY)) {
+            DrawPatternedPathSegment(previous, current, color, thickness, pattern, ref patternPosition);
+            previous = current;
+        }
+    }
+
+    private void DrawDashedPathSegment(
+        OfficePoint start,
+        OfficePoint end,
+        OfficeColor color,
+        double thickness,
+        double dashLength,
+        double gapLength,
+        ref double patternPosition) {
+        double length = Distance(start.X, start.Y, end.X, end.Y);
+        if (!IsFinite(length) || length <= 0D) {
+            return;
+        }
+
+        double cycle = dashLength + gapLength;
+        if (!IsFinite(cycle) || cycle <= 0D) {
+            return;
+        }
+
+        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        double position = 0D;
+        while (position < length) {
+            bool inDash = patternPosition < dashLength || gapLength == 0D;
+            double patternRemaining = inDash
+                ? dashLength - patternPosition
+                : cycle - patternPosition;
+            if (patternRemaining <= 0D) {
+                patternRemaining = cycle;
+            }
+
+            double next = Math.Min(length, position + patternRemaining);
+            double consumed = next - position;
+            if (consumed <= MinimumDashSegmentAdvance) {
+                break;
+            }
+
+            if (inDash) {
+                double startT = position / length;
+                double endT = next / length;
+                DrawLineSegment(
+                    start.X + ((end.X - start.X) * startT),
+                    start.Y + ((end.Y - start.Y) * startT),
+                    start.X + ((end.X - start.X) * endT),
+                    start.Y + ((end.Y - start.Y) * endT),
+                    color,
+                    thickness);
+            }
+
+            position = next;
+            patternPosition += consumed;
+            while (patternPosition >= cycle) {
+                patternPosition -= cycle;
+            }
+        }
+    }
+
+    private void DrawPatternedPathSegment(
+        OfficePoint start,
+        OfficePoint end,
+        OfficeColor color,
+        double thickness,
+        IReadOnlyList<double> dashPattern,
+        ref double patternPosition) {
+        double length = Distance(start.X, start.Y, end.X, end.Y);
+        if (!IsFinite(length) || length <= 0D || dashPattern.Count == 0) {
+            return;
+        }
+
+        double cycle = 0D;
+        for (int i = 0; i < dashPattern.Count; i++) {
+            cycle += dashPattern[i];
+        }
+
+        if (!IsFinite(cycle) || cycle <= 0D) {
+            return;
+        }
+
+        patternPosition = IsFinite(patternPosition) ? patternPosition % cycle : 0D;
+        double position = 0D;
+        while (position < length) {
+            int patternIndex = 0;
+            double patternOffset = patternPosition;
+            while (patternIndex < dashPattern.Count && patternOffset >= dashPattern[patternIndex]) {
+                patternOffset -= dashPattern[patternIndex];
+                patternIndex++;
+            }
+
+            if (patternIndex >= dashPattern.Count) {
+                patternIndex = 0;
+                patternOffset = 0D;
+            }
+
+            double segmentRemaining = dashPattern[patternIndex] - patternOffset;
+            if (segmentRemaining <= 0D) {
+                segmentRemaining = cycle;
+            }
+
+            double next = Math.Min(length, position + segmentRemaining);
+            double consumed = next - position;
+            if (consumed <= MinimumDashSegmentAdvance) {
+                break;
+            }
+
+            if ((patternIndex & 1) == 0) {
+                double startT = position / length;
+                double endT = next / length;
+                DrawLineSegment(
+                    start.X + ((end.X - start.X) * startT),
+                    start.Y + ((end.Y - start.Y) * startT),
+                    start.X + ((end.X - start.X) * endT),
+                    start.Y + ((end.Y - start.Y) * endT),
+                    color,
+                    thickness);
+            }
+
+            position = next;
+            patternPosition += consumed;
+            while (patternPosition >= cycle) {
+                patternPosition -= cycle;
+            }
+        }
+    }
+}

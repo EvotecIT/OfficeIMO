@@ -24,6 +24,11 @@ public static class PowerPointExtractionExtensions {
         /// When true, include slide tables in output. Default: true.
         /// </summary>
         public bool IncludeTables { get; set; } = true;
+
+        /// <summary>
+        /// When true, include hidden shapes in output. Default: true.
+        /// </summary>
+        public bool IncludeHiddenShapes { get; set; } = true;
     }
 
     /// <summary>
@@ -54,6 +59,7 @@ public static class PowerPointExtractionExtensions {
             // TextBoxes in shape order.
             foreach (var tb in slide.TextBoxes) {
                 cancellationToken.ThrowIfCancellationRequested();
+                if (!extract.IncludeHiddenShapes && tb.Hidden) continue;
                 var text = (tb.Text ?? string.Empty).Trim();
                 if (text.Length == 0) continue;
                 md.AppendLine(text);
@@ -61,7 +67,7 @@ public static class PowerPointExtractionExtensions {
             }
 
             if (extract.IncludeTables) {
-                AppendTablesMarkdown(md, slide);
+                AppendTablesMarkdown(md, slide, extract);
             }
 
             if (extract.IncludeNotes) {
@@ -95,9 +101,10 @@ public static class PowerPointExtractionExtensions {
         }
     }
 
-    private static void AppendTablesMarkdown(StringBuilder markdown, PowerPointSlide slide) {
+    private static void AppendTablesMarkdown(StringBuilder markdown, PowerPointSlide slide, PowerPointExtractOptions extract) {
         int tableIndex = 0;
         foreach (var table in slide.Tables) {
+            if (!extract.IncludeHiddenShapes && table.Hidden) continue;
             tableIndex++;
             List<IReadOnlyList<string>> rows = table.RowItems
                 .Select(row => (IReadOnlyList<string>)row.Cells.Select(cell => NormalizeText(cell.Text)).ToList())

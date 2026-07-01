@@ -795,7 +795,10 @@ public static partial class MarkdownPdfConverterExtensions {
             return MarkdownPdfVisualTheme.FromMarkdownTheme(sharedTheme);
         }
 
-        return options.ApplyWordLikeTheme ? MarkdownPdfVisualTheme.WordLike() : MarkdownPdfVisualTheme.Plain();
+        MarkdownVisualTheme? defaultTheme = MarkdownVisualTheme.ResolveOrDefault(null, options.ApplyWordLikeTheme);
+        return defaultTheme != null
+            ? MarkdownPdfVisualTheme.FromMarkdownTheme(defaultTheme)
+            : MarkdownPdfVisualTheme.Plain();
     }
 
     private static void FitChartToPageFrame(MarkdownPdfSaveOptions options, MarkdownPdfVisualTheme visualTheme, ref double width, ref double height) {

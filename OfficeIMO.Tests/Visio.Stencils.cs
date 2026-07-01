@@ -908,6 +908,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PackageStencilCatalogRecognizesExternalPreviewImageBySharedTargetExtension() {
+            string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
+            CreatePackageWithRawGroupMaster(
+                packagePath,
+                "FancyWeb",
+                "Fancy Web",
+                "webp",
+                relationshipType: "https://schemas.example.org/not-an-image",
+                externalImageRelationship: true);
+
+            VisioStencilCatalog catalog = VisioStencilPackageCatalog.Load(packagePath, new VisioStencilPackageLoadOptions {
+                IncludeUnsupportedMasters = true,
+                Category = "External"
+            });
+
+            VisioStencilPreviewImage? previewImage = catalog.Get("fancy-web").PreviewImage;
+
+            Assert.NotNull(previewImage);
+            Assert.Equal("rIdImage", previewImage!.RelationshipId);
+            Assert.Equal("../media/image1.webp", previewImage.Target);
+            Assert.Null(previewImage.ContentType);
+            Assert.Null(previewImage.Extension);
+            Assert.Null(previewImage.ByteLength);
+        }
+
+        [Fact]
         public void PackageStencilPreviewGalleryWritesReviewableHtmlIndex() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud");
@@ -951,7 +977,9 @@ namespace OfficeIMO.Tests {
         public void PackageStencilPreviewGalleryWritesBrowserRenderableThumbnailArtifacts() {
             string packagePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vssx");
             byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAFgwJ/lM9sWQAAAABJRU5ErkJggg==");
-            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", "Fancy Cloud", "png", png);
+            const string displayName = "Fancy <Cloud> & \"QA\"";
+            const string escapedDisplayName = "Fancy &lt;Cloud&gt; &amp; &quot;QA&quot;";
+            CreatePackageWithRawGroupMaster(packagePath, "FancyCloud", displayName, "png", png);
             string outputDirectory = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
 
             VisioStencilPreviewGallery gallery = VisioStencilPackageCatalog.CreatePreviewGallery(
@@ -985,12 +1013,19 @@ namespace OfficeIMO.Tests {
             Assert.Contains("height=\"120\"", thumbnail);
             Assert.Contains("data:image/png;base64,", thumbnail);
             Assert.Contains(Convert.ToBase64String(png), thumbnail);
-            Assert.Contains("Fancy Cloud", thumbnail);
+            Assert.Contains("aria-label=\"" + escapedDisplayName + "\"", thumbnail);
+            Assert.Contains(escapedDisplayName, thumbnail);
+            Assert.Contains("<rect x=\"0\" y=\"0\" width=\"180\" height=\"120\" rx=\"8\" ry=\"8\" fill=\"#FFFFFF\"/>", thumbnail);
+            Assert.Contains("<rect x=\"0.5\" y=\"0.5\" width=\"179\" height=\"119\" rx=\"7.5\" ry=\"7.5\" fill=\"none\" stroke=\"#D3E0EC\"/>", thumbnail);
+            Assert.Contains("<clipPath id=\"visio-thumbnail-image-clip\"><rect x=\"14\" y=\"12\" width=\"152\" height=\"78\"/></clipPath>", thumbnail);
+            Assert.Contains("<image x=\"14\" y=\"12\" width=\"152\" height=\"78\" clip-path=\"url(#visio-thumbnail-image-clip)\" preserveAspectRatio=\"xMidYMid meet\" href=\"data:image/png;base64,", thumbnail);
+            Assert.Contains("<text x=\"14\" y=\"106\" font-family=\"Aptos, Segoe UI, Arial, sans-serif\" font-size=\"12\" text-anchor=\"start\" fill=\"#657586\">" + escapedDisplayName + "</text>", thumbnail);
 
             string html = File.ReadAllText(gallery.IndexPath!);
             Assert.Contains("<strong>1</strong> thumbnails", html);
             Assert.Contains("thumbs/42-FancyCloud.thumbnail.svg", html);
             Assert.Contains("assets/42-FancyCloud.png", html);
+            Assert.Contains("<h2>" + escapedDisplayName + "</h2>", html);
         }
 
         [Fact]
@@ -1207,7 +1242,14 @@ namespace OfficeIMO.Tests {
             writer.Write(document.Declaration + Environment.NewLine + document.ToString(SaveOptions.DisableFormatting));
         }
 
-        private static void CreatePackageWithRawGroupMaster(string path, string nameU, string name, string imageExtension = "emf", byte[]? imageData = null) {
+        private static void CreatePackageWithRawGroupMaster(
+            string path,
+            string nameU,
+            string name,
+            string imageExtension = "emf",
+            byte[]? imageData = null,
+            string relationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+            bool externalImageRelationship = false) {
             const string visioNamespace = "http://schemas.microsoft.com/office/visio/2012/main";
             const string officeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
             const string packageRelationshipNamespace = "http://schemas.openxmlformats.org/package/2006/relationships";
@@ -1307,13 +1349,16 @@ namespace OfficeIMO.Tests {
             XElement masterRelRoot = new(packageRel + "Relationships",
                 new XElement(packageRel + "Relationship",
                     new XAttribute("Id", "rIdImage"),
-                    new XAttribute("Type", "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image"),
-                    new XAttribute("Target", "../media/image1." + normalizedExtension)));
+                    new XAttribute("Type", relationshipType),
+                    new XAttribute("Target", "../media/image1." + normalizedExtension),
+                    externalImageRelationship ? new XAttribute("TargetMode", "External") : null));
             WriteZipXml(zip, "visio/masters/_rels/master42.xml.rels", new XDocument(masterRelRoot));
 
-            ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1." + normalizedExtension);
-            using Stream mediaStream = mediaEntry.Open();
-            mediaStream.Write(media, 0, media.Length);
+            if (!externalImageRelationship) {
+                ZipArchiveEntry mediaEntry = zip.CreateEntry("visio/media/image1." + normalizedExtension);
+                using Stream mediaStream = mediaEntry.Open();
+                mediaStream.Write(media, 0, media.Length);
+            }
         }
 
         private static void CreatePackageWithMasterDimensions(string path, params (string NameU, string? Name, double Width, double Height, string? Unit)[] masters) {

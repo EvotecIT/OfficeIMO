@@ -5,6 +5,7 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Validation;
 using HeaderFooterValues = DocumentFormat.OpenXml.Wordprocessing.HeaderFooterValues;
+using OfficeIMO.Drawing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -12,6 +13,28 @@ using Path = System.IO.Path;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
+
+        [Fact]
+        public void Test_AddSvgImage_UsesSharedImageFormatForSvgBlipExtension() {
+            string filePath = Path.Combine(_directoryWithFiles, "AddSvgImageUsesSharedFormat.docx");
+            string imagePath = Path.Combine(_directoryWithImages, "Sample.svg");
+            if (File.Exists(filePath)) {
+                File.Delete(filePath);
+            }
+
+            using (var document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddImage(imagePath, 50, 50);
+                document.Save();
+            }
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
+            var imagePart = package.MainDocumentPart!.ImageParts.Single();
+            string documentXml = package.MainDocumentPart.Document!.OuterXml;
+
+            Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Svg), imagePart.ContentType);
+            Assert.Contains("svgBlip", documentXml, StringComparison.Ordinal);
+            Assert.Contains("http://schemas.microsoft.com/office/drawing/2010/main", documentXml, StringComparison.Ordinal);
+        }
 
         [Fact]
         public void Test_CreatingWordDocumentWithImages() {

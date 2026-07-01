@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <param name="styleIndex">Legacy XF style index.</param>
         /// <param name="isFormula">Whether the cell was parsed from a formula record.</param>
         /// <param name="formulaText">Decoded formula text, when token decoding was supported.</param>
+        /// <param name="textFormattingRuns">Rich-text formatting runs for text cells.</param>
         public LegacyXlsCell(
             int row,
             int column,
@@ -20,7 +21,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             object? value,
             ushort styleIndex,
             bool isFormula = false,
-            string? formulaText = null) {
+            string? formulaText = null,
+            IReadOnlyList<LegacyXlsTextFormattingRun>? textFormattingRuns = null) {
             Row = row;
             Column = column;
             Kind = kind;
@@ -28,6 +30,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             StyleIndex = styleIndex;
             IsFormula = isFormula;
             FormulaText = formulaText;
+            TextFormattingRuns = textFormattingRuns ?? Array.Empty<LegacyXlsTextFormattingRun>();
         }
 
         /// <summary>
@@ -64,5 +67,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets decoded formula text when the BIFF token stream was supported.
         /// </summary>
         public string? FormulaText { get; }
+
+        /// <summary>
+        /// Gets rich-text formatting runs for text cells.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsTextFormattingRun> TextFormattingRuns { get; }
     }
 }

@@ -8,6 +8,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderVisioModularTests {
     [Fact]
     public void DocumentReaderVisio_ReadVisio_EmitsPageChunkWithShapeDataTable() {

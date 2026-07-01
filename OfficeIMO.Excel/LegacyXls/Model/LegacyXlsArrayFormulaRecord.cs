@@ -73,13 +73,13 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public int FormulaExtraByteCount { get; }
 
         /// <summary>Gets the number of cached formula cells matched to this Array record during import.</summary>
-        public int MatchedFormulaCellCount { get; }
+        public int MatchedFormulaCellCount { get; private set; }
 
         /// <summary>Gets the number of cells covered by the declared array formula range.</summary>
         public int DeclaredCellCount => checked((LastRow - FirstRow + 1) * (LastColumn - FirstColumn + 1));
 
         /// <summary>Gets whether OfficeIMO projected formula text onto at least one matched cached formula cell.</summary>
-        public bool FormulaTextProjected { get; }
+        public bool FormulaTextProjected { get; private set; }
 
         /// <summary>Gets the byte offset of the Array BIFF record.</summary>
         public int RecordOffset { get; }
@@ -89,5 +89,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the source BIFF payload length in bytes.</summary>
         public int PayloadLength { get; }
+
+        internal void AddMatchedFormulaCell(bool formulaTextProjected) {
+            MatchedFormulaCellCount++;
+            FormulaTextProjected |= formulaTextProjected;
+        }
     }
 }

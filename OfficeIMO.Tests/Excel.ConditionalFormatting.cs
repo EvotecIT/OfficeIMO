@@ -54,7 +54,17 @@ namespace OfficeIMO.Tests {
                     .ConditionalFormatting
                     .DataBar(OfficeColor.Blue)
                     .ConditionalFormatting
-                    .Top(1);
+                    .Top(1)
+                    .ConditionalFormatting
+                    .DuplicateValues("FCE4D6")
+                    .ConditionalFormatting
+                    .UniqueValues("DBEAFE")
+                    .ConditionalFormatting
+                    .AboveAverage("C6EFCE")
+                    .ConditionalFormatting
+                    .BelowAverage("FEE2E2", equalAverage: true)
+                    .ConditionalFormatting
+                    .ContainsText("2", "FFF2CC");
                 document.Save();
             }
 
@@ -66,6 +76,11 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.ColorScale);
                 Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.DataBar);
                 Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.Top10 && rule.Rank?.Value == 1);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.DuplicateValues && rule.FormatId != null);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.UniqueValues && rule.FormatId != null);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.AboveAverage && rule.AboveAverage?.Value == true && rule.FormatId != null);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.AboveAverage && rule.AboveAverage?.Value == false && rule.EqualAverage?.Value == true && rule.FormatId != null);
+                Assert.Contains(rules, rule => rule.Type?.Value == ConditionalFormatValues.ContainsText && rule.Text?.Value == "2" && rule.FormatId != null);
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
@@ -74,9 +89,28 @@ namespace OfficeIMO.Tests {
                 ExcelConditionalFormattingInfo colorScale = Assert.Single(rules, info => info.Type == "ColorScale");
                 ExcelConditionalFormattingInfo dataBar = Assert.Single(rules, info => info.Type == "DataBar");
                 ExcelConditionalFormattingInfo top = Assert.Single(rules, info => info.Type == "Top10");
+                ExcelConditionalFormattingInfo duplicate = Assert.Single(rules, info => info.Type == "DuplicateValues");
+                ExcelConditionalFormattingInfo unique = Assert.Single(rules, info => info.Type == "UniqueValues");
+                ExcelConditionalFormattingInfo above = Assert.Single(rules, info => info.Type == "AboveAverage" && info.AboveAverageAbove);
+                ExcelConditionalFormattingInfo below = Assert.Single(rules, info => info.Type == "AboveAverage" && !info.AboveAverageAbove);
+                ExcelConditionalFormattingInfo containsText = Assert.Single(rules, info => info.Type == "ContainsText");
                 Assert.Equal(new[] { "FFFF0000", "FF00FF00" }, colorScale.ColorScaleColors);
                 Assert.Equal("FF0000FF", dataBar.DataBarColor);
                 Assert.True(top.Priority > 0);
+                Assert.Equal(1U, top.TopBottomRank);
+                Assert.False(top.TopBottomBottom);
+                Assert.False(top.TopBottomPercent);
+                Assert.Equal("FFFCE4D6", duplicate.DifferentialFillColorArgb);
+                Assert.Equal("FFDBEAFE", unique.DifferentialFillColorArgb);
+                Assert.False(above.AboveAverageEqual);
+                Assert.Null(above.AboveAverageStdDev);
+                Assert.Equal("FFC6EFCE", above.DifferentialFillColorArgb);
+                Assert.True(below.AboveAverageEqual);
+                Assert.Null(below.AboveAverageStdDev);
+                Assert.Equal("FFFEE2E2", below.DifferentialFillColorArgb);
+                Assert.Equal("2", containsText.Text);
+                Assert.Equal("ContainsText", containsText.Operator);
+                Assert.Equal("FFFFF2CC", containsText.DifferentialFillColorArgb);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -124,7 +158,7 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(rules, info => info.Type == "ContainsBlanks");
                 Assert.Contains(rules, info => info.Type == "NotContainsErrors");
                 Assert.Contains(rules, info => info.Type == "AboveAverage");
-                Assert.Contains(rules, info => info.Type == "TimePeriod");
+                Assert.Contains(rules, info => info.Type == "TimePeriod" && info.TimePeriod == nameof(TimePeriodValues.Today));
                 Assert.Empty(document.ValidateOpenXml());
             }
         }
@@ -214,6 +248,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(IconSetValues.ThreeTrafficLights1, iconSet!.IconSetValue!.Value);
                 Assert.False(iconSet.ShowValue!.Value);
                 Assert.True(iconSet.Reverse!.Value);
+                Assert.Equal(3, iconSet.Elements<ConditionalFormatValueObject>().Count());
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
@@ -222,6 +257,11 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("ThreeTrafficLights1", info.IconSet);
                 Assert.False(info.IconSetShowValue);
                 Assert.True(info.IconSetReverse);
+                Assert.Equal(3, info.IconSetThresholds.Count);
+                Assert.Equal("0", info.IconSetThresholds[0].Value);
+                Assert.Equal("33", info.IconSetThresholds[1].Value);
+                Assert.Equal("67", info.IconSetThresholds[2].Value);
+                Assert.All(info.IconSetThresholds, threshold => Assert.True(threshold.GreaterThanOrEqual));
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

@@ -25,5 +25,7 @@ public enum OfficeImageFormat {
     /// <summary>Icon image.</summary>
     Icon,
     /// <summary>PCX image.</summary>
-    Pcx
+    Pcx,
+    /// <summary>WebP image.</summary>
+    Webp
 }

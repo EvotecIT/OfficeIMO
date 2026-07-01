@@ -412,24 +412,10 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            switch (System.IO.Path.GetExtension(fileName).ToLowerInvariant()) {
-                case ".png":
-                    return "image/png";
-                case ".jpg":
-                case ".jpeg":
-                    return "image/jpeg";
-                case ".gif":
-                    return "image/gif";
-                case ".bmp":
-                    return "image/bmp";
-                case ".svg":
-                    return "image/svg+xml";
-                case ".tif":
-                case ".tiff":
-                    return "image/tiff";
-                default:
-                    return null;
-            }
+            OfficeIMO.Drawing.OfficeImageFormat format = OfficeIMO.Drawing.OfficeImageReader.FromExtension(fileName);
+            return format == OfficeIMO.Drawing.OfficeImageFormat.Unknown
+                ? null
+                : OfficeIMO.Drawing.OfficeImageInfo.GetMimeType(format);
         }
 
         private static bool? ResolveOrderedList(WordParagraph paragraph) {

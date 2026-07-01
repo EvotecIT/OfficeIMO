@@ -42,6 +42,21 @@ namespace OfficeIMO.Excel {
         /// Writes an imported legacy XLS error value as an Open XML error cell.
         /// </summary>
         internal void SetLegacyErrorCellValue(int row, int column, string errorText) {
+            SetErrorCellValue(row, column, errorText);
+        }
+
+        /// <summary>
+        /// Writes a native Excel error value into the specified cell.
+        /// </summary>
+        /// <param name="row">The 1-based row index.</param>
+        /// <param name="column">The 1-based column index.</param>
+        /// <param name="errorText">The Excel error literal, such as <c>#DIV/0!</c> or <c>#N/A</c>.</param>
+        public void CellError(int row, int column, string errorText) {
+            using var preserveFastSaveState = _excelDocument.PreserveDirectDataSetFastSaveStateForExternalCellMutation(this, row, column);
+            SetErrorCellValue(row, column, errorText);
+        }
+
+        private void SetErrorCellValue(int row, int column, string errorText) {
             if (string.IsNullOrWhiteSpace(errorText)) {
                 throw new ArgumentException("Error text must be provided.", nameof(errorText));
             }
@@ -140,7 +155,14 @@ namespace OfficeIMO.Excel {
             bool? italic,
             bool? underline,
             bool? strike = null,
-            VerticalAlignmentRunValues? verticalTextAlignment = null) {
+            UnderlineValues? underlineStyle = null,
+            VerticalAlignmentRunValues? verticalTextAlignment = null,
+            byte? fontFamily = null,
+            byte? fontCharacterSet = null,
+            bool? outline = null,
+            bool? shadow = null,
+            bool? condense = null,
+            bool? extend = null) {
             if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
                 MaterializeDeferredDataSetImportIfNeeded();
             }
@@ -175,7 +197,9 @@ namespace OfficeIMO.Excel {
                         SetItalic(font, italic.Value);
                     }
 
-                    if (underline.HasValue) {
+                    if (underlineStyle.HasValue) {
+                        SetUnderline(font, underlineStyle.Value);
+                    } else if (underline.HasValue) {
                         SetUnderline(font, underline.Value);
                     }
 
@@ -183,7 +207,31 @@ namespace OfficeIMO.Excel {
                         SetStrike(font, strike.Value);
                     }
 
+                    if (outline.HasValue) {
+                        SetOutline(font, outline.Value);
+                    }
+
+                    if (shadow.HasValue) {
+                        SetShadow(font, shadow.Value);
+                    }
+
+                    if (condense.HasValue) {
+                        SetCondense(font, condense.Value);
+                    }
+
+                    if (extend.HasValue) {
+                        SetExtend(font, extend.Value);
+                    }
+
                     SetVerticalTextAlignment(font, verticalTextAlignment);
+
+                    if (fontFamily.HasValue) {
+                        SetFontFamily(font, fontFamily.Value);
+                    }
+
+                    if (fontCharacterSet.HasValue) {
+                        SetFontCharacterSet(font, fontCharacterSet.Value);
+                    }
                 });
 
                 ApplyCellFormatOverride(stylesheet, cell, format => {
@@ -426,7 +474,9 @@ namespace OfficeIMO.Excel {
 
             workbook.TryResolveColor(font.ColorIndex, out string? fontColor);
             VerticalAlignmentRunValues? verticalTextAlignment = ToLegacyVerticalTextAlignment(font.Escapement);
-            if (font.Name == null && !font.Size.HasValue && fontColor == null && !font.Bold && !font.Italic && !font.Underline && !font.Strikeout && !verticalTextAlignment.HasValue) {
+            UnderlineValues? underlineStyle = ToLegacyUnderlineStyle(font.UnderlineStyle);
+            bool hasFontMetadata = font.Family != 0 || font.CharacterSet != 1 || font.Outline || font.Shadow || font.Condense || font.Extend;
+            if (font.Name == null && !font.Size.HasValue && fontColor == null && !font.Bold && !font.Italic && !font.Underline && !font.Strikeout && !verticalTextAlignment.HasValue && !hasFontMetadata) {
                 return;
             }
 
@@ -445,9 +495,15 @@ namespace OfficeIMO.Excel {
 
                 SetBold(projectedFont, font.Bold);
                 SetItalic(projectedFont, font.Italic);
-                SetUnderline(projectedFont, font.Underline);
+                SetUnderline(projectedFont, underlineStyle);
                 SetStrike(projectedFont, font.Strikeout);
+                SetOutline(projectedFont, font.Outline);
+                SetShadow(projectedFont, font.Shadow);
+                SetCondense(projectedFont, font.Condense);
+                SetExtend(projectedFont, font.Extend);
                 SetVerticalTextAlignment(projectedFont, verticalTextAlignment);
+                SetFontFamily(projectedFont, font.Family);
+                SetFontCharacterSet(projectedFont, font.CharacterSet);
             });
             candidate.ApplyFont = true;
         }
@@ -634,6 +690,16 @@ namespace OfficeIMO.Excel {
                 : escapement == LegacyXlsFontEscapement.Subscript
                     ? VerticalAlignmentRunValues.Subscript
                     : null;
+        }
+
+        private static UnderlineValues? ToLegacyUnderlineStyle(byte underlineStyle) {
+            return underlineStyle switch {
+                0x01 => UnderlineValues.Single,
+                0x02 => UnderlineValues.Double,
+                0x21 => UnderlineValues.SingleAccounting,
+                0x22 => UnderlineValues.DoubleAccounting,
+                _ => null
+            };
         }
 
         private static PatternValues? ToLegacyFillPattern(byte pattern) {

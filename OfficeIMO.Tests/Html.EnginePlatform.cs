@@ -3,6 +3,7 @@ using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
 using OfficeIMO.Markdown.Html;
 using OfficeIMO.Word.Html;
+using System.Text.Json;
 using Xunit;
 
 namespace OfficeIMO.Tests;
@@ -140,6 +141,12 @@ public partial class Html {
         HtmlConversionProfileContract profile = HtmlConversionProfileContracts.Get(HtmlConversionProfile.Document);
         Assert.Contains("form-controls", profile.SupportedHtml);
         Assert.Contains("blocked resource reporting", profile.ResourceGuarantees);
+        HtmlConversionProfileContract positionedReview = HtmlConversionProfileContracts.Get(HtmlConversionProfile.PositionedReview);
+        Assert.Equal(4, HtmlConversionProfileContracts.All.Count);
+        Assert.Equal("Positioned Review", positionedReview.Name);
+        Assert.Contains("page wrappers", positionedReview.SupportedHtml);
+        Assert.Contains("absolute positioning", positionedReview.SupportedCss);
+        Assert.Contains("no-editable-reconstruction boundary", positionedReview.DiagnosticGuarantees);
 
         var galleryResult = new HtmlCapabilityGalleryResult(new HtmlCapabilityGalleryScenario(
             "market-report",
@@ -148,17 +155,91 @@ public partial class Html {
             "Exercises shared OfficeIMO HTML engine contracts."));
         galleryResult.AddArtifact(new HtmlCapabilityGalleryArtifact("source", "input-html", "market-report.input.html", "text/html", sourceHtml.Length, new string('0', 64)));
         galleryResult.Diagnostics.Add("OfficeIMO.Tests", "HtmlCommentSkipped", "Comment skipped for manifest catalog coverage.", HtmlDiagnosticSeverity.Info);
-        var manifest = new HtmlCapabilityGalleryManifest(galleryResult, HtmlConversionProfile.Document, score, resourceManifest);
+        var expectations = new[] {
+            new HtmlCapabilityGalleryExpectation("headings", HtmlCapabilityGalleryExpectationOutcome.Preserved, "roundtrip HTML contains h1"),
+            new HtmlCapabilityGalleryExpectation("blocked resources", HtmlCapabilityGalleryExpectationOutcome.Blocked, "resource manifest reports rejected data URI image"),
+            new HtmlCapabilityGalleryExpectation("comments", HtmlCapabilityGalleryExpectationOutcome.Reported, "HtmlCommentSkipped diagnostic is present")
+        };
+        var manifest = new HtmlCapabilityGalleryManifest(galleryResult, HtmlConversionProfile.Document, score, resourceManifest, expectations);
         string manifestMarkdown = HtmlCapabilityGalleryManifestWriter.ToMarkdown(manifest);
+        string manifestJson = HtmlCapabilityGalleryManifestJsonWriter.ToJson(manifest);
+        using JsonDocument manifestJsonDocument = JsonDocument.Parse(manifestJson);
+        JsonElement manifestJsonRoot = manifestJsonDocument.RootElement;
         Assert.Contains("Profile: Document", manifestMarkdown);
+        Assert.Contains("Profile Contract", manifestMarkdown);
+        Assert.Contains("Supported HTML: semantic sections", manifestMarkdown);
+        Assert.Contains("Diagnostic guarantees: diagnostic catalog lookup", manifestMarkdown);
+        Assert.Contains("Roundtrip Expectations", manifestMarkdown);
+        Assert.Contains("Preserved: headings => roundtrip HTML contains h1", manifestMarkdown);
+        Assert.Contains("Blocked: blocked resources => resource manifest reports rejected data URI image", manifestMarkdown);
         Assert.Contains("Round Trip Score", manifestMarkdown);
         Assert.Contains("ImageResourceRejectedByPolicy", manifestMarkdown);
         Assert.Contains("[ContentSimplification]", manifestMarkdown);
+        Assert.Equal("officeimo.html.capability-gallery", manifestJsonRoot.GetProperty("schemaId").GetString());
+        Assert.Equal("1.0", manifestJsonRoot.GetProperty("schemaVersion").GetString());
+        Assert.Equal("market-report", manifestJsonRoot.GetProperty("scenario").GetProperty("id").GetString());
+        Assert.Equal("Document", manifestJsonRoot.GetProperty("profile").GetProperty("id").GetString());
+        Assert.Equal(3, manifestJsonRoot.GetProperty("expectations").GetArrayLength());
+        Assert.Equal("source", manifestJsonRoot.GetProperty("artifacts")[0].GetProperty("id").GetString());
+        Assert.True(manifestJsonRoot.GetProperty("roundTripScore").GetProperty("score").GetDouble() >= 0D);
+        Assert.True(manifestJsonRoot.GetProperty("resources").GetProperty("blockedCount").GetInt32() > 0);
+        Assert.Contains("ImageResourceRejectedByPolicy", manifestJson);
+        Assert.Contains("\"origin\": \"resource\"", manifestJson);
 
         HtmlToWordOptions untrusted = HtmlToWordOptions.CreateUntrustedHtmlProfile();
         HtmlToWordOptions trusted = HtmlToWordOptions.CreateTrustedDocumentProfile();
         Assert.Equal(HtmlConversionProfile.Semantic, untrusted.ConversionProfile);
         Assert.Equal(HtmlConversionProfile.Document, trusted.Clone().ConversionProfile);
+    }
+
+    [Fact]
+    public void HtmlEnginePlatform_DeclaresOfficeHtmlLaneContracts() {
+        Assert.Equal(7, OfficeHtmlConversionProfileContracts.All.Count);
+
+        OfficeHtmlConversionProfileContract wordSemantic = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.WordSemanticDocument);
+        Assert.Equal("Word", wordSemantic.SourceFormat);
+        Assert.Equal(HtmlConversionProfile.Semantic, wordSemantic.SharedProfile);
+        Assert.Equal("none", wordSemantic.VisualPrimitiveOwner);
+        Assert.Contains("footnotes", wordSemantic.SupportedHtml);
+        Assert.Contains("layout simplification diagnostics", wordSemantic.DiagnosticGuarantees);
+
+        OfficeHtmlConversionProfileContract wordRoundTrip = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.WordDocumentRoundTrip);
+        Assert.Equal(HtmlConversionProfile.Document, wordRoundTrip.SharedProfile);
+        Assert.Contains("form controls", wordRoundTrip.SupportedHtml);
+        Assert.Contains("OpenXML validation proof", wordRoundTrip.DiagnosticGuarantees);
+
+        OfficeHtmlConversionProfileContract wordPrint = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.WordPrintReview);
+        Assert.Equal(HtmlConversionProfile.HighFidelityPrint, wordPrint.SharedProfile);
+        Assert.Equal("OfficeIMO.Pdf", wordPrint.VisualPrimitiveOwner);
+        Assert.Contains("section wrappers", wordPrint.SupportedHtml);
+        Assert.Contains("print-fidelity boundary", wordPrint.DiagnosticGuarantees);
+
+        OfficeHtmlConversionProfileContract excelSemantic = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.ExcelSemanticTables);
+        Assert.Equal("Excel", excelSemantic.SourceFormat);
+        Assert.Equal(HtmlConversionProfile.Semantic, excelSemantic.SharedProfile);
+        Assert.Equal("none", excelSemantic.VisualPrimitiveOwner);
+        Assert.Contains("tables", excelSemantic.SupportedHtml);
+        Assert.Contains("formula/display-value diagnostics", excelSemantic.DiagnosticGuarantees);
+
+        OfficeHtmlConversionProfileContract excelVisual = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.ExcelVisualReview);
+        Assert.Equal(HtmlConversionProfile.PositionedReview, excelVisual.SharedProfile);
+        Assert.Equal("OfficeIMO.Drawing", excelVisual.VisualPrimitiveOwner);
+        Assert.Contains("positioned cell regions", excelVisual.SupportedHtml);
+        Assert.Contains("Drawing-owned image and shape rendering", excelVisual.ResourceGuarantees);
+
+        OfficeHtmlConversionProfileContract powerPointSemantic = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.PowerPointSemanticSlides);
+        Assert.Equal("PowerPoint", powerPointSemantic.SourceFormat);
+        Assert.Equal(HtmlConversionProfile.Semantic, powerPointSemantic.SharedProfile);
+        Assert.Contains("speaker notes", powerPointSemantic.SupportedHtml);
+        Assert.Contains("reading-order diagnostics", powerPointSemantic.DiagnosticGuarantees);
+
+        OfficeHtmlConversionProfileContract powerPointVisual = OfficeHtmlConversionProfileContracts.Get(OfficeHtmlConversionProfile.PowerPointVisualReview);
+        Assert.Equal(HtmlConversionProfile.PositionedReview, powerPointVisual.SharedProfile);
+        Assert.Equal("OfficeIMO.Drawing", powerPointVisual.VisualPrimitiveOwner);
+        Assert.Contains("positioned text frames", powerPointVisual.SupportedHtml);
+        Assert.Contains("Drawing-owned slide rendering", powerPointVisual.ResourceGuarantees);
+
+        Assert.Throws<ArgumentOutOfRangeException>(() => OfficeHtmlConversionProfileContracts.Get((OfficeHtmlConversionProfile)99));
     }
 
     [Fact]

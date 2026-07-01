@@ -150,6 +150,26 @@ namespace OfficeIMO.PowerPoint {
             SetSourceRectangle(null, null, null, null);
         }
 
+        /// <summary>
+        ///     Gets the left crop ratio authored on the picture, where 0 means no crop and 1 means the full width.
+        /// </summary>
+        public double CropLeftRatio => GetCrop().Left;
+
+        /// <summary>
+        ///     Gets the top crop ratio authored on the picture, where 0 means no crop and 1 means the full height.
+        /// </summary>
+        public double CropTopRatio => GetCrop().Top;
+
+        /// <summary>
+        ///     Gets the right crop ratio authored on the picture, where 0 means no crop and 1 means the full width.
+        /// </summary>
+        public double CropRightRatio => GetCrop().Right;
+
+        /// <summary>
+        ///     Gets the bottom crop ratio authored on the picture, where 0 means no crop and 1 means the full height.
+        /// </summary>
+        public double CropBottomRatio => GetCrop().Bottom;
+
         internal PowerPointPictureCrop GetCrop() {
             A.SourceRectangle? rect = Picture.BlipFill?.SourceRectangle;
             if (rect == null) {
@@ -228,19 +248,7 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static ImagePartType GetImagePartType(string imagePath) {
-            string extension = Path.GetExtension(imagePath).ToLowerInvariant();
-            return extension switch {
-                ".jpg" or ".jpeg" => ImagePartType.Jpeg,
-                ".gif" => ImagePartType.Gif,
-                ".bmp" => ImagePartType.Bmp,
-                ".tif" or ".tiff" => ImagePartType.Tiff,
-                ".svg" => ImagePartType.Svg,
-                ".emf" => ImagePartType.Emf,
-                ".wmf" => ImagePartType.Wmf,
-                ".ico" => ImagePartType.Icon,
-                ".pcx" => ImagePartType.Pcx,
-                _ => ImagePartType.Png
-            };
+            return ImagePartTypeExtensions.FromImagePath(imagePath);
         }
 
         private static void ValidatePercent(double value, string paramName) {

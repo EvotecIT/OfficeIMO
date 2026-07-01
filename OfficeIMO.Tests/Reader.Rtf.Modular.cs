@@ -6,6 +6,7 @@ using Xunit;
 
 namespace OfficeIMO.Tests;
 
+[Collection("ReaderRegistryNonParallel")]
 public sealed class ReaderRtfModularTests {
     [Fact]
     public void DocumentReaderRtf_ReadRtfDocument_EmitsParagraphChunks() {

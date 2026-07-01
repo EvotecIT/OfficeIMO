@@ -114,9 +114,17 @@ public static class OfficeImageReader {
             ".wmf" => OfficeImageFormat.Wmf,
             ".ico" => OfficeImageFormat.Icon,
             ".pcx" => OfficeImageFormat.Pcx,
+            ".webp" => OfficeImageFormat.Webp,
             _ => OfficeImageFormat.Unknown
         };
     }
+
+    /// <summary>
+    /// Returns whether the file name or extension maps to an image format known by the shared drawing layer.
+    /// </summary>
+    /// <param name="fileName">File name, path, or bare extension.</param>
+    /// <returns><c>true</c> when the extension maps to a known image format.</returns>
+    public static bool IsKnownImageExtension(string? fileName) => FromExtension(fileName) != OfficeImageFormat.Unknown;
 
     private static bool TryReadPng(byte[] data, out OfficeImageInfo info) {
         info = new OfficeImageInfo(OfficeImageFormat.Unknown, 0, 0);

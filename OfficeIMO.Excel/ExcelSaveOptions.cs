@@ -1,5 +1,20 @@
 namespace OfficeIMO.Excel {
     /// <summary>
+    /// Selects the physical workbook format for stream saves, where no file extension is available.
+    /// </summary>
+    public enum ExcelStreamSaveFormat {
+        /// <summary>
+        /// Save streams as the standard Office Open XML package format.
+        /// </summary>
+        OpenXml = 0,
+
+        /// <summary>
+        /// Save streams as a native BIFF8 legacy .xls compound file.
+        /// </summary>
+        LegacyXls = 1
+    }
+
+    /// <summary>
     /// Optional behaviors applied during <see cref="ExcelDocument.Save(string, bool, ExcelSaveOptions?)"/> and
     /// <see cref="ExcelDocument.SaveAsync(string, bool, ExcelSaveOptions?, System.Threading.CancellationToken)"/> to strengthen
     /// robustness and CI validation.
@@ -48,6 +63,21 @@ namespace OfficeIMO.Excel {
         /// When true, writes workbook calculation properties requesting a full recalculation on open.
         /// </summary>
         public bool ForceFullCalculationOnOpen { get; set; }
+
+        /// <summary>
+        /// Selects the physical workbook format for <see cref="ExcelDocument.Save(System.IO.Stream, ExcelSaveOptions?)"/>
+        /// and <see cref="ExcelDocument.SaveAsync(System.IO.Stream, ExcelSaveOptions?, System.Threading.CancellationToken)"/>.
+        /// File-path saves continue to use the destination extension.
+        /// </summary>
+        public ExcelStreamSaveFormat StreamFormat { get; set; }
+
+        /// <summary>
+        /// When true, allows native XLS saves for workbooks loaded from legacy XLS files that reported
+        /// unsupported or preserve-only legacy content. The native writer will write only the projected
+        /// workbook model and may drop legacy-only content such as unsupported sheets, charts, VBA,
+        /// OLE objects, or pivot table records.
+        /// </summary>
+        public bool AllowLossyLegacyXlsSave { get; set; }
 
         /// <summary>
         /// Returns an options instance with all features disabled.

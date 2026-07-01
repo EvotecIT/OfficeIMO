@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly Dictionary<ushort, IReadOnlyList<LegacyXlsCommentFormattingRun>> _formattingRuns = new();
         private readonly Dictionary<ushort, CommentObjectInfo> _objectInfos = new();
         private readonly Queue<LegacyXlsDrawingAnchor> _pendingAnchors = new();
+        private readonly Queue<PendingDrawingRecord> _pendingDrawingRecords = new();
         private readonly HashSet<ushort> _imported = new();
         private PendingTextObject? _pendingTextObject;
         private ushort? _pendingCommentObjectId;
@@ -41,19 +42,52 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             LegacyXlsDrawingAnchor? anchor = _pendingAnchors.Count > 0 ? _pendingAnchors.Dequeue() : null;
+            if (_pendingDrawingRecords.Count > 0) {
+                _pendingDrawingRecords.Dequeue();
+            }
+
             _objectInfos[_pendingCommentObjectId.Value] = new CommentObjectInfo(objectType, objectFlags, anchor);
             return true;
         }
 
-        internal void TryReadDrawingAnchors(BiffRecord record) {
+        internal bool TryReadDrawingAnchors(BiffRecord record) {
             if (BiffDrawingMetadataReader.TryReadClientAnchors(record, out IReadOnlyList<LegacyXlsDrawingAnchor> anchors)) {
                 foreach (LegacyXlsDrawingAnchor anchor in anchors) {
                     _pendingAnchors.Enqueue(anchor);
                 }
+
+                _pendingDrawingRecords.Enqueue(new PendingDrawingRecord(record.Type, record.Offset, record.Payload.Length));
+                return true;
             }
+
+            return false;
         }
 
-        internal void DiscardPendingDrawingAnchors() {
+        internal void AddPendingDrawingFeatures(
+            List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
+            List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            bool reportDiagnostics) {
+            while (_pendingDrawingRecords.Count > 0) {
+                PendingDrawingRecord pendingDrawing = _pendingDrawingRecords.Dequeue();
+                LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(
+                    pendingDrawing.RecordType,
+                    pendingDrawing.RecordOffset,
+                    _sheet.Name);
+                unsupportedFeatures.Add(feature);
+                if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, pendingDrawing.RecordPayloadLength, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                    preservedFeatureRecords.Add(preservedRecord!);
+                }
+
+                if (reportDiagnostics) {
+                    BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(
+                        diagnostics,
+                        pendingDrawing.RecordType,
+                        pendingDrawing.RecordOffset,
+                        _sheet.Name);
+                }
+            }
+
             _pendingAnchors.Clear();
         }
 
@@ -200,6 +234,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             internal string Author { get; }
 
             internal bool Visible { get; }
+
+            internal int RecordOffset { get; }
+
+            internal int RecordPayloadLength { get; }
+        }
+
+        private readonly struct PendingDrawingRecord {
+            internal PendingDrawingRecord(ushort recordType, int recordOffset, int recordPayloadLength) {
+                RecordType = recordType;
+                RecordOffset = recordOffset;
+                RecordPayloadLength = recordPayloadLength;
+            }
+
+            internal ushort RecordType { get; }
 
             internal int RecordOffset { get; }
 

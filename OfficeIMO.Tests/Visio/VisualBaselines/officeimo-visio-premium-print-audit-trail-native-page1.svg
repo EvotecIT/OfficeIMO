@@ -10,8 +10,8 @@
     <g data-visio-shape-id="snapshot" data-visio-nameu="Data">
       <path d="M 328.8 370.56 L 520.8 370.56 L 487.2 269.76 L 295.2 269.76 Z" data-officeimo-preserved-geometry="true" fill="#FFFFFF" stroke="#1F2937" stroke-width="1.536" />
       <g data-officeimo-stencil-artwork="true" data-officeimo-stencil-key="data" opacity="0.42">
-        <path d="M 397.376 288.075 C 397.376 284.099 418.624 284.099 418.624 288.075 L 418.624 300.797 C 418.624 304.772 397.376 304.772 397.376 300.797 Z" fill="none" stroke="#1F2937" stroke-opacity="0.824" stroke-width="1.542" stroke-linecap="round" stroke-linejoin="round" />
-        <path d="M 397.376 288.075 C 397.376 292.051 418.624 292.051 418.624 288.075" fill="none" stroke="#1F2937" stroke-opacity="0.824" stroke-width="1.542" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M397.376 288.075C397.376 284.099 418.624 284.099 418.624 288.075L418.624 300.797C418.624 304.772 397.376 304.772 397.376 300.797Z" fill="none" stroke="#1F2937" stroke-opacity="0.824" stroke-width="1.542" stroke-linecap="round" stroke-linejoin="round" />
+        <path d="M397.376 288.075C397.376 292.051 418.624 292.051 418.624 288.075" fill="none" stroke="#1F2937" stroke-opacity="0.824" stroke-width="1.542" stroke-linecap="round" stroke-linejoin="round" />
       </g>
       <text x="408" y="320.16" font-family="Aptos" font-size="13.333" text-anchor="middle" dominant-baseline="middle" fill="#000000" font-weight="700">
         <tspan x="408" dy="0">Export access snapshot</tspan>

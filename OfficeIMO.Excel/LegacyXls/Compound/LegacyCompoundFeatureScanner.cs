@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
     internal static class LegacyCompoundFeatureScanner {
         private const string VbaProjectCode = "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED";
         private const string OleObjectCode = "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED";
+        private const string DigitalSignatureCode = "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED";
 
         internal static void AddPreserveOnlyFeatures(
             LegacyCompoundFile compoundFile,
@@ -52,6 +53,28 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                     OleObjectCode,
                     description,
                     detailCode: "Compound:OleObjectStorage"));
+            }
+
+            if (TryGetDigitalSignatureEntries(
+                compoundFile,
+                out entries,
+                out entryRoles,
+                out entrySizes,
+                out entryObjectTypes,
+                out entryContentKinds,
+                out description)) {
+                workbook.MutableCompoundFeatureRecords.Add(new LegacyXlsCompoundFeatureRecord(
+                    LegacyXlsCompoundFeatureRecordKind.DigitalSignature,
+                    entries,
+                    entryRoles,
+                    entrySizes,
+                    entryObjectTypes,
+                    entryContentKinds));
+                AddFeature(workbook, options, new LegacyXlsUnsupportedFeature(
+                    LegacyXlsUnsupportedFeatureKind.DigitalSignature,
+                    DigitalSignatureCode,
+                    description,
+                    detailCode: "Compound:DigitalSignature"));
             }
         }
 
@@ -153,6 +176,48 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return true;
         }
 
+        private static bool TryGetDigitalSignatureEntries(
+            LegacyCompoundFile compoundFile,
+            out IReadOnlyList<string> entries,
+            out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryRole> entryRoles,
+            out IReadOnlyDictionary<string, long> entrySizes,
+            out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryObjectType> entryObjectTypes,
+            out IReadOnlyDictionary<string, LegacyXlsCompoundFeatureEntryContentKind> entryContentKinds,
+            out string description) {
+            LegacyCompoundFileEntry[] matchingCompoundEntries = compoundFile.Entries
+                .Where(IsDigitalSignatureEntry)
+                .ToArray();
+            Dictionary<string, LegacyXlsCompoundFeatureEntryRole> matchingEntries = matchingCompoundEntries
+                .Select(entry => new KeyValuePair<string, LegacyXlsCompoundFeatureEntryRole>(
+                    GetEntryKey(entry),
+                    ClassifyDigitalSignatureEntry(entry)))
+                .GroupBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.First().Value, StringComparer.OrdinalIgnoreCase);
+            List<string> orderedEntries = matchingEntries.Keys
+                .Distinct(StringComparer.OrdinalIgnoreCase)
+                .OrderBy(entry => entry, StringComparer.OrdinalIgnoreCase)
+                .ToList();
+            if (orderedEntries.Count == 0) {
+                entries = Array.Empty<string>();
+                entryRoles = new Dictionary<string, LegacyXlsCompoundFeatureEntryRole>(StringComparer.OrdinalIgnoreCase);
+                entrySizes = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+                entryObjectTypes = new Dictionary<string, LegacyXlsCompoundFeatureEntryObjectType>(StringComparer.OrdinalIgnoreCase);
+                entryContentKinds = new Dictionary<string, LegacyXlsCompoundFeatureEntryContentKind>(StringComparer.OrdinalIgnoreCase);
+                description = string.Empty;
+                return false;
+            }
+
+            description = "The compound XLS container contains digital signature storage or streams. Legacy XLS signatures are diagnosed before conversion; OfficeIMO.Excel does not validate or preserve XLS digital signatures in converted .xlsx output. Entries: "
+                + string.Join("; ", orderedEntries.Take(8))
+                + (orderedEntries.Count > 8 ? $"; +{orderedEntries.Count - 8} more" : string.Empty);
+            entries = orderedEntries;
+            entryRoles = matchingEntries;
+            entrySizes = BuildEntrySizes(matchingCompoundEntries);
+            entryObjectTypes = BuildEntryObjectTypes(matchingCompoundEntries);
+            entryContentKinds = BuildEntryContentKinds(compoundFile, matchingCompoundEntries, matchingEntries);
+            return true;
+        }
+
         private static IReadOnlyDictionary<string, long> BuildEntrySizes(IEnumerable<LegacyCompoundFileEntry> entries) {
             return entries
                 .GroupBy(GetEntryKey, StringComparer.OrdinalIgnoreCase)
@@ -226,6 +291,11 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             if (role == LegacyXlsCompoundFeatureEntryRole.OleNativeStream
                 || role == LegacyXlsCompoundFeatureEntryRole.OleStream) {
                 return LegacyXlsCompoundFeatureEntryContentKind.OlePayloadStream;
+            }
+
+            if (role == LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStream
+                || role == LegacyXlsCompoundFeatureEntryRole.XmlDigitalSignatureStream) {
+                return LegacyXlsCompoundFeatureEntryContentKind.DigitalSignatureStream;
             }
 
             return LegacyXlsCompoundFeatureEntryContentKind.BinaryStream;
@@ -318,6 +388,32 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
 
             if (entry.Path.IndexOf("/ObjectPool/", StringComparison.OrdinalIgnoreCase) >= 0) {
                 return LegacyXlsCompoundFeatureEntryRole.OleObjectStorage;
+            }
+
+            return LegacyXlsCompoundFeatureEntryRole.Unknown;
+        }
+
+        private static bool IsDigitalSignatureEntry(LegacyCompoundFileEntry entry) {
+            return entry.Name.Equals("_signatures", StringComparison.OrdinalIgnoreCase)
+                || entry.Name.Equals("_xmlsignatures", StringComparison.OrdinalIgnoreCase)
+                || entry.Path.IndexOf("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) >= 0
+                || entry.Path.EndsWith("/_xmlsignatures", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static LegacyXlsCompoundFeatureEntryRole ClassifyDigitalSignatureEntry(LegacyCompoundFileEntry entry) {
+            if (entry.Name.Equals("_signatures", StringComparison.OrdinalIgnoreCase)) {
+                return entry.IsStorage
+                    ? LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStorage
+                    : LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStream;
+            }
+
+            if (entry.Name.Equals("_xmlsignatures", StringComparison.OrdinalIgnoreCase)
+                || entry.Path.EndsWith("/_xmlsignatures", StringComparison.OrdinalIgnoreCase)) {
+                return LegacyXlsCompoundFeatureEntryRole.XmlDigitalSignatureStorage;
+            }
+
+            if (entry.Path.IndexOf("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return LegacyXlsCompoundFeatureEntryRole.XmlDigitalSignatureStream;
             }
 
             return LegacyXlsCompoundFeatureEntryRole.Unknown;

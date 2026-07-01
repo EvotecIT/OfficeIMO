@@ -9,7 +9,8 @@ namespace OfficeIMO.PowerPoint {
         /// Creates a new text style instance.
         /// </summary>
         public PowerPointTextStyle(int? fontSize = null, string? fontName = null, string? color = null,
-            bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null) {
+            bool? bold = null, bool? italic = null, bool? underline = null, string? highlightColor = null,
+            bool? strikethrough = null) {
             FontSize = fontSize;
             FontName = fontName;
             Color = color;
@@ -17,6 +18,7 @@ namespace OfficeIMO.PowerPoint {
             Italic = italic;
             Underline = underline;
             HighlightColor = highlightColor;
+            Strikethrough = strikethrough;
         }
 
         /// <summary>
@@ -48,6 +50,11 @@ namespace OfficeIMO.PowerPoint {
         /// Underline formatting.
         /// </summary>
         public bool? Underline { get; }
+
+        /// <summary>
+        /// Strikethrough formatting.
+        /// </summary>
+        public bool? Strikethrough { get; }
 
         /// <summary>
         /// Highlight color in hex (e.g. "FFF59D").
@@ -105,6 +112,9 @@ namespace OfficeIMO.PowerPoint {
             if (Underline != null) {
                 run.Underline = Underline.Value;
             }
+            if (Strikethrough != null) {
+                run.Strikethrough = Strikethrough.Value;
+            }
             if (HighlightColor != null) {
                 run.HighlightColor = HighlightColor;
             }
@@ -136,6 +146,9 @@ namespace OfficeIMO.PowerPoint {
             if (Underline != null) {
                 paragraph.SetUnderline(Underline.Value);
             }
+            if (Strikethrough != null) {
+                paragraph.SetStrikethrough(Strikethrough.Value);
+            }
             if (HighlightColor != null) {
                 paragraph.SetHighlightColor(HighlightColor);
             }
@@ -145,49 +158,56 @@ namespace OfficeIMO.PowerPoint {
         /// Returns a copy with a new font size.
         /// </summary>
         public PowerPointTextStyle WithFontSize(int? fontSize) {
-            return new PowerPointTextStyle(fontSize, FontName, Color, Bold, Italic, Underline, HighlightColor);
+            return new PowerPointTextStyle(fontSize, FontName, Color, Bold, Italic, Underline, HighlightColor, Strikethrough);
         }
 
         /// <summary>
         /// Returns a copy with a new font name.
         /// </summary>
         public PowerPointTextStyle WithFontName(string? fontName) {
-            return new PowerPointTextStyle(FontSize, fontName, Color, Bold, Italic, Underline, HighlightColor);
+            return new PowerPointTextStyle(FontSize, fontName, Color, Bold, Italic, Underline, HighlightColor, Strikethrough);
         }
 
         /// <summary>
         /// Returns a copy with a new color.
         /// </summary>
         public PowerPointTextStyle WithColor(string? color) {
-            return new PowerPointTextStyle(FontSize, FontName, color, Bold, Italic, Underline, HighlightColor);
+            return new PowerPointTextStyle(FontSize, FontName, color, Bold, Italic, Underline, HighlightColor, Strikethrough);
         }
 
         /// <summary>
         /// Returns a copy with bold formatting updated.
         /// </summary>
         public PowerPointTextStyle WithBold(bool? bold) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, bold, Italic, Underline, HighlightColor);
+            return new PowerPointTextStyle(FontSize, FontName, Color, bold, Italic, Underline, HighlightColor, Strikethrough);
         }
 
         /// <summary>
         /// Returns a copy with italic formatting updated.
         /// </summary>
         public PowerPointTextStyle WithItalic(bool? italic) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, italic, Underline, HighlightColor);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, italic, Underline, HighlightColor, Strikethrough);
         }
 
         /// <summary>
         /// Returns a copy with underline formatting updated.
         /// </summary>
         public PowerPointTextStyle WithUnderline(bool? underline) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, underline, HighlightColor);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, underline, HighlightColor, Strikethrough);
+        }
+
+        /// <summary>
+        /// Returns a copy with strikethrough formatting updated.
+        /// </summary>
+        public PowerPointTextStyle WithStrikethrough(bool? strikethrough) {
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, HighlightColor, strikethrough);
         }
 
         /// <summary>
         /// Returns a copy with a new highlight color.
         /// </summary>
         public PowerPointTextStyle WithHighlightColor(string? highlightColor) {
-            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, highlightColor);
+            return new PowerPointTextStyle(FontSize, FontName, Color, Bold, Italic, Underline, highlightColor, Strikethrough);
         }
     }
 }

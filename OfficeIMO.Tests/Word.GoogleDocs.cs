@@ -46,6 +46,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(imageParagraph.Runs[0].InlineImage);
             Assert.Equal("Logo", imageParagraph.Runs[0].InlineImage!.Description);
             Assert.Equal("Brand", imageParagraph.Runs[0].InlineImage!.Title);
+            Assert.Equal("image/jpeg", imageParagraph.Runs[0].InlineImage!.ContentType);
             Assert.True(imageParagraph.Runs[0].InlineImage!.IsInline);
 
             var table = Assert.IsType<WordTableSnapshot>(firstSection.Elements[2]);

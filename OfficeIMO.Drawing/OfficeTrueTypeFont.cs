@@ -20,6 +20,7 @@ public sealed class OfficeTrueTypeFont {
     private const uint MaxFormat12Groups = 4096;
     private static readonly object FontCacheLock = new();
     private static readonly Dictionary<string, OfficeTrueTypeFont?> FontCache = new(StringComparer.OrdinalIgnoreCase);
+    private static readonly Dictionary<string, FontFamilyResolution> FontFamilyCache = new(StringComparer.OrdinalIgnoreCase);
     private readonly byte[] _data;
     private readonly int _cmap;
     private readonly int _glyf;
@@ -78,6 +79,34 @@ public sealed class OfficeTrueTypeFont {
 
         resolvedPath = null;
         return null;
+    }
+
+    /// <summary>
+    /// Attempts to load the first resolvable font from a CSS/Office-style font-family fallback list.
+    /// </summary>
+    public static OfficeTrueTypeFont? TryLoadFontFamily(string? fontFamily) {
+        return TryLoadFontFamily(fontFamily, out _);
+    }
+
+    /// <summary>
+    /// Attempts to load the first resolvable font from a CSS/Office-style font-family fallback list.
+    /// </summary>
+    public static OfficeTrueTypeFont? TryLoadFontFamily(string? fontFamily, out string? resolvedPath) {
+        string cacheKey = NormalizeFontFamilyCacheKey(fontFamily);
+        lock (FontCacheLock) {
+            if (FontFamilyCache.TryGetValue(cacheKey, out FontFamilyResolution cached)) {
+                resolvedPath = cached.Path;
+                return cached.Font;
+            }
+        }
+
+        FontFamilyResolution resolved = ResolveFontFamily(fontFamily);
+        lock (FontCacheLock) {
+            FontFamilyCache[cacheKey] = resolved;
+        }
+
+        resolvedPath = resolved.Path;
+        return resolved.Font;
     }
 
     public static OfficeTrueTypeFont? TryLoadFromPath(string? path) => TryLoadFromPath(path, null, null);
@@ -709,6 +738,249 @@ public sealed class OfficeTrueTypeFont {
 
     private static GlyphPoint Mid(GlyphPoint left, GlyphPoint right) => new((left.X + right.X) / 2.0, (left.Y + right.Y) / 2.0, true);
 
+    private static FontFamilyResolution ResolveFontFamily(string? fontFamily) {
+        if (string.IsNullOrWhiteSpace(fontFamily)) {
+            OfficeTrueTypeFont? defaultFont = TryLoadDefault(out string? defaultPath);
+            return new FontFamilyResolution(defaultFont, defaultPath);
+        }
+
+        foreach (string family in ExpandFontFamilyFallbacks(fontFamily!)) {
+            foreach (string path in CandidateFamilyPaths(family)) {
+                OfficeTrueTypeFont? font = TryLoadFromPath(path, null, family);
+                if (font == null) {
+                    font = TryLoadFromPath(path);
+                }
+
+                if (font != null && font.HasGlyphs("OfficeIMO 0123456789")) {
+                    return new FontFamilyResolution(font, path);
+                }
+            }
+        }
+
+        return new FontFamilyResolution(null, null);
+    }
+
+    private static string NormalizeFontFamilyCacheKey(string? fontFamily) {
+        if (string.IsNullOrWhiteSpace(fontFamily)) {
+            return "__default";
+        }
+
+        var builder = new StringBuilder();
+        foreach (string family in ExpandFontFamilyFallbacks(fontFamily!)) {
+            if (builder.Length > 0) {
+                builder.Append('|');
+            }
+
+            builder.Append(family);
+        }
+
+        return builder.Length == 0 ? "__empty" : builder.ToString();
+    }
+
+    private static IEnumerable<string> ExpandFontFamilyFallbacks(string fontFamily) {
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        foreach (string rawFamily in fontFamily.Split(',')) {
+            string family = CleanFontFamilyName(rawFamily);
+            if (string.IsNullOrWhiteSpace(family)) {
+                continue;
+            }
+
+            foreach (string expanded in ExpandGenericFontFamily(family)) {
+                if (seen.Add(expanded)) {
+                    yield return expanded;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> ExpandGenericFontFamily(string family) {
+        string key = NormalizeFontFamilyKey(family);
+        if (key == "sansserif" || key == "sans") {
+            yield return "Aptos";
+            yield return "Calibri";
+            yield return "Arial";
+            yield return "Segoe UI";
+            yield return "Liberation Sans";
+            yield return "DejaVu Sans";
+            yield break;
+        }
+
+        if (key == "serif") {
+            yield return "Times New Roman";
+            yield return "Georgia";
+            yield return "Liberation Serif";
+            yield return "DejaVu Serif";
+            yield break;
+        }
+
+        if (key == "monospace" || key == "mono") {
+            yield return "Consolas";
+            yield return "Courier New";
+            yield return "Liberation Mono";
+            yield return "DejaVu Sans Mono";
+            yield break;
+        }
+
+        yield return family;
+    }
+
+    private static string CleanFontFamilyName(string family) {
+        string value = family.Trim();
+        while (value.Length >= 2 &&
+               ((value[0] == '"' && value[value.Length - 1] == '"') ||
+                (value[0] == '\'' && value[value.Length - 1] == '\''))) {
+            value = value.Substring(1, value.Length - 2).Trim();
+        }
+
+        return value;
+    }
+
+    private static IEnumerable<string> CandidateFamilyPaths(string family) {
+        string key = NormalizeFontFamilyKey(family);
+        foreach (string path in CandidateKnownFamilyPaths(key)) {
+            yield return path;
+        }
+
+        foreach (string path in CandidateFontDirectoryPaths(key)) {
+            yield return path;
+        }
+    }
+
+    private static IEnumerable<string> CandidateKnownFamilyPaths(string key) {
+        string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        if (!string.IsNullOrEmpty(windows)) {
+            string fonts = Path.Combine(windows, "Fonts");
+            if (key == "aptos") {
+                yield return Path.Combine(fonts, "aptos.ttf");
+                yield return Path.Combine(fonts, "aptosdisplay.ttf");
+            } else if (key == "aptosdisplay") {
+                yield return Path.Combine(fonts, "aptosdisplay.ttf");
+                yield return Path.Combine(fonts, "aptos.ttf");
+            } else if (key == "aptosnarrow") {
+                yield return Path.Combine(fonts, "aptosnarrow.ttf");
+                yield return Path.Combine(fonts, "aptos.ttf");
+            } else if (key == "calibri") {
+                yield return Path.Combine(fonts, "calibri.ttf");
+            } else if (key == "arial") {
+                yield return Path.Combine(fonts, "arial.ttf");
+            } else if (key == "timesnewroman") {
+                yield return Path.Combine(fonts, "times.ttf");
+            } else if (key == "couriernew") {
+                yield return Path.Combine(fonts, "cour.ttf");
+            } else if (key == "segoeui") {
+                yield return Path.Combine(fonts, "segoeui.ttf");
+            } else if (key == "consolas") {
+                yield return Path.Combine(fonts, "consola.ttf");
+            } else if (key == "tahoma") {
+                yield return Path.Combine(fonts, "tahoma.ttf");
+            } else if (key == "verdana") {
+                yield return Path.Combine(fonts, "verdana.ttf");
+            } else if (key == "georgia") {
+                yield return Path.Combine(fonts, "georgia.ttf");
+            } else if (key == "trebuchetms") {
+                yield return Path.Combine(fonts, "trebuc.ttf");
+            }
+        }
+
+        if (key == "arial") {
+            yield return "/Library/Fonts/Arial.ttf";
+            yield return "/System/Library/Fonts/Supplemental/Arial.ttf";
+        } else if (key == "helvetica" || key == "helveticaneue") {
+            yield return "/System/Library/Fonts/Helvetica.ttc";
+            yield return "/System/Library/Fonts/HelveticaNeue.ttc";
+        } else if (key == "timesnewroman") {
+            yield return "/Library/Fonts/Times New Roman.ttf";
+            yield return "/System/Library/Fonts/Supplemental/Times New Roman.ttf";
+        } else if (key == "couriernew") {
+            yield return "/Library/Fonts/Courier New.ttf";
+            yield return "/System/Library/Fonts/Supplemental/Courier New.ttf";
+        } else if (key == "dejavusans") {
+            yield return "/usr/share/fonts/truetype/dejavu/DejaVuSans.ttf";
+            yield return "/usr/share/fonts/dejavu/DejaVuSans.ttf";
+        } else if (key == "dejavuserif") {
+            yield return "/usr/share/fonts/truetype/dejavu/DejaVuSerif.ttf";
+            yield return "/usr/share/fonts/dejavu/DejaVuSerif.ttf";
+        } else if (key == "dejavusansmono") {
+            yield return "/usr/share/fonts/truetype/dejavu/DejaVuSansMono.ttf";
+            yield return "/usr/share/fonts/dejavu/DejaVuSansMono.ttf";
+        } else if (key == "liberationsans") {
+            yield return "/usr/share/fonts/truetype/liberation2/LiberationSans-Regular.ttf";
+            yield return "/usr/share/fonts/liberation/LiberationSans-Regular.ttf";
+        } else if (key == "liberationserif") {
+            yield return "/usr/share/fonts/truetype/liberation2/LiberationSerif-Regular.ttf";
+            yield return "/usr/share/fonts/liberation/LiberationSerif-Regular.ttf";
+        } else if (key == "liberationmono") {
+            yield return "/usr/share/fonts/truetype/liberation2/LiberationMono-Regular.ttf";
+            yield return "/usr/share/fonts/liberation/LiberationMono-Regular.ttf";
+        }
+    }
+
+    private static IEnumerable<string> CandidateFontDirectoryPaths(string key) {
+        foreach (string directory in CandidateFontDirectories()) {
+            if (!Directory.Exists(directory)) {
+                continue;
+            }
+
+            foreach (string path in SafeEnumerateFontFiles(directory)) {
+                string fileKey = NormalizeFontFamilyKey(Path.GetFileNameWithoutExtension(path));
+                if (fileKey == key || fileKey.StartsWith(key, StringComparison.OrdinalIgnoreCase) || fileKey.Contains(key)) {
+                    yield return path;
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<string> CandidateFontDirectories() {
+        string windows = Environment.GetFolderPath(Environment.SpecialFolder.Windows);
+        if (!string.IsNullOrEmpty(windows)) {
+            yield return Path.Combine(windows, "Fonts");
+        }
+
+        yield return "/System/Library/Fonts";
+        yield return "/System/Library/Fonts/Supplemental";
+        yield return "/Library/Fonts";
+        yield return "/usr/share/fonts/truetype/dejavu";
+        yield return "/usr/share/fonts/truetype/liberation2";
+        yield return "/usr/share/fonts/dejavu";
+        yield return "/usr/share/fonts/liberation";
+    }
+
+    private static IEnumerable<string> SafeEnumerateFontFiles(string directory) {
+        string[] files;
+        try {
+            files = Directory.GetFiles(directory, "*.*", SearchOption.TopDirectoryOnly);
+        } catch (IOException) {
+            yield break;
+        } catch (UnauthorizedAccessException) {
+            yield break;
+        } catch (ArgumentException) {
+            yield break;
+        } catch (NotSupportedException) {
+            yield break;
+        }
+
+        foreach (string file in files) {
+            string extension = Path.GetExtension(file);
+            if (string.Equals(extension, ".ttf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".otf", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(extension, ".ttc", StringComparison.OrdinalIgnoreCase)) {
+                yield return file;
+            }
+        }
+    }
+
+    private static string NormalizeFontFamilyKey(string family) {
+        var builder = new StringBuilder(family.Length);
+        for (int i = 0; i < family.Length; i++) {
+            char value = family[i];
+            if (char.IsLetterOrDigit(value)) {
+                builder.Append(char.ToLowerInvariant(value));
+            }
+        }
+
+        return builder.ToString();
+    }
+
     private static IEnumerable<string> CandidatePaths() {
         yield return "/System/Library/Fonts/SFNS.ttf";
         yield return "/System/Library/Fonts/SFCompact.ttf";
@@ -753,6 +1025,17 @@ public sealed class OfficeTrueTypeFont {
         }
 
         return path;
+    }
+
+    private readonly struct FontFamilyResolution {
+        public FontFamilyResolution(OfficeTrueTypeFont? font, string? path) {
+            Font = font;
+            Path = path;
+        }
+
+        public OfficeTrueTypeFont? Font { get; }
+
+        public string? Path { get; }
     }
 
     private readonly struct FontTransform {

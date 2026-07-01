@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 
@@ -12,6 +13,46 @@ namespace OfficeIMO.Tests {
             new object[] { "example.gif", ImagePartType.Gif, "image/gif" },
             new object[] { "snail.bmp", ImagePartType.Bmp, "image/bmp" },
         };
+
+        [Theory]
+        [MemberData(nameof(ImageData))]
+        public void CanAddPictureFromPathWithSharedImageExtensionMapping(string image, ImagePartType expectedType, string expectedContentType) {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+            string imagePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "Images", image);
+            Assert.Equal(expectedType, ImagePartTypeExtensions.FromImagePath(imagePath));
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                PowerPointSlide slide = presentation.AddSlide();
+                PowerPointPicture picture = slide.AddPicture(imagePath);
+
+                Assert.Equal(expectedContentType, picture.ContentType);
+                Assert.Equal(expectedContentType, picture.MimeType);
+                presentation.Save();
+            }
+
+            using (PowerPointPresentation presentation = PowerPointPresentation.Open(filePath)) {
+                PowerPointPicture picture = Assert.Single(presentation.Slides.Single().Pictures);
+                Assert.Equal(expectedContentType, picture.ContentType);
+                Assert.Equal(expectedContentType, picture.MimeType);
+            }
+
+            File.Delete(filePath);
+        }
+
+        [Fact]
+        public void PowerPointImagePartExtensionsUseSharedDrawingPolicy() {
+            Assert.Equal(ImagePartType.Png, ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Png));
+            Assert.Equal(".png", PowerPointPartFactory.GetImageExtension(ImagePartType.Png));
+            Assert.Equal(".jpeg", PowerPointPartFactory.GetImageExtension(ImagePartType.Jpeg));
+            Assert.Equal(".svg", PowerPointPartFactory.GetImageExtension(ImagePartType.Svg));
+            Assert.Equal(".emf", PowerPointPartFactory.GetImageExtension(ImagePartType.Emf));
+            Assert.Equal(".jpg", PowerPointPartFactory.GetImageExtension(ImagePartType.Jpeg, @"C:\Temp\photo.JPG"));
+        }
+
+        [Fact]
+        public void PowerPointImagePartExtensionsRejectUnsupportedWebP() {
+            Assert.Throws<NotSupportedException>(() => ImagePartTypeExtensions.FromOfficeImageFormat(OfficeImageFormat.Webp));
+        }
 
         [Theory]
         [MemberData(nameof(ImageData))]

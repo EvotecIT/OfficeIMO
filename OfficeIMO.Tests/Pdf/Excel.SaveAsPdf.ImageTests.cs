@@ -143,6 +143,32 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Warns_And_Skips_Worksheet_Image_When_Declared_Type_Differs_From_Bytes() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfMismatchedImageType.xlsx");
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "Images")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "ImageMarker");
+            sheet.AddImage(2, 1, CreateMinimalRgbPng(), "image/jpeg", widthPixels: 24, heightPixels: 16, name: "Declared JPEG");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.Contains("ImageMarker", pdf.GetPage(1).Text);
+        Assert.Empty(PdfCore.PdfImageExtractor.ExtractImages(bytes));
+        Assert.Contains(options.Warnings, warning =>
+            warning.SheetName == "Images" &&
+            warning.Feature == "WorksheetImage" &&
+            warning.Message.Contains("Image bytes were declared as JPEG but were detected as Png.", StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Embeds_Worksheet_Images_In_Anchored_Table_Cells() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfAnchoredImageCell.xlsx");
 

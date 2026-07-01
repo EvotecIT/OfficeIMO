@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Linq;
 using DocumentFormat.OpenXml.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
@@ -7,7 +8,7 @@ namespace OfficeIMO.PowerPoint {
     /// <summary>
     ///     Represents a cell within a PowerPoint table.
     /// </summary>
-    public class PowerPointTableCell {
+    public partial class PowerPointTableCell {
         private const int EmusPerPoint = 12700;
 
         internal PowerPointTableCell(TableCell cell) {
@@ -187,6 +188,28 @@ namespace OfficeIMO.PowerPoint {
 
             return count;
         }
+
+        /// <summary>
+        ///     Gets formatted runs from the first cell paragraph.
+        /// </summary>
+        public IReadOnlyList<PowerPointTextRun> Runs =>
+            Cell.TextBody?
+                .Elements<A.Paragraph>()
+                .FirstOrDefault()?
+                .Elements<A.Run>()
+                .Select(run => new PowerPointTextRun(run))
+                .ToList() ?? new List<PowerPointTextRun>();
+
+        /// <summary>
+        ///     Adds a formatted run to the first cell paragraph.
+        /// </summary>
+        public PowerPointTextRun AddRun(string text, Action<PowerPointTextRun>? configure = null) {
+            A.Run run = InsertRun(text);
+            var wrapper = new PowerPointTextRun(run);
+            configure?.Invoke(wrapper);
+            return wrapper;
+        }
+
         /// <summary>
         ///     Gets or sets whether the cell text is bold.
         /// </summary>
@@ -521,6 +544,14 @@ namespace OfficeIMO.PowerPoint {
                 props.BottomBorderLineProperties ??= new BottomBorderLineProperties();
                 ApplyLine(props.BottomBorderLineProperties, color, widthPoints);
             }
+            if (borders.HasFlag(TableCellBorders.DiagonalDown)) {
+                props.TopLeftToBottomRightBorderLineProperties ??= new TopLeftToBottomRightBorderLineProperties();
+                ApplyLine(props.TopLeftToBottomRightBorderLineProperties, color, widthPoints);
+            }
+            if (borders.HasFlag(TableCellBorders.DiagonalUp)) {
+                props.BottomLeftToTopRightBorderLineProperties ??= new BottomLeftToTopRightBorderLineProperties();
+                ApplyLine(props.BottomLeftToTopRightBorderLineProperties, color, widthPoints);
+            }
         }
 
         /// <summary>
@@ -549,6 +580,14 @@ namespace OfficeIMO.PowerPoint {
                 props.BottomBorderLineProperties ??= new BottomBorderLineProperties();
                 ApplyLine(props.BottomBorderLineProperties, color, widthPoints, dash);
             }
+            if (borders.HasFlag(TableCellBorders.DiagonalDown)) {
+                props.TopLeftToBottomRightBorderLineProperties ??= new TopLeftToBottomRightBorderLineProperties();
+                ApplyLine(props.TopLeftToBottomRightBorderLineProperties, color, widthPoints, dash);
+            }
+            if (borders.HasFlag(TableCellBorders.DiagonalUp)) {
+                props.BottomLeftToTopRightBorderLineProperties ??= new BottomLeftToTopRightBorderLineProperties();
+                ApplyLine(props.BottomLeftToTopRightBorderLineProperties, color, widthPoints, dash);
+            }
         }
 
         /// <summary>
@@ -568,6 +607,12 @@ namespace OfficeIMO.PowerPoint {
             }
             if (borders.HasFlag(TableCellBorders.Bottom)) {
                 props.BottomBorderLineProperties = null;
+            }
+            if (borders.HasFlag(TableCellBorders.DiagonalDown)) {
+                props.TopLeftToBottomRightBorderLineProperties = null;
+            }
+            if (borders.HasFlag(TableCellBorders.DiagonalUp)) {
+                props.BottomLeftToTopRightBorderLineProperties = null;
             }
         }
 
@@ -642,13 +687,31 @@ namespace OfficeIMO.PowerPoint {
                 .FirstOrDefault();
         }
 
-        private A.Run EnsureRun() {
+        private A.Paragraph EnsureParagraph() {
             Cell.TextBody ??= new A.TextBody(new A.BodyProperties(), new A.ListStyle());
             A.Paragraph paragraph = Cell.TextBody.Elements<A.Paragraph>().FirstOrDefault() ?? new A.Paragraph();
             if (paragraph.Parent == null) {
                 Cell.TextBody.Append(paragraph);
             }
 
+            return paragraph;
+        }
+
+        private A.Run InsertRun(string text) {
+            A.Paragraph paragraph = EnsureParagraph();
+            A.Run run = new(new A.Text(text ?? string.Empty));
+            A.EndParagraphRunProperties? endProps = paragraph.GetFirstChild<A.EndParagraphRunProperties>();
+            if (endProps != null) {
+                paragraph.InsertBefore(run, endProps);
+            } else {
+                paragraph.Append(run);
+            }
+
+            return run;
+        }
+
+        private A.Run EnsureRun() {
+            A.Paragraph paragraph = EnsureParagraph();
             A.Run run = paragraph.Elements<A.Run>().FirstOrDefault() ?? new A.Run(new A.Text(string.Empty));
             if (run.Parent == null) {
                 paragraph.Append(run);

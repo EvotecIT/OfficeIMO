@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.IO.Compression;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Xml.Linq;
+using OfficeIMO.Drawing;
 using OfficeIMO.Visio;
 using Xunit;
 
@@ -22,8 +22,17 @@ namespace OfficeIMO.Tests {
             ["Premium Governed Process"] = "officeimo-visio-premium-governed-process"
         };
 
-        [Fact]
-        public void PremiumGalleryPreviewsMatchApprovedBaselines() {
+        public static IEnumerable<object[]> PremiumGalleryScenarios {
+            get {
+                foreach (string name in VisioPremiumGallery.ScenarioNames) {
+                    yield return new object[] { name };
+                }
+            }
+        }
+
+        [Theory]
+        [MemberData(nameof(PremiumGalleryScenarios))]
+        public void PremiumGalleryPreviewMatchesApprovedBaselines(string scenarioName) {
             if (!IsDesktopBaselineRunRequested()) {
                 return;
             }
@@ -41,70 +50,62 @@ namespace OfficeIMO.Tests {
             string actualDirectory = Path.Combine(workDirectory, "actual");
 
             try {
-                IReadOnlyList<VisioGalleryResult> results = VisioPremiumGallery.Create(documentsDirectory);
+                VisioGalleryResult result = VisioPremiumGallery.CreateScenario(documentsDirectory, scenarioName);
+                Assert.True(result.IsClean, FormatGalleryIssues(result));
 
-                Assert.Equal(BaselinePrefixes.Count, results.Count);
-                Assert.All(results, result => Assert.True(result.IsClean, FormatGalleryIssues(result)));
+                string prefix = GetBaselinePrefix(result.Name);
+                VisioPremiumBaselineContext context = CreateBaselineContext(result, prefix);
+                AssertTextBaseline(context.InspectionBaselineName, context.InspectionText);
+                AssertTextBaseline(context.StencilProfileBaselineName, context.StencilProfileText);
 
-                foreach (VisioGalleryResult result in results.OrderBy(result => result.Name, StringComparer.Ordinal)) {
-                    string prefix = GetBaselinePrefix(result.Name);
-                    VisioPremiumBaselineContext context = CreateBaselineContext(result, prefix);
-                    AssertTextBaseline(context.InspectionBaselineName, context.InspectionText);
-                    AssertTextBaseline(context.StencilProfileBaselineName, context.StencilProfileText);
+                VisioDesktopValidationOptions options = new() {
+                    ExportDirectory = actualDirectory,
+                    ExportFileNamePrefix = prefix
+                };
+                options.ExportFormats.Add(VisioDesktopExportFormat.Png);
+                options.ExportFormats.Add(VisioDesktopExportFormat.Svg);
 
-                    VisioDesktopValidationOptions options = new() {
-                        ExportDirectory = actualDirectory,
-                        ExportFileNamePrefix = prefix
-                    };
-                    options.ExportFormats.Add(VisioDesktopExportFormat.Png);
-                    options.ExportFormats.Add(VisioDesktopExportFormat.Svg);
+                VisioDesktopValidationResult desktop = VisioDesktopValidator.Validate(result.FilePath, options);
+                Assert.True(desktop.IsValid, string.Join(Environment.NewLine, desktop.Issues));
+                Assert.Equal(2, desktop.OutputFiles.Count);
 
-                    VisioDesktopValidationResult desktop = VisioDesktopValidator.Validate(result.FilePath, options);
-                    Assert.True(desktop.IsValid, string.Join(Environment.NewLine, desktop.Issues));
-                    Assert.Equal(2, desktop.OutputFiles.Count);
-
-                    foreach (string actualPath in desktop.OutputFiles.OrderBy(path => path, StringComparer.OrdinalIgnoreCase)) {
-                        AssertBaseline(Path.GetFileName(actualPath), actualPath, context);
-                    }
+                foreach (string actualPath in desktop.OutputFiles.OrderBy(path => path, StringComparer.OrdinalIgnoreCase)) {
+                    AssertBaseline(Path.GetFileName(actualPath), actualPath, context);
                 }
             } finally {
                 TryDeleteDirectory(workDirectory);
             }
         }
 
-        [Fact]
-        public void PremiumGalleryNativePreviewsMatchApprovedBaselines() {
+        [Theory]
+        [MemberData(nameof(PremiumGalleryScenarios))]
+        public void PremiumGalleryNativePreviewMatchesApprovedBaselines(string scenarioName) {
             string workDirectory = Path.Combine(Path.GetTempPath(), "OfficeIMO.VisioPremiumNativeBaselines", Guid.NewGuid().ToString("N"));
             string documentsDirectory = Path.Combine(workDirectory, "documents");
             string actualDirectory = Path.Combine(workDirectory, "actual");
 
             try {
-                IReadOnlyList<VisioGalleryResult> results = VisioPremiumGallery.Create(documentsDirectory);
-
-                Assert.Equal(BaselinePrefixes.Count, results.Count);
-                Assert.All(results, result => Assert.True(result.IsClean, FormatGalleryIssues(result)));
-
+                VisioGalleryResult result = VisioPremiumGallery.CreateScenario(documentsDirectory, scenarioName);
+                Assert.True(result.IsClean, FormatGalleryIssues(result));
                 Directory.CreateDirectory(actualDirectory);
-                foreach (VisioGalleryResult result in results.OrderBy(result => result.Name, StringComparer.Ordinal)) {
-                    string prefix = GetBaselinePrefix(result.Name);
-                    VisioPremiumBaselineContext context = CreateBaselineContext(result, prefix);
-                    VisioDocument document = VisioDocument.Load(result.FilePath);
+                string prefix = GetBaselinePrefix(result.Name);
+                VisioPremiumBaselineContext context = CreateBaselineContext(result, prefix);
+                VisioDocument document = VisioDocument.Load(result.FilePath);
 
-                    string svgPath = Path.Combine(actualDirectory, prefix + "-native-page1.svg");
-                    document.SaveAsSvg(svgPath, new VisioSvgSaveOptions {
-                        PageIndex = 0,
-                        PixelsPerInch = 96
-                    });
-                    AssertBaseline(Path.GetFileName(svgPath), svgPath, context);
+                string svgPath = Path.Combine(actualDirectory, prefix + "-native-page1.svg");
+                document.SaveAsSvg(svgPath, new VisioSvgSaveOptions {
+                    PageIndex = 0,
+                    PixelsPerInch = 96
+                });
+                AssertBaseline(Path.GetFileName(svgPath), svgPath, context);
 
-                    string pngPath = Path.Combine(actualDirectory, prefix + "-native-page1.png");
-                    document.SaveAsPng(pngPath, new VisioPngSaveOptions {
-                        PageIndex = 0,
-                        PixelsPerInch = 96,
-                        Supersampling = 3
-                    });
-                    AssertBaseline(Path.GetFileName(pngPath), pngPath, context);
-                }
+                string pngPath = Path.Combine(actualDirectory, prefix + "-native-page1.png");
+                document.SaveAsPng(pngPath, new VisioPngSaveOptions {
+                    PageIndex = 0,
+                    PixelsPerInch = 96,
+                    Supersampling = 3
+                });
+                AssertBaseline(Path.GetFileName(pngPath), pngPath, context);
             } finally {
                 TryDeleteDirectory(workDirectory);
             }
@@ -112,7 +113,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PremiumGalleryNativeApprovedBaselinesAreRenderableAndNonBlank() {
-            string baselineDirectory = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines");
+            string baselineDirectory = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines");
             foreach (string prefix in BaselinePrefixes.Values.OrderBy(prefix => prefix, StringComparer.Ordinal)) {
                 string svgPath = Path.Combine(baselineDirectory, prefix + "-native-page1.svg");
                 string pngPath = Path.Combine(baselineDirectory, prefix + "-native-page1.png");
@@ -126,23 +127,23 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void PngBaselineComparisonReportsPixelDiffAndProducesDiffPng() {
-            byte[] expected = PngRaster.EncodeRgb(2, 1, new byte[] {
+            byte[] expected = VisualBaselineTestSupport.CreateRgbPng(2, 1, new byte[] {
                 255, 255, 255,
                 0, 0, 0
             });
-            byte[] actual = PngRaster.EncodeRgb(2, 1, new byte[] {
+            byte[] actual = VisualBaselineTestSupport.CreateRgbPng(2, 1, new byte[] {
                 255, 255, 255,
                 0, 64, 255
             });
 
-            RasterComparison comparison = CompareRasterImages(expected, actual, channelTolerance: 0, allowedDifferentPixels: 0);
+            VisualRasterComparison comparison = CompareRasterImages(expected, actual, channelTolerance: 0, allowedDifferentPixels: 0);
 
             Assert.False(comparison.Passed);
             Assert.Equal(1, comparison.DifferentPixels);
             Assert.Equal(2, comparison.TotalPixels);
             Assert.Equal(255, comparison.MaxChannelDelta);
             Assert.True(comparison.DiffPng.Length > 0);
-            Assert.Equal(2, PngRaster.Decode(comparison.DiffPng).Width);
+            Assert.Equal(2, VisualBaselineTestSupport.DecodePng(comparison.DiffPng, "Visio diff PNG is not a supported PNG file.").Width);
         }
 
         [Fact]
@@ -185,7 +186,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertBaseline(string baselineName, string actualPath, VisioPremiumBaselineContext context) {
-            string expectedPath = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
+            string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
             if (IsBaselineUpdateRequested()) {
                 Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
                 File.Copy(actualPath, expectedPath, overwrite: true);
@@ -216,7 +217,7 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            RasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath), IsNativePngBaseline(baselineName));
+            VisualRasterComparison comparison = CompareRasterImages(File.ReadAllBytes(expectedPath), File.ReadAllBytes(actualPath), IsNativePngBaseline(baselineName));
             if (comparison.Passed) {
                 return;
             }
@@ -225,7 +226,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertTextBaseline(string baselineName, string actualText) {
-            string expectedPath = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
+            string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
             if (IsStructuralBaselineUpdateRequested()) {
                 Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
                 File.WriteAllText(expectedPath, NormalizeText(actualText), new UTF8Encoding(false));
@@ -267,25 +268,11 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AssertNativePngBaselineIsNonBlank(string pngPath) {
-            PngRaster raster = PngRaster.Decode(File.ReadAllBytes(pngPath));
+            OfficeRasterImage raster = VisualBaselineTestSupport.DecodePng(File.ReadAllBytes(pngPath), "Approved native Visio PNG baseline is not a supported PNG file.");
             Assert.True(raster.Width >= 200, "Native PNG baseline width is unexpectedly small: " + pngPath);
             Assert.True(raster.Height >= 150, "Native PNG baseline height is unexpectedly small: " + pngPath);
 
-            int nonBackgroundPixels = 0;
-            for (int i = 0; i < raster.Pixels.Length; i += 4) {
-                byte alpha = raster.Pixels[i + 3];
-                if (alpha == 0) {
-                    continue;
-                }
-
-                byte red = raster.Pixels[i];
-                byte green = raster.Pixels[i + 1];
-                byte blue = raster.Pixels[i + 2];
-                if (red < 245 || green < 245 || blue < 245 || alpha < 250) {
-                    nonBackgroundPixels++;
-                }
-            }
-
+            int nonBackgroundPixels = VisualBaselineTestSupport.CountNonWhiteVisiblePixels(raster);
             int totalPixels = raster.Width * raster.Height;
             int minimumVisiblePixels = Math.Max(250, totalPixels / 200);
             Assert.True(
@@ -293,7 +280,7 @@ namespace OfficeIMO.Tests {
                 "Native PNG baseline appears blank or nearly blank. Visible pixels: " + nonBackgroundPixels + "/" + totalPixels + ". Path: " + pngPath);
         }
 
-        private static void ThrowBaselineChanged(string baselineName, string expectedPath, string actualPath, RasterComparison? comparison, VisioPremiumBaselineContext context) {
+        private static void ThrowBaselineChanged(string baselineName, string expectedPath, string actualPath, VisualRasterComparison? comparison, VisioPremiumBaselineContext context) {
             string artifactDirectory = CreateArtifactDirectory();
 
             File.Copy(expectedPath, Path.Combine(artifactDirectory, "expected-" + Path.GetFileName(expectedPath)), overwrite: true);
@@ -338,7 +325,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static void WriteContextArtifact(string artifactDirectory, string baselineName, string actualText) {
-            string expectedPath = Path.Combine(GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
+            string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Visio", "VisualBaselines", baselineName);
             string normalizedActual = NormalizeText(actualText);
             File.WriteAllText(Path.Combine(artifactDirectory, "actual-" + baselineName), normalizedActual, new UTF8Encoding(false));
             if (!File.Exists(expectedPath)) {
@@ -351,12 +338,7 @@ namespace OfficeIMO.Tests {
         }
 
         private static string CreateArtifactDirectory() {
-            string artifactDirectory = Path.Combine(
-                Path.GetTempPath(),
-                "OfficeIMO.VisioPremiumBaselines",
-                DateTime.UtcNow.ToString("yyyyMMddHHmmss", System.Globalization.CultureInfo.InvariantCulture) + "-" + Guid.NewGuid().ToString("N"));
-            Directory.CreateDirectory(artifactDirectory);
-            return artifactDirectory;
+            return VisualBaselineTestSupport.CreateArtifactDirectory("OfficeIMO.VisioPremiumBaselines");
         }
 
         private static string CreateLineDiff(string expectedText, string actualText) {
@@ -407,82 +389,28 @@ namespace OfficeIMO.Tests {
             return map;
         }
 
-        private static string NormalizeText(string text) {
-            string normalized = text.Replace("\r\n", "\n").Replace("\r", "\n");
-            return normalized.EndsWith("\n", StringComparison.Ordinal) ? normalized : normalized + "\n";
-        }
+        private static string NormalizeText(string text) =>
+            VisualBaselineTestSupport.NormalizeTextWithTrailingNewLine(text);
 
         private static bool IsNativePngBaseline(string baselineName) =>
             baselineName.IndexOf("-native-", StringComparison.OrdinalIgnoreCase) >= 0 &&
             baselineName.EndsWith(".png", StringComparison.OrdinalIgnoreCase);
 
-        private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, bool allowNativeVariance = false) {
-            int channelTolerance = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE", 0);
-            int allowedDifferentPixels = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS", 1);
-            PngRaster expected = PngRaster.Decode(expectedPng);
-            PngRaster actual = PngRaster.Decode(actualPng);
+        private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, bool allowNativeVariance = false) {
+            int channelTolerance = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_PIXEL_TOLERANCE", 0);
+            int allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_BASELINE_ALLOWED_DIFF_PIXELS", 1);
+            OfficeRasterImage expected = VisualBaselineTestSupport.DecodePng(expectedPng, "Expected Visio premium baseline is not a supported PNG file.");
+            OfficeRasterImage actual = VisualBaselineTestSupport.DecodePng(actualPng, "Actual Visio premium output is not a supported PNG file.");
             if (allowNativeVariance && expected.Width == actual.Width && expected.Height == actual.Height) {
                 int defaultAllowedDifferentPixels = Math.Max(1, expected.Width * expected.Height / 100);
-                allowedDifferentPixels = ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_NATIVE_BASELINE_ALLOWED_DIFF_PIXELS", defaultAllowedDifferentPixels);
+                allowedDifferentPixels = VisualBaselineTestSupport.ReadNonNegativeInt("OFFICEIMO_VISIO_PREMIUM_NATIVE_BASELINE_ALLOWED_DIFF_PIXELS", defaultAllowedDifferentPixels);
             }
 
-            return CompareRasterImages(expected, actual, channelTolerance, allowedDifferentPixels);
+            return VisualBaselineTestSupport.CompareRasterImages(expected, actual, channelTolerance, allowedDifferentPixels);
         }
 
-        private static RasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) =>
-            CompareRasterImages(PngRaster.Decode(expectedPng), PngRaster.Decode(actualPng), channelTolerance, allowedDifferentPixels);
-
-        private static RasterComparison CompareRasterImages(PngRaster expected, PngRaster actual, int channelTolerance, int allowedDifferentPixels) {
-            if (expected.Width != actual.Width || expected.Height != actual.Height) {
-                byte[] sizeDiff = PngRaster.CreateSizeMismatchDiff(expected, actual);
-                return new RasterComparison(false, 0, Math.Max(expected.Width * expected.Height, actual.Width * actual.Height), 255, channelTolerance, allowedDifferentPixels, sizeDiff);
-            }
-
-            int differentPixels = 0;
-            int maxChannelDelta = 0;
-            byte[] diff = new byte[expected.Width * expected.Height * 3];
-
-            for (int pixel = 0; pixel < expected.Width * expected.Height; pixel++) {
-                int offset = pixel * 4;
-                int deltaR = Math.Abs(expected.Pixels[offset] - actual.Pixels[offset]);
-                int deltaG = Math.Abs(expected.Pixels[offset + 1] - actual.Pixels[offset + 1]);
-                int deltaB = Math.Abs(expected.Pixels[offset + 2] - actual.Pixels[offset + 2]);
-                int deltaA = Math.Abs(expected.Pixels[offset + 3] - actual.Pixels[offset + 3]);
-                int maxPixelDelta = Math.Max(Math.Max(deltaR, deltaG), Math.Max(deltaB, deltaA));
-                maxChannelDelta = Math.Max(maxChannelDelta, maxPixelDelta);
-
-                int diffOffset = pixel * 3;
-                if (maxPixelDelta > channelTolerance) {
-                    differentPixels++;
-                    diff[diffOffset] = 255;
-                    diff[diffOffset + 1] = (byte)Math.Min(255, Math.Max(deltaR, deltaG) * 4);
-                    diff[diffOffset + 2] = (byte)Math.Min(255, Math.Max(deltaB, deltaA) * 4);
-                } else {
-                    int gray = (expected.Pixels[offset] + expected.Pixels[offset + 1] + expected.Pixels[offset + 2]) / 3;
-                    byte muted = (byte)(240 - Math.Min(120, gray / 3));
-                    diff[diffOffset] = muted;
-                    diff[diffOffset + 1] = muted;
-                    diff[diffOffset + 2] = muted;
-                }
-            }
-
-            bool passed = differentPixels <= allowedDifferentPixels;
-            return new RasterComparison(passed, differentPixels, expected.Width * expected.Height, maxChannelDelta, channelTolerance, allowedDifferentPixels, PngRaster.EncodeRgb(expected.Width, expected.Height, diff));
-        }
-
-        private static int ReadNonNegativeInt(string variable, int defaultValue) {
-            string? raw = Environment.GetEnvironmentVariable(variable);
-            if (string.IsNullOrWhiteSpace(raw)) {
-                return defaultValue;
-            }
-
-            int value;
-            if (!int.TryParse(raw, out value) || value < 0) {
-                throw new InvalidOperationException(variable + " must be a non-negative integer.");
-            }
-
-            return value;
-        }
+        private static VisualRasterComparison CompareRasterImages(byte[] expectedPng, byte[] actualPng, int channelTolerance, int allowedDifferentPixels) =>
+            VisualBaselineTestSupport.CompareRasterImages(expectedPng, actualPng, channelTolerance, allowedDifferentPixels);
 
         private static string CanonicalizeSvg(string path) {
             string svg = File.ReadAllText(path)
@@ -532,26 +460,6 @@ namespace OfficeIMO.Tests {
             return normalized.Trim(';');
         }
 
-        private sealed class RasterComparison {
-            internal RasterComparison(bool passed, int differentPixels, int totalPixels, int maxChannelDelta, int channelTolerance, int allowedDifferentPixels, byte[] diffPng) {
-                Passed = passed;
-                DifferentPixels = differentPixels;
-                TotalPixels = totalPixels;
-                MaxChannelDelta = maxChannelDelta;
-                ChannelTolerance = channelTolerance;
-                AllowedDifferentPixels = allowedDifferentPixels;
-                DiffPng = diffPng;
-            }
-
-            internal bool Passed { get; }
-            internal int DifferentPixels { get; }
-            internal int TotalPixels { get; }
-            internal int MaxChannelDelta { get; }
-            internal int ChannelTolerance { get; }
-            internal int AllowedDifferentPixels { get; }
-            internal byte[] DiffPng { get; }
-        }
-
         private sealed class VisioPremiumBaselineContext {
             internal VisioPremiumBaselineContext(string inspectionBaselineName, string inspectionText, string stencilProfileBaselineName, string stencilProfileText) {
                 InspectionBaselineName = inspectionBaselineName;
@@ -564,305 +472,6 @@ namespace OfficeIMO.Tests {
             internal string InspectionText { get; }
             internal string StencilProfileBaselineName { get; }
             internal string StencilProfileText { get; }
-        }
-
-        private sealed class PngRaster {
-            private static readonly byte[] Signature = { 137, 80, 78, 71, 13, 10, 26, 10 };
-
-            private PngRaster(int width, int height, byte[] pixels) {
-                Width = width;
-                Height = height;
-                Pixels = pixels;
-            }
-
-            internal int Width { get; }
-            internal int Height { get; }
-            internal byte[] Pixels { get; }
-
-            internal static PngRaster Decode(byte[] bytes) {
-                if (bytes.Length < Signature.Length || !StartsWith(bytes, Signature)) {
-                    throw new InvalidOperationException("Visio premium baseline is not a PNG file.");
-                }
-
-                int width = 0;
-                int height = 0;
-                int bitDepth = 0;
-                int colorType = 0;
-                int compression = 0;
-                int filter = 0;
-                int interlace = 0;
-                List<byte> idat = new();
-
-                int offset = Signature.Length;
-                while (offset + 12 <= bytes.Length) {
-                    int length = ReadBigEndianInt32(bytes, offset);
-                    offset += 4;
-                    string type = Encoding.ASCII.GetString(bytes, offset, 4);
-                    offset += 4;
-                    if (length < 0 || offset + length + 4 > bytes.Length) {
-                        throw new InvalidOperationException("PNG chunk length is invalid.");
-                    }
-
-                    if (type == "IHDR") {
-                        width = ReadBigEndianInt32(bytes, offset);
-                        height = ReadBigEndianInt32(bytes, offset + 4);
-                        bitDepth = bytes[offset + 8];
-                        colorType = bytes[offset + 9];
-                        compression = bytes[offset + 10];
-                        filter = bytes[offset + 11];
-                        interlace = bytes[offset + 12];
-                    } else if (type == "IDAT") {
-                        for (int i = 0; i < length; i++) {
-                            idat.Add(bytes[offset + i]);
-                        }
-                    } else if (type == "IEND") {
-                        break;
-                    }
-
-                    offset += length + 4;
-                }
-
-                if (width <= 0 || height <= 0) {
-                    throw new InvalidOperationException("PNG image dimensions are invalid.");
-                }
-
-                if (bitDepth != 8 || compression != 0 || filter != 0 || interlace != 0 || (colorType != 2 && colorType != 6)) {
-                    throw new InvalidOperationException("Only non-interlaced 8-bit RGB/RGBA PNG premium baselines are supported.");
-                }
-
-                byte[] inflated = InflateZlib(idat.ToArray());
-                int channels = colorType == 6 ? 4 : 3;
-                int stride = width * channels;
-                byte[] pixels = new byte[width * height * 4];
-                byte[] previous = new byte[stride];
-                byte[] current = new byte[stride];
-                int source = 0;
-
-                for (int y = 0; y < height; y++) {
-                    if (source >= inflated.Length) {
-                        throw new InvalidOperationException("PNG image data ended unexpectedly.");
-                    }
-
-                    byte filterType = inflated[source++];
-                    if (source + stride > inflated.Length) {
-                        throw new InvalidOperationException("PNG scanline is incomplete.");
-                    }
-
-                    Buffer.BlockCopy(inflated, source, current, 0, stride);
-                    source += stride;
-                    UnfilterScanline(filterType, current, previous, channels);
-
-                    for (int x = 0; x < width; x++) {
-                        int sourcePixel = x * channels;
-                        int targetPixel = (y * width + x) * 4;
-                        pixels[targetPixel] = current[sourcePixel];
-                        pixels[targetPixel + 1] = current[sourcePixel + 1];
-                        pixels[targetPixel + 2] = current[sourcePixel + 2];
-                        pixels[targetPixel + 3] = colorType == 6 ? current[sourcePixel + 3] : (byte)255;
-                    }
-
-                    byte[] swap = previous;
-                    previous = current;
-                    current = swap;
-                    Array.Clear(current, 0, current.Length);
-                }
-
-                return new PngRaster(width, height, pixels);
-            }
-
-            internal static byte[] EncodeRgb(int width, int height, byte[] rgb) {
-                if (width <= 0 || height <= 0) {
-                    throw new ArgumentOutOfRangeException(nameof(width), "PNG dimensions must be positive.");
-                }
-
-                if (rgb.Length != width * height * 3) {
-                    throw new ArgumentException("RGB buffer length does not match PNG dimensions.", nameof(rgb));
-                }
-
-                byte[] scanlines = new byte[height * (1 + width * 3)];
-                int source = 0;
-                int target = 0;
-                for (int y = 0; y < height; y++) {
-                    scanlines[target++] = 0;
-                    Buffer.BlockCopy(rgb, source, scanlines, target, width * 3);
-                    source += width * 3;
-                    target += width * 3;
-                }
-
-                using MemoryStream ms = new();
-                ms.Write(Signature, 0, Signature.Length);
-                byte[] ihdr = new byte[13];
-                WriteBigEndianInt32(ihdr, 0, width);
-                WriteBigEndianInt32(ihdr, 4, height);
-                ihdr[8] = 8;
-                ihdr[9] = 2;
-                WriteChunk(ms, "IHDR", ihdr);
-                WriteChunk(ms, "IDAT", DeflateZlibStored(scanlines));
-                WriteChunk(ms, "IEND", Array.Empty<byte>());
-                return ms.ToArray();
-            }
-
-            internal static byte[] CreateSizeMismatchDiff(PngRaster expected, PngRaster actual) {
-                int width = Math.Max(expected.Width, actual.Width);
-                int height = Math.Max(expected.Height, actual.Height);
-                byte[] diff = new byte[width * height * 3];
-                for (int i = 0; i < diff.Length; i += 3) {
-                    diff[i] = 255;
-                    diff[i + 1] = 0;
-                    diff[i + 2] = 255;
-                }
-
-                return EncodeRgb(width, height, diff);
-            }
-
-            private static void UnfilterScanline(byte filterType, byte[] current, byte[] previous, int bytesPerPixel) {
-                for (int i = 0; i < current.Length; i++) {
-                    int left = i >= bytesPerPixel ? current[i - bytesPerPixel] : 0;
-                    int up = previous[i];
-                    int upLeft = i >= bytesPerPixel ? previous[i - bytesPerPixel] : 0;
-                    int predictor;
-                    switch (filterType) {
-                        case 0:
-                            predictor = 0;
-                            break;
-                        case 1:
-                            predictor = left;
-                            break;
-                        case 2:
-                            predictor = up;
-                            break;
-                        case 3:
-                            predictor = (left + up) / 2;
-                            break;
-                        case 4:
-                            predictor = Paeth(left, up, upLeft);
-                            break;
-                        default:
-                            throw new InvalidOperationException("Unsupported PNG scanline filter: " + filterType + ".");
-                    }
-
-                    current[i] = (byte)((current[i] + predictor) & 0xFF);
-                }
-            }
-
-            private static int Paeth(int left, int up, int upLeft) {
-                int p = left + up - upLeft;
-                int pa = Math.Abs(p - left);
-                int pb = Math.Abs(p - up);
-                int pc = Math.Abs(p - upLeft);
-                if (pa <= pb && pa <= pc) {
-                    return left;
-                }
-
-                return pb <= pc ? up : upLeft;
-            }
-
-            private static bool StartsWith(byte[] bytes, byte[] prefix) {
-                for (int i = 0; i < prefix.Length; i++) {
-                    if (bytes[i] != prefix[i]) {
-                        return false;
-                    }
-                }
-
-                return true;
-            }
-
-            private static byte[] InflateZlib(byte[] zlib) {
-                if (zlib.Length < 6) {
-                    throw new InvalidOperationException("PNG zlib stream is too short.");
-                }
-
-                using MemoryStream source = new(zlib, 2, zlib.Length - 6);
-                using DeflateStream deflate = new(source, CompressionMode.Decompress);
-                using MemoryStream output = new();
-                deflate.CopyTo(output);
-                return output.ToArray();
-            }
-
-            private static byte[] DeflateZlibStored(byte[] data) {
-                using MemoryStream ms = new();
-                ms.WriteByte(0x78);
-                ms.WriteByte(0x01);
-
-                int offset = 0;
-                while (offset < data.Length) {
-                    int blockLength = Math.Min(65535, data.Length - offset);
-                    bool final = offset + blockLength >= data.Length;
-                    ms.WriteByte(final ? (byte)1 : (byte)0);
-                    ms.WriteByte((byte)(blockLength & 0xFF));
-                    ms.WriteByte((byte)((blockLength >> 8) & 0xFF));
-                    int nlen = blockLength ^ 0xFFFF;
-                    ms.WriteByte((byte)(nlen & 0xFF));
-                    ms.WriteByte((byte)((nlen >> 8) & 0xFF));
-                    ms.Write(data, offset, blockLength);
-                    offset += blockLength;
-                }
-
-                uint adler = Adler32(data);
-                ms.WriteByte((byte)((adler >> 24) & 0xFF));
-                ms.WriteByte((byte)((adler >> 16) & 0xFF));
-                ms.WriteByte((byte)((adler >> 8) & 0xFF));
-                ms.WriteByte((byte)(adler & 0xFF));
-                return ms.ToArray();
-            }
-
-            private static uint Adler32(byte[] data) {
-                const uint mod = 65521;
-                uint a = 1;
-                uint b = 0;
-                for (int i = 0; i < data.Length; i++) {
-                    a = (a + data[i]) % mod;
-                    b = (b + a) % mod;
-                }
-
-                return (b << 16) | a;
-            }
-
-            private static int ReadBigEndianInt32(byte[] bytes, int offset) =>
-                (bytes[offset] << 24) | (bytes[offset + 1] << 16) | (bytes[offset + 2] << 8) | bytes[offset + 3];
-
-            private static void WriteBigEndianInt32(byte[] bytes, int offset, int value) {
-                bytes[offset] = (byte)((value >> 24) & 0xFF);
-                bytes[offset + 1] = (byte)((value >> 16) & 0xFF);
-                bytes[offset + 2] = (byte)((value >> 8) & 0xFF);
-                bytes[offset + 3] = (byte)(value & 0xFF);
-            }
-
-            private static void WriteChunk(Stream stream, string type, byte[] data) {
-                byte[] typeBytes = Encoding.ASCII.GetBytes(type);
-                byte[] length = new byte[4];
-                WriteBigEndianInt32(length, 0, data.Length);
-                stream.Write(length, 0, length.Length);
-                stream.Write(typeBytes, 0, typeBytes.Length);
-                stream.Write(data, 0, data.Length);
-
-                uint crc = Crc32(typeBytes, data);
-                byte[] crcBytes = new byte[4];
-                WriteBigEndianInt32(crcBytes, 0, unchecked((int)crc));
-                stream.Write(crcBytes, 0, crcBytes.Length);
-            }
-
-            private static uint Crc32(byte[] type, byte[] data) {
-                uint crc = 0xFFFFFFFF;
-                for (int i = 0; i < type.Length; i++) {
-                    crc = UpdateCrc(crc, type[i]);
-                }
-
-                for (int i = 0; i < data.Length; i++) {
-                    crc = UpdateCrc(crc, data[i]);
-                }
-
-                return crc ^ 0xFFFFFFFF;
-            }
-
-            private static uint UpdateCrc(uint crc, byte value) {
-                crc ^= value;
-                for (int i = 0; i < 8; i++) {
-                    crc = (crc & 1) != 0 ? 0xEDB88320 ^ (crc >> 1) : crc >> 1;
-                }
-
-                return crc;
-            }
         }
 
         private static string FormatGalleryIssues(VisioGalleryResult result) {
@@ -886,19 +495,6 @@ namespace OfficeIMO.Tests {
         private static bool IsStructuralBaselineUpdateRequested() =>
             IsBaselineUpdateRequested() ||
             string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_VISIO_PREMIUM_STRUCTURAL_BASELINES"), "1", StringComparison.Ordinal);
-
-        private static string GetTestsProjectRoot() {
-            var directory = new DirectoryInfo(AppContext.BaseDirectory);
-            while (directory != null) {
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
-                    return directory.FullName;
-                }
-
-                directory = directory.Parent;
-            }
-
-            throw new DirectoryNotFoundException("Could not locate OfficeIMO.Tests project root from test runtime base directory.");
-        }
 
         private static void TryDeleteDirectory(string directory) {
             try {

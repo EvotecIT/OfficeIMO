@@ -10,6 +10,7 @@ namespace OfficeIMO.Html.Pdf;
 public sealed class HtmlPdfProfileContract {
     internal HtmlPdfProfileContract(
         HtmlPdfProfile profile,
+        HtmlConversionProfile sharedProfile,
         string id,
         string displayName,
         string pipeline,
@@ -22,6 +23,7 @@ public sealed class HtmlPdfProfileContract {
         IReadOnlyList<string> diagnosticGuarantees,
         IReadOnlyList<string> rendererBoundaries) {
         Profile = profile;
+        SharedProfile = sharedProfile;
         Id = id;
         DisplayName = displayName;
         Pipeline = pipeline;
@@ -37,6 +39,9 @@ public sealed class HtmlPdfProfileContract {
 
     /// <summary>Adapter profile represented by this contract.</summary>
     public HtmlPdfProfile Profile { get; }
+
+    /// <summary>Shared OfficeIMO HTML conversion profile represented by this adapter profile.</summary>
+    public HtmlConversionProfile SharedProfile { get; }
 
     /// <summary>Stable profile identifier for wrappers, manifests, and documentation.</summary>
     public string Id { get; }
@@ -79,6 +84,7 @@ public static class HtmlPdfProfileContracts {
     private static readonly IReadOnlyList<HtmlPdfProfileContract> Contracts = new ReadOnlyCollection<HtmlPdfProfileContract>(new[] {
         new HtmlPdfProfileContract(
             HtmlPdfProfile.Semantic,
+            HtmlConversionProfile.Semantic,
             "html-pdf-semantic",
             "Semantic HTML to PDF",
             "HTML -> OfficeIMO.Markdown.Html -> MarkdownDoc -> OfficeIMO.Markdown.Pdf -> OfficeIMO.Pdf",
@@ -92,6 +98,7 @@ public static class HtmlPdfProfileContracts {
             new[] { "no-browser-layout-engine", "no-script-execution", "no-interactive-html", "no-paged-media-engine" }),
         new HtmlPdfProfileContract(
             HtmlPdfProfile.Document,
+            HtmlConversionProfile.Document,
             "html-pdf-document",
             "Document HTML to PDF",
             "HTML -> OfficeIMO.Word.Html -> WordDocument -> OfficeIMO.Word.Pdf -> OfficeIMO.Pdf",

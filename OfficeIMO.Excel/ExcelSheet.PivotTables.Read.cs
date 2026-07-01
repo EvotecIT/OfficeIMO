@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel {
 
         private static Dictionary<uint, string> BuildNumberFormatCodeMap(WorkbookPart workbookPart) {
             var map = new Dictionary<uint, string>();
-            foreach (var builtInFormat in BuiltInNumberFormatCodes) {
+            foreach (var builtInFormat in ExcelBuiltInNumberFormats.Codes) {
                 map[builtInFormat.Key] = builtInFormat.Value;
             }
 

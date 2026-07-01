@@ -51,6 +51,35 @@ namespace OfficeIMO.Excel {
         public string? A1Range { get; set; }
     }
 
+    internal sealed class ExcelCommentAnchor {
+        internal ExcelCommentAnchor(int startColumn, int startDx, int startRow, int startDy, int endColumn, int endDx, int endRow, int endDy) {
+            StartColumn = startColumn;
+            StartDx = startDx;
+            StartRow = startRow;
+            StartDy = startDy;
+            EndColumn = endColumn;
+            EndDx = endDx;
+            EndRow = endRow;
+            EndDy = endDy;
+        }
+
+        internal int StartColumn { get; }
+
+        internal int StartDx { get; }
+
+        internal int StartRow { get; }
+
+        internal int StartDy { get; }
+
+        internal int EndColumn { get; }
+
+        internal int EndDx { get; }
+
+        internal int EndRow { get; }
+
+        internal int EndDy { get; }
+    }
+
     /// <summary>
     /// Helpers for worksheet cell comments (notes).
     /// </summary>
@@ -84,20 +113,20 @@ namespace OfficeIMO.Excel {
             SetCommentInternal(row, column, BuildCommentText(runs), author, initials, visible: false);
         }
 
-        internal void SetLegacyComment(int row, int column, string text, string author, bool visible) {
+        internal void SetLegacyComment(int row, int column, string text, string author, bool visible, ExcelCommentAnchor? anchor = null) {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
             if (string.IsNullOrEmpty(text)) throw new ArgumentException("Comment text is required.", nameof(text));
-            SetCommentInternal(row, column, BuildCommentText(text), author, initials: null, visible);
+            SetCommentInternal(row, column, BuildCommentText(text), author, initials: null, visible, anchor);
         }
 
-        internal void SetLegacyCommentRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs, string author, bool visible) {
+        internal void SetLegacyCommentRichText(int row, int column, IEnumerable<ExcelRichTextRun> runs, string author, bool visible, ExcelCommentAnchor? anchor = null) {
             if (row <= 0) throw new ArgumentOutOfRangeException(nameof(row), "Row and column are 1-based and must be positive.");
             if (column <= 0) throw new ArgumentOutOfRangeException(nameof(column), "Row and column are 1-based and must be positive.");
-            SetCommentInternal(row, column, BuildCommentText(runs), author, initials: null, visible);
+            SetCommentInternal(row, column, BuildCommentText(runs), author, initials: null, visible, anchor);
         }
 
-        private void SetCommentInternal(int row, int column, CommentText commentText, string author, string? initials, bool visible) {
+        private void SetCommentInternal(int row, int column, CommentText commentText, string author, string? initials, bool visible, ExcelCommentAnchor? anchor = null) {
             WriteLock(() => {
                 string reference = A1.CellReference(row, column);
                 string authorDisplay = NormalizeAuthor(author, initials);
@@ -115,7 +144,7 @@ namespace OfficeIMO.Excel {
                 comments.CommentList.Append(comment);
                 comments.Save();
 
-                EnsureCommentVmlShape(row, column, visible);
+                EnsureCommentVmlShape(row, column, visible, anchor);
                 WorksheetRoot.Save();
             });
         }
@@ -386,10 +415,16 @@ namespace OfficeIMO.Excel {
                 var properties = new RunProperties();
                 if (richRun.Bold) properties.Append(new Bold());
                 if (richRun.Italic) properties.Append(new Italic());
-                if (richRun.Underline) properties.Append(new Underline());
+                if (richRun.UnderlineStyle.HasValue && richRun.UnderlineStyle.Value != UnderlineValues.None) {
+                    properties.Append(new Underline { Val = richRun.UnderlineStyle.Value });
+                } else if (richRun.Underline) {
+                    properties.Append(new Underline());
+                }
+                if (richRun.Strikethrough) properties.Append(new Strike());
                 if (!string.IsNullOrWhiteSpace(richRun.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(richRun.FontColor!) });
                 if (!string.IsNullOrWhiteSpace(richRun.FontName)) properties.Append(new RunFont { Val = richRun.FontName });
                 if (richRun.FontSize.HasValue) properties.Append(new FontSize { Val = richRun.FontSize.Value });
+                ExcelRichTextRun.AppendFontMetadata(properties, richRun);
                 if (properties.HasChildren) {
                     run.Append(properties);
                 }
@@ -410,9 +445,18 @@ namespace OfficeIMO.Excel {
                     Bold = run.Bold,
                     Italic = run.Italic,
                     Underline = run.Underline,
+                    Strikethrough = run.Strikethrough,
+                    UnderlineStyle = run.UnderlineStyle,
                     FontColor = run.FontColor,
                     FontName = run.FontName,
-                    FontSize = run.FontSize
+                    FontSize = run.FontSize,
+                    VerticalTextAlignment = run.VerticalTextAlignment,
+                    Outline = run.Outline,
+                    Shadow = run.Shadow,
+                    Condense = run.Condense,
+                    Extend = run.Extend,
+                    FontFamily = run.FontFamily,
+                    FontCharacterSet = run.FontCharacterSet
                 });
             }
 
@@ -466,9 +510,18 @@ namespace OfficeIMO.Excel {
                     Bold = properties?.GetFirstChild<Bold>() != null,
                     Italic = properties?.GetFirstChild<Italic>() != null,
                     Underline = properties?.GetFirstChild<Underline>() != null,
+                    Strikethrough = properties?.GetFirstChild<Strike>() != null,
+                    UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
                     FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
                     FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value
+                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                    VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
+                    Outline = properties?.GetFirstChild<Outline>() != null,
+                    Shadow = properties?.GetFirstChild<Shadow>() != null,
+                    Condense = properties?.GetFirstChild<Condense>() != null,
+                    Extend = properties?.GetFirstChild<Extend>() != null,
+                    FontFamily = ExcelRichTextRun.GetFontFamily(properties),
+                    FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties)
                 });
             }
 
@@ -532,7 +585,7 @@ namespace OfficeIMO.Excel {
             return part;
         }
 
-        private void EnsureCommentVmlShape(int row, int column, bool visible = false) {
+        private void EnsureCommentVmlShape(int row, int column, bool visible = false, ExcelCommentAnchor? commentAnchor = null) {
             var vmlPart = GetOrCreateCommentVmlPart();
             var doc = LoadOrCreateVmlDocument(vmlPart);
             var root = doc.Root;
@@ -545,7 +598,7 @@ namespace OfficeIMO.Excel {
             var x = XNamespace.Get("urn:schemas-microsoft-com:office:excel");
 
             int shapeId = NextVmlShapeId(root);
-            string anchor = BuildAnchor(row, column);
+            string anchor = BuildAnchor(row, column, commentAnchor);
             string visibility = visible ? "visible" : "hidden";
 
             var shape = new XElement(v + "shape",
@@ -834,7 +887,21 @@ namespace OfficeIMO.Excel {
             return max + 1;
         }
 
-        private static string BuildAnchor(int row, int column) {
+        private static string BuildAnchor(int row, int column, ExcelCommentAnchor? anchor = null) {
+            if (anchor != null) {
+                return string.Format(
+                    CultureInfo.InvariantCulture,
+                    "{0}, {1}, {2}, {3}, {4}, {5}, {6}, {7}",
+                    anchor.StartColumn,
+                    anchor.StartDx,
+                    anchor.StartRow,
+                    anchor.StartDy,
+                    anchor.EndColumn,
+                    anchor.EndDx,
+                    anchor.EndRow,
+                    anchor.EndDy);
+            }
+
             int col1 = Math.Max(0, column - 1);
             int row1 = Math.Max(0, row - 1);
             int col2 = col1 + 2;

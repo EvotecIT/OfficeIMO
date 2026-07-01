@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Excel {
     /// <summary>
@@ -12,16 +14,26 @@ namespace OfficeIMO.Excel {
             ExcelChartData data,
             int rowIndex,
             int columnIndex,
+            int offsetXPixels,
+            int offsetYPixels,
             int widthPixels,
-            int heightPixels) {
+            int heightPixels,
+            OfficeChartStyle? style = null,
+            OfficeChartLayout? layout = null,
+            IReadOnlyList<OfficeImageExportDiagnostic>? diagnostics = null) {
             Name = name ?? string.Empty;
             Title = title;
             ChartType = chartType;
             Data = data ?? throw new ArgumentNullException(nameof(data));
             RowIndex = rowIndex;
             ColumnIndex = columnIndex;
+            OffsetXPixels = offsetXPixels;
+            OffsetYPixels = offsetYPixels;
             WidthPixels = widthPixels;
             HeightPixels = heightPixels;
+            Style = style;
+            Layout = layout;
+            Diagnostics = diagnostics ?? Array.Empty<OfficeImageExportDiagnostic>();
         }
 
         /// <summary>Chart drawing name.</summary>
@@ -42,10 +54,25 @@ namespace OfficeIMO.Excel {
         /// <summary>One-based worksheet column where the chart is anchored when known.</summary>
         public int ColumnIndex { get; }
 
+        /// <summary>Horizontal offset from the anchor column in pixels.</summary>
+        public int OffsetXPixels { get; }
+
+        /// <summary>Vertical offset from the anchor row in pixels.</summary>
+        public int OffsetYPixels { get; }
+
         /// <summary>Chart width in pixels when known.</summary>
         public int WidthPixels { get; }
 
         /// <summary>Chart height in pixels when known.</summary>
         public int HeightPixels { get; }
+
+        /// <summary>Shared rendering style metadata extracted from the chart, when available.</summary>
+        public OfficeChartStyle? Style { get; }
+
+        /// <summary>Shared rendering layout metadata extracted from the chart, when available.</summary>
+        public OfficeChartLayout? Layout { get; }
+
+        /// <summary>Diagnostics for authored chart features that the shared image renderer approximates or cannot render yet.</summary>
+        public IReadOnlyList<OfficeImageExportDiagnostic> Diagnostics { get; }
     }
 }

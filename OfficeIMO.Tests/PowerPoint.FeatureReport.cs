@@ -841,6 +841,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointTableCellAddParagraph_ReplacesInitialEmptyPlaceholder() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
+
+            try {
+                using (PowerPointPresentation presentation = PowerPointPresentation.Create(filePath)) {
+                    PowerPointTableCell cell = presentation.AddSlide().AddTable(1, 1).GetCell(0, 0);
+                    PowerPointParagraph paragraph = cell.AddParagraph("Fresh");
+
+                    Assert.Single(cell.Paragraphs);
+                    Assert.Same(paragraph.Paragraph, cell.Paragraphs.Single().Paragraph);
+                    presentation.Save();
+                }
+
+                using (PresentationDocument document = PresentationDocument.Open(filePath, false)) {
+                    A.TableCell cell = document.PresentationPart!.SlideParts.First().Slide.Descendants<A.TableCell>().First();
+                    A.Paragraph paragraph = Assert.Single(cell.TextBody!.Elements<A.Paragraph>());
+
+                    Assert.Equal("Fresh", paragraph.Elements<A.Run>().Single().Text!.Text);
+                }
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
         public void PowerPointTableCellText_DropsStaleHyperlinkWhenReplacingText() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
 

@@ -10,10 +10,13 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             var equalityFilters = new Dictionary<uint, IEnumerable<string>>();
             var blankFilters = new List<LegacyXlsAutoFilterCriteria>();
+            var blankOrValueFilters = new List<LegacyXlsAutoFilterCriteria>();
             var customFilters = new List<LegacyXlsAutoFilterCriteria>();
             var top10Filters = new List<LegacyXlsAutoFilterCriteria>();
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in criteria) {
-                if (CanProjectAsEqualityList(columnCriteria)) {
+                if (CanProjectAsBlankOrValueList(columnCriteria)) {
+                    blankOrValueFilters.Add(columnCriteria);
+                } else if (CanProjectAsEqualityList(columnCriteria)) {
                     equalityFilters[columnCriteria.ColumnId] = columnCriteria.Conditions.Select(condition => condition.Value).ToArray();
                 } else if (columnCriteria.Kind == LegacyXlsAutoFilterKind.Blanks) {
                     blankFilters.Add(columnCriteria);
@@ -30,6 +33,10 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in blankFilters) {
                 sheet.ApplyAutoFilterBlankCriteria(range, columnCriteria.ColumnId);
+            }
+
+            foreach (LegacyXlsAutoFilterCriteria columnCriteria in blankOrValueFilters) {
+                ProjectBlankOrValueList(sheet, range, columnCriteria);
             }
 
             foreach (LegacyXlsAutoFilterCriteria columnCriteria in customFilters) {
@@ -54,7 +61,50 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             return criteria.Kind == LegacyXlsAutoFilterKind.Custom
                 && criteria.Conditions.Count > 0
                 && (criteria.Conditions.Count == 1 || !criteria.MatchAll)
-                && criteria.Conditions.All(condition => condition.Operator == LegacyXlsAutoFilterOperator.Equal && !condition.HasTextWildcardPattern);
+                && criteria.Conditions.All(condition =>
+                    condition.ValueKind != LegacyXlsAutoFilterValueKind.Blank
+                    && condition.Operator == LegacyXlsAutoFilterOperator.Equal
+                    && !condition.HasTextWildcardPattern);
+        }
+
+        private static bool CanProjectAsBlankOrValueList(LegacyXlsAutoFilterCriteria criteria) {
+            return criteria.Kind == LegacyXlsAutoFilterKind.Custom
+                && criteria.Conditions.Count == 2
+                && !criteria.MatchAll
+                && criteria.Conditions.Count(condition => condition.ValueKind == LegacyXlsAutoFilterValueKind.Blank) == 1
+                && criteria.Conditions.Count(condition =>
+                    condition.ValueKind != LegacyXlsAutoFilterValueKind.Blank
+                    && condition.Operator == LegacyXlsAutoFilterOperator.Equal
+                    && !condition.HasTextWildcardPattern) == 1;
+        }
+
+        private static void ProjectBlankOrValueList(ExcelSheet sheet, string range, LegacyXlsAutoFilterCriteria criteria) {
+            Worksheet? worksheet = sheet.WorksheetPart.Worksheet;
+            if (worksheet == null) {
+                return;
+            }
+
+            AutoFilter? autoFilter = worksheet.GetFirstChild<AutoFilter>();
+            if (autoFilter == null || !string.Equals(autoFilter.Reference?.Value, range, StringComparison.OrdinalIgnoreCase)) {
+                sheet.AddAutoFilter(range);
+                worksheet = sheet.WorksheetPart.Worksheet;
+                autoFilter = worksheet?.GetFirstChild<AutoFilter>();
+            }
+
+            if (autoFilter == null) {
+                return;
+            }
+
+            FilterColumn? existingColumn = autoFilter.Elements<FilterColumn>().FirstOrDefault(column => column.ColumnId?.Value == criteria.ColumnId);
+            existingColumn?.Remove();
+
+            LegacyXlsAutoFilterCondition valueCondition = criteria.Conditions.Single(condition => condition.ValueKind != LegacyXlsAutoFilterValueKind.Blank);
+            var filterColumn = new FilterColumn { ColumnId = criteria.ColumnId };
+            filterColumn.Append(new Filters(
+                new Filter { Val = valueCondition.Value }) {
+                Blank = true
+            });
+            autoFilter.Append(filterColumn);
         }
 
         private static FilterOperatorValues ToOperator(LegacyXlsAutoFilterOperator @operator) {

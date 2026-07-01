@@ -11,5 +11,8 @@ public enum OfficeTextAlignment {
     Center,
 
     /// <summary>Align text to the right edge of the text box.</summary>
-    Right
+    Right,
+
+    /// <summary>Distribute words across the available line width when supported.</summary>
+    Justify
 }

@@ -122,8 +122,17 @@ namespace OfficeIMO.Visio {
             MarkDataGraphic(background, target, item, value, "BarBackground");
             page.Shapes.Add(background);
 
-            double fillWidth = Math.Max(0.01D.ToInches(unit), width * percent);
-            double fillCenterX = x - (width / 2D) + (fillWidth / 2D);
+            OfficeIMO.Drawing.OfficeDataBarGeometry bar = OfficeIMO.Drawing.OfficeDataBarRenderer.Resolve(
+                x - (width / 2D),
+                y - (height / 2D),
+                width,
+                height,
+                startRatio: 0D,
+                ratio: percent,
+                verticalInset: 0D,
+                minimumHeight: 0D);
+            double fillWidth = Math.Max(0.01D.ToInches(unit), bar.Width);
+            double fillCenterX = bar.X + (fillWidth / 2D);
             VisioShape fill = new VisioShape(UniqueId(page, baseId + "-fill"), fillCenterX, y, fillWidth, height, string.Empty) {
                 Name = "Data Graphic Bar Fill",
                 NameU = "OfficeIMO Data Graphic Bar Fill"

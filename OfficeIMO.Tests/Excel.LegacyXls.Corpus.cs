@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Biff;
@@ -19,6 +20,57 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_DiagnosticCorpus_Fixtures_MatchApprovedImportReports() {
             string corpusDirectory = Path.Combine(GetTestsProjectRoot(), "Documents", "LegacyXlsDiagnosticCorpus");
             AssertLegacyXlsCorpusBaselines(corpusDirectory);
+        }
+
+        [Fact]
+        public void LegacyXls_Corpus_SupportedFixtures_SaveAsValidOpenXmlWorkbooks() {
+            string corpusDirectory = Path.Combine(GetTestsProjectRoot(), "Documents", "LegacyXlsCorpus");
+            if (!Directory.Exists(corpusDirectory)) {
+                return;
+            }
+
+            string[] workbookPaths = Directory.GetFiles(corpusDirectory, "*.xls", SearchOption.AllDirectories)
+                .Where(path => !Path.GetFileName(path).StartsWith("~$", StringComparison.Ordinal))
+                .OrderBy(path => path, StringComparer.OrdinalIgnoreCase)
+                .ToArray();
+
+            var validator = new OpenXmlValidator();
+            int convertedCount = 0;
+            foreach (string workbookPath in workbookPaths) {
+                string relativePath = GetRelativePath(corpusDirectory, workbookPath);
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                    ReportUnsupportedRecords = true
+                });
+
+                Assert.False(result.HasImportErrors, relativePath);
+                if (result.ImportReport.UnsupportedProjectionGapCount > 0) {
+                    continue;
+                }
+
+                string outputPath = Path.Combine(
+                    _directoryWithFiles,
+                    "LegacyXlsConvertedCorpus",
+                    Guid.NewGuid().ToString("N") + ".xlsx");
+                Directory.CreateDirectory(Path.GetDirectoryName(outputPath)!);
+
+                try {
+                    result.Document.Save(outputPath);
+
+                    using (ExcelDocument converted = ExcelDocument.Load(outputPath)) {
+                        Assert.False(converted.WasLoadedFromLegacyXls);
+                        Assert.Equal(result.Document.Sheets.Count, converted.Sheets.Count);
+                    }
+
+                    using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(outputPath, false);
+                    List<ValidationErrorInfo> errors = validator.Validate(spreadsheet).ToList();
+                    Assert.True(errors.Count == 0, relativePath + Environment.NewLine + FormatValidationErrors(errors));
+                    convertedCount++;
+                } finally {
+                    TryDelete(outputPath);
+                }
+            }
+
+            Assert.True(convertedCount > 0);
         }
 
         [Fact]
@@ -101,7 +153,6 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByStructure["Modules:8|DirStreams:1|ProjectStreams:2|Storages:2"]);
             Assert.Equal(1, result.ImportReport.VbaProjectWorkbookStates["BiffMarker:Present|NoMacrosMarker:Present|CompoundProject:Present|Modules:Present"]);
             Assert.Equal(0, result.ImportReport.UnsupportedProjectionGapCount);
-            Assert.Empty(result.ImportReport.UnsupportedProjectionGapsByKind);
         }
 
         [Fact]
@@ -679,12 +730,10 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
-            Assert.Equal(2, result.ImportReport.FutureFunctionAliasCount);
-            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByName["_xlfn.AVERAGEIF"]);
-            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByName["_xlfn.IFERROR"]);
-            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByFunction["AVERAGEIF"]);
-            Assert.Equal(1, result.ImportReport.FutureFunctionAliasesByFunction["IFERROR"]);
-            Assert.Equal(2, result.ImportReport.FutureFunctionAliasesByTokenName["PtgErr"]);
+            Assert.Equal(0, result.ImportReport.FutureFunctionAliasCount);
+            Assert.Equal(2, result.Workbook.DefinedNames.Count);
+            Assert.Contains(result.Workbook.DefinedNames, name => name.Name == "_xlfn.AVERAGEIF" && name.Reference == "#NAME?");
+            Assert.Contains(result.Workbook.DefinedNames, name => name.Name == "_xlfn.IFERROR" && name.Reference == "#NAME?");
 
             foreach (string functionName in new[] {
                 "DATEVALUE",

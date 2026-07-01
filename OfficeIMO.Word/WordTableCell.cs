@@ -28,6 +28,8 @@ namespace OfficeIMO.Word {
         private readonly WordTableRow _wordTableRow;
         private readonly WordDocument _document;
 
+        internal WordDocument Document => _document;
+
         /// <summary>
         /// Gets the row that owns this cell.
         /// </summary>
@@ -52,6 +54,7 @@ namespace OfficeIMO.Word {
                 } else {
                     _tableCellProperties!.HorizontalMerge ??= new HorizontalMerge();
                     _tableCellProperties.HorizontalMerge.Val = value.Value;
+                    NormalizeTableCellPropertiesOrder();
                 }
             }
         }
@@ -70,6 +73,7 @@ namespace OfficeIMO.Word {
                 } else {
                     _tableCellProperties!.VerticalMerge ??= new VerticalMerge();
                     _tableCellProperties.VerticalMerge.Val = value.Value;
+                    NormalizeTableCellPropertiesOrder();
                 }
             }
         }
@@ -175,6 +179,7 @@ namespace OfficeIMO.Word {
                     _tableCellProperties!.Shading ??= new Shading();
                     _tableCellProperties.Shading.Fill = color;
                     _tableCellProperties.Shading.Val ??= ShadingPatternValues.Clear;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     if (_tableCellProperties?.Shading?.Fill != null) {
                         _tableCellProperties.Shading.Remove();
@@ -254,6 +259,7 @@ namespace OfficeIMO.Word {
                 if (value != null) {
                     _tableCellProperties!.Shading ??= new Shading();
                     _tableCellProperties.Shading.Val = value.Value;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.Shading?.Remove();
                 }
@@ -295,6 +301,7 @@ namespace OfficeIMO.Word {
                 if (value != null) {
                     _tableCellProperties!.TableCellWidth ??= new TableCellWidth();
                     _tableCellProperties.TableCellWidth.Width = value.Value.ToString();
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TableCellWidth?.Remove();
                 }
@@ -339,6 +346,7 @@ namespace OfficeIMO.Word {
                 if (value != null) {
                     _tableCellProperties!.TableCellWidth ??= new TableCellWidth();
                     _tableCellProperties.TableCellWidth.Type = value.Value;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TableCellWidth?.Remove();
                 }
@@ -357,6 +365,7 @@ namespace OfficeIMO.Word {
                 if (value != null) {
                     _tableCellProperties!.TextDirection ??= new TextDirection();
                     _tableCellProperties.TextDirection.Val = value.Value;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TextDirection?.Remove();
                 }
@@ -375,6 +384,7 @@ namespace OfficeIMO.Word {
                 if (value != null) {
                     _tableCellProperties!.TableCellVerticalAlignment ??= new TableCellVerticalAlignment();
                     _tableCellProperties.TableCellVerticalAlignment.Val = value.Value;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TableCellVerticalAlignment?.Remove();
                 }
@@ -408,6 +418,7 @@ namespace OfficeIMO.Word {
                     _tableCellProperties.TableCellMargin.TopMargin ??= new TopMargin();
                     _tableCellProperties.TableCellMargin.TopMargin.Width = value.ToString();
                     _tableCellProperties.TableCellMargin.TopMargin.Type = TableWidthUnitValues.Dxa;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TableCellMargin?.TopMargin?.Remove();
                     CleanupTableCellMargin();
@@ -433,6 +444,7 @@ namespace OfficeIMO.Word {
                     _tableCellProperties.TableCellMargin.BottomMargin ??= new BottomMargin();
                     _tableCellProperties.TableCellMargin.BottomMargin.Width = value.ToString();
                     _tableCellProperties.TableCellMargin.BottomMargin.Type = TableWidthUnitValues.Dxa;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TableCellMargin?.BottomMargin?.Remove();
                     CleanupTableCellMargin();
@@ -458,6 +470,7 @@ namespace OfficeIMO.Word {
                     _tableCellProperties.TableCellMargin.LeftMargin ??= new LeftMargin();
                     _tableCellProperties.TableCellMargin.LeftMargin.Width = value.ToString();
                     _tableCellProperties.TableCellMargin.LeftMargin.Type = TableWidthUnitValues.Dxa;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TableCellMargin?.LeftMargin?.Remove();
                     CleanupTableCellMargin();
@@ -483,6 +496,7 @@ namespace OfficeIMO.Word {
                     _tableCellProperties.TableCellMargin.RightMargin ??= new RightMargin();
                     _tableCellProperties.TableCellMargin.RightMargin.Width = value.ToString();
                     _tableCellProperties.TableCellMargin.RightMargin.Type = TableWidthUnitValues.Dxa;
+                    NormalizeTableCellPropertiesOrder();
                 } else {
                     _tableCellProperties?.TableCellMargin?.RightMargin?.Remove();
                     CleanupTableCellMargin();
@@ -581,6 +595,7 @@ namespace OfficeIMO.Word {
                 } else {
                     if (current == null) {
                         _tableCellProperties.Append(new NoWrap());
+                        NormalizeTableCellPropertiesOrder();
                     }
                 }
             }
@@ -600,6 +615,7 @@ namespace OfficeIMO.Word {
                 if (value) {
                     if (current == null) {
                         _tableCellProperties.Append(new TableCellFitText { Val = OnOffOnlyValues.On });
+                        NormalizeTableCellPropertiesOrder();
                     } else {
                         current.Val = OnOffOnlyValues.On;
                     }
@@ -668,6 +684,18 @@ namespace OfficeIMO.Word {
             _tableCellProperties = _tableCell.TableCellProperties!;
         }
 
+        internal void NormalizeTableCellPropertiesOrder() {
+            if (_tableCellProperties == null) {
+                return;
+            }
+
+            WordTableCellPropertiesNormalizer.Normalize(_tableCellProperties);
+        }
+
+        internal static void NormalizeTableCellPropertiesOrder(TableCellProperties tableCellProperties) {
+            WordTableCellPropertiesNormalizer.Normalize(tableCellProperties);
+        }
+
         /// <summary>
         /// Remove TableCellProperties from current cell (used mostly for testing)
         /// </summary>
@@ -697,6 +725,7 @@ namespace OfficeIMO.Word {
             _tableCellProperties!.HorizontalMerge = new HorizontalMerge {
                 Val = MergedCellValues.Restart
             };
+            NormalizeTableCellPropertiesOrder();
 
             for (int i = 0; i < cellsCount; i++) {
                 var nextCell = _tableCell.NextSibling<TableCell>();
@@ -721,6 +750,7 @@ namespace OfficeIMO.Word {
                     _tableCell.TableCellProperties!.HorizontalMerge = new HorizontalMerge {
                         Val = MergedCellValues.Continue
                     };
+                    NormalizeTableCellPropertiesOrder();
                 }
             }
 
@@ -754,6 +784,7 @@ namespace OfficeIMO.Word {
             _tableCellProperties!.VerticalMerge = new VerticalMerge {
                 Val = MergedCellValues.Restart
             };
+            NormalizeTableCellPropertiesOrder();
             var tableRow = _tableCell.Parent as TableRow;
             var indexOfCell = tableRow?.ChildElements.ToList().IndexOf(_tableCell) ?? -1;
 
@@ -784,6 +815,7 @@ namespace OfficeIMO.Word {
                             _tableCellProperties!.VerticalMerge = new VerticalMerge {
                                 Val = MergedCellValues.Continue
                             };
+                            NormalizeTableCellPropertiesOrder();
                         }
                     }
                 }

@@ -95,6 +95,18 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.CommentsByAnchorOffset["StartDx:10;StartDy:20;EndDx:30;EndDy:40"]);
             Assert.Equal(1, report.CommentsByAnchorFlags["Flags:0x0000"]);
             Assert.Contains("Comments By Anchor Range", report.ToMarkdown());
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            VmlDrawingPart vmlPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.Single().VmlDrawingParts);
+            using var reader = new StreamReader(vmlPart.GetStream());
+            string vml = reader.ReadToEnd();
+            Assert.Contains("<x:Anchor>1, 10, 2, 20, 3, 30, 4, 40</x:Anchor>", vml, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

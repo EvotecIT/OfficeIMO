@@ -107,6 +107,28 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void BackgroundImage_FallsBackToPageBoxWhenDimensionsAreUnknown() {
+        byte[] legacyJpegLikeImage = { 0xFF, 0xD8, 0xFF, 0xD9 };
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 240,
+                PageHeight = 180,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20
+            })
+            .BackgroundImage(legacyJpegLikeImage, OfficeImageFit.Cover, opacity: 0.3)
+            .Paragraph(p => p.Text("Background image proof"))
+            .ToBytes();
+
+        string stream = Assert.Single(GetPageContentStreams(bytes, pageNumber: 1));
+
+        Assert.Contains("/Im", stream, StringComparison.Ordinal);
+        Assert.Matches(@"240 0 -?0 180 0 0 cm", stream);
+    }
+
+    [Fact]
     public void BackgroundImage_CanBeScopedAndClearedPerComposedPage() {
         byte[] image = CreateMinimalRgbPng();
         byte[] bytes = PdfDocument.Create()

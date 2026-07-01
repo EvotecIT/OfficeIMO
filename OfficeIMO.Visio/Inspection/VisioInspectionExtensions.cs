@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
 /// <summary>
@@ -179,34 +180,28 @@ namespace OfficeIMO.Visio {
                 return;
             }
 
-            List<ConnectorPathPoint> path = BuildConnectorPath(connector);
+            List<(double X, double Y)> path = BuildConnectorPath(connector);
             if (path.Count == 0) {
                 return;
             }
 
-            ConnectorPathPoint point = ResolvePathPoint(path, placement.Position);
-            pinX = point.X + placement.OffsetX;
-            pinY = point.Y + placement.OffsetY;
+            (double x, double y) = OfficeGeometry.InterpolatePolyline(path, placement.Position);
+            pinX = x + placement.OffsetX;
+            pinY = y + placement.OffsetY;
         }
 
-        private static List<ConnectorPathPoint> BuildConnectorPath(VisioConnector connector) {
+        private static List<(double X, double Y)> BuildConnectorPath(VisioConnector connector) {
             ResolveEndpoint(connector.From, connector.To, connector.FromConnectionPoint, out double startX, out double startY);
             ResolveEndpoint(connector.To, connector.From, connector.ToConnectionPoint, out double endX, out double endY);
+            List<(double X, double Y)> waypoints = connector.Waypoints
+                .Select(waypoint => (X: waypoint.X, Y: waypoint.Y))
+                .ToList();
 
-            List<ConnectorPathPoint> points = new() {
-                new ConnectorPathPoint(startX, startY)
-            };
-
-            if (connector.Waypoints.Count > 0) {
-                foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add(new ConnectorPathPoint(waypoint.X, waypoint.Y));
-                }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add(new ConnectorPathPoint(startX, endY));
-            }
-
-            points.Add(new ConnectorPathPoint(endX, endY));
-            return points;
+            return OfficeGeometry.BuildConnectorPolyline(
+                (startX, startY),
+                (endX, endY),
+                waypoints,
+                connector.Kind == ConnectorKind.RightAngle);
         }
 
         private static void ResolveEndpoint(VisioShape shape, VisioShape other, VisioConnectionPoint? connectionPoint, out double x, out double y) {
@@ -250,57 +245,6 @@ namespace OfficeIMO.Visio {
             return shape.Parent != null
                 ? GetPagePoint(shape.Parent, absX, absY)
                 : (absX, absY);
-        }
-
-        private static ConnectorPathPoint ResolvePathPoint(IReadOnlyList<ConnectorPathPoint> points, double position) {
-            double clampedPosition = VisioConnectorLabelPlacement.ClampPosition(position);
-            double totalLength = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                totalLength += Distance(points[i - 1], points[i]);
-            }
-
-            if (totalLength <= 0D) {
-                return points[0];
-            }
-
-            double targetLength = totalLength * clampedPosition;
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                ConnectorPathPoint from = points[i - 1];
-                ConnectorPathPoint to = points[i];
-                double segmentLength = Distance(from, to);
-                if (segmentLength <= 0D) {
-                    continue;
-                }
-
-                if (traversed + segmentLength >= targetLength) {
-                    double segmentPosition = (targetLength - traversed) / segmentLength;
-                    return new ConnectorPathPoint(
-                        from.X + ((to.X - from.X) * segmentPosition),
-                        from.Y + ((to.Y - from.Y) * segmentPosition));
-                }
-
-                traversed += segmentLength;
-            }
-
-            return points[points.Count - 1];
-        }
-
-        private static double Distance(ConnectorPathPoint from, ConnectorPathPoint to) {
-            double dx = to.X - from.X;
-            double dy = to.Y - from.Y;
-            return Math.Sqrt((dx * dx) + (dy * dy));
-        }
-
-        private readonly struct ConnectorPathPoint {
-            public ConnectorPathPoint(double x, double y) {
-                X = x;
-                Y = y;
-            }
-
-            public double X { get; }
-
-            public double Y { get; }
         }
 
         private static IReadOnlyList<VisioInspectionShapeDataSnapshot> CreateShapeDataSnapshot(IEnumerable<VisioShapeDataRow> rows) {

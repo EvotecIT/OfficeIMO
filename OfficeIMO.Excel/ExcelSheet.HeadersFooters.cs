@@ -94,14 +94,13 @@ namespace OfficeIMO.Excel {
         }
 
         internal static string NormalizeImageContentType(string? contentType, string parameterName) {
-            if (string.IsNullOrWhiteSpace(contentType)) return "image/png";
+            if (string.IsNullOrWhiteSpace(contentType)) return OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
 
-            var trimmed = contentType!.Trim();
-            if (!trimmed.StartsWith("image/", StringComparison.OrdinalIgnoreCase)) {
+            if (!OfficeImageInfo.TryNormalizeImageContentType(contentType, out var normalizedContentType)) {
                 throw new ArgumentException("Content type must start with 'image/'", parameterName);
             }
 
-            return trimmed;
+            return normalizedContentType;
         }
 
         /// <summary>
@@ -160,8 +159,8 @@ namespace OfficeIMO.Excel {
                 EvenFooterRight = efr,
                 DifferentFirstPage = hf?.DifferentFirst?.Value ?? false,
                 DifferentOddEven = hf?.DifferentOddEven?.Value ?? false,
-                HeaderHasPicturePlaceholder = (hl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (hr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasHeaderImageRel,
-                FooterHasPicturePlaceholder = (fl.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fc.IndexOf("&G", StringComparison.Ordinal) >= 0) || (fr.IndexOf("&G", StringComparison.Ordinal) >= 0) || hasFooterImageRel,
+                HeaderHasPicturePlaceholder = HasPicturePlaceholder(hl, hc, hr, fhl, fhc, fhr, ehl, ehc, ehr) || hasHeaderImageRel,
+                FooterHasPicturePlaceholder = HasPicturePlaceholder(fl, fc, fr, ffl, ffc, ffr, efl, efc, efr) || hasFooterImageRel,
                 HeaderLeftImage = imagesByShapeId.TryGetValue("LH", out var headerLeftImage) ? headerLeftImage : null,
                 HeaderCenterImage = imagesByShapeId.TryGetValue("CH", out var headerCenterImage) ? headerCenterImage : null,
                 HeaderRightImage = imagesByShapeId.TryGetValue("RH", out var headerRightImage) ? headerRightImage : null,
@@ -169,6 +168,16 @@ namespace OfficeIMO.Excel {
                 FooterCenterImage = imagesByShapeId.TryGetValue("CF", out var footerCenterImage) ? footerCenterImage : null,
                 FooterRightImage = imagesByShapeId.TryGetValue("RF", out var footerRightImage) ? footerRightImage : null
             };
+        }
+
+        private static bool HasPicturePlaceholder(params string[] values) {
+            foreach (string value in values) {
+                if (value.IndexOf("&G", StringComparison.Ordinal) >= 0) {
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         private Dictionary<string, HeaderFooterImageSnapshot> ReadHeaderFooterImages() {
@@ -362,8 +371,8 @@ namespace OfficeIMO.Excel {
 
                 hf.DifferentFirst = differentFirstPage ? true : (bool?)null;
                 hf.DifferentOddEven = differentOddEven ? true : (bool?)null;
-                hf.AlignWithMargins = alignWithMargins ? true : (bool?)null;
-                hf.ScaleWithDoc = scaleWithDoc ? true : (bool?)null;
+                hf.AlignWithMargins = alignWithMargins;
+                hf.ScaleWithDoc = scaleWithDoc;
 
                 var oddHeader = BuildHeaderFooterSections(headerLeft, headerCenter, headerRight);
                 var oddFooter = BuildHeaderFooterSections(footerLeft, footerCenter, footerRight);
@@ -585,9 +594,10 @@ namespace OfficeIMO.Excel {
                     case 'I':
                     case 'E':
                     case 'U':
-                    case 'S':
+                    case 'S': // bold, italic, underline, strike
                     case 'X':
-                    case 'Y': // bold, italic, underline, strike, superscript, subscript
+                    case 'Y': // superscript, subscript
+                    case '[': // bracketed fields such as &[Page], &[Pages], &[Tab]
                         return true;
                 }
                 return false;
@@ -694,17 +704,7 @@ namespace OfficeIMO.Excel {
             }
 
             // 3) Add/replace image in the VML drawing part
-            ImagePart imgPart;
-            if (contentType.Equals("image/png", StringComparison.OrdinalIgnoreCase))
-                imgPart = vmlPart.AddImagePart(ImagePartType.Png);
-            else if (contentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) || contentType.Equals("image/jpg", StringComparison.OrdinalIgnoreCase))
-                imgPart = vmlPart.AddImagePart(ImagePartType.Jpeg);
-            else if (contentType.Equals("image/gif", StringComparison.OrdinalIgnoreCase))
-                imgPart = vmlPart.AddImagePart(ImagePartType.Gif);
-            else if (contentType.Equals("image/bmp", StringComparison.OrdinalIgnoreCase))
-                imgPart = vmlPart.AddImagePart(ImagePartType.Bmp);
-            else
-                imgPart = vmlPart.AddImagePart(ImagePartType.Png);
+            ImagePart imgPart = vmlPart.AddImagePart(ToImagePartType(contentType));
 
             using (var ms = new MemoryStream(imageBytes)) {
                 imgPart.FeedData(ms);
@@ -724,39 +724,16 @@ namespace OfficeIMO.Excel {
                 } catch { wPt = wPt <= 0 ? 144.0 : wPt; hPt = hPt <= 0 ? 48.0 : hPt; }
             }
 
-            // 4) Write minimal VML markup with a shape for the selected section
+            // 4) Upsert the VML shape for the selected section while preserving other header/footer images.
             string shapeId = isHeader
                 ? (position == HeaderFooterPosition.Left ? "LH" : position == HeaderFooterPosition.Center ? "CH" : "RH")
                 : (position == HeaderFooterPosition.Left ? "LF" : position == HeaderFooterPosition.Center ? "CF" : "RF");
 
-            string vml = $@"<?xml version=""1.0"" encoding=""UTF-8""?>
-<xml xmlns:v=""urn:schemas-microsoft-com:vml"" xmlns:o=""urn:schemas-microsoft-com:office:office"" xmlns:x=""urn:schemas-microsoft-com:office:excel"" xmlns:r=""http://schemas.openxmlformats.org/officeDocument/2006/relationships"">
-  <o:shapelayout v:ext=""edit""><o:idmap v:ext=""edit"" data=""1""/></o:shapelayout>
-  <v:shapetype id=""_x0000_t75"" coordsize=""21600,21600"" o:spt=""75"" o:preferrelative=""t"" path=""m@4@5l@4@11@9@11@9@5xe"" filled=""f"" stroked=""f"">
-    <v:stroke joinstyle=""miter""/>
-    <v:formulas>
-      <v:f eqn=""if lineDrawn pixelLineWidth 0""/>
-      <v:f eqn=""sum @0 1 0""/>
-      <v:f eqn=""sum 0 0 @1""/>
-      <v:f eqn=""prod @2 1 2""/>
-      <v:f eqn=""prod @3 21600 pixelWidth""/>
-      <v:f eqn=""prod @3 21600 pixelHeight""/>
-      <v:f eqn=""sum @0 0 1""/>
-      <v:f eqn=""prod @6 1 2""/>
-      <v:f eqn=""prod @7 21600 pixelWidth""/>
-      <v:f eqn=""sum @8 21600 0""/>
-      <v:f eqn=""prod @7 21600 pixelHeight""/>
-      <v:f eqn=""sum @10 21600 0""/>
-    </v:formulas>
-    <v:path o:extrusionok=""f"" gradientshapeok=""t"" o:connecttype=""rect""/>
-    <o:lock v:ext=""edit"" aspectratio=""t""/>
-  </v:shapetype>
-  <v:shape id=""{shapeId}"" o:spid=""_x0000_s1025"" type=""#_x0000_t75"" style=""position:absolute;margin-left:0;margin-top:0;width:{wPt.ToString(CultureInfo.InvariantCulture)}pt;height:{hPt.ToString(CultureInfo.InvariantCulture)}pt;z-index:1"">
-    <v:imagedata r:id=""{imgRelId}"" o:relid=""{imgRelId}"" o:title=""""/>
-    </v:shape>
-</xml>";
-
-            using (var ms = new MemoryStream(Encoding.UTF8.GetBytes(vml))) {
+            XDocument vmlDocument = LoadOrCreateHeaderFooterVmlDocument(vmlPart);
+            UpsertHeaderFooterVmlShape(vmlDocument, shapeId, imgRelId, wPt, hPt);
+            using (var ms = new MemoryStream()) {
+                vmlDocument.Save(ms, SaveOptions.DisableFormatting);
+                ms.Position = 0;
                 vmlPart.FeedData(ms);
             }
 

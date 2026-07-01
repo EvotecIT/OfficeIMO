@@ -445,9 +445,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static string FormatAreaReference(byte[] payload, int offset) {
-            string start = BiffFormulaReferenceFormatter.FormatCellReference(BiffRecordReader.ReadUInt16(payload, offset), BiffRecordReader.ReadUInt16(payload, offset + 4));
-            string end = BiffFormulaReferenceFormatter.FormatCellReference(BiffRecordReader.ReadUInt16(payload, offset + 2), BiffRecordReader.ReadUInt16(payload, offset + 6));
-            return start == end ? start : start + ":" + end;
+            return BiffFormulaReferenceFormatter.FormatAreaReference(
+                BiffRecordReader.ReadUInt16(payload, offset),
+                BiffRecordReader.ReadUInt16(payload, offset + 2),
+                BiffRecordReader.ReadUInt16(payload, offset + 4),
+                BiffRecordReader.ReadUInt16(payload, offset + 6));
         }
 
         private static string FormatRawRelativeReference(byte[] payload, int offset) {

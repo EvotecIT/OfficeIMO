@@ -2571,6 +2571,157 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCharts_ImageExportStylesFollowSeriesIndexNotXmlOrder() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SeriesStyleIndexOrder.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2" },
+                    new[] {
+                        new ExcelChartSeries("First", new[] { 10d, 20d }),
+                        new ExcelChartSeries("Second", new[] { 30d, 40d })
+                    });
+
+                ExcelChart chart = sheet.AddChart(data, row: 1, column: 4, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Series Style Index");
+                chart.SetSeriesFillColor(0, "FF0000")
+                     .SetSeriesFillColor(1, "0000FF");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = GetWorksheetPartWithCharts(spreadsheet);
+                ChartPart chartPart = worksheetPart.DrawingsPart!.ChartParts.First();
+                C.BarChartSeries[] series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                    .GetFirstChild<C.PlotArea>()!
+                    .GetFirstChild<C.BarChart>()!
+                    .Elements<C.BarChartSeries>()
+                    .ToArray();
+                Assert.Equal(2, series.Length);
+                series[0].GetFirstChild<C.Index>()!.Val = 1U;
+                series[0].GetFirstChild<C.Order>()!.Val = 1U;
+                series[1].GetFirstChild<C.Index>()!.Val = 0U;
+                series[1].GetFirstChild<C.Order>()!.Val = 0U;
+                chartPart.ChartSpace.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
+                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+                Assert.Equal("0000FF", snapshot.Data.Series[0].SeriesColorArgb);
+                Assert.Equal("FF0000", snapshot.Data.Series[1].SeriesColorArgb);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_SnapshotPreservesSparseCachedValuePointIndexes() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.SparseCachedValues.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                var data = new ExcelChartData(
+                    new[] { "Q1", "Q2", "Q3" },
+                    new[] { new ExcelChartSeries("Sales", new[] { 10d, 20d, 30d }) });
+
+                sheet.AddChart(data, row: 1, column: 4, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Sparse cache");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = GetWorksheetPartWithCharts(spreadsheet);
+                ChartPart chartPart = worksheetPart.DrawingsPart!.ChartParts.First();
+                C.NumberReference valueReference = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                    .GetFirstChild<C.PlotArea>()!
+                    .GetFirstChild<C.BarChart>()!
+                    .Elements<C.BarChartSeries>()
+                    .First()
+                    .GetFirstChild<C.Values>()!
+                    .GetFirstChild<C.NumberReference>()!;
+                valueReference.Formula!.Text = "Summary!#REF!";
+                C.NumberingCache cache = valueReference.GetFirstChild<C.NumberingCache>()!;
+                cache.PointCount!.Val = 3U;
+                cache.RemoveAllChildren<C.NumericPoint>();
+                cache.Append(
+                    new C.NumericPoint(new C.NumericValue("10")) { Index = 0U },
+                    new C.NumericPoint(new C.NumericValue("30")) { Index = 2U });
+                chartPart.ChartSpace.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
+                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+
+                double[] values = Assert.Single(snapshot.Data.Series).Values.ToArray();
+                Assert.Equal(3, values.Length);
+                Assert.Equal(10d, values[0]);
+                Assert.True(double.IsNaN(values[1]));
+                Assert.Equal(30d, values[2]);
+            }
+        }
+
+        [Fact]
+        public void Test_ExcelCharts_HorizontalSnapshotReadsNonAdjacentValueRowFromSeriesFormula() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.HorizontalNonAdjacentValues.xlsx");
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Summary");
+                sheet.CellValue(1, 2, "Q1");
+                sheet.CellValue(1, 3, "Q2");
+                sheet.CellValue(1, 4, "Q3");
+                sheet.CellValue(2, 1, "Wrong row");
+                sheet.CellValue(2, 2, 999);
+                sheet.CellValue(2, 3, 999);
+                sheet.CellValue(2, 4, 999);
+                sheet.CellValue(3, 1, "Actual");
+                sheet.CellValue(3, 2, 10);
+                sheet.CellValue(3, 3, 20);
+                sheet.CellValue(3, 4, 30);
+
+                var range = new ExcelChartDataRange(
+                    "Summary",
+                    startRow: 1,
+                    startColumn: 1,
+                    categoryCount: 3,
+                    seriesCount: 1,
+                    hasHeaderRow: true,
+                    ExcelChartDataOrientation.Horizontal);
+                sheet.AddChart(range, row: 5, column: 1, widthPixels: 480, heightPixels: 320,
+                    type: ExcelChartType.ColumnClustered, title: "Non-adjacent row");
+                document.Save();
+            }
+
+            using (var spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = GetWorksheetPartWithCharts(spreadsheet);
+                ChartPart chartPart = worksheetPart.DrawingsPart!.ChartParts.First();
+                C.BarChartSeries series = chartPart.ChartSpace.GetFirstChild<C.Chart>()!
+                    .GetFirstChild<C.PlotArea>()!
+                    .GetFirstChild<C.BarChart>()!
+                    .Elements<C.BarChartSeries>()
+                    .First();
+
+                series.GetFirstChild<C.SeriesText>()!
+                    .GetFirstChild<C.StringReference>()!
+                    .Formula!.Text = "Summary!$A$3";
+                series.GetFirstChild<C.Values>()!
+                    .GetFirstChild<C.NumberReference>()!
+                    .Formula!.Text = "Summary!$B$3:$D$3";
+                chartPart.ChartSpace.Save();
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelChart chart = Assert.Single(document.Sheets.Single(sheet => sheet.Name == "Summary").Charts);
+                Assert.True(chart.TryGetSnapshot(out ExcelChartSnapshot snapshot));
+
+                Assert.Equal(new[] { "Q1", "Q2", "Q3" }, snapshot.Data.Categories);
+                ExcelChartSeries series = Assert.Single(snapshot.Data.Series);
+                Assert.Equal("Actual", series.Name);
+                Assert.Equal(new[] { 10d, 20d, 30d }, series.Values);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCharts_SeriesTrendline() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCharts.Trendline.xlsx");
 

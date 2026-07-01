@@ -17,6 +17,11 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
+| Evidence lane | Current pinned scope |
+| --- | --- |
+| CommonMark corpus | 316 of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |
+| GFM corpus | 52 cmark-gfm extension smoke fixtures plus focused crash/regression coverage |
+
 ## What Is Still Missing From Parity
 
 This is the non-looping checklist. A test-only slice is valid only when the matching engine behavior already exists and the open lane is proof.

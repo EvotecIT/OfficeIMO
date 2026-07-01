@@ -26,6 +26,11 @@ namespace OfficeIMO.Excel {
         /// <summary>
         /// Date/time value.
         /// </summary>
-        DateTime
+        DateTime,
+
+        /// <summary>
+        /// Binary blob value.
+        /// </summary>
+        Binary
     }
 }

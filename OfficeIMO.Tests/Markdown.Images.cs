@@ -12,6 +12,23 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Markdown {
         [Fact]
+        public void MarkdownReader_PreservesWindowsImagePathsUnlessFileUrlsAreDisallowed() {
+            const string windowsPath = @"C:\Reports\Images\OfficeIMO.png";
+            string markdown = $"![Local]({windowsPath})";
+
+            var document = global::OfficeIMO.Markdown.MarkdownReader.Parse(markdown);
+            var image = Assert.IsType<global::OfficeIMO.Markdown.ImageBlock>(Assert.Single(document.Blocks));
+
+            Assert.Equal(windowsPath, image.Path);
+
+            var blocked = global::OfficeIMO.Markdown.MarkdownReader.Parse(markdown, new global::OfficeIMO.Markdown.MarkdownReaderOptions {
+                DisallowFileUrls = true
+            });
+
+            Assert.DoesNotContain(blocked.Blocks, block => block is global::OfficeIMO.Markdown.ImageBlock);
+        }
+
+        [Fact]
         public async Task MarkdownToWord_ParsesImageHints() {
             string imagePath = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "Assets", "OfficeIMO.png"));
             int port = GetAvailablePort();

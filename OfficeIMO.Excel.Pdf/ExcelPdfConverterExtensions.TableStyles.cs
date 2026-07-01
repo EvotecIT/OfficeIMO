@@ -13,7 +13,7 @@ namespace OfficeIMO.Excel.Pdf {
             if (columnWidths != null) {
                 List<double> widthWeights = columnWidths.WidthWeights.Skip(columnOffset).Take(exportedColumns).ToList();
                 tableStyle.ColumnWidthWeights = widthWeights.Count == 0 ? columnWidths.WidthWeights : widthWeights;
-                if (IsFitToWidth(pageSetup)) {
+                if (ExcelPageSetupGeometry.HasFitToPageScale(pageSetup) && pageSetup?.FitToWidth is uint fitToWidth && fitToWidth > 0U) {
                     tableStyle.MaxWidth = CalculateFitToWidthMaxWidth(options, pageSetup);
                 } else if (pageSetup?.Scale is uint scale && scale > 0U && scale < 100U) {
                     double approximateWidth = CalculateChunkApproximateWidth(columnWidths, columnOffset, exportedColumns);
@@ -101,10 +101,6 @@ namespace OfficeIMO.Excel.Pdf {
             return columnWidths.ApproximateWidthPoints * chunkWeight / totalWeight;
         }
 
-        private static bool IsFitToWidth(ExcelSheetPageSetup? pageSetup) {
-            return pageSetup?.FitToWidth is uint fitToWidth && fitToWidth > 0U;
-        }
-
         private static void ApplyFitToHeight(PdfCore.PdfTableStyle tableStyle, ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup, IReadOnlyList<int> rowIndexes, RowLayoutData? rowHeights) {
             if (!IsFitToHeight(pageSetup) || rowIndexes.Count == 0) {
                 return;
@@ -189,16 +185,25 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static PdfCore.PageSize GetEffectivePageSize(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {
-            PdfCore.PageSize pageSize = options.PageSize ?? PdfCore.PageSizes.Letter;
-            if (pageSetup?.Orientation == ExcelPageOrientation.Landscape) {
-                return pageSize.Landscape();
+            if (options.PageSize.HasValue) {
+                PdfCore.PageSize pageSize = options.PageSize.Value;
+                if (pageSetup?.Orientation == ExcelPageOrientation.Landscape) {
+                    return pageSize.Landscape();
+                }
+
+                if (pageSetup?.Orientation == ExcelPageOrientation.Portrait) {
+                    return pageSize.Portrait();
+                }
+
+                return pageSize;
             }
 
-            if (pageSetup?.Orientation == ExcelPageOrientation.Portrait) {
-                return pageSize.Portrait();
+            if (options.PdfOptions != null) {
+                return options.PdfOptions.PageSize;
             }
 
-            return pageSize;
+            OfficePageSize officePageSize = ExcelPageSetupGeometry.ResolvePageSize(pageSetup, OfficePageSizes.Letter);
+            return new PdfCore.PageSize(officePageSize.ToPointWidth(), officePageSize.ToPointHeight());
         }
 
         private static PdfCore.PageMargins GetEffectiveMargins(ExcelPdfSaveOptions options, ExcelSheetPageSetup? pageSetup) {

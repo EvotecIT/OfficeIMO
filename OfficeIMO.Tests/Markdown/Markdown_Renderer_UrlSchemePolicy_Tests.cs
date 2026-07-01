@@ -21,5 +21,16 @@ public class Markdown_Renderer_UrlSchemePolicy_Tests {
         Assert.DoesNotContain("mailto:", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(">x<", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Reader_Applies_Scheme_Restrictions_To_Windows_Drive_Paths() {
+        var opts = new MarkdownReaderOptions { RestrictUrlSchemes = true, AllowedUrlSchemes = new[] { "https" } };
+        var doc = MarkdownReader.Parse("[x](C:/secret/file.docx)", opts);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.DoesNotContain("C:/secret/file.docx", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("<a ", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(">x<", html, StringComparison.Ordinal);
+    }
 }
 

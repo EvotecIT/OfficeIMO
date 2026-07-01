@@ -9,3 +9,6 @@ For each `sample.xls`, keep an approved `sample.import-report.md` generated from
 `LegacyXlsImportReport.ToMarkdown()`. Refresh baselines with the same
 `OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES=1` workflow used by the normal
 legacy XLS corpus.
+
+The diagnostic corpus also keeps `projection-gap-summary.md`, which confirms
+expected-error fixtures stay separate from normal corpus projection-gap evidence.

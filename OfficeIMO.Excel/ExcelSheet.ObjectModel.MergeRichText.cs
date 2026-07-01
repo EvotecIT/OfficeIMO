@@ -104,10 +104,16 @@ namespace OfficeIMO.Excel {
                     var properties = new RunProperties();
                     if (run.Bold) properties.Append(new Bold());
                     if (run.Italic) properties.Append(new Italic());
-                    if (run.Underline) properties.Append(new Underline());
+                    if (run.UnderlineStyle.HasValue && run.UnderlineStyle.Value != UnderlineValues.None) {
+                        properties.Append(new Underline { Val = run.UnderlineStyle.Value });
+                    } else if (run.Underline) {
+                        properties.Append(new Underline());
+                    }
+                    if (run.Strikethrough) properties.Append(new Strike());
                     if (!string.IsNullOrWhiteSpace(run.FontColor)) properties.Append(new Color { Rgb = NormalizeHexColor(run.FontColor!) });
                     if (!string.IsNullOrWhiteSpace(run.FontName)) properties.Append(new RunFont { Val = run.FontName });
                     if (run.FontSize.HasValue) properties.Append(new FontSize { Val = run.FontSize.Value });
+                    ExcelRichTextRun.AppendFontMetadata(properties, run);
 
                     var openXmlRun = new Run();
                     if (properties.HasChildren) {
@@ -142,9 +148,18 @@ namespace OfficeIMO.Excel {
                     Bold = properties?.GetFirstChild<Bold>() != null,
                     Italic = properties?.GetFirstChild<Italic>() != null,
                     Underline = properties?.GetFirstChild<Underline>() != null,
+                    Strikethrough = properties?.GetFirstChild<Strike>() != null,
+                    UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
                     FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
                     FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
-                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value
+                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                    VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
+                    Outline = properties?.GetFirstChild<Outline>() != null,
+                    Shadow = properties?.GetFirstChild<Shadow>() != null,
+                    Condense = properties?.GetFirstChild<Condense>() != null,
+                    Extend = properties?.GetFirstChild<Extend>() != null,
+                    FontFamily = ExcelRichTextRun.GetFontFamily(properties),
+                    FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties)
                 });
             }
 

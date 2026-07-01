@@ -8,6 +8,7 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
 using Ap = DocumentFormat.OpenXml.ExtendedProperties;
 using D = DocumentFormat.OpenXml.Drawing;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointUtils {
@@ -199,7 +200,7 @@ namespace OfficeIMO.PowerPoint {
 
         private static void EnsureThumbnail(PresentationDocument doc) {
             if (doc.ThumbnailPart != null) return;
-            ThumbnailPart thumbnailPart = doc.AddThumbnailPart("image/jpeg");
+            ThumbnailPart thumbnailPart = doc.AddThumbnailPart(OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg));
             using Stream stream = thumbnailPart.GetStream(FileMode.Create, FileAccess.Write);
             stream.Write(ThumbnailBytes, 0, ThumbnailBytes.Length);
         }

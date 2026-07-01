@@ -534,6 +534,7 @@ public sealed class HtmlPdfTests {
         HtmlPdfProfileContract document = HtmlPdfProfileContracts.Get(HtmlPdfProfile.Document);
 
         Assert.Equal(2, HtmlPdfProfileContracts.All.Count);
+        Assert.Equal(HtmlConversionProfile.Semantic, semantic.SharedProfile);
         Assert.Equal("html-pdf-semantic", semantic.Id);
         Assert.Contains("Markdown", semantic.Pipeline, StringComparison.Ordinal);
         Assert.Contains("semantic HTML", semantic.IntendedUse, StringComparison.OrdinalIgnoreCase);
@@ -542,6 +543,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains("table-cell-alignment", semantic.SupportedCssFeatures);
         Assert.Contains("unsupported-image-warning", semantic.DiagnosticGuarantees);
         Assert.Contains("no-browser-layout-engine", semantic.RendererBoundaries);
+        Assert.Equal(HtmlConversionProfile.Document, document.SharedProfile);
         Assert.Equal("html-pdf-document", document.Id);
         Assert.Contains("WordDocument", document.Pipeline, StringComparison.Ordinal);
         Assert.Contains("print-oriented HTML", document.IntendedUse, StringComparison.Ordinal);
@@ -559,6 +561,7 @@ public sealed class HtmlPdfTests {
         PdfHtmlProfileContract positioned = PdfHtmlProfileContracts.Get(PdfHtmlProfile.PositionedReview);
 
         Assert.Equal(2, PdfHtmlProfileContracts.All.Count);
+        Assert.Equal(HtmlConversionProfile.Semantic, semantic.SharedProfile);
         Assert.Equal("pdf-html-semantic", semantic.Id);
         Assert.Contains("logical model", semantic.Pipeline, StringComparison.Ordinal);
         Assert.Contains("Search", semantic.IntendedUse, StringComparison.Ordinal);
@@ -566,6 +569,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains("tables", semantic.PreservedSignals);
         Assert.Contains("export-summary", semantic.OutputArtifacts);
         Assert.Contains("no-editable-office-reconstruction", semantic.RendererBoundaries);
+        Assert.Equal(HtmlConversionProfile.PositionedReview, positioned.SharedProfile);
         Assert.Equal("pdf-html-positioned-review", positioned.Id);
         Assert.Contains("positioned review hints", positioned.Pipeline, StringComparison.Ordinal);
         Assert.Contains("browser", positioned.IntendedUse, StringComparison.Ordinal);

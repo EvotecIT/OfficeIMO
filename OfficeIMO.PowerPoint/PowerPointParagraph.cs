@@ -53,7 +53,7 @@ namespace OfficeIMO.PowerPoint {
         /// Adds formatted text to the paragraph and returns the paragraph for chaining.
         /// </summary>
         public PowerPointParagraph AddFormattedText(string text, bool bold = false, bool italic = false,
-            A.TextUnderlineValues? underline = null) {
+            A.TextUnderlineValues? underline = null, bool strikethrough = false) {
             A.Run run = InsertRun(text);
             var wrapper = new PowerPointTextRun(run, _slidePart, _ownerPart);
             if (bold) {
@@ -66,6 +66,9 @@ namespace OfficeIMO.PowerPoint {
                 wrapper.Underline = true;
                 wrapper.Run.RunProperties ??= new A.RunProperties();
                 wrapper.Run.RunProperties.Underline = underline.Value;
+            }
+            if (strikethrough) {
+                wrapper.Strikethrough = true;
             }
             return this;
         }
@@ -374,6 +377,15 @@ namespace OfficeIMO.PowerPoint {
         public PowerPointParagraph SetUnderline(bool underline = true) {
             PowerPointTextRun run = GetDefaultRun();
             run.Underline = underline;
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the current run strikethrough property and returns the paragraph for chaining.
+        /// </summary>
+        public PowerPointParagraph SetStrikethrough(bool strikethrough = true) {
+            PowerPointTextRun run = GetDefaultRun();
+            run.Strikethrough = strikethrough;
             return this;
         }
 

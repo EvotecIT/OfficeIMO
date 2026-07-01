@@ -154,6 +154,16 @@ public static partial class MarkdownReader {
         return CommonMarkCharacterReference.DecodeAll(unescaped);
     }
 
+    private static string DecodeLinkDestination(string value) {
+        var unescaped = UnescapeMarkdownDestination(value);
+        return CommonMarkCharacterReference.DecodeAll(unescaped);
+    }
+
+    private static string UnescapeMarkdownDestination(string value) {
+        if (IsWindowsDriveLike(value)) return value.Replace("\\\\", "\\");
+        return UnescapeMarkdownBackslashEscapes(value);
+    }
+
     private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
@@ -341,7 +351,7 @@ public static partial class MarkdownReader {
 
                 urlStart = start + 1;
                 urlLength = gt - urlStart;
-                url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength));
+                url = DecodeLinkDestination(inner.Substring(urlStart, urlLength));
 
                 int restStart = gt + 1;
                 if (restStart < endExclusive && !IsLinkWhitespace(inner[restStart])) {
@@ -378,14 +388,14 @@ public static partial class MarkdownReader {
         if (ws < 0) {
             urlStart = start;
             urlLength = endExclusive - start;
-            url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength));
+            url = DecodeLinkDestination(inner.Substring(urlStart, urlLength));
             title = null;
             return true;
         }
 
         urlStart = start;
         urlLength = ws - start;
-        url = DecodeLinkDestinationOrTitle(inner.Substring(urlStart, urlLength));
+        url = DecodeLinkDestination(inner.Substring(urlStart, urlLength));
 
         int remainingStart = ws;
         while (remainingStart < endExclusive && IsLinkWhitespace(inner[remainingStart])) {
@@ -426,7 +436,7 @@ public static partial class MarkdownReader {
         if (inner[trimmedStart] == '<') return false;
         if (IndexOfWhitespace(inner, trimmedStart, trimmedEndExclusive) >= 0) return false;
 
-        destination = DecodeLinkDestinationOrTitle(inner.Substring(trimmedStart, trimmedEndExclusive - trimmedStart));
+        destination = DecodeLinkDestination(inner.Substring(trimmedStart, trimmedEndExclusive - trimmedStart));
         destinationStart = trimmedStart;
         destinationLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
         return true;

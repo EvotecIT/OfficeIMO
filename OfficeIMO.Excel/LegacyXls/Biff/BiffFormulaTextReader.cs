@@ -956,9 +956,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             ushort lastRow = BiffRecordReader.ReadUInt16(bytes, offset + 2);
             ushort firstColumnBits = BiffRecordReader.ReadUInt16(bytes, offset + 4);
             ushort lastColumnBits = BiffRecordReader.ReadUInt16(bytes, offset + 6);
-            return BiffFormulaReferenceFormatter.FormatCellReference(firstRow, firstColumnBits)
-                + ":"
-                + BiffFormulaReferenceFormatter.FormatCellReference(lastRow, lastColumnBits);
+            return BiffFormulaReferenceFormatter.FormatAreaReference(firstRow, lastRow, firstColumnBits, lastColumnBits);
         }
 
         private static string ReadRelativeCellReference(byte[] bytes, int offset, int formulaRow, int formulaColumn) {

@@ -32,6 +32,16 @@ namespace OfficeIMO.Excel {
         public uint? Scale { get; internal set; }
 
         /// <summary>
+        /// OpenXML worksheet paper-size code, when configured.
+        /// </summary>
+        public uint? PaperSizeCode { get; internal set; }
+
+        /// <summary>
+        /// Known worksheet paper size, when the configured code maps to a supported OfficeIMO value.
+        /// </summary>
+        public ExcelPaperSize? PaperSize { get; internal set; }
+
+        /// <summary>
         /// Worksheet page order for multi-page print/export output, when configured.
         /// </summary>
         public ExcelPageOrder? PageOrder { get; internal set; }
@@ -107,6 +117,11 @@ namespace OfficeIMO.Excel {
                 result.FitToWidth = pageSetup.FitToWidth?.Value;
                 result.FitToHeight = pageSetup.FitToHeight?.Value;
                 result.Scale = pageSetup.Scale?.Value;
+                result.PaperSizeCode = pageSetup.PaperSize?.Value;
+                if (pageSetup.PaperSize?.Value is uint paperSizeCode && Enum.IsDefined(typeof(ExcelPaperSize), paperSizeCode)) {
+                    result.PaperSize = (ExcelPaperSize)paperSizeCode;
+                }
+
                 if (pageSetup.PageOrder?.Value == PageOrderValues.OverThenDown) {
                     result.PageOrder = ExcelPageOrder.OverThenDown;
                 } else if (pageSetup.PageOrder?.Value == PageOrderValues.DownThenOver) {

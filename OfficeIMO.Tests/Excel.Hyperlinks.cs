@@ -9,6 +9,23 @@ namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
         [Trait("Category", "ExcelLinks")]
+        public void Excel_SetHyperlink_PreservesPublicAbiOverloads() {
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetHyperlink),
+                new[] { typeof(int), typeof(int), typeof(string), typeof(string), typeof(bool) }));
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetHyperlink),
+                new[] { typeof(string), typeof(string), typeof(string), typeof(bool) }));
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetInternalLink),
+                new[] { typeof(int), typeof(int), typeof(string), typeof(string), typeof(bool) }));
+            Assert.NotNull(typeof(ExcelSheet).GetMethod(
+                nameof(ExcelSheet.SetInternalLink),
+                new[] { typeof(int), typeof(int), typeof(ExcelSheet), typeof(string), typeof(string), typeof(bool) }));
+        }
+
+        [Fact]
+        [Trait("Category", "ExcelLinks")]
         public void Excel_SetHyperlink_ReplacesExistingEntry() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelHyperlinkReplace.xlsx");
             if (File.Exists(filePath)) File.Delete(filePath);
@@ -71,6 +88,39 @@ namespace OfficeIMO.Tests {
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        [Trait("Category", "ExcelLinks")]
+        public void Excel_SetHyperlinks_WritesTooltips() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelHyperlinkTooltips.xlsx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                var sheet = document.AddWorkSheet("Links");
+                var target = document.AddWorkSheet("Target");
+                sheet.SetHyperlink(1, 1, "https://example.org/docs", display: "Docs", style: false, tooltip: "Open external docs");
+                sheet.SetInternalLink(2, 1, target, "B2", display: "Jump", style: false, tooltip: "Jump to target cell");
+                document.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false)) {
+                var workbookPart = package.WorkbookPart!;
+                var sheetRef = workbookPart.Workbook.Sheets!.Elements<Sheet>().First(s => s.Name!.Value == "Links");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheetRef.Id!);
+                var hyperlinks = worksheetPart.Worksheet.Elements<Hyperlinks>().Single();
+                var external = hyperlinks.Elements<Hyperlink>().Single(item => item.Reference!.Value == "A1");
+                var internalLink = hyperlinks.Elements<Hyperlink>().Single(item => item.Reference!.Value == "A2");
+                Assert.Equal("Open external docs", external.Tooltip!.Value);
+                Assert.Equal("Jump to target cell", internalLink.Tooltip!.Value);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                var links = document.Sheets.First(sheet => sheet.Name == "Links").GetHyperlinks();
+                Assert.Equal("Open external docs", links["A1"].Tooltip);
+                Assert.Equal("Jump to target cell", links["A2"].Tooltip);
                 Assert.Empty(document.ValidateOpenXml());
             }
         }

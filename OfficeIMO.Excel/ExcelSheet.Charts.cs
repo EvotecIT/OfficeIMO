@@ -39,13 +39,13 @@ namespace OfficeIMO.Excel {
         /// Writes chart data into the worksheet and returns the corresponding data range.
         /// </summary>
         public ExcelChartDataRange WriteChartData(ExcelChartData data, int startRow = 1, int startColumn = 1, string? categoryHeader = null,
-            bool includeHeaderRow = true, bool numericCategories = false) {
+            bool includeHeaderRow = true, bool numericCategories = false, ExcelChartDataOrientation orientation = ExcelChartDataOrientation.Vertical) {
             if (data == null) throw new ArgumentNullException(nameof(data));
             if (startRow <= 0 || startColumn <= 0) throw new ArgumentOutOfRangeException(nameof(startRow));
 
             IReadOnlyList<string> categories = data.Categories;
             IReadOnlyList<ExcelChartSeries> series = data.Series;
-            int categoryCount = categories.Count;
+            int categoryCount = GetChartDataPointCount(data);
             int seriesCount = series.Count;
             int cellCapacity = categoryCount * (seriesCount + 1);
             if (includeHeaderRow) {
@@ -53,29 +53,48 @@ namespace OfficeIMO.Excel {
             }
 
             var cells = new List<(int Row, int Column, object Value)>(cellCapacity);
-            int rowOffset = includeHeaderRow ? 1 : 0;
-            if (includeHeaderRow) {
-                string header = categoryHeader ?? string.Empty;
-                cells.Add((startRow, startColumn, header));
+            if (orientation == ExcelChartDataOrientation.Vertical) {
+                int rowOffset = includeHeaderRow ? 1 : 0;
+                if (includeHeaderRow) {
+                    string header = categoryHeader ?? string.Empty;
+                    cells.Add((startRow, startColumn, header));
 
-                for (int s = 0; s < seriesCount; s++) {
-                    cells.Add((startRow, startColumn + s + 1, series[s].Name));
-                }
-            }
-
-            for (int i = 0; i < categoryCount; i++) {
-                int row = startRow + i + rowOffset;
-                string categoryText = categories[i];
-                object categoryValue = categoryText;
-                if (numericCategories) {
-                    if (!double.TryParse(categoryText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
-                        throw new ArgumentException($"Category '{categoryText}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
+                    for (int s = 0; s < seriesCount; s++) {
+                        cells.Add((startRow, startColumn + s + 1, series[s].Name));
                     }
-                    categoryValue = numeric;
                 }
-                cells.Add((row, startColumn, categoryValue));
+
+                for (int i = 0; i < categoryCount; i++) {
+                    int row = startRow + i + rowOffset;
+                    object categoryValue = GetChartCategoryValue(categories, series, i, numericCategories);
+                    cells.Add((row, startColumn, categoryValue));
+                    for (int s = 0; s < seriesCount; s++) {
+                        if (i < series[s].Values.Count) {
+                            cells.Add((row, startColumn + s + 1, series[s].Values[i]));
+                        }
+                    }
+                }
+            } else {
+                int columnOffset = includeHeaderRow ? 1 : 0;
+                if (includeHeaderRow) {
+                    cells.Add((startRow, startColumn, categoryHeader ?? string.Empty));
+                }
+
+                for (int i = 0; i < categoryCount; i++) {
+                    cells.Add((startRow, startColumn + i + columnOffset, GetChartCategoryValue(categories, series, i, numericCategories)));
+                }
+
                 for (int s = 0; s < seriesCount; s++) {
-                    cells.Add((row, startColumn + s + 1, series[s].Values[i]));
+                    int row = startRow + s + 1;
+                    if (includeHeaderRow) {
+                        cells.Add((row, startColumn, series[s].Name));
+                    }
+
+                    for (int i = 0; i < categoryCount; i++) {
+                        if (i < series[s].Values.Count) {
+                            cells.Add((row, startColumn + i + columnOffset, series[s].Values[i]));
+                        }
+                    }
                 }
             }
 
@@ -85,7 +104,49 @@ namespace OfficeIMO.Excel {
                 }
             }
 
-            return new ExcelChartDataRange(Name, startRow, startColumn, categoryCount, seriesCount, hasHeaderRow: includeHeaderRow);
+            return new ExcelChartDataRange(Name, startRow, startColumn, categoryCount, seriesCount, includeHeaderRow, orientation);
+        }
+
+        private static int GetChartDataPointCount(ExcelChartData data) {
+            int pointCount = data.Categories.Count;
+            foreach (ExcelChartSeries series in data.Series) {
+                pointCount = Math.Max(pointCount, series.Values.Count);
+                if (series.XValues != null) {
+                    pointCount = Math.Max(pointCount, series.XValues.Count);
+                }
+            }
+
+            return pointCount;
+        }
+
+        private static object GetChartCategoryValue(IReadOnlyList<string> categories, IReadOnlyList<ExcelChartSeries> series, int index, bool numericCategories) {
+            if (index < categories.Count) {
+                return CoerceChartCategoryValue(categories[index], numericCategories);
+            }
+
+            if (numericCategories) {
+                foreach (ExcelChartSeries item in series) {
+                    if (item.XValues != null && index < item.XValues.Count) {
+                        return item.XValues[index];
+                    }
+                }
+
+                return index + 1D;
+            }
+
+            return string.Empty;
+        }
+
+        private static object CoerceChartCategoryValue(string categoryText, bool numericCategories) {
+            if (!numericCategories) {
+                return categoryText;
+            }
+
+            if (!double.TryParse(categoryText, System.Globalization.NumberStyles.Any, System.Globalization.CultureInfo.InvariantCulture, out var numeric)) {
+                throw new ArgumentException($"Category '{categoryText}' is not numeric. Scatter charts require numeric X values. Use AddScatterChartFromRanges for non-numeric categories.");
+            }
+
+            return numeric;
         }
 
         /// <summary>
@@ -102,7 +163,7 @@ namespace OfficeIMO.Excel {
             ReportChartTiming(stageWatch, "AddChart.GetOrCreateChartDataSheet");
 
             stageWatch?.Restart();
-            int startRow = _excelDocument.ReserveChartDataStartRow(dataSheet, data.Categories.Count + 1);
+            int startRow = _excelDocument.ReserveChartDataStartRow(dataSheet, GetChartDataPointCount(data) + 1);
             ReportChartTiming(stageWatch, "AddChart.ReserveChartData");
 
             stageWatch?.Restart();

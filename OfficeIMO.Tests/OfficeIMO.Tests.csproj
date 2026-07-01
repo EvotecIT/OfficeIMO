@@ -40,6 +40,7 @@
         <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer.IntelligenceX\\OfficeIMO.MarkdownRenderer.IntelligenceX.csproj" />
         <ProjectReference Include="..\\OfficeIMO.MarkdownRenderer.SamplePlugin\\OfficeIMO.MarkdownRenderer.SamplePlugin.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.Excel.Html\\OfficeIMO.Excel.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.Pdf\\OfficeIMO.Excel.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.GoogleDocs\\OfficeIMO.Word.GoogleDocs.csproj" />
@@ -49,6 +50,7 @@
         <ProjectReference Include="..\\OfficeIMO.Word.Markdown\\OfficeIMO.Word.Markdown.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Visio\\OfficeIMO.Visio.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint\\OfficeIMO.PowerPoint.csproj" />
+        <ProjectReference Include="..\\OfficeIMO.PowerPoint.Html\\OfficeIMO.PowerPoint.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.PowerPoint.Pdf\\OfficeIMO.PowerPoint.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Pdf\\OfficeIMO.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Zip\\OfficeIMO.Zip.csproj" />

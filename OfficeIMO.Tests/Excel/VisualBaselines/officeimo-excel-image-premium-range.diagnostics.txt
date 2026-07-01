@@ -1,0 +1,1 @@
+Warning|ExcelCellCommentBodyApproximation|Premium!D7|Excel cell comment/note body is rendered as a dependency-free callout approximation, not an Excel-exact popover.

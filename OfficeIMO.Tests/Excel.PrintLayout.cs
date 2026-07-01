@@ -17,6 +17,7 @@ namespace OfficeIMO.Tests {
                 sheet.ApplyPrintLayout(new ExcelPrintLayoutOptions {
                     Preset = ExcelPrintLayoutPreset.Report,
                     PrintArea = "A1:D25",
+                    PaperSize = ExcelPaperSize.A4,
                     RepeatFirstColumn = 1,
                     RepeatLastColumn = 1
                 });
@@ -30,6 +31,8 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(1U, setup.FitToWidth);
                 Assert.Equal(0U, setup.FitToHeight);
                 Assert.Equal(ExcelPageOrder.DownThenOver, setup.PageOrder);
+                Assert.Equal(ExcelPaperSize.A4, setup.PaperSize);
+                Assert.Equal(9U, setup.PaperSizeCode);
                 Assert.NotNull(setup.Margins);
                 Assert.Equal(0.25D, setup.Margins!.Left);
                 Assert.Equal("$A$1:$D$25", sheet.GetPrintArea());
@@ -67,6 +70,7 @@ namespace OfficeIMO.Tests {
                 Assert.Null(setup.FitToWidth);
                 Assert.Null(setup.FitToHeight);
                 Assert.Equal(100U, setup.Scale!.Value);
+                Assert.Null(setup.PaperSize);
                 Assert.Null(worksheet.GetFirstChild<SheetProperties>()?.GetFirstChild<PageSetupProperties>()?.FitToPage);
             }
         }

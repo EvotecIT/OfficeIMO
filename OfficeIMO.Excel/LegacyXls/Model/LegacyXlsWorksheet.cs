@@ -5,6 +5,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
     public sealed class LegacyXlsWorksheet {
         private readonly List<LegacyXlsCell> _cells = new();
         private readonly List<LegacyXlsColumnLayout> _columns = new();
+        private readonly List<LegacyXlsCellWatch> _cellWatches = new();
         private readonly List<LegacyXlsComment> _comments = new();
         private readonly List<LegacyXlsConditionalFormattingExtensionRecord> _conditionalFormattingExtensions = new();
         private readonly List<LegacyXlsConditionalFormatting> _conditionalFormattings = new();
@@ -14,12 +15,16 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsAutoFilterCriteria> _autoFilterCriteria = new();
         private readonly List<LegacyXlsPageBreak> _columnPageBreaks = new();
         private readonly List<LegacyXlsHyperlink> _hyperlinks = new();
+        private readonly List<LegacyXlsIgnoredError> _ignoredErrors = new();
         private readonly List<LegacyXlsMergedRange> _mergedRanges = new();
         private readonly List<LegacyXlsWorksheetMetadataRecord> _metadataRecords = new();
         private readonly List<LegacyXlsSheetFutureMetadataRecord> _futureMetadataRecords = new();
+        private readonly List<LegacyXlsProtectedRange> _protectedRanges = new();
         private readonly List<LegacyXlsPageBreak> _rowPageBreaks = new();
+        private readonly List<LegacyXlsScenario> _scenarios = new();
         private readonly List<LegacyXlsRowLayout> _rows = new();
         private readonly List<LegacyXlsSelection> _selections = new();
+        private readonly List<LegacyXlsWorksheetWindowView> _windowViews = new();
 
         /// <summary>
         /// Creates a parsed legacy XLS worksheet.
@@ -81,6 +86,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsColumnLayout> Columns => _columns;
 
         /// <summary>
+        /// Gets watched-cell metadata parsed for this worksheet.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsCellWatch> CellWatches => _cellWatches;
+
+        /// <summary>
         /// Gets parsed cell comments for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsComment> Comments => _comments;
@@ -106,6 +116,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsDataValidationCollectionRecord> DataValidationCollections => _dataValidationCollections;
 
         /// <summary>
+        /// Gets worksheet-level data-consolidation settings parsed from a BIFF DCon record.
+        /// </summary>
+        public LegacyXlsDataConsolidationSettings? DataConsolidationSettings { get; private set; }
+
+        /// <summary>
         /// Gets preserve/projection metadata for Array formula records discovered on this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsArrayFormulaRecord> ArrayFormulaRecords => _arrayFormulaRecords;
@@ -126,9 +141,24 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsPageBreak> ColumnPageBreaks => _columnPageBreaks;
 
         /// <summary>
+        /// Gets worksheet-level phonetic display defaults parsed from a BIFF PhoneticInfo record.
+        /// </summary>
+        public LegacyXlsPhoneticSettings? PhoneticSettings { get; private set; }
+
+        /// <summary>
         /// Gets parsed hyperlinks for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsHyperlink> Hyperlinks => _hyperlinks;
+
+        /// <summary>
+        /// Gets ignored formula error metadata parsed from BIFF8 shared-feature records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsIgnoredError> IgnoredErrors => _ignoredErrors;
+
+        /// <summary>
+        /// Gets protected ranges parsed from BIFF8 worksheet shared-feature records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsProtectedRange> ProtectedRanges => _protectedRanges;
 
         /// <summary>
         /// Gets parsed merged ranges for this worksheet.
@@ -151,6 +181,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsPageBreak> RowPageBreaks => _rowPageBreaks;
 
         /// <summary>
+        /// Gets worksheet scenarios parsed from SCENARIO records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsScenario> Scenarios => _scenarios;
+
+        /// <summary>
         /// Gets parsed row layout metadata for this worksheet.
         /// </summary>
         public IReadOnlyList<LegacyXlsRowLayout> Rows => _rows;
@@ -161,14 +196,34 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsSelection> Selections => _selections;
 
         /// <summary>
+        /// Gets worksheet-window view records parsed from BIFF Window2 records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsWorksheetWindowView> WindowViews => _windowViews;
+
+        /// <summary>
         /// Gets parsed worksheet sort dialog metadata, when present.
         /// </summary>
         public LegacyXlsSortSettings? SortSettings { get; private set; }
 
         /// <summary>
+        /// Gets scenario-manager metadata parsed from a ScenMan record.
+        /// </summary>
+        public LegacyXlsScenarioManager? ScenarioManager { get; private set; }
+
+        /// <summary>
         /// Gets parsed frozen pane metadata for this worksheet.
         /// </summary>
         public LegacyXlsFreezePane? FreezePane { get; private set; }
+
+        /// <summary>
+        /// Gets parsed non-frozen split pane metadata for this worksheet.
+        /// </summary>
+        public LegacyXlsSplitPane? SplitPane { get; private set; }
+
+        /// <summary>
+        /// Gets whether the frozen pane Window2 record requests the BIFF frozen-without-split state.
+        /// </summary>
+        public bool? FrozenWithoutSplit { get; private set; }
 
         /// <summary>
         /// Gets parsed worksheet protection metadata.
@@ -246,9 +301,19 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool? GridSet { get; private set; }
 
         /// <summary>
+        /// Gets whether formulas on this worksheet should be recalculated on load.
+        /// </summary>
+        public bool? FullCalculationOnLoad { get; private set; }
+
+        /// <summary>
         /// Gets the worksheet view zoom scale percentage, when present.
         /// </summary>
         public uint? ZoomScale { get; private set; }
+
+        /// <summary>
+        /// Gets the normal-view zoom scale percentage, when specified by the legacy window metadata.
+        /// </summary>
+        public uint? ZoomScaleNormal { get; private set; }
 
         /// <summary>
         /// Gets the default row height in points, when specified by the legacy worksheet metadata.
@@ -271,6 +336,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool? ShowGridLines { get; private set; }
 
         /// <summary>
+        /// Gets whether cell formulas should be shown in the worksheet view, when specified by the legacy window metadata.
+        /// </summary>
+        public bool? ShowFormulas { get; private set; }
+
+        /// <summary>
         /// Gets whether worksheet row and column headings should be shown, when specified by the legacy window metadata.
         /// </summary>
         public bool? ShowRowColumnHeadings { get; private set; }
@@ -284,6 +354,56 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets whether the worksheet view should be displayed from right to left, when specified by the legacy window metadata.
         /// </summary>
         public bool? RightToLeft { get; private set; }
+
+        /// <summary>
+        /// Gets whether the worksheet uses the default gridline color, when specified by the legacy window metadata.
+        /// </summary>
+        public bool? DefaultGridColor { get; private set; }
+
+        /// <summary>
+        /// Gets the worksheet view gridline color index, when specified by the legacy window metadata.
+        /// </summary>
+        public ushort? GridLineColorIndex { get; private set; }
+
+        /// <summary>
+        /// Gets whether outline symbols should be shown in the worksheet view, when specified by the legacy window metadata.
+        /// </summary>
+        public bool? ShowOutlineSymbols { get; private set; }
+
+        /// <summary>
+        /// Gets whether the worksheet tab is selected, when specified by the legacy window metadata.
+        /// </summary>
+        public bool? TabSelected { get; private set; }
+
+        /// <summary>
+        /// Gets whether the worksheet is displayed in Page Break Preview view, when specified by the legacy window metadata.
+        /// </summary>
+        public bool? PageBreakPreview { get; private set; }
+
+        /// <summary>
+        /// Gets whether the worksheet is displayed in Page Layout view, when specified by a PLV future record.
+        /// </summary>
+        public bool? PageLayoutView { get; private set; }
+
+        /// <summary>
+        /// Gets the Page Layout view zoom scale, when specified by a PLV future record.
+        /// </summary>
+        public uint? PageLayoutZoomScale { get; private set; }
+
+        /// <summary>
+        /// Gets the BIFF color index used for the worksheet tab color, when specified by a SheetExt record.
+        /// </summary>
+        public ushort? TabColorIndex { get; private set; }
+
+        /// <summary>
+        /// Gets the zero-based first visible row in the worksheet window, when specified by the legacy window metadata.
+        /// </summary>
+        public int? FirstVisibleRow { get; private set; }
+
+        /// <summary>
+        /// Gets the zero-based first visible column in the worksheet window, when specified by the legacy window metadata.
+        /// </summary>
+        public int? FirstVisibleColumn { get; private set; }
 
         internal void AddCell(LegacyXlsCell cell) {
             _cells.Add(cell);
@@ -300,7 +420,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                         cell.Value,
                         cell.StyleIndex,
                         isFormula: true,
-                        formulaText: formulaText);
+                        formulaText: formulaText,
+                        textFormattingRuns: cell.TextFormattingRuns);
                     return true;
                 }
             }
@@ -344,12 +465,51 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             AutoFilterDropDownCount = count;
         }
 
+        internal void SetDataConsolidationSettings(LegacyXlsDataConsolidationSettings settings) {
+            DataConsolidationSettings = settings;
+        }
+
         internal void AddColumnPageBreak(LegacyXlsPageBreak pageBreak) {
             _columnPageBreaks.Add(pageBreak);
         }
 
+        internal void AddCellWatch(LegacyXlsCellWatch cellWatch) {
+            _cellWatches.Add(cellWatch);
+        }
+
+        internal void SetScenarioManager(LegacyXlsScenarioManager scenarioManager) {
+            ScenarioManager = scenarioManager;
+        }
+
+        internal void AddScenario(LegacyXlsScenario scenario) {
+            _scenarios.Add(scenario);
+        }
+
         internal void AddHyperlink(LegacyXlsHyperlink hyperlink) {
             _hyperlinks.Add(hyperlink);
+        }
+
+        internal void AddIgnoredError(LegacyXlsIgnoredError ignoredError) {
+            _ignoredErrors.Add(ignoredError);
+        }
+
+        internal void AddProtectedRange(LegacyXlsProtectedRange protectedRange) {
+            _protectedRanges.Add(protectedRange);
+        }
+
+        internal bool TrySetHyperlinkTooltip(int startRow, int startColumn, int endRow, int endColumn, string tooltip) {
+            for (int i = _hyperlinks.Count - 1; i >= 0; i--) {
+                LegacyXlsHyperlink hyperlink = _hyperlinks[i];
+                if (hyperlink.StartRow == startRow
+                    && hyperlink.StartColumn == startColumn
+                    && hyperlink.EndRow == endRow
+                    && hyperlink.EndColumn == endColumn) {
+                    _hyperlinks[i] = hyperlink.WithTooltip(tooltip);
+                    return true;
+                }
+            }
+
+            return false;
         }
 
         internal void AddMergedRange(LegacyXlsMergedRange mergedRange) {
@@ -381,6 +541,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             _selections.Add(selection);
         }
 
+        internal void AddWindowView(LegacyXlsWorksheetWindowView view) {
+            _windowViews.Add(view);
+        }
+
         internal void SetSortSettings(LegacyXlsSortSettings sortSettings) {
             SortSettings = sortSettings;
         }
@@ -389,8 +553,20 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FreezePane = freezePane;
         }
 
+        internal void SetSplitPane(LegacyXlsSplitPane splitPane) {
+            SplitPane = splitPane;
+        }
+
+        internal void SetFrozenWithoutSplit(bool frozenWithoutSplit) {
+            FrozenWithoutSplit = frozenWithoutSplit;
+        }
+
         internal void SetZoomScale(uint zoomScale) {
             ZoomScale = zoomScale;
+        }
+
+        internal void SetZoomScaleNormal(uint zoomScale) {
+            ZoomScaleNormal = zoomScale;
         }
 
         internal void SetDefaultRowHeight(double height, bool hidden) {
@@ -406,6 +582,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ShowGridLines = visible;
         }
 
+        internal void SetFormulasVisible(bool visible) {
+            ShowFormulas = visible;
+        }
+
         internal void SetRowColumnHeadingsVisible(bool visible) {
             ShowRowColumnHeadings = visible;
         }
@@ -418,6 +598,40 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             RightToLeft = rightToLeft;
         }
 
+        internal void SetDefaultGridColor(bool defaultGridColor) {
+            DefaultGridColor = defaultGridColor;
+        }
+
+        internal void SetGridLineColorIndex(ushort colorIndex) {
+            GridLineColorIndex = colorIndex;
+        }
+
+        internal void SetOutlineSymbolsVisible(bool visible) {
+            ShowOutlineSymbols = visible;
+        }
+
+        internal void SetTabSelected(bool selected) {
+            TabSelected = selected;
+        }
+
+        internal void SetPageBreakPreview(bool enabled) {
+            PageBreakPreview = enabled;
+        }
+
+        internal void SetPageLayoutView(bool enabled, uint? zoomScale = null) {
+            PageLayoutView = enabled;
+            PageLayoutZoomScale = zoomScale;
+        }
+
+        internal void SetTabColorIndex(ushort colorIndex) {
+            TabColorIndex = colorIndex;
+        }
+
+        internal void SetFirstVisibleCell(int row, int column) {
+            FirstVisibleRow = row;
+            FirstVisibleColumn = column;
+        }
+
         internal void SetDeclaredUsedRange(LegacyXlsWorksheetDimension dimension) {
             DeclaredUsedRange = dimension;
         }
@@ -428,6 +642,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void SetGridSet(bool gridSet) {
             GridSet = gridSet;
+        }
+
+        internal void SetFullCalculationOnLoad(bool fullCalculationOnLoad) {
+            FullCalculationOnLoad = fullCalculationOnLoad;
+        }
+
+        internal void SetPhoneticSettings(LegacyXlsPhoneticSettings settings) {
+            PhoneticSettings = settings ?? throw new ArgumentNullException(nameof(settings));
         }
 
         internal void SetOutlineLevels(byte rowLevel, byte columnLevel) {
@@ -456,7 +678,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 isProtected,
                 Protection?.LegacyPasswordHash,
                 Protection?.ProtectObjects,
-                Protection?.ProtectScenarios);
+                Protection?.ProtectScenarios,
+                Protection?.Permissions);
         }
 
         internal void SetProtectionPasswordHash(ushort passwordHash) {
@@ -469,6 +692,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void SetScenarioProtection(bool isProtected) {
             Protection = (Protection ?? new LegacyXlsWorksheetProtection(isProtected: false)).WithScenarioProtection(isProtected);
+        }
+
+        internal void SetProtectionPermissions(LegacyXlsWorksheetProtectionPermissions permissions) {
+            Protection = (Protection ?? new LegacyXlsWorksheetProtection(isProtected: false)).WithPermissions(permissions);
         }
     }
 }

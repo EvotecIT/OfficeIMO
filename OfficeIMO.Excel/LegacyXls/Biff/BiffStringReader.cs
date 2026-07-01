@@ -1,4 +1,5 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
+using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffStringReader {
@@ -9,9 +10,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static string ReadUnicodeString(byte[] bytes, ref int offset) {
+            return ReadUnicodeStringValue(bytes, ref offset).Text;
+        }
+
+        internal static BiffStringValue ReadUnicodeStringValue(byte[] bytes, ref int offset) {
             int charCount = BiffRecordReader.ReadUInt16(bytes, offset);
             offset += 2;
-            return ReadUnicodeStringBody(bytes, ref offset, charCount);
+            return ReadUnicodeStringValueBody(bytes, ref offset, charCount);
         }
 
         internal static string ReadUnicodeString(IReadOnlyList<byte[]> payloads) {
@@ -49,7 +54,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal static List<string> ReadSharedStrings(IReadOnlyList<byte[]> payloads, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset) {
-            var strings = new List<string>();
+            return ReadSharedStringValues(payloads, diagnostics, recordOffset)
+                .Select(value => value.Text)
+                .ToList();
+        }
+
+        internal static List<BiffStringValue> ReadSharedStringValues(IReadOnlyList<byte[]> payloads, List<LegacyXlsImportDiagnostic> diagnostics, int recordOffset) {
+            var strings = new List<BiffStringValue>();
             if (payloads.Count == 0 || payloads[0].Length < 8) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
@@ -57,7 +68,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     "The shared string table record is too short.",
                     recordOffset: recordOffset,
                     recordType: (ushort)BiffRecordType.Sst));
-                return strings;
+                return new List<BiffStringValue>();
             }
 
             var reader = new BiffStringSegmentReader(payloads);
@@ -65,7 +76,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             uint uniqueCount = reader.ReadUInt32Raw();
             for (uint i = 0; i < uniqueCount && reader.HasData; i++) {
                 try {
-                    strings.Add(ReadSegmentedUnicodeString(reader));
+                    strings.Add(ReadSegmentedUnicodeStringValue(reader));
                 } catch (InvalidDataException ex) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
@@ -82,7 +93,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static string ReadSegmentedUnicodeString(BiffStringSegmentReader reader) {
             int charCount = reader.ReadUInt16Raw();
-            return ReadSegmentedUnicodeStringBody(reader, charCount);
+            return ReadSegmentedUnicodeStringValueBody(reader, charCount).Text;
+        }
+
+        private static BiffStringValue ReadSegmentedUnicodeStringValue(BiffStringSegmentReader reader) {
+            int charCount = reader.ReadUInt16Raw();
+            return ReadSegmentedUnicodeStringValueBody(reader, charCount);
         }
 
         private static string ReadUnicodeStringBody(byte[] bytes, ref int offset, int charCount) {
@@ -124,7 +140,52 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return value;
         }
 
-        private static string ReadSegmentedUnicodeStringBody(BiffStringSegmentReader reader, int charCount) {
+        private static BiffStringValue ReadUnicodeStringValueBody(byte[] bytes, ref int offset, int charCount) {
+            if (offset >= bytes.Length) throw new InvalidDataException("Unexpected end of BIFF string options.");
+            byte options = bytes[offset++];
+            bool isUtf16 = (options & 0x01) != 0;
+            bool hasExtended = (options & 0x04) != 0;
+            bool hasRichText = (options & 0x08) != 0;
+            ushort richTextRuns = 0;
+            uint extendedSize = 0;
+
+            if (hasRichText) {
+                richTextRuns = BiffRecordReader.ReadUInt16(bytes, offset);
+                offset += 2;
+            }
+
+            if (hasExtended) {
+                extendedSize = BiffRecordReader.ReadUInt32(bytes, offset);
+                offset += 4;
+            }
+
+            int byteCount = checked(charCount * (isUtf16 ? 2 : 1));
+            if (offset + byteCount > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF string characters.");
+            }
+
+            string value = isUtf16
+                ? Encoding.Unicode.GetString(bytes, offset, byteCount)
+                : ReadCompressedUnicode(bytes, offset, byteCount);
+            offset += byteCount;
+
+            int formattingBytes = checked(richTextRuns * 4);
+            if (offset + formattingBytes > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF string formatting data.");
+            }
+
+            IReadOnlyList<LegacyXlsTextFormattingRun> formattingRuns = ParseFormattingRuns(bytes, offset, richTextRuns);
+            offset += formattingBytes;
+
+            if (offset + extendedSize > bytes.Length) {
+                throw new InvalidDataException("Unexpected end of BIFF string extension data.");
+            }
+
+            offset += checked((int)extendedSize);
+            return new BiffStringValue(value, formattingRuns);
+        }
+
+        private static BiffStringValue ReadSegmentedUnicodeStringValueBody(BiffStringSegmentReader reader, int charCount) {
             byte options = reader.ReadByteRaw();
             bool isUtf16 = (options & 0x01) != 0;
             bool hasExtended = (options & 0x04) != 0;
@@ -142,9 +203,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             string value = reader.ReadStringCharacters(charCount, isUtf16);
             int formattingBytes = checked(richTextRuns * 4);
-            int extraBytes = checked(formattingBytes + (int)extendedSize);
-            reader.SkipStringVariableBytes(extraBytes);
-            return value;
+            byte[] formattingRunBytes = reader.ReadStringVariableBytes(formattingBytes);
+            IReadOnlyList<LegacyXlsTextFormattingRun> formattingRuns = ParseFormattingRuns(formattingRunBytes, 0, richTextRuns);
+            reader.SkipStringVariableBytes(checked((int)extendedSize));
+            return new BiffStringValue(value, formattingRuns);
+        }
+
+        private static IReadOnlyList<LegacyXlsTextFormattingRun> ParseFormattingRuns(byte[] bytes, int offset, ushort count) {
+            if (count == 0) {
+                return Array.Empty<LegacyXlsTextFormattingRun>();
+            }
+
+            var runs = new List<LegacyXlsTextFormattingRun>(count);
+            for (int i = 0; i < count; i++) {
+                int runOffset = offset + (i * 4);
+                runs.Add(new LegacyXlsTextFormattingRun(
+                    BiffRecordReader.ReadUInt16(bytes, runOffset),
+                    BiffRecordReader.ReadUInt16(bytes, runOffset + 2)));
+            }
+
+            return runs;
         }
 
         private static string ReadCompressedUnicode(byte[] bytes, int offset, int byteCount) {
@@ -154,6 +232,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             return new string(chars);
+        }
+
+        internal sealed class BiffStringValue {
+            internal BiffStringValue(string text, IReadOnlyList<LegacyXlsTextFormattingRun>? formattingRuns = null) {
+                Text = text ?? string.Empty;
+                FormattingRuns = formattingRuns ?? Array.Empty<LegacyXlsTextFormattingRun>();
+            }
+
+            internal string Text { get; }
+
+            internal IReadOnlyList<LegacyXlsTextFormattingRun> FormattingRuns { get; }
         }
 
         private sealed class BiffStringSegmentReader {
@@ -232,18 +321,28 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             internal void SkipStringVariableBytes(int byteCount) {
+                _ = ReadStringVariableBytes(byteCount);
+            }
+
+            internal byte[] ReadStringVariableBytes(int byteCount) {
                 if (byteCount < 0) {
                     throw new InvalidDataException("The BIFF string variable data length is invalid.");
                 }
 
+                byte[] bytes = new byte[byteCount];
                 int remaining = byteCount;
+                int destinationOffset = 0;
                 while (remaining > 0) {
                     EnsureRawDataAvailable();
                     byte[] segment = _segments[_segmentIndex];
                     int take = Math.Min(remaining, segment.Length - _offset);
+                    Buffer.BlockCopy(segment, _offset, bytes, destinationOffset, take);
                     _offset += take;
+                    destinationOffset += take;
                     remaining -= take;
                 }
+
+                return bytes;
             }
 
             private void EnsureStringVariableDataAvailable(ref bool isUtf16) {

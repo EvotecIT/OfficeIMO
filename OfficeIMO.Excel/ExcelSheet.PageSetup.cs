@@ -12,16 +12,42 @@ namespace OfficeIMO.Excel {
         public void SetOrientation(ExcelPageOrientation orientation) {
             WriteLock(() => {
                 var ws = WorksheetRoot;
-                var pageSetup = ws.GetFirstChild<PageSetup>();
-                if (pageSetup == null) {
-                    pageSetup = new PageSetup();
-                    var margins = ws.GetFirstChild<PageMargins>();
-                    if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
-                }
+                var pageSetup = GetOrCreatePageSetup(ws);
                 string val = orientation == ExcelPageOrientation.Landscape ? "landscape" : "portrait";
                 pageSetup.SetAttribute(new OpenXmlAttribute("", "orientation", "", val));
                 ws.Save();
             });
+        }
+
+        /// <summary>
+        /// Sets a known worksheet paper size on the sheet's PageSetup.
+        /// </summary>
+        public void SetPaperSize(ExcelPaperSize paperSize) {
+            ValidatePaperSize(paperSize);
+            WriteLock(() => {
+                var ws = WorksheetRoot;
+                var pageSetup = GetOrCreatePageSetup(ws);
+                pageSetup.PaperSize = (uint)paperSize;
+                ws.Save();
+            });
+        }
+
+        private static PageSetup GetOrCreatePageSetup(Worksheet ws) {
+            var pageSetup = ws.GetFirstChild<PageSetup>();
+            if (pageSetup != null) {
+                return pageSetup;
+            }
+
+            pageSetup = new PageSetup();
+            var margins = ws.GetFirstChild<PageMargins>();
+            if (margins != null) ws.InsertAfter(pageSetup, margins); else ws.Append(pageSetup);
+            return pageSetup;
+        }
+
+        private static void ValidatePaperSize(ExcelPaperSize paperSize) {
+            if (!Enum.IsDefined(typeof(ExcelPaperSize), paperSize)) {
+                throw new ArgumentOutOfRangeException(nameof(paperSize), "Worksheet paper size must be a known Excel paper size.");
+            }
         }
 
         /// <summary>
@@ -110,5 +136,35 @@ namespace OfficeIMO.Excel {
         DownThenOver,
         /// <summary>Print pages over first, then down to the next row group.</summary>
         OverThenDown
+    }
+
+    /// <summary>Known OpenXML worksheet paper-size codes.</summary>
+    public enum ExcelPaperSize : uint {
+        /// <summary>US Letter, 8.5 x 11 inches.</summary>
+        Letter = 1,
+        /// <summary>US Letter Small, treated as Letter for image page geometry.</summary>
+        LetterSmall = 2,
+        /// <summary>US Tabloid, 11 x 17 inches.</summary>
+        Tabloid = 3,
+        /// <summary>US Ledger, 17 x 11 inches.</summary>
+        Ledger = 4,
+        /// <summary>US Legal, 8.5 x 14 inches.</summary>
+        Legal = 5,
+        /// <summary>US Statement, 5.5 x 8.5 inches.</summary>
+        Statement = 6,
+        /// <summary>US Executive, 7.25 x 10.5 inches.</summary>
+        Executive = 7,
+        /// <summary>ISO A3, 297 x 420 millimeters.</summary>
+        A3 = 8,
+        /// <summary>ISO A4, 210 x 297 millimeters.</summary>
+        A4 = 9,
+        /// <summary>ISO A4 Small, treated as A4 for image page geometry.</summary>
+        A4Small = 10,
+        /// <summary>ISO A5, 148 x 210 millimeters.</summary>
+        A5 = 11,
+        /// <summary>JIS B4, 257 x 364 millimeters.</summary>
+        B4Jis = 12,
+        /// <summary>JIS B5, 182 x 257 millimeters.</summary>
+        B5Jis = 13
     }
 }

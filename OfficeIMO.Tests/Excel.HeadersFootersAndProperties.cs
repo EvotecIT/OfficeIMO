@@ -6,6 +6,7 @@ using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -82,6 +83,35 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(vmlPart);
                 var imagePart = Assert.Single(vmlPart!.ImageParts);
                 Assert.Equal("image/png", imagePart.ContentType);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                Assert.Empty(document.ValidateOpenXml());
+            }
+        }
+
+        [Fact]
+        [Trait("Category","ExcelHeaderFooterImages")]
+        public void Excel_HeaderImage_Normalizes_Known_ContentType_Alias() {
+            string filePath = Path.Combine(_directoryWithFiles, "HeaderImageContentTypeAlias.xlsx");
+            if (File.Exists(filePath)) File.Delete(filePath);
+
+            using (var doc = ExcelDocument.Create(filePath))
+            {
+                var sheet = doc.AddWorkSheet("Sheet1");
+                var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+                var jpegBytes = File.ReadAllBytes(jpegPath);
+                sheet.SetHeaderImage(HeaderFooterPosition.Center, jpegBytes, " image/jpg; charset=binary ");
+                doc.Save(false);
+            }
+
+            using (var package = SpreadsheetDocument.Open(filePath, false))
+            {
+                var sheetPart = package.WorkbookPart!.WorksheetParts.First();
+                var vmlPart = sheetPart.VmlDrawingParts.FirstOrDefault();
+                Assert.NotNull(vmlPart);
+                var imagePart = Assert.Single(vmlPart!.ImageParts);
+                Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg), imagePart.ContentType);
             }
 
             using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
@@ -223,6 +253,36 @@ namespace OfficeIMO.Tests {
             finally
             {
                 listener.Stop();
+                OfficeIMO.Excel.ImageDownloader.ClearCache();
+            }
+        }
+
+        [Fact]
+        [Trait("Category","ExcelHeaderFooterImages")]
+        public async Task ImageDownloader_Normalizes_Image_Content_Type_Alias()
+        {
+            OfficeIMO.Excel.ImageDownloader.ClearCache();
+
+            var jpegPath = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            var jpegBytes = File.ReadAllBytes(jpegPath);
+
+            var listener = new TcpListener(IPAddress.Loopback, 0);
+            listener.Start();
+            var port = ((IPEndPoint)listener.LocalEndpoint).Port;
+            var url = $"http://127.0.0.1:{port}/logo.jpg";
+            var acceptTask = ServeSingleImageAsync(listener, jpegBytes, "image/jpg; charset=binary");
+
+            try
+            {
+                Assert.True(OfficeIMO.Excel.ImageDownloader.TryFetch(url, 5, 2_000_000, out var bytes, out var contentType));
+                Assert.NotNull(bytes);
+                Assert.Equal(jpegBytes, bytes);
+                Assert.Equal(OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg), contentType);
+            }
+            finally
+            {
+                listener.Stop();
+                await acceptTask;
                 OfficeIMO.Excel.ImageDownloader.ClearCache();
             }
         }

@@ -86,6 +86,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ExcelCustomDocumentProperties_RoundTripBinaryValue() {
+            string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.Binary.xlsx");
+            byte[] payload = { 0x00, 0x01, 0x42, 0x80, 0xff };
+
+            using (var document = ExcelDocument.Create(filePath)) {
+                document.SetCustomDocumentProperty("BinaryPayload", payload);
+                document.AddWorkSheet("Data").CellValue(1, 1, "Binary");
+                document.Save();
+            }
+
+            using (SpreadsheetDocument package = SpreadsheetDocument.Open(filePath, false)) {
+                CustomFilePropertiesPart customPart = package.CustomFilePropertiesPart!;
+                CustomDocumentProperty binary = customPart.Properties!.Elements<CustomDocumentProperty>().First(property => property.Name == "BinaryPayload");
+                Assert.NotNull(binary.VTBlob);
+                Assert.Equal(Convert.ToBase64String(payload), binary.VTBlob!.Text);
+            }
+
+            using (var document = ExcelDocument.Load(filePath, readOnly: true)) {
+                ExcelCustomProperty property = document.CustomDocumentProperties["BinaryPayload"];
+                Assert.Equal(ExcelCustomPropertyType.Binary, property.PropertyType);
+                Assert.Equal(payload, property.Binary);
+            }
+        }
+
+        [Fact]
         public void Test_ExcelCustomDocumentProperties_DisqualifyDirectDataSetFastSave() {
             string filePath = Path.Combine(_directoryWithFiles, "ExcelCustomDocumentProperties.DirectDataSet.xlsx");
             var data = new DataTable("Data");

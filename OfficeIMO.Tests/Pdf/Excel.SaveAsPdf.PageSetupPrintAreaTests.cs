@@ -197,6 +197,79 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Uses_Worksheet_Paper_Size_When_PageSize_Not_Explicit() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetPaperSize.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Name");
+            sheet.Cell(2, 1, "WorksheetPaperSize");
+            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false
+            });
+        }
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal(595D, page.Width, 1D);
+        Assert.Equal(842D, page.Height, 1D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Preserves_PdfOptions_PageSize_When_Excel_PageSize_Not_Explicit() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfPreservePdfOptionsPageSize.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Name");
+            sheet.Cell(2, 1, "PdfOptionsPageSize");
+            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                PdfOptions = new PdfCore.PdfOptions {
+                    PageSize = new PdfCore.PageSize(300, 220)
+                }
+            });
+        }
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal(300D, page.Width, 1D);
+        Assert.Equal(220D, page.Height, 1D);
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_Uses_Default_Pdf_PageSize_When_Worksheet_PageSetup_Disabled() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfDisableWorksheetPageSetup.xlsx");
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "PaperSize")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "Name");
+            sheet.Cell(2, 1, "DefaultPdfPageSize");
+            sheet.SetPageSetup(paperSize: ExcelPaperSize.A4);
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(new ExcelPdfSaveOptions {
+                IncludeSheetHeadings = false,
+                UseWorksheetPageSetup = false
+            });
+        }
+
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(bytes);
+        PdfCore.PdfPageInfo page = Assert.Single(info.Pages);
+        Assert.Equal(612D, page.Width, 1D);
+        Assert.Equal(792D, page.Height, 1D);
+    }
+
+    [Fact]
     public void ToPdfDocument_ExcelWorkbook_Maps_Worksheet_FitToHeight_To_Table_Scaling() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfWorksheetFitToHeight.xlsx");
 

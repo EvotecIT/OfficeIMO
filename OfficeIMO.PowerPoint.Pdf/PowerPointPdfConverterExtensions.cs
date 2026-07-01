@@ -929,37 +929,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return null;
         }
 
-        double radians = angleDegrees * Math.PI / 180D;
-        double dx = Math.Cos(radians);
-        double dy = Math.Sin(radians);
-        double startX = Clamp01(0.5D - dx / 2D);
-        double startY = Clamp01(0.5D - dy / 2D);
-        double endX = Clamp01(0.5D + dx / 2D);
-        double endY = Clamp01(0.5D + dy / 2D);
-
-        if (startX.Equals(endX) && startY.Equals(endY)) {
-            return OfficeLinearGradient.Horizontal(start.Value, end.Value);
-        }
-
-        return new OfficeLinearGradient(
-            startX,
-            startY,
-            endX,
-            endY,
-            new OfficeGradientStop(0D, start.Value),
-            new OfficeGradientStop(1D, end.Value));
-    }
-
-    private static double Clamp01(double value) {
-        if (value < 0D) {
-            return 0D;
-        }
-
-        if (value > 1D) {
-            return 1D;
-        }
-
-        return value;
+        return OfficeLinearGradient.FromAngle(start.Value, end.Value, angleDegrees);
     }
 
     private static PdfCore.PdfColor? ParsePdfColor(string? value) {

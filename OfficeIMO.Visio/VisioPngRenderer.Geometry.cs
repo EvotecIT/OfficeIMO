@@ -11,44 +11,19 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioPngRenderer {
 
         private static void StrokeLine(RasterCanvas canvas, double x1, double y1, double x2, double y2, Color color, double width) =>
-            canvas.StrokePolyline(new[] { (x1, y1), (x2, y2) }, color, width, dashed: false);
+            canvas.StrokePolyline(new[] { (x1, y1), (x2, y2) }, color, width, OfficeStrokeDashStyle.Solid);
 
         private static void StrokeRect(RasterCanvas canvas, double x, double y, double width, double height, Color color, double stroke) =>
             StrokePolyline(canvas, new[] { (x, y), (x + width, y), (x + width, y + height), (x, y + height), (x, y) }, color, stroke);
 
-        private static void StrokeEllipse(RasterCanvas canvas, double x, double y, double rx, double ry, Color color, double stroke, double rotationRadians = 0D, double rotationCenterX = 0D, double rotationCenterY = 0D) {
-            if (Math.Abs(rotationRadians) <= 1e-9) {
-                canvas.DrawEllipse(x, y, rx, ry, Color.Transparent, color, stroke);
-                return;
-            }
+        private static void StrokeEllipse(RasterCanvas canvas, double x, double y, double rx, double ry, Color color, double stroke, double rotationRadians = 0D, double rotationCenterX = 0D, double rotationCenterY = 0D) =>
+            canvas.DrawEllipse(x, y, rx, ry, Color.Transparent, color, stroke, OfficeStrokeDashStyle.Solid, rotationRadians, rotationCenterX, rotationCenterY);
 
-            List<(double X, double Y)> points = new();
-            for (int i = 0; i <= 36; i++) {
-                double angle = (Math.PI * 2D) * i / 36D;
-                (double X, double Y) point = (x + (Math.Cos(angle) * rx), y + (Math.Sin(angle) * ry));
-                points.Add(RotateTextPoint(point, rotationCenterX, rotationCenterY, rotationRadians));
-            }
-
-            StrokePolyline(canvas, points, color, stroke);
-        }
-
-        private static void StrokeArc(RasterCanvas canvas, double x, double y, double rx, double ry, double startDegrees, double endDegrees, Color color, double stroke, double rotationRadians = 0D, double rotationCenterX = 0D, double rotationCenterY = 0D) {
-            List<(double X, double Y)> points = new();
-            for (int i = 0; i <= 18; i++) {
-                double angle = (startDegrees + ((endDegrees - startDegrees) * i / 18D)) * Math.PI / 180D;
-                (double X, double Y) point = (x + Math.Cos(angle) * rx, y + Math.Sin(angle) * ry);
-                if (Math.Abs(rotationRadians) > 1e-9) {
-                    point = RotateTextPoint(point, rotationCenterX, rotationCenterY, rotationRadians);
-                }
-
-                points.Add(point);
-            }
-
-            StrokePolyline(canvas, points, color, stroke);
-        }
+        private static void StrokeArc(RasterCanvas canvas, double x, double y, double rx, double ry, double startDegrees, double endDegrees, Color color, double stroke, double rotationRadians = 0D, double rotationCenterX = 0D, double rotationCenterY = 0D) =>
+            canvas.DrawArc(x, y, rx, ry, startDegrees, endDegrees, color, stroke, rotationRadians, rotationCenterX, rotationCenterY);
 
         private static void StrokePolyline(RasterCanvas canvas, IReadOnlyList<(double X, double Y)> points, Color color, double stroke) =>
-            canvas.StrokePolyline(points, color, stroke, dashed: false);
+            canvas.StrokePolyline(points, color, stroke, OfficeStrokeDashStyle.Solid);
 
         private static IReadOnlyList<(double X, double Y)> GetHexPoints(double x, double y, double size) {
             double r = size * 0.36D;
@@ -65,17 +40,18 @@ namespace OfficeIMO.Visio {
 
         private static List<(double X, double Y)> GetConnectorPoints(VisioConnector connector) {
             ComputeConnectorEndpoints(connector, out double startX, out double startY, out double endX, out double endY);
-            List<(double X, double Y)> points = new() { (startX, startY) };
+            List<(double X, double Y)> waypoints = new(connector.Waypoints.Count);
             if (connector.Waypoints.Count > 0) {
                 foreach (VisioConnectorWaypoint waypoint in connector.Waypoints) {
-                    points.Add((waypoint.X, waypoint.Y));
+                    waypoints.Add((waypoint.X, waypoint.Y));
                 }
-            } else if (connector.Kind == ConnectorKind.RightAngle) {
-                points.Add((startX, endY));
             }
 
-            points.Add((endX, endY));
-            return points;
+            return OfficeGeometry.BuildConnectorPolyline(
+                (startX, startY),
+                (endX, endY),
+                waypoints,
+                connector.Kind == ConnectorKind.RightAngle);
         }
 
         private static void ComputeConnectorEndpoints(VisioConnector connector, out double startX, out double startY, out double endX, out double endY) {
@@ -103,7 +79,7 @@ namespace OfficeIMO.Visio {
             }
 
             double position = VisioConnectorLabelPlacement.ClampPosition(placement?.Position ?? 0.5D);
-            (double x, double y) = InterpolatePath(points, position);
+            (double x, double y) = OfficeGeometry.InterpolatePolyline(points, position);
             return (x + (placement?.OffsetX ?? 0D), y + (placement?.OffsetY ?? 0D));
         }
 
@@ -113,33 +89,6 @@ namespace OfficeIMO.Visio {
             double width = Math.Max(0.6D, connector.TextStyle?.TextWidth ?? placement?.Width ?? 1.35D);
             double height = Math.Max(0.18D, connector.TextStyle?.TextHeight ?? placement?.Height ?? 0.34D);
             return new VisioRenderConnectorLabelPlacement(x, y, width, height, adjusted: false);
-        }
-
-        private static (double X, double Y) InterpolatePath(IReadOnlyList<(double X, double Y)> points, double position) {
-            if (points.Count == 0) return (0D, 0D);
-            if (points.Count == 1) return points[0];
-
-            double total = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                total += Distance(points[i - 1], points[i]);
-            }
-
-            if (total <= 0D) return points[0];
-            double target = total * position;
-            double traversed = 0D;
-            for (int i = 1; i < points.Count; i++) {
-                double segment = Distance(points[i - 1], points[i]);
-                if (traversed + segment >= target) {
-                    double t = segment <= 0D ? 0D : (target - traversed) / segment;
-                    return (
-                        points[i - 1].X + ((points[i].X - points[i - 1].X) * t),
-                        points[i - 1].Y + ((points[i].Y - points[i - 1].Y) * t));
-                }
-
-                traversed += segment;
-            }
-
-            return points[points.Count - 1];
         }
 
         private static (double X, double Y) GetPagePoint(VisioShape shape, double x, double y) {
@@ -172,21 +121,17 @@ namespace OfficeIMO.Visio {
             double targetTop,
             out double x,
             out double y) {
-            double sourceCenterX = (sourceLeft + sourceRight) / 2D;
-            double sourceCenterY = (sourceBottom + sourceTop) / 2D;
-            double targetCenterX = (targetLeft + targetRight) / 2D;
-            double targetCenterY = (targetBottom + targetTop) / 2D;
-            double dx = targetCenterX - sourceCenterX;
-            double dy = targetCenterY - sourceCenterY;
-
-            if (Math.Abs(dy) > Math.Abs(dx)) {
-                x = sourceCenterX;
-                y = dy >= 0D ? sourceTop : sourceBottom;
-                return;
-            }
-
-            x = dx >= 0D ? sourceRight : sourceLeft;
-            y = sourceCenterY;
+            OfficeGeometry.ResolveRectangleBoundaryEndpoint(
+                sourceLeft,
+                sourceBottom,
+                sourceRight,
+                sourceTop,
+                targetLeft,
+                targetBottom,
+                targetRight,
+                targetTop,
+                out x,
+                out y);
         }
 
         private static (double X, double Y) ToRaster(VisioPage page, double x, double y, double scale) =>
@@ -197,10 +142,7 @@ namespace OfficeIMO.Visio {
             return ToRaster(page, pageX, pageY, scale);
         }
 
-        private static double Distance((double X, double Y) a, (double X, double Y) b) {
-            double dx = b.X - a.X;
-            double dy = b.Y - a.Y;
-            return Math.Sqrt((dx * dx) + (dy * dy));
-        }
+        private static double Distance((double X, double Y) a, (double X, double Y) b) =>
+            OfficeGeometry.Distance(a, b);
     }
 }

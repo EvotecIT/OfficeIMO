@@ -73,10 +73,7 @@ public static partial class PowerPointPdfConverterExtensions {
             return;
         }
 
-        double imageAspect = imageInfo.Width / (double)imageInfo.Height;
-        double targetAspect = width / height;
-        double ratio = Math.Max(imageAspect, targetAspect) / Math.Min(imageAspect, targetAspect);
-        if (ratio <= 1.02D) {
+        if (!OfficeImagePlacement.ExceedsAspectRatioDistortion(imageInfo.Width, imageInfo.Height, width, height, 1.02D)) {
             return;
         }
 

@@ -51,6 +51,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ImportsHyperlinkTooltips() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4HyperlinkTooltipWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-HYPERLINK-UNSUPPORTED");
+            LegacyXlsHyperlink hyperlink = Assert.Single(Assert.Single(legacy.Worksheets).Hyperlinks);
+            Assert.Equal("Open OfficeIMO XLS docs", hyperlink.Tooltip);
+
+            using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            IReadOnlyDictionary<string, ExcelHyperlinkSnapshot> projectedLinks = document.Sheets[0].GetHyperlinks();
+            Assert.Equal("Open OfficeIMO XLS docs", projectedLinks["A1"].Tooltip);
+
+            using var output = new MemoryStream();
+            document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            Hyperlink projected = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts.Single().Worksheet.Descendants<Hyperlink>());
+            Assert.Equal("Open OfficeIMO XLS docs", projected.Tooltip!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsPhase4InternalHyperlinks() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase4InternalHyperlinkWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -350,7 +378,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.False(result.HasImportErrors);
-            Assert.False(result.HasUnsupportedFeatures);
+            Assert.True(result.HasUnsupportedFeatures);
             LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
             Assert.Equal(6, legacySheet.MetadataRecords.Count);
             Assert.True(legacySheet.AutomaticPageBreaksVisible);
@@ -389,6 +417,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Region", sortSettings.Key1);
             Assert.Equal("Amount", sortSettings.Key2);
             Assert.Equal("Date", sortSettings.Key3);
+            LegacyXlsUnsupportedFeature unsupportedSort = Assert.Single(result.UnsupportedFeatures);
+            Assert.Equal(LegacyXlsUnsupportedFeatureKind.WorksheetSort, unsupportedSort.Kind);
+            Assert.Equal("XLS-BIFF-FEATURE-WORKSHEET-SORT-CUSTOM-LIST-UNSUPPORTED", unsupportedSort.Code);
+            Assert.Equal((ushort)0x0090, unsupportedSort.RecordType);
+            Assert.Equal("WorksheetSort:CustomListIndex", unsupportedSort.DetailCode);
+            Assert.Equal(1, result.ImportReport.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.WorksheetSort]);
             Assert.Equal(6, result.ImportReport.WorksheetMetadataRecordCount);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.SheetOptions]);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.OutlineLevels]);
@@ -396,7 +430,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.RowBlockIndex]);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.Selection]);
             Assert.Equal(1, result.ImportReport.WorksheetMetadataRecordsByKind[LegacyXlsWorksheetMetadataKind.Sort]);
-            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0081 or 0x0080 or 0x0082 or 0x020b or 0x001d or 0x0090);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.RecordType is 0x0081 or 0x0080 or 0x0082 or 0x020b or 0x001d);
 
             using var output = new MemoryStream();
             result.Document.Save(output);
@@ -408,6 +442,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(projectedSelection.Pane);
             Assert.Equal("B3", projectedSelection.ActiveCell!.Value);
             Assert.Equal("B3:C4", projectedSelection.SequenceOfReferences!.InnerText);
+            Assert.Null(worksheetPart.Worksheet.GetFirstChild<SortState>());
         }
 
         [Fact]
@@ -447,6 +482,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)0, window.FirstVisibleSheetTabIndex);
             Assert.Equal((ushort)1, window.SelectedSheetTabCount);
             Assert.Equal((ushort)600, window.SheetTabRatio);
+            WorkbookView projectedWindow = result.Document.WorkbookRoot
+                .GetFirstChild<BookViews>()!
+                .GetFirstChild<WorkbookView>()!;
+            Assert.Equal(10, projectedWindow.XWindow!.Value);
+            Assert.Equal(20, projectedWindow.YWindow!.Value);
+            Assert.Equal(5000U, projectedWindow.WindowWidth!.Value);
+            Assert.Equal(4000U, projectedWindow.WindowHeight!.Value);
+            Assert.Equal(VisibilityValues.Visible, projectedWindow.Visibility!.Value);
+            Assert.False(projectedWindow.Minimized!.Value);
+            Assert.True(projectedWindow.ShowHorizontalScroll!.Value);
+            Assert.True(projectedWindow.ShowVerticalScroll!.Value);
+            Assert.True(projectedWindow.ShowSheetTabs!.Value);
+            Assert.Equal(600U, projectedWindow.TabRatio!.Value);
+            WorkbookProperties projectedWorkbookProperties = result.Document.WorkbookRoot.GetFirstChild<WorkbookProperties>()!;
+            Assert.Equal("ThisWorkbook", projectedWorkbookProperties.CodeName!.Value);
+            Assert.True(projectedWorkbookProperties.BackupFile!.Value);
+            Assert.False(projectedWorkbookProperties.SaveExternalLinkValues!.Value);
+            Assert.Equal(ObjectDisplayValues.None, projectedWorkbookProperties.ShowObjects!.Value);
+            Assert.False(projectedWorkbookProperties.ShowBorderUnselectedTables!.Value);
+            WorksheetPart projectedWorksheetPart = result.Document.WorkbookPartRoot.WorksheetParts.Single();
+            SheetProperties projectedSheetProperties = projectedWorksheetPart.Worksheet.GetFirstChild<SheetProperties>()!;
+            Assert.Equal("MetadataSheet", projectedSheetProperties.CodeName!.Value);
             Assert.True(workbook.SaveBackup.GetValueOrDefault());
             Assert.Equal((ushort)2, workbook.HiddenObjectsMode.GetValueOrDefault());
             Assert.True(workbook.DoNotSaveExternalLinkValues.GetValueOrDefault());
@@ -1254,10 +1311,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalNamesByFlagShape["Body:ExternalDefinedName|BuiltIn:Present|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:ExternalWorkbook");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01ae);
             Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:ExternalWorkbook");
-            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:DConRef");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:DConRef");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x0023);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01b7);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x0023);
@@ -2273,6 +2330,32 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndToken["ConditionalFormatting|Token:0x01"]);
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndTokenName["ConditionalFormatting|PtgExp"]);
             Assert.Equal(1, result.ImportReport.FormulaTokenBlockersByContextAndDetail["ConditionalFormatting|FormulaToken0x01"]);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ReportsTableDefinitionRecordsAsPreserveOnly() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5TableDefinitionFeatureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.True(result.HasUnsupportedFeatures);
+            Assert.Equal("ListTable", Assert.Single(result.Workbook.Worksheets).Name);
+            Assert.Contains(result.Workbook.Worksheets[0].Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Name"));
+            Assert.Equal(4, result.Workbook.UnsupportedFeatures.Count(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableDefinition));
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:FeatHdr11");
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:Feature11");
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:List12");
+            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:Feature12");
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.FeatureExtension);
+            Assert.Equal(4, result.Workbook.PreservedFeatureRecords.Count(record => record.Kind == LegacyXlsUnsupportedFeatureKind.TableDefinition));
+            Assert.Equal(4, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.TableDefinition]);
+            Assert.Equal(4, result.ImportReport.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.TableDefinition]);
+            Assert.False(result.ImportReport.UnsupportedProjectionGapsByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.TableDefinition));
+            Assert.Contains("TableDefinition:Feature11", result.ImportReport.ToMarkdown());
         }
 
         [Fact]

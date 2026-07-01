@@ -7,6 +7,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         VbaProject,
 
         /// <summary>Embedded OLE object storage was found in the XLS compound container.</summary>
-        OleObject
+        OleObject,
+
+        /// <summary>Digital signature storage or streams were found in the XLS compound container.</summary>
+        DigitalSignature
     }
 }

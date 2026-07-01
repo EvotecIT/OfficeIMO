@@ -102,6 +102,10 @@ namespace OfficeIMO.Excel {
                 return customProperty;
             }
 
+            if (value is byte[] bytes) {
+                return new ExcelCustomProperty(bytes);
+            }
+
             if (value is bool boolean) {
                 return new ExcelCustomProperty(boolean);
             }

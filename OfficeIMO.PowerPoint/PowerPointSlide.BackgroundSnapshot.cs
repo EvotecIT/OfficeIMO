@@ -4,6 +4,7 @@ using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
@@ -24,7 +25,8 @@ namespace OfficeIMO.PowerPoint {
             string? solidColor = null;
             if (solidFill != null) {
                 A.ColorScheme? colorScheme = GetThemePart(ownerPart ?? _slidePart)?.Theme?.ThemeElements?.ColorScheme;
-                solidColor = ResolveSolidFillColor(solidFill, colorScheme, placeholderColor: null);
+                OfficeColor? color = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(solidFill, colorScheme);
+                solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
             }
 
             if (!string.IsNullOrWhiteSpace(solidColor)) {
@@ -100,7 +102,8 @@ namespace OfficeIMO.PowerPoint {
             }
 
             A.ColorScheme? colorScheme = themePart?.Theme?.ThemeElements?.ColorScheme;
-            string? solidColor = ResolveSolidFillColor(fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(), colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
+            OfficeColor? color = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(fill as A.SolidFill ?? fill.GetFirstChild<A.SolidFill>(), colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
+            string? solidColor = color.HasValue ? FormatBackgroundColor(color.Value) : null;
             if (!string.IsNullOrWhiteSpace(solidColor)) {
                 return PowerPointSlideBackground.SolidColor(solidColor!);
             }
@@ -135,143 +138,6 @@ namespace OfficeIMO.PowerPoint {
             }
 
             return null;
-        }
-
-        private static string? ResolveSolidFillColor(A.SolidFill? solidFill, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor) {
-            if (solidFill == null) {
-                return null;
-            }
-
-            string? rgbColor = solidFill.RgbColorModelHex?.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(rgbColor)) {
-                return ApplyColorTransforms(rgbColor, solidFill.RgbColorModelHex);
-            }
-
-            A.SchemeColor? schemeColor = solidFill.GetFirstChild<A.SchemeColor>();
-            string? scheme = GetSchemeColorValue(schemeColor);
-            if (IsPlaceholderSchemeColor(scheme)) {
-                string? placeholderScheme = GetSchemeColorValue(placeholderColor);
-                string? placeholderResolvedColor = ResolveSchemeColor(colorScheme, placeholderScheme);
-                placeholderResolvedColor = ApplyColorTransforms(placeholderResolvedColor, placeholderColor);
-                return ApplyColorTransforms(placeholderResolvedColor, schemeColor);
-            }
-
-            return ApplyColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
-        }
-
-        private static string? GetSchemeColorValue(A.SchemeColor? schemeColor) {
-            string? attribute = schemeColor?.GetAttribute("val", string.Empty).Value;
-            return !string.IsNullOrWhiteSpace(attribute)
-                ? attribute
-                : schemeColor?.Val?.Value.ToString();
-        }
-
-        private static bool IsPlaceholderSchemeColor(string? scheme) {
-            return string.Equals(scheme, "Placeholder", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(scheme, "PlaceholderColor", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(scheme, "phClr", StringComparison.OrdinalIgnoreCase);
-        }
-
-        private static string? ResolveSchemeColor(A.ColorScheme? colorScheme, string? scheme) {
-            if (colorScheme == null || string.IsNullOrWhiteSpace(scheme)) {
-                return null;
-            }
-
-            OpenXmlCompositeElement? colorElement = scheme switch {
-                "Dark1" or "dk1" or "Text1" or "tx1" => colorScheme.GetFirstChild<A.Dark1Color>(),
-                "Light1" or "lt1" or "Background1" or "bg1" => colorScheme.GetFirstChild<A.Light1Color>(),
-                "Dark2" or "dk2" or "Text2" or "tx2" => colorScheme.GetFirstChild<A.Dark2Color>(),
-                "Light2" or "lt2" or "Background2" or "bg2" => colorScheme.GetFirstChild<A.Light2Color>(),
-                "Accent1" or "accent1" => colorScheme.GetFirstChild<A.Accent1Color>(),
-                "Accent2" or "accent2" => colorScheme.GetFirstChild<A.Accent2Color>(),
-                "Accent3" or "accent3" => colorScheme.GetFirstChild<A.Accent3Color>(),
-                "Accent4" or "accent4" => colorScheme.GetFirstChild<A.Accent4Color>(),
-                "Accent5" or "accent5" => colorScheme.GetFirstChild<A.Accent5Color>(),
-                "Accent6" or "accent6" => colorScheme.GetFirstChild<A.Accent6Color>(),
-                "Hyperlink" or "hlink" => colorScheme.GetFirstChild<A.Hyperlink>(),
-                "FollowedHyperlink" or "folHlink" => colorScheme.GetFirstChild<A.FollowedHyperlinkColor>(),
-                _ => null
-            };
-
-            return colorElement?.GetFirstChild<A.RgbColorModelHex>()?.Val?.Value
-                ?? colorElement?.GetFirstChild<A.SystemColor>()?.LastColor?.Value;
-        }
-
-        private static string? ApplyColorTransforms(string? hexColor, OpenXmlElement? colorElement) {
-            if (string.IsNullOrWhiteSpace(hexColor) || colorElement == null) {
-                return hexColor;
-            }
-
-            string color = hexColor!;
-            if (color.Length != 6) {
-                return hexColor;
-            }
-
-            if (!TryParseHexColor(color, out int red, out int green, out int blue)) {
-                return hexColor;
-            }
-
-            foreach (OpenXmlElement transform in colorElement.ChildElements) {
-                int? rawValue = GetTransformValue(transform);
-                if (!rawValue.HasValue) {
-                    continue;
-                }
-
-                double amount = Math.Max(0D, Math.Min(100000D, rawValue.Value)) / 100000D;
-                switch (transform.LocalName) {
-                    case "lumMod":
-                        red = ClampColor(red * amount);
-                        green = ClampColor(green * amount);
-                        blue = ClampColor(blue * amount);
-                        break;
-                    case "lumOff":
-                        red = ClampColor(red + 255D * amount);
-                        green = ClampColor(green + 255D * amount);
-                        blue = ClampColor(blue + 255D * amount);
-                        break;
-                    case "tint":
-                        red = ClampColor(red + (255D - red) * amount);
-                        green = ClampColor(green + (255D - green) * amount);
-                        blue = ClampColor(blue + (255D - blue) * amount);
-                        break;
-                    case "shade":
-                        red = ClampColor(red * amount);
-                        green = ClampColor(green * amount);
-                        blue = ClampColor(blue * amount);
-                        break;
-                }
-            }
-
-            return red.ToString("X2") + green.ToString("X2") + blue.ToString("X2");
-        }
-
-        private static int? GetTransformValue(OpenXmlElement transform) {
-            string? value = transform.GetAttributes()
-                .FirstOrDefault(attribute => string.Equals(attribute.LocalName, "val", StringComparison.Ordinal))
-                .Value;
-            return int.TryParse(value, out int result) ? result : null;
-        }
-
-        private static bool TryParseHexColor(string hexColor, out int red, out int green, out int blue) {
-            red = 0;
-            green = 0;
-            blue = 0;
-            if (hexColor.Length != 6) {
-                return false;
-            }
-
-            try {
-                red = Convert.ToInt32(hexColor.Substring(0, 2), 16);
-                green = Convert.ToInt32(hexColor.Substring(2, 2), 16);
-                blue = Convert.ToInt32(hexColor.Substring(4, 2), 16);
-                return true;
-            } catch (FormatException) {
-                return false;
-            }
-        }
-
-        private static int ClampColor(double value) {
-            return (int)Math.Max(0D, Math.Min(255D, Math.Round(value)));
         }
 
         private static PowerPointSlideBackground GetBackgroundImage(A.BlipFill blipFill, OpenXmlPart ownerPart) {
@@ -332,33 +198,18 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient has fewer than two stops.");
             }
 
-            string? startColor = ResolveGradientStopColor(stops[0], colorScheme, placeholderColor);
-            string? endColor = ResolveGradientStopColor(stops[stops.Length - 1], colorScheme, placeholderColor);
-            if (string.IsNullOrWhiteSpace(startColor) || string.IsNullOrWhiteSpace(endColor)) {
+            OfficeColor? startColor = PowerPointThemeColorResolver.ResolveGradientStopOfficeColor(stops[0], colorScheme, placeholderColor);
+            OfficeColor? endColor = PowerPointThemeColorResolver.ResolveGradientStopOfficeColor(stops[stops.Length - 1], colorScheme, placeholderColor);
+            if (!startColor.HasValue || !endColor.HasValue) {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient uses colors that could not be resolved.");
             }
 
             double angleDegrees = (gradientFill.GetFirstChild<A.LinearGradientFill>()?.Angle?.Value ?? 0) / 60000D;
-            return PowerPointSlideBackground.LinearGradient(startColor!, endColor!, angleDegrees);
+            return PowerPointSlideBackground.LinearGradient(FormatBackgroundColor(startColor.Value), FormatBackgroundColor(endColor.Value), angleDegrees);
         }
 
-        private static string? ResolveGradientStopColor(A.GradientStop stop, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor) {
-            A.RgbColorModelHex? rgbColor = stop.GetFirstChild<A.RgbColorModelHex>();
-            string? rgbValue = rgbColor?.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(rgbValue)) {
-                return ApplyColorTransforms(rgbValue, rgbColor);
-            }
+        private static string FormatBackgroundColor(OfficeColor color) =>
+            color.A == 255 ? color.ToRgbHex() : color.ToHex();
 
-            A.SchemeColor? schemeColor = stop.GetFirstChild<A.SchemeColor>();
-            string? scheme = GetSchemeColorValue(schemeColor);
-            if (IsPlaceholderSchemeColor(scheme)) {
-                string? placeholderScheme = GetSchemeColorValue(placeholderColor);
-                string? placeholderResolvedColor = ResolveSchemeColor(colorScheme, placeholderScheme);
-                placeholderResolvedColor = ApplyColorTransforms(placeholderResolvedColor, placeholderColor);
-                return ApplyColorTransforms(placeholderResolvedColor, schemeColor);
-            }
-
-            return ApplyColorTransforms(ResolveSchemeColor(colorScheme, scheme), schemeColor);
-        }
     }
 }

@@ -266,6 +266,8 @@ internal static partial class PdfWriter {
     }
 
     private static void AppendPathCommands(ContentStreamBuilder content, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands, double x, double y, double h) {
+        OfficeIMO.Drawing.OfficePoint current = default;
+        bool hasCurrent = false;
         for (int i = 0; i < commands.Count; i++) {
             var command = commands[i];
             switch (command.Kind) {
@@ -275,9 +277,31 @@ internal static partial class PdfWriter {
                     }
 
                     content.MoveTo(x + command.Point.X, y + h - command.Point.Y);
+                    current = command.Point;
+                    hasCurrent = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
                     content.LineTo(x + command.Point.X, y + h - command.Point.Y);
+                    current = command.Point;
+                    break;
+                case OfficeIMO.Drawing.OfficePathCommandKind.QuadraticBezierTo:
+                    if (!hasCurrent) {
+                        content.MoveTo(x + command.Point.X, y + h - command.Point.Y);
+                        current = command.Point;
+                        hasCurrent = true;
+                        break;
+                    }
+
+                    OfficeIMO.Drawing.OfficePoint cubic1 = ConvertQuadraticControlPoint(current, command.ControlPoint1);
+                    OfficeIMO.Drawing.OfficePoint cubic2 = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
+                    content.CubicTo(
+                        x + cubic1.X,
+                        y + h - cubic1.Y,
+                        x + cubic2.X,
+                        y + h - cubic2.Y,
+                        x + command.Point.X,
+                        y + h - command.Point.Y);
+                    current = command.Point;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.CubicBezierTo:
                     content.CubicTo(
@@ -287,6 +311,7 @@ internal static partial class PdfWriter {
                         y + h - command.ControlPoint2.Y,
                         x + command.Point.X,
                         y + h - command.Point.Y);
+                    current = command.Point;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.Close:
                     content.ClosePath();
@@ -296,6 +321,8 @@ internal static partial class PdfWriter {
     }
 
     private static void AppendLocalPathCommands(ContentStreamBuilder content, System.Collections.Generic.IReadOnlyList<OfficeIMO.Drawing.OfficePathCommand> commands) {
+        OfficeIMO.Drawing.OfficePoint current = default;
+        bool hasCurrent = false;
         for (int i = 0; i < commands.Count; i++) {
             var command = commands[i];
             switch (command.Kind) {
@@ -305,9 +332,31 @@ internal static partial class PdfWriter {
                     }
 
                     content.MoveTo(command.Point.X, command.Point.Y);
+                    current = command.Point;
+                    hasCurrent = true;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.LineTo:
                     content.LineTo(command.Point.X, command.Point.Y);
+                    current = command.Point;
+                    break;
+                case OfficeIMO.Drawing.OfficePathCommandKind.QuadraticBezierTo:
+                    if (!hasCurrent) {
+                        content.MoveTo(command.Point.X, command.Point.Y);
+                        current = command.Point;
+                        hasCurrent = true;
+                        break;
+                    }
+
+                    OfficeIMO.Drawing.OfficePoint localCubic1 = ConvertQuadraticControlPoint(current, command.ControlPoint1);
+                    OfficeIMO.Drawing.OfficePoint localCubic2 = ConvertQuadraticControlPoint(command.Point, command.ControlPoint1);
+                    content.CubicTo(
+                        localCubic1.X,
+                        localCubic1.Y,
+                        localCubic2.X,
+                        localCubic2.Y,
+                        command.Point.X,
+                        command.Point.Y);
+                    current = command.Point;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.CubicBezierTo:
                     content.CubicTo(
@@ -317,6 +366,7 @@ internal static partial class PdfWriter {
                         command.ControlPoint2.Y,
                         command.Point.X,
                         command.Point.Y);
+                    current = command.Point;
                     break;
                 case OfficeIMO.Drawing.OfficePathCommandKind.Close:
                     content.ClosePath();
@@ -324,6 +374,11 @@ internal static partial class PdfWriter {
             }
         }
     }
+
+    private static OfficeIMO.Drawing.OfficePoint ConvertQuadraticControlPoint(OfficeIMO.Drawing.OfficePoint endpoint, OfficeIMO.Drawing.OfficePoint controlPoint) =>
+        new OfficeIMO.Drawing.OfficePoint(
+            endpoint.X + ((controlPoint.X - endpoint.X) * (2D / 3D)),
+            endpoint.Y + ((controlPoint.Y - endpoint.Y) * (2D / 3D)));
 
     private static void PaintPath(ContentStreamBuilder content, bool fill, bool stroke, bool closePath) {
         if (closePath) {

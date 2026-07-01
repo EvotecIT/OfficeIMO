@@ -8,11 +8,16 @@ For each `sample.xls`, keep an approved `sample.import-report.md` generated from
 report against the approved baseline so parser, projection, diagnostics, and
 preserve-only signals cannot drift silently.
 
+The corpus also keeps `projection-gap-summary.md`, which aggregates unsupported
+projection gap counts by fixture, kind, and detail across all checked-in normal
+fixtures.
+
 To refresh approved baselines after an intentional import change:
 
 ```powershell
 $env:OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES = '1'
 dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyXls_Corpus_Fixtures_MatchApprovedImportReports"
+dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~ProjectionGapSummary"
 Remove-Item Env:\OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES
 ```
 

@@ -3,8 +3,8 @@ using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
-using System.Net;
 using System.Text;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio.Stencils {
     /// <summary>
@@ -123,17 +123,8 @@ namespace OfficeIMO.Visio.Stencils {
         /// <summary>Whether the generated gallery can safely render the payload inline.</summary>
         public bool IsBrowserRenderable => IsBrowserRenderableExtension(Image.PreviewImage.Extension);
 
-        internal static bool IsBrowserRenderableExtension(string? extension) {
-            if (string.IsNullOrWhiteSpace(extension)) {
-                return false;
-            }
-
-            string normalized = extension!.TrimStart('.').ToLowerInvariant();
-            return normalized switch {
-                "png" or "jpg" or "jpeg" or "gif" or "bmp" or "webp" => true,
-                _ => false
-            };
-        }
+        internal static bool IsBrowserRenderableExtension(string? extension) =>
+            OfficeImageInfo.IsBrowserPreviewSafeExtension(extension);
     }
 
     internal static class VisioStencilPreviewGalleryWriter {
@@ -308,21 +299,36 @@ namespace OfficeIMO.Visio.Stencils {
             string path = Path.Combine(thumbnailDirectory, fileName);
             string displayName = string.IsNullOrWhiteSpace(image.MasterName) ? image.MasterNameU : image.MasterName!;
             string contentType = string.IsNullOrWhiteSpace(image.PreviewImage.ContentType)
-                ? GetContentTypeFromExtension(image.PreviewImage.Extension)
+                ? OfficeImageInfo.GetMimeTypeFromExtension(image.PreviewImage.Extension)
                 : image.PreviewImage.ContentType!;
-            string dataUri = "data:" + contentType + ";base64," + Convert.ToBase64String(image.Data);
+            string dataUri = OfficeSvgImageRenderer.CreateDataUri(contentType, image.Data);
             string width = options.ThumbnailWidth.ToString(CultureInfo.InvariantCulture);
             string height = options.ThumbnailHeight.ToString(CultureInfo.InvariantCulture);
-            string imageWidth = Math.Max(1, options.ThumbnailWidth - 28).ToString(CultureInfo.InvariantCulture);
-            string imageHeight = Math.Max(1, options.ThumbnailHeight - 42).ToString(CultureInfo.InvariantCulture);
+            double imageWidth = Math.Max(1, options.ThumbnailWidth - 28);
+            double imageHeight = Math.Max(1, options.ThumbnailHeight - 42);
 
             StringBuilder builder = new();
             builder.AppendLine("<?xml version=\"1.0\" encoding=\"utf-8\"?>");
-            builder.AppendLine("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + width + "\" height=\"" + height + "\" viewBox=\"0 0 " + width + " " + height + "\" role=\"img\" aria-label=\"" + EscapeXml(displayName) + "\">");
-            builder.AppendLine("  <rect width=\"100%\" height=\"100%\" rx=\"8\" fill=\"#ffffff\"/>");
-            builder.AppendLine("  <rect x=\"0.5\" y=\"0.5\" width=\"" + (options.ThumbnailWidth - 1).ToString(CultureInfo.InvariantCulture) + "\" height=\"" + (options.ThumbnailHeight - 1).ToString(CultureInfo.InvariantCulture) + "\" rx=\"7.5\" fill=\"none\" stroke=\"#d3e0ec\"/>");
-            builder.AppendLine("  <image x=\"14\" y=\"12\" width=\"" + imageWidth + "\" height=\"" + imageHeight + "\" preserveAspectRatio=\"xMidYMid meet\" href=\"" + dataUri + "\"/>");
-            builder.AppendLine("  <text x=\"14\" y=\"" + (options.ThumbnailHeight - 14).ToString(CultureInfo.InvariantCulture) + "\" font-family=\"Aptos, Segoe UI, Arial, sans-serif\" font-size=\"12\" fill=\"#657586\">" + EscapeXml(displayName) + "</text>");
+            builder.AppendLine("<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"" + width + "\" height=\"" + height + "\" viewBox=\"0 0 " + width + " " + height + "\" role=\"img\" aria-label=\"" + Escape(displayName) + "\">");
+            builder.Append("  ").AppendRectElement(0D, 0D, options.ThumbnailWidth, options.ThumbnailHeight, 8D, 8D, " fill=\"#FFFFFF\"").AppendLine();
+            builder.Append("  ").AppendRectElement(0.5D, 0.5D, options.ThumbnailWidth - 1D, options.ThumbnailHeight - 1D, 7.5D, 7.5D, " fill=\"none\" stroke=\"#D3E0EC\"").AppendLine();
+            builder.Append("  ");
+            OfficeSvgImageRenderer.AppendImageInViewport(
+                builder,
+                dataUri,
+                new OfficeImageProjection(new OfficeImagePlacement(14D, 12D, imageWidth, imageHeight)),
+                "visio-thumbnail-image-clip",
+                new OfficeImagePlacement(14D, 12D, imageWidth, imageHeight),
+                preserveAspectRatio: "xMidYMid meet").AppendLine();
+            builder.Append("  ").AppendSvgTextElement(
+                displayName,
+                14D,
+                options.ThumbnailHeight - 14D,
+                12D,
+                OfficeColor.FromRgb(101, 117, 134),
+                "Aptos, Segoe UI, Arial, sans-serif",
+                12D,
+                OfficeTextAlignment.Left).AppendLine();
             builder.AppendLine("</svg>");
             File.WriteAllText(path, builder.ToString(), new UTF8Encoding(false));
             return path;
@@ -332,37 +338,7 @@ namespace OfficeIMO.Visio.Stencils {
             builder.AppendLine("            <dt>" + Escape(name) + "</dt><dd>" + Escape(value) + "</dd>");
         }
 
-        private static string Escape(string value) {
-            return WebUtility.HtmlEncode(value);
-        }
+        private static string Escape(string? value) => OfficeSvgFormatting.Escape(value);
 
-        private static string EscapeXml(string value) {
-            return SecurityElementEscape(value);
-        }
-
-        private static string SecurityElementEscape(string value) {
-            return value
-                .Replace("&", "&amp;")
-                .Replace("\"", "&quot;")
-                .Replace("<", "&lt;")
-                .Replace(">", "&gt;");
-        }
-
-        private static string GetContentTypeFromExtension(string? extension) {
-            if (string.IsNullOrWhiteSpace(extension)) {
-                return "application/octet-stream";
-            }
-
-            string normalized = extension!.TrimStart('.').ToLowerInvariant();
-            return normalized switch {
-                "png" => "image/png",
-                "jpg" or "jpeg" => "image/jpeg",
-                "gif" => "image/gif",
-                "svg" => "image/svg+xml",
-                "bmp" => "image/bmp",
-                "webp" => "image/webp",
-                _ => "application/octet-stream"
-            };
-        }
     }
 }

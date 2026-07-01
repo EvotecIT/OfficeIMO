@@ -125,8 +125,13 @@ public sealed partial class PdfDocument {
 
     internal static ShapeBlock CreateShapeBlock(OfficeShape shape, PdfAlign? align = null, double? spacingBefore = null, double? spacingAfter = null, PdfDrawingStyle? style = null, string? linkUri = null, string? linkContents = null) {
         Guard.NotNull(shape, nameof(shape));
-        Guard.Positive(shape.Width, nameof(shape.Width));
-        Guard.Positive(shape.Height, nameof(shape.Height));
+        if (shape.Kind == OfficeShapeKind.Line) {
+            Guard.NonNegative(shape.Width, nameof(shape.Width));
+            Guard.NonNegative(shape.Height, nameof(shape.Height));
+        } else {
+            Guard.Positive(shape.Width, nameof(shape.Width));
+            Guard.Positive(shape.Height, nameof(shape.Height));
+        }
         Guard.NonNegative(shape.StrokeWidth, nameof(shape.StrokeWidth));
         Guard.OptionalUriAction(linkUri, nameof(linkUri));
         ValidateOpacity(shape.FillOpacity, nameof(shape.FillOpacity));
@@ -181,6 +186,11 @@ public sealed partial class PdfDocument {
                         ValidatePointInsideShape(command.Point, shape);
                         break;
                     case OfficePathCommandKind.LineTo:
+                        ValidatePointInsideShape(command.Point, shape);
+                        hasDraw = true;
+                        break;
+                    case OfficePathCommandKind.QuadraticBezierTo:
+                        ValidatePointInsideShape(command.ControlPoint1, shape);
                         ValidatePointInsideShape(command.Point, shape);
                         hasDraw = true;
                         break;

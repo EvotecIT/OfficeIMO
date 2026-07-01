@@ -1,4 +1,5 @@
 using OfficeIMO.Drawing;
+using System;
 using System.Diagnostics;
 
 namespace OfficeIMO.Word {
@@ -169,7 +170,7 @@ namespace OfficeIMO.Word {
                 OfficeImageFormat.Emf => CustomImagePartType.Emf,
                 OfficeImageFormat.Wmf => CustomImagePartType.Wmf,
                 OfficeImageFormat.Svg => CustomImagePartType.Svg,
-                _ => CustomImagePartType.Png
+                _ => throw new NotSupportedException($"Word image parts do not support {imageFormat} images.")
             };
 
         /// <summary>

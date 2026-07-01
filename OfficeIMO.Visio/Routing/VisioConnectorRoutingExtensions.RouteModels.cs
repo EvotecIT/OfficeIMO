@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Visio {
     public static partial class VisioConnectorRoutingExtensions {
@@ -105,9 +106,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static double Distance(RoutePoint from, RoutePoint to) {
-            double dx = to.X - from.X;
-            double dy = to.Y - from.Y;
-            return Math.Sqrt((dx * dx) + (dy * dy));
+            return OfficeGeometry.Distance((from.X, from.Y), (to.X, to.Y));
         }
     }
 }
