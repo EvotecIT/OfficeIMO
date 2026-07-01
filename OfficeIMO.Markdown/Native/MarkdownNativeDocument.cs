@@ -351,6 +351,22 @@ public sealed partial class MarkdownNativeDocument {
             GetOriginalSourceFailureReason(tableCell.SyntaxNode));
     }
 
+    /// <summary>Creates a non-mutating source edit that replaces a native table row payload.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeTableRow tableRow, string replacementMarkdown) {
+        if (tableRow == null) {
+            throw new ArgumentNullException(nameof(tableRow));
+        }
+
+        if (!tableRow.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native table row does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            tableRow.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(tableRow.SyntaxNode));
+    }
+
     /// <summary>Creates a non-mutating source edit that replaces a native definition-list group.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListGroup definitionGroup, string replacementMarkdown) {
         if (definitionGroup == null) {

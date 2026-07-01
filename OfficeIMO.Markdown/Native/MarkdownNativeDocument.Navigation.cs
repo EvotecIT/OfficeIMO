@@ -58,6 +58,27 @@ public sealed partial class MarkdownNativeDocument {
         return null;
     }
 
+    /// <summary>Enumerates all native table rows in document order, including rows in nested tables.</summary>
+    public IEnumerable<MarkdownNativeTableRow> EnumerateTableRows() {
+        for (var i = 0; i < Blocks.Count; i++) {
+            foreach (var row in EnumerateTableRows(Blocks[i])) {
+                yield return row;
+            }
+        }
+    }
+
+    /// <summary>Finds the deepest native table row whose source span contains the supplied 1-based line and column.</summary>
+    public MarkdownNativeTableRow? FindTableRowAtPosition(int lineNumber, int columnNumber) {
+        for (var i = 0; i < Blocks.Count; i++) {
+            var match = FindTableRowAtPosition(Blocks[i], lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
     /// <summary>Enumerates all native definition-list groups in document order, including nested definition lists.</summary>
     public IEnumerable<MarkdownNativeDefinitionListGroup> EnumerateDefinitionListGroups() {
         for (var i = 0; i < Blocks.Count; i++) {
@@ -288,6 +309,108 @@ public sealed partial class MarkdownNativeDocument {
     private static MarkdownNativeTableCell? FindTableCellAtPosition(MarkdownNativeTableCell cell, int lineNumber, int columnNumber) {
         for (var i = 0; i < cell.Children.Count; i++) {
             var match = FindTableCellAtPosition(cell.Children[i], lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static IEnumerable<MarkdownNativeTableRow> EnumerateTableRows(MarkdownNativeBlock block) {
+        if (block is MarkdownNativeTableBlock table) {
+            if (table.HeaderRow != null) {
+                yield return table.HeaderRow;
+                foreach (var child in EnumerateTableRows(table.HeaderRow)) {
+                    yield return child;
+                }
+            }
+
+            for (var row = 0; row < table.BodyRows.Count; row++) {
+                yield return table.BodyRows[row];
+                foreach (var child in EnumerateTableRows(table.BodyRows[row])) {
+                    yield return child;
+                }
+            }
+
+            yield break;
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            foreach (var row in EnumerateTableRows(child)) {
+                yield return row;
+            }
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeTableRow> EnumerateTableRows(MarkdownNativeTableRow row) {
+        for (var column = 0; column < row.Cells.Count; column++) {
+            foreach (var child in EnumerateTableRows(row.Cells[column])) {
+                yield return child;
+            }
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeTableRow> EnumerateTableRows(MarkdownNativeTableCell cell) {
+        for (var i = 0; i < cell.Children.Count; i++) {
+            foreach (var row in EnumerateTableRows(cell.Children[i])) {
+                yield return row;
+            }
+        }
+    }
+
+    private static MarkdownNativeTableRow? FindTableRowAtPosition(MarkdownNativeBlock block, int lineNumber, int columnNumber) {
+        if (block is MarkdownNativeTableBlock table) {
+            if (table.HeaderRow != null) {
+                var headerChildMatch = FindTableRowAtPosition(table.HeaderRow, lineNumber, columnNumber);
+                if (headerChildMatch != null) {
+                    return headerChildMatch;
+                }
+
+                if (ContainsPosition(table.HeaderRow.SourceSpan, lineNumber, columnNumber)) {
+                    return table.HeaderRow;
+                }
+            }
+
+            for (var row = 0; row < table.BodyRows.Count; row++) {
+                var nativeRow = table.BodyRows[row];
+                var childMatch = FindTableRowAtPosition(nativeRow, lineNumber, columnNumber);
+                if (childMatch != null) {
+                    return childMatch;
+                }
+
+                if (ContainsPosition(nativeRow.SourceSpan, lineNumber, columnNumber)) {
+                    return nativeRow;
+                }
+            }
+
+            return null;
+        }
+
+        foreach (var child in GetChildBlocks(block)) {
+            var match = FindTableRowAtPosition(child, lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static MarkdownNativeTableRow? FindTableRowAtPosition(MarkdownNativeTableRow row, int lineNumber, int columnNumber) {
+        for (var column = 0; column < row.Cells.Count; column++) {
+            var match = FindTableRowAtPosition(row.Cells[column], lineNumber, columnNumber);
+            if (match != null) {
+                return match;
+            }
+        }
+
+        return null;
+    }
+
+    private static MarkdownNativeTableRow? FindTableRowAtPosition(MarkdownNativeTableCell cell, int lineNumber, int columnNumber) {
+        for (var i = 0; i < cell.Children.Count; i++) {
+            var match = FindTableRowAtPosition(cell.Children[i], lineNumber, columnNumber);
             if (match != null) {
                 return match;
             }

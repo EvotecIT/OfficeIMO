@@ -341,6 +341,49 @@ After
     }
 
     [Fact]
+    public void Navigation_SourceSlices_Snapshots_And_SourceEdits_Cover_Native_Table_Rows() {
+        const string markdown = "| Name | Value |\r\n| --- | --- |\r\n| CPU | 42 |\r\n";
+        var native = MarkdownNativeDocument.Parse(
+            markdown,
+            new MarkdownReaderOptions {
+                PreserveTrivia = true,
+                Tables = true
+            });
+
+        var rows = native.EnumerateTableRows().ToArray();
+
+        Assert.Equal(2, rows.Length);
+        Assert.True(rows[0].IsHeader);
+        Assert.False(rows[1].IsHeader);
+        Assert.Equal(-1, rows[0].RowIndex);
+        Assert.Equal(0, rows[1].RowIndex);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 14), rows[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 10), rows[1].SourceSpan);
+        Assert.Same(rows[0], native.FindTableRowAtPosition(1, 10));
+        Assert.Same(rows[1], native.FindTableRowAtPosition(3, 9));
+        Assert.Null(native.FindTableRowAtPosition(2, 3));
+
+        Assert.True(native.TryCreateSourceSlice(rows[1], out var normalizedSlice));
+        Assert.Equal("CPU | 42", normalizedSlice.Text);
+        Assert.True(native.TryCreateOriginalSourceSlice(rows[1], out var originalSlice, out var failureReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, failureReason);
+        Assert.Equal("CPU | 42", originalSlice.Text);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.NotNull(snapshot.HeaderRow);
+        Assert.Equal("Name | Value", snapshot.HeaderRow!.Markdown);
+        Assert.Equal(3, Assert.Single(snapshot.BodyRows).SourceSpan!.StartLine);
+        Assert.Equal("CPU | 42", Assert.Single(snapshot.BodyRows).Markdown);
+        Assert.Equal("42", Assert.Single(snapshot.BodyRows).Cells[1].Text);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(rows[1], "GPU | 84"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("| Name | Value |\r\n| --- | --- |\r\n| GPU | 84 |\r\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Native_Table_Cell_Navigation_Snapshot_And_Source_Edit_Cover_List_Nested_Tables() {
         const string markdown = "- item\r\n\r\n  | Name | Value |\r\n  | --- | --- |\r\n  | CPU | 42 |\r\n";
         var native = MarkdownNativeDocument.Parse(

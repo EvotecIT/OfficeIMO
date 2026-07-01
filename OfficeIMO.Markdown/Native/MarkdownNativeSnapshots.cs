@@ -233,6 +233,7 @@ public sealed class MarkdownNativeBlockSnapshot {
         DefinitionGroups = Array.Empty<MarkdownNativeDefinitionListGroupSnapshot>();
         HeaderCells = Array.Empty<MarkdownNativeTableCellSnapshot>();
         Rows = Array.Empty<IReadOnlyList<MarkdownNativeTableCellSnapshot>>();
+        BodyRows = Array.Empty<MarkdownNativeTableRowSnapshot>();
     }
 
     /// <summary>Stable block id.</summary>
@@ -277,8 +278,14 @@ public sealed class MarkdownNativeBlockSnapshot {
     /// <summary>Table header cell snapshots.</summary>
     public IReadOnlyList<MarkdownNativeTableCellSnapshot> HeaderCells { get; internal set; }
 
+    /// <summary>Table header row snapshot when available.</summary>
+    public MarkdownNativeTableRowSnapshot? HeaderRow { get; internal set; }
+
     /// <summary>Table body row snapshots.</summary>
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCellSnapshot>> Rows { get; internal set; }
+
+    /// <summary>Table body row object snapshots.</summary>
+    public IReadOnlyList<MarkdownNativeTableRowSnapshot> BodyRows { get; internal set; }
 
     /// <summary>Enumerates source-backed fields with the supplied field name in source order.</summary>
     public IEnumerable<MarkdownNativeBlockSourceFieldSnapshot> EnumerateSourceFields(string name) {
@@ -639,6 +646,39 @@ public sealed class MarkdownNativeListItemParagraphSnapshot {
 
     /// <summary>Inline snapshots for this paragraph.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }
+}
+
+/// <summary>
+/// UI-safe snapshot of a native table row.
+/// </summary>
+public sealed class MarkdownNativeTableRowSnapshot {
+    internal MarkdownNativeTableRowSnapshot(
+        string markdown,
+        bool isHeader,
+        int rowIndex,
+        MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        IReadOnlyList<MarkdownNativeTableCellSnapshot> cells) {
+        Markdown = markdown ?? string.Empty;
+        IsHeader = isHeader;
+        RowIndex = rowIndex;
+        SourceSpan = sourceSpan;
+        Cells = cells ?? Array.Empty<MarkdownNativeTableCellSnapshot>();
+    }
+
+    /// <summary>Markdown representation of the row payload.</summary>
+    public string Markdown { get; }
+
+    /// <summary>Whether this is the table header row.</summary>
+    public bool IsHeader { get; }
+
+    /// <summary>Zero-based row index, or -1 for headers.</summary>
+    public int RowIndex { get; }
+
+    /// <summary>Source span snapshot when available.</summary>
+    public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Cell snapshots in document column order.</summary>
+    public IReadOnlyList<MarkdownNativeTableCellSnapshot> Cells { get; }
 }
 
 /// <summary>

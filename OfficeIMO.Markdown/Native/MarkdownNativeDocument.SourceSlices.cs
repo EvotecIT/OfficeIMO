@@ -147,6 +147,18 @@ public sealed partial class MarkdownNativeDocument {
     }
 
     /// <summary>
+    /// Creates a source slice over the normalized markdown text that backs a native table row.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownNativeTableRow tableRow, out MarkdownSourceSlice slice) {
+        if (tableRow == null) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateSourceSlice(tableRow.SourceSpan, out slice);
+    }
+
+    /// <summary>
     /// Creates a source slice over the normalized markdown text that backs a native definition-list group.
     /// </summary>
     public bool TryCreateSourceSlice(MarkdownNativeDefinitionListGroup definitionGroup, out MarkdownSourceSlice slice) {
@@ -466,6 +478,33 @@ public sealed partial class MarkdownNativeDocument {
         }
 
         return TryCreateOriginalSourceSlice(tableCell.SourceSpan, out slice, out failureReason);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input that backs a native table row when trivia was preserved.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(MarkdownNativeTableRow tableRow, out MarkdownSourceSlice slice) {
+        return TryCreateOriginalSourceSlice(tableRow, out slice, out _);
+    }
+
+    /// <summary>
+    /// Creates a source slice over the original reader input that backs a native table row when trivia was preserved.
+    /// </summary>
+    public bool TryCreateOriginalSourceSlice(
+        MarkdownNativeTableRow tableRow,
+        out MarkdownSourceSlice slice,
+        out MarkdownOriginalSourceSliceFailureReason failureReason) {
+        if (tableRow == null) {
+            slice = default;
+            failureReason = MarkdownOriginalSourceSliceFailureReason.SourceSpanUnavailable;
+            return false;
+        }
+
+        if (tableRow.SyntaxNode?.IsGenerated == true) {
+            return ParseResult.TryCreateOriginalSourceSlice(tableRow.SyntaxNode, out slice, out failureReason);
+        }
+
+        return TryCreateOriginalSourceSlice(tableRow.SourceSpan, out slice, out failureReason);
     }
 
     /// <summary>

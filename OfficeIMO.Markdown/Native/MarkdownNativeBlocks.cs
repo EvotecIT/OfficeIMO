@@ -318,6 +318,8 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         Pipes = BuildPipes(table);
         HeaderCells = BuildHeaderCells(table, syntaxNode, diagnostics);
         Rows = BuildRows(table, syntaxNode, diagnostics);
+        HeaderRow = BuildHeaderRow(table, syntaxNode, HeaderCells);
+        BodyRows = BuildNativeRows(table, syntaxNode, Rows);
     }
 
     /// <summary>Source table block.</summary>
@@ -335,8 +337,14 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
     /// <summary>Header cells in document order.</summary>
     public IReadOnlyList<MarkdownNativeTableCell> HeaderCells { get; }
 
+    /// <summary>Header row projection when the table has a header row.</summary>
+    public MarkdownNativeTableRow? HeaderRow { get; }
+
     /// <summary>Body rows and cells in document order.</summary>
     public IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> Rows { get; }
+
+    /// <summary>Body row projections in document order.</summary>
+    public IReadOnlyList<MarkdownNativeTableRow> BodyRows { get; }
 
     private static IReadOnlyList<MarkdownNativeTableAlignmentCell> BuildAlignmentCells(TableBlock table) {
         if (table.AlignmentCellSources.Count == 0) {
@@ -402,6 +410,38 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
         return rows;
     }
 
+    private static MarkdownNativeTableRow? BuildHeaderRow(
+        TableBlock table,
+        MarkdownSyntaxNode syntaxNode,
+        IReadOnlyList<MarkdownNativeTableCell> headerCells) {
+        if (table.Headers.Count == 0) {
+            return null;
+        }
+
+        var headerNode = syntaxNode.Children.FirstOrDefault(static child => child.Kind == MarkdownSyntaxKind.TableHeader);
+        return new MarkdownNativeTableRow(table.HeaderRow, headerNode, isHeader: true, rowIndex: -1, headerCells);
+    }
+
+    private static IReadOnlyList<MarkdownNativeTableRow> BuildNativeRows(
+        TableBlock table,
+        MarkdownSyntaxNode syntaxNode,
+        IReadOnlyList<IReadOnlyList<MarkdownNativeTableCell>> rows) {
+        if (rows == null || rows.Count == 0) {
+            return Array.Empty<MarkdownNativeTableRow>();
+        }
+
+        var rowNodes = syntaxNode.Children.Where(static child => child.Kind == MarkdownSyntaxKind.TableRow).ToArray();
+        var sourceRows = table.BodyRows;
+        var nativeRows = new MarkdownNativeTableRow[rows.Count];
+        for (var rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+            var sourceRow = rowIndex < sourceRows.Count ? sourceRows[rowIndex] : null;
+            var rowNode = rowIndex < rowNodes.Length ? rowNodes[rowIndex] : null;
+            nativeRows[rowIndex] = new MarkdownNativeTableRow(sourceRow, rowNode, isHeader: false, rowIndex, rows[rowIndex]);
+        }
+
+        return nativeRows;
+    }
+
     private static IReadOnlyList<MarkdownNativeTableCell> BuildCells(
         IReadOnlyList<string> rawCells,
         IReadOnlyList<TableCell> structuredCells,
@@ -442,6 +482,47 @@ public sealed class MarkdownNativeTableBlock : MarkdownNativeBlock {
             ? columnAlignments[columnIndex]
             : ColumnAlignment.None;
     }
+}
+
+/// <summary>
+/// Native projection for a table row.
+/// </summary>
+public sealed class MarkdownNativeTableRow {
+    internal MarkdownNativeTableRow(
+        TableRow? sourceRow,
+        MarkdownSyntaxNode? syntaxNode,
+        bool isHeader,
+        int rowIndex,
+        IReadOnlyList<MarkdownNativeTableCell> cells) {
+        SourceRow = sourceRow;
+        SyntaxNode = syntaxNode;
+        SourceSpan = syntaxNode?.SourceSpan ?? sourceRow?.SourceSpan;
+        IsHeader = isHeader;
+        RowIndex = rowIndex;
+        Cells = cells ?? Array.Empty<MarkdownNativeTableCell>();
+        Markdown = syntaxNode?.Literal ?? string.Join(" | ", Cells.Select(static cell => cell.Markdown));
+    }
+
+    /// <summary>Source table row when structured row data is available.</summary>
+    public TableRow? SourceRow { get; }
+
+    /// <summary>Syntax node that produced this row when available.</summary>
+    public MarkdownSyntaxNode? SyntaxNode { get; }
+
+    /// <summary>Source span in the normalized markdown text when available.</summary>
+    public MarkdownSourceSpan? SourceSpan { get; }
+
+    /// <summary>Whether this row is the table header row.</summary>
+    public bool IsHeader { get; }
+
+    /// <summary>Zero-based body row index, or <c>-1</c> for the header row.</summary>
+    public int RowIndex { get; }
+
+    /// <summary>Cells in document column order.</summary>
+    public IReadOnlyList<MarkdownNativeTableCell> Cells { get; }
+
+    /// <summary>Markdown representation of the row payload.</summary>
+    public string Markdown { get; }
 }
 
 /// <summary>

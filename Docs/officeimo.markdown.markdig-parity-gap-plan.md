@@ -51,6 +51,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: align generic line/column source-slice fallback with source-map tab-expanded columns.
   - [x] Engine: capture document-level line-ending source trivia and map normalized line-ending spans back to original CRLF, LF, or standalone CR source slices and original-preserving source edits.
   - [x] Engine: expose pipe-table row delimiters as repeated native `tablePipe` source fields with source-order snapshots, caret lookup, and source edits while ignoring escaped and code-span pipes.
+  - [x] Engine: expose native table row projections, source slices, original-source slices, source edits, navigation, and snapshots so editor hosts can target header/body rows without rewriting individual cells or rescanning markdown.
   - [x] Engine: expose source-order inline metadata snapshots for link/image fields and delimiter-like inline metadata, including escaped-character markers, decoded entity source text, and hard-break markers.
   - [x] Engine: expose link/image opening, separator, and closing delimiters through source-order inline metadata snapshots and source edits.
   - [x] Engine: expose emphasis-extra opening and closing delimiters for strikethrough, highlight, inserted, superscript, and subscript through source-order native metadata snapshots and source edits.
@@ -231,6 +232,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Canonicalize duplicated semantic/syntax ownership for lists, tables, definition lists, callouts, footnotes, front matter, and extension nodes.
   - [x] Parsed-compatible list-item paragraph syntax is now rebuilt as source-backed when the cached literal still matches the semantic paragraph, closing the generated-wrapper fallback for individual loose-list paragraph source edits.
 - [ ] Associate syntax nodes with semantic subobjects such as callout titles, list item paragraphs, definition groups/definitions, table rows/cells, and sequence-style inline wrappers.
+  - [x] Native table row projections now carry their source row, syntax node, source span, row markdown, cell projections, navigation, source slices, source edits, and snapshots for parsed pipe-table header/body rows.
 - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node roundtrip semantics.
 - [ ] Complete delimiter-token coverage for extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.

@@ -101,6 +101,8 @@ internal static class MarkdownNativeSnapshotFactory {
             case MarkdownNativeTableBlock table:
                 snapshot.HeaderCells = FromCells(table.HeaderCells);
                 snapshot.Rows = FromRows(table.Rows);
+                snapshot.HeaderRow = table.HeaderRow == null ? null : FromRow(table.HeaderRow);
+                snapshot.BodyRows = FromTableRows(table.BodyRows);
                 snapshot.FieldSourceSpans = FieldSpans(("alignmentRow", table.AlignmentRowSourceSpan));
                 break;
             case MarkdownNativeQuoteBlock quote:
@@ -422,6 +424,28 @@ internal static class MarkdownNativeSnapshotFactory {
             ToSpanSnapshot(cell.SourceSpan),
             FromInlines(cell.InlineRuns),
             FromBlocks(cell.Children));
+    }
+
+    private static IReadOnlyList<MarkdownNativeTableRowSnapshot> FromTableRows(IReadOnlyList<MarkdownNativeTableRow> rows) {
+        if (rows == null || rows.Count == 0) {
+            return Array.Empty<MarkdownNativeTableRowSnapshot>();
+        }
+
+        var snapshots = new List<MarkdownNativeTableRowSnapshot>(rows.Count);
+        for (var i = 0; i < rows.Count; i++) {
+            snapshots.Add(FromRow(rows[i]));
+        }
+
+        return snapshots;
+    }
+
+    private static MarkdownNativeTableRowSnapshot FromRow(MarkdownNativeTableRow row) {
+        return new MarkdownNativeTableRowSnapshot(
+            row.Markdown,
+            row.IsHeader,
+            row.RowIndex,
+            ToSpanSnapshot(row.SourceSpan),
+            FromCells(row.Cells));
     }
 
     private static MarkdownNativeSourceSpanSnapshot? ToSpanSnapshot(MarkdownSourceSpan? span) =>
