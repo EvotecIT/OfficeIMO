@@ -588,6 +588,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_AppliesTextFormatSwitchesToDateFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.DateTextFormat.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.BuiltinDocumentProperties.Created = new DateTime(2024, 1, 2, 3, 4, 5);
+                document.AddParagraph("Created upper: ")._paragraph.Append(BuildSimpleField(" CREATEDATE \\@ \"MMMM d, yyyy\" \\* Upper ", "stale-created"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                AssertUpdated(report, WordFieldType.CreateDate, "JANUARY 2, 2024");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.CreateDate &&
+                    result.Message.Contains("Text format switch was applied", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesInfoAndRevisionMetadataFields() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.InfoRevision.docx");
 

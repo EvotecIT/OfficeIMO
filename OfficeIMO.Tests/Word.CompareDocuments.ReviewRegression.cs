@@ -638,6 +638,168 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceParagraphRewriteRemovesTargetHyperlinkTextContainers() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_paragraph_hyperlink_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document._document.Body!.Append(new Paragraph(new Run(new Text("Original link text") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_paragraph_hyperlink_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new Hyperlink(
+                        new Run(new Text("Changed link text") { Space = SpaceProcessingModeValues.Preserve })) {
+                        Anchor = "ChangedBookmark"
+                    }));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_paragraph_hyperlink_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Paragraph }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>());
+            Assert.Empty(paragraph.Descendants<Hyperlink>());
+            Assert.Equal(1, paragraph.Descendants<InsertedRun>().Count(run => run.InnerText == "Changed link text"));
+        }
+
+        [Fact]
+        public void CompareStructureInPlacePlacesTrailingDeletedRunAfterLastTargetRun() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_trailing_deleted_run_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Keep") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new Text(" deleted") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_trailing_deleted_run_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document._document.Body!.Append(new Paragraph(new Run(new Text("Keep") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_trailing_deleted_run_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Run }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>(), item => item.InnerText.Contains("Keep", StringComparison.Ordinal));
+            OpenXmlElement[] textChildren = paragraph.ChildElements
+                .Where(child => child is Run || child is DeletedRun)
+                .ToArray();
+
+            Assert.IsType<Run>(textChildren[0]);
+            Assert.IsType<DeletedRun>(textChildren[1]);
+            Assert.Equal("Keep", textChildren[0].InnerText);
+            Assert.Equal(" deleted", textChildren[1].InnerText);
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceRedlinesOuterContentControlWhenNestedControlAlsoChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_parent_source.docx");
+            CreateNestedContentControlDocument(sourcePath, "Outer old", "Child old");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_parent_target.docx");
+            CreateNestedContentControlDocument(targetPath, "Outer new", "Child new");
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_parent_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.ContentControl }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            SdtBlock control = Assert.Single(redline._document.Body!.Descendants<SdtBlock>());
+            Assert.Contains(control.Descendants<DeletedRun>(), run => run.InnerText.Contains("Outer old", StringComparison.Ordinal));
+            Assert.Contains(control.Descendants<DeletedRun>(), run => run.InnerText.Contains("Child old", StringComparison.Ordinal));
+            Assert.Contains(control.Descendants<InsertedRun>(), run => run.InnerText.Contains("Outer new", StringComparison.Ordinal));
+            Assert.Contains(control.Descendants<InsertedRun>(), run => run.InnerText.Contains("Child new", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceSkipsNestedDeletedContentControlWhenParentIsDeleted() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_deleted_source.docx");
+            CreateNestedContentControlDocument(sourcePath, "Deleted outer", "Deleted child");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_deleted_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("No content controls remain.");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_nested_sdt_deleted_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.ContentControl }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Assert.Equal(1, redline._document.Body!.Descendants<DeletedRun>().Count(run => run.InnerText.Contains("Deleted child", StringComparison.Ordinal)));
+        }
+
+        [Fact]
+        public void CompareStructureKeysFootnoteParagraphsByNoteId() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_footnote_id_source.docx");
+            CreateFootnoteIdRegressionDocument(
+                sourcePath,
+                (5, "Deleted anchor", "Deleted footnote"),
+                (9, "Stable anchor", "Stable footnote"));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_footnote_id_target.docx");
+            CreateFootnoteIdRegressionDocument(targetPath, (9, "Stable anchor", "Stable footnote"));
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(
+                sourcePath,
+                targetPath,
+                new WordComparisonOptions {
+                    IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Paragraph }
+                });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                string.Equals(finding.SourceText, "Deleted footnote", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                ((finding.SourceText?.Contains("Stable footnote", StringComparison.Ordinal) == true) ||
+                 (finding.TargetText?.Contains("Stable footnote", StringComparison.Ordinal) == true)));
+        }
+
+        [Fact]
         public void TableOfContentRefreshCombinesSplitComplexTocInstruction() {
             string filePath = Path.Combine(_directoryWithFiles, "TocRefreshSplitComplexInstruction.docx");
 
@@ -692,6 +854,62 @@ namespace OfficeIMO.Tests {
                     fieldCode.Text.Contains("TOC", StringComparison.Ordinal));
                 Assert.DoesNotContain(toc.SdtBlock.Descendants<FieldCode>(), fieldCode =>
                     fieldCode.Text.Contains("AUTHOR", StringComparison.Ordinal));
+            }
+        }
+
+        [Fact]
+        public void ImportedRawSimpleTocLeavesLeadingTextOutsideGeneratedSdt() {
+            string filePath = Path.Combine(_directoryWithFiles, "ImportedRawSimpleTocLeadingText.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.RemoveAllChildren<Paragraph>();
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Before raw TOC") { Space = SpaceProcessingModeValues.Preserve }),
+                    new SimpleField(new Run(new Text("No entries") { Space = SpaceProcessingModeValues.Preserve })) {
+                        Instruction = " TOC \\o \"1-3\" \\h \\z \\u "
+                    }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+                OpenXmlElement[] bodyChildren = document._document.Body!.ChildElements.ToArray();
+
+                Assert.IsType<Paragraph>(bodyChildren[0]);
+                Assert.Equal("Before raw TOC", bodyChildren[0].InnerText);
+                Assert.IsType<SdtBlock>(bodyChildren[1]);
+                Assert.DoesNotContain("Before raw TOC", toc.SdtBlock.InnerText, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
+        public void ImportedRawComplexTocLeavesSurroundingTextOutsideGeneratedSdt() {
+            string filePath = Path.Combine(_directoryWithFiles, "ImportedRawComplexTocSurroundingText.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.RemoveAllChildren<Paragraph>();
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Before complex TOC") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" TOC \\o \"1-3\" \\h \\z \\u ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("No entries") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text("After complex TOC") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+                OpenXmlElement[] bodyChildren = document._document.Body!.ChildElements.ToArray();
+
+                Assert.IsType<Paragraph>(bodyChildren[0]);
+                Assert.Equal("Before complex TOC", bodyChildren[0].InnerText);
+                Assert.IsType<SdtBlock>(bodyChildren[1]);
+                Assert.IsType<Paragraph>(bodyChildren[2]);
+                Assert.Equal("After complex TOC", bodyChildren[2].InnerText);
+                Assert.DoesNotContain("Before complex TOC", toc.SdtBlock.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain("After complex TOC", toc.SdtBlock.InnerText, StringComparison.Ordinal);
             }
         }
 
@@ -1141,6 +1359,46 @@ namespace OfficeIMO.Tests {
                             new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })))));
             }
 
+            document.Save(false);
+        }
+
+        private static void CreateNestedContentControlDocument(string path, string outerText, string childText) {
+            using WordDocument document = WordDocument.Create(path);
+            document._document.Body!.Append(new SdtBlock(
+                new SdtProperties(
+                    new SdtAlias { Val = "Outer" },
+                    new Tag { Val = "OuterTag" }),
+                new SdtContentBlock(
+                    new Paragraph(
+                        new Run(new Text(outerText + " ") { Space = SpaceProcessingModeValues.Preserve }),
+                        new SdtRun(
+                            new SdtProperties(
+                                new SdtAlias { Val = "Child" },
+                                new Tag { Val = "ChildTag" }),
+                            new SdtContentRun(
+                                new Run(new Text(childText) { Space = SpaceProcessingModeValues.Preserve })))))));
+            document.Save(false);
+        }
+
+        private static void CreateFootnoteIdRegressionDocument(string path, params (int Id, string Anchor, string Text)[] notes) {
+            using WordDocument document = WordDocument.Create(path);
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+            document._document.Body!.RemoveAllChildren<Paragraph>();
+
+            FootnotesPart footnotesPart = mainPart.FootnotesPart ?? mainPart.AddNewPart<FootnotesPart>();
+            footnotesPart.Footnotes = new Footnotes();
+
+            foreach ((int id, string anchor, string text) in notes) {
+                document._document.Body.Append(new Paragraph(
+                    new Run(new Text(anchor) { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FootnoteReference { Id = id })));
+                footnotesPart.Footnotes.Append(new Footnote(
+                    new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }))) {
+                    Id = id
+                });
+            }
+
+            footnotesPart.Footnotes.Save();
             document.Save(false);
         }
 

@@ -101,6 +101,10 @@ namespace OfficeIMO.Word {
         }
 
         private static bool ShouldPreserveParagraphRedlineChild(OpenXmlElement child) {
+            if (child.Descendants<Text>().Any() || child.Descendants<DeletedText>().Any()) {
+                return false;
+            }
+
             if (child is not Run run) {
                 return true;
             }
@@ -129,9 +133,15 @@ namespace OfficeIMO.Word {
             int boundedRunIndex = Math.Max(0, Math.Min(runIndex, runs.Count - 1));
             Run targetRun = runs[boundedRunIndex];
             OpenXmlElement parent = targetRun.Parent ?? paragraph;
+            bool insertTrailingDeletion = finding.ChangeKind == WordComparisonChangeKind.Deleted && runIndex >= runs.Count;
 
             if (finding.ChangeKind != WordComparisonChangeKind.Inserted && !string.IsNullOrEmpty(finding.SourceText)) {
-                parent.InsertBefore(CreateDeletedRun(finding.SourceText!, options), targetRun);
+                OpenXmlElement deletedRun = CreateDeletedRun(finding.SourceText!, options);
+                if (insertTrailingDeletion) {
+                    parent.InsertAfter(deletedRun, targetRun);
+                } else {
+                    parent.InsertBefore(deletedRun, targetRun);
+                }
             }
 
             if (finding.ChangeKind != WordComparisonChangeKind.Deleted && !string.IsNullOrEmpty(finding.TargetText)) {
