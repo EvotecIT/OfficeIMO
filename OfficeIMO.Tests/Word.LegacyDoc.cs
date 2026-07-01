@@ -8198,6 +8198,79 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBandedConditionalTableStylesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocBandedVisualTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Banded Visual Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new StyleTableProperties(
+                        new TableStyleRowBandSize { Val = 1 },
+                        new TableStyleColumnBandSize { Val = 1 }));
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                        Type = TableStyleOverrideValues.Band1Horizontal
+                    });
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00ff00" })) {
+                        Type = TableStyleOverrideValues.Band2Horizontal
+                    });
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new TableCellVerticalAlignment { Val = TableVerticalAlignmentValues.Bottom })) {
+                        Type = TableStyleOverrideValues.Band1Vertical
+                    });
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(new NoWrap())) {
+                        Type = TableStyleOverrideValues.Band2Vertical
+                    });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(3, 3, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table._tableProperties.TableLook = new TableLook {
+                        FirstRow = false,
+                        LastRow = false,
+                        FirstColumn = false,
+                        LastColumn = false,
+                        NoHorizontalBand = false,
+                        NoVerticalBand = false
+                    };
+
+                    for (int row = 0; row < table.Rows.Count; row++) {
+                        for (int column = 0; column < table.Rows[row].Cells.Count; column++) {
+                            table.Rows[row].Cells[column].AddParagraph($"R{row + 1}C{column + 1}", removeExistingParagraphs: true);
+                        }
+                    }
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("R1C1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("00ff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal("ff0000", reloadedTable.Rows[2].Cells[0].ShadingFillColorHex);
+
+                Assert.Equal(TableVerticalAlignmentValues.Bottom, reloadedTable.Rows[0].Cells[0].VerticalAlignment);
+                Assert.False(reloadedTable.Rows[0].Cells[1].WrapText);
+                Assert.Equal(TableVerticalAlignmentValues.Bottom, reloadedTable.Rows[0].Cells[2].VerticalAlignment);
+                Assert.Equal(TableVerticalAlignmentValues.Bottom, reloadedTable.Rows[1].Cells[0].VerticalAlignment);
+                Assert.False(reloadedTable.Rows[1].Cells[1].WrapText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableStyleParagraphFormattingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocTableParagraphFormatting";

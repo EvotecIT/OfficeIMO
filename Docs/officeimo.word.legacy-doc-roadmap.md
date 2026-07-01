@@ -1016,6 +1016,10 @@ just to reserve names.
     - [x] Write bookmark ranges inside complex PAGE/NUMPAGES field result
       content across body, table-cell, header/footer, footnote, and endnote
       stories through native DOC save/reload.
+    - [x] Write banded horizontal and vertical conditional table style effects
+      with explicit row/column band sizes and `w:tblLook` banding flags, then
+      reload the expanded DOC cell shading, vertical alignment, and no-wrap
+      effects through the legacy reader.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
