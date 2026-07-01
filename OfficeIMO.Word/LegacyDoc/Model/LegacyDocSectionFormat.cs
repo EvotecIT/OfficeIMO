@@ -33,7 +33,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             EndnotePositionValues? endnotePosition = null,
             RestartNumberValues? endnoteRestart = null,
             int? endnoteStart = null,
-            NumberFormatValues? endnoteNumberFormat = null) {
+            NumberFormatValues? endnoteNumberFormat = null,
+            LegacyDocParagraphBorders? pageBorders = null) {
             SectionBreakType = sectionBreakType;
             PageWidthTwips = pageWidthTwips;
             PageHeightTwips = pageHeightTwips;
@@ -65,6 +66,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             EndnoteRestart = endnoteRestart;
             EndnoteStart = endnoteStart;
             EndnoteNumberFormat = endnoteNumberFormat;
+            PageBorders = pageBorders.HasValue && pageBorders.Value.HasAny ? pageBorders : null;
         }
 
         internal SectionMarkValues? SectionBreakType { get; }
@@ -129,6 +131,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal NumberFormatValues? EndnoteNumberFormat { get; }
 
+        internal LegacyDocParagraphBorders? PageBorders { get; }
+
         internal bool HasFormatting => IsNonDefaultSectionBreakType(SectionBreakType)
             || PageWidthTwips != null
             || PageHeightTwips != null
@@ -159,7 +163,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || EndnotePosition != null
             || EndnoteRestart != null
             || EndnoteStart != null
-            || EndnoteNumberFormat != null;
+            || EndnoteNumberFormat != null
+            || PageBorders != null;
 
         private static bool IsNonDefaultSectionBreakType(SectionMarkValues? sectionBreakType) {
             return sectionBreakType != null && sectionBreakType.Value != SectionMarkValues.NextPage;
@@ -197,7 +202,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 EndnotePosition,
                 EndnoteRestart,
                 EndnoteStart,
-                EndnoteNumberFormat);
+                EndnoteNumberFormat,
+                PageBorders);
         }
 
         internal LegacyDocSectionFormat WithEndnotePosition(EndnotePositionValues? endnotePosition) {
@@ -232,7 +238,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 endnotePosition,
                 EndnoteRestart,
                 EndnoteStart,
-                EndnoteNumberFormat);
+                EndnoteNumberFormat,
+                PageBorders);
         }
 
         internal static LegacyDocSectionFormat Default { get; } = new LegacyDocSectionFormat(null, null, null, null, null, null, null, null, null, null, null);

@@ -10420,30 +10420,6 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionPageBordersBeforeCreatingFile() {
-            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-
-            try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Unsupported page borders");
-                document.Sections[0]._sectionProperties.Append(new PageBorders(
-                    new TopBorder {
-                        Val = BorderValues.Single,
-                        Size = 4U,
-                        Space = 24U,
-                        Color = "000000"
-                    }));
-
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-
-                Assert.Contains("Unsupported section property: pgBorders", exception.Message);
-                Assert.False(File.Exists(docPath));
-            } finally {
-                DeleteIfExists(docPath);
-            }
-        }
-
-        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSectionEndnotePlacementAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

@@ -243,6 +243,10 @@ namespace OfficeIMO.Word {
                 section._sectionProperties.Append(new VerticalTextAlignmentOnPage { Val = sectionFormat.VerticalAlignment.Value });
             }
 
+            if (sectionFormat.PageBorders != null && sectionFormat.PageBorders.Value.HasAny) {
+                ApplyLegacyDocSectionPageBorders(section, sectionFormat.PageBorders.Value);
+            }
+
             if (sectionFormat.LineNumberCountBy != null
                 || sectionFormat.LineNumberDistanceTwips != null
                 || sectionFormat.LineNumberStart != null
@@ -294,6 +298,32 @@ namespace OfficeIMO.Word {
                     position: sectionFormat.EndnotePosition,
                     restartNumbering: sectionFormat.EndnoteRestart,
                     startNumber: sectionFormat.EndnoteStart);
+            }
+        }
+
+        private static void ApplyLegacyDocSectionPageBorders(WordSection section, LegacyDocParagraphBorders borders) {
+            PageBorders? pageBorders = section._sectionProperties.GetFirstChild<PageBorders>();
+            pageBorders?.Remove();
+
+            pageBorders = new PageBorders();
+            if (borders.Top.HasAny) {
+                pageBorders.TopBorder = CreateLegacyDocParagraphBorder<TopBorder>(borders.Top);
+            }
+
+            if (borders.Left.HasAny) {
+                pageBorders.LeftBorder = CreateLegacyDocParagraphBorder<LeftBorder>(borders.Left);
+            }
+
+            if (borders.Bottom.HasAny) {
+                pageBorders.BottomBorder = CreateLegacyDocParagraphBorder<BottomBorder>(borders.Bottom);
+            }
+
+            if (borders.Right.HasAny) {
+                pageBorders.RightBorder = CreateLegacyDocParagraphBorder<RightBorder>(borders.Right);
+            }
+
+            if (pageBorders.ChildElements.Count > 0) {
+                section._sectionProperties.Append(pageBorders);
             }
         }
 

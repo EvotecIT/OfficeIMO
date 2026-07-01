@@ -34,6 +34,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSVjc = 0x301A;
         private const ushort SprmSBOrientation = 0x301D;
         private const ushort SprmSFRTLGutter = 0x322A;
+        private const ushort SprmSBrcTop80 = 0x702B;
+        private const ushort SprmSBrcLeft80 = 0x702C;
+        private const ushort SprmSBrcBottom80 = 0x702D;
+        private const ushort SprmSBrcRight80 = 0x702E;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
         private const ushort SprmSDxaLeft = 0xB021;
@@ -73,6 +77,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             RestartNumberValues? endnoteRestart = null;
             int? endnoteStart = null;
             NumberFormatValues? endnoteNumberFormat = null;
+            LegacyDocParagraphBorders? pageBorders = null;
             SectionMarkValues? sectionBreakType = null;
 
             foreach (OpenXmlElement property in sectionProperties.ChildElements) {
@@ -129,6 +134,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case VerticalTextAlignmentOnPage verticalTextAlignment:
                         verticalAlignment = ReadVerticalAlignment(verticalTextAlignment.Val);
                         break;
+                    case PageBorders sectionPageBorders:
+                        pageBorders = ReadSupportedSectionPageBorders(sectionPageBorders);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports simple section page setup only. Unsupported section property: {property.LocalName}.");
                 }
@@ -165,7 +173,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 endnotePosition,
                 endnoteRestart,
                 endnoteStart,
-                endnoteNumberFormat);
+                endnoteNumberFormat,
+                pageBorders);
         }
 
         private static void ReadSupportedColumns(Columns columns, out int? columnCount, out int? columnSpacing, out bool hasColumnSeparator) {
@@ -176,6 +185,89 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             columnCount = ReadColumnCount(columns.ColumnCount);
             columnSpacing = ReadColumnSpacing(columns.Space, columnCount != null ? DefaultColumnSpaceTwips : null);
             hasColumnSeparator = columns.Separator?.Value ?? false;
+        }
+
+        private static LegacyDocParagraphBorders ReadSupportedSectionPageBorders(PageBorders pageBorders) {
+            if (pageBorders.GetAttributes().Any()) {
+                throw new NotSupportedException("Native DOC saving supports simple section page borders only without page-border positioning attributes.");
+            }
+
+            foreach (OpenXmlElement child in pageBorders.ChildElements) {
+                switch (child) {
+                    case TopBorder:
+                    case LeftBorder:
+                    case BottomBorder:
+                    case RightBorder:
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports simple section page borders only. Unsupported page border: {child.LocalName}.");
+                }
+            }
+
+            return new LegacyDocParagraphBorders(
+                ReadSupportedSectionPageBorder(pageBorders.TopBorder),
+                ReadSupportedSectionPageBorder(pageBorders.LeftBorder),
+                ReadSupportedSectionPageBorder(pageBorders.BottomBorder),
+                ReadSupportedSectionPageBorder(pageBorders.RightBorder),
+                default);
+        }
+
+        private static LegacyDocParagraphBorder ReadSupportedSectionPageBorder(BorderType? border) {
+            if (border == null) {
+                return default;
+            }
+
+            foreach (OpenXmlAttribute attribute in border.GetAttributes()) {
+                if (!string.Equals(attribute.LocalName, "val", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "color", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "sz", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "space", StringComparison.Ordinal)) {
+                    throw new NotSupportedException($"Native DOC saving supports simple section page borders only. Unsupported page border attribute: {attribute.LocalName}.");
+                }
+            }
+
+            BorderValues? value = border.Val?.Value;
+            if (value == null || value == BorderValues.None || value == BorderValues.Nil) {
+                return default;
+            }
+
+            LegacyDocParagraphBorderStyle style = MapSupportedSectionPageBorderStyle(value.Value);
+            string? colorHex = border.Color?.Value;
+            if (string.Equals(colorHex, "auto", StringComparison.OrdinalIgnoreCase)) {
+                colorHex = null;
+            }
+
+            if (!LegacyDocColorPalette.TryGetIcoForHex(colorHex, out _)) {
+                throw new NotSupportedException("Native DOC saving supports section page borders only with Word 97-2003 palette colors.");
+            }
+
+            int size = border.Size?.Value == null ? 4 : checked((int)border.Size.Value);
+            int space = border.Space?.Value == null ? 0 : checked((int)border.Space.Value);
+            if (size <= 0 || size > byte.MaxValue || space < 0 || space > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports section page border size and spacing only within Word 97-2003 BRC80 byte ranges.");
+            }
+
+            return new LegacyDocParagraphBorder(style, colorHex, size, space);
+        }
+
+        private static LegacyDocParagraphBorderStyle MapSupportedSectionPageBorderStyle(BorderValues value) {
+            if (value == BorderValues.Single) {
+                return LegacyDocParagraphBorderStyle.Single;
+            }
+
+            if (value == BorderValues.Double) {
+                return LegacyDocParagraphBorderStyle.Double;
+            }
+
+            if (value == BorderValues.Dotted) {
+                return LegacyDocParagraphBorderStyle.Dotted;
+            }
+
+            if (value == BorderValues.Dashed || value == BorderValues.DashSmallGap) {
+                return LegacyDocParagraphBorderStyle.Dashed;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support section page border style '{value}'.");
         }
 
         private static bool IsOnOffEnabled(OnOffType element) {
@@ -566,6 +658,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmSVjc, GetVerticalAlignmentOperand(sectionFormat.VerticalAlignment.Value)!.Value);
             }
 
+            if (sectionFormat.PageBorders != null) {
+                AddSectionPageBorderSprms(grpprl, sectionFormat.PageBorders.Value);
+            }
+
             if (grpprl.Count > ushort.MaxValue) {
                 throw new NotSupportedException("Native DOC saving cannot write section page setup because the SEPX record is too large.");
             }
@@ -575,6 +671,62 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             sepx[1] = (byte)(grpprl.Count >> 8);
             grpprl.CopyTo(sepx, 2);
             return sepx;
+        }
+
+        private static void AddSectionPageBorderSprms(List<byte> grpprl, LegacyDocParagraphBorders borders) {
+            AddSectionPageBorderSprmIfPresent(grpprl, SprmSBrcTop80, borders.Top);
+            AddSectionPageBorderSprmIfPresent(grpprl, SprmSBrcLeft80, borders.Left);
+            AddSectionPageBorderSprmIfPresent(grpprl, SprmSBrcBottom80, borders.Bottom);
+            AddSectionPageBorderSprmIfPresent(grpprl, SprmSBrcRight80, borders.Right);
+        }
+
+        private static void AddSectionPageBorderSprmIfPresent(List<byte> grpprl, ushort sprm, LegacyDocParagraphBorder border) {
+            if (!border.HasAny) {
+                return;
+            }
+
+            AddSectionPageBorderSprm(grpprl, sprm, border);
+        }
+
+        private static void AddSectionPageBorderSprm(List<byte> grpprl, ushort sprm, LegacyDocParagraphBorder border) {
+            if (border.SizeEighthPoints <= 0 || border.SizeEighthPoints > byte.MaxValue || border.SpacePoints < 0 || border.SpacePoints > byte.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports section page border size and spacing only within Word 97-2003 BRC80 byte ranges.");
+            }
+
+            if (!TryMapSectionPageBorderStyle(border.Style, out byte borderType)) {
+                throw new NotSupportedException($"Native DOC saving does not support section page border style '{border.Style}'.");
+            }
+
+            if (!LegacyDocColorPalette.TryGetIcoForHex(border.ColorHex, out byte colorIndex)) {
+                throw new NotSupportedException("Native DOC saving supports section page borders only with Word 97-2003 palette colors.");
+            }
+
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add(checked((byte)border.SizeEighthPoints));
+            grpprl.Add(borderType);
+            grpprl.Add(colorIndex);
+            grpprl.Add(checked((byte)border.SpacePoints));
+        }
+
+        private static bool TryMapSectionPageBorderStyle(LegacyDocParagraphBorderStyle style, out byte borderType) {
+            switch (style) {
+                case LegacyDocParagraphBorderStyle.Single:
+                    borderType = 0x01;
+                    return true;
+                case LegacyDocParagraphBorderStyle.Double:
+                    borderType = 0x03;
+                    return true;
+                case LegacyDocParagraphBorderStyle.Dotted:
+                    borderType = 0x06;
+                    return true;
+                case LegacyDocParagraphBorderStyle.Dashed:
+                    borderType = 0x07;
+                    return true;
+                default:
+                    borderType = 0;
+                    return false;
+            }
         }
 
         private static byte GetSectionBreakTypeOperand(SectionMarkValues sectionBreakType) {

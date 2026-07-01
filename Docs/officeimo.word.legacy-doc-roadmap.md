@@ -871,6 +871,10 @@ just to reserve names.
   - [x] Write simple final-section page size, orientation, margins,
     header/footer distance, and gutter, then reload them through the legacy
     reader.
+  - [x] Write simple palette-backed final-section page borders through
+    `sprmSBrc*80`, then reload top/left/bottom/right borders through the
+    legacy reader while blocking richer page-border positioning before native
+    `.doc` bytes are committed.
   - [x] Write simple equal-width section column count, spacing, and separator
     settings, then reload them through the legacy reader while blocking
     unequal section columns before native `.doc` bytes are committed.
@@ -1023,9 +1027,9 @@ just to reserve names.
     - [x] Block section properties inside header/footer, footnote, and endnote
       paragraphs before native DOC bytes are committed, keeping section breaks
       scoped to supported body paragraph boundaries.
-    - [x] Block richer unsupported final-section properties such as page borders
-      before native DOC bytes are committed, keeping unsupported section writing
-      fail-fast instead of producing a partial legacy DOC file.
+    - [x] Block richer unsupported final-section properties such as page-border
+      positioning before native DOC bytes are committed, keeping unsupported
+      section writing fail-fast instead of producing a partial legacy DOC file.
     - [x] Write simple inline run content controls by flattening supported runs,
       fields, hyperlinks, bookmarks, and nested inline content controls in body,
       table-cell, header/footer, footnote, and endnote paragraphs through native
