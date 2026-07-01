@@ -1639,6 +1639,57 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void InlineHtmlBreak_GenericAttributes_Are_Consumed_Without_Metadata_And_Preserve_Trailing_Text_Source() {
+        const string markdown = "<br>{#br .wide} tail\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        var paragraph = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        var hardBreak = Assert.Single(paragraph.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineHardBreak);
+        var trailingText = Assert.Single(
+            paragraph.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.InlineText
+                && node.SourceSpan.HasValue
+                && node.SourceSpan.Value.Equals(new MarkdownSourceSpan(1, 16, 1, 20)));
+
+        Assert.True(hardBreak.Attributes.IsEmpty);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), hardBreak.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(hardBreak, out var hardBreakSlice));
+        Assert.Equal("<br>", hardBreakSlice.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 20), trailingText.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(trailingText, out var trailingTextSlice));
+        Assert.Equal(" tail", trailingTextSlice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var nativeHardBreak = Assert.Single(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+        var nativeTrailingText = Assert.Single(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Text && inline.Text == " tail");
+
+        Assert.DoesNotContain(nativeHardBreak.Metadata, metadata => metadata.Name == "attributes");
+        Assert.DoesNotContain(native.EnumerateInlineMetadata(), metadata => metadata.Name == "attributes");
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 20), nativeTrailingText.SourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(nativeTrailingText, out var nativeTrailingTextSlice));
+        Assert.Equal(" tail", nativeTrailingTextSlice.Text);
+        Assert.Equal(
+            "<p><br> tail</p>",
+            result.Document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            }));
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_Before_Footnote_Definition_Are_Consumed_Without_Metadata() {
         const string markdown = "{#fn .wide}\n[^a]: note\n\ntext[^a]\n";
         var options = new MarkdownReaderOptions {

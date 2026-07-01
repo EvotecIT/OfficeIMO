@@ -394,6 +394,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "inline-html-span-attribute-stays-literal", "<span>hi</span>{#span .wide}" };
         yield return new object[] { "inline-html-wrapper-attribute-is-consumed", "<u>hi</u>{#under .wide}" };
         yield return new object[] { "inline-html-wrapper-attribute-preserves-trailing-text", "<u>hi</u>{#under .wide} tail" };
+        yield return new object[] { "inline-html-break-attribute-is-consumed", "<br>{#br .wide}" };
+        yield return new object[] { "inline-html-spaced-break-attribute-is-consumed", "<br />{#br .wide}" };
+        yield return new object[] { "inline-html-break-attribute-preserves-trailing-text", "<br>{#br .wide} tail" };
     }
 
     public static IEnumerable<object[]> GenericAttributesReferenceExtensionCases() {

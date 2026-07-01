@@ -15,7 +15,8 @@ public sealed class HardBreakInline : MarkdownInline, IRenderableMarkdownInline,
     }
 
     internal string RenderMarkdown() => "  \n";
-    internal string RenderHtml() => "<br/>";
+    internal string RenderHtml() =>
+        Marker is "<br>" or "<br/>" or "<br />" ? Marker : "<br/>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(' ');
