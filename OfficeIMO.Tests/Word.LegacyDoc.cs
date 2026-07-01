@@ -2369,6 +2369,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocAfterTableZeroLengthBookmarkAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].AddParagraph("AfterBookmarkCell", removeExistingParagraphs: true);
+                    document.AddParagraph("After table marker");
+
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                    OpenXmlElement afterAnchor = body.InsertAfter(new BookmarkStart { Id = "53", Name = "AfterTableBookmark" }, table._table)!;
+                    body.InsertAfter(new BookmarkEnd { Id = "53" }, afterAnchor);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "AfterTableBookmark");
+
+                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(body.Elements<Table>());
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(tableElement.NextSibling());
+                Assert.Equal("AfterTableBookmark", bookmarkStart.Name?.Value);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(bookmarkStart.NextSibling());
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedHyperlinkRunsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

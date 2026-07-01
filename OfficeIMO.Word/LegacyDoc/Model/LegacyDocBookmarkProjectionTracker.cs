@@ -45,8 +45,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             var result = new List<LegacyDocBookmark>();
             foreach (LegacyDocBookmark bookmark in _bookmarks) {
-                if (bookmark.StartCharacter != blockStartCharacter
-                    || bookmark.EndCharacter != blockEndCharacter
+                if (!IsBlockBoundaryBookmark(bookmark, blockStartCharacter, blockEndCharacter)
                     || _projectedStarts.Contains(bookmark)
                     || _projectedEnds.Contains(bookmark)) {
                     continue;
@@ -58,6 +57,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return result;
+        }
+
+        private static bool IsBlockBoundaryBookmark(LegacyDocBookmark bookmark, int blockStartCharacter, int blockEndCharacter) {
+            if (bookmark.StartCharacter == blockStartCharacter && bookmark.EndCharacter == blockEndCharacter) {
+                return true;
+            }
+
+            return bookmark.IsZeroLength && bookmark.StartCharacter == blockEndCharacter;
         }
 
         internal IEnumerable<LegacyDocBookmark> GetUnprojectedBookmarks() {

@@ -410,6 +410,13 @@ namespace OfficeIMO.Word {
                 .ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
                 afterAnchor = parent.InsertAfter(new BookmarkEnd { Id = bookmark.ProjectionId }, afterAnchor)!;
             }
+
+            foreach (LegacyDocBookmark bookmark in tableBlock.Bookmarks
+                .Where(bookmark => bookmark.IsZeroLength && bookmark.StartCharacter == tableBlock.EndCharacter)
+                .OrderBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
+                afterAnchor = parent.InsertAfter(new BookmarkStart { Id = bookmark.ProjectionId, Name = bookmark.Name }, afterAnchor)!;
+                afterAnchor = parent.InsertAfter(new BookmarkEnd { Id = bookmark.ProjectionId }, afterAnchor)!;
+            }
         }
 
         private static void ApplyLegacyDocTablePreferredWidth(WordTable table, LegacyDocTablePreferredWidth preferredWidth) {

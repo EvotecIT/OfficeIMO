@@ -823,6 +823,9 @@ just to reserve names.
     - [x] Write whole-table body bookmark start/end markers around native DOC
       table blocks, then reload them as table-sibling bookmark markers through
       the legacy reader.
+    - [x] Write zero-length body bookmark markers at the end edge of native DOC
+      table blocks, then reload them as table-sibling bookmark markers through
+      the legacy reader.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
