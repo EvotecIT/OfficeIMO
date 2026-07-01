@@ -17,10 +17,14 @@ internal static class MarkdownEscaper {
 
     internal static string EscapeText(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeTextAndLineStarts(string? text) => EscapeMarkdownLineStarts(EscapeText(text));
+    internal static string EscapeRenderedLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!);
+    internal static string EscapeRenderedListItemLineStarts(string? text) => string.IsNullOrEmpty(text) ? string.Empty : EscapeMarkdownLineStarts(text!, preserveDefinitionText: true);
     internal static string EscapeLiteralText(string? text) => EscapeMarkdownLineStarts(EncodeLiteralMarkdownText(text));
     internal static string EscapeLiteralTableCellText(string? text) => EncodeLiteralMarkdownText(text, encodeEntityLikeAmpersands: false);
     internal static string EscapeEmphasis(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeHighlightText(string? text) => Escape(text, HighlightReserved);
+    internal static string EscapeSuperscriptText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '^']);
+    internal static string EscapeSubscriptText(string? text) => Escape(text, ['\\', '[', ']', '(', ')', '|', '*', '_', '~']);
     internal static string EscapeLinkText(string? text) => Escape(text, GeneralReserved);
     internal static string EscapeLinkUrl(string? text) => Escape(text, UrlReserved);
     internal static string EscapeImageAlt(string? text) => Escape(text, GeneralReserved);
@@ -53,7 +57,7 @@ internal static class MarkdownEscaper {
         return sb.ToString();
     }
 
-    private static string EscapeMarkdownLineStarts(string text) {
+    private static string EscapeMarkdownLineStarts(string text, bool preserveDefinitionText = false) {
         if (string.IsNullOrEmpty(text)) {
             return string.Empty;
         }
@@ -63,7 +67,9 @@ internal static class MarkdownEscaper {
         while (start < text.Length) {
             int newlineIndex = text.IndexOf('\n', start);
             int length = newlineIndex < 0 ? text.Length - start : newlineIndex - start;
-            sb.Append(EscapeMarkdownLineStart(text.Substring(start, length)));
+            sb.Append(EscapeMarkdownLineStart(
+                text.Substring(start, length),
+                preserveDefinitionText: preserveDefinitionText));
             if (newlineIndex < 0) {
                 break;
             }
@@ -75,7 +81,7 @@ internal static class MarkdownEscaper {
         return sb.ToString();
     }
 
-    private static string EscapeMarkdownLineStart(string line) {
+    private static string EscapeMarkdownLineStart(string line, bool preserveDefinitionText = false) {
         if (line.Length == 0) {
             return line;
         }
@@ -105,7 +111,7 @@ internal static class MarkdownEscaper {
         }
 
         int definitionSeparatorIndex = GetDefinitionListSeparatorIndex(line, markerIndex);
-        return definitionSeparatorIndex >= 0
+        return definitionSeparatorIndex >= 0 && (!preserveDefinitionText || StartsWithReferenceDefinitionLikeLabel(line, markerIndex, definitionSeparatorIndex))
             ? line.Substring(0, definitionSeparatorIndex) + "&#58;" + line.Substring(definitionSeparatorIndex + 1)
             : line;
     }
@@ -253,6 +259,24 @@ internal static class MarkdownEscaper {
         }
 
         return -1;
+    }
+
+    private static bool StartsWithReferenceDefinitionLikeLabel(string line, int markerIndex, int colonIndex) {
+        if (markerIndex < 0 || colonIndex <= markerIndex || colonIndex > line.Length) {
+            return false;
+        }
+
+        string label = line.Substring(markerIndex, colonIndex - markerIndex).TrimEnd();
+        if (label.Length == 0) {
+            return false;
+        }
+
+        label = label.Replace(@"\*", "*")
+            .Replace(@"\[", "[")
+            .Replace(@"\]", "]");
+
+        return (label.Length >= 2 && label[0] == '[' && label[label.Length - 1] == ']')
+               || (label.Length >= 3 && label[0] == '*' && label[1] == '[' && label[label.Length - 1] == ']');
     }
 
     private static string EscapeTitleContent(string text, char delimiter) {

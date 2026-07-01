@@ -16,10 +16,15 @@ internal sealed class MarkdownHeadingCatalog {
     }
 
     private readonly IReadOnlyList<HeadingEntry> _headings;
+    private readonly MarkdownHeadingIdentifierStyle _style;
 
-    private MarkdownHeadingCatalog(IReadOnlyList<HeadingEntry> headings, IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs) {
+    private MarkdownHeadingCatalog(
+        IReadOnlyList<HeadingEntry> headings,
+        IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs,
+        MarkdownHeadingIdentifierStyle style) {
         _headings = headings;
         HeadingSlugs = headingSlugs;
+        _style = style;
     }
 
     internal IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs { get; }
@@ -29,14 +34,21 @@ internal sealed class MarkdownHeadingCatalog {
             return string.Empty;
         }
 
+        if (heading is HeadingBlock { SuppressAutoIdentifier: true }) {
+            return string.Empty;
+        }
+
         if (HeadingSlugs.TryGetValue(heading, out var slug)) {
             return slug;
         }
 
-        return MarkdownSlug.GitHub(heading.Text);
+        return MarkdownSlug.Generate(heading.Text, _style);
     }
 
-    internal static MarkdownHeadingCatalog Create(IReadOnlyList<IMarkdownBlock> blocks, Dictionary<string, int>? slugRegistry = null) {
+    internal static MarkdownHeadingCatalog Create(
+        IReadOnlyList<IMarkdownBlock> blocks,
+        Dictionary<string, int>? slugRegistry = null,
+        MarkdownHeadingIdentifierStyle style = MarkdownHeadingIdentifierStyle.OfficeIMO) {
         var headings = new List<HeadingEntry>();
         var slugs = new Dictionary<IHeadingMarkdownBlock, string>();
 
@@ -45,15 +57,17 @@ internal sealed class MarkdownHeadingCatalog {
                 continue;
             }
 
-            var slug = slugRegistry == null
-                ? MarkdownSlug.GitHub(heading.Text)
-                : MarkdownSlug.GitHub(heading.Text, slugRegistry);
+            var slug = heading is HeadingBlock { SuppressAutoIdentifier: true }
+                ? string.Empty
+                : slugRegistry == null
+                    ? MarkdownSlug.Generate(heading.Text, style)
+                    : MarkdownSlug.Generate(heading.Text, style, slugRegistry);
 
             slugs[heading] = slug;
             headings.Add(new HeadingEntry(idx, heading, slug));
         }
 
-        return new MarkdownHeadingCatalog(headings, slugs);
+        return new MarkdownHeadingCatalog(headings, slugs, style);
     }
 
     internal string? GetPrecedingHeadingAnchor(IReadOnlyList<IMarkdownBlock> blocks, int blockIndex, TocOptions options) {

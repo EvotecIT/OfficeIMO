@@ -24,6 +24,27 @@ public delegate string? MarkdownFootnoteSectionHtmlRenderer(IReadOnlyList<Footno
 /// Options controlling HTML rendering style and asset delivery.
 /// </summary>
 public sealed class HtmlOptions {
+    /// <summary>
+    /// Creates a fragment-oriented HTML rendering profile for GitHub Flavored Markdown comparison/output.
+    /// This enables cmark-gfm-style task-list HTML, footnote HTML, and the GFM raw HTML tag filter while
+    /// leaving raw HTML otherwise allowed. Use a stricter <see cref="RawHtmlHandling"/> value for untrusted hosts.
+    /// </summary>
+    public static HtmlOptions CreateGitHubFlavoredMarkdownProfile() {
+        return new HtmlOptions {
+            Kind = HtmlKind.Fragment,
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            GitHubTaskListHtml = true,
+            GitHubFootnoteHtml = true,
+            GitHubHtmlTagFilter = true,
+            HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.GitHub,
+            RawHtmlHandling = RawHtmlHandling.Allow,
+            NormalizeUrlHostsToIdn = false,
+            EscapeNonAsciiText = false
+        };
+    }
+
     /// <summary>Fragment vs full document. Default: <see cref="HtmlKind.Document"/> when used with <see cref="MarkdownDoc.ToHtmlDocument"/>.</summary>
     public HtmlKind Kind { get; set; } = HtmlKind.Fragment;
     /// <summary>Built-in style preset. Default: <see cref="HtmlStyle.Clean"/>.</summary>
@@ -42,6 +63,15 @@ public sealed class HtmlOptions {
     public string Title { get; set; } = "Document";
     /// <summary>Wrap content in &lt;article&gt; with this CSS class. Set to null to avoid wrapper. Default: "markdown-body".</summary>
     public string? BodyClass { get; set; } = "markdown-body";
+    /// <summary>
+    /// When <c>true</c>, headings render automatic <c>id</c> attributes. Default: <c>true</c> to preserve
+    /// OfficeIMO's existing HTML output behavior.
+    /// </summary>
+    public bool AutoHeadingIdentifiers { get; set; } = true;
+    /// <summary>
+    /// Controls the slug algorithm used for automatic heading identifiers.
+    /// </summary>
+    public MarkdownHeadingIdentifierStyle HeadingIdentifierStyle { get; set; } = MarkdownHeadingIdentifierStyle.OfficeIMO;
     /// <summary>Include per-heading anchor links (e.g. '#') in HTML rendering. Default: false.</summary>
     public bool IncludeAnchorLinks { get; set; } = false;
     /// <summary>When true, show a small anchor icon next to headings (on hover by default).</summary>
@@ -93,15 +123,53 @@ public sealed class HtmlOptions {
     /// </summary>
     public bool GitHubFootnoteHtml { get; set; } = false;
     /// <summary>
+    /// When <c>true</c>, raw HTML rendering applies cmark-gfm's tag filter by escaping the leading
+    /// <c>&lt;</c> on dangerous raw HTML tags such as <c>script</c>, <c>style</c>, <c>textarea</c>, and <c>xmp</c>.
+    /// Default: <c>false</c>.
+    /// </summary>
+    public bool GitHubHtmlTagFilter { get; set; } = false;
+    /// <summary>
+    /// When <c>true</c>, non-ASCII authority host labels in rendered URL attributes are normalized to IDNA.
+    /// Disable this for cmark-gfm-style output, which percent-encodes those host characters instead.
+    /// </summary>
+    public bool NormalizeUrlHostsToIdn { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, rendered URL attributes percent-encode the ASCII tilde character (<c>~</c>).
+    /// Default: <c>false</c>; enable for Markdig-compatible URL attribute output.
+    /// </summary>
+    public bool PercentEncodeTildeInUrlAttributes { get; set; } = false;
+    /// <summary>
+    /// When <c>true</c>, HTML text rendering uses the historical .NET encoder behavior that may emit numeric
+    /// character references for non-ASCII text. Set to <c>false</c> for Markdig/cmark-style output that keeps
+    /// non-ASCII text literal while still escaping HTML-sensitive characters such as <c>&amp;</c>, <c>&lt;</c>,
+    /// <c>&gt;</c>, quotes, and apostrophes.
+    /// </summary>
+    public bool EscapeNonAsciiText { get; set; } = true;
+    /// <summary>
     /// Optional block render extensions that can override HTML emitted for specific block types.
     /// Later registrations win when block types overlap.
     /// </summary>
     public List<MarkdownBlockHtmlRenderExtension> BlockRenderExtensions { get; } = new();
+    /// <summary>
+    /// Optional inline render extensions that can override HTML emitted for specific inline types.
+    /// Later registrations win when inline types overlap.
+    /// </summary>
+    public List<MarkdownInlineHtmlRenderExtension> InlineRenderExtensions { get; } = new();
+    /// <summary>
+    /// Optional block render extensions that can override HTML emitted for parsed blocks with specific final syntax kinds.
+    /// Later registrations win when syntax kinds overlap. These extensions run before type-based block extensions.
+    /// </summary>
+    public List<MarkdownSyntaxBlockHtmlRenderExtension> SyntaxBlockRenderExtensions { get; } = new();
+    /// <summary>
+    /// Optional inline render extensions that can override HTML emitted for parsed inlines with specific final syntax kinds.
+    /// Later registrations win when syntax kinds overlap. These extensions run before type-based inline extensions.
+    /// </summary>
+    public List<MarkdownSyntaxInlineHtmlRenderExtension> SyntaxInlineRenderExtensions { get; } = new();
     /// <summary>Prefix selectors in emitted CSS with this scope selector to avoid collisions. Default: "article.markdown-body".</summary>
     public string? CssScopeSelector { get; set; } = "article.markdown-body";
 
     /// <summary>
-    /// Controls how raw HTML blocks are emitted. Default: <see cref="RawHtmlHandling.Allow"/>.
+    /// Controls how raw HTML blocks and inline fragments are emitted. Default: <see cref="RawHtmlHandling.Allow"/>.
     /// For untrusted chat scenarios, prefer <see cref="RawHtmlHandling.Strip"/> or <see cref="RawHtmlHandling.Escape"/>.
     /// </summary>
     public RawHtmlHandling RawHtmlHandling { get; set; } = RawHtmlHandling.Allow;

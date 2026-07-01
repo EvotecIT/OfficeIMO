@@ -141,8 +141,9 @@ public static class MarkdownRendererPresets {
 
     /// <summary>
     /// Strict preset for generic untrusted markdown hosting.
-    /// - Disables HTML parsing (blocks + inline)
-    /// - Strips any raw HTML blocks
+    /// - Disables block HTML parsing
+    /// - Keeps the reader's safe inline tag subset for simple formatting tags
+    /// - Strips any other raw HTML blocks and inline tags
     /// - Restricts URL schemes and blocks file/data/protocol-relative URLs
     /// - Blocks external HTTP(S) images unless same-origin with BaseHref/BaseUri
     /// </summary>

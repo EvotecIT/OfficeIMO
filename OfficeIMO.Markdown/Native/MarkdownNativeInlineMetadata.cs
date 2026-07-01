@@ -4,11 +4,15 @@ namespace OfficeIMO.Markdown;
 /// Source-backed metadata attached to a native inline, such as a link target or image title.
 /// </summary>
 public sealed class MarkdownNativeInlineMetadata {
-    internal MarkdownNativeInlineMetadata(string name, string value, MarkdownSyntaxNode syntaxNode) {
+    internal MarkdownNativeInlineMetadata(string name, string value, MarkdownSyntaxNode syntaxNode)
+        : this(name, value, syntaxNode, syntaxNode?.SourceSpan) {
+    }
+
+    internal MarkdownNativeInlineMetadata(string name, string value, MarkdownSyntaxNode syntaxNode, MarkdownSourceSpan? sourceSpan) {
         Name = name ?? string.Empty;
         Value = value ?? string.Empty;
         SyntaxNode = syntaxNode ?? throw new ArgumentNullException(nameof(syntaxNode));
-        SourceSpan = syntaxNode.SourceSpan;
+        SourceSpan = sourceSpan;
     }
 
     /// <summary>Stable metadata name such as <c>target</c>, <c>title</c>, <c>alt</c>, or <c>source</c>.</summary>

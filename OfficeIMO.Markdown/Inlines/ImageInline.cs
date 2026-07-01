@@ -12,6 +12,12 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
     public string Src { get; }
     /// <summary>Optional title attribute shown as tooltip in HTML.</summary>
     public string? Title { get; }
+    /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
+    /// <summary>Source span for the image source token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? SrcSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
     /// <summary>Creates a new inline image.</summary>
     public ImageInline(string alt, string src, string? title = null, string? plainAlt = null) {
         Alt = alt ?? string.Empty;
@@ -19,6 +25,16 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
         Src = src ?? string.Empty;
         Title = title;
     }
+
+    internal void SetMarkdownSyntaxMetadataSpans(
+        MarkdownSourceSpan? altSourceSpan,
+        MarkdownSourceSpan? srcSourceSpan,
+        MarkdownSourceSpan? titleSourceSpan) {
+        AltSourceSpan = altSourceSpan;
+        SrcSourceSpan = srcSourceSpan;
+        TitleSourceSpan = titleSourceSpan;
+    }
+
     internal string RenderMarkdown() {
         if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
             return RenderHtml();
@@ -28,13 +44,13 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
         return $"![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(Src)}{title})";
     }
     internal string RenderHtml() {
-        var titleAttr = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title)}\"";
         var o = HtmlRenderContext.Options;
+        var titleAttr = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title, o)}\"";
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Src)) {
-            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt);
+            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o);
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Src);
-        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{titleAttr}{extra} />";
+        return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(Src, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{titleAttr}{extra} />";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

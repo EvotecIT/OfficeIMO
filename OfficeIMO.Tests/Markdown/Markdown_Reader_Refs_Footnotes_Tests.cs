@@ -76,9 +76,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = MarkdownReader.Parse(md);
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
             var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
-            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
 
-            Assert.Equal("<u>x</u>", text.Text);
+            Assert.Contains(wrapper.Inlines.Nodes, node => node is DecodedHtmlEntityTextRun);
+            Assert.All(wrapper.Inlines.Nodes, node => Assert.True(node is TextRun or DecodedHtmlEntityTextRun, node.GetType().FullName));
+            Assert.Equal("<u>x</u>", InlinePlainText.Extract(wrapper.Inlines));
 
             var markdown = doc.ToMarkdown();
             Assert.Contains("Value <u>&lt;u&gt;x&lt;/u&gt;</u>", markdown, StringComparison.Ordinal);
@@ -94,9 +95,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var doc = MarkdownReader.Parse(md);
             var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
             var wrapper = Assert.IsType<HtmlTagSequenceInline>(Assert.Single(paragraph.Inlines.Nodes, node => node is HtmlTagSequenceInline));
-            var text = Assert.IsType<DecodedHtmlEntityTextRun>(Assert.Single(wrapper.Inlines.Nodes));
 
-            Assert.Equal("`code` ~~strike~~ ==mark==", text.Text);
+            Assert.Contains(wrapper.Inlines.Nodes, node => node is DecodedHtmlEntityTextRun);
+            Assert.All(wrapper.Inlines.Nodes, node => Assert.True(node is TextRun or DecodedHtmlEntityTextRun, node.GetType().FullName));
+            Assert.Equal("`code` ~~strike~~ ==mark==", InlinePlainText.Extract(wrapper.Inlines));
 
             var markdown = doc.ToMarkdown();
             Assert.Contains(@"Value <u>\`code\` \~\~strike\~\~ \=\=mark\=\=</u>", markdown, StringComparison.Ordinal);
@@ -121,6 +123,112 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             Assert.StartsWith("[^1]:\n  ```csharp", markdown, StringComparison.Ordinal);
             Assert.Contains("\n  Console.WriteLine(1);\n", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Footnote_Public_Structured_Constructor_Uses_ChildBlocks_As_Primary_Content() {
+            var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("Intro"));
+            var list = new UnorderedListBlock();
+            list.Items.Add(ListItem.Text("first"));
+
+            var footnote = new FootnoteDefinitionBlock("audit", new IMarkdownBlock[] { paragraph, list });
+
+            Assert.Equal(2, footnote.ChildBlocks.Count);
+            Assert.Same(paragraph, footnote.ChildBlocks[0]);
+            Assert.Same(list, footnote.ChildBlocks[1]);
+            Assert.Equal(footnote.ChildBlocks, footnote.Blocks);
+            Assert.Equal(footnote.ChildBlocks, ((IChildMarkdownBlockContainer)footnote).ChildBlocks);
+            Assert.Equal("Intro\n\n- first", footnote.Text.Replace("\r\n", "\n"));
+            Assert.Equal("[^audit]: Intro\n\n  - first", ((IMarkdownBlock)footnote).RenderMarkdown().Replace("\r\n", "\n"));
+        }
+
+        [Fact]
+        public void Footnote_Public_Text_Constructor_Adapts_Text_To_ChildBlocks() {
+            var footnote = new FootnoteDefinitionBlock("audit", "Intro *value*");
+
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(footnote.ChildBlocks));
+
+            Assert.Equal(footnote.ChildBlocks, footnote.Blocks);
+            Assert.Equal(footnote.ChildBlocks, ((IChildMarkdownBlockContainer)footnote).ChildBlocks);
+            Assert.Same(paragraph, Assert.Single(footnote.ParagraphBlocks));
+            Assert.Same(paragraph.Inlines, Assert.Single(footnote.Paragraphs));
+            Assert.Equal("Intro *value*", footnote.Text);
+            Assert.Equal("Intro *value*", paragraph.Inlines.RenderMarkdown());
+            Assert.Contains("<em>value</em>", ((IMarkdownBlock)footnote).RenderHtml(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Footnote_Definition_FirstParagraph_GenericAttributes_Render_In_Section() {
+            const string markdown = "See [^a].\n\n[^a]: note {#fn .wide}\n";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var document = MarkdownReader.Parse(markdown, options);
+            var html = document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+
+            Assert.Contains("<li id=\"fn:a\"><p id=\"fn\" class=\"wide\">note ", html, StringComparison.Ordinal);
+            Assert.Contains("href=\"#fnref:a\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("{#fn .wide}", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Footnote_RenderMarkdown_Roundtrips_Structured_Body_With_Gfm_Profile() {
+            var quote = new QuoteBlock();
+            quote.Children.Add(new ParagraphBlock(MarkdownReader.ParseInlineText("Quoted *note*")));
+
+            var footnote = new FootnoteDefinitionBlock(
+                "shape",
+                new IMarkdownBlock[] {
+                    new ParagraphBlock(MarkdownReader.ParseInlineText("Intro *value*")),
+                    quote,
+                    new CodeBlock("text", "line 1\nline 2")
+                });
+
+            var doc = MarkdownDoc.Create()
+                .Add(new ParagraphBlock(MarkdownReader.ParseInlineText("See [^shape].", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())))
+                .Add(footnote);
+
+            string markdown = doc.ToMarkdown().Replace("\r\n", "\n");
+
+            Assert.Contains("See [^shape].", markdown, StringComparison.Ordinal);
+            Assert.Contains("[^shape]: Intro *value*", markdown, StringComparison.Ordinal);
+            Assert.Contains("\n\n  > Quoted *note*", markdown, StringComparison.Ordinal);
+            Assert.Contains("\n\n  ```text\n  line 1\n  line 2\n  ```", markdown, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+            var reparsedFootnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(reparsed.Blocks, block => block is FootnoteDefinitionBlock));
+
+            Assert.Collection(
+                reparsedFootnote.Blocks,
+                block => Assert.Equal("Intro *value*", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+                block => {
+                    var reparsedQuote = Assert.IsType<QuoteBlock>(block);
+                    var quotedParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(reparsedQuote.Children));
+                    Assert.Equal("Quoted *note*", quotedParagraph.Inlines.RenderMarkdown());
+                },
+                block => {
+                    var code = Assert.IsType<CodeBlock>(block);
+                    Assert.Equal("text", code.InfoString);
+                    Assert.Equal("line 1\nline 2", code.Content);
+                });
+
+            string html = reparsed.ToHtmlFragment(GfmHtmlComparison.CreatePlainHtmlOptions());
+
+            Assert.Contains("<section class=\"footnotes\" data-footnotes>", html, StringComparison.Ordinal);
+            Assert.Contains("id=\"fn-shape\"", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>Quoted <em>note</em></p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<pre><code class=\"language-text\">line 1\nline 2\n</code></pre>", html, StringComparison.Ordinal);
+
+            int codeIndex = html.IndexOf("<pre><code class=\"language-text\">", StringComparison.Ordinal);
+            int backrefIndex = html.IndexOf("href=\"#fnref-shape\"", StringComparison.Ordinal);
+            Assert.True(codeIndex >= 0, html);
+            Assert.True(backrefIndex > codeIndex, html);
         }
 
         [Fact]
@@ -231,14 +339,33 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-    public void Footnote_Text_Is_Derived_From_Blocks_When_BlockContent_Is_Available() {
-        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh value"));
-        var footnote = new FootnoteDefinitionBlock("1", "stale value", new IMarkdownBlock[] { paragraph }, syntaxChildren: null);
+        public void Footnote_Text_Is_Derived_From_Blocks_When_BlockContent_Is_Available() {
+            var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh value"));
+            var footnote = new FootnoteDefinitionBlock("1", "stale value", new IMarkdownBlock[] { paragraph }, syntaxChildren: null);
 
-        Assert.Equal("fresh value", footnote.Text);
-        Assert.Same(paragraph, Assert.Single(footnote.Blocks));
-        Assert.Same(paragraph, Assert.Single(footnote.ParagraphBlocks));
-        Assert.Same(paragraph.Inlines, Assert.Single(footnote.Paragraphs));
+            Assert.Equal("fresh value", footnote.Text);
+            Assert.Same(paragraph, Assert.Single(footnote.Blocks));
+            Assert.Same(paragraph, Assert.Single(footnote.ParagraphBlocks));
+            Assert.Same(paragraph.Inlines, Assert.Single(footnote.Paragraphs));
+        }
+
+        [Fact]
+        public void Footnote_Syntax_Rebuilds_When_Cached_Children_Do_Not_Match_Canonical_Blocks() {
+            var staleParagraph = new ParagraphBlock(MarkdownReader.ParseInlineText("stale value"));
+            var staleSyntax = ((ISyntaxMarkdownBlock)staleParagraph).BuildSyntaxNode(new MarkdownSourceSpan(1, 7, 1, 17));
+            var freshParagraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh value"));
+            var footnote = new FootnoteDefinitionBlock(
+                "1",
+                "fallback value",
+                new IMarkdownBlock[] { freshParagraph },
+                new[] { staleSyntax });
+
+            var syntax = ((ISyntaxMarkdownBlock)footnote).BuildSyntaxNode(new MarkdownSourceSpan(1, 1, 1, 18));
+            var paragraphSyntax = Assert.Single(syntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
+
+            Assert.Same(freshParagraph, paragraphSyntax.AssociatedObject);
+            Assert.Equal("fresh value", paragraphSyntax.Literal);
+            Assert.DoesNotContain(syntax.Children, child => ReferenceEquals(child.AssociatedObject, staleParagraph));
+        }
     }
-}
 }

@@ -21,6 +21,8 @@ public sealed partial class TableBlock {
         var state = InlineRenderState == null
             ? new MarkdownReaderState()
             : CloneState(InlineRenderState);
+        state.SuppressBlockGenericAttributes = false;
+        state.SuppressHeadingGenericAttributes = false;
         var blocks = MarkdownReader.ParseBlockFragment(normalized, options, state);
         if (blocks.Count == 0) {
             return null;
@@ -174,26 +176,64 @@ public sealed partial class TableBlock {
         var clone = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO);
         clone.FrontMatter = false;
         clone.Callouts = source.Callouts;
+        clone.CalloutTitleMode = source.CalloutTitleMode;
         clone.Headings = source.Headings;
         clone.FencedCode = source.FencedCode;
         clone.IndentedCodeBlocks = source.IndentedCodeBlocks;
         clone.Images = source.Images;
+        clone.StandaloneImageBlocks = source.StandaloneImageBlocks;
         clone.UnorderedLists = source.UnorderedLists;
         clone.TaskLists = source.TaskLists;
         clone.OrderedLists = source.OrderedLists;
+        clone.ListExtras = source.ListExtras;
+        clone.StrictListIndentation = source.StrictListIndentation;
         clone.Tables = false;
+        clone.RequireTableBodyRowPipes = source.RequireTableBodyRowPipes;
         clone.DefinitionLists = source.DefinitionLists;
         clone.TocPlaceholders = source.TocPlaceholders;
         clone.Footnotes = source.Footnotes;
+        clone.SingleTildeStrikethrough = source.SingleTildeStrikethrough;
+        clone.Highlight = source.Highlight;
+        clone.Inserted = source.Inserted;
+        clone.Superscript = source.Superscript;
+        clone.Subscript = source.Subscript;
+        clone.CjkFriendlyEmphasis = source.CjkFriendlyEmphasis;
         clone.PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions;
         clone.HtmlBlocks = source.HtmlBlocks;
+        clone.AllowLooseHtmlBlockStartTags = source.AllowLooseHtmlBlockStartTags;
+        clone.PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent;
         clone.Paragraphs = source.Paragraphs;
         clone.AutolinkUrls = source.AutolinkUrls;
+        clone.AutolinkAllowDomainWithoutPeriod = source.AutolinkAllowDomainWithoutPeriod;
+        clone.AutolinkAllowQueryAndFragmentSpecialCharacters = source.AutolinkAllowQueryAndFragmentSpecialCharacters;
+        clone.AutolinkAllowBalancedParenthesesWithTrailingPunctuation = source.AutolinkAllowBalancedParenthesesWithTrailingPunctuation;
+        clone.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = source.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis;
+        clone.AutolinkTrimSingleTrailingPunctuationOrUnderscore = source.AutolinkTrimSingleTrailingPunctuationOrUnderscore;
+        clone.AutolinkKeepTrailingSemicolonPunctuation = source.AutolinkKeepTrailingSemicolonPunctuation;
+        clone.AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix;
+        clone.AutolinkRejectUnderscoreInWwwHost = source.AutolinkRejectUnderscoreInWwwHost;
+        clone.AutolinkRejectUnderscoreInWwwSubdomainLabels = source.AutolinkRejectUnderscoreInWwwSubdomainLabels;
+        clone.AutolinkRejectUnderscoreInUrlHost = source.AutolinkRejectUnderscoreInUrlHost;
+        clone.AutolinkRejectUserInfoAuthority = source.AutolinkRejectUserInfoAuthority;
+        clone.AutolinkAllowClosingBracketInUrl = source.AutolinkAllowClosingBracketInUrl;
+        clone.AutolinkKeepTrailingQuotePunctuation = source.AutolinkKeepTrailingQuotePunctuation;
+        clone.AutolinkRequireLowercaseBareSchemePrefix = source.AutolinkRequireLowercaseBareSchemePrefix;
+        clone.AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly;
+        clone.AutolinkBareMailtoMarkdigSemicolonHandling = source.AutolinkBareMailtoMarkdigSemicolonHandling;
+        clone.AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters;
+        clone.AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls;
+        clone.AutolinkBareSchemePrefixes = source.AutolinkBareSchemePrefixes == null
+            ? null
+            : (string[])source.AutolinkBareSchemePrefixes.Clone();
         clone.AutolinkWwwUrls = source.AutolinkWwwUrls;
         clone.AutolinkWwwScheme = source.AutolinkWwwScheme;
         clone.AutolinkEmails = source.AutolinkEmails;
         clone.BackslashHardBreaks = source.BackslashHardBreaks;
+        clone.SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks;
         clone.InlineHtml = source.InlineHtml;
+        clone.Abbreviations = source.Abbreviations;
+        clone.GenericAttributes = source.GenericAttributes;
+        clone.CustomContainers = source.CustomContainers;
         clone.BaseUri = source.BaseUri;
         clone.DisallowScriptUrls = source.DisallowScriptUrls;
         clone.DisallowFileUrls = source.DisallowFileUrls;
@@ -227,6 +267,13 @@ public sealed partial class TableBlock {
             }
         }
 
+        clone.InlineTransformExtensions.Clear();
+        for (int i = 0; i < source.InlineTransformExtensions.Count; i++) {
+            if (source.InlineTransformExtensions[i] != null) {
+                clone.InlineTransformExtensions.Add(source.InlineTransformExtensions[i]);
+            }
+        }
+
         for (int i = 0; i < source.DocumentTransforms.Count; i++) {
             if (source.DocumentTransforms[i] != null) {
                 clone.DocumentTransforms.Add(source.DocumentTransforms[i]);
@@ -240,6 +287,10 @@ public sealed partial class TableBlock {
         var clone = new MarkdownReaderState();
         foreach (var kvp in state.LinkRefs) {
             clone.LinkRefs[kvp.Key] = kvp.Value;
+        }
+
+        foreach (var kvp in state.Abbreviations) {
+            clone.Abbreviations[kvp.Key] = kvp.Value;
         }
 
         clone.SourceLineOffset = state.SourceLineOffset;

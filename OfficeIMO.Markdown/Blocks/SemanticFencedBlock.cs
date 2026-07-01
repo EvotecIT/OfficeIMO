@@ -18,6 +18,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
         Content = NormalizeLineEndings(content);
         Caption = caption;
         IsFenced = isFenced;
+        SetAttributes(MarkdownAttributeSet.Create(FenceInfo.ElementId, FenceInfo.Classes, FenceInfo.Attributes));
     }
 
     /// <summary>Host-defined semantic contract for this block (for example <c>chart</c> or <c>mermaid</c>).</summary>
@@ -39,6 +40,52 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
     public string? Caption { get; set; }
 
     internal bool IsFenced { get; }
+    internal int FenceIndentColumns { get; private set; }
+    internal char FenceChar { get; private set; } = '`';
+    internal int FenceLength { get; private set; } = 3;
+    internal int FenceInfoPaddingColumns { get; private set; }
+    internal int FenceInfoPaddingCharacters { get; private set; }
+    internal bool HasClosingFence { get; private set; } = true;
+    internal int ClosingFenceIndentColumns { get; private set; }
+    internal int ClosingFenceLength { get; private set; } = 3;
+    /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+    /// <summary>Source span for the fenced-block info string when parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? InfoStringSourceSpan { get; internal set; }
+    /// <summary>Source span for the fenced payload when source-backed.</summary>
+    public MarkdownSourceSpan? ContentSourceSpan { get; internal set; }
+    /// <summary>Source span for the closing fence token when parsed from a closed fenced source block.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
+
+    internal void SetFenceSourceInfo(
+        int fenceIndentColumns,
+        int fenceLength,
+        int infoPaddingColumns,
+        int infoPaddingCharacters,
+        char fenceChar = '`',
+        bool hasClosingFence = true,
+        int closingFenceIndentColumns = 0,
+        int closingFenceLength = 3) {
+        FenceIndentColumns = Math.Max(0, fenceIndentColumns);
+        FenceChar = fenceChar == '~' ? '~' : '`';
+        FenceLength = Math.Max(3, fenceLength);
+        FenceInfoPaddingColumns = Math.Max(0, infoPaddingColumns);
+        FenceInfoPaddingCharacters = Math.Max(0, infoPaddingCharacters);
+        HasClosingFence = hasClosingFence;
+        ClosingFenceIndentColumns = Math.Max(0, closingFenceIndentColumns);
+        ClosingFenceLength = Math.Max(3, closingFenceLength);
+    }
+
+    internal void SetFenceTokenSourceSpans(
+        MarkdownSourceSpan? openingFenceSourceSpan,
+        MarkdownSourceSpan? infoStringSourceSpan,
+        MarkdownSourceSpan? contentSourceSpan,
+        MarkdownSourceSpan? closingFenceSourceSpan) {
+        OpeningFenceSourceSpan = openingFenceSourceSpan;
+        InfoStringSourceSpan = infoStringSourceSpan;
+        ContentSourceSpan = contentSourceSpan;
+        ClosingFenceSourceSpan = closingFenceSourceSpan;
+    }
 
     string IMarkdownBlock.RenderMarkdown() {
         string fence = MarkdownFence.BuildSafeFence(Content);
@@ -61,21 +108,25 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
             return overridden;
         }
 
-        var codeFallback = options?.CodeBlockHtmlRenderer?.Invoke(new CodeBlock(InfoString, Content) {
+        var fallbackBlock = new CodeBlock(InfoString, Content) {
             Caption = Caption
-        }, options);
+        };
+        fallbackBlock.SetAttributes(Attributes);
+
+        var codeFallback = options?.CodeBlockHtmlRenderer?.Invoke(fallbackBlock, options);
         if (codeFallback != null) {
             return codeFallback;
         }
 
-        string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{System.Net.WebUtility.HtmlEncode(Language)}\"";
-        string code = System.Net.WebUtility.HtmlEncode(Content);
+        string attrs = MarkdownHtmlAttributes.Render(Attributes, options);
+        string lang = string.IsNullOrEmpty(Language) ? string.Empty : $" class=\"language-{HtmlTextEncoder.Encode(Language, options)}\"";
+        string code = HtmlTextEncoder.Encode(Content, options);
         if (code.Length > 0) {
             code += "\n";
         }
 
-        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
-        return $"<pre><code{lang}>{code}</code></pre>{caption}";
+        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, options)}</div>";
+        return $"<pre{attrs}><code{lang}>{code}</code></pre>{caption}";
     }
 
     private static string NormalizeLineEndings(string? content) {
@@ -93,36 +144,43 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
             new MarkdownSyntaxNode(MarkdownSyntaxKind.FenceSemanticKind, literal: SemanticKind)
         };
 
-        if (span.HasValue && IsFenced && !string.IsNullOrEmpty(InfoString)) {
+        OpeningFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetOpeningFenceSpan(span, IsFenced, FenceIndentColumns, FenceLength);
+        ClosingFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetClosingFenceSpan(span, IsFenced, Content, HasClosingFence, ClosingFenceIndentColumns, ClosingFenceLength);
+
+        if (OpeningFenceSourceSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CodeFenceOpening,
+                OpeningFenceSourceSpan,
+                new string(FenceChar, FenceLength)));
+        }
+
+        InfoStringSourceSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(span, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns, FenceInfoPaddingCharacters);
+        if (InfoStringSourceSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.CodeFenceInfo,
-                new MarkdownSourceSpan(span.Value.StartLine, span.Value.StartLine),
+                InfoStringSourceSpan,
                 InfoString));
         }
 
-        MarkdownSourceSpan? contentSpan;
-        if (span.HasValue) {
-            if (IsFenced) {
-                contentSpan = span.Value.EndLine > span.Value.StartLine + 1
-                    ? new MarkdownSourceSpan(span.Value.StartLine + 1, span.Value.EndLine - 1)
-                    : null;
-            } else {
-                contentSpan = span.Value;
-            }
-        } else {
-            contentSpan = null;
-        }
-
+        ContentSourceSpan = MarkdownFencedBlockSourceSpans.GetContentSpan(span, IsFenced, Content);
         nodes.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CodeContent,
-            contentSpan,
+            ContentSourceSpan,
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content)));
+
+        if (ClosingFenceSourceSpan.HasValue) {
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CodeFenceClosing,
+                ClosingFenceSourceSpan,
+                new string(FenceChar, ClosingFenceLength)));
+        }
 
         return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.SemanticFencedBlock,
             span,
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content),
             nodes,
-            this);
+            this,
+            attributes: Attributes);
     }
 }

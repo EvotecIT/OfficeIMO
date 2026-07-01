@@ -11,6 +11,14 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
         Inlines = heading.Inlines;
         InlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.HeadingText);
         Text = heading.Text;
+        LevelSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingLevel) ?? heading.LevelSourceSpan;
+        TextSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingText) ?? heading.TextSourceSpan;
+        OpeningMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingOpeningMarker);
+        OpeningMarkerText = heading.OpeningMarkerText;
+        SetextUnderlineMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
+        SetextUnderlineMarkerText = heading.SetextUnderlineMarkerText;
+        ClosingMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingClosingMarker);
+        ClosingMarkerText = heading.ClosingMarkerText;
     }
 
     /// <summary>Source heading block.</summary>
@@ -27,6 +35,33 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
 
     /// <summary>AST-backed native inline projection with source spans.</summary>
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
+
+    /// <summary>Source span for the heading marker or setext underline that determines the level.</summary>
+    public MarkdownSourceSpan? LevelSourceSpan { get; }
+
+    /// <summary>Source span for the heading text payload.</summary>
+    public MarkdownSourceSpan? TextSourceSpan { get; }
+
+    /// <summary>Source span for the ATX opening marker token.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Exact ATX opening marker token when parsed from markdown.</summary>
+    public string? OpeningMarkerText { get; }
+
+    /// <summary>Source span for the Setext underline marker token.</summary>
+    public MarkdownSourceSpan? SetextUnderlineMarkerSourceSpan { get; }
+
+    /// <summary>Exact Setext underline marker token when parsed from markdown.</summary>
+    public string? SetextUnderlineMarkerText { get; }
+
+    /// <summary>Source span for the optional ATX closing marker token.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; }
+
+    /// <summary>Exact optional ATX closing marker token when parsed from markdown.</summary>
+    public string? ClosingMarkerText { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
 }
 
 /// <summary>
@@ -68,13 +103,19 @@ public sealed class MarkdownNativeListItem {
         Item = item ?? throw new ArgumentNullException(nameof(item));
         SyntaxNode = syntaxNode ?? throw new ArgumentNullException(nameof(syntaxNode));
         SourceSpan = syntaxNode.SourceSpan ?? item.SourceSpan;
+        ContentSourceSpan = GetContentSourceSpan(syntaxNode);
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         Text = InlinePlainText.Extract(item.Content);
         Inlines = item.Content;
         InlineRuns = MarkdownNativeInlineProjection.FromListItemLeadContent(syntaxNode, item);
+        Paragraphs = CreateParagraphs(item, syntaxNode);
         AdditionalParagraphs = item.AdditionalParagraphs;
         IsTask = item.IsTask;
         Checked = item.Checked;
+        MarkerSourceSpan = item.MarkerSourceSpan;
+        MarkerText = item.MarkerText;
+        TaskMarkerSourceSpan = item.TaskMarkerSourceSpan;
+        TaskMarkerText = item.TaskMarkerText;
         Level = item.Level;
         Id = MarkdownNativeListItemId.Create(item, syntaxNode, SourceSpan);
     }
@@ -88,8 +129,11 @@ public sealed class MarkdownNativeListItem {
     /// <summary>Syntax node that produced this list item.</summary>
     public MarkdownSyntaxNode SyntaxNode { get; }
 
-    /// <summary>Source span in the normalized markdown text when available.</summary>
+    /// <summary>Full list-item source span in the normalized markdown text when available.</summary>
     public MarkdownSourceSpan? SourceSpan { get; }
+
+    /// <summary>Source span for the list-item content, excluding list and task marker tokens, when available.</summary>
+    public MarkdownSourceSpan? ContentSourceSpan { get; }
 
     /// <summary>Plain-text lead content.</summary>
     public string Text { get; }
@@ -99,6 +143,9 @@ public sealed class MarkdownNativeListItem {
 
     /// <summary>AST-backed native inline projection for the lead content.</summary>
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
+
+    /// <summary>Paragraph-level native projections owned by this list item.</summary>
+    public IReadOnlyList<MarkdownNativeListItemParagraph> Paragraphs { get; }
 
     /// <summary>Additional paragraph inline nodes owned by this list item.</summary>
     public IReadOnlyList<InlineSequence> AdditionalParagraphs { get; }
@@ -112,8 +159,105 @@ public sealed class MarkdownNativeListItem {
     /// <summary>Whether this task item is checked.</summary>
     public bool Checked { get; }
 
+    /// <summary>Source span for the list marker token when this item was parsed from markdown.</summary>
+    public MarkdownSourceSpan? MarkerSourceSpan { get; }
+
+    /// <summary>Exact list marker token when this item was parsed from markdown.</summary>
+    public string? MarkerText { get; }
+
+    /// <summary>Source span for the task marker token when this item was parsed from markdown.</summary>
+    public MarkdownSourceSpan? TaskMarkerSourceSpan { get; }
+
+    /// <summary>Exact task marker token when this item was parsed from markdown.</summary>
+    public string? TaskMarkerText { get; }
+
     /// <summary>Indentation level from the source list item.</summary>
     public int Level { get; }
+
+    private static IReadOnlyList<MarkdownNativeListItemParagraph> CreateParagraphs(ListItem item, MarkdownSyntaxNode syntaxNode) {
+        var paragraphBlocks = item.ParagraphBlocks;
+        if (paragraphBlocks.Count == 0) {
+            return Array.Empty<MarkdownNativeListItemParagraph>();
+        }
+
+        var paragraphs = new List<MarkdownNativeListItemParagraph>(paragraphBlocks.Count);
+        for (var i = 0; i < paragraphBlocks.Count; i++) {
+            paragraphs.Add(new MarkdownNativeListItemParagraph(
+                paragraphBlocks[i],
+                FindParagraphSyntaxNode(syntaxNode, paragraphBlocks[i]),
+                i));
+        }
+
+        return paragraphs;
+    }
+
+    private static MarkdownSyntaxNode? FindParagraphSyntaxNode(MarkdownSyntaxNode syntaxNode, ParagraphBlock paragraph) {
+        if (syntaxNode == null || paragraph == null) {
+            return null;
+        }
+
+        for (var i = 0; i < syntaxNode.Children.Count; i++) {
+            var child = syntaxNode.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.Paragraph &&
+                ReferenceEquals(child.AssociatedObject, paragraph)) {
+                return child;
+            }
+        }
+
+        return null;
+    }
+
+    private static MarkdownSourceSpan? GetContentSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        var children = new List<MarkdownSyntaxNode>();
+        for (var i = 0; i < syntaxNode.Children.Count; i++) {
+            var child = syntaxNode.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.ListMarker || child.Kind == MarkdownSyntaxKind.TaskListMarker) {
+                continue;
+            }
+
+            children.Add(child);
+        }
+
+        return MarkdownBlockSyntaxBuilder.GetAggregateSpan(children);
+    }
+}
+
+/// <summary>
+/// Native projection for one paragraph owned by a list item.
+/// </summary>
+public sealed class MarkdownNativeListItemParagraph {
+    internal MarkdownNativeListItemParagraph(ParagraphBlock paragraph, MarkdownSyntaxNode? syntaxNode, int index) {
+        Paragraph = paragraph ?? throw new ArgumentNullException(nameof(paragraph));
+        SyntaxNode = syntaxNode;
+        Index = index;
+        SourceSpan = syntaxNode?.SourceSpan ?? paragraph.SourceSpan;
+        Text = InlinePlainText.Extract(paragraph.Inlines);
+        Inlines = paragraph.Inlines;
+        InlineRuns = syntaxNode == null
+            ? Array.Empty<MarkdownNativeInline>()
+            : MarkdownNativeInlineProjection.FromInlineContainer(syntaxNode);
+    }
+
+    /// <summary>Zero-based paragraph index within the list item.</summary>
+    public int Index { get; }
+
+    /// <summary>Source paragraph block.</summary>
+    public ParagraphBlock Paragraph { get; }
+
+    /// <summary>Syntax node that produced this list-item paragraph when available.</summary>
+    public MarkdownSyntaxNode? SyntaxNode { get; }
+
+    /// <summary>Paragraph source span in the normalized markdown text when available.</summary>
+    public MarkdownSourceSpan? SourceSpan { get; }
+
+    /// <summary>Plain-text paragraph content.</summary>
+    public string Text { get; }
+
+    /// <summary>Structured inline nodes owned by this paragraph.</summary>
+    public InlineSequence Inlines { get; }
+
+    /// <summary>AST-backed native inline projection for this paragraph.</summary>
+    public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
 }
 
 internal static class MarkdownNativeListItemId {
@@ -159,6 +303,11 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
         LinkRel = image.LinkRel;
         PictureFallbackPath = image.PictureFallbackPath;
         PictureSources = image.PictureSources.ToArray();
+        AltSourceSpan = image.AltSourceSpan;
+        SourceSourceSpan = image.PathSourceSpan;
+        TitleSourceSpan = image.TitleSourceSpan;
+        LinkUrlSourceSpan = image.LinkUrlSourceSpan;
+        LinkTitleSourceSpan = image.LinkTitleSourceSpan;
     }
 
     /// <summary>Source image block.</summary>
@@ -202,6 +351,21 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
 
     /// <summary>Responsive picture sources in source order.</summary>
     public IReadOnlyList<ImagePictureSource> PictureSources { get; }
+
+    /// <summary>Source span for the image alternate text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan { get; }
+
+    /// <summary>Source span for the image source token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? SourceSourceSpan { get; }
+
+    /// <summary>Source span for the image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; }
+
+    /// <summary>Source span for the wrapping link target token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkUrlSourceSpan { get; }
+
+    /// <summary>Source span for the wrapping link title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkTitleSourceSpan { get; }
 }
 
 /// <summary>
@@ -216,6 +380,10 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
             static entry => entry.Key,
             static entry => entry.Value,
             StringComparer.OrdinalIgnoreCase);
+        RawYaml = frontMatter.RawYaml;
+        BodySourceSpan = frontMatter.BodySourceSpan;
+        OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.FrontMatterOpeningFence);
+        ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.FrontMatterClosingFence);
     }
 
     /// <summary>Source front matter block.</summary>
@@ -226,6 +394,21 @@ public sealed class MarkdownNativeFrontMatterBlock : MarkdownNativeBlock {
 
     /// <summary>Front matter values by key.</summary>
     public IReadOnlyDictionary<string, object?> Values { get; }
+
+    /// <summary>Raw YAML payload between the front matter fence markers when parsed from markdown.</summary>
+    public string? RawYaml { get; }
+
+    /// <summary>Source span for the raw YAML payload between the front matter fence markers.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
+
+    /// <summary>Source span for the opening front matter fence marker when parsed from markdown.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }
+
+    /// <summary>Source span for the closing front matter fence marker when parsed from markdown.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
 }
 
 /// <summary>
@@ -236,12 +419,26 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Html, html, syntaxNode) {
         Html = html.Html;
         IsComment = false;
+        OpeningTag = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag);
+        OpeningMarker = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningMarker);
+        Body = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
+        ClosingMarker = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingMarker);
+        ClosingTag = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingTag);
+        OpeningTagSourceSpan = html.OpeningTagSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag);
+        RawOpeningMarkerSourceSpan = html.OpeningMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningMarker);
+        RawBodySourceSpan = html.BodySourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
+        RawClosingMarkerSourceSpan = html.ClosingMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingMarker);
+        ClosingTagSourceSpan = html.ClosingTagSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingTag);
     }
 
     internal MarkdownNativeHtmlBlock(HtmlCommentBlock comment, MarkdownSyntaxNode syntaxNode)
         : base(MarkdownNativeBlockKind.Html, comment, syntaxNode) {
         Html = comment.Comment;
         IsComment = true;
+        CommentBody = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlCommentBody);
+        OpeningMarkerSourceSpan = comment.OpeningMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentOpeningMarker);
+        BodySourceSpan = comment.BodySourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentBody);
+        ClosingMarkerSourceSpan = comment.ClosingMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentClosingMarker);
     }
 
     /// <summary>Raw HTML or comment text.</summary>
@@ -249,4 +446,52 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
 
     /// <summary>Whether this block came from an HTML comment.</summary>
     public bool IsComment { get; }
+
+    /// <summary>Opening raw HTML tag for recognized raw HTML tag-frame blocks.</summary>
+    public string? OpeningTag { get; }
+
+    /// <summary>Opening raw HTML marker for recognized non-tag raw HTML frames.</summary>
+    public string? OpeningMarker { get; }
+
+    /// <summary>Body content between recognized raw HTML opening and closing tags.</summary>
+    public string? Body { get; }
+
+    /// <summary>Closing raw HTML marker for recognized non-tag raw HTML frames.</summary>
+    public string? ClosingMarker { get; }
+
+    /// <summary>Closing raw HTML tag for recognized raw HTML tag-frame blocks.</summary>
+    public string? ClosingTag { get; }
+
+    /// <summary>Source span for a recognized raw HTML opening tag.</summary>
+    public MarkdownSourceSpan? OpeningTagSourceSpan { get; }
+
+    /// <summary>Source span for a recognized raw HTML opening marker.</summary>
+    public MarkdownSourceSpan? RawOpeningMarkerSourceSpan { get; }
+
+    /// <summary>Source span for body content between recognized raw HTML opening and closing tags.</summary>
+    public MarkdownSourceSpan? RawBodySourceSpan { get; }
+
+    /// <summary>Source span for a recognized raw HTML closing marker.</summary>
+    public MarkdownSourceSpan? RawClosingMarkerSourceSpan { get; }
+
+    /// <summary>Source span for a recognized raw HTML closing tag.</summary>
+    public MarkdownSourceSpan? ClosingTagSourceSpan { get; }
+
+    /// <summary>HTML comment body without opening or closing comment markers when this block is an HTML comment.</summary>
+    public string? CommentBody { get; }
+
+    /// <summary>Source span for the opening <c>&lt;!--</c> marker when this block is an HTML comment.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; }
+
+    /// <summary>Source span for the HTML comment body when this block is an HTML comment.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
+
+    /// <summary>Source span for the closing <c>--&gt;</c> marker when this block is an HTML comment.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
+
+    private static string? GetChildLiteral(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.Literal;
 }

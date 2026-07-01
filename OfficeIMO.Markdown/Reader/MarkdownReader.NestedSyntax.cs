@@ -22,7 +22,8 @@ public static partial class MarkdownReader {
     private static (IReadOnlyList<IMarkdownBlock> Blocks, IReadOnlyList<MarkdownSyntaxNode> SyntaxChildren) ParseNestedMarkdownBlocks(
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownReaderOptions options,
-        MarkdownReaderState state) {
+        MarkdownReaderState state,
+        IReadOnlyCollection<int>? suppressedParagraphGenericAttributeStartLines = null) {
         if (sourceLines == null || sourceLines.Count == 0) {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
@@ -30,6 +31,31 @@ public static partial class MarkdownReader {
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
+        nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
+        nestedState.LazyQuoteContinuationLines.Clear();
+        nestedState.QuoteContainerLines.Clear();
+        nestedState.SuppressedSetextHeadingUnderlineLines.Clear();
+        nestedState.SuppressedParagraphGenericAttributeStartLines.Clear();
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            if (sourceLines[lineIndex].IsLazyQuoteContinuation) {
+                nestedState.LazyQuoteContinuationLines.Add(lineIndex);
+            }
+
+            if (sourceLines[lineIndex].IsQuoteContainerLine) {
+                nestedState.QuoteContainerLines.Add(lineIndex);
+            }
+
+            if (ShouldSuppressNestedLazySetextHeadingUnderline(sourceLines, lineIndex)) {
+                nestedState.SuppressedSetextHeadingUnderlineLines.Add(lineIndex);
+            }
+        }
+
+        if (suppressedParagraphGenericAttributeStartLines != null) {
+            foreach (var lineIndex in suppressedParagraphGenericAttributeStartLines) {
+                nestedState.SuppressedParagraphGenericAttributeStartLines.Add(lineIndex);
+            }
+        }
+
         var syntaxChildren = new List<MarkdownSyntaxNode>();
         var nestedDoc = ParseInternal(markdown, nestedOptions, nestedState, allowFrontMatter: false, out _, out _, syntaxChildren, lineOffset: 0, applyDocumentTransforms: false);
         var remappedSyntaxChildren = RemapNestedSyntaxNodes(sourceLines, syntaxChildren);
@@ -37,6 +63,40 @@ public static partial class MarkdownReader {
         SynchronizeOwnedSyntaxCaches(remappedSyntaxTree);
         MarkdownObjectTreeBinder.BindDocument(nestedDoc, remappedSyntaxTree);
         return (nestedDoc.Blocks, remappedSyntaxChildren);
+    }
+
+    private static bool ShouldSuppressNestedLazySetextHeadingUnderline(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        int lineIndex) {
+        if (sourceLines == null ||
+            lineIndex <= 0 ||
+            lineIndex >= sourceLines.Count ||
+            !sourceLines[lineIndex].IsLazyQuoteContinuation ||
+            !TryGetSetextHeadingUnderlineLevel(sourceLines[lineIndex].Text, out int level) ||
+            level != 1) {
+            return false;
+        }
+
+        for (int index = lineIndex - 1; index >= 0; index--) {
+            var previous = sourceLines[index].Text;
+            if (string.IsNullOrWhiteSpace(previous)) {
+                return false;
+            }
+
+            if (sourceLines[lineIndex].IsQuoteContainerLine &&
+                sourceLines[index].IsQuoteContainerLine) {
+                return true;
+            }
+
+            var trimmed = previous.TrimStart();
+            if (trimmed.StartsWith(">", StringComparison.Ordinal) ||
+                TryGetUnorderedListMarkerInfo(previous, out _, out _, out _) ||
+                TryGetOrderedListMarkerInfo(previous, out _, out _, out _, out _)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> RemapNestedSyntaxNodes(
@@ -58,6 +118,33 @@ public static partial class MarkdownReader {
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownSyntaxNode node) {
         var span = RemapNestedSourceSpan(sourceLines, node.SourceSpan);
+        if (node.AssociatedObject is MarkdownObject markdownObject) {
+            var attributeSourceText = MarkdownGenericAttributeSourceSpans.GetSourceText(markdownObject);
+            var attributeSourceSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(markdownObject);
+            var remappedAttributeSourceSpan = IsSourceSpanAlreadyMappedToSourceLines(sourceLines, attributeSourceSpan)
+                ? attributeSourceSpan
+                : RemapNestedSourceSpan(sourceLines, attributeSourceSpan);
+            if (!string.IsNullOrEmpty(attributeSourceText) && remappedAttributeSourceSpan.HasValue) {
+                MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, remappedAttributeSourceSpan);
+            }
+        }
+
+        if (node.AssociatedObject is QuoteBlock quoteBlock) {
+            quoteBlock.ReplaceMarkerSourceSpans(quoteBlock.MarkerSourceSpans
+                .Select(marker => RemapNestedSourceSpan(sourceLines, marker) ?? marker)
+                .ToArray());
+        }
+
+        if (node.AssociatedObject is ListItem listItem) {
+            if (listItem.MarkerSourceSpan.HasValue) {
+                listItem.MarkerSourceSpan = RemapNestedSourceSpan(sourceLines, listItem.MarkerSourceSpan) ?? listItem.MarkerSourceSpan;
+            }
+
+            if (listItem.TaskMarkerSourceSpan.HasValue) {
+                listItem.TaskMarkerSourceSpan = RemapNestedSourceSpan(sourceLines, listItem.TaskMarkerSourceSpan) ?? listItem.TaskMarkerSourceSpan;
+            }
+        }
+
         IReadOnlyList<MarkdownSyntaxNode> children = node.Children;
         if (node.Children.Count > 0) {
             var remappedChildren = new List<MarkdownSyntaxNode>(node.Children.Count);
@@ -68,7 +155,14 @@ public static partial class MarkdownReader {
             children = remappedChildren;
         }
 
-        return new MarkdownSyntaxNode(node.Kind, span, node.Literal, children, node.AssociatedObject, node.CustomKind);
+        return new MarkdownSyntaxNode(
+            node.Kind,
+            span,
+            node.Literal,
+            children,
+            node.AssociatedObject,
+            node.CustomKind,
+            node.Attributes);
     }
 
     private static void SynchronizeOwnedSyntaxCaches(MarkdownSyntaxNode node) {
@@ -88,12 +182,35 @@ public static partial class MarkdownReader {
                 SynchronizeListItemSyntaxChildren(listItem, node.Children);
                 break;
 
+            case CodeBlock codeBlock:
+                codeBlock.SetFenceTokenSourceSpans(
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceOpening),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceInfo),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeContent),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceClosing));
+                break;
+
+            case SemanticFencedBlock semanticFencedBlock:
+                semanticFencedBlock.SetFenceTokenSourceSpans(
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceOpening),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceInfo),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeContent),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceClosing));
+                break;
+
             case QuoteBlock quoteBlock:
                 quoteBlock.SyntaxChildren = node.Children.Count > 0 ? node.Children : null;
                 break;
 
             case DetailsBlock detailsBlock:
                 detailsBlock.SyntaxChildren = GetDetailsBodySyntaxChildren(detailsBlock, node);
+                break;
+
+            case CustomContainerBlock customContainerBlock:
+                customContainerBlock.SyntaxChildren = GetCustomContainerBodySyntaxChildren(node);
+                customContainerBlock.OpeningFenceSourceSpan = GetChildSourceSpan(node, MarkdownSyntaxKind.CustomContainerOpeningFence);
+                customContainerBlock.InfoSourceSpan = GetChildSourceSpan(node, MarkdownSyntaxKind.CustomContainerInfo);
+                customContainerBlock.ClosingFenceSourceSpan = GetChildSourceSpan(node, MarkdownSyntaxKind.CustomContainerClosingFence);
                 break;
 
             case TableCell tableCell:
@@ -106,13 +223,76 @@ public static partial class MarkdownReader {
         }
     }
 
+    private static MarkdownSourceSpan? GetChildSourceSpan(MarkdownSyntaxNode node, MarkdownSyntaxKind kind) {
+        for (int i = 0; i < node.Children.Count; i++) {
+            if (node.Children[i].Kind == kind) {
+                return node.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
+
     private static void SynchronizeListItemSyntaxChildren(ListItem listItem, IReadOnlyList<MarkdownSyntaxNode> syntaxChildren) {
         listItem.SyntaxChildren.Clear();
 
-        var blockChildrenCount = listItem.BlockChildren.Count;
-        var ownedChildCount = Math.Min(blockChildrenCount, syntaxChildren.Count);
-        for (int i = 0; i < ownedChildCount; i++) {
+        for (int i = 0; i < syntaxChildren.Count; i++) {
             listItem.SyntaxChildren.Add(syntaxChildren[i]);
+        }
+    }
+
+    private static bool ShouldParseBlockGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
+        options?.GenericAttributes == true && state?.SuppressBlockGenericAttributes != true;
+
+    private static bool ShouldParseParagraphGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int startLineIndex) =>
+        ShouldParseBlockGenericAttributes(options, state)
+        && (state == null || !state.SuppressedParagraphGenericAttributeStartLines.Contains(startLineIndex));
+
+    private static bool ShouldParseNestedStandaloneGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int lineIndex) {
+        if (options?.GenericAttributes != true) {
+            return false;
+        }
+
+        if (state?.SuppressBlockGenericAttributes != true) {
+            return true;
+        }
+
+        return state.QuoteContainerLines.Contains(lineIndex);
+    }
+
+    private static bool ShouldParseHeadingGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
+        ShouldParseBlockGenericAttributes(options, state) && state?.SuppressHeadingGenericAttributes != true;
+
+    private static bool ShouldSuppressAutoIdentifierForLiteralHeadingGenericAttribute(
+        string text,
+        MarkdownReaderOptions options,
+        MarkdownReaderState? state) =>
+        options?.GenericAttributes == true
+        && (state?.SuppressHeadingGenericAttributes == true
+            || !MarkdownGenericAttributeParser.TryConsumeTrailingAttributeBlock(
+            text,
+            out _,
+            out _,
+            out _,
+            out _,
+            requireLeadingWhitespace: true))
+        && MarkdownGenericAttributeParser.HasTrailingAttributeBlockSyntax(text, requireLeadingWhitespace: true);
+
+    private static SuppressHeadingGenericAttributesScope SuppressHeadingGenericAttributesInListItems(MarkdownReaderState state) =>
+        new SuppressHeadingGenericAttributesScope(state);
+
+    private readonly struct SuppressHeadingGenericAttributesScope : System.IDisposable {
+        private readonly MarkdownReaderState _state;
+        private readonly bool _previousValue;
+
+        internal SuppressHeadingGenericAttributesScope(MarkdownReaderState state) {
+            _state = state;
+            _previousValue = state.SuppressHeadingGenericAttributes;
+            state.SuppressHeadingGenericAttributes = true;
+        }
+
+        public void Dispose() {
+            _state.SuppressHeadingGenericAttributes = _previousValue;
         }
     }
 
@@ -121,17 +301,43 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        var bodyStartIndex = detailsBlock.Summary != null && node.Children.Count > 0 ? 1 : 0;
-        if (bodyStartIndex >= node.Children.Count) {
+        var bodyChildren = new List<MarkdownSyntaxNode>();
+        for (int i = 0; i < node.Children.Count; i++) {
+            var child = node.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.DetailsOpeningTag ||
+                child.Kind == MarkdownSyntaxKind.DetailsClosingTag ||
+                child.AssociatedObject is SummaryBlock) {
+                continue;
+            }
+
+            bodyChildren.Add(child);
+        }
+
+        if (bodyChildren.Count == 0) {
             return null;
         }
 
-        var bodyChildren = new MarkdownSyntaxNode[node.Children.Count - bodyStartIndex];
-        for (int i = bodyStartIndex; i < node.Children.Count; i++) {
-            bodyChildren[i - bodyStartIndex] = node.Children[i];
+        return bodyChildren;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode>? GetCustomContainerBodySyntaxChildren(MarkdownSyntaxNode node) {
+        if (node.Children.Count == 0) {
+            return null;
         }
 
-        return bodyChildren;
+        var bodyChildren = new List<MarkdownSyntaxNode>();
+        for (int i = 0; i < node.Children.Count; i++) {
+            var child = node.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.CustomContainerOpeningFence ||
+                child.Kind == MarkdownSyntaxKind.CustomContainerInfo ||
+                child.Kind == MarkdownSyntaxKind.CustomContainerClosingFence) {
+                continue;
+            }
+
+            bodyChildren.Add(child);
+        }
+
+        return bodyChildren.Count > 0 ? bodyChildren : null;
     }
 
     private static MarkdownSourceSpan? RemapNestedSourceSpan(
@@ -157,5 +363,41 @@ public static partial class MarkdownReader {
         int startColumn = sourceLines[startIndex].StartColumn + value.StartColumn.Value - 1;
         int endColumn = sourceLines[endIndex].StartColumn + value.EndColumn.Value - 1;
         return new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
+    }
+
+    private static bool IsSourceSpanAlreadyMappedToSourceLines(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownSourceSpan? span) {
+        if (!span.HasValue || sourceLines == null || sourceLines.Count == 0) {
+            return false;
+        }
+
+        var value = span.Value;
+        if (!TryFindSourceLine(sourceLines, value.StartLine, out var startLine) ||
+            !TryFindSourceLine(sourceLines, value.EndLine, out var endLine)) {
+            return false;
+        }
+
+        if (!value.StartColumn.HasValue || !value.EndColumn.HasValue) {
+            return true;
+        }
+
+        return value.StartColumn.Value >= startLine.StartColumn
+            && value.EndColumn.Value >= endLine.StartColumn;
+    }
+
+    private static bool TryFindSourceLine(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        int absoluteLine,
+        out MarkdownSourceLineSlice sourceLine) {
+        for (int i = 0; i < sourceLines.Count; i++) {
+            if (sourceLines[i].AbsoluteLine == absoluteLine) {
+                sourceLine = sourceLines[i];
+                return true;
+            }
+        }
+
+        sourceLine = default;
+        return false;
     }
 }

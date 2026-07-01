@@ -61,6 +61,7 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
     string IMarkdownBlock.RenderHtml() {
         if (Entries.Count == 0) return string.Empty;
         int baseLevel = NormalizeLevels ? Entries.Min(e => e.Level) : 1;
+        var options = HtmlRenderContext.Options;
 
         // Build a tree of nodes based on heading levels
         var root = new Node { Level = baseLevel - 1 };
@@ -76,16 +77,16 @@ public sealed class TocBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlo
         }
 
         var sb = new StringBuilder();
-        RenderList(sb, root.Children, Ordered);
+        RenderList(sb, root.Children, Ordered, options);
         return sb.ToString();
 
-        static void RenderList(StringBuilder sb, System.Collections.Generic.IEnumerable<Node> nodes, bool ordered) {
+        static void RenderList(StringBuilder sb, System.Collections.Generic.IEnumerable<Node> nodes, bool ordered, HtmlOptions? options) {
             sb.Append(ordered ? "<ol>" : "<ul>");
             foreach (var n in nodes) {
                 var e = n.Entry!;
                 sb.Append("<li>");
-                sb.Append($"<a href=\"#{System.Net.WebUtility.HtmlEncode(e.Anchor)}\">{System.Net.WebUtility.HtmlEncode(e.Text)}</a>");
-                if (n.Children.Count > 0) RenderList(sb, n.Children, ordered);
+                sb.Append($"<a href=\"#{HtmlTextEncoder.Encode(e.Anchor, options)}\">{HtmlTextEncoder.Encode(e.Text, options)}</a>");
+                if (n.Children.Count > 0) RenderList(sb, n.Children, ordered, options);
                 sb.Append("</li>");
             }
             sb.Append(ordered ? "</ol>" : "</ul>");

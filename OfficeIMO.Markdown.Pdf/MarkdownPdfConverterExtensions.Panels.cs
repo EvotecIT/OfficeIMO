@@ -128,7 +128,7 @@ public static partial class MarkdownPdfConverterExtensions {
                 }
             }
 
-            if (items[i].ChildBlocks.Count > 0 && !CanRenderBlocksInsidePanel(items[i].ChildBlocks)) {
+            if (items[i].Children.Count > 0 && !CanRenderBlocksInsidePanel(items[i].Children)) {
                 return false;
             }
         }
@@ -263,8 +263,8 @@ public static partial class MarkdownPdfConverterExtensions {
             AppendInlines(builder, item.AdditionalParagraphs[paragraphIndex], style);
         }
 
-        for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-            TryAppendBlockInsidePanel(builder, item.ChildBlocks[childIndex], style, visualTheme, ref wroteContent, lineBreakBeforeFirst);
+        for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
+            TryAppendBlockInsidePanel(builder, item.Children[childIndex], style, visualTheme, ref wroteContent, lineBreakBeforeFirst);
         }
     }
 

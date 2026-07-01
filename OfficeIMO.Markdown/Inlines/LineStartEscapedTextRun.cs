@@ -12,7 +12,7 @@ internal sealed class LineStartEscapedTextRun : MarkdownInline, IRenderableMarkd
 
     string IRenderableMarkdownInline.RenderMarkdown() => MarkdownEscaper.EscapeTextAndLineStarts(Text);
 
-    string IRenderableMarkdownInline.RenderHtml() => System.Net.WebUtility.HtmlEncode(Text);
+    string IRenderableMarkdownInline.RenderHtml() => HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options);
 
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 }

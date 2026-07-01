@@ -1,5 +1,6 @@
 using System.Linq;
 using OfficeIMO.Markdown;
+using MarkdigMarkdown = Markdig.Markdown;
 using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite {
@@ -62,7 +63,7 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             Assert.Equal(2, list.Items.Count);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<blockquote><p>Outer</p><blockquote><p>Inner</p><ul><li>a</li><li>b After</li></ul></blockquote></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>Outer</p><blockquote><p>Inner</p><ul><li>a</li><li>b\nAfter</li></ul></blockquote></blockquote>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -93,6 +94,67 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Quote_Lazy_Paragraph_Continuation_Preserves_Markdig_SoftBreak() {
+            const string md = "> quote\nlazy\n";
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md);
+            var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+            var quoteSyntax = Assert.Single(result.SyntaxTree.Children);
+            var paragraphSyntax = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
+            var written = NormalizeMarkdown(result.Document.ToMarkdown());
+            var office = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+            var reparsedOffice = MarkdownReader.Parse(written).ToHtmlFragment(CreatePlainHtmlOptions());
+            var markdig = MarkdigMarkdown.ToHtml(md);
+
+            Assert.Equal("quote\nlazy", paragraph.Inlines.RenderMarkdown());
+            Assert.IsType<SoftBreakInline>(paragraph.Inlines.Nodes[1]);
+            Assert.Equal(
+                new[] {
+                    MarkdownSyntaxKind.InlineText,
+                    MarkdownSyntaxKind.InlineSoftBreak,
+                    MarkdownSyntaxKind.InlineText
+                },
+                paragraphSyntax.Children.Select(child => child.Kind).ToArray());
+            Assert.Equal(new MarkdownSourceSpan(1, 3, 2, 4), paragraph.SourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(1, 3, 2, 4), paragraphSyntax.SourceSpan);
+            Assert.Equal("> quote\n> lazy", written);
+            Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+            Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+
+            var native = MarkdownNativeDocument.Parse(md);
+            var nativeQuote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+            var nativeParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(nativeQuote.Children));
+            Assert.Equal(new MarkdownSourceSpan(1, 3, 2, 4), nativeQuote.BodySourceSpan);
+            Assert.Contains(nativeParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.SoftBreak);
+            MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        }
+
+        [Fact]
+        public void Quote_Lazy_Paragraph_Setext_Looking_Line_Stays_Paragraph_Text() {
+            const string md = "> foo\nbar\n===\n";
+
+            var result = MarkdownReader.ParseWithSyntaxTree(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+            var quoteSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+            var paragraphSyntax = Assert.Single(quoteSyntax.Children, child => child.Kind == MarkdownSyntaxKind.Paragraph);
+            var written = NormalizeMarkdown(result.Document.ToMarkdown());
+            var office = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+            var reparsedOffice = MarkdownReader.Parse(written, MarkdownReaderOptions.CreateCommonMarkProfile()).ToHtmlFragment(CreatePlainHtmlOptions());
+            var markdig = MarkdigMarkdown.ToHtml(md);
+
+            Assert.Equal("foo\nbar\n===", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+            Assert.DoesNotContain(quote.ChildBlocks, child => child is HeadingBlock);
+            Assert.DoesNotContain(quoteSyntax.Descendants(), node => node.Kind == MarkdownSyntaxKind.Heading);
+            Assert.Equal(MarkdownSyntaxKind.Paragraph, paragraphSyntax.Kind);
+            Assert.Equal("> foo\n> bar\n> \\===", written);
+            Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+            Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
+            MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+        }
+
+        [Fact]
         public void Quote_Lazy_Continuation_Extends_Ordered_List_Item() {
             const string md = "> 1. item\ncontinuation";
 
@@ -119,16 +181,76 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Quote_ListExtras_Item_With_Nested_Quote_Lazy_Continuation_Stays_In_List_Item() {
+            const string md = "> a. > inner\n> continuation";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(qb.Children.First());
+            var item = Assert.Single(list.Items);
+            var innerQuote = Assert.IsType<QuoteBlock>(Assert.Single(item.Children));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(innerQuote.Children));
+
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("inner\ncontinuation", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+        }
+
+        [Fact]
         public void Quote_Indented_Paragraph_Line_Can_Stay_In_Paragraph_And_Allow_Lazy_Continuation() {
             const string md = "> quote\n>     code\ncontinuation";
 
             var doc = MarkdownReader.Parse(md);
             var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
             var paragraph = Assert.IsType<ParagraphBlock>(qb.Children.First());
-            Assert.Equal("quote code continuation", paragraph.Inlines.RenderMarkdown());
+            Assert.Equal("quote code\ncontinuation", paragraph.Inlines.RenderMarkdown());
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<blockquote><p>quote code continuation</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>quote code\ncontinuation</p></blockquote>", html, StringComparison.Ordinal);
         }
+
+        private static HtmlOptions CreatePlainHtmlOptions() => new() {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            AutoHeadingIdentifiers = false
+        };
+
+        private static string NormalizeHtml(string html) {
+            if (string.IsNullOrWhiteSpace(html)) {
+                return string.Empty;
+            }
+
+            var compact = html
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n')
+                .Replace("> <", "><")
+                .Trim();
+            var sb = new System.Text.StringBuilder(compact.Length);
+            bool lastWasWhitespace = false;
+            for (int i = 0; i < compact.Length; i++) {
+                char ch = compact[i];
+                if (char.IsWhiteSpace(ch)) {
+                    lastWasWhitespace = true;
+                    continue;
+                }
+
+                if (lastWasWhitespace && sb.Length > 0 && sb[sb.Length - 1] != '>') {
+                    sb.Append(' ');
+                }
+
+                lastWasWhitespace = false;
+                sb.Append(ch);
+            }
+
+            return sb.ToString();
+        }
+
+        private static string NormalizeMarkdown(string markdown) =>
+            markdown
+                .Replace("\r\n", "\n")
+                .Replace('\r', '\n')
+                .TrimEnd('\n');
     }
 }

@@ -13,7 +13,7 @@ public sealed class HighlightInline : MarkdownInline, IRenderableMarkdownInline,
     }
 
     internal string RenderMarkdown() => "==" + MarkdownEscaper.EscapeHighlightText(Text) + "==";
-    internal string RenderHtml() => "<mark>" + System.Net.WebUtility.HtmlEncode(Text) + "</mark>";
+    internal string RenderHtml() => "<mark>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</mark>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

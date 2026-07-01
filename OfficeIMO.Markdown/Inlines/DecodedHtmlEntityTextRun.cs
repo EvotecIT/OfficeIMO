@@ -11,8 +11,15 @@ internal sealed class DecodedHtmlEntityTextRun : MarkdownInline, IRenderableMark
     }
 
     internal string Text { get; }
+    internal string? SourceText { get; private set; }
+    internal MarkdownSourceSpan? SourceTextSourceSpan { get; private set; }
+
+    internal void SetMarkdownSyntaxMetadataSpans(string? sourceText, MarkdownSourceSpan? sourceTextSourceSpan) {
+        SourceText = sourceText;
+        SourceTextSourceSpan = sourceTextSourceSpan;
+    }
 
     string IRenderableMarkdownInline.RenderMarkdown() => MarkdownEscaper.EscapeLiteralText(Text);
-    string IRenderableMarkdownInline.RenderHtml() => System.Net.WebUtility.HtmlEncode(Text);
+    string IRenderableMarkdownInline.RenderHtml() => HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options);
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);
 }

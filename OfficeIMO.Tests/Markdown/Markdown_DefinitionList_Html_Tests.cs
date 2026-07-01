@@ -22,5 +22,18 @@ namespace OfficeIMO.Tests.MarkdownSuite {
             var inner = html.Substring(ddStart + 4, ddEnd - (ddStart + 4));
             Assert.Contains(expectedFragment, inner);
         }
+
+        [Fact]
+        public void DefinitionList_Tight_Definition_Renders_Paragraph_Attributes() {
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var doc = MarkdownReader.Parse("Term: Definition {#def .wide}", options);
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains("<dd><p id=\"def\" class=\"wide\">Definition </p></dd>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("{#def .wide}", html, StringComparison.Ordinal);
+        }
     }
 }

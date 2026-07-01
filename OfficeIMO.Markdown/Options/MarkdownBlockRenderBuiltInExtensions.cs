@@ -9,6 +9,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
 
     /// <summary>Stable registration name for the portable callout HTML fallback.</summary>
     public const string PortableCalloutHtmlName = "Portable.Callout.Html";
+    /// <summary>Stable registration name for the Markdig/GitHub-style alert HTML fallback.</summary>
+    public const string MarkdigAlertHtmlName = "Markdig.Alert.Html";
     /// <summary>Stable registration name for the portable TOC HTML fallback.</summary>
     public const string PortableTocHtmlName = "Portable.Toc.Html";
     /// <summary>Stable registration name for the portable footnote section HTML fallback.</summary>
@@ -35,12 +37,27 @@ public static class MarkdownBlockRenderBuiltInExtensions {
             throw new ArgumentNullException(nameof(options));
         }
 
-        AddIfMissing(options.BlockRenderExtensions, PortableCalloutHtmlName, typeof(CalloutBlock), static (block, _) => {
+        AddIfMissing(options.BlockRenderExtensions, PortableCalloutHtmlName, typeof(CalloutBlock), static (block, options) => {
             if (block is not CalloutBlock callout) {
                 return null;
             }
 
-            return RenderPortableCalloutHtml(callout);
+            return RenderPortableCalloutHtml(callout, options as HtmlOptions);
+        });
+    }
+
+    /// <summary>Adds Markdig/GitHub-style HTML rendering for OfficeIMO callout blocks.</summary>
+    public static void AddMarkdigAlertHtmlFallback(HtmlOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, MarkdigAlertHtmlName, typeof(CalloutBlock), static (block, options) => {
+            if (block is not CalloutBlock callout) {
+                return null;
+            }
+
+            return RenderMarkdigAlertHtml(callout, options as HtmlOptions);
         });
     }
 
@@ -66,7 +83,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
 
         var prior = options.TocHtmlRenderer;
         options.TocHtmlRenderer = (tocOptions, entries, htmlOptions) =>
-            prior?.Invoke(tocOptions, entries, htmlOptions) ?? RenderPortableTocHtml(tocOptions, entries);
+            prior?.Invoke(tocOptions, entries, htmlOptions) ?? RenderPortableTocHtml(tocOptions, entries, htmlOptions);
     }
 
     /// <summary>Adds a portable HTML fallback for the aggregated footnote section.</summary>
@@ -128,7 +145,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
 
         if (callout.ChildBlocks.Count > 0) {
             for (int i = 0; i < callout.ChildBlocks.Count; i++) {
-                var rendered = callout.ChildBlocks[i]?.RenderMarkdown();
+                var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(callout.ChildBlocks[i]);
                 if (!string.IsNullOrWhiteSpace(rendered)) {
                     parts.Add(rendered!.TrimEnd());
                 }
@@ -140,7 +157,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         return PrefixQuoteLines(string.Join("\n\n", parts));
     }
 
-    private static string RenderPortableCalloutHtml(CalloutBlock callout) {
+    private static string RenderPortableCalloutHtml(CalloutBlock callout, HtmlOptions? options) {
         var titleMarkdown = callout.TitleInlines.RenderMarkdown();
         var visibleTitle = string.IsNullOrWhiteSpace(titleMarkdown)
             ? FormatTitleFromKind(callout.Kind)
@@ -152,12 +169,12 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         if (!string.IsNullOrWhiteSpace(titleMarkdown)) {
             sb.Append("<p><strong>").Append(callout.TitleInlines.RenderHtml()).Append("</strong></p>");
         } else if (!string.IsNullOrWhiteSpace(visibleTitle)) {
-            sb.Append("<p><strong>").Append(System.Net.WebUtility.HtmlEncode(visibleTitle)).Append("</strong></p>");
+            sb.Append("<p><strong>").Append(HtmlTextEncoder.Encode(visibleTitle, options)).Append("</strong></p>");
         }
 
         if (callout.ChildBlocks.Count > 0) {
             for (int i = 0; i < callout.ChildBlocks.Count; i++) {
-                sb.Append(callout.ChildBlocks[i]?.RenderHtml());
+                sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(callout.ChildBlocks[i]));
             }
         } else {
             var lines = (callout.Body ?? string.Empty).Replace("\r\n", "\n").Split('\n');
@@ -166,7 +183,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
                 if (i > 0) {
                     sb.Append("<br/>");
                 }
-                sb.Append(System.Net.WebUtility.HtmlEncode(lines[i]));
+                sb.Append(HtmlTextEncoder.Encode(lines[i], options));
             }
             sb.Append("</p>");
         }
@@ -175,7 +192,90 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         return sb.ToString();
     }
 
-    private static string RenderPortableTocHtml(TocOptions options, IReadOnlyList<TocBlock.Entry> entries) {
+    private static string RenderMarkdigAlertHtml(CalloutBlock callout, HtmlOptions? options) {
+        var kind = NormalizeAlertKind(callout.Kind);
+        var defaultTitle = GetAlertTitle(kind);
+        var explicitTitleMarkdown = callout.TitleInlines.RenderMarkdown();
+        var hasExplicitTitle = !string.IsNullOrWhiteSpace(explicitTitleMarkdown);
+        var sb = new StringBuilder();
+        sb.Append("<div class=\"markdown-alert markdown-alert-")
+            .Append(HtmlTextEncoder.Encode(kind, options))
+            .Append("\">");
+
+        if (hasExplicitTitle || !string.IsNullOrEmpty(defaultTitle)) {
+            sb.Append("<p class=\"markdown-alert-title\">");
+            if (!string.IsNullOrEmpty(defaultTitle)) {
+                sb.Append(RenderAlertIcon(kind));
+            }
+            sb.Append(hasExplicitTitle
+                    ? callout.TitleInlines.RenderHtml()
+                    : HtmlTextEncoder.Encode(defaultTitle, options))
+                .Append("</p>");
+        }
+
+        if (callout.ChildBlocks.Count > 0) {
+            if (callout.ChildBlocks[0] is not ParagraphBlock) {
+                sb.Append("<p></p>");
+            }
+
+            for (int i = 0; i < callout.ChildBlocks.Count; i++) {
+                sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(callout.ChildBlocks[i]));
+            }
+        } else if (!string.IsNullOrWhiteSpace(callout.Body)) {
+            var lines = (callout.Body ?? string.Empty).Replace("\r\n", "\n").Split('\n');
+            sb.Append("<p>");
+            for (int i = 0; i < lines.Length; i++) {
+                if (i > 0) {
+                    sb.Append("<br/>");
+                }
+                sb.Append(HtmlTextEncoder.Encode(lines[i], options));
+            }
+            sb.Append("</p>");
+        } else {
+            sb.Append("<p></p>");
+        }
+
+        sb.Append("</div>");
+        return sb.ToString();
+    }
+
+    private static string NormalizeAlertKind(string? kind) {
+        var sourceKind = string.IsNullOrWhiteSpace(kind) ? "note" : kind!;
+        var normalized = sourceKind.Trim().ToLowerInvariant();
+        var builder = new StringBuilder(normalized.Length);
+        for (int i = 0; i < normalized.Length; i++) {
+            var ch = normalized[i];
+            if ((ch >= 'a' && ch <= 'z') || (ch >= '0' && ch <= '9') || ch == '-' || ch == '_') {
+                builder.Append(ch);
+            }
+        }
+
+        return builder.Length == 0 ? "note" : builder.ToString();
+    }
+
+    private static string GetAlertTitle(string kind) =>
+        kind switch {
+            "note" => "Note",
+            "tip" => "Tip",
+            "important" => "Important",
+            "warning" => "Warning",
+            "caution" => "Caution",
+            _ => string.Empty
+        };
+
+    private static string RenderAlertIcon(string kind) {
+        var path = kind switch {
+            "tip" => "M8.25 1.5a.75.75 0 0 0-1.5 0v1.25H5.5a.75.75 0 0 0 0 1.5h1.25V5.5a.75.75 0 0 0 1.5 0V4.25H9.5a.75.75 0 0 0 0-1.5H8.25V1.5ZM3.25 6.5a.75.75 0 0 0 0 1.5h9.5a.75.75 0 0 0 0-1.5h-9.5ZM4 10.25a.75.75 0 0 1 .75-.75h6.5a.75.75 0 0 1 0 1.5h-6.5a.75.75 0 0 1-.75-.75ZM5.75 12.5a.75.75 0 0 0 0 1.5h4.5a.75.75 0 0 0 0-1.5h-4.5Z",
+            "important" => "M8 1.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z",
+            "warning" => "M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z",
+            "caution" => "M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368ZM8.75 4.75a.75.75 0 0 0-1.5 0v4.5a.75.75 0 0 0 1.5 0v-4.5ZM8 13a1 1 0 1 0 0-2 1 1 0 0 0 0 2Z",
+            _ => "M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"
+        };
+
+        return "<svg viewBox=\"0 0 16 16\" version=\"1.1\" width=\"16\" height=\"16\" aria-hidden=\"true\"><path d=\"" + path + "\"></path></svg>";
+    }
+
+    private static string RenderPortableTocHtml(TocOptions options, IReadOnlyList<TocBlock.Entry> entries, HtmlOptions? htmlOptions) {
         if (entries == null || entries.Count == 0) {
             return string.Empty;
         }
@@ -200,7 +300,7 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         }
 
         int titleLevel = options.TitleLevel < 1 ? 1 : (options.TitleLevel > 6 ? 6 : options.TitleLevel);
-        return $"<h{titleLevel}>{System.Net.WebUtility.HtmlEncode(options.Title)}</h{titleLevel}>" + bodyHtml;
+        return $"<h{titleLevel}>{HtmlTextEncoder.Encode(options.Title, htmlOptions)}</h{titleLevel}>" + bodyHtml;
     }
 
     private static string RenderPortableFootnoteSectionHtml(IReadOnlyList<FootnoteDefinitionBlock> footnotes) {

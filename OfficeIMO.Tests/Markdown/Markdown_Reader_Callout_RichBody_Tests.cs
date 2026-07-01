@@ -68,6 +68,28 @@ Console.WriteLine("x");
     }
 
     [Fact]
+    public void Callout_LazyContinuation_Stops_Before_Block_Starters() {
+        const string md = """
+> [!NOTE]
+Body
+# Next
+""";
+
+        var document = MarkdownReader.Parse(md);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var callout = Assert.IsType<CalloutBlock>(block);
+                var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks));
+                Assert.Equal("Body", paragraph.Inlines.RenderMarkdown());
+            },
+            block => {
+                var heading = Assert.IsType<HeadingBlock>(block);
+                Assert.Equal("Next", heading.Inlines.RenderMarkdown());
+            });
+    }
+
+    [Fact]
     public void Callout_Title_With_ImageOnly_Inline_Does_Not_Fall_Back_To_Kind_Label() {
         string md = """
 > [!TIP] ![](/icon.svg)
@@ -110,6 +132,55 @@ Console.WriteLine("x");
         Assert.Equal("Heads up", callout.Title);
         Assert.Equal("fresh body", callout.Body);
         Assert.Same(paragraph, Assert.Single(callout.ChildBlocks));
+    }
+
+    [Fact]
+    public void Callout_Public_Structured_Constructor_Uses_ChildBlocks_As_Primary_Body() {
+        var paragraph = new ParagraphBlock(MarkdownReader.ParseInlineText("fresh body"));
+        var list = new UnorderedListBlock();
+        list.Items.Add(new ListItem(MarkdownReader.ParseInlineText("first")));
+        var callout = new CalloutBlock("note", "Heads up", new IMarkdownBlock[] {
+            paragraph,
+            list
+        });
+
+        Assert.Equal(2, callout.ChildBlocks.Count);
+        Assert.Same(paragraph, callout.ChildBlocks[0]);
+        Assert.Same(list, callout.ChildBlocks[1]);
+        Assert.Equal("fresh body\n\n- first", callout.Body.Replace("\r\n", "\n"));
+        Assert.Contains("> - first", ((IMarkdownBlock)callout).RenderMarkdown(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Callout_Public_Text_Constructor_Adapts_Body_To_ChildBlocks() {
+        var callout = new CalloutBlock("note", "Heads up", "first line\nsecond line");
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks));
+        Assert.Equal("first line  \nsecond line", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal("first line\nsecond line", callout.Body.Replace("\r\n", "\n"));
+        Assert.Contains("first line<br/>second line", ((IMarkdownBlock)callout).RenderHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownDoc_Callout_BodyBuilder_Adds_Structured_ChildBlocks() {
+        var document = MarkdownDoc.Create()
+            .Callout("warning", "Structured", body => body
+                .P("Intro")
+                .Ul(list => list.Item("first").Item("second"))
+                .Code("text", "payload"));
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
+        Assert.Collection(
+            callout.ChildBlocks,
+            block => Assert.Equal("Intro", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
+            block => Assert.Equal(new[] { "first", "second" }, Assert.IsType<UnorderedListBlock>(block).Items.Select(item => item.Content.RenderMarkdown()).ToArray()),
+            block => Assert.Equal("payload", Assert.IsType<CodeBlock>(block).Content));
+
+        var markdown = document.ToMarkdown().Replace("\r\n", "\n");
+        Assert.Contains("> [!WARNING] Structured", markdown, StringComparison.Ordinal);
+        Assert.Contains("> - first", markdown, StringComparison.Ordinal);
+        Assert.Contains("> ```text", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("System.", markdown, StringComparison.Ordinal);
     }
 }
 

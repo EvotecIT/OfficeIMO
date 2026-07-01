@@ -10,12 +10,24 @@ public static partial class MarkdownReader {
         MarkdownDoc document,
         MarkdownReaderOptions options,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics = null,
-        MarkdownSyntaxNode? syntaxTree = null) {
+        MarkdownSyntaxNode? syntaxTree = null,
+        string? sourceMarkdown = null,
+        string? originalMarkdown = null,
+        bool preservesOriginalMarkdown = false) {
         var transforms = BuildEffectiveDocumentTransforms(options);
         return MarkdownDocumentTransformPipeline.Apply(
             document,
             transforms,
-            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options, sourceOptions: null, diagnostics, syntaxTree));
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                options,
+                sourceOptions: null,
+                diagnostics,
+                syntaxTree,
+                topLevelBlockSourceSpans: null,
+                sourceMarkdown,
+                originalMarkdown,
+                preservesOriginalMarkdown));
     }
 
     private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(MarkdownReaderOptions options) {

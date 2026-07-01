@@ -202,6 +202,308 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void HtmlOptions_Can_Disable_Automatic_Heading_Identifiers() {
+            var doc = MarkdownReader.Parse("# Alpha");
+
+            string html = doc.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                AutoHeadingIdentifiers = false,
+                IncludeAnchorLinks = true
+            });
+
+            Assert.Equal("<h1>Alpha</h1>", html);
+        }
+
+        [Fact]
+        public void HtmlOptions_Supports_Markdig_Default_Heading_Identifier_Style() {
+            const string markdown = """
+# Привет мир
+
+# Привет мир
+
+# a_b c.d
+""";
+
+            string html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault
+            });
+
+            Assert.Contains("<h1 id=\"section\">Привет мир</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"section-1\">Привет мир</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"a_b-c.d\">a_b c.d</h1>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlOptions_Applies_Heading_Identifier_Style_To_Nested_Headings() {
+            const string markdown = "- # a_b c.d";
+
+            string html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault
+            });
+
+            Assert.Contains("<h1 id=\"a_b-c.d\">a_b c.d</h1>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("id=\"a-b-c-d\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlOptions_Can_Render_NonAscii_Text_Literally_For_Markdig_Style_Output() {
+            const string markdown = """
+åbc 1 < 2 & 'quote'
+
+[ålink](https://example.com)
+
+```
+åcode < &
+```
+""";
+
+            var defaultHtml = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+            var markdigStyleHtml = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+
+            Assert.Contains("&#229;bc", defaultHtml, StringComparison.Ordinal);
+            Assert.Contains("&#229;link", defaultHtml, StringComparison.Ordinal);
+            Assert.Contains("&#229;code", defaultHtml, StringComparison.Ordinal);
+            Assert.Contains("åbc 1 &lt; 2 &amp; &#39;quote&#39;", markdigStyleHtml, StringComparison.Ordinal);
+            Assert.Contains("<a href=\"https://example.com\">ålink</a>", markdigStyleHtml, StringComparison.Ordinal);
+            Assert.Contains("åcode &lt; &amp;\n", markdigStyleHtml, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlOptions_Can_Render_NonAscii_Helper_Text_Literally_For_Markdig_Style_Output() {
+            var toc = new TocBlock {
+                NormalizeLevels = true
+            };
+            toc.Entries.Add(new TocBlock.Entry {
+                Level = 2,
+                Text = "åHeading",
+                Anchor = "åheading"
+            });
+
+            var doc = MarkdownDoc.Create()
+                .Add(toc)
+                .H2("åHeading")
+                .Add(new ImageBlock("https://example.com/image.png", "åAlt", "åTitle") {
+                    Caption = "åCaption"
+                });
+
+            string html = doc.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false,
+                IncludeAnchorLinks = true,
+                AnchorIcon = "åAnchor",
+                BackToTopLinks = true,
+                BackToTopMinLevel = 2,
+                BackToTopText = "åTop"
+            });
+
+            Assert.Contains(">åHeading</a>", html, StringComparison.Ordinal);
+            Assert.Contains(">åAnchor</a>", html, StringComparison.Ordinal);
+            Assert.Contains(">åTop</a>", html, StringComparison.Ordinal);
+            Assert.Contains("<div class=\"caption\">åCaption</div>", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åAlt\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"åTitle\"", html, StringComparison.Ordinal);
+
+            string documentHtml = doc.ToHtmlDocument(new HtmlOptions {
+                Title = "åDocument",
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+            Assert.Contains("<title>åDocument</title>", documentHtml, StringComparison.Ordinal);
+
+            string blockedLinkedImage = MarkdownReader.Parse("[![åBadge](https://img.example/badge.svg)](https://example.com)")
+                .ToHtmlFragment(new HtmlOptions {
+                    Style = HtmlStyle.Plain,
+                    CssDelivery = CssDelivery.None,
+                    BodyClass = null,
+                    EscapeNonAsciiText = false,
+                    BlockExternalHttpImages = true
+                });
+            Assert.Contains(">åBadge</a>", blockedLinkedImage, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlOptions_Can_Render_NonAscii_Attribute_Text_Literally_For_Markdig_Style_Output() {
+            var paragraph = new ParagraphBlock(new InlineSequence()
+                .Link("ålink", "https://example.com/docs", "åLink title")
+                .Image("åImage alt", "https://example.com/image.png", "åImage title")
+                .ImageLink("åBadge", "https://img.example/badge.svg", "https://example.com", "åBadge title", "åBadge link"));
+            var image = new ImageBlock("https://example.com/photo.png", "åBlock alt", "åBlock title", linkUrl: "https://example.com/photo", linkTitle: "åBlock link");
+            image.PictureSources.Add(new ImagePictureSource(
+                "https://example.com/photo.webp",
+                "(min-width: 960px)",
+                "image/webp",
+                "åwide",
+                "https://example.com/photo.webp 1x"));
+            var doc = MarkdownDoc.Create().Add(paragraph).Add(image);
+
+            string html = doc.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+
+            Assert.Contains("title=\"åLink title\"", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åImage alt\" title=\"åImage title\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"åBadge link\"", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åBadge\" title=\"åBadge title\"", html, StringComparison.Ordinal);
+            Assert.Contains("title=\"åBlock link\"", html, StringComparison.Ordinal);
+            Assert.Contains("alt=\"åBlock alt\" title=\"åBlock title\"", html, StringComparison.Ordinal);
+            Assert.Contains("sizes=\"åwide\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void HtmlOptions_Can_Render_NonAscii_Generated_Attribute_Metadata_Literally_For_Markdig_Style_Output() {
+            var toc = new TocBlock();
+            toc.Entries.Add(new TocBlock.Entry {
+                Level = 2,
+                Text = "åToc",
+                Anchor = "åtoc"
+            });
+
+            var doc = MarkdownDoc.Create()
+                .H2("åHeading")
+                .Add(toc)
+                .Add(new ParagraphBlock(new InlineSequence()
+                    .Link("åExternal", "https://example.com/docs", linkTarget: "åtarget", linkRel: "årel")
+                    .Link("åPlainExternal", "https://example.com/plain")
+                    .Image("åImage", "https://example.com/image.png")
+                    .FootnoteRef("ånote")))
+                .Add(new CodeBlock("ålang", "åcode"))
+                .Add(new SemanticFencedBlock("chart", "åsemantic", "åpayload"))
+                .Add(new CalloutBlock("ånote", "åTitle", "åBody"))
+                .Add(new FootnoteDefinitionBlock("ånote", "åFootnote"));
+
+            var options = new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false,
+                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.GitHub,
+                IncludeAnchorLinks = true,
+                ExternalLinksReferrerPolicy = "åpolicy",
+                ImagesReferrerPolicy = "åimage-policy"
+            };
+
+            string html = doc.ToHtmlFragment(options);
+
+            Assert.Contains("id=\"åheading\"", html, StringComparison.Ordinal);
+            Assert.Contains("href=\"#åheading\"", html, StringComparison.Ordinal);
+            Assert.Contains("data-anchor-id=\"åheading\"", html, StringComparison.Ordinal);
+            Assert.Contains("href=\"#åtoc\">åToc</a>", html, StringComparison.Ordinal);
+            Assert.Contains("target=\"åtarget\"", html, StringComparison.Ordinal);
+            Assert.Contains("rel=\"årel\"", html, StringComparison.Ordinal);
+            Assert.Contains("referrerpolicy=\"åpolicy\"", html, StringComparison.Ordinal);
+            Assert.Contains("referrerpolicy=\"åimage-policy\"", html, StringComparison.Ordinal);
+            Assert.Contains("id=\"fnref:ånote\"", html, StringComparison.Ordinal);
+            Assert.Contains("id=\"fn:ånote\"", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"language-ålang\"", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"language-åsemantic\"", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"callout ånote\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
+
+            string documentHtml = doc.ToHtmlDocument(new HtmlOptions {
+                Title = "åDocument",
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.LinkHref,
+                CssHref = "https://cdn.example.com/å.css",
+                BodyClass = "å-body",
+                EscapeNonAsciiText = false,
+                AssetMode = AssetMode.Online,
+                AdditionalCssHrefs = { "https://cdn.example.com/extra å.css" },
+                AdditionalJsHrefs = { "https://cdn.example.com/å.js" }
+            });
+
+            Assert.Contains("<title>åDocument</title>", documentHtml, StringComparison.Ordinal);
+            Assert.Contains("<article class=\"å-body\">", documentHtml, StringComparison.Ordinal);
+            Assert.Contains("href=\"https://cdn.example.com/%C3%A5.css\"", documentHtml, StringComparison.Ordinal);
+            Assert.Contains("href=\"https://cdn.example.com/extra%20%C3%A5.css\"", documentHtml, StringComparison.Ordinal);
+            Assert.Contains("src=\"https://cdn.example.com/%C3%A5.js\"", documentHtml, StringComparison.Ordinal);
+            Assert.DoesNotContain("&#229;", documentHtml, StringComparison.Ordinal);
+
+            var merged = HtmlAssetMerger.Build(
+                new[] {
+                    new[] {
+                        new HtmlAsset("åcss", HtmlAssetKind.Css, "https://cdn.example.com/å.css", inline: null) {
+                            Media = "screen and (min-width: åpx)"
+                        },
+                        new HtmlAsset("åjs", HtmlAssetKind.Js, "https://cdn.example.com/å.js", inline: null)
+                    }
+                },
+                new HtmlOptions {
+                    EscapeNonAsciiText = false
+                });
+
+            Assert.Contains("data-asset-id=\"åcss\"", merged.headLinks, StringComparison.Ordinal);
+            Assert.Contains("media=\"screen and (min-width: åpx)\"", merged.headLinks, StringComparison.Ordinal);
+            Assert.Contains("href=\"https://cdn.example.com/%C3%A5.css\"", merged.headLinks, StringComparison.Ordinal);
+            Assert.Contains("data-asset-id=\"åjs\"", merged.headLinks, StringComparison.Ordinal);
+            Assert.Contains("src=\"https://cdn.example.com/%C3%A5.js\"", merged.headLinks, StringComparison.Ordinal);
+            Assert.DoesNotContain("&#229;", merged.headLinks, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Link_Html_Preserves_Ipv6_Authority_Brackets() {
+            const string markdown = "[loopback](http://[::1]/)";
+
+            string html = MarkdownReader.Parse(markdown)
+                .ToHtmlFragment(new HtmlOptions {
+                    Style = HtmlStyle.Plain,
+                    CssDelivery = CssDelivery.None,
+                    BodyClass = null
+                });
+
+            Assert.Contains("href=\"http://[::1]/\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"http://%5B::1%5D/\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void GitHubFlavoredMarkdown_Html_Profile_Uses_GitHub_Heading_Identifiers() {
+            const string markdown = """
+# Hello World!
+
+# Hello World!
+
+# Привет мир
+
+# a_b c.d
+""";
+
+            var options = HtmlOptions.CreateGitHubFlavoredMarkdownProfile();
+            string html = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile())
+                .ToHtmlFragment(options);
+
+            Assert.True(options.AutoHeadingIdentifiers);
+            Assert.Equal(MarkdownHeadingIdentifierStyle.GitHub, options.HeadingIdentifierStyle);
+            Assert.Contains("<h1 id=\"hello-world\">Hello World!</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"hello-world-1\">Hello World!</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"привет-мир\">Привет мир</h1>", html, StringComparison.Ordinal);
+            Assert.Contains("<h1 id=\"a_b-cd\">a_b c.d</h1>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Image_With_Dimensions_Renders_Size_And_Caption() {
             var doc = MarkdownDoc.Create()
                 .Image("images/photo.png", alt: "Alt text", title: "Title text", width: 640, height: 480)

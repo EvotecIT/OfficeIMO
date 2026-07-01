@@ -95,6 +95,24 @@ public sealed class MarkdownInlineParserContext {
     }
 
     /// <summary>
+    /// Creates a normalized source slice for a range relative to the current parser position.
+    /// </summary>
+    /// <param name="relativeStart">Zero-based character offset from the current parser position.</param>
+    /// <param name="length">Number of inline-source characters covered by the slice.</param>
+    /// <param name="slice">Materialized normalized source slice when the method returns <c>true</c>.</param>
+    /// <returns><c>true</c> when source mapping and normalized reader input are available for the requested range.</returns>
+    public bool TryCreateSourceSlice(int relativeStart, int length, out MarkdownSourceSlice slice) {
+        var span = GetSourceSpan(relativeStart, length);
+        var sourceMap = State?.SourceTextMap;
+        if (!span.HasValue || sourceMap == null) {
+            slice = default;
+            return false;
+        }
+
+        return MarkdownSourceSlice.TryCreate(sourceMap.Text, span.Value, MarkdownSourceTextKind.Normalized, out slice);
+    }
+
+    /// <summary>
     /// Parses a nested inline segment relative to the current parser position while preserving source-map offsets.
     /// </summary>
     public InlineSequence ParseNestedInlines(int relativeStart, int length, bool allowLinks = true, bool allowImages = true) {

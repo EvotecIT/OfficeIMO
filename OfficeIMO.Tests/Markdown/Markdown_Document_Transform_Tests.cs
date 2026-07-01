@@ -58,6 +58,30 @@ second
     }
 
     [Fact]
+    public void MarkdownDocumentTransformPipeline_Marks_NoOpTransforms_As_Not_SourceAffecting() {
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var document = MarkdownDoc.Create();
+        document.Add(new ParagraphBlock(new InlineSequence().Text("Base")));
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            new IMarkdownDocumentTransform[] { new NoOpTransform() },
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                MarkdownReaderOptions.CreateOfficeIMOProfile(),
+                sourceOptions: null,
+                diagnostics));
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.Same(document, transformed);
+        Assert.False(diagnostic.HasChangedBlocks);
+        Assert.Equal(0, diagnostic.ChangedBlockCountBefore);
+        Assert.Equal(0, diagnostic.ChangedBlockCountAfter);
+        Assert.Null(diagnostic.AffectedSourceSpan);
+        Assert.Empty(diagnostic.AffectedSourceSpans);
+    }
+
+    [Fact]
     public void MarkdownDocumentTransformPipeline_Collects_AffectedSourceSpan_When_SyntaxTree_Is_Available() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         var parseResult = MarkdownReader.ParseWithSyntaxTree("previous shutdown was unexpected### Reason", options);
@@ -82,9 +106,125 @@ second
         Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
         Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedSourceSpan);
+        var affectedSourceSpan = Assert.Single(diagnostic.AffectedSourceSpans);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), affectedSourceSpan);
         Assert.Equal("Document > Paragraph", diagnostic.AffectedOriginalBlockPath);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Paragraph > InlineText", diagnostic.AffectedOriginalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 42), diagnostic.AffectedOriginalNodeSpan);
         Assert.Equal(2, transformed.Blocks.Count);
+    }
+
+    [Fact]
+    public void MarkdownDocumentTransformPipeline_Collects_IndividualAffectedSourceSpans() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var parseResult = MarkdownReader.ParseWithSyntaxTree("""
+alpha
+
+beta
+""", options);
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            parseResult.Document,
+            new IMarkdownDocumentTransform[] { new UppercaseParagraphsTransform() },
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                options,
+                sourceOptions: null,
+                diagnostics,
+                parseResult.SyntaxTree));
+
+        var diagnostic = Assert.Single(diagnostics);
+        Assert.True(diagnostic.HasChangedBlocks);
+        Assert.Equal(0, diagnostic.ChangedBlockStartBefore);
+        Assert.Equal(2, diagnostic.ChangedBlockCountBefore);
+        Assert.Equal(0, diagnostic.ChangedBlockStartAfter);
+        Assert.Equal(2, diagnostic.ChangedBlockCountAfter);
+        Assert.Equal(new[] { 1, 3 }, diagnostic.AffectedSourceSpans.Select(span => span.StartLine).ToArray());
+        Assert.Equal(new[] { 1, 3 }, diagnostic.AffectedSourceSpans.Select(span => span.EndLine).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 4), diagnostic.AffectedSourceSpan);
+        Assert.Equal(
+            NormalizeMarkdown("""
+ALPHA
+
+BETA
+"""),
+            NormalizeMarkdown(transformed.ToMarkdown()));
+    }
+
+    [Fact]
+    public void MarkdownReader_DocumentTransformContext_Can_Create_SourceSlices_For_ParsedBlocks() {
+        MarkdownSourceSlice normalizedSlice = default;
+        MarkdownSourceSlice originalSlice = default;
+        MarkdownOriginalSourceSliceFailureReason originalFailureReason = MarkdownOriginalSourceSliceFailureReason.None;
+        bool normalizedOk = false;
+        bool originalOk = false;
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.PreserveTrivia = true;
+        options.DocumentTransforms.Add(new InspectFirstBlockSourceTransform((document, context) => {
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+            var syntaxNode = context.FindSyntaxNode(paragraph);
+
+            Assert.NotNull(syntaxNode);
+            normalizedOk = context.TryCreateSourceSlice(paragraph, out normalizedSlice);
+            originalOk = context.TryCreateOriginalSourceSlice(paragraph, out originalSlice, out originalFailureReason);
+            return document;
+        }));
+
+        MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("alpha\r\n\r\n", options);
+
+        Assert.True(normalizedOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, normalizedSlice.TextKind);
+        Assert.Equal("alpha", normalizedSlice.Text);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalFailureReason);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal("alpha", originalSlice.Text);
+    }
+
+    [Fact]
+    public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_PreciseChangedInlineNodeAnchor() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightStrongBoundaries = true
+        }));
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("Prefix **bold**suffix", options);
+
+        var diagnostic = Assert.Single(result.TransformDiagnostics);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 21), diagnostic.AffectedSourceSpan);
+        Assert.Equal("Document > Paragraph", diagnostic.AffectedOriginalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 21), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Paragraph > InlineText", diagnostic.AffectedOriginalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 21), diagnostic.AffectedOriginalNodeSpan);
+        Assert.Equal("Prefix **bold** suffix", result.Document.ToMarkdown().Trim());
+    }
+
+    [Fact]
+    public void MarkdownReader_ParseWithSyntaxTreeAndDiagnostics_Collects_PreciseNestedChangedNodeAnchor() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        }));
+
+        var result = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics("""
+> [!NOTE] Why it matters
+> coverage:missing evidence
+""", options);
+
+        var diagnostic = Assert.Single(result.TransformDiagnostics);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 27), diagnostic.AffectedSourceSpan);
+        Assert.Equal("Document > Callout", diagnostic.AffectedOriginalBlockPath);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 27), diagnostic.AffectedOriginalBlockSpan);
+        Assert.Equal("Document > Callout > Paragraph > InlineText", diagnostic.AffectedOriginalNodePath);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 27), diagnostic.AffectedOriginalNodeSpan);
+        Assert.Equal(
+            NormalizeMarkdown("""
+> [!NOTE] Why it matters
+> coverage: missing evidence
+"""),
+            NormalizeMarkdown(result.Document.ToMarkdown()));
     }
 
     [Fact]
@@ -328,6 +468,31 @@ Paragraph body.
     }
 
     [Fact]
+    public void MarkdownListParagraphStrongArtifactTransform_Preserves_List_Item_Content_When_No_Local_Repair_Is_Needed() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DocumentTransforms.Add(new MarkdownListParagraphStrongArtifactTransform(new MarkdownInputNormalizationOptions {
+            NormalizeDanglingTrailingStrongListClosers = true
+        }));
+
+        var document = MarkdownReader.Parse("""
+- Signal **Current comparison used **System** log only.**
+- [ ] task
+""", options);
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        Assert.Collection(
+            list.Items,
+            item => {
+                Assert.False(item.IsTask);
+                Assert.Equal("Signal **Current comparison used **System** log only.**", item.Content.RenderMarkdown());
+            },
+            item => {
+                Assert.True(item.IsTask);
+                Assert.Equal("task", item.Content.RenderMarkdown());
+            });
+    }
+
+    [Fact]
     public void HtmlToMarkdown_Applies_DocumentTransforms_To_IntermediateDocument() {
         var options = new HtmlToMarkdownOptions();
         options.DocumentTransforms.Add(
@@ -518,6 +683,26 @@ Lead[^1]
     }
 
     [Fact]
+    public void MarkdownInlineNormalizationTransform_Updates_Builder_Footnote_Text_From_TextConstructorChildBlocks() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var document = MarkdownDoc.Create()
+            .Add(new FootnoteDefinitionBlock("1", "Why it matters:missing evidence"));
+        var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        });
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            new IMarkdownDocumentTransform[] { transform },
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+
+        var footnote = Assert.IsType<FootnoteDefinitionBlock>(Assert.Single(transformed.Blocks));
+
+        Assert.Equal("Why it matters: missing evidence", footnote.Text);
+        Assert.Equal("Why it matters: missing evidence", Assert.Single(footnote.ParagraphBlocks).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
     public void MarkdownInlineNormalizationTransform_Updates_Callout_Body_From_RewrittenBlocks() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
@@ -530,6 +715,26 @@ Lead[^1]
 """, options);
 
         var callout = Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("coverage: missing evidence", callout.Body);
+        Assert.Equal("coverage: missing evidence", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void MarkdownInlineNormalizationTransform_Updates_Builder_Callout_Body_From_TextConstructorChildBlocks() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        var document = MarkdownDoc.Create()
+            .Callout("note", "Why it matters", "coverage:missing evidence");
+        var transform = new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        });
+
+        var transformed = MarkdownDocumentTransformPipeline.Apply(
+            document,
+            new IMarkdownDocumentTransform[] { transform },
+            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options));
+
+        var callout = Assert.IsType<CalloutBlock>(Assert.Single(transformed.Blocks));
 
         Assert.Equal("coverage: missing evidence", callout.Body);
         Assert.Equal("coverage: missing evidence", Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks)).Inlines.RenderMarkdown());
@@ -548,5 +753,31 @@ Lead[^1]
             document.Add(new ParagraphBlock(new InlineSequence().Text(text)));
             return document;
         }
+    }
+
+    private sealed class NoOpTransform : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, context.Source);
+            return document;
+        }
+    }
+
+    private sealed class UppercaseParagraphsTransform : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            var transformed = MarkdownDoc.Create();
+            foreach (var block in document.Blocks) {
+                if (block is ParagraphBlock paragraph) {
+                    transformed.Add(new ParagraphBlock(new InlineSequence().Text(paragraph.Inlines.RenderMarkdown().ToUpperInvariant())));
+                } else {
+                    transformed.Add(block);
+                }
+            }
+
+            return transformed;
+        }
+    }
+
+    private sealed class InspectFirstBlockSourceTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) => inspect(document, context);
     }
 }

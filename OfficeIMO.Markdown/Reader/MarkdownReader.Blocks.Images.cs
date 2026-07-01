@@ -122,6 +122,7 @@ public static partial class MarkdownReader {
         if (!TryParseImageLink(
             t,
             0,
+            null,
             out int consumed,
             out var alt,
             out var src,

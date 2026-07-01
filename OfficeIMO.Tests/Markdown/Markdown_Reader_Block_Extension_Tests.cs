@@ -53,8 +53,105 @@ Paragraph line
 
         var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
         Assert.Equal(new MarkdownSourceSpan(1, 1, 5, 3), panel.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 5, 3), panel.ParserSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 14), ((MarkdownObject)panel.ChildBlocks[0]).SourceSpan);
         Assert.Same(panel, panelSyntax.AssociatedObject);
+    }
+
+    [Fact]
+    public void Block_Parser_Context_Creates_SourceSpans_For_Custom_Syntax_Children() {
+        const string markdown = ":::panel **Ops** Notes\r\nParagraph line\r\n:::\r\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+
+        var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
+        var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+        var titleSyntax = panelSyntax.Children[0];
+        var titleStrong = Assert.Single(titleSyntax.Children, child => child.Kind == MarkdownSyntaxKind.InlineStrong);
+
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), panel.ParserSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 22), panel.TitleSourceSpan);
+        Assert.Equal(panel.TitleSourceSpan, titleSyntax.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 16), titleStrong.SourceSpan);
+        Assert.Same(panel.TitleSyntaxOwner, titleSyntax.AssociatedObject);
+    }
+
+    [Fact]
+    public void Block_Parser_Context_Can_Create_Normalized_SourceSlices_For_Custom_Parsers() {
+        const string markdown = "::claim alpha\r\ncontinued\r\n\r\n";
+        MarkdownSourceSlice sourceSlice = default;
+        bool sourceSliceOk = false;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "source-aware-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext context, out MarkdownBlockParseResult result) => {
+                result = default;
+                if (!context.CurrentLine.StartsWith("::claim", StringComparison.Ordinal)) {
+                    return false;
+                }
+
+                sourceSliceOk = context.TryCreateSourceSlice(0, 2, out sourceSlice);
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("claimed")),
+                    consumedLineCount: 2);
+                return true;
+            })));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("claimed", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.True(sourceSliceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, sourceSlice.TextKind);
+        Assert.Equal("::claim alpha\ncontinued", sourceSlice.Text);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 9), sourceSlice.SourceSpan);
+    }
+
+    [Fact]
+    public void Context_SyntaxBuilder_Can_Associate_Inline_Container_Syntax_With_Custom_Owner() {
+        var markdown = """
+:::panel Ops Notes
+Paragraph line
+:::
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+
+        var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
+        var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+        var titleSyntax = panelSyntax.Children[0];
+
+        Assert.Equal(MarkdownSyntaxKind.Paragraph, titleSyntax.Kind);
+        Assert.Same(panel.TitleSyntaxOwner, titleSyntax.AssociatedObject);
+        Assert.IsNotType<InlineSequence>(titleSyntax.AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
+    public void Context_SyntaxBuilder_Can_Use_Owned_Child_Syntax_For_Custom_Block_Containers() {
+        var markdown = """
+:::panel Ops Notes
+Paragraph line
+
+- item
+:::
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+
+        var panel = Assert.IsType<PanelBlock>(Assert.Single(result.Document.Blocks));
+        var panelSyntax = Assert.Single(result.FinalSyntaxTree.Children);
+
+        Assert.Equal(new[] {
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.Paragraph,
+            MarkdownSyntaxKind.UnorderedList
+        }, panelSyntax.Children.Select(child => child.Kind).ToArray());
+        Assert.Same(panel, panelSyntax.AssociatedObject);
+        Assert.Same(panel.ChildBlocks[0], panelSyntax.Children[1].AssociatedObject);
+        Assert.Same(panel.ChildBlocks[1], panelSyntax.Children[2].AssociatedObject);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
     [Fact]
@@ -128,6 +225,50 @@ Paragraph line
     }
 
     [Fact]
+    public void Html_Block_Render_Extension_Can_Read_Final_Syntax_Node_And_Source_Slices() {
+        const string markdown = "# Intro\r\n\r\n:::panel Ops Notes\r\nParagraph line\r\n:::\r\n";
+        var readerOptions = CreateOptions();
+        readerOptions.PreserveTrivia = true;
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions).Document;
+        MarkdownSyntaxNode? seenSyntax = null;
+        MarkdownSourceSlice normalizedSlice = default;
+        MarkdownSourceSlice originalSlice = default;
+        var normalizedOk = false;
+        var originalOk = false;
+
+        var htmlOptions = new HtmlOptions {
+            Kind = HtmlKind.Fragment
+        };
+        htmlOptions.BlockRenderExtensions.Add(MarkdownBlockHtmlRenderExtension.CreateContextual(
+            "panel-source-aware",
+            typeof(PanelBlock),
+            (block, context) => {
+                if (block is not PanelBlock panel) {
+                    return null;
+                }
+
+                seenSyntax = context.FindSyntaxNode(panel);
+                normalizedOk = context.TryCreateSourceSlice(panel, out normalizedSlice);
+                originalOk = context.TryCreateOriginalSourceSlice(panel, out originalSlice);
+                return "<aside data-panel-source=\"true\">"
+                    + System.Net.WebUtility.HtmlEncode(panel.Title)
+                    + "</aside>";
+            }));
+
+        var html = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Contains("data-panel-source=\"true\"", html, StringComparison.Ordinal);
+        Assert.NotNull(seenSyntax);
+        Assert.Equal(MarkdownSyntaxKind.Unknown, seenSyntax!.Kind);
+        Assert.Equal("panel-block", seenSyntax.CustomKind);
+        Assert.True(normalizedOk);
+        Assert.Equal(":::panel Ops Notes\nParagraph line\n:::", normalizedSlice.Text);
+        Assert.True(originalOk);
+        Assert.Equal(MarkdownSourceTextKind.Original, originalSlice.TextKind);
+        Assert.Equal(":::panel Ops Notes\r\nParagraph line\r\n:::", originalSlice.Text);
+    }
+
+    [Fact]
     public void Html_Block_Render_Extension_Legacy_Constructor_Still_Uses_Options_And_Applies() {
         var markdown = """
 :::panel Ops Notes
@@ -157,6 +298,155 @@ Paragraph line
         Assert.Contains("data-title=\"legacy-title\"", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Block_Parser_Extensions_Use_Registration_Order_And_Stop_After_First_Success() {
+        const string markdown = "::claim";
+        var firstCalls = 0;
+        var secondCalls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "first-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext _, out MarkdownBlockParseResult result) => {
+                firstCalls++;
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("first extension")),
+                    consumedLineCount: 1);
+                return true;
+            })));
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "second-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext _, out MarkdownBlockParseResult result) => {
+                secondCalls++;
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("second extension")),
+                    consumedLineCount: 1);
+                return true;
+            })));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("first extension", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.Equal(1, firstCalls);
+        Assert.Equal(0, secondCalls);
+    }
+
+    [Fact]
+    public void Disabled_Block_Parser_Extension_Falls_Back_To_Core_Parsers() {
+        const string markdown = "::disabled";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "disabled-claim",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            (MarkdownBlockParser)((MarkdownBlockParserContext _, out MarkdownBlockParseResult result) => {
+                calls++;
+                result = new MarkdownBlockParseResult(
+                    new ParagraphBlock(new InlineSequence().Text("disabled extension")),
+                    consumedLineCount: 1);
+                return true;
+            }),
+            isEnabled: _ => false));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("::disabled", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void Block_Parser_Extension_Placement_Can_Claim_Input_Before_Later_Core_Parsers() {
+        const string markdown = "[hero]: /url\n\n[hero]";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "claim-reference-looking-line",
+            MarkdownBlockParserPlacement.AfterHtmlBlocks,
+            CreateClaimingParser(
+                "claimed before reference definitions",
+                () => calls++,
+                context => context.CurrentLine.StartsWith("[hero]:", StringComparison.Ordinal))));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        Assert.Equal(2, document.Blocks.Count);
+        var claimed = Assert.IsType<ParagraphBlock>(document.Blocks[0]);
+        Assert.Equal("claimed before reference definitions", InlinePlainText.Extract(claimed.Inlines));
+        Assert.IsType<ParagraphBlock>(document.Blocks[1]);
+        Assert.Equal(1, calls);
+    }
+
+    [Fact]
+    public void Block_Parser_Extension_Later_Placement_Does_Not_Preempt_Earlier_Core_Parsers() {
+        const string markdown = """
+| A | B |
+|---|---|
+| 1 | 2 |
+""";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "late-claim-anything",
+            MarkdownBlockParserPlacement.BeforeParagraphs,
+            CreateClaimingParser("late extension", () => calls++)));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        Assert.IsType<TableBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void BuiltIn_Block_Parser_Extension_Wins_At_Same_Placement_When_Registered_First() {
+        const string markdown = """
+> [!NOTE] Heads up
+> Body
+""";
+        var calls = 0;
+        var options = new MarkdownReaderOptions();
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "custom-after-default-callout",
+            MarkdownBlockParserPlacement.AfterFrontMatter,
+            CreateClaimingParser(
+                "custom callout",
+                () => calls++,
+                context => context.CurrentLine.StartsWith("> [!", StringComparison.Ordinal))));
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        Assert.IsType<CalloutBlock>(Assert.Single(document.Blocks));
+        Assert.Equal(0, calls);
+    }
+
+    [Fact]
+    public void Custom_Block_Parser_Extension_Can_Preempt_BuiltIn_When_Registered_First() {
+        const string markdown = """
+> [!NOTE] Heads up
+> Body
+""";
+        var calls = 0;
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Callouts = true;
+        options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
+            "custom-before-callout",
+            MarkdownBlockParserPlacement.AfterFrontMatter,
+            CreateClaimingParser(
+                "custom before callout",
+                () => calls++,
+                context => context.CurrentLine.StartsWith("> [!", StringComparison.Ordinal),
+                consumedLineCount: 2)));
+        MarkdownReaderBuiltInExtensions.AddCallouts(options);
+
+        var document = MarkdownReader.Parse(markdown, options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("custom before callout", InlinePlainText.Extract(paragraph.Inlines));
+        Assert.Equal(1, calls);
+    }
+
     private static MarkdownReaderOptions CreateOptions() {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.BlockParserExtensions.Add(new MarkdownBlockParserExtension(
@@ -165,6 +455,24 @@ Paragraph line
             TryParsePanelBlock));
         return options;
     }
+
+    private static MarkdownBlockParser CreateClaimingParser(
+        string text,
+        Action? onClaim = null,
+        Func<MarkdownBlockParserContext, bool>? canClaim = null,
+        int consumedLineCount = 1) =>
+        (MarkdownBlockParser)((MarkdownBlockParserContext context, out MarkdownBlockParseResult result) => {
+            if (canClaim != null && !canClaim(context)) {
+                result = default;
+                return false;
+            }
+
+            onClaim?.Invoke();
+            result = new MarkdownBlockParseResult(
+                new ParagraphBlock(new InlineSequence().Text(text)),
+                consumedLineCount);
+            return true;
+        });
 
     private static bool TryParsePanelBlock(MarkdownBlockParserContext context, out MarkdownBlockParseResult result) {
         result = default;
@@ -175,6 +483,11 @@ Paragraph line
         }
 
         var title = trimmed.Length == prefix.Length ? string.Empty : trimmed.Substring(prefix.Length).Trim();
+        var sourceLine = context.CurrentLine;
+        var titleStartColumn = GetPanelTitleStartColumn(sourceLine, prefix);
+        var titleSourceSpan = title.Length > 0
+            ? context.CreateSourceSpan(0, titleStartColumn, 0, titleStartColumn + title.Length - 1)
+            : (MarkdownSourceSpan?)null;
         var closingOffset = -1;
         for (var offset = 1; context.TryGetLine(offset, out var line); offset++) {
             if (string.Equals(line.Trim(), ":::", StringComparison.Ordinal)) {
@@ -190,18 +503,52 @@ Paragraph line
         var nestedBlocks = closingOffset > 1
             ? context.ParseNestedBlocks(1, closingOffset - 1)
             : Array.Empty<IMarkdownBlock>();
-        result = new MarkdownBlockParseResult(new PanelBlock(title, nestedBlocks), closingOffset + 1);
+        result = new MarkdownBlockParseResult(
+            new PanelBlock(
+                title,
+                nestedBlocks,
+                title.Length > 0 ? context.ParseInlineText(0, titleStartColumn, title.Length) : new InlineSequence(),
+                context.CreateLineSpan(0, closingOffset + 1),
+                titleSourceSpan),
+            closingOffset + 1);
         return true;
     }
 
+    private static int GetPanelTitleStartColumn(string line, string prefix) {
+        var prefixIndex = line.IndexOf(prefix, StringComparison.Ordinal);
+        if (prefixIndex < 0) {
+            return 1;
+        }
+
+        var titleStartIndex = prefixIndex + prefix.Length;
+        while (titleStartIndex < line.Length && char.IsWhiteSpace(line[titleStartIndex])) {
+            titleStartIndex++;
+        }
+
+        return titleStartIndex + 1;
+    }
+
     private sealed class PanelBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkdownBlockWithContext, IContextualHtmlMarkdownBlock, IChildMarkdownBlockContainer {
-        public PanelBlock(string title, IReadOnlyList<IMarkdownBlock> childBlocks) {
+        public PanelBlock(
+            string title,
+            IReadOnlyList<IMarkdownBlock> childBlocks,
+            InlineSequence titleInlines,
+            MarkdownSourceSpan? parserSourceSpan,
+            MarkdownSourceSpan? titleSourceSpan) {
             Title = title ?? string.Empty;
             ChildBlocks = childBlocks ?? Array.Empty<IMarkdownBlock>();
+            TitleInlines = titleInlines ?? new InlineSequence().Text(Title);
+            TitleSyntaxOwner = new PanelTitleSyntaxOwner(Title);
+            ParserSourceSpan = parserSourceSpan;
+            TitleSourceSpan = titleSourceSpan;
         }
 
         public string Title { get; }
+        public InlineSequence TitleInlines { get; }
+        public object TitleSyntaxOwner { get; }
         public IReadOnlyList<IMarkdownBlock> ChildBlocks { get; }
+        public MarkdownSourceSpan? ParserSourceSpan { get; }
+        public MarkdownSourceSpan? TitleSourceSpan { get; }
 
         string IMarkdownBlock.RenderMarkdown() {
             var body = string.Join("\n\n", ChildBlocks.Select(block => block.RenderMarkdown().TrimEnd()));
@@ -234,9 +581,11 @@ Paragraph line
         public MarkdownSyntaxNode BuildSyntaxNode(MarkdownBlockSyntaxBuilderContext context, MarkdownSourceSpan? span) {
             var titleNode = context.BuildInlineContainerNode(
                 MarkdownSyntaxKind.Paragraph,
-                new InlineSequence().Text(Title),
-                literal: Title);
-            var childNodes = context.BuildChildSyntaxNodes(ChildBlocks);
+                TitleInlines,
+                span: TitleSourceSpan,
+                literal: Title,
+                associatedObject: TitleSyntaxOwner);
+            var childNodes = context.BuildOwnedChildSyntaxNodes(this);
             var children = new List<MarkdownSyntaxNode>(childNodes.Count + 1) { titleNode };
             for (int i = 0; i < childNodes.Count; i++) {
                 children.Add(childNodes[i]);
@@ -250,5 +599,13 @@ Paragraph line
                 associatedObject: this,
                 customKind: "panel-block");
         }
+    }
+
+    private sealed class PanelTitleSyntaxOwner {
+        public PanelTitleSyntaxOwner(string title) {
+            Title = title ?? string.Empty;
+        }
+
+        public string Title { get; }
     }
 }

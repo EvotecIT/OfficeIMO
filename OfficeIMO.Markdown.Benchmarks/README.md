@@ -7,8 +7,25 @@
 Run benchmarks from the repository root with the repo's normal .NET SDK:
 
 ```powershell
-dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release
+dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0
 ```
+
+Run a narrower benchmark by class when you only need one lane:
+
+```powershell
+dotnet run --project OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj -c Release -f net8.0 -- --filter *MarkdownTransformBenchmarks*
+```
+
+## Corpus
+
+The benchmark corpus is intentionally stable and reviewable in source. It covers README-style docs, chat/transcript documents, technical docs, mixed AST-heavy content, long nested lists, large pipe tables, and normalization-heavy transcript artifacts.
+
+Benchmark classes currently cover:
+
+- parse cost against the current Markdig baseline
+- syntax-tree parse cost
+- HTML render cost against the current Markdig baseline
+- document normalization transform cost, including syntax-tree diagnostics
 
 ## Boundaries
 

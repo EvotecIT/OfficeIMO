@@ -13,6 +13,14 @@ internal static class MarkdownObjectTreeBinder {
         }
     }
 
+    internal static void BindSourceSpans(MarkdownSyntaxNode syntaxNode) {
+        if (syntaxNode == null) {
+            throw new ArgumentNullException(nameof(syntaxNode));
+        }
+
+        MapSourceSpans(syntaxNode);
+    }
+
     internal static IReadOnlyList<MarkdownObject> GetChildObjects(MarkdownObject parent) {
         if (parent == null) {
             return Array.Empty<MarkdownObject>();
@@ -83,17 +91,20 @@ internal static class MarkdownObjectTreeBinder {
                 yield break;
 
             case TableBlock table:
-                var headerCells = table.HeaderCells;
-                for (int i = 0; i < headerCells.Count; i++) {
-                    yield return headerCells[i];
+                var headerRow = table.HeaderRow;
+                if (headerRow != null) {
+                    yield return headerRow;
                 }
 
-                var rows = table.RowCells;
+                var rows = table.BodyRows;
                 for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-                    var row = rows[rowIndex];
-                    for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
-                        yield return row[columnIndex];
-                    }
+                    yield return rows[rowIndex];
+                }
+                yield break;
+
+            case TableRow row:
+                for (int i = 0; i < row.Cells.Count; i++) {
+                    yield return row.Cells[i];
                 }
                 yield break;
 
@@ -112,13 +123,17 @@ internal static class MarkdownObjectTreeBinder {
                 yield break;
 
             case DefinitionListGroup definitionGroup:
-                for (int i = 0; i < definitionGroup.Terms.Count; i++) {
-                    yield return definitionGroup.Terms[i];
+                for (int i = 0; i < definitionGroup.TermItems.Count; i++) {
+                    yield return definitionGroup.TermItems[i];
                 }
 
                 for (int i = 0; i < definitionGroup.Definitions.Count; i++) {
                     yield return definitionGroup.Definitions[i];
                 }
+                yield break;
+
+            case DefinitionListTerm term:
+                yield return term.Inlines;
                 yield break;
 
             case DefinitionListEntry definitionEntry:
@@ -182,6 +197,7 @@ internal static class MarkdownObjectTreeBinder {
     private static void MapSourceSpans(MarkdownSyntaxNode syntaxNode) {
         if (syntaxNode.AssociatedObject is MarkdownObject markdownObject) {
             markdownObject.SourceSpan = syntaxNode.SourceSpan;
+            markdownObject.SetAttributes(syntaxNode.Attributes);
         }
 
         for (int i = 0; i < syntaxNode.Children.Count; i++) {

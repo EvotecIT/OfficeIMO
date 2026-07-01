@@ -9,6 +9,8 @@ internal sealed class MarkdownSourceTextMap {
         _lineStarts = BuildLineStarts(_text);
     }
 
+    internal string Text => _text;
+
     internal MarkdownSourceSpan CreateLineSpan(int startLine, int endLine) {
         startLine = Math.Max(1, startLine);
         endLine = Math.Max(startLine, endLine);
@@ -74,7 +76,12 @@ internal sealed class MarkdownSourceTextMap {
             lineEndExclusive--;
         }
 
-        return Math.Max(1, lineEndExclusive - lineStart);
+        var columns = 0;
+        for (var index = lineStart; index < lineEndExclusive; index++) {
+            columns += MarkdownSourceColumns.GetColumnWidth(columns, _text[index]);
+        }
+
+        return Math.Max(1, columns);
     }
 
     private int GetOffset(int line, int column) {
@@ -83,7 +90,12 @@ internal sealed class MarkdownSourceTextMap {
         }
 
         var lineStart = _lineStarts[line - 1];
-        return Math.Min(_text.Length - 1, lineStart + Math.Max(0, column - 1));
+        var lineEndExclusive = line < _lineStarts.Length ? _lineStarts[line] - 1 : _text.Length;
+        while (lineEndExclusive > lineStart && _text[lineEndExclusive - 1] == '\n') {
+            lineEndExclusive--;
+        }
+
+        return MarkdownSourceColumns.ResolveVisualColumnOffset(_text, lineStart, lineEndExclusive, column);
     }
 
     private static int[] BuildLineStarts(string text) {

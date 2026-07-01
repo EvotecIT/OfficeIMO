@@ -14,10 +14,24 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
         public string Key { get; }
         /// <summary>Entry value.</summary>
         public object? Value { get; }
+        /// <summary>Source span for the whole entry when parsed from markdown.</summary>
+        public MarkdownSourceSpan? SourceSpan { get; }
+        /// <summary>Source span for the key token when parsed from markdown.</summary>
+        public MarkdownSourceSpan? KeySourceSpan { get; }
+        /// <summary>Source span for the value token or literal-block payload when parsed from markdown.</summary>
+        public MarkdownSourceSpan? ValueSourceSpan { get; }
 
-        internal Entry(string key, object? value) {
+        internal Entry(
+            string key,
+            object? value,
+            MarkdownSourceSpan? keySourceSpan = null,
+            MarkdownSourceSpan? valueSourceSpan = null,
+            MarkdownSourceSpan? sourceSpan = null) {
             Key = key;
             Value = value;
+            SourceSpan = sourceSpan;
+            KeySourceSpan = keySourceSpan;
+            ValueSourceSpan = valueSourceSpan;
         }
     }
 
@@ -25,6 +39,12 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
 
     /// <summary>Structured front matter entries in insertion order.</summary>
     public IReadOnlyList<Entry> Entries => _entries;
+
+    /// <summary>Raw YAML payload between the opening and closing front matter fences when parsed from markdown.</summary>
+    public string? RawYaml { get; private set; }
+
+    /// <summary>Source span for the raw YAML payload between the opening and closing front matter fences.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; private set; }
 
     /// <summary>Finds a front matter entry by key.</summary>
     public Entry? FindEntry(string key, StringComparison comparison = StringComparison.OrdinalIgnoreCase) {
@@ -89,14 +109,37 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
         return fm;
     }
 
+    internal static FrontMatterBlock FromEntries(IEnumerable<Entry> entries, string? rawYaml = null, MarkdownSourceSpan? bodySourceSpan = null) {
+        var fm = new FrontMatterBlock();
+        fm.RawYaml = rawYaml;
+        fm.BodySourceSpan = bodySourceSpan;
+        foreach (var entry in entries) {
+            if (entry == null) {
+                continue;
+            }
+
+            fm._entries.Add(entry);
+        }
+
+        return fm;
+    }
+
     /// <summary>Renders the front matter including '---' fences.</summary>
     public string Render() {
         StringBuilder sb = new StringBuilder();
         sb.AppendLine("---");
-        for (int i = 0; i < Entries.Count; i++) {
-            var entry = Entries[i];
-            sb.AppendLine(entry.Key + ": " + YamlValue(entry.Value));
+        if (RawYaml != null) {
+            sb.Append(RawYaml);
+            if (RawYaml.Length > 0 && RawYaml[RawYaml.Length - 1] != '\n') {
+                sb.AppendLine();
+            }
+        } else {
+            for (int i = 0; i < Entries.Count; i++) {
+                var entry = Entries[i];
+                sb.AppendLine(entry.Key + ": " + YamlValue(entry.Value));
+            }
         }
+
         sb.Append("---");
         return sb.ToString();
     }
@@ -150,6 +193,80 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
     string IMarkdownBlock.RenderMarkdown() => Render();
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() => string.Empty;
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render(), associatedObject: this);
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var children = new List<MarkdownSyntaxNode>();
+        var openingFenceSpan = CreateFenceSpan(span, opening: true);
+        if (openingFenceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterOpeningFence, openingFenceSpan, "---", associatedObject: this));
+        }
+
+        for (int i = 0; i < Entries.Count; i++) {
+            var entry = Entries[i];
+            var entryChildren = new List<MarkdownSyntaxNode>(2);
+            if (entry.KeySourceSpan.HasValue) {
+                entryChildren.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterKey, entry.KeySourceSpan, entry.Key, associatedObject: entry));
+            }
+
+            if (entry.ValueSourceSpan.HasValue) {
+                entryChildren.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterValue, entry.ValueSourceSpan, FormatSyntaxValue(entry.Value), associatedObject: entry));
+            }
+
+            if (entry.SourceSpan.HasValue || entryChildren.Count > 0) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterEntry, entry.SourceSpan, children: entryChildren, associatedObject: entry));
+            }
+        }
+
+        if (RawYaml != null && BodySourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterBody, BodySourceSpan, RawYaml, associatedObject: this));
+        }
+
+        var closingFenceSpan = CreateFenceSpan(span, opening: false);
+        if (closingFenceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterClosingFence, closingFenceSpan, "---", associatedObject: this));
+        }
+
+        return new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatter, span, Render(), children, this);
+    }
+
+    private static MarkdownSourceSpan? CreateFenceSpan(MarkdownSourceSpan? span, bool opening) {
+        if (!span.HasValue) {
+            return null;
+        }
+
+        var value = span.Value;
+        var line = opening ? value.StartLine : value.EndLine;
+        int? startOffset = null;
+        int? endOffset = null;
+        if (opening && value.StartOffset.HasValue) {
+            startOffset = value.StartOffset.Value;
+            endOffset = startOffset.Value + 2;
+        } else if (!opening && value.EndOffset.HasValue && value.EndColumn.HasValue) {
+            startOffset = value.EndOffset.Value - Math.Max(0, value.EndColumn.Value - 1);
+            endOffset = startOffset.Value + 2;
+        }
+
+        return new MarkdownSourceSpan(line, 1, line, 3, startOffset, endOffset);
+    }
+
+    internal static string? FormatSyntaxValue(object? value) {
+        switch (value) {
+            case null:
+                return null;
+            case bool boolean:
+                return boolean ? "true" : "false";
+            case IFormattable formattable:
+                return formattable.ToString(null, CultureInfo.InvariantCulture);
+            case IEnumerable<string> strings:
+                return string.Join(", ", strings);
+            case System.Collections.IEnumerable values when value is not string:
+                var items = new List<string>();
+                foreach (object? item in values) {
+                    items.Add(item?.ToString() ?? string.Empty);
+                }
+
+                return string.Join(", ", items);
+            default:
+                return value.ToString();
+        }
+    }
 }

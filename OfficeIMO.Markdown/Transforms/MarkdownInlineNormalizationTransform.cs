@@ -57,9 +57,11 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 continue;
             }
 
+            var beforeMarkdown = block.RenderMarkdown();
             var normalized = NormalizeBlock(block);
             rewritten.Add(normalized);
-            changed |= !ReferenceEquals(block, normalized);
+            changed |= !ReferenceEquals(block, normalized) ||
+                       !string.Equals(beforeMarkdown, normalized.RenderMarkdown(), StringComparison.Ordinal);
         }
 
         return rewritten;
@@ -147,8 +149,8 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 continue;
             }
 
-            for (int termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
-                changed |= MarkdownReader.NormalizeInlineSequenceInPlace(group.Terms[termIndex], Options);
+            for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
+                changed |= MarkdownReader.NormalizeInlineSequenceInPlace(group.TermItems[termIndex].Inlines, Options);
             }
 
             for (int definitionIndex = 0; definitionIndex < group.Definitions.Count; definitionIndex++) {

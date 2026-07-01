@@ -83,7 +83,7 @@ public static partial class MarkdownReader {
             // Avoid treating angle-bracket autolinks like "<https://...>" as HTML blocks.
             if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) return false;
 
-            if (!TryGetHtmlBlockState(trimmed, out var blockState)) return false;
+            if (!TryGetHtmlBlockState(trimmed, options, out var blockState)) return false;
 
             int j = i;
             var segments = new List<string>();
@@ -133,6 +133,94 @@ public static partial class MarkdownReader {
             return true;
         }
 
+        internal static bool IsParagraphInterruptingHtmlBlockStart(string line, MarkdownReaderOptions options) {
+            if (options?.HtmlBlocks != true) return false;
+            if (string.IsNullOrEmpty(line)) return false;
+
+            int indent = CountLeadingSpaces(line);
+            if (indent < 0 || indent > 3) return false;
+
+            string trimmed = indent == 0 ? line : line.Substring(indent);
+            if (trimmed.Length == 0 || trimmed[0] != '<') return false;
+            if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) return false;
+            if (!TryGetHtmlBlockState(trimmed, options, out var blockState)) return false;
+
+            return blockState.Kind != HtmlBlockKind.Type7;
+        }
+
+        internal static bool TryGetHtmlBlockLineCount(
+            string[] lines,
+            int startIndex,
+            MarkdownReaderOptions options,
+            out int lineCount) {
+            lineCount = 0;
+            if (options?.HtmlBlocks != true || lines == null || startIndex < 0 || startIndex >= lines.Length) {
+                return false;
+            }
+
+            var line = lines[startIndex];
+            if (string.IsNullOrEmpty(line)) {
+                return false;
+            }
+
+            int indent = CountLeadingSpaces(line);
+            if (indent < 0 || indent > 3) {
+                return false;
+            }
+
+            string trimmed = indent == 0 ? line : line.Substring(indent);
+            if (trimmed.Length == 0 || trimmed[0] != '<') {
+                return false;
+            }
+
+            if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
+                return false;
+            }
+
+            if (!TryGetHtmlBlockState(trimmed, options, out var blockState)) {
+                return false;
+            }
+
+            int j = startIndex;
+            int stackDepth = 0;
+            while (j < lines.Length) {
+                string current = lines[j];
+                string normalized = current.Length > 0 && current[current.Length - 1] == '\r'
+                    ? current.TrimEnd('\r')
+                    : current;
+                if (blockState.TracksStack) {
+                    stackDepth = UpdateStackDepth(blockState, normalized, stackDepth);
+                }
+
+                bool completed = blockState.IsSatisfiedBy(normalized);
+                j++;
+
+                if (completed) {
+                    break;
+                }
+
+                if (blockState.TracksStack
+                    && stackDepth <= 0
+                    && blockState.Kind is HtmlBlockKind.Type6 or HtmlBlockKind.Type7
+                    && string.Equals(blockState.PrimaryTagName, "details", StringComparison.OrdinalIgnoreCase)) {
+                    break;
+                }
+
+                if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) {
+                    if (!blockState.TracksStack) {
+                        break;
+                    }
+
+                    if (!blockState.AllowsBlankLineContinuation || stackDepth <= 0) {
+                        break;
+                    }
+                }
+            }
+
+            lineCount = Math.Max(1, j - startIndex);
+            return true;
+        }
+
         private static bool IsHeaderlessSingleRowTableMarker(string trimmed) {
             return string.Equals(trimmed.Trim(), TableBlock.HeaderlessSingleRowTableMarker, StringComparison.Ordinal);
         }
@@ -168,6 +256,9 @@ public static partial class MarkdownReader {
             int tagEnd = htmlContent.IndexOf('>');
             if (tagEnd < 0) return false;
 
+            int openingStart = htmlContent.IndexOf('<');
+            if (openingStart < 0 || openingStart > tagEnd) return false;
+
             string openTag = htmlContent.Substring(0, tagEnd + 1).Trim();
             if (!openTag.StartsWith("<details", StringComparison.OrdinalIgnoreCase)) return false;
 
@@ -191,25 +282,118 @@ public static partial class MarkdownReader {
                 int summaryClose = inner.IndexOf("</summary>", summaryTagEnd + 1, StringComparison.OrdinalIgnoreCase);
                 if (summaryClose < 0) return false;
 
-                string summaryInner = inner.Substring(summaryTagEnd + 1, summaryClose - summaryTagEnd - 1).Trim();
+                string summarySourceText = inner.Substring(summaryTagEnd + 1, summaryClose - summaryTagEnd - 1);
+                string summaryInner = summarySourceText.Trim();
                 var decoded = System.Net.WebUtility.HtmlDecode(summaryInner);
                 var inlines = ParseInlines(decoded, options, state);
-                summary = new SummaryBlock(inlines);
-                int summaryStartLine = state.SourceLineOffset + startLineIndex + CountNewLines(htmlContent, 0, tagEnd + 1) + CountNewLines(inner, 0, summaryStart) + 1;
-                int summaryEndLine = summaryStartLine + CountNewLines(inner, summaryStart, summaryClose + "</summary>".Length - summaryStart);
-                summary.SyntaxSpan = new MarkdownSourceSpan(summaryStartLine, summaryEndLine);
+                int summaryStartInHtml = tagEnd + 1 + summaryStart;
+                int summaryTagEndInHtml = tagEnd + 1 + summaryTagEnd;
+                int summaryCloseInHtml = tagEnd + 1 + summaryClose;
+                int summaryCloseEndInHtml = summaryCloseInHtml + "</summary>".Length - 1;
+                int summaryTextStartInHtml = tagEnd + 1 + summaryTagEnd + 1;
+                int summaryTextEndInHtml = summaryCloseInHtml - 1;
+                summary = new SummaryBlock(inlines) {
+                    SyntaxSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryStartInHtml, summaryCloseEndInHtml),
+                    OpeningTag = inner.Substring(summaryStart, summaryTagEnd - summaryStart + 1),
+                    ClosingTag = inner.Substring(summaryClose, "</summary>".Length),
+                    SourceText = summarySourceText,
+                    OpeningTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryStartInHtml, summaryTagEndInHtml),
+                    ClosingTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryCloseInHtml, summaryCloseEndInHtml)
+                };
+
+                if (summaryTextStartInHtml <= summaryTextEndInHtml) {
+                    summary.TextSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryTextStartInHtml, summaryTextEndInHtml);
+                }
+
                 bodyStart = summaryClose + "</summary>".Length;
             }
 
             string body = inner.Substring(bodyStart);
-            int bodyLineOffset = state.SourceLineOffset + startLineIndex + CountNewLines(htmlContent, 0, tagEnd + 1) + CountNewLines(inner, 0, bodyStart);
-            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(body, options, state, bodyLineOffset);
+            int bodyStartInHtml = tagEnd + 1 + bodyStart;
+            var bodySourceLines = CreateDetailsBodySourceLines(htmlContent, body, bodyStartInHtml, startLineIndex, state);
+            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(bodySourceLines, options, state);
             block = new DetailsBlock(summary, childBlocks, isOpen) {
                 InsertBlankLineAfterSummary = body.StartsWith("\n\n", StringComparison.Ordinal),
-                InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal)
+                InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal),
+                OpeningTag = htmlContent.Substring(openingStart, tagEnd - openingStart + 1),
+                ClosingTag = htmlContent.Substring(closeIdx, "</details>".Length),
+                OpeningTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, openingStart, tagEnd),
+                ClosingTagSourceSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, closeIdx, closeIdx + "</details>".Length - 1)
             };
             block.SyntaxChildren = syntaxChildren;
             return true;
+        }
+
+        private static IReadOnlyList<MarkdownSourceLineSlice> CreateDetailsBodySourceLines(
+            string htmlContent,
+            string body,
+            int bodyStartInHtml,
+            int startLineIndex,
+            MarkdownReaderState state) {
+            if (string.IsNullOrEmpty(body)) {
+                return Array.Empty<MarkdownSourceLineSlice>();
+            }
+
+            var sourceLines = new List<MarkdownSourceLineSlice>();
+            int lineStart = 0;
+            while (lineStart <= body.Length) {
+                int lineEnd = lineStart;
+                while (lineEnd < body.Length && body[lineEnd] != '\r' && body[lineEnd] != '\n') {
+                    lineEnd++;
+                }
+
+                string text = body.Substring(lineStart, lineEnd - lineStart);
+                int sourceIndex = Math.Min(bodyStartInHtml + lineStart, Math.Max(0, htmlContent.Length - 1));
+                GetDetailsSourcePosition(htmlContent, sourceIndex, out int lineOffset, out int columnOffset);
+                int absoluteLine = state.SourceLineOffset + startLineIndex + lineOffset + 1;
+                sourceLines.Add(new MarkdownSourceLineSlice(text, absoluteLine, columnOffset + 1));
+
+                if (lineEnd >= body.Length) {
+                    break;
+                }
+
+                lineStart = lineEnd + 1;
+                if (body[lineEnd] == '\r' && lineStart < body.Length && body[lineStart] == '\n') {
+                    lineStart++;
+                }
+            }
+
+            return sourceLines;
+        }
+
+        private static MarkdownSourceSpan CreateDetailsSourceSpan(
+            MarkdownReaderState state,
+            string htmlContent,
+            int startLineIndex,
+            int startIndexInclusive,
+            int endIndexInclusive) {
+            GetDetailsSourcePosition(htmlContent, startIndexInclusive, out int startLineOffset, out int startColumnOffset);
+            GetDetailsSourcePosition(htmlContent, endIndexInclusive, out int endLineOffset, out int endColumnOffset);
+
+            int absoluteStartLine = state.SourceLineOffset + startLineIndex + startLineOffset + 1;
+            int absoluteEndLine = state.SourceLineOffset + startLineIndex + endLineOffset + 1;
+
+            return CreateSpan(
+                state,
+                absoluteStartLine,
+                startColumnOffset + 1,
+                absoluteEndLine,
+                endColumnOffset + 1);
+        }
+
+        private static void GetDetailsSourcePosition(string htmlContent, int index, out int lineOffset, out int columnOffset) {
+            int clampedIndex = Math.Max(0, Math.Min(index, Math.Max(0, htmlContent.Length - 1)));
+            lineOffset = 0;
+            int lineStart = 0;
+
+            for (int i = 0; i < clampedIndex; i++) {
+                if (htmlContent[i] == '\n') {
+                    lineOffset++;
+                    lineStart = i + 1;
+                }
+            }
+
+            columnOffset = clampedIndex - lineStart;
         }
 
         private static int CountNewLines(string text, int start, int length) {
@@ -223,7 +407,7 @@ public static partial class MarkdownReader {
             return count;
         }
 
-        private static bool TryGetHtmlBlockState(string trimmedLine, out HtmlBlockState state) {
+        private static bool TryGetHtmlBlockState(string trimmedLine, MarkdownReaderOptions options, out HtmlBlockState state) {
             if (IsType1Start(trimmedLine, out var token)) {
                 state = new HtmlBlockState(HtmlBlockKind.Type1, token, null, allowsBlankLineContinuation: false);
                 return true;
@@ -249,12 +433,12 @@ public static partial class MarkdownReader {
                 return true;
             }
 
-            if (IsType6Start(trimmedLine, out var tagName, out var allowsBlankLines)) {
+            if (IsType6Start(trimmedLine, options, out var tagName, out var allowsBlankLines)) {
                 state = new HtmlBlockState(HtmlBlockKind.Type6, null, tagName, allowsBlankLines);
                 return true;
             }
 
-            if (IsType7Start(trimmedLine, out var type7Tag, out var allowsBlankLinesType7)) {
+            if (IsType7Start(trimmedLine, options, out var type7Tag, out var allowsBlankLinesType7)) {
                 state = new HtmlBlockState(HtmlBlockKind.Type7, null, type7Tag, allowsBlankLinesType7);
                 return true;
             }
@@ -264,7 +448,7 @@ public static partial class MarkdownReader {
         }
 
         private static bool IsType1Start(string trimmedLine, out string? endToken) {
-            if (!TryParseTag(trimmedLine, out var tagName, out var isClosing, out _)) {
+            if (!TryReadHtmlTagNamePrefix(trimmedLine, out var tagName, out var isClosing, out _, allowLineEnd: true)) {
                 endToken = null;
                 return false;
             }
@@ -274,7 +458,7 @@ public static partial class MarkdownReader {
                 return false;
             }
 
-            string[] tags = { "script", "pre", "style" };
+            string[] tags = { "script", "pre", "style", "textarea" };
             foreach (var tag in tags) {
                 if (string.Equals(tagName, tag, StringComparison.OrdinalIgnoreCase)) {
                     endToken = $"</{tag}>";
@@ -292,23 +476,27 @@ public static partial class MarkdownReader {
             return next is >= 'A' and <= 'Z';
         }
 
-        private static bool IsType6Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
+        private static bool IsType6Start(string trimmedLine, MarkdownReaderOptions options, out string? tagName, out bool allowsBlankLines) {
             allowsBlankLines = false;
             tagName = null;
 
-            if (!TryParseTag(trimmedLine, out var parsedName, out var isClosing, out var endIndex)) return false;
-            if (endIndex < 0) return false;
+            string? parsedName;
+            bool isClosing;
+            bool parsed = options.AllowLooseHtmlBlockStartTags
+                ? TryReadHtmlTagNamePrefix(trimmedLine, out parsedName, out isClosing, out _)
+                : TryParseTag(trimmedLine, out parsedName, out isClosing, out var endIndex) && endIndex >= 0;
+            if (!parsed) return false;
             if (!s_BlockTags.Contains(parsedName!)) return false;
 
             if (!isClosing) {
-                allowsBlankLines = AllowsBlankLineContinuation(parsedName!);
+                allowsBlankLines = AllowsBlankLineContinuation(parsedName!, options);
             }
 
             tagName = parsedName;
             return true;
         }
 
-        private static bool IsType7Start(string trimmedLine, out string? tagName, out bool allowsBlankLines) {
+        private static bool IsType7Start(string trimmedLine, MarkdownReaderOptions options, out string? tagName, out bool allowsBlankLines) {
             allowsBlankLines = false;
             if (!TryParseTag(trimmedLine, out tagName, out var isClosing, out var endIndex)) return false;
             if (endIndex < 0) return false;
@@ -316,13 +504,40 @@ public static partial class MarkdownReader {
             if (!isClosing && string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)) return false;
-            allowsBlankLines = AllowsBlankLineContinuation(tagName!);
+            if (!isClosing && string.Equals(tagName, "textarea", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!IsOnlyWhitespaceAfter(trimmedLine, endIndex + 1)) return false;
+            allowsBlankLines = AllowsBlankLineContinuation(tagName!, options);
             return true;
         }
 
-        private static bool AllowsBlankLineContinuation(string tagName) {
-            return s_BlankLineFriendlyTags.Contains(tagName);
+        private static bool IsOnlyWhitespaceAfter(string line, int startIndex) {
+            for (int i = startIndex; i < line.Length; i++) {
+                if (!IsHtmlAttributeWhitespace(line[i])) {
+                    return false;
+                }
+            }
+
+            return true;
         }
+
+        private static bool AllowsBlankLineContinuation(string tagName, MarkdownReaderOptions options) {
+            return options.PreserveHtmlBlockBlankLineContent && s_BlankLineFriendlyTags.Contains(tagName);
+        }
+
+        internal static bool IsBlockOrRawTextHtmlTagName(string tagName) {
+            if (string.IsNullOrEmpty(tagName)) {
+                return false;
+            }
+
+            return s_BlockTags.Contains(tagName)
+                || string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "textarea", StringComparison.OrdinalIgnoreCase);
+        }
+
+        internal static bool TryParseHtmlTag(string line, out string tagName, out bool isClosing, out int endIndex) =>
+            TryParseTag(line, out tagName, out isClosing, out endIndex);
 
         private static readonly HashSet<string> s_BlankLineFriendlyTags = new(StringComparer.OrdinalIgnoreCase) {
             "details",
@@ -351,48 +566,135 @@ public static partial class MarkdownReader {
                 idx++;
             }
 
-            if (idx >= line.Length || !char.IsLetter(line[idx])) return false;
+            if (idx >= line.Length || !IsAsciiLetter(line[idx])) return false;
             int nameStart = idx;
             idx++;
-            while (idx < line.Length && (char.IsLetterOrDigit(line[idx]) || line[idx] == '-' || line[idx] == ':')) idx++;
+            while (idx < line.Length && IsHtmlTagNameContinuation(line[idx])) idx++;
             tagName = line.Substring(nameStart, idx - nameStart);
             if (tagName.Length == 0) return false;
 
-            bool insideQuotes = false;
-            char quoteChar = '\0';
-            bool escaped = false;
+            return TryConsumeHtmlTagRemainder(line, idx, isClosing, out endIndex);
+        }
 
-            while (idx < line.Length) {
-                char current = line[idx];
+        private static bool TryReadHtmlTagNamePrefix(string line, out string tagName, out bool isClosing, out int nameEndIndex, bool allowLineEnd = false) {
+            tagName = string.Empty;
+            isClosing = false;
+            nameEndIndex = -1;
 
-                if (insideQuotes) {
-                    if (escaped) {
-                        escaped = false;
-                    } else if (current == '\\') {
-                        escaped = true;
-                    } else if (current == quoteChar) {
-                        insideQuotes = false;
-                        quoteChar = '\0';
-                    }
-                } else {
-                    if (current == '\'' || current == '"') {
-                        insideQuotes = true;
-                        quoteChar = current;
-                    } else if (current == '>') {
-                        endIndex = idx;
-                        break;
-                    } else if (current == '<') {
-                        return false;
-                    }
-                }
+            if (line.Length < 2 || line[0] != '<') return false;
 
+            int idx = 1;
+            if (idx < line.Length && line[idx] == '/') {
+                isClosing = true;
                 idx++;
             }
 
-            if (insideQuotes || endIndex < 0) return false;
+            if (idx >= line.Length || !IsAsciiLetter(line[idx])) return false;
+            int nameStart = idx;
+            idx++;
+            while (idx < line.Length && IsHtmlTagNameContinuation(line[idx])) idx++;
+            tagName = line.Substring(nameStart, idx - nameStart);
+            nameEndIndex = idx - 1;
 
-            return true;
+            if (idx >= line.Length) return allowLineEnd;
+
+            char next = line[idx];
+            if (next == '>') return true;
+            if (next == '/' && idx + 1 < line.Length && line[idx + 1] == '>') return true;
+            return IsHtmlAttributeWhitespace(next);
         }
+
+        private static bool TryConsumeHtmlTagRemainder(string line, int index, bool isClosing, out int endIndex) {
+            endIndex = -1;
+            if (index < 0 || index >= line.Length) return false;
+
+            int idx = index;
+            if (isClosing) {
+                while (idx < line.Length && IsHtmlAttributeWhitespace(line[idx])) idx++;
+                if (idx < line.Length && line[idx] == '>') {
+                    endIndex = idx;
+                    return true;
+                }
+
+                return false;
+            }
+
+            while (idx < line.Length) {
+                bool sawAttributeWhitespace = false;
+                while (idx < line.Length && IsHtmlAttributeWhitespace(line[idx])) idx++;
+                sawAttributeWhitespace = idx > index;
+                if (idx >= line.Length) return false;
+
+                if (line[idx] == '>') {
+                    endIndex = idx;
+                    return true;
+                }
+
+                if (line[idx] == '/' && idx + 1 < line.Length && line[idx + 1] == '>') {
+                    endIndex = idx + 1;
+                    return true;
+                }
+
+                if (!sawAttributeWhitespace) return false;
+                if (!TryConsumeHtmlAttribute(line, ref idx)) return false;
+                index = idx;
+            }
+
+            return false;
+        }
+
+        private static bool TryConsumeHtmlAttribute(string line, ref int index) {
+            if (index < 0 || index >= line.Length || !IsHtmlAttributeNameStart(line[index])) return false;
+
+            index++;
+            while (index < line.Length && IsHtmlAttributeNameContinuation(line[index])) index++;
+
+            int afterName = index;
+            while (index < line.Length && IsHtmlAttributeWhitespace(line[index])) index++;
+            if (index >= line.Length || line[index] != '=') {
+                index = afterName;
+                return true;
+            }
+
+            index++;
+            while (index < line.Length && IsHtmlAttributeWhitespace(line[index])) index++;
+            if (index >= line.Length) return false;
+
+            char quote = line[index];
+            if (quote == '"' || quote == '\'') {
+                index++;
+                while (index < line.Length && line[index] != quote) {
+                    if (line[index] == '\\' && index + 1 < line.Length) {
+                        index += 2;
+                        continue;
+                    }
+
+                    index++;
+                }
+
+                if (index >= line.Length) return false;
+                index++;
+                return true;
+            }
+
+            int valueStart = index;
+            while (index < line.Length && !IsHtmlAttributeWhitespace(line[index]) && line[index] != '>') {
+                char ch = line[index];
+                if (ch == '"' || ch == '\'' || ch == '=' || ch == '<' || ch == '`') return false;
+                index++;
+            }
+
+            return index > valueStart;
+        }
+
+        private static bool IsHtmlTagNameContinuation(char value) =>
+            IsAsciiLetter(value) || char.IsDigit(value) || value == '-';
+
+        private static bool IsHtmlAttributeNameStart(char value) =>
+            IsAsciiLetter(value) || value == '_' || value == ':';
+
+        private static bool IsHtmlAttributeNameContinuation(char value) =>
+            IsHtmlAttributeNameStart(value) || char.IsDigit(value) || value == '.' || value == '-';
 
         private static int UpdateStackDepth(HtmlBlockState state, string line, int currentDepth) {
             if (string.IsNullOrEmpty(state.PrimaryTagName)) return currentDepth;

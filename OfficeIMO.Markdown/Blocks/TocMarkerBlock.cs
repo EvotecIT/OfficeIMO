@@ -83,7 +83,7 @@ public sealed class TocMarkerBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMarkd
         int titleLevel = ClampTitleLevel(TitleLevel);
         return new StringBuilder()
             .Append("<h").Append(titleLevel).Append('>')
-            .Append(System.Net.WebUtility.HtmlEncode(Title.Trim()))
+            .Append(HtmlTextEncoder.Encode(Title.Trim(), context.Options))
             .Append("</h").Append(titleLevel).Append('>')
             .Append(listHtml)
             .ToString();

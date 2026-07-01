@@ -28,11 +28,12 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryParseImageLink(string text, int start, out int consumed, out string alt, out string img, out string? imgTitle, out string href, out string? hrefTitle) =>
-        TryParseImageLink(text, start, out consumed, out alt, out img, out imgTitle, out href, out hrefTitle, out _, out _, out _, out _, out _, out _, out _, out _, out _, out _);
+        TryParseImageLink(text, start, null, out consumed, out alt, out img, out imgTitle, out href, out hrefTitle, out _, out _, out _, out _, out _, out _, out _, out _, out _, out _);
 
     private static bool TryParseImageLink(
         string text,
         int start,
+        MarkdownInlineSourceMap? sourceMap,
         out int consumed,
         out string alt,
         out string img,
@@ -64,7 +65,16 @@ public static partial class MarkdownReader {
         altLength = altEnd - altStart;
         alt = text.Substring(altStart, altLength);
         string inner = text.Substring(altEnd + 2, imgClose - (altEnd + 2));
-        if (!TrySplitUrlAndOptionalTitle(inner, out img, out imgTitle, out int imgInnerStart, out int imgInnerLength, out int? imgTitleInnerStart, out int? imgTitleInnerLength)) {
+        if (!TrySplitUrlAndOptionalTitle(
+            inner,
+            out img,
+            out imgTitle,
+            out int imgInnerStart,
+            out int imgInnerLength,
+            out int? imgTitleInnerStart,
+            out int? imgTitleInnerLength,
+            sourceMap,
+            altEnd + 2)) {
             if (!TryParseTrimmedLiteralDestination(inner, out img, out imgInnerStart, out imgInnerLength)) return false;
             imgTitle = null;
             imgTitleInnerStart = null;
@@ -81,7 +91,16 @@ public static partial class MarkdownReader {
         int parenClose2 = FindMatchingParen(text, parenOpen2);
         if (parenClose2 < 0) return false;
         string hrefInner = text.Substring(parenOpen2 + 1, parenClose2 - (parenOpen2 + 1));
-        if (!TrySplitUrlAndOptionalTitle(hrefInner, out href, out hrefTitle, out int hrefInnerStart, out int hrefInnerLength, out int? hrefTitleInnerStart, out int? hrefTitleInnerLength)) {
+        if (!TrySplitUrlAndOptionalTitle(
+            hrefInner,
+            out href,
+            out hrefTitle,
+            out int hrefInnerStart,
+            out int hrefInnerLength,
+            out int? hrefTitleInnerStart,
+            out int? hrefTitleInnerLength,
+            sourceMap,
+            parenOpen2 + 1)) {
             if (!TryParseTrimmedLiteralDestination(hrefInner, out href, out hrefInnerStart, out hrefInnerLength)) return false;
             hrefTitle = null;
             hrefTitleInnerStart = null;
@@ -123,6 +142,36 @@ public static partial class MarkdownReader {
         out int srcLength,
         out int? titleStart,
         out int? titleLength) {
+        return TryParseInlineImage(
+            text,
+            start,
+            null,
+            out consumed,
+            out alt,
+            out src,
+            out title,
+            out altStart,
+            out altLength,
+            out srcStart,
+            out srcLength,
+            out titleStart,
+            out titleLength);
+    }
+
+    private static bool TryParseInlineImage(
+        string text,
+        int start,
+        MarkdownInlineSourceMap? sourceMap,
+        out int consumed,
+        out string alt,
+        out string src,
+        out string? title,
+        out int altStart,
+        out int altLength,
+        out int srcStart,
+        out int srcLength,
+        out int? titleStart,
+        out int? titleLength) {
         consumed = 0;
         alt = src = string.Empty;
         title = null;
@@ -145,7 +194,9 @@ public static partial class MarkdownReader {
             out int srcInnerStart,
             out int srcInnerLength,
             out int? titleInnerStart,
-            out int? titleInnerLength)) {
+            out int? titleInnerLength,
+            sourceMap,
+            altEnd + 2)) {
             if (!TryParseTrimmedLiteralDestination(inner, out src, out srcInnerStart, out srcInnerLength)) return false;
             title = null;
             titleInnerStart = null;

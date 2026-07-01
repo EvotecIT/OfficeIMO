@@ -15,6 +15,7 @@ The package now has public seams for:
 - block parser registration with `MarkdownBlockParserExtension`
 - fenced block registration with `MarkdownFencedBlockExtension`
 - inline parser registration with `MarkdownInlineParserExtension`
+- post-parse inline AST transforms with `MarkdownInlineTransformExtension`
 - post-parse semantic transforms with `IMarkdownDocumentTransform`
 - syntax-tree participation with:
   - `ISyntaxMarkdownInline`
@@ -26,8 +27,15 @@ The package now has public seams for:
   - `IMarkdownBlock.RenderHtml()`
   - `IContextualHtmlMarkdownBlock`
   - `IContextualHtmlMarkdownInline`
+  - `HtmlOptions.BlockRenderExtensions`
+  - `HtmlOptions.InlineRenderExtensions`
+  - `HtmlOptions.SyntaxBlockRenderExtensions`
+  - `HtmlOptions.SyntaxInlineRenderExtensions`
 - Markdown rendering with:
   - `MarkdownBlockMarkdownRenderExtension`
+  - `MarkdownInlineMarkdownRenderExtension`
+  - `MarkdownSyntaxBlockMarkdownRenderExtension`
+  - `MarkdownSyntaxInlineMarkdownRenderExtension`
   - `MarkdownWriteContext`
 - markdown/html inline participation with:
   - `IRenderableMarkdownInline`
@@ -50,11 +58,14 @@ Use the public layers like this:
    Register block, fenced-block, or inline parsers on `MarkdownReaderOptions`.
 2. Semantic model
    Return real block/inline objects instead of string placeholders.
-3. Syntax tree
+3. Inline normalization
+   Register `MarkdownInlineTransformExtension` only when a parsed inline AST needs a post-parse normalization pass that is separate from token recognition.
+4. Syntax tree
    Implement `ISyntaxMarkdownInline` or `ISyntaxMarkdownBlockWithContext` when you want more than the default `Unknown` node fallback.
-4. Rendering
+5. Rendering
    Implement `IMarkdownBlock.RenderHtml()` for simple self-contained output.
    Implement `IContextualHtmlMarkdownBlock` when rendering depends on `HtmlOptions` or surrounding blocks.
+   Register `MarkdownBlockHtmlRenderExtension` or `MarkdownInlineHtmlRenderExtension` when a package or host needs to override HTML for a semantic type without changing that type.
 
 ## Inline Extension Pattern
 
@@ -134,6 +145,10 @@ public static class DoubleBraceExtension {
 }
 ```
 
+Inline parser registrations are evaluated in order at each parser position. Return `false` quickly when the current position is not yours; the first extension that returns `true` consumes that slice, later registrations do not get to claim the same marker, and disabled registrations are skipped before core inline parsing continues.
+
+Post-parse inline transform registrations run after the core inline parser and built-in input normalization. They receive an `InlineSequence` and a `MarkdownInlineTransformContext`, can mutate the sequence with `InlineSequence.ReplaceItems(...)`, or can return a replacement `InlineSequence`. Returning `null` is a no-op. Transforms also visit nested inline containers; `MarkdownInlineTransformContext.IsNestedSequence` lets a transform distinguish root paragraph/heading/table-cell sequences from nested label or custom-inline sequences. Source spans stay attached to reused inline node instances; replacement nodes are intentionally spanless unless they came from the parser.
+
 Why each interface matters:
 
 - `IRenderableMarkdownInline`
@@ -208,7 +223,7 @@ Use:
 - `ISyntaxMarkdownBlock`
   when the syntax node is simple and self-contained
 - `ISyntaxMarkdownBlockWithContext`
-  when you want helper methods for child blocks, inline children, aggregate spans, or literal normalization
+  when you want helper methods for child blocks, owned child-container syntax, inline children, explicit inline-container associated objects, aggregate spans, or literal normalization
 - `IContextualHtmlMarkdownBlock`
   when output depends on `HtmlOptions`, heading catalog behavior, or surrounding blocks
 
@@ -222,8 +237,25 @@ Use:
   resolve the title heading anchor for section-scoped rendering
 - `BuildTocEntries(...)`
   generate TOC-style heading entries without depending on internal catalog types
+- `RenderBlock(...)`
+  render nested child blocks through the active HTML override dispatcher instead of bypassing syntax-kind or type-targeted render extensions
 
 `HtmlOptions.BlockRenderExtensions` also supports context-aware override registrations now. When you need an external override to win before the block's own `IContextualHtmlMarkdownBlock` implementation, register a `MarkdownBlockHtmlRenderExtension` with `MarkdownBlockHtmlRenderExtension.CreateContextual(...)`.
+
+Parsed results expose final-tree lookup helpers such as `FindFinalAssociatedObjectAtPosition<T>(...)`, `FindFinalAssociatedObjectContainingSpan<T>(...)`, and `FindFinalAssociatedObjectOverlappingSpan<T>(...)`. Use these when editor or renderer extensions need to resolve a caret or source span back to the nearest live semantic object after document transforms.
+
+`HtmlOptions.InlineRenderExtensions` provides the matching seam for inline HTML output. Register a `MarkdownInlineHtmlRenderExtension` for the inline type you want to override. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own contextual/default HTML rendering. Use `MarkdownInlineHtmlRenderExtension.CreateContextual(...)` when the inline renderer needs the active `HtmlOptions`, top-level body context helpers, or source-span-aware semantic object tree.
+
+When an extension needs to target the parsed syntax shape instead of the semantic CLR type, use the syntax-kind override lists:
+
+- `HtmlOptions.SyntaxBlockRenderExtensions`
+- `HtmlOptions.SyntaxInlineRenderExtensions`
+- `MarkdownWriteOptions.SyntaxBlockRenderExtensions`
+- `MarkdownWriteOptions.SyntaxInlineRenderExtensions`
+
+Register `MarkdownSyntaxBlockHtmlRenderExtension`, `MarkdownSyntaxInlineHtmlRenderExtension`, `MarkdownSyntaxBlockMarkdownRenderExtension`, or `MarkdownSyntaxInlineMarkdownRenderExtension` with the `MarkdownSyntaxKind` to handle. Later registrations win, returning `null` falls back to the next extension/default renderer, and syntax-kind overrides run before type-targeted overrides. The callback receives the matched final `MarkdownSyntaxNode`, so extension authors can inspect `SourceSpan`, `CustomKind`, parent/child syntax shape, and source slices through the render context.
+
+Render and write contexts expose `TryCreateSourceSlice(...)` and `TryCreateOriginalSourceSlice(...)` overloads for semantic objects, final syntax nodes, and raw `MarkdownSourceSpan` values. Use the span overloads when a block or inline exposes token-level spans such as callout opening marker/kind/closing marker/title tokens or link target/title syntax children.
 
 `MarkdownWriteOptions.BlockRenderExtensions` now has the same pattern through `MarkdownBlockMarkdownRenderExtension.CreateContextual(...)`, with `MarkdownWriteContext` exposing:
 
@@ -231,12 +263,17 @@ Use:
 - `GetHeadingAnchor(...)`
 - `GetPrecedingHeadingAnchor(...)`
 - `BuildTocEntries(...)`
+- `RenderBlock(...)`
 
 See `OfficeIMO.Examples/Markdown/Markdown09_Custom_Markdown_Write_Overrides.cs` for a runnable example that writes both default markdown and a customized markdown profile using a contextual TOC override plus a legacy-compatible callout override.
+
+`MarkdownWriteOptions.InlineRenderExtensions` provides the matching seam for inline Markdown output. Register a `MarkdownInlineMarkdownRenderExtension` for the inline type you want to override during `MarkdownDoc.ToMarkdown(...)`. Later registrations win when several extensions match the same inline object, and returning `null` from the delegate falls back to the inline's own `IRenderableMarkdownInline.RenderMarkdown()` implementation. Use `MarkdownInlineMarkdownRenderExtension.CreateContextual(...)` when serialization needs the active `MarkdownWriteOptions`, top-level document context helpers, or parsed source spans from the semantic object tree.
 
 ## Delegate Block Parser Pattern
 
 For non-fenced syntax, the public block parser API now has the same delegate-style ergonomics as inline parsing.
+
+Block parser extensions run at their selected placement in registration order. The first parser that returns `true` consumes the block; later parsers at the same placement are not invoked for that block. Use `isEnabled` to opt out cleanly so parsing continues through later extension or core parsers.
 
 ```csharp
 var options = MarkdownReaderOptions.CreatePortableProfile();
@@ -252,6 +289,13 @@ static bool TryParsePanel(MarkdownBlockParserContext context, out MarkdownBlockP
     }
 
     var title = context.CurrentLine.Trim().Substring(":::panel".Length).Trim();
+    var titleStartColumn = context.CurrentLine.IndexOf(title, StringComparison.Ordinal) + 1;
+    var titleSourceSpan = context.CreateSourceSpan(
+        relativeStartLine: 0,
+        startColumn: titleStartColumn,
+        relativeEndLine: 0,
+        endColumn: titleStartColumn + title.Length - 1);
+    var titleInlines = context.ParseInlineText(0, titleStartColumn, title.Length);
     var closingOffset = -1;
     for (var offset = 1; context.TryGetLine(offset, out var line); offset++) {
         if (string.Equals(line.Trim(), ":::", StringComparison.Ordinal)) {
@@ -267,7 +311,10 @@ static bool TryParsePanel(MarkdownBlockParserContext context, out MarkdownBlockP
     var childBlocks = closingOffset > 1
         ? context.ParseNestedBlocks(1, closingOffset - 1)
         : Array.Empty<IMarkdownBlock>();
-    result = new MarkdownBlockParseResult(new PanelBlock(title, childBlocks), closingOffset + 1);
+    var blockSourceSpan = context.CreateLineSpan(0, closingOffset + 1);
+    result = new MarkdownBlockParseResult(
+        new PanelBlock(title, titleInlines, childBlocks, blockSourceSpan, titleSourceSpan),
+        closingOffset + 1);
     return true;
 }
 ```
@@ -278,6 +325,10 @@ Key pieces:
   exposes the current line, surrounding source lines, reader options, shared reader state, and the in-progress document
 - `ParseNestedBlocks(...)`
   lets custom block syntax reuse the core parser for nested markdown while preserving source spans
+- `CreateLineSpan(...)` and `CreateSourceSpan(...)`
+  let custom parsers assign block-level and token-level source spans without manually calculating absolute line offsets
+- `ParseInlineText(...)`
+  parses a source-line slice into an `InlineSequence` while preserving source spans for inline syntax inside custom block metadata such as titles
 - `MarkdownBlockParseResult`
   returns the blocks produced by the parser plus the number of consumed source lines
 - `IChildMarkdownBlockContainer`
@@ -287,6 +338,7 @@ Key pieces:
 
 - Inline source spans are assigned by the reader when your inline parser returns a node through `MarkdownInlineParseResult`.
 - Block source spans are assigned when the block is part of the parsed document and its syntax node `AssociatedObject` points back to the block.
+- Custom block parsers can use `MarkdownBlockParserContext.CreateLineSpan(...)`, `CreateSourceSpan(...)`, and `ParseInlineText(...)` when they need source-aware child syntax such as a custom title, label, or summary token.
 - Use `customKind` on `MarkdownSyntaxNode` for extension-specific AST identity without forcing enum changes in `MarkdownSyntaxKind`.
 
 Recommended practice:
@@ -299,6 +351,7 @@ Recommended practice:
 - Use `MarkdownBlockParserExtension` when the syntax is block-structured and does not naturally fit fenced code.
 - Use `MarkdownFencedBlockExtension` when a fenced language token is the right contract boundary.
 - Use `MarkdownInlineParserExtension` for local token syntax inside paragraphs/headings/list items.
+- Use `MarkdownInlineTransformExtension` for inline AST normalization that should run after token recognition and before document transforms.
 - Use `IMarkdownDocumentTransform` for AST upgrades that should happen after parsing, not during token recognition.
 
 ## Current Limits
@@ -306,9 +359,8 @@ Recommended practice:
 The extension surface is much stronger than before, but a few things are still intentionally limited:
 
 - `MarkdownSyntaxKind` remains a fixed enum, so extension node identity should flow through `CustomKind`
-- inline HTML rendering does not yet have a separate override registry beyond the inline node itself
-- block HTML override extensions still operate by block type, not by syntax-node shape
-- the syntax tree is semantic-friendly, but it is still not a fully lossless token stream
+- block and inline syntax-kind render overrides use the final syntax node for the semantic object being rendered; built-in nested containers route child blocks through the active dispatcher, and custom contextual containers should call `RenderBlock(...)` on the render/write context for the same behavior
+- full lossless token/trivia extension points are not available yet; syntax-kind renderers can read captured source slices when token/source spans are present and original trivia was preserved
 
 ## Suggested Pattern For Real Packages
 

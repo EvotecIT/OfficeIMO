@@ -68,12 +68,21 @@ internal static class MarkdownTransformSourceSpanHelper {
         IReadOnlyList<MarkdownSourceSpan?>? spans,
         int start,
         int count) {
+        var collected = CollectSpans(spans, start, count);
+        return collected.Count > 0
+            ? AggregateCollectedSpans(collected)
+            : null;
+    }
+
+    internal static IReadOnlyList<MarkdownSourceSpan> CollectSpans(
+        IReadOnlyList<MarkdownSourceSpan?>? spans,
+        int start,
+        int count) {
         if (spans == null || count <= 0 || start < 0 || start >= spans.Count) {
-            return null;
+            return Array.Empty<MarkdownSourceSpan>();
         }
 
-        MarkdownSourceSpan? first = null;
-        MarkdownSourceSpan? last = null;
+        var collected = new List<MarkdownSourceSpan>();
         var endExclusive = Math.Min(spans.Count, start + count);
         for (var i = start; i < endExclusive; i++) {
             if (!spans[i].HasValue) {
@@ -85,18 +94,10 @@ internal static class MarkdownTransformSourceSpanHelper {
                 continue;
             }
 
-            if (!first.HasValue || CompareStart(span, first.Value) < 0) {
-                first = span;
-            }
-
-            if (!last.HasValue || CompareEnd(span, last.Value) > 0) {
-                last = span;
-            }
+            collected.Add(span);
         }
 
-        return first.HasValue && last.HasValue
-            ? CreateAggregateSpan(first.Value, last.Value)
-            : null;
+        return collected;
     }
 
     internal static MarkdownSourceSpan? AggregateBlockSpans(
@@ -132,6 +133,22 @@ internal static class MarkdownTransformSourceSpanHelper {
         return first.HasValue && last.HasValue
             ? CreateAggregateSpan(first.Value, last.Value)
             : null;
+    }
+
+    internal static MarkdownSourceSpan? SelectMostSpecificSpan(params MarkdownSourceSpan?[] spans) {
+        MarkdownSourceSpan? best = null;
+        for (var i = 0; i < spans.Length; i++) {
+            var candidate = spans[i];
+            if (!candidate.HasValue || !IsWellFormedSpan(candidate.Value)) {
+                continue;
+            }
+
+            if (!best.HasValue || IsMoreSpecific(candidate.Value, best.Value)) {
+                best = candidate;
+            }
+        }
+
+        return best;
     }
 
     internal static List<MarkdownSourceSpan?> UpdateBlockSpans(
@@ -214,6 +231,23 @@ internal static class MarkdownTransformSourceSpanHelper {
         return new MarkdownSourceSpan(first.StartLine, last.EndLine);
     }
 
+    private static MarkdownSourceSpan AggregateCollectedSpans(IReadOnlyList<MarkdownSourceSpan> spans) {
+        MarkdownSourceSpan first = spans[0];
+        MarkdownSourceSpan last = spans[0];
+        for (var i = 1; i < spans.Count; i++) {
+            var span = spans[i];
+            if (CompareStart(span, first) < 0) {
+                first = span;
+            }
+
+            if (CompareEnd(span, last) > 0) {
+                last = span;
+            }
+        }
+
+        return CreateAggregateSpan(first, last);
+    }
+
     private static int CompareStart(MarkdownSourceSpan left, MarkdownSourceSpan right) {
         int lineCompare = left.StartLine.CompareTo(right.StartLine);
         if (lineCompare != 0) {
@@ -235,6 +269,29 @@ internal static class MarkdownTransformSourceSpanHelper {
     private static int NormalizeStartColumn(int? column) => column ?? 1;
 
     private static int NormalizeEndColumn(int? column) => column ?? int.MaxValue;
+
+    private static bool IsMoreSpecific(MarkdownSourceSpan candidate, MarkdownSourceSpan current) {
+        if (current.Contains(candidate) && !candidate.Contains(current)) {
+            return true;
+        }
+
+        if (candidate.Contains(current)) {
+            return false;
+        }
+
+        return EstimateSpanSize(candidate) < EstimateSpanSize(current);
+    }
+
+    private static long EstimateSpanSize(MarkdownSourceSpan span) {
+        if (span.StartOffset.HasValue && span.EndOffset.HasValue) {
+            return Math.Max(0, span.EndOffset.Value - span.StartOffset.Value);
+        }
+
+        var lineDistance = Math.Max(0, span.EndLine - span.StartLine);
+        var startColumn = NormalizeStartColumn(span.StartColumn);
+        var endColumn = span.EndColumn ?? startColumn;
+        return ((long)lineDistance * 1_000_000L) + Math.Max(0, endColumn - startColumn);
+    }
 
     private static bool IsWellFormedSpan(MarkdownSourceSpan span) {
         if (span.StartLine < 1 || span.EndLine < span.StartLine) {

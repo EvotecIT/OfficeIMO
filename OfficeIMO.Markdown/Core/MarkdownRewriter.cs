@@ -1,5 +1,3 @@
-using System.Linq;
-
 namespace OfficeIMO.Markdown;
 
 #pragma warning disable CS1591
@@ -91,33 +89,7 @@ public abstract class MarkdownRewriter {
                 continue;
             }
 
-            var rewrittenBlocks = RewriteBlocks(item.BlockChildren);
-            IReadOnlyList<IMarkdownInline> leadParagraphNodes = Array.Empty<IMarkdownInline>();
-            if (rewrittenBlocks.Count > 0 && rewrittenBlocks[0] is ParagraphBlock leadParagraph) {
-                leadParagraphNodes = leadParagraph.Inlines.Nodes
-                    .Where(node => node != null)
-                    .ToArray();
-            }
-
-            item.SyntaxChildren.Clear();
-            item.Content.ReplaceItems(Array.Empty<IMarkdownInline>());
-            item.AdditionalParagraphs.Clear();
-            item.Children.Clear();
-
-            var blockIndex = 0;
-            if (leadParagraphNodes.Count > 0 || (rewrittenBlocks.Count > 0 && rewrittenBlocks[0] is ParagraphBlock)) {
-                item.Content.ReplaceItems(leadParagraphNodes);
-                blockIndex = 1;
-            }
-
-            while (blockIndex < rewrittenBlocks.Count && rewrittenBlocks[blockIndex] is ParagraphBlock additionalParagraph) {
-                item.AdditionalParagraphs.Add(additionalParagraph.Inlines);
-                blockIndex++;
-            }
-
-            for (; blockIndex < rewrittenBlocks.Count; blockIndex++) {
-                item.Children.Add(rewrittenBlocks[blockIndex]);
-            }
+            item.ReplaceBlockChildren(RewriteBlocks(item.BlockChildren));
         }
     }
 
