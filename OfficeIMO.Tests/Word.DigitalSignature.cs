@@ -511,6 +511,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_DigitalSignature_TrySignPackageFailsWhenRequestedPartIsMissing() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureMissingRequestedPart.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Package signing missing requested part proof");
+                document.Save(false);
+            }
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult result = WordDocument.TrySignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions {
+                    PartUris = new[] { "/word/document.xml", "/word/missing-part.xml" },
+                    SignatureId = "OfficeIMOMissingPartSignature"
+                });
+
+            Assert.True(result.IsSupported);
+            Assert.False(result.Succeeded);
+            Assert.Equal(0, result.SignedPartCount);
+            Assert.Null(result.ValidationReport);
+            Assert.Contains(result.Details, detail => detail.Contains("/word/missing-part.xml", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
         public void Test_DigitalSignature_SignPackageCanResolveCertificateFromStoreOnSupportedAdapter() {
             string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSignedByStoreCertificate.docx");
 
