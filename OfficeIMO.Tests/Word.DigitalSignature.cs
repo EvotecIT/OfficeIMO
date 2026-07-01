@@ -6,6 +6,7 @@ using System.Text;
 using System.Collections.Generic;
 using DocumentFormat.OpenXml.ExtendedProperties;
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Shared;
 using OfficeIMO.Word;
 using Xunit;
@@ -533,6 +534,59 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, result.SignedPartCount);
             Assert.Null(result.ValidationReport);
             Assert.Contains(result.Details, detail => detail.Contains("/word/missing-part.xml", System.StringComparison.OrdinalIgnoreCase));
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_SelectiveSigningScopesPartRelationshipSelectors() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureSelectivePartRelationships.docx");
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Package signing selective relationship proof");
+                document.Save(false);
+            }
+
+            int documentPartRelationshipCount;
+            int headerPartRelationshipCount;
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                MainDocumentPart mainPart = package.MainDocumentPart!;
+                HeaderPart headerPart = mainPart.AddNewPart<HeaderPart>();
+                ImagePart imagePart = headerPart.AddImagePart(ImagePartType.Png);
+                using (FileStream stream = File.OpenRead(imagePath)) {
+                    imagePart.FeedData(stream);
+                }
+
+                headerPart.Header = new Header(new Paragraph(new Run(new Text("Header image relationship carrier"))));
+                string headerRelationshipId = mainPart.GetIdOfPart(headerPart);
+                Body body = mainPart.Document.Body!;
+                SectionProperties sectionProperties = body.Elements<SectionProperties>().LastOrDefault()
+                    ?? body.AppendChild(new SectionProperties());
+                sectionProperties.Append(new HeaderReference { Type = HeaderFooterValues.Default, Id = headerRelationshipId });
+                mainPart.Document.Save();
+
+                documentPartRelationshipCount = mainPart.Parts.Count();
+                headerPartRelationshipCount = headerPart.Parts.Count();
+            }
+
+            Assert.True(headerPartRelationshipCount > 0);
+
+            using X509Certificate2 certificate = CreateSelfSignedSigningCertificate();
+            WordPackageSigningResult result = WordDocument.SignPackage(
+                filePath,
+                certificate,
+                new WordPackageSigningOptions {
+                    IncludePackageRelationships = false,
+                    IncludePartRelationships = true,
+                    PartUris = new[] { "/word/document.xml" },
+                    SignatureId = "OfficeIMOSelectivePartSignature"
+                });
+
+            Assert.True(result.IsSupported);
+            Assert.True(result.Succeeded);
+            Assert.Equal(1, result.SignedPartCount);
+            Assert.Equal(documentPartRelationshipCount, result.SignedRelationshipSelectorCount);
+            Assert.True(result.SignedRelationshipSelectorCount < documentPartRelationshipCount + headerPartRelationshipCount);
+            Assert.NotNull(result.ValidationReport);
         }
 
         [Fact]

@@ -1003,6 +1003,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_ContentControlBindingRefreshesRowControlWithoutClearingSiblingCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlRowBindingSiblingCells.docx");
+            const string storeItemId = "{77777777-8888-9999-0000-111111111111}";
+            const string schemaUri = "urn:officeimo:test:client";
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                AddClientCustomXmlPart(document, storeItemId, schemaUri, "Alice");
+                document._document.MainDocumentPart!.Document.Body!.Append(new Table(CreateBoundClientRowContentControl(storeItemId, schemaUri, "Placeholder", "Keep me")));
+
+                WordContentControlDataBindingResult result = WordMailMerge.RefreshContentControlDataBindings(document);
+
+                Assert.Equal(1, result.BindingCount);
+                Assert.Equal(1, result.UpdatedContentControls);
+                Assert.False(result.HasMissingValues);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                SdtRow row = Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SdtRow>());
+                TableCell[] cells = row.Descendants<TableCell>().ToArray();
+                Assert.Equal("Alice", cells[0].InnerText);
+                Assert.Equal("Keep me", cells[1].InnerText);
+            }
+        }
+
+        [Fact]
         public void Test_MailMerge_ExecutesContentControlDataBindingsAndUpdatesCustomXml() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlBindingExecute.docx");
             const string storeItemId = "{22222222-3333-4444-5555-666666666666}";
@@ -1120,7 +1146,12 @@ namespace OfficeIMO.Tests {
                 new SdtContentBlock(CreateMailMergeParagraph(text)));
         }
 
-        private static SdtRow CreateBoundClientRowContentControl(string storeItemId, string schemaUri, string text) {
+        private static SdtRow CreateBoundClientRowContentControl(string storeItemId, string schemaUri, string text, string? siblingCellText = null) {
+            var row = new TableRow(new TableCell(CreateMailMergeParagraph(text)));
+            if (siblingCellText != null) {
+                row.Append(new TableCell(CreateMailMergeParagraph(siblingCellText)));
+            }
+
             return new SdtRow(
                 new SdtProperties(
                     new SdtAlias { Val = "ClientName" },
@@ -1132,9 +1163,7 @@ namespace OfficeIMO.Tests {
                         StoreItemId = storeItemId
                     },
                     new SdtContentText()),
-                new SdtContentRow(
-                    new TableRow(
-                        new TableCell(CreateMailMergeParagraph(text)))));
+                new SdtContentRow(row));
         }
     }
 }

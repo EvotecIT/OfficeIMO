@@ -18,11 +18,15 @@ namespace OfficeIMO.Word {
             RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
 
         private static readonly Regex FormulaNumericPicturePattern = new Regex(
-            @"^(?<expression>.*?)\s+\\#\s*(?<format>""[^""]*""|\S+)(?:\s+\\\*\s*(?:""[^""]*""|\S+))*\s*$",
+            @"^(?<expression>.*?)\s+\\#\s*(?<format>""[^""]*""|\S+)(?<formats>(?:\s+\\\*\s*(?:""[^""]*""|\S+))*)\s*$",
             RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
         private static readonly Regex FormulaTrailingFormatSwitchPattern = new Regex(
-            @"^(?<expression>.*?)(?:\s+\\\*\s*(?:""[^""]*""|\S+))+\s*$",
+            @"^(?<expression>.*?)(?<formats>(?:\s+\\\*\s*(?:""[^""]*""|\S+))+)\s*$",
+            RegexOptions.CultureInvariant | RegexOptions.Singleline);
+
+        private static readonly Regex FormulaFormatSwitchPattern = new Regex(
+            @"\\\*\s*(?:""(?<format>[^""]*)""|(?<format>\S+))",
             RegexOptions.CultureInvariant | RegexOptions.Singleline);
 
         private static bool TryEvaluateFormula(
@@ -42,7 +46,7 @@ namespace OfficeIMO.Word {
             }
 
             string? numericPicture = null;
-            if (!TryExtractFormulaNumericPicture(expression, out expression, out numericPicture, out string? numericPictureDiagnostic)) {
+            if (!TryExtractFormulaNumericPicture(expression, out expression, out numericPicture, out IReadOnlyList<WordFieldFormat> formulaFormatSwitches, out string? numericPictureDiagnostic)) {
                 message = numericPictureDiagnostic ?? "Formula numeric picture switch could not be parsed.";
                 return false;
             }
@@ -67,15 +71,33 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            if (!TryFormatFormulaValue(result, numericPicture, out value, out string? formatDiagnostic)) {
+            WordFieldFormat? formulaFormat = GetLastMeaningfulFormat(formulaFormatSwitches);
+            if (!string.IsNullOrWhiteSpace(numericPicture) && formulaFormat != null) {
+                message = "Formula fields cannot combine numeric picture and general format switches for deterministic refresh.";
+                return false;
+            }
+
+            if (!string.IsNullOrWhiteSpace(numericPicture)) {
+                if (!TryFormatFormulaValue(result, numericPicture, out value, out string? formatDiagnostic)) {
+                    message = formatDiagnostic ?? "Formula result could not be formatted.";
+                    return false;
+                }
+            } else if (formulaFormat != null) {
+                if (!TryFormatFormulaGeneralNumericValue(result, formulaFormat.Value, out value, out string? formatDiagnostic)) {
+                    message = formatDiagnostic ?? "Formula general numeric format switch could not be applied.";
+                    return false;
+                }
+            } else if (!TryFormatFormulaValue(result, numericPicture, out value, out string? formatDiagnostic)) {
                 message = formatDiagnostic ?? "Formula result could not be formatted.";
                 return false;
             }
 
             status = WordFieldUpdateStatus.Updated;
-            message = numericPicture == null
-                ? "Updated from bounded OfficeIMO arithmetic/function evaluator."
-                : "Updated from bounded OfficeIMO arithmetic/function evaluator with numeric picture formatting.";
+            message = !string.IsNullOrWhiteSpace(numericPicture)
+                ? "Updated from bounded OfficeIMO arithmetic/function evaluator with numeric picture formatting."
+                : formulaFormat != null
+                    ? "Updated from bounded OfficeIMO arithmetic/function evaluator with general numeric formatting."
+                    : "Updated from bounded OfficeIMO arithmetic/function evaluator.";
             return true;
         }
 
@@ -131,13 +153,51 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private static bool TryFormatFormulaGeneralNumericValue(decimal value, WordFieldFormat format, out string formattedValue, out string? diagnostic) {
+            formattedValue = string.Empty;
+            diagnostic = null;
+
+            switch (format) {
+                case WordFieldFormat.Arabic:
+                    formattedValue = FormatFormulaValue(value);
+                    return true;
+                case WordFieldFormat.Roman:
+                case WordFieldFormat.roman:
+                case WordFieldFormat.Ordinal:
+                case WordFieldFormat.Alphabetical:
+                case WordFieldFormat.ALPHABETICAL:
+                case WordFieldFormat.Hex:
+                case WordFieldFormat.CardText:
+                case WordFieldFormat.OrdText:
+                case WordFieldFormat.DollarText:
+                    if (value != decimal.Truncate(value) || value < int.MinValue || value > int.MaxValue) {
+                        diagnostic = $"Formula format switch {format} requires an integer value in the deterministic refresh range.";
+                        return false;
+                    }
+
+                    int integerValue = decimal.ToInt32(value);
+                    if (RequiresNonNegativeNumber(format) && integerValue < 0) {
+                        diagnostic = $"Formula format switch {format} requires a non-negative value for deterministic numeric refresh.";
+                        return false;
+                    }
+
+                    formattedValue = FormatSequenceValue(integerValue, new[] { format });
+                    return true;
+                default:
+                    diagnostic = $"Formula format switch {format} is not supported for deterministic numeric refresh.";
+                    return false;
+            }
+        }
+
         private static bool TryExtractFormulaNumericPicture(
             string expression,
             out string expressionWithoutPicture,
             out string? numericPicture,
+            out IReadOnlyList<WordFieldFormat> formatSwitches,
             out string? diagnostic) {
             expressionWithoutPicture = expression;
             numericPicture = null;
+            formatSwitches = Array.Empty<WordFieldFormat>();
             diagnostic = null;
 
             Match match = FormulaNumericPicturePattern.Match(expression);
@@ -149,6 +209,10 @@ namespace OfficeIMO.Word {
 
                 Match trailingFormatMatch = FormulaTrailingFormatSwitchPattern.Match(expression);
                 if (trailingFormatMatch.Success) {
+                    if (!TryParseFormulaFormatSwitches(trailingFormatMatch.Groups["formats"].Value, out formatSwitches, out diagnostic)) {
+                        return false;
+                    }
+
                     expressionWithoutPicture = trailingFormatMatch.Groups["expression"].Value.Trim();
                 }
 
@@ -157,6 +221,31 @@ namespace OfficeIMO.Word {
 
             expressionWithoutPicture = match.Groups["expression"].Value.Trim();
             numericPicture = match.Groups["format"].Value.Trim();
+            if (!TryParseFormulaFormatSwitches(match.Groups["formats"].Value, out formatSwitches, out diagnostic)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool TryParseFormulaFormatSwitches(string switchesText, out IReadOnlyList<WordFieldFormat> formatSwitches, out string? diagnostic) {
+            var switches = new List<WordFieldFormat>();
+            diagnostic = null;
+
+            foreach (Match match in FormulaFormatSwitchPattern.Matches(switchesText)) {
+                string formatSwitch = match.Groups["format"].Value.Trim();
+                bool success = Enum.TryParse(formatSwitch, false, out WordFieldFormat fieldFormat) ||
+                    Enum.TryParse(formatSwitch, true, out fieldFormat);
+                if (!success) {
+                    formatSwitches = Array.Empty<WordFieldFormat>();
+                    diagnostic = $"Formula format switch \\* {formatSwitch} is not recognized by OfficeIMO.";
+                    return false;
+                }
+
+                switches.Add(fieldFormat);
+            }
+
+            formatSwitches = switches;
             return true;
         }
 

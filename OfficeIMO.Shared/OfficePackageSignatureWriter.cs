@@ -201,6 +201,10 @@ namespace OfficeIMO.Shared {
         }
 
         private static IEnumerable<PackageRelationshipSelector> ResolveRelationshipSelectors(Package package, OfficePackageSigningOptions options) {
+            HashSet<string>? selectedPartUris = options.PartUris == null
+                ? null
+                : new HashSet<string>(options.PartUris.Select(NormalizePartUri), StringComparer.OrdinalIgnoreCase);
+
             if (options.IncludePackageRelationships) {
                 foreach (PackageRelationship relationship in package.GetRelationships().OrderBy(relationship => relationship.Id, StringComparer.OrdinalIgnoreCase)) {
                     yield return new PackageRelationshipSelector(new Uri("/", UriKind.Relative), PackageRelationshipSelectorType.Id, relationship.Id);
@@ -213,6 +217,10 @@ namespace OfficeIMO.Shared {
 
             foreach (PackagePart part in package.GetParts().OrderBy(part => part.Uri.ToString(), StringComparer.OrdinalIgnoreCase)) {
                 string normalizedPartUri = NormalizePartUri(part.Uri.ToString());
+                if (selectedPartUris != null && !selectedPartUris.Contains(normalizedPartUri)) {
+                    continue;
+                }
+
                 if (normalizedPartUri.StartsWith("/_xmlsignatures/", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
