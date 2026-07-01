@@ -864,6 +864,22 @@ baz*
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Maps_Text_After_SoftBreak_GenericAttribute_To_Original_Continuation_Column() {
+        const string markdown = "line\n{#soft .wide} tail";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        var paragraph = Assert.Single(result.SyntaxTree.Children);
+        var text = Assert.Single(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.InlineText);
+        Assert.Equal("line tail", text.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 18), text.SourceSpan);
+        Assert.Same(text, result.FindDeepestNodeAtPosition(2, 15));
+        Assert.DoesNotContain(paragraph.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Inline_Link_Metadata_Nodes() {
         const string markdown = "[docs](https://example.com \"Example title\")";
 

@@ -397,10 +397,17 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "linked-image-alt-attribute-promotes-to-paragraph", "[![alt{#alt .wide}](img.png)](https://example.com)" };
         yield return new object[] { "inline-html-span-attribute-stays-literal", "<span>hi</span>{#span .wide}" };
         yield return new object[] { "inline-html-wrapper-attribute-is-consumed", "<u>hi</u>{#under .wide}" };
+        yield return new object[] { "inline-html-sup-wrapper-attribute-is-consumed", "<sup>hi</sup>{#sup .wide}" };
+        yield return new object[] { "inline-html-sub-wrapper-attribute-is-consumed", "<sub>hi</sub>{#sub .wide}" };
+        yield return new object[] { "inline-html-ins-wrapper-attribute-is-consumed", "<ins>hi</ins>{#ins .wide}" };
+        yield return new object[] { "inline-html-q-wrapper-attribute-is-consumed", "<q>hi</q>{#quote .wide}" };
         yield return new object[] { "inline-html-wrapper-attribute-preserves-trailing-text", "<u>hi</u>{#under .wide} tail" };
         yield return new object[] { "inline-html-break-attribute-is-consumed", "<br>{#br .wide}" };
         yield return new object[] { "inline-html-spaced-break-attribute-is-consumed", "<br />{#br .wide}" };
         yield return new object[] { "inline-html-break-attribute-preserves-trailing-text", "<br>{#br .wide} tail" };
+        yield return new object[] { "hardbreak-attribute-preserves-trailing-text", "line  \n{#br .wide} tail" };
+        yield return new object[] { "backslash-hardbreak-attribute-preserves-trailing-text", "line\\\n{#br .wide} tail" };
+        yield return new object[] { "softbreak-attribute-preserves-trailing-text", "line\n{#soft .wide} tail" };
     }
 
     public static IEnumerable<object[]> GenericAttributesReferenceExtensionCases() {
@@ -1113,6 +1120,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     private static string NormalizeGenericAttributesHtmlForParity(string html) {
         var normalized = NormalizeHtmlForParity(html);
+        normalized = Regex.Replace(
+            normalized,
+            "<br\\s*/?>",
+            "<br />",
+            RegexOptions.CultureInvariant | RegexOptions.IgnoreCase);
         normalized = Regex.Replace(
             normalized,
             "(<h[1-6][^>]*>[^<]*?)\\s+</h",

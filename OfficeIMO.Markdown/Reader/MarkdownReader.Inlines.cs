@@ -1203,6 +1203,7 @@ public static partial class MarkdownReader {
         inline is HtmlRawInline
             or HtmlTagSequenceInline
             or HardBreakInline
+            or SoftBreakInline
             or FootnoteRefInline;
 
 }

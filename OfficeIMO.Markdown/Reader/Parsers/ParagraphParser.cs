@@ -162,7 +162,8 @@ public static partial class MarkdownReader {
                 }
             }
 
-            var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state);
+            ConsumeLeadingSoftBreakGenericAttributeContinuationLines(paragraphLines, options, state, i, out var paragraphLineStartColumns);
+            var (text, sourceMap) = JoinParagraphLinesWithSourceMap(paragraphLines, state.SourceLineOffset + i, options, state, paragraphLineStartColumns);
             var inlineOptions = suppressInlineAutolinks ? CloneOptionsWithoutInlineAutolinks(options) : options;
             var paragraph = new ParagraphBlock(ParseInlines(text, inlineOptions, state, sourceMap));
             paragraph.SetAttributes(paragraphAttributes);
@@ -347,6 +348,60 @@ public static partial class MarkdownReader {
                     out var consumedLength)
                 && consumedLength == content.Length
                 && string.IsNullOrWhiteSpace(remaining);
+        }
+
+        private static void ConsumeLeadingSoftBreakGenericAttributeContinuationLines(
+            List<string> paragraphLines,
+            MarkdownReaderOptions options,
+            MarkdownReaderState state,
+            int paragraphStartLineIndex,
+            out IReadOnlyList<int>? lineStartColumns) {
+            lineStartColumns = null;
+            if (!ShouldParseParagraphGenericAttributes(options, state, paragraphStartLineIndex)
+                || paragraphLines == null
+                || paragraphLines.Count < 2) {
+                return;
+            }
+
+            List<int>? columns = null;
+            for (var lineIndex = 1; lineIndex < paragraphLines.Count; lineIndex++) {
+                var line = paragraphLines[lineIndex] ?? string.Empty;
+                var leading = CountLeadingSpaces(line);
+                var content = line.Substring(leading);
+                if (!MarkdownGenericAttributeParser.TryConsumeLeadingAttributeBlock(
+                        content,
+                        out var remaining,
+                        out var attributes,
+                        out var consumedLength)
+                    || attributes.IsEmpty
+                    || string.IsNullOrWhiteSpace(remaining)) {
+                    continue;
+                }
+
+                var remainingStart = 0;
+                while (remainingStart < remaining.Length && char.IsWhiteSpace(remaining[remainingStart])) {
+                    remainingStart++;
+                }
+
+                if (remainingStart >= remaining.Length) {
+                    continue;
+                }
+
+                columns ??= CreateDefaultLineStartColumns(paragraphLines.Count);
+                columns[lineIndex] = leading + consumedLength + remainingStart + 1;
+                paragraphLines[lineIndex] = remaining.Substring(remainingStart);
+            }
+
+            lineStartColumns = columns;
+        }
+
+        private static List<int> CreateDefaultLineStartColumns(int count) {
+            var columns = new List<int>(count);
+            for (var i = 0; i < count; i++) {
+                columns.Add(1);
+            }
+
+            return columns;
         }
 
         private static bool IsNoSpaceBareAutolinkParagraphAttribute(

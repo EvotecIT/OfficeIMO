@@ -85,7 +85,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
             case "UseFigures":
                 return new MatrixCells("Core image plus optional syntax", "Partial image/figure behavior", "Needs Markdown figure syntax source model", "Needs renderer/writer contract", "Needs syntax-vs-import proof", row.NextAction);
             case "UseGenericAttributes":
-                return new MatrixCells("Core engine", "Partial target coverage; strong-emphasis, single-character id grammar boundaries, list/blockquote-contained fenced-code, blockquote-contained lists, pipe-table trailing attribute boundaries, and footnote/definition continuation boundaries covered", "Needs arbitrary-shape source propagation", "Needs broader writer/render propagation", "Needs remaining block/inline target proof", row.NextAction);
+                return new MatrixCells("Core engine", "Partial target coverage; strong-emphasis, single-character id grammar boundaries, list/blockquote-contained fenced-code, blockquote-contained lists, pipe-table trailing attribute boundaries, footnote/definition continuation boundaries, soft-line-break continuation/trailing text, and typed inline HTML wrapper breadth covered", "Needs arbitrary-shape source propagation", "Needs broader writer/render propagation", "Needs remaining block/inline target proof", row.NextAction);
             case "UseGridTables":
                 return new MatrixCells("Optional block parser", "Missing grid-table parser", "Missing table source model", "Missing HTML/Markdown writer behavior", "Missing malformed fallback fixtures", row.NextAction);
             case "UseListExtras":

@@ -968,7 +968,8 @@ public static partial class MarkdownReader {
         List<string> lines,
         int absoluteLineOffset,
         MarkdownReaderOptions options,
-        MarkdownReaderState? state) {
+        MarkdownReaderState? state,
+        IReadOnlyList<int>? lineStartColumns = null) {
         if (state?.SourceTextMap == null) {
             var sourceText = JoinParagraphLines(lines, options);
             return (sourceText, null);
@@ -985,6 +986,7 @@ public static partial class MarkdownReader {
 
         for (var i = 0; i < lines.Count; i++) {
             var absoluteLine = absoluteLineOffset + i + 1;
+            var lineStartColumn = GetParagraphLineStartColumn(lineStartColumns, i);
             if (previousJoinInfo.HasValue) {
                 var softLazyQuoteBreak = IsLazyQuoteContinuationLine(state, absoluteLineOffset + i) &&
                     !previousJoinInfo.Value.HardBreak;
@@ -1011,20 +1013,20 @@ public static partial class MarkdownReader {
             var joinInfo = GetParagraphLineJoinInfo(
                 raw,
                 absoluteLine,
-                startColumn: 1,
+                lineStartColumn,
                 options,
                 state.SourceTextMap,
                 hasFollowingLine: i + 1 < lines.Count,
                 preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
             textBuilder.Append(joinInfo.Text);
             for (var charIndex = 0; charIndex < joinInfo.Text.Length; charIndex++) {
-                pointList.Add(state.SourceTextMap.CreatePoint(absoluteLine, charIndex + 1));
+                pointList.Add(state.SourceTextMap.CreatePoint(absoluteLine, lineStartColumn + charIndex));
                 tokenSpanList.Add(null);
                 tokenLiteralList.Add(null);
             }
 
             previousAbsoluteLine = absoluteLine;
-            previousJoinColumn = Math.Max(1, joinInfo.Text.Length);
+            previousJoinColumn = Math.Max(lineStartColumn, lineStartColumn + joinInfo.Text.Length - 1);
             previousJoinInfo = joinInfo;
         }
 
@@ -1034,6 +1036,17 @@ public static partial class MarkdownReader {
         }
 
         return (text, new MarkdownInlineSourceMap(pointList.ToArray(), tokenSpanList.ToArray(), tokenLiteralList.ToArray()));
+    }
+
+    private static int GetParagraphLineStartColumn(IReadOnlyList<int>? lineStartColumns, int lineIndex) {
+        if (lineStartColumns == null
+            || lineIndex < 0
+            || lineIndex >= lineStartColumns.Count
+            || lineStartColumns[lineIndex] <= 0) {
+            return 1;
+        }
+
+        return lineStartColumns[lineIndex];
     }
 
     private static (string Text, MarkdownInlineSourceMap? SourceMap) JoinParagraphSourceLinesWithSourceMap(
