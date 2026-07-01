@@ -166,6 +166,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
             string? fontFamily = null;
+            int? characterSpacingTwips = null;
             LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None;
             foreach (OpenXmlElement property in runProperties.ChildElements) {
                 switch (property) {
@@ -253,14 +254,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         specified |= LegacyDocWritableFormattingProperties.FontFamily;
                         fontFamily = ReadSupportedRunFontFamily(runFonts);
                         break;
+                    case Spacing spacing:
+                        specified |= LegacyDocWritableFormattingProperties.CharacterSpacing;
+                        characterSpacingTwips = ReadSupportedCharacterSpacing(spacing);
+                        break;
                     case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase):
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, font family, and character spacing run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified);
+            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified, characterSpacingTwips: characterSpacingTwips);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -432,6 +437,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return value!.Trim();
         }
 
+        private static int ReadSupportedCharacterSpacing(Spacing spacing) {
+            int value = spacing.Val?.Value ?? 0;
+            if (value < short.MinValue || value > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports character spacing only within the Word 97-2003 signed twip range.");
+            }
+
+            return value;
+        }
+
         private static void AppendFormattedText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
@@ -588,6 +602,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddUInt16Sprm(grpprl, SprmCRgFtc0, checked((ushort)fontIndex));
             }
 
+            if (formatting.CharacterSpacingTwips != null || formatting.IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing)) {
+                AddInt16CharacterSprm(grpprl, SprmCDxaSpace, formatting.CharacterSpacingTwips ?? 0);
+            }
+
             return grpprl;
         }
 
@@ -643,6 +661,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add((byte)(operand >> 8));
         }
 
+        private static void AddInt16CharacterSprm(List<byte> grpprl, ushort sprm, int operand) {
+            if (operand < short.MinValue || operand > short.MaxValue) {
+                throw new NotSupportedException("Native DOC saving supports character spacing only within the Word 97-2003 signed twip range.");
+            }
+
+            short value = checked((short)operand);
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add((byte)(value & 0xFF));
+            grpprl.Add((byte)(value >> 8));
+        }
+
         private static void AddColorRefSprm(List<byte> grpprl, string colorHex) {
             grpprl.Add((byte)(SprmCCv & 0xFF));
             grpprl.Add((byte)(SprmCCv >> 8));
@@ -672,14 +702,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             Highlight = 1 << 14,
             FontSize = 1 << 15,
             Color = 1 << 16,
-            FontFamily = 1 << 17
+            FontFamily = 1 << 17,
+            CharacterSpacing = 1 << 18
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
             internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
             internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null, LegacyDocWritableFormattingProperties.Special);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None, int? characterSpacingTwips = null) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -698,6 +729,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 FontSizeHalfPoints = fontSizeHalfPoints;
                 ColorHex = colorHex;
                 FontFamily = fontFamily;
+                CharacterSpacingTwips = characterSpacingTwips;
                 Specified = specified;
             }
 
@@ -737,7 +769,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || HasExplicitOffFormatting;
+            internal int? CharacterSpacingTwips { get; }
+
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || CharacterSpacingTwips != null || HasExplicitOffFormatting;
 
             private LegacyDocWritableFormattingProperties Specified { get; }
 
@@ -765,7 +799,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     IsSpecified(LegacyDocWritableFormattingProperties.FontSize) ? FontSizeHalfPoints : inherited.FontSizeHalfPoints,
                     IsSpecified(LegacyDocWritableFormattingProperties.Color) ? ColorHex : inherited.ColorHex,
                     IsSpecified(LegacyDocWritableFormattingProperties.FontFamily) ? FontFamily : inherited.FontFamily,
-                    Specified | inherited.Specified);
+                    Specified | inherited.Specified,
+                    characterSpacingTwips: IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing) ? CharacterSpacingTwips : inherited.CharacterSpacingTwips);
             }
 
             private bool HasExplicitOffFormatting =>
@@ -782,7 +817,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 || (IsSpecified(LegacyDocWritableFormattingProperties.Caps) && Caps == null)
                 || (IsSpecified(LegacyDocWritableFormattingProperties.VerticalPosition) && VerticalPosition == null)
                 || (IsSpecified(LegacyDocWritableFormattingProperties.Underline) && Underline == null)
-                || (IsSpecified(LegacyDocWritableFormattingProperties.Highlight) && Highlight == null);
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Highlight) && Highlight == null)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing) && CharacterSpacingTwips == null);
 
             internal bool IsSpecified(LegacyDocWritableFormattingProperties property) {
                 return (Specified & property) != 0;
@@ -806,7 +842,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && Highlight == other.Highlight
                     && FontSizeHalfPoints == other.FontSizeHalfPoints
                     && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
-                    && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase);
+                    && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
+                    && CharacterSpacingTwips == other.CharacterSpacingTwips;
             }
 
             public override bool Equals(object? obj) {
@@ -833,6 +870,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
+                hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
                 return hash;
             }
         }

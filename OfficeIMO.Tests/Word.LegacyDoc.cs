@@ -486,14 +486,14 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectUnderlineSizeColorStrikeVerticalAndHighlightRuns() {
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectUnderlineSizeColorStrikeVerticalHighlightAndSpacingRuns() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithExtendedDirectCharacterFormatting();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
             result.EnsureNoImportErrors();
             WordParagraph[] runs = result.Document.Paragraphs.ToArray();
-            Assert.Equal(18, runs.Length);
+            Assert.Equal(19, runs.Length);
             Assert.Equal("plain ", runs[0].Text);
             Assert.Null(runs[0].Underline);
             Assert.False(runs[0].Strike);
@@ -541,8 +541,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(VerticalPositionValues.Subscript, runs[15].VerticalTextAlignment);
             Assert.Equal("mark ", runs[16].Text);
             Assert.Equal(HighlightColorValues.Yellow, runs[16].Highlight);
-            Assert.Equal("direct", runs[17].Text);
-            Assert.Equal("336699", runs[17].ColorHex);
+            Assert.Equal("space ", runs[17].Text);
+            Assert.Equal(80, runs[17].Spacing);
+            Assert.Equal("direct", runs[18].Text);
+            Assert.Equal("336699", runs[18].ColorHex);
         }
 
         [Fact]
@@ -1044,7 +1046,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomStyleLevelUnderlineAndHighlight() {
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomStyleLevelUnderlineHighlightAndCharacterSpacing() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithCustomStyleLevelUnderlineAndHighlight();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
@@ -1061,6 +1063,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(UnderlineValues.Single, underline.Val!.Value);
             Highlight highlight = Assert.IsType<Highlight>(runProperties.GetFirstChild<Highlight>());
             Assert.Equal(HighlightColorValues.Yellow, highlight.Val!.Value);
+            Spacing spacing = Assert.IsType<Spacing>(runProperties.GetFirstChild<Spacing>());
+            Assert.Equal(80, spacing.Val!.Value);
         }
 
         [Fact]
@@ -4748,7 +4752,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_WritesNativeDocUnderlineSizeColorStrikeVerticalAndHighlightRunsAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocUnderlineSizeColorStrikeVerticalHighlightAndSpacingRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -4776,6 +4780,8 @@ namespace OfficeIMO.Tests {
                     paragraph.AddText("super ").SetSuperScript();
                     paragraph.AddText("sub ").SetSubScript();
                     paragraph.AddText("mark ").SetHighlight(HighlightColorValues.Yellow);
+                    WordParagraph spaced = paragraph.AddText("space ");
+                    spaced.Spacing = 80;
                     paragraph.AddText("color").SetColorHex("336699");
 
                     document.Save(docPath);
@@ -4785,12 +4791,13 @@ namespace OfficeIMO.Tests {
                 byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
                 byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
                 AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, "plain under sized strike double outline shadow emboss imprint hidden ".Length, "proof ".Length, 0x0875, 1);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, "plain under sized strike double outline shadow emboss imprint hidden proof caps small super sub mark ".Length, "space ".Length, 0x8840, 0x50, 0x00);
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 WordParagraph[] runs = reloaded.Paragraphs.ToArray();
-                Assert.Equal(17, runs.Length);
+                Assert.Equal(18, runs.Length);
                 Assert.Equal("plain ", runs[0].Text);
                 Assert.Null(runs[0].Underline);
                 Assert.False(runs[0].Strike);
@@ -4834,8 +4841,10 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(VerticalPositionValues.Subscript, runs[14].VerticalTextAlignment);
                 Assert.Equal("mark ", runs[15].Text);
                 Assert.Equal(HighlightColorValues.Yellow, runs[15].Highlight);
-                Assert.Equal("color", runs[16].Text);
-                Assert.Equal("336699", runs[16].ColorHex);
+                Assert.Equal("space ", runs[16].Text);
+                Assert.Equal(80, runs[16].Spacing);
+                Assert.Equal("color", runs[17].Text);
+                Assert.Equal("336699", runs[17].ColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -6041,7 +6050,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleUnderlineAndHighlightAndReloadsThroughLegacyReader() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleUnderlineHighlightAndCharacterSpacingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocUnderlineHighlightStyle";
             const string projectedStyleId = "LegacyDocNativeDOCUnderlineHighlightStyle";
@@ -6053,7 +6062,8 @@ namespace OfficeIMO.Tests {
                     style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
                     style.Append(new StyleRunProperties(
                         new Underline { Val = UnderlineValues.Single },
-                        new Highlight { Val = HighlightColorValues.Yellow }));
+                        new Highlight { Val = HighlightColorValues.Yellow },
+                        new Spacing { Val = 80 }));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
                     document.AddParagraph("Styled underline highlight").SetStyleId(styleId);
 
@@ -6067,6 +6077,9 @@ namespace OfficeIMO.Tests {
                 Assert.True(
                     ContainsBytePattern(tableStream, 0x0C, 0x2A, 0x07),
                     "Expected the native DOC stylesheet stream to contain sprmCHighlight for custom paragraph style highlight.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x40, 0x88, 0x50, 0x00),
+                    "Expected the native DOC stylesheet stream to contain sprmCDxaSpace for custom paragraph style character spacing.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
@@ -6080,6 +6093,7 @@ namespace OfficeIMO.Tests {
                 StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.StyleRunProperties);
                 Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()!.Val!.Value);
                 Assert.Equal(HighlightColorValues.Yellow, runProperties.GetFirstChild<Highlight>()!.Val!.Value);
+                Assert.Equal(80, runProperties.GetFirstChild<Spacing>()!.Val!.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -11717,7 +11731,7 @@ namespace OfficeIMO.Tests {
             }
 
             internal static byte[] CreateUnicodeDocWithExtendedDirectCharacterFormatting() {
-                const string text = "plain under sized red strike double outline shadow emboss imprint hidden proof caps small super sub mark direct\r";
+                const string text = "plain under sized red strike double outline shadow emboss imprint hidden proof caps small super sub mark space direct\r";
                 const int textOffset = 0x200;
                 const int chpxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExtendedCharacterFormatting(text, textOffset, chpxFkpOffset);
@@ -12133,7 +12147,8 @@ namespace OfficeIMO.Tests {
                         Array.Empty<byte>(),
                         CreateStyleCharacterFormatting(
                             CreateCharacterSprm(0x2A3E, 1),
-                            CreateCharacterSprm(0x2A0C, 7))));
+                            CreateCharacterSprm(0x2A0C, 7),
+                            CreateCharacterSprm(0x8840, 0x50, 0x00))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
 
@@ -12872,13 +12887,14 @@ namespace OfficeIMO.Tests {
                 int superStart = smallCapsStart + ("small ".Length * 2);
                 int subStart = superStart + ("super ".Length * 2);
                 int markStart = subStart + ("sub ".Length * 2);
-                int directStart = markStart + ("mark ".Length * 2);
+                int spaceStart = markStart + ("mark ".Length * 2);
+                int directStart = spaceStart + ("space ".Length * 2);
                 int paragraphMarkStart = directStart + ("direct".Length * 2);
                 int end = paragraphMarkStart + 2;
                 WriteChpxFkp(
                     stream,
                     chpxFkpOffset,
-                    new[] { textOffset, underStart, sizedStart, redStart, strikeStart, doubleStrikeStart, outlineStart, shadowStart, embossStart, imprintStart, hiddenStart, proofStart, capsStart, smallCapsStart, superStart, subStart, markStart, directStart, paragraphMarkStart, end },
+                    new[] { textOffset, underStart, sizedStart, redStart, strikeStart, doubleStrikeStart, outlineStart, shadowStart, embossStart, imprintStart, hiddenStart, proofStart, capsStart, smallCapsStart, superStart, subStart, markStart, spaceStart, directStart, paragraphMarkStart, end },
                     new Dictionary<int, byte[]> {
                         [1] = CreateSingleSprmChpx(0x2A3E, 1),
                         [2] = CreateSingleSprmChpx(0x4A43, 28, 0),
@@ -12896,7 +12912,8 @@ namespace OfficeIMO.Tests {
                         [14] = CreateSingleSprmChpx(0x2A48, 1),
                         [15] = CreateSingleSprmChpx(0x2A48, 2),
                         [16] = CreateSingleSprmChpx(0x2A0C, 7),
-                        [17] = CreateSingleSprmChpx(0x6870, 0x33, 0x66, 0x99, 0)
+                        [17] = CreateSingleSprmChpx(0x8840, 0x50, 0x00),
+                        [18] = CreateSingleSprmChpx(0x6870, 0x33, 0x66, 0x99, 0)
                     });
 
                 if (stream.Length < fibLength) {
@@ -14290,7 +14307,7 @@ namespace OfficeIMO.Tests {
             return stream!;
         }
 
-        private static void AssertChpxContainsSprmForCharacterRange(byte[] wordDocumentStream, byte[] tableStream, int startCharacter, int length, ushort sprm, byte operand) {
+        private static void AssertChpxContainsSprmForCharacterRange(byte[] wordDocumentStream, byte[] tableStream, int startCharacter, int length, ushort sprm, params byte[] operand) {
             Assert.True(length > 0);
             int fcMin = BitConverter.ToInt32(wordDocumentStream, 0x18);
             int fcMac = BitConverter.ToInt32(wordDocumentStream, 0x1C);
@@ -14337,9 +14354,10 @@ namespace OfficeIMO.Tests {
                     Assert.True(cbGrpprl > 0);
                     Assert.True(pageOffset + chpxOffset + 1 + cbGrpprl <= pageOffset + 511);
                     byte[] grpprl = wordDocumentStream.Skip(pageOffset + chpxOffset + 1).Take(cbGrpprl).ToArray();
+                    byte[] expectedPattern = new[] { sprmLow, sprmHigh }.Concat(operand).ToArray();
                     Assert.True(
-                        ContainsBytePattern(grpprl, sprmLow, sprmHigh, operand),
-                        $"CHPX run covering character range {startCharacter}-{startCharacter + length} did not contain sprm 0x{sprm:X4} with operand 0x{operand:X2}.");
+                        ContainsBytePattern(grpprl, expectedPattern),
+                        $"CHPX run covering character range {startCharacter}-{startCharacter + length} did not contain sprm 0x{sprm:X4} with operand 0x{BitConverter.ToString(operand).Replace("-", string.Empty)}.");
                     return;
                 }
             }

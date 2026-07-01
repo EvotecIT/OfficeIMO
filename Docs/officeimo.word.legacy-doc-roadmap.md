@@ -248,6 +248,9 @@ just to reserve names.
   - [x] Resolve stylesheet-level font-family run formatting through the DOC font
     table, including styles that carry character formatting after an empty
     paragraph UPX, with synthetic fixture proof and opt-in Word COM validation.
+  - [x] Project direct CHPX character spacing plus stylesheet-level character
+    spacing from DOC `sprmCDxaSpace` into normal OfficeIMO runs and custom DOCX
+    style definitions with synthetic legacy DOC fixture proof.
   - [x] Project direct CHPX strikethrough runs plus stylesheet-level
     strikethrough run formatting into normal OfficeIMO runs and custom DOCX
     style definitions with synthetic legacy DOC fixture proof.
@@ -602,6 +605,8 @@ just to reserve names.
   - [x] Accept matching script-specific `RunFonts` values, including
     complex-script-only values, when they map to the writer's single DOC
     font-table slot.
+  - [x] Write direct and custom paragraph-style character spacing through
+    `sprmCDxaSpace`, then reload it through the dependency-free legacy reader.
   - [x] Write direct paragraph alignment PAPX records and reload them through
     the legacy reader.
   - [x] Write direct paragraph spacing and indentation PAPX records and reload

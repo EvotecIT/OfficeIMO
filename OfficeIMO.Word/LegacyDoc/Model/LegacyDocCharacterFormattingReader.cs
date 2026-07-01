@@ -14,6 +14,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCFNoProof = 0x0875;
         private const ushort SprmCHighlight = 0x2A0C;
         private const ushort SprmCKul = 0x2A3E;
+        private const ushort SprmCDxaSpace = 0x8840;
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHps = 0x4A43;
@@ -131,6 +132,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
             string? fontFamily = null;
+            int? characterSpacingTwips = null;
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None;
 
             while (offset + 2 <= end) {
@@ -227,6 +229,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmCDxaSpace) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    characterSpacingTwips = unchecked((short)LegacyDocFib.ReadUInt16(bytes, offset + 2));
+                    specified |= LegacyDocCharacterFormatProperties.CharacterSpacing;
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmCHps) {
                     if (offset + 4 > end) {
                         break;
@@ -275,7 +288,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified);
+            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, characterSpacingTwips, specified);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {

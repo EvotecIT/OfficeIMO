@@ -2106,6 +2106,11 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (characterFormat.CharacterSpacingTwips != null || characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
+                properties.Append(new Spacing { Val = characterFormat.CharacterSpacingTwips ?? 0 });
+                hasProperties = true;
+            }
+
             if (characterFormat.Highlight != null && TryMapHighlight(characterFormat.Highlight.Value, out HighlightColorValues highlight)) {
                 properties.Append(new Highlight { Val = highlight });
                 hasProperties = true;
@@ -2254,6 +2259,10 @@ namespace OfficeIMO.Word {
 
             if (!string.IsNullOrEmpty(legacyRun.FontFamily)) {
                 run.SetFontFamily(legacyRun.FontFamily!);
+            }
+
+            if (legacyRun.CharacterSpacingTwips != null || legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
+                run.Spacing = legacyRun.CharacterSpacingTwips ?? 0;
             }
         }
 

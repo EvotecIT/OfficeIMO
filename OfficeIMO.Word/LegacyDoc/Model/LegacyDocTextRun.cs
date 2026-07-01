@@ -48,7 +48,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 hyperlinkAnchor,
                 fieldKind,
                 fieldInstruction,
-                specified) {
+                specified,
+                characterSpacingTwips: null) {
         }
 
         internal LegacyDocTextRun(
@@ -75,7 +76,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? hyperlinkAnchor = null,
             LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None,
             string? fieldInstruction = null,
-            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None) {
+            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
+            int? characterSpacingTwips = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -94,6 +96,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
             FontFamily = fontFamily;
+            CharacterSpacingTwips = characterSpacingTwips;
             CharacterPositions = characterPositions.Count == 0
                 ? Array.Empty<int>()
                 : characterPositions.ToArray();
@@ -139,6 +142,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? ColorHex { get; }
 
         internal string? FontFamily { get; }
+
+        internal int? CharacterSpacingTwips { get; }
 
         internal IReadOnlyList<int> CharacterPositions { get; }
 
