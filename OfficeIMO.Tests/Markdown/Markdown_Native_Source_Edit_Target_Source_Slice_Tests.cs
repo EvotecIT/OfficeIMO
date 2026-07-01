@@ -384,6 +384,55 @@ Term
     }
 
     [Fact]
+    public void ReferenceDefinition_Field_Snapshots_Expose_Normalized_And_Original_Source_Text() {
+        var native = MarkdownNativeDocument.Parse(
+            "[hero]: https://example.com/docs \"Docs title\"",
+            new MarkdownReaderOptions { PreserveTrivia = true });
+
+        var snapshot = Assert.Single(native.ToSnapshot().ReferenceLinkDefinitions);
+        var openingMarker = Assert.Single(snapshot.SourceFields, field => field.Name == "openingMarker");
+        var url = Assert.Single(snapshot.SourceFields, field => field.Name == "url");
+        var title = Assert.Single(snapshot.SourceFields, field => field.Name == "title");
+
+        Assert.Equal("[", openingMarker.SourceText);
+        Assert.Equal("[", openingMarker.OriginalSourceText);
+        Assert.Null(openingMarker.OriginalSourceFailureReason);
+
+        Assert.Equal("https://example.com/docs", url.SourceText);
+        Assert.Equal("https://example.com/docs", url.OriginalSourceText);
+        Assert.Null(url.OriginalSourceFailureReason);
+
+        Assert.Equal("Docs title", title.SourceText);
+        Assert.Equal("Docs title", title.OriginalSourceText);
+        Assert.Null(title.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void Definition_Field_Snapshots_Report_Original_Source_Failure_When_Trivia_Is_Not_Preserved() {
+        var referenceNative = MarkdownNativeDocument.Parse("[hero]: https://example.com/docs");
+        var referenceSnapshot = Assert.Single(referenceNative.ToSnapshot().ReferenceLinkDefinitions);
+        var referenceUrl = Assert.Single(referenceSnapshot.SourceFields, field => field.Name == "url");
+
+        Assert.Equal("https://example.com/docs", referenceUrl.SourceText);
+        Assert.Null(referenceUrl.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            referenceUrl.OriginalSourceFailureReason);
+
+        var abbreviationOptions = MarkdownReaderOptions.CreatePortableProfile();
+        abbreviationOptions.Abbreviations = true;
+        var abbreviationNative = MarkdownNativeDocument.Parse("*[HTML]: Hyper Text", abbreviationOptions);
+        var abbreviationSnapshot = Assert.Single(abbreviationNative.ToSnapshot().AbbreviationDefinitions);
+        var abbreviationTitle = Assert.Single(abbreviationSnapshot.SourceFields, field => field.Name == "title");
+
+        Assert.Equal("Hyper Text", abbreviationTitle.SourceText);
+        Assert.Null(abbreviationTitle.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            abbreviationTitle.OriginalSourceFailureReason);
+    }
+
+    [Fact]
     public void OriginalSourceSlice_For_Native_SourceEdit_Targets_Returns_Failure_Reason_When_Trivia_Is_Disabled() {
         var native = MarkdownNativeDocument.Parse("- Plain");
         var item = Assert.Single(native.EnumerateListItems());

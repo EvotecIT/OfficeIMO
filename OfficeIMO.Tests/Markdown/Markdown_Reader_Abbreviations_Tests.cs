@@ -355,6 +355,15 @@ public class Markdown_Reader_Abbreviations_Tests {
         Assert.Equal(new[] { "openingMarker", "label", "separatorMarker", "title" }, snapshot.SourceFields.Select(field => field.Name).ToArray());
         Assert.Equal("Hyper Text", snapshot.SourceFields[3].Value);
         Assert.Equal(10, snapshot.SourceFields[3].SourceSpan.StartColumn);
+        Assert.Equal("*[", snapshot.SourceFields[0].SourceText);
+        Assert.Equal("*[", snapshot.SourceFields[0].OriginalSourceText);
+        Assert.Null(snapshot.SourceFields[0].OriginalSourceFailureReason);
+        Assert.Equal("HTML", snapshot.SourceFields[1].SourceText);
+        Assert.Equal("HTML", snapshot.SourceFields[1].OriginalSourceText);
+        Assert.Null(snapshot.SourceFields[1].OriginalSourceFailureReason);
+        Assert.Equal("Hyper Text", snapshot.SourceFields[3].SourceText);
+        Assert.Equal("Hyper Text", snapshot.SourceFields[3].OriginalSourceText);
+        Assert.Null(snapshot.SourceFields[3].OriginalSourceFailureReason);
     }
 
     [Fact]

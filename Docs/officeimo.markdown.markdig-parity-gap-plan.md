@@ -258,6 +258,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
   - [x] Native block source-field snapshots now carry normalized raw text, original raw text when available, and original-source failure reasons for UI/editor hosts that consume snapshots instead of live source-slice APIs.
   - [x] Native inline metadata snapshots now carry normalized raw text, original raw text when available, and original-source failure reasons for link/image delimiters, escape markers, decoded entity source text, hard-break markers, and other source-backed inline metadata.
   - [x] Native source-trivia snapshots now carry normalized raw text, original raw text when available, and original-source failure reasons for blank lines, whitespace-only lines, leading/trailing horizontal whitespace, tabs, and line endings.
+  - [x] Native reference-definition and abbreviation-definition field snapshots now carry normalized raw text, original raw text when available, and original-source failure reasons for UI/editor hosts that consume snapshots instead of live source-slice APIs.
 - [ ] Complete delimiter-token coverage for extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.
   - [x] Raw HTML block comments, tag frames, CDATA, declarations, and processing instructions expose source-backed opening/body/closing tag or marker fields with snapshot and source-edit proof.

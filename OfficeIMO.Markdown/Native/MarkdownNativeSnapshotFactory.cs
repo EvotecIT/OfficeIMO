@@ -4,12 +4,12 @@ internal static class MarkdownNativeSnapshotFactory {
     internal static MarkdownNativeDocumentSnapshot FromDocument(MarkdownNativeDocument document) {
         var referenceDefinitions = new List<MarkdownNativeReferenceLinkDefinitionSnapshot>(document.ReferenceLinkDefinitions.Count);
         for (var i = 0; i < document.ReferenceLinkDefinitions.Count; i++) {
-            referenceDefinitions.Add(new MarkdownNativeReferenceLinkDefinitionSnapshot(document.ReferenceLinkDefinitions[i]));
+            referenceDefinitions.Add(new MarkdownNativeReferenceLinkDefinitionSnapshot(document, document.ReferenceLinkDefinitions[i]));
         }
 
         var abbreviationDefinitions = new List<MarkdownNativeAbbreviationDefinitionSnapshot>(document.AbbreviationDefinitions.Count);
         for (var i = 0; i < document.AbbreviationDefinitions.Count; i++) {
-            abbreviationDefinitions.Add(new MarkdownNativeAbbreviationDefinitionSnapshot(document.AbbreviationDefinitions[i]));
+            abbreviationDefinitions.Add(new MarkdownNativeAbbreviationDefinitionSnapshot(document, document.AbbreviationDefinitions[i]));
         }
 
         var blocks = new List<MarkdownNativeBlockSnapshot>(document.Blocks.Count);

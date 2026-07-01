@@ -84,7 +84,11 @@ public sealed class MarkdownNativeSourceTriviaSnapshot {
 /// UI-safe snapshot of a reference-style link definition.
 /// </summary>
 public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
-    internal MarkdownNativeReferenceLinkDefinitionSnapshot(MarkdownReferenceLinkDefinition definition) {
+    internal MarkdownNativeReferenceLinkDefinitionSnapshot(MarkdownReferenceLinkDefinition definition)
+        : this(null, definition) {
+    }
+
+    internal MarkdownNativeReferenceLinkDefinitionSnapshot(MarkdownNativeDocument? document, MarkdownReferenceLinkDefinition definition) {
         Label = definition.Label;
         Url = definition.Url;
         Title = definition.Title;
@@ -94,7 +98,7 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
         SeparatorMarkerSourceSpan = definition.SeparatorMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SeparatorMarkerSourceSpan.Value) : null;
         UrlSourceSpan = definition.UrlSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.UrlSourceSpan.Value) : null;
         TitleSourceSpan = definition.TitleSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.TitleSourceSpan.Value) : null;
-        SourceFields = FromReferenceDefinitionFields(definition);
+        SourceFields = FromReferenceDefinitionFields(document, definition);
     }
 
     /// <summary>Normalized reference label.</summary>
@@ -127,7 +131,9 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
     /// <summary>Source-backed token and payload fields in source order.</summary>
     public IReadOnlyList<MarkdownNativeReferenceLinkDefinitionFieldSnapshot> SourceFields { get; }
 
-    private static IReadOnlyList<MarkdownNativeReferenceLinkDefinitionFieldSnapshot> FromReferenceDefinitionFields(MarkdownReferenceLinkDefinition definition) {
+    private static IReadOnlyList<MarkdownNativeReferenceLinkDefinitionFieldSnapshot> FromReferenceDefinitionFields(
+        MarkdownNativeDocument? document,
+        MarkdownReferenceLinkDefinition definition) {
         var fields = MarkdownNativeDocument.EnumerateReferenceLinkDefinitionFields(definition).ToArray();
         if (fields.Length == 0) {
             return Array.Empty<MarkdownNativeReferenceLinkDefinitionFieldSnapshot>();
@@ -135,7 +141,7 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
 
         var snapshots = new List<MarkdownNativeReferenceLinkDefinitionFieldSnapshot>(fields.Length);
         for (var i = 0; i < fields.Length; i++) {
-            snapshots.Add(new MarkdownNativeReferenceLinkDefinitionFieldSnapshot(fields[i]));
+            snapshots.Add(new MarkdownNativeReferenceLinkDefinitionFieldSnapshot(document, fields[i]));
         }
 
         return snapshots;
@@ -146,10 +152,28 @@ public sealed class MarkdownNativeReferenceLinkDefinitionSnapshot {
 /// UI-safe snapshot of a source-backed token or payload field owned by a reference-style link definition.
 /// </summary>
 public sealed class MarkdownNativeReferenceLinkDefinitionFieldSnapshot {
-    internal MarkdownNativeReferenceLinkDefinitionFieldSnapshot(MarkdownNativeReferenceLinkDefinitionField field) {
+    internal MarkdownNativeReferenceLinkDefinitionFieldSnapshot(MarkdownNativeReferenceLinkDefinitionField field)
+        : this(null, field) {
+    }
+
+    internal MarkdownNativeReferenceLinkDefinitionFieldSnapshot(MarkdownNativeDocument? document, MarkdownNativeReferenceLinkDefinitionField field) {
         Name = field.Name;
         Value = field.Value;
         SourceSpan = new MarkdownNativeSourceSpanSnapshot(field.SourceSpan);
+
+        if (document == null) {
+            return;
+        }
+
+        if (document.TryCreateSourceSlice(field, out var sourceSlice)) {
+            SourceText = sourceSlice.Text;
+        }
+
+        if (document.TryCreateOriginalSourceSlice(field, out var originalSlice, out var failureReason)) {
+            OriginalSourceText = originalSlice.Text;
+        } else {
+            OriginalSourceFailureReason = failureReason;
+        }
     }
 
     /// <summary>Stable field name such as <c>openingMarker</c>, <c>label</c>, <c>separatorMarker</c>, <c>url</c>, or <c>title</c>.</summary>
@@ -160,13 +184,26 @@ public sealed class MarkdownNativeReferenceLinkDefinitionFieldSnapshot {
 
     /// <summary>Source span for this field.</summary>
     public MarkdownNativeSourceSpanSnapshot SourceSpan { get; }
+
+    /// <summary>Exact normalized source text represented by this field when it could be materialized.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Exact original reader input represented by this field when trivia was preserved and mapping succeeded.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this field, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 }
 
 /// <summary>
 /// UI-safe snapshot of a Markdig-style abbreviation definition.
 /// </summary>
 public sealed class MarkdownNativeAbbreviationDefinitionSnapshot {
-    internal MarkdownNativeAbbreviationDefinitionSnapshot(MarkdownAbbreviationDefinition definition) {
+    internal MarkdownNativeAbbreviationDefinitionSnapshot(MarkdownAbbreviationDefinition definition)
+        : this(null, definition) {
+    }
+
+    internal MarkdownNativeAbbreviationDefinitionSnapshot(MarkdownNativeDocument? document, MarkdownAbbreviationDefinition definition) {
         Label = definition.Label;
         Title = definition.Title;
         IsListItemDefinition = definition.IsListItemDefinition;
@@ -175,7 +212,7 @@ public sealed class MarkdownNativeAbbreviationDefinitionSnapshot {
         OpeningMarkerSourceSpan = definition.OpeningMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.OpeningMarkerSourceSpan.Value) : null;
         SeparatorMarkerSourceSpan = definition.SeparatorMarkerSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.SeparatorMarkerSourceSpan.Value) : null;
         TitleSourceSpan = definition.TitleSourceSpan.HasValue ? new MarkdownNativeSourceSpanSnapshot(definition.TitleSourceSpan.Value) : null;
-        SourceFields = FromAbbreviationDefinitionFields(definition);
+        SourceFields = FromAbbreviationDefinitionFields(document, definition);
     }
 
     /// <summary>Abbreviation label.</summary>
@@ -205,7 +242,9 @@ public sealed class MarkdownNativeAbbreviationDefinitionSnapshot {
     /// <summary>Source-backed token and payload fields in source order.</summary>
     public IReadOnlyList<MarkdownNativeAbbreviationDefinitionFieldSnapshot> SourceFields { get; }
 
-    private static IReadOnlyList<MarkdownNativeAbbreviationDefinitionFieldSnapshot> FromAbbreviationDefinitionFields(MarkdownAbbreviationDefinition definition) {
+    private static IReadOnlyList<MarkdownNativeAbbreviationDefinitionFieldSnapshot> FromAbbreviationDefinitionFields(
+        MarkdownNativeDocument? document,
+        MarkdownAbbreviationDefinition definition) {
         var fields = MarkdownNativeDocument.EnumerateAbbreviationDefinitionFields(definition).ToArray();
         if (fields.Length == 0) {
             return Array.Empty<MarkdownNativeAbbreviationDefinitionFieldSnapshot>();
@@ -213,7 +252,7 @@ public sealed class MarkdownNativeAbbreviationDefinitionSnapshot {
 
         var snapshots = new List<MarkdownNativeAbbreviationDefinitionFieldSnapshot>(fields.Length);
         for (var i = 0; i < fields.Length; i++) {
-            snapshots.Add(new MarkdownNativeAbbreviationDefinitionFieldSnapshot(fields[i]));
+            snapshots.Add(new MarkdownNativeAbbreviationDefinitionFieldSnapshot(document, fields[i]));
         }
 
         return snapshots;
@@ -224,10 +263,28 @@ public sealed class MarkdownNativeAbbreviationDefinitionSnapshot {
 /// UI-safe snapshot of a source-backed token or payload field owned by an abbreviation definition.
 /// </summary>
 public sealed class MarkdownNativeAbbreviationDefinitionFieldSnapshot {
-    internal MarkdownNativeAbbreviationDefinitionFieldSnapshot(MarkdownNativeAbbreviationDefinitionField field) {
+    internal MarkdownNativeAbbreviationDefinitionFieldSnapshot(MarkdownNativeAbbreviationDefinitionField field)
+        : this(null, field) {
+    }
+
+    internal MarkdownNativeAbbreviationDefinitionFieldSnapshot(MarkdownNativeDocument? document, MarkdownNativeAbbreviationDefinitionField field) {
         Name = field.Name;
         Value = field.Value;
         SourceSpan = new MarkdownNativeSourceSpanSnapshot(field.SourceSpan);
+
+        if (document == null) {
+            return;
+        }
+
+        if (document.TryCreateSourceSlice(field, out var sourceSlice)) {
+            SourceText = sourceSlice.Text;
+        }
+
+        if (document.TryCreateOriginalSourceSlice(field, out var originalSlice, out var failureReason)) {
+            OriginalSourceText = originalSlice.Text;
+        } else {
+            OriginalSourceFailureReason = failureReason;
+        }
     }
 
     /// <summary>Stable field name such as <c>openingMarker</c>, <c>label</c>, <c>separatorMarker</c>, or <c>title</c>.</summary>
@@ -238,6 +295,15 @@ public sealed class MarkdownNativeAbbreviationDefinitionFieldSnapshot {
 
     /// <summary>Source span for this field.</summary>
     public MarkdownNativeSourceSpanSnapshot SourceSpan { get; }
+
+    /// <summary>Exact normalized source text represented by this field when it could be materialized.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Exact original reader input represented by this field when trivia was preserved and mapping succeeded.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this field, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 }
 
 /// <summary>
