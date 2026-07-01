@@ -6560,6 +6560,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStylePaginationFlagsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    Style headingStyle = styles.Elements<Style>().FirstOrDefault(style => style.StyleId == headingStyleId)
+                        ?? new Style { Type = StyleValues.Paragraph, StyleId = headingStyleId };
+                    if (headingStyle.Parent == null) {
+                        styles.Append(headingStyle);
+                    }
+
+                    headingStyle.StyleParagraphProperties = new StyleParagraphProperties(
+                        new KeepLines(),
+                        new KeepNext(),
+                        new PageBreakBefore(),
+                        new WidowControl());
+
+                    document.AddParagraph("Styled built-in pagination paragraph").SetStyle(WordParagraphStyles.Heading1);
+
+                    document.Save(docPath);
+                }
+
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x05, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFKeep for built-in Heading style keep-lines.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x06, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFKeepFollow for built-in Heading style keep-next.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x07, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFPageBreakBefore for built-in Heading style page-break-before.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x31, 0x24, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmPFWidowControl for built-in Heading style widow control.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled built-in pagination paragraph", paragraph.Text);
+                Assert.Equal(headingStyleId, paragraph.StyleId);
+
+                Styles stylesAfterReload = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style headingStyleAfterReload = Assert.Single(stylesAfterReload.Elements<Style>(), style => style.StyleId == headingStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyleAfterReload.StyleParagraphProperties);
+                Assert.NotNull(paragraphProperties.GetFirstChild<KeepLines>());
+                Assert.NotNull(paragraphProperties.GetFirstChild<KeepNext>());
+                Assert.NotNull(paragraphProperties.GetFirstChild<PageBreakBefore>());
+                Assert.NotNull(paragraphProperties.GetFirstChild<WidowControl>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleNumberingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();

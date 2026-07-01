@@ -637,6 +637,9 @@ just to reserve names.
     DOC STSH records for used Heading styles, then reload them through the
     legacy reader while blocking unsupported used built-in style formatting
     before file bytes are committed.
+  - [x] Preserve supported built-in Heading paragraph style pagination flags
+    through native DOC save/reload, covering keep-lines, keep-next,
+    page-break-before, and widow-control formatting.
   - [x] Preserve supported built-in Heading paragraph style layout flags through
     native DOC save/reload, covering line-number suppression, auto-hyphenation
     suppression, contextual spacing, mirror indents, bidirectional layout, and
