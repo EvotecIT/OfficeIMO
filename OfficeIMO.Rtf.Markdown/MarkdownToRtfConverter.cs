@@ -45,7 +45,7 @@ internal static class MarkdownToRtfConverter {
     private static void ConvertBlock(RtfDocument document, IMarkdownBlock block, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
         switch (block) {
             case ParagraphBlock paragraph:
-                AppendInlineSequence(document.AddParagraph(), paragraph.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
+                ConvertParagraph(document, paragraph, options, footnoteDefinitions);
                 break;
             case HeadingBlock heading:
                 ConvertHeading(document, heading, options, footnoteDefinitions);
@@ -140,9 +140,24 @@ internal static class MarkdownToRtfConverter {
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
+                if (IsDuplicateListItemContentBlock(item, item.ChildBlocks[childIndex])) {
+                    continue;
+                }
+
                 ConvertNestedListOrBlock(document, item.ChildBlocks[childIndex], listId, level, options, footnoteDefinitions);
             }
         }
+    }
+
+    private static bool IsDuplicateListItemContentBlock(ListItem item, IMarkdownBlock block) {
+        return block is ParagraphBlock paragraph &&
+            string.Equals(PlainText(item.Content), PlainText(paragraph.Inlines), StringComparison.Ordinal);
+    }
+
+    private static string PlainText(InlineSequence sequence) {
+        var builder = new System.Text.StringBuilder();
+        ((IPlainTextMarkdownInline)sequence).AppendPlainText(builder);
+        return builder.ToString();
     }
 
     private static int CreateListDefinition(RtfDocument document, RtfListKind kind, int start) {
@@ -343,6 +358,29 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
+    private static void ConvertParagraph(RtfDocument document, ParagraphBlock paragraph, MarkdownToRtfOptions options, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions) {
+        if (ShouldOmitUnsafeHtmlOnlyParagraph(paragraph.Inlines, options)) {
+            return;
+        }
+
+        AppendInlineSequence(document.AddParagraph(), paragraph.Inlines, document, options, InlineStyle.Normal, footnoteDefinitions);
+    }
+
+    private static bool ShouldOmitUnsafeHtmlOnlyParagraph(InlineSequence sequence, MarkdownToRtfOptions options) {
+        if (options.PreserveRawHtmlAsText || sequence.Nodes.Count != 1) {
+            return false;
+        }
+
+        if (sequence.Nodes[0] is HtmlTagSequenceInline htmlTagSequence &&
+            IsSupportedHtmlFormattingTag(htmlTagSequence.TagName) &&
+            ContainsUnsupportedHtml(htmlTagSequence.Inlines)) {
+            options.Report("MDRTF004", RtfMarkdownDiagnosticSeverity.Warning, "Markdown raw HTML block omitted. Set PreserveRawHtmlAsText to keep it as visible text.", htmlTagSequence.RenderMarkdown());
+            return true;
+        }
+
+        return false;
+    }
+
     private static void ConvertImageBlock(RtfDocument document, ImageBlock image, MarkdownToRtfOptions options) {
         string label = string.IsNullOrWhiteSpace(image.PlainAlt) ? image.Path : image.PlainAlt!;
         document.AddParagraph("[Image: " + label + "]");
@@ -484,40 +522,40 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static void AppendInlineSequence(RtfParagraph paragraph, InlineSequence sequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
+    private static void AppendInlineSequence(RtfParagraph paragraph, InlineSequence sequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null, bool allowTextRunMerging = true) {
         for (int i = 0; i < sequence.Nodes.Count; i++) {
-            AppendInline(paragraph, sequence.Nodes[i], document, options, style, footnoteDefinitions, activeFootnotes);
+            AppendInline(paragraph, sequence.Nodes[i], document, options, style, footnoteDefinitions, activeFootnotes, allowTextRunMerging);
         }
     }
 
-    private static void AppendInline(RtfParagraph paragraph, IMarkdownInline inline, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
+    private static void AppendInline(RtfParagraph paragraph, IMarkdownInline inline, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null, bool allowTextRunMerging = true) {
         switch (inline) {
             case TextRun text:
-                AddStyledText(paragraph, text.Text, style);
+                AddStyledText(paragraph, text.Text, style, allowTextRunMerging);
                 break;
             case DecodedHtmlEntityTextRun decodedText:
-                AddStyledTextRaw(paragraph, decodedText.Text, style);
+                AddStyledTextRaw(paragraph, decodedText.Text, style, allowTextRunMerging);
                 break;
             case BoldInline bold:
-                AddStyledText(paragraph, bold.Text, style.WithBold());
+                AddStyledText(paragraph, bold.Text, style.WithBold(), allowTextRunMerging);
                 break;
             case ItalicInline italic:
-                AddStyledText(paragraph, italic.Text, style.WithItalic());
+                AddStyledText(paragraph, italic.Text, style.WithItalic(), allowTextRunMerging);
                 break;
             case BoldItalicInline boldItalic:
-                AddStyledText(paragraph, boldItalic.Text, style.WithBold().WithItalic());
+                AddStyledText(paragraph, boldItalic.Text, style.WithBold().WithItalic(), allowTextRunMerging);
                 break;
             case StrikethroughInline strike:
-                AddStyledText(paragraph, strike.Text, style.WithStrike());
+                AddStyledText(paragraph, strike.Text, style.WithStrike(), allowTextRunMerging);
                 break;
             case UnderlineInline underline:
-                AddStyledText(paragraph, underline.Text, style.WithUnderline());
+                AddStyledText(paragraph, underline.Text, style.WithUnderline(), allowTextRunMerging);
                 break;
             case HighlightInline highlight:
-                AddStyledText(paragraph, highlight.Text, style.WithHighlight(EnsureHighlightColor(document)));
+                AddStyledText(paragraph, highlight.Text, style.WithHighlight(EnsureHighlightColor(document)), allowTextRunMerging);
                 break;
             case CodeSpanInline code:
-                AddStyledTextRaw(paragraph, code.Text, style.WithFont(document.AddFont("Consolas")));
+                AddStyledTextRaw(paragraph, code.Text, style.WithFont(document.AddFont("Consolas")), allowTextRunMerging);
                 break;
             case LinkInline link:
                 AppendLink(paragraph, link, document, options, style, footnoteDefinitions, activeFootnotes);
@@ -526,7 +564,7 @@ internal static class MarkdownToRtfConverter {
                 AppendFootnoteReference(paragraph, footnote, document, options, style, footnoteDefinitions, activeFootnotes);
                 break;
             case ImageInline image:
-                AddStyledText(paragraph, "[Image: " + image.PlainAlt + "]", style);
+                AddStyledText(paragraph, "[Image: " + image.PlainAlt + "]", style, allowTextRunMerging);
                 options.Report("MDRTF006", RtfMarkdownDiagnosticSeverity.Warning, "Markdown inline image represented as text placeholder; binary embedding requires caller-provided media bytes.", image.Src);
                 break;
             case HardBreakInline:
@@ -536,46 +574,53 @@ internal static class MarkdownToRtfConverter {
                 AppendInlineRawHtml(paragraph, html.Html, options, style);
                 break;
             case BoldSequenceInline boldSequence:
-                AppendInlineSequence(paragraph, boldSequence.Inlines, document, options, style.WithBold(), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, boldSequence.Inlines, document, options, style.WithBold(), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case ItalicSequenceInline italicSequence:
-                AppendInlineSequence(paragraph, italicSequence.Inlines, document, options, style.WithItalic(), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, italicSequence.Inlines, document, options, style.WithItalic(), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case BoldItalicSequenceInline boldItalicSequence:
-                AppendInlineSequence(paragraph, boldItalicSequence.Inlines, document, options, style.WithBold().WithItalic(), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, boldItalicSequence.Inlines, document, options, style.WithBold().WithItalic(), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case StrikethroughSequenceInline strikeSequence:
-                AppendInlineSequence(paragraph, strikeSequence.Inlines, document, options, style.WithStrike(), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, strikeSequence.Inlines, document, options, style.WithStrike(), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case HighlightSequenceInline highlightSequence:
-                AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case HtmlTagSequenceInline htmlTagSequence:
-                AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style, footnoteDefinitions, activeFootnotes);
+                AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style, footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case IInlineContainerMarkdownInline container when container.NestedInlines != null:
-                AppendInlineSequence(paragraph, container.NestedInlines!, document, options, style, footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, container.NestedInlines!, document, options, style, footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             default:
-                AddStyledText(paragraph, RtfMarkdownText.PlainText(inline), style);
+                AddStyledText(paragraph, RtfMarkdownText.PlainText(inline), style, allowTextRunMerging);
                 options.Report("MDRTF007", RtfMarkdownDiagnosticSeverity.Info, "Markdown inline converted using plain text fallback.", inline.GetType().Name);
                 break;
         }
     }
 
-    private static void AppendHtmlTagSequence(RtfParagraph paragraph, HtmlTagSequenceInline htmlTagSequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null) {
+    private static void AppendHtmlTagSequence(RtfParagraph paragraph, HtmlTagSequenceInline htmlTagSequence, RtfDocument document, MarkdownToRtfOptions options, InlineStyle style, IReadOnlyDictionary<string, FootnoteDefinitionBlock> footnoteDefinitions, HashSet<string>? activeFootnotes = null, bool allowTextRunMerging = true) {
+        if (!options.PreserveRawHtmlAsText &&
+            IsSupportedHtmlFormattingTag(htmlTagSequence.TagName) &&
+            ContainsUnsupportedHtml(htmlTagSequence.Inlines)) {
+            options.Report("MDRTF004", RtfMarkdownDiagnosticSeverity.Warning, "Markdown raw HTML block omitted. Set PreserveRawHtmlAsText to keep it as visible text.", htmlTagSequence.RenderMarkdown());
+            return;
+        }
+
         switch (htmlTagSequence.TagName) {
             case "u":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithUnderline(), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithUnderline(), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case "sup":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case "sub":
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript), footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             default:
-                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style, footnoteDefinitions, activeFootnotes);
+                AppendInlineSequence(paragraph, htmlTagSequence.Inlines, document, options, style, footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 options.Report("MDRTF011", RtfMarkdownDiagnosticSeverity.Info, "Markdown HTML inline tag converted using nested text fallback.", htmlTagSequence.TagName);
                 break;
         }
@@ -589,7 +634,7 @@ internal static class MarkdownToRtfConverter {
 
         if (link.LabelInlines != null) {
             int before = paragraph.Inlines.Count;
-            AppendInlineSequence(paragraph, link.LabelInlines, document, options, style, footnoteDefinitions, activeFootnotes);
+            AppendInlineSequence(paragraph, link.LabelInlines, document, options, style, footnoteDefinitions, activeFootnotes, allowTextRunMerging: false);
             if (uri != null) {
                 for (int i = before; i < paragraph.Inlines.Count; i++) {
                     if (paragraph.Inlines[i] is RtfRun hyperlinkRun) {
@@ -603,7 +648,7 @@ internal static class MarkdownToRtfConverter {
             }
         }
 
-        RtfRun simpleRun = AddStyledText(paragraph, link.Text, style);
+        RtfRun simpleRun = AddStyledText(paragraph, link.Text, style, allowMerge: false);
         if (uri != null) {
             simpleRun.SetHyperlink(uri);
         }
@@ -658,16 +703,35 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static RtfRun AddStyledText(RtfParagraph paragraph, string text, InlineStyle style) {
-        RtfRun run = paragraph.AddText(DecodeMarkdownVisibleText(text));
+    private static RtfRun AddStyledText(RtfParagraph paragraph, string text, InlineStyle style, bool allowMerge = true) {
+        return AddStyledTextRaw(paragraph, DecodeMarkdownVisibleText(text), style, allowMerge);
+    }
+
+    private static RtfRun AddStyledTextRaw(RtfParagraph paragraph, string text, InlineStyle style, bool allowMerge = true) {
+        string value = text ?? string.Empty;
+        if (allowMerge &&
+            paragraph.Inlines.Count > 0 &&
+            paragraph.Inlines[paragraph.Inlines.Count - 1] is RtfRun previous &&
+            CanMergeRun(previous, style)) {
+            previous.Text += value;
+            return previous;
+        }
+
+        RtfRun run = paragraph.AddText(value);
         ApplyStyle(run, style);
         return run;
     }
 
-    private static RtfRun AddStyledTextRaw(RtfParagraph paragraph, string text, InlineStyle style) {
-        RtfRun run = paragraph.AddText(text ?? string.Empty);
-        ApplyStyle(run, style);
-        return run;
+    private static bool CanMergeRun(RtfRun run, InlineStyle style) {
+        return run.Hyperlink == null &&
+            run.Note == null &&
+            run.Bold == style.Bold &&
+            run.Italic == style.Italic &&
+            run.Strike == style.Strike &&
+            run.UnderlineStyle == (style.Underline ? RtfUnderlineStyle.Single : RtfUnderlineStyle.None) &&
+            run.HighlightColorIndex == style.HighlightColorIndex &&
+            run.FontId == style.FontId &&
+            run.VerticalPosition == (style.VerticalPosition ?? RtfVerticalPosition.Baseline);
     }
 
     private static void ApplyStyle(RtfRun run, InlineStyle style) {

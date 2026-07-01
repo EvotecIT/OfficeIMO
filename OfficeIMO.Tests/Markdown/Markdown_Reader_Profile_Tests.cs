@@ -165,6 +165,34 @@ public class Markdown_Reader_Profile_Tests {
     }
 
     [Fact]
+    public void CommonMark_Profile_Keeps_Overlong_Hex_Character_References_Literal() {
+        var document = MarkdownReader.Parse("&#x0000041;", MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        Assert.Equal(
+            "<p>&amp;#x0000041;</p>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            }));
+    }
+
+    [Fact]
+    public void Setext_Heading_Consumes_Multiline_Paragraph_And_Underline() {
+        const string markdown = """
+Alpha
+Beta
+---
+""";
+
+        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(2, heading.Level);
+        Assert.Equal("Alpha Beta", heading.Inlines.RenderMarkdown());
+    }
+
+    [Fact]
     public void Nested_Profile_Clones_Preserve_StandaloneImageBlocks_Option() {
         const string markdown = "> ![Alt](image.png)";
         var options = MarkdownReaderOptions.CreatePortableProfile();

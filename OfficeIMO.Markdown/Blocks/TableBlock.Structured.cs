@@ -184,6 +184,7 @@ public sealed partial class TableBlock {
         clone.UnorderedLists = source.UnorderedLists;
         clone.TaskLists = source.TaskLists;
         clone.OrderedLists = source.OrderedLists;
+        clone.ListExtras = source.ListExtras;
         clone.StrictListIndentation = source.StrictListIndentation;
         clone.Tables = false;
         clone.RequireTableBodyRowPipes = source.RequireTableBodyRowPipes;

@@ -68,6 +68,28 @@ Console.WriteLine("x");
     }
 
     [Fact]
+    public void Callout_LazyContinuation_Stops_Before_Block_Starters() {
+        const string md = """
+> [!NOTE]
+Body
+# Next
+""";
+
+        var document = MarkdownReader.Parse(md);
+
+        Assert.Collection(document.Blocks,
+            block => {
+                var callout = Assert.IsType<CalloutBlock>(block);
+                var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(callout.ChildBlocks));
+                Assert.Equal("Body", paragraph.Inlines.RenderMarkdown());
+            },
+            block => {
+                var heading = Assert.IsType<HeadingBlock>(block);
+                Assert.Equal("Next", heading.Inlines.RenderMarkdown());
+            });
+    }
+
+    [Fact]
     public void Callout_Title_With_ImageOnly_Inline_Does_Not_Fall_Back_To_Kind_Label() {
         string md = """
 > [!TIP] ![](/icon.svg)

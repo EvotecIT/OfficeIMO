@@ -7,7 +7,7 @@ namespace OfficeIMO.Markdown;
 internal static partial class CommonMarkCharacterReference {
     private const int MaxNamedReferenceLength = 32;
     private const int MaxDecimalReferenceDigits = 7;
-    private const int MaxHexReferenceDigits = 8;
+    private const int MaxHexReferenceDigits = 6;
 
     private static readonly Dictionary<string, string> NamedReferences = new(StringComparer.Ordinal) {
         ["nbsp"] = "\u00A0",

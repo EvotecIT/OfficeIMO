@@ -23,8 +23,12 @@ public static partial class MarkdownReader {
                         break;
                     }
 
+                    if (!TryNormalizeQuoteLazyContinuationLine(lines, j, options, out string normalizedLazyLine)) {
+                        break;
+                    }
+
                     innerSourceLines.Add(new MarkdownSourceLineSlice(
-                        t,
+                        normalizedLazyLine,
                         state.SourceLineOffset + j + 1,
                         GetLazyContinuationStartColumn(ln)));
                     j++;

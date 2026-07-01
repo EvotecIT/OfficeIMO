@@ -112,6 +112,28 @@ First paragraph
         }
 
         [Fact]
+        public void Structured_Table_Cells_Preserve_ListExtras_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| a. Alpha<br>b. Beta |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+            var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
+            var list = Assert.IsType<OrderedListBlock>(Assert.Single(cell.Blocks));
+
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Collection(list.Items,
+                item => Assert.Equal("Alpha", item.Content.RenderMarkdown()),
+                item => Assert.Equal("Beta", item.Content.RenderMarkdown()));
+        }
+
+        [Fact]
         public void Delimited_Table_Stops_Before_Plain_Paragraph_Line() {
             const string md = """
 | A |
