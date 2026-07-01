@@ -697,6 +697,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         Markdig.MarkdownExtensions.UseEmphasisExtras(builder);
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.Highlight = true;
+        officeOptions.Inserted = true;
+        officeOptions.Superscript = true;
         officeOptions.Subscript = true;
 
         var office = MarkdownReader
@@ -901,6 +904,9 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
         officeOptions.GenericAttributes = true;
+        officeOptions.Highlight = true;
+        officeOptions.Inserted = true;
+        officeOptions.Superscript = true;
         officeOptions.Subscript = true;
 
         var office = MarkdownReader

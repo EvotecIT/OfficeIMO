@@ -4,7 +4,7 @@ namespace OfficeIMO.Markdown;
 /// Decodes CommonMark character references without depending only on the narrower
 /// runtime HTML decoder table.
 /// </summary>
-internal static class CommonMarkCharacterReference {
+internal static partial class CommonMarkCharacterReference {
     private const int MaxNamedReferenceLength = 32;
     private const int MaxDecimalReferenceDigits = 7;
     private const int MaxHexReferenceDigits = 8;
@@ -120,6 +120,12 @@ internal static class CommonMarkCharacterReference {
         }
 
         string name = text.Substring(nameStart, scan - nameStart);
+        if (TryGetGeneratedNamedReference(name, out string? generatedDecoded) && generatedDecoded != null) {
+            consumed = scan - start + 1;
+            decoded = generatedDecoded;
+            return true;
+        }
+
         if (NamedReferences.TryGetValue(name, out string? namedDecoded) && namedDecoded != null) {
             consumed = scan - start + 1;
             decoded = namedDecoded;

@@ -80,6 +80,18 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Gfm_Autolinks_Allow_Bracketed_Ipv6_Hosts() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        var html = MarkdownReader.Parse("http://[::1]/", options).ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Contains("<a href=\"http://[::1]/\">http://[::1]/</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Autolinks_Keep_Balanced_Parentheses_In_Www_Urls() {
         var doc = MarkdownReader.Parse("See www.example.com/path_(demo) next.");
         var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });

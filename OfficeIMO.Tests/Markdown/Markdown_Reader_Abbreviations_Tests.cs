@@ -103,6 +103,19 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void Structured_Table_Cell_Blocks_Use_Document_Abbreviations() {
+        const string markdown = "*[HTML]: Hyper Text Markup Language\n\n| Term |\n| --- |\n| # HTML |";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Tables = true;
+        options.ParseTableCellBlocks = true;
+        options.Abbreviations = true;
+
+        var html = MarkdownReader.Parse(markdown, options).ToHtmlFragment(CreatePlainHtmlOptions());
+
+        Assert.Contains("<td><h1 id=\"html\"><abbr title=\"Hyper Text Markup Language\">HTML</abbr></h1></td>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Abbreviations_Use_Markdig_Boundaries_Around_Dashes_And_Opening_Punctuation() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML- HTML-like (HTML) 'HTML' \"HTML\" /HTML .HTML";
         var options = MarkdownReaderOptions.CreatePortableProfile();

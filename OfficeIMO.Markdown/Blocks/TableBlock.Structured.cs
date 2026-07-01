@@ -189,6 +189,9 @@ public sealed partial class TableBlock {
         clone.TocPlaceholders = source.TocPlaceholders;
         clone.Footnotes = source.Footnotes;
         clone.SingleTildeStrikethrough = source.SingleTildeStrikethrough;
+        clone.Highlight = source.Highlight;
+        clone.Inserted = source.Inserted;
+        clone.Superscript = source.Superscript;
         clone.Subscript = source.Subscript;
         clone.CjkFriendlyEmphasis = source.CjkFriendlyEmphasis;
         clone.PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions;
@@ -280,6 +283,10 @@ public sealed partial class TableBlock {
         var clone = new MarkdownReaderState();
         foreach (var kvp in state.LinkRefs) {
             clone.LinkRefs[kvp.Key] = kvp.Value;
+        }
+
+        foreach (var kvp in state.Abbreviations) {
+            clone.Abbreviations[kvp.Key] = kvp.Value;
         }
 
         clone.SourceLineOffset = state.SourceLineOffset;

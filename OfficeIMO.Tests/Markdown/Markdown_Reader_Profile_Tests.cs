@@ -19,6 +19,9 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
         Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Highlight);
+        Assert.False(options.Inserted);
+        Assert.False(options.Superscript);
         Assert.False(options.Subscript);
         Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.Tables);
@@ -51,6 +54,9 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
         Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Highlight);
+        Assert.False(options.Inserted);
+        Assert.False(options.Superscript);
         Assert.False(options.Subscript);
         Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.HtmlBlocks);
@@ -97,9 +103,32 @@ public class Markdown_Reader_Profile_Tests {
         Assert.Equal("http://", options.AutolinkWwwScheme);
         Assert.True(options.AutolinkEmails);
         Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Highlight);
+        Assert.False(options.Inserted);
+        Assert.False(options.Superscript);
         Assert.Single(options.BlockParserExtensions);
         Assert.Empty(options.InlineParserExtensions);
         Assert.Equal(MarkdownReaderBuiltInExtensions.FootnotesExtensionName, options.BlockParserExtensions[0].Name);
+    }
+
+    [Fact]
+    public void Strict_Profiles_Keep_Emphasis_Extras_Literal() {
+        const string markdown = "x^2^ and a ++b++ and ==mark== and H~2~O";
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+
+        var commonMark = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile()).ToHtmlFragment(htmlOptions);
+        var portable = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+
+        Assert.Equal("<p>x^2^ and a ++b++ and ==mark== and H~2~O</p>", commonMark);
+        Assert.Equal(commonMark, portable);
+        Assert.DoesNotContain("<sup>", commonMark, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ins>", commonMark, StringComparison.Ordinal);
+        Assert.DoesNotContain("<mark>", commonMark, StringComparison.Ordinal);
+        Assert.DoesNotContain("<sub>", commonMark, StringComparison.Ordinal);
     }
 
     [Fact]

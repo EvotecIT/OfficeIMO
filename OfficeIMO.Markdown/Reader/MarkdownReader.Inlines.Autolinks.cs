@@ -656,7 +656,16 @@ public static partial class MarkdownReader {
         while (i < text.Length) {
             char c = text[i];
             if (char.IsWhiteSpace(c)) break;
-            if ((c == ']' && !options.AutolinkAllowClosingBracketInUrl) || c == '<') break;
+            if (c == ']' && !options.AutolinkAllowClosingBracketInUrl) {
+                if (!IsClosingBracketForBracketedAuthority(text, start, i)) {
+                    break;
+                }
+
+                i++;
+                continue;
+            }
+
+            if (c == '<') break;
             if (c == '(') {
                 parenDepth++;
                 i++;
@@ -675,6 +684,16 @@ public static partial class MarkdownReader {
         }
 
         return i;
+    }
+
+    private static bool IsClosingBracketForBracketedAuthority(string text, int start, int bracketIndex) {
+        int schemeEnd = text.IndexOf("://", start, StringComparison.Ordinal);
+        if (schemeEnd < 0) {
+            return false;
+        }
+
+        int authorityStart = schemeEnd + 3;
+        return authorityStart < bracketIndex && text[authorityStart] == '[';
     }
 
     private static bool ShouldRejectAmbiguousTrailingParen(string text, int start, int rawEnd, int trimmedEnd) {
@@ -725,6 +744,16 @@ public static partial class MarkdownReader {
         if (schemeEnd < 0 || schemeEnd + 3 >= end) return false;
 
         int hostStart = schemeEnd + 3;
+        if (text[hostStart] == '[') {
+            for (int i = hostStart + 1; i < end; i++) {
+                char c = text[i];
+                if (c == ']') return true;
+                if (c == '/' || c == '?' || c == '#') return false;
+            }
+
+            return false;
+        }
+
         int hostEnd = end;
         for (int i = hostStart; i < end; i++) {
             char c = text[i];
@@ -735,10 +764,6 @@ public static partial class MarkdownReader {
         }
 
         if (hostEnd <= hostStart) return false;
-        if (text[hostStart] == '[') {
-            return text.IndexOf(']', hostStart, hostEnd - hostStart) >= 0;
-        }
-
         return text.IndexOf('.', hostStart, hostEnd - hostStart) >= 0;
     }
 

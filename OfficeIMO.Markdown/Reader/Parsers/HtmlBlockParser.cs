@@ -393,6 +393,7 @@ public static partial class MarkdownReader {
             if (!isClosing && string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)) return false;
             if (!isClosing && string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)) return false;
+            if (!isClosing && string.Equals(tagName, "textarea", StringComparison.OrdinalIgnoreCase)) return false;
             if (!IsOnlyWhitespaceAfter(trimmedLine, endIndex + 1)) return false;
             allowsBlankLines = AllowsBlankLineContinuation(tagName!, options);
             return true;
@@ -420,7 +421,8 @@ public static partial class MarkdownReader {
             return s_BlockTags.Contains(tagName)
                 || string.Equals(tagName, "script", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(tagName, "style", StringComparison.OrdinalIgnoreCase)
-                || string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase);
+                || string.Equals(tagName, "pre", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(tagName, "textarea", StringComparison.OrdinalIgnoreCase);
         }
 
         internal static bool TryParseHtmlTag(string line, out string tagName, out bool isClosing, out int endIndex) =>

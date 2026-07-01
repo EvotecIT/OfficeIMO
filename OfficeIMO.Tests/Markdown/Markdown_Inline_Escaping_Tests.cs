@@ -32,8 +32,8 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
         [Fact]
         public void CommonMark_Profile_Decodes_Html5_Named_Character_References() {
-            const string markdown = "&nbsp; &amp; &copy; &AElig; &Dcaron;\n&frac34; &HilbertSpace; &DifferentialD;\n&ClockwiseContourIntegral; &ngE;\n";
-            const string expected = "<p>  &amp; © Æ Ď\n¾ ℋ ⅆ\n∲ ≧̸</p>\n";
+            const string markdown = "&nbsp; &amp; &copy; &AElig; &Dcaron;\n&frac34; &HilbertSpace; &DifferentialD;\n&ClockwiseContourIntegral; &CounterClockwiseContourIntegral; &ngE;\n";
+            const string expected = "<p>  &amp; © Æ Ď\n¾ ℋ ⅆ\n∲ ∳ ≧̸</p>\n";
 
             var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
             var html = document.ToHtmlFragment(CommonMarkHtmlComparison.CreatePlainHtmlOptions());

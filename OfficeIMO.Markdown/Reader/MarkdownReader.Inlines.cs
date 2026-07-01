@@ -706,6 +706,14 @@ public static partial class MarkdownReader {
                 int runLen = 1;
                 while (pos + runLen < text.Length && text[pos + runLen] == marker) runLen++;
 
+                if ((marker == '=' && !options.Highlight)
+                    || (marker == '+' && !options.Inserted)
+                    || (marker == '^' && !options.Superscript)) {
+                    AddTextNode(new string(marker, runLen), pos, runLen);
+                    pos += runLen;
+                    continue;
+                }
+
                 bool splitDoubleRunIntoDualItalic = ShouldSplitDoubleRunIntoDualItalic(text, pos, marker, runLen, stack, options.CjkFriendlyEmphasis);
 
                 if (ShouldTreatDelimiterRunAsLiteral(text, pos, marker, runLen, stack, splitDoubleRunIntoDualItalic, options.CjkFriendlyEmphasis, out int literalRunLength)) {

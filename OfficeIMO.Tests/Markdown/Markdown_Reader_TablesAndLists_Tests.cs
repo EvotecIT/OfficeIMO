@@ -344,6 +344,24 @@ plain text
         }
 
         [Fact]
+        public void Table_Cells_Do_Not_Promote_Textarea_RawHtml_To_Structured_Blocks() {
+            string md = """
+| Notes |
+| --- |
+| <textarea>draft</textarea> |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Contains("textarea", paragraph.Inlines.RenderHtml(), StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.DoesNotContain("<textarea", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("&lt;textarea&gt;draft&lt;/textarea&gt;", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Can_Parse_Indented_Code_Block_Content_From_Cell_Body() {
             string md = """
 | Section | Notes |

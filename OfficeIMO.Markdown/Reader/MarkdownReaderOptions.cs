@@ -75,6 +75,9 @@ public sealed class MarkdownReaderOptions {
             StrictListIndentation = true,
             AllowLooseHtmlBlockStartTags = true,
             PreserveHtmlBlockBlankLineContent = false,
+            Highlight = false,
+            Inserted = false,
+            Superscript = false,
             Subscript = false,
             AutolinkUrls = false,
             AutolinkWwwUrls = false,
@@ -105,6 +108,9 @@ public sealed class MarkdownReaderOptions {
             AllowLooseHtmlBlockStartTags = true,
             PreserveHtmlBlockBlankLineContent = false,
             SingleTildeStrikethrough = true,
+            Highlight = false,
+            Inserted = false,
+            Superscript = false,
             Subscript = false,
             CjkFriendlyEmphasis = false,
             AutolinkUrls = true,
@@ -140,6 +146,9 @@ public sealed class MarkdownReaderOptions {
             GenericAttributes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
+            Highlight = false,
+            Inserted = false,
+            Superscript = false,
             Subscript = false,
             AutolinkUrls = false,
             AutolinkWwwUrls = false,
@@ -232,6 +241,21 @@ public sealed class MarkdownReaderOptions {
     /// Default: <c>false</c>.
     /// </summary>
     public bool SingleTildeStrikethrough { get; set; } = false;
+    /// <summary>
+    /// When <c>true</c>, Markdig emphasis-extra highlight/mark delimiters (<c>==text==</c>) are enabled.
+    /// This is disabled by strict CommonMark, GFM, and portable profiles unless explicitly opted in.
+    /// </summary>
+    public bool Highlight { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, Markdig emphasis-extra inserted-text delimiters (<c>++text++</c>) are enabled.
+    /// This is disabled by strict CommonMark, GFM, and portable profiles unless explicitly opted in.
+    /// </summary>
+    public bool Inserted { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, Markdig emphasis-extra superscript delimiters (<c>^text^</c>) are enabled.
+    /// This is disabled by strict CommonMark, GFM, and portable profiles unless explicitly opted in.
+    /// </summary>
+    public bool Superscript { get; set; } = true;
     /// <summary>
     /// When <c>true</c>, Markdig emphasis-extra subscript (<c>~text~</c>) is enabled.
     /// This is disabled by strict CommonMark and GFM profiles because GFM can use the same
