@@ -4951,6 +4951,7 @@ Console.WriteLine("hi");
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var code = Assert.Single(result.SyntaxTree.Children);
+        var codeBlock = Assert.IsType<CodeBlock>(code.AssociatedObject);
         Assert.Equal(MarkdownSyntaxKind.CodeBlock, code.Kind);
         Assert.NotNull(code.SourceSpan);
         Assert.Equal(1, code.SourceSpan!.Value.StartLine);
@@ -4960,12 +4961,14 @@ Console.WriteLine("hi");
         var opening = code.Children[0];
         Assert.Equal(MarkdownSyntaxKind.CodeFenceOpening, opening.Kind);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), codeBlock.OpeningFenceSourceSpan);
         Assert.Equal("```", opening.Literal);
 
         var info = code.Children[1];
         Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, info.Kind);
         Assert.NotNull(info.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 9), info.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 9), codeBlock.InfoStringSourceSpan);
         Assert.Equal("csharp", info.Literal);
 
         var content = code.Children[2];
@@ -4973,11 +4976,13 @@ Console.WriteLine("hi");
         Assert.NotNull(content.SourceSpan);
         Assert.Equal(2, content.SourceSpan!.Value.StartLine);
         Assert.Equal(2, content.SourceSpan!.Value.EndLine);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 24), codeBlock.ContentSourceSpan);
         Assert.Equal("Console.WriteLine(\"hi\");", content.Literal);
 
         var closing = code.Children[3];
         Assert.Equal(MarkdownSyntaxKind.CodeFenceClosing, closing.Kind);
         Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), closing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), codeBlock.ClosingFenceSourceSpan);
         Assert.Equal("```", closing.Literal);
     }
 
@@ -5001,9 +5006,39 @@ Console.WriteLine("hi");
         Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, info.Kind);
         Assert.Equal("json title=\"chart\"", info.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 27), info.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 27), Assert.IsType<CodeBlock>(code.AssociatedObject).InfoStringSourceSpan);
         Assert.Equal(MarkdownSyntaxKind.CodeFenceInfo, result.FindDeepestNodeAtPosition(1, 12)!.Kind);
         Assert.Equal("~~~~", closing.Literal);
         Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 6), closing.SourceSpan);
+    }
+
+    [Fact]
+    public void ParseWithSyntaxTree_Captures_Semantic_Fence_Info_And_Content_SourceSpans_On_Ast() {
+        var options = new MarkdownReaderOptions();
+        options.FencedBlockExtensions.Add(new MarkdownFencedBlockExtension(
+            "mermaid",
+            new[] { "mermaid" },
+            context => new SemanticFencedBlock(MarkdownSemanticKinds.Mermaid, context.InfoString, context.Content, context.Caption)));
+        var markdown = """
+```mermaid
+graph TD;
+```
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        var syntax = Assert.Single(result.SyntaxTree.Children);
+        var semantic = Assert.IsType<SemanticFencedBlock>(syntax.AssociatedObject);
+        var info = Assert.Single(syntax.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceInfo);
+        var content = Assert.Single(syntax.Children, child => child.Kind == MarkdownSyntaxKind.CodeContent);
+
+        Assert.Equal(MarkdownSyntaxKind.SemanticFencedBlock, syntax.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), semantic.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 10), info.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 10), semantic.InfoStringSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 9), content.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 9), semantic.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), semantic.ClosingFenceSourceSpan);
     }
 
     [Fact]

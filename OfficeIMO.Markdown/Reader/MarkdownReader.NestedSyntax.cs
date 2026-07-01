@@ -184,12 +184,16 @@ public static partial class MarkdownReader {
             case CodeBlock codeBlock:
                 codeBlock.SetFenceTokenSourceSpans(
                     GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceOpening),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceInfo),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeContent),
                     GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceClosing));
                 break;
 
             case SemanticFencedBlock semanticFencedBlock:
                 semanticFencedBlock.SetFenceTokenSourceSpans(
                     GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceOpening),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceInfo),
+                    GetChildSourceSpan(node, MarkdownSyntaxKind.CodeContent),
                     GetChildSourceSpan(node, MarkdownSyntaxKind.CodeFenceClosing));
                 break;
 

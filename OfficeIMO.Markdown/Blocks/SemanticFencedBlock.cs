@@ -49,6 +49,10 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
     internal int ClosingFenceLength { get; private set; } = 3;
     /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
     public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+    /// <summary>Source span for the fenced-block info string when parsed from a fenced source block.</summary>
+    public MarkdownSourceSpan? InfoStringSourceSpan { get; internal set; }
+    /// <summary>Source span for the fenced payload when source-backed.</summary>
+    public MarkdownSourceSpan? ContentSourceSpan { get; internal set; }
     /// <summary>Source span for the closing fence token when parsed from a closed fenced source block.</summary>
     public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
 
@@ -69,8 +73,14 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
         ClosingFenceLength = Math.Max(3, closingFenceLength);
     }
 
-    internal void SetFenceTokenSourceSpans(MarkdownSourceSpan? openingFenceSourceSpan, MarkdownSourceSpan? closingFenceSourceSpan) {
+    internal void SetFenceTokenSourceSpans(
+        MarkdownSourceSpan? openingFenceSourceSpan,
+        MarkdownSourceSpan? infoStringSourceSpan,
+        MarkdownSourceSpan? contentSourceSpan,
+        MarkdownSourceSpan? closingFenceSourceSpan) {
         OpeningFenceSourceSpan = openingFenceSourceSpan;
+        InfoStringSourceSpan = infoStringSourceSpan;
+        ContentSourceSpan = contentSourceSpan;
         ClosingFenceSourceSpan = closingFenceSourceSpan;
     }
 
@@ -141,17 +151,18 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
                 new string(FenceChar, FenceLength)));
         }
 
-        var infoSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(span, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns);
-        if (infoSpan.HasValue) {
+        InfoStringSourceSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(span, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns);
+        if (InfoStringSourceSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.CodeFenceInfo,
-                infoSpan,
+                InfoStringSourceSpan,
                 InfoString));
         }
 
+        ContentSourceSpan = MarkdownFencedBlockSourceSpans.GetContentSpan(span, IsFenced, Content);
         nodes.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CodeContent,
-            MarkdownFencedBlockSourceSpans.GetContentSpan(span, IsFenced, Content),
+            ContentSourceSpan,
             MarkdownBlockSyntaxBuilder.NormalizeSyntaxLiteralLineEndings(Content)));
 
         if (ClosingFenceSourceSpan.HasValue) {

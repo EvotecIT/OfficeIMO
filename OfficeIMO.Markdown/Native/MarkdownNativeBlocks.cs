@@ -123,9 +123,9 @@ public sealed class MarkdownNativeCodeBlock : MarkdownNativeBlock {
         OpeningFence = code.IsFenced ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? new string(code.FenceChar, code.FenceLength) : null;
         ClosingFence = code.IsFenced && code.HasClosingFence ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? new string(code.FenceChar, code.ClosingFenceLength) : null;
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? code.OpeningFenceSourceSpan;
-        InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
+        InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo) ?? code.InfoStringSourceSpan;
         AttributeSourceSpan = MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceSpan(FenceInfo, InfoStringSourceSpan);
-        ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent);
+        ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent) ?? code.ContentSourceSpan;
         ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? code.ClosingFenceSourceSpan;
     }
 
@@ -233,9 +233,9 @@ public sealed class MarkdownNativeVisualBlock : MarkdownNativeBlock {
         OpeningFence = visual.IsFenced ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? new string(visual.FenceChar, visual.FenceLength) : null;
         ClosingFence = visual.IsFenced && visual.HasClosingFence ? GetChildLiteral(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? new string(visual.FenceChar, visual.ClosingFenceLength) : null;
         OpeningFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceOpening) ?? visual.OpeningFenceSourceSpan;
-        InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo);
+        InfoStringSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceInfo) ?? visual.InfoStringSourceSpan;
         AttributeSourceSpan = MarkdownNativeFenceInfoSourceSpans.GetAttributeSourceSpan(FenceInfo, InfoStringSourceSpan);
-        ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent);
+        ContentSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeContent) ?? visual.ContentSourceSpan;
         ClosingFenceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.CodeFenceClosing) ?? visual.ClosingFenceSourceSpan;
     }
 
