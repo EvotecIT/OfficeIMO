@@ -10,6 +10,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const int TableLookLastColumn = 0x0100;
         private const int TableLookNoHorizontalBand = 0x0200;
         private const int TableLookNoVerticalBand = 0x0400;
+        private const int SupportedTableLookMask = TableLookFirstRow
+            | TableLookLastRow
+            | TableLookFirstColumn
+            | TableLookLastColumn
+            | TableLookNoHorizontalBand
+            | TableLookNoVerticalBand;
 
         private static LegacyDocTableConditionalStyleSet ReadSupportedTableConditionalStyles(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             Style? style = ResolveSupportedTableStyle(tableStyle, tableStyleDefinitions);
@@ -165,6 +171,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ApplyExpandedTableLookFlag(tableLook.LastColumn, TableLookLastColumn, ref mask);
             ApplyExpandedTableLookFlag(tableLook.NoHorizontalBand, TableLookNoHorizontalBand, ref mask);
             ApplyExpandedTableLookFlag(tableLook.NoVerticalBand, TableLookNoVerticalBand, ref mask);
+
+            int unsupportedMask = mask & ~SupportedTableLookMask;
+            if (unsupportedMask != 0) {
+                throw new NotSupportedException($"Native DOC saving supports table look masks only with first/last row, first/last column, and banding flags. Unsupported table look mask bits: 0x{unsupportedMask:X4}.");
+            }
 
             return new LegacyDocTableLook(
                 (mask & TableLookFirstRow) == TableLookFirstRow,
