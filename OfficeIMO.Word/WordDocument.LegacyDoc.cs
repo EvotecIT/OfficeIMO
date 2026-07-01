@@ -397,7 +397,14 @@ namespace OfficeIMO.Word {
             }
 
             foreach (LegacyDocBookmark bookmark in tableBlock.Bookmarks
-                .Where(bookmark => bookmark.StartCharacter == tableBlock.StartCharacter)
+                .Where(bookmark => bookmark.IsZeroLength && bookmark.StartCharacter == tableBlock.StartCharacter)
+                .OrderBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
+                parent.InsertBefore(new BookmarkStart { Id = bookmark.ProjectionId, Name = bookmark.Name }, table._table);
+                parent.InsertBefore(new BookmarkEnd { Id = bookmark.ProjectionId }, table._table);
+            }
+
+            foreach (LegacyDocBookmark bookmark in tableBlock.Bookmarks
+                .Where(bookmark => !bookmark.IsZeroLength && bookmark.StartCharacter == tableBlock.StartCharacter)
                 .OrderByDescending(bookmark => bookmark.EndCharacter)
                 .ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
                 parent.InsertBefore(new BookmarkStart { Id = bookmark.ProjectionId, Name = bookmark.Name }, table._table);

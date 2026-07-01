@@ -2369,6 +2369,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBeforeTableZeroLengthBookmarkAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Before table marker");
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].AddParagraph("BeforeBookmarkCell", removeExistingParagraphs: true);
+
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                    body.InsertBefore(new BookmarkStart { Id = "54", Name = "BeforeTableBookmark" }, table._table);
+                    body.InsertBefore(new BookmarkEnd { Id = "54" }, table._table);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "BeforeTableBookmark");
+
+                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(body.Elements<Table>());
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(tableElement.PreviousSibling());
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(bookmarkEnd.PreviousSibling());
+                Assert.Equal("BeforeTableBookmark", bookmarkStart.Name?.Value);
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocAfterTableZeroLengthBookmarkAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

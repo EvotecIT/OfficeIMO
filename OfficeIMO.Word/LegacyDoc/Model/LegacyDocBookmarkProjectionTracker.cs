@@ -64,7 +64,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return true;
             }
 
-            return bookmark.IsZeroLength && bookmark.StartCharacter == blockEndCharacter;
+            return bookmark.IsZeroLength
+                && (bookmark.StartCharacter == blockStartCharacter
+                    || bookmark.StartCharacter == blockEndCharacter);
         }
 
         internal IEnumerable<LegacyDocBookmark> GetUnprojectedBookmarks() {
