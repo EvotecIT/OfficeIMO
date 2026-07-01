@@ -980,8 +980,7 @@ just to reserve names.
     comment markers are blocked before native `.doc` bytes are committed.
   - [ ] Add bookmark locations outside body/table-cell/header/footer/footnote/
     endnote paragraphs, richer visual table style effects, nested tables,
-    section breaks inside richer body shapes, and richer section writing as
-    separate preflight-backed slices.
+    and richer section writing as separate preflight-backed slices.
     - [x] Write body-level bookmark start/end markers that sit between body
       paragraphs into native DOC bookmark PLCs, then reload them as normal
       cross-paragraph bookmark ranges through the legacy reader.
@@ -1021,6 +1020,10 @@ just to reserve names.
       supported child paragraphs/tables into native DOC content, while still
       blocking nested tables and unsupported child markup before bytes are
       committed.
+    - [x] Write supported section breaks inside simple body block content
+      controls, including content controls that contain a simple table followed
+      by a section-ending paragraph, then reload the resulting native DOC as
+      normal OfficeIMO sections.
     - [x] Block section properties inside table-cell block content controls
       before native DOC bytes are committed, keeping section breaks scoped to
       supported body paragraph boundaries.
