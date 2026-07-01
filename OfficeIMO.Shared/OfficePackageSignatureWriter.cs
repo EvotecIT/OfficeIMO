@@ -99,8 +99,12 @@ namespace OfficeIMO.Shared {
 #if NET472
             try {
                 using Package package = Package.Open(fullPath, FileMode.Open, FileAccess.ReadWrite);
-                List<Uri> partUris = ResolvePartUris(package, options).ToList();
+                List<Uri> partUris = ResolvePartUris(package, options, out IReadOnlyList<string> missingPartUris);
                 List<PackageRelationshipSelector> relationshipSelectors = ResolveRelationshipSelectors(package, options).ToList();
+
+                if (missingPartUris.Count > 0) {
+                    return Failed(fullPath, true, "Requested signing part(s) were not found: " + string.Join(", ", missingPartUris) + ".");
+                }
 
                 if (partUris.Count == 0) {
                     return Failed(fullPath, true, "No package parts were selected for signing.");
@@ -166,10 +170,13 @@ namespace OfficeIMO.Shared {
         }
 
 #if NET472
-        private static IEnumerable<Uri> ResolvePartUris(Package package, OfficePackageSigningOptions options) {
+        private static List<Uri> ResolvePartUris(Package package, OfficePackageSigningOptions options, out IReadOnlyList<string> missingPartUris) {
             HashSet<string>? requestedUris = options.PartUris == null
                 ? null
                 : new HashSet<string>(options.PartUris.Select(NormalizePartUri), StringComparer.OrdinalIgnoreCase);
+
+            var resolvedUris = new List<Uri>();
+            var foundRequestedUris = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
             foreach (PackagePart part in package.GetParts().OrderBy(part => part.Uri.ToString(), StringComparer.OrdinalIgnoreCase)) {
                 string normalizedPartUri = NormalizePartUri(part.Uri.ToString());
@@ -182,9 +189,15 @@ namespace OfficeIMO.Shared {
                 }
 
                 if (requestedUris == null || requestedUris.Contains(normalizedPartUri)) {
-                    yield return part.Uri;
+                    resolvedUris.Add(part.Uri);
+                    foundRequestedUris.Add(normalizedPartUri);
                 }
             }
+
+            missingPartUris = requestedUris == null
+                ? Array.Empty<string>()
+                : requestedUris.Where(uri => !foundRequestedUris.Contains(uri)).OrderBy(uri => uri, StringComparer.OrdinalIgnoreCase).ToArray();
+            return resolvedUris;
         }
 
         private static IEnumerable<PackageRelationshipSelector> ResolveRelationshipSelectors(Package package, OfficePackageSigningOptions options) {

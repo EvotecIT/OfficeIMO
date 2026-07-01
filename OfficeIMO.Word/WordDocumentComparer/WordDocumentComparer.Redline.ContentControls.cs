@@ -77,7 +77,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            InsertDeletedContentControl(targetDocument, sourceControls[sourceIndex].PartUri, deletedControl);
+            InsertDeletedContentControl(targetDocument, sourceControls[sourceIndex], deletedControl);
             return true;
         }
 
@@ -91,7 +91,12 @@ namespace OfficeIMO.Word {
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(root.Root, GetFeatureOrderBase(root.LocationKind))) {
                     if (ordered.Element is SdtElement contentControl) {
-                        entries.Add(new RedlineContentControlEntry(entries.Count, root.PartUri, contentControl));
+                        entries.Add(new RedlineContentControlEntry(
+                            entries.Count,
+                            root.PartUri,
+                            root.LocationKind,
+                            GetNoteId(contentControl),
+                            contentControl));
                     }
                 }
             }
@@ -283,8 +288,8 @@ namespace OfficeIMO.Word {
             return displayText.Substring(markerIndex + textMarker.Length);
         }
 
-        private static void InsertDeletedContentControl(WordprocessingDocument targetDocument, string partUri, SdtElement deletedControl) {
-            OpenXmlCompositeElement? targetContainer = GetRedlineContentControlContainer(targetDocument, partUri);
+        private static void InsertDeletedContentControl(WordprocessingDocument targetDocument, RedlineContentControlEntry entry, SdtElement deletedControl) {
+            OpenXmlCompositeElement? targetContainer = GetRedlineContentControlContainer(targetDocument, entry);
             if (targetContainer == null) {
                 return;
             }
@@ -300,19 +305,51 @@ namespace OfficeIMO.Word {
             InsertContentControlRedlineElement(targetContainer, block);
         }
 
-        private static OpenXmlCompositeElement? GetRedlineContentControlContainer(WordprocessingDocument targetDocument, string partUri) {
+        private static OpenXmlCompositeElement? GetRedlineContentControlContainer(WordprocessingDocument targetDocument, RedlineContentControlEntry entry) {
             MainDocumentPart? mainPart = targetDocument.MainDocumentPart;
             if (mainPart == null) {
                 return null;
             }
 
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
-                if (string.Equals(root.PartUri, partUri, StringComparison.Ordinal)) {
-                    return root.Root;
+                if (!string.Equals(root.PartUri, entry.PartUri, StringComparison.Ordinal)) {
+                    continue;
                 }
+
+                if (entry.LocationKind == WordFieldLocationKind.Footnote) {
+                    return FindNoteContainer<Footnote>(root.Root, entry.NoteId);
+                }
+
+                if (entry.LocationKind == WordFieldLocationKind.Endnote) {
+                    return FindNoteContainer<Endnote>(root.Root, entry.NoteId);
+                }
+
+                return root.Root;
             }
 
             return mainPart.Document?.Body;
+        }
+
+        private static OpenXmlCompositeElement? FindNoteContainer<TNote>(OpenXmlCompositeElement root, string? noteId)
+            where TNote : OpenXmlCompositeElement {
+            if (string.IsNullOrWhiteSpace(noteId)) {
+                return null;
+            }
+
+            return root.Elements<TNote>().FirstOrDefault(note => {
+                OpenXmlAttribute id = note.GetAttribute("id", "http://schemas.openxmlformats.org/wordprocessingml/2006/main");
+                return string.Equals(id.Value, noteId, StringComparison.Ordinal);
+            });
+        }
+
+        private static string? GetNoteId(SdtElement contentControl) {
+            Footnote? footnote = contentControl.Ancestors<Footnote>().FirstOrDefault();
+            if (footnote?.Id?.Value != null) {
+                return footnote.Id.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
+            }
+
+            Endnote? endnote = contentControl.Ancestors<Endnote>().FirstOrDefault();
+            return endnote?.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static void InsertContentControlRedlineElement(OpenXmlCompositeElement container, OpenXmlElement element) {
@@ -350,15 +387,21 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineContentControlEntry {
-            internal RedlineContentControlEntry(int index, string partUri, SdtElement contentControl) {
+            internal RedlineContentControlEntry(int index, string partUri, WordFieldLocationKind locationKind, string? noteId, SdtElement contentControl) {
                 Index = index;
                 PartUri = partUri;
+                LocationKind = locationKind;
+                NoteId = noteId;
                 ContentControl = contentControl;
             }
 
             internal int Index { get; }
 
             internal string PartUri { get; }
+
+            internal WordFieldLocationKind LocationKind { get; }
+
+            internal string? NoteId { get; }
 
             internal SdtElement ContentControl { get; }
         }

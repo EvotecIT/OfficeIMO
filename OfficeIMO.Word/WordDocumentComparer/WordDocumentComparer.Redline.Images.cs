@@ -6,6 +6,8 @@ using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
+        private const string OfficeRelationshipNamespace = "http://schemas.openxmlformats.org/officeDocument/2006/relationships";
+
         private static void ApplyImageFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineImageContainer> targetContainers = GetRedlineImageContainers(targetDocument);
             List<RedlineImageEntry> sourceImages = GetRedlineImageEntries(sourceDocument);
@@ -299,9 +301,65 @@ namespace OfficeIMO.Word {
                 imageData.RelationshipId = copiedRelationshipId;
             }
 
+            if (!CopyAdditionalRunRelationships(sourceEntry.Part, targetPart, clonedRun)) {
+                return null;
+            }
+
             RefreshClonedDrawingIds(targetDocument, clonedRun);
             RefreshClonedVmlIds(targetDocument, clonedRun);
             return clonedRun;
+        }
+
+        private static bool CopyAdditionalRunRelationships(OpenXmlPart sourcePart, OpenXmlPart targetPart, Run clonedRun) {
+            foreach (OpenXmlElement element in clonedRun.Descendants<OpenXmlElement>()) {
+                foreach (OpenXmlAttribute attribute in element.GetAttributes()) {
+                    if (!string.Equals(attribute.NamespaceUri, OfficeRelationshipNamespace, StringComparison.Ordinal) ||
+                        string.IsNullOrWhiteSpace(attribute.Value) ||
+                        IsHandledImageRelationshipAttribute(element, attribute)) {
+                        continue;
+                    }
+
+                    string relationshipId = attribute.Value!;
+                    string? copiedRelationshipId = CopyRelationship(sourcePart, targetPart, relationshipId);
+                    if (copiedRelationshipId == null) {
+                        return false;
+                    }
+
+                    element.SetAttribute(new OpenXmlAttribute(attribute.Prefix, attribute.LocalName, attribute.NamespaceUri, copiedRelationshipId));
+                }
+            }
+
+            return true;
+        }
+
+        private static bool IsHandledImageRelationshipAttribute(OpenXmlElement element, OpenXmlAttribute attribute) {
+            return element is A.Blip &&
+                   (string.Equals(attribute.LocalName, "embed", StringComparison.Ordinal) ||
+                    string.Equals(attribute.LocalName, "link", StringComparison.Ordinal)) ||
+                   element is V.ImageData &&
+                   string.Equals(attribute.LocalName, "id", StringComparison.Ordinal);
+        }
+
+        private static string? CopyRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {
+            HyperlinkRelationship? hyperlinkRelationship = sourcePart.HyperlinkRelationships.FirstOrDefault(relationship => relationship.Id == relationshipId);
+            if (hyperlinkRelationship != null) {
+                HyperlinkRelationship targetRelationship = targetPart.AddHyperlinkRelationship(hyperlinkRelationship.Uri, hyperlinkRelationship.IsExternal);
+                return targetRelationship.Id;
+            }
+
+            ExternalRelationship? externalRelationship = sourcePart.ExternalRelationships.FirstOrDefault(relationship => relationship.Id == relationshipId);
+            if (externalRelationship != null) {
+                ExternalRelationship targetRelationship = targetPart.AddExternalRelationship(externalRelationship.RelationshipType, externalRelationship.Uri);
+                return targetRelationship.Id;
+            }
+
+            try {
+                return sourcePart.GetPartById(relationshipId) is ImagePart
+                    ? CopyEmbeddedImageRelationship(sourcePart, targetPart, relationshipId)
+                    : null;
+            } catch (ArgumentOutOfRangeException) {
+                return null;
+            }
         }
 
         private static string? CopyEmbeddedImageRelationship(OpenXmlPart sourcePart, OpenXmlPart targetPart, string relationshipId) {

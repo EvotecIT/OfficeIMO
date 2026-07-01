@@ -805,7 +805,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (ReferenceEquals(currentParagraph, targetParagraph)) {
-                    return page;
+                    return page + CountPageBreaksBeforeAnchor(targetParagraph, anchorElement);
                 }
 
                 page += currentParagraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
@@ -816,6 +816,21 @@ namespace OfficeIMO.Word {
             }
 
             return null;
+        }
+
+        private static int CountPageBreaksBeforeAnchor(Paragraph paragraph, OpenXmlElement anchorElement) {
+            int pageBreaks = 0;
+            foreach (OpenXmlElement element in paragraph.Descendants()) {
+                if (ReferenceEquals(element, anchorElement)) {
+                    return pageBreaks;
+                }
+
+                if (element is Break documentBreak && documentBreak.Type?.Value == BreakValues.Page) {
+                    pageBreaks++;
+                }
+            }
+
+            return pageBreaks;
         }
 
         private static bool StartsNewPage(SectionProperties? sectionProperties) {

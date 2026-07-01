@@ -1303,14 +1303,24 @@ namespace OfficeIMO.Tests {
                 pageStart.Append(new Run(new Text(" Current page: ") { Space = SpaceProcessingModeValues.Preserve }));
                 pageStart.Append(BuildSimpleField(" PAGE ", "stale-page"));
                 document.AddParagraph("Page reference: ")._paragraph.Append(BuildSimpleField(" PAGEREF PageStartBookmark ", "stale-pageref"));
+                Paragraph inlineBreak = document.AddParagraph("Inline break target")._paragraph;
+                inlineBreak.Append(
+                    new Run(new Break { Type = BreakValues.Page }),
+                    new Run(new Text(" After break ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new BookmarkStart { Name = "InlineBreakBookmark", Id = "102" },
+                    new Run(new Text("bookmarked") { Space = SpaceProcessingModeValues.Preserve }),
+                    new BookmarkEnd { Id = "102" },
+                    new Run(new Text(" Current page: ") { Space = SpaceProcessingModeValues.Preserve }),
+                    BuildSimpleField(" PAGE ", "stale-inline-page"));
+                document.AddParagraph("Inline page reference: ")._paragraph.Append(BuildSimpleField(" PAGEREF InlineBreakBookmark ", "stale-inline-pageref"));
                 document.Save(false);
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(2, report.TotalCount);
-                Assert.Equal(2, report.UpdatedCount);
+                Assert.Equal(4, report.TotalCount);
+                Assert.Equal(4, report.UpdatedCount);
                 Assert.Contains(report.Results, result =>
                     result.FieldType == WordFieldType.Page &&
                     result.Status == WordFieldUpdateStatus.Updated &&
@@ -1319,6 +1329,14 @@ namespace OfficeIMO.Tests {
                     result.FieldType == WordFieldType.PageRef &&
                     result.Status == WordFieldUpdateStatus.Updated &&
                     result.ResultText == "4");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Page &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "5");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.PageRef &&
+                    result.Status == WordFieldUpdateStatus.Updated &&
+                    result.ResultText == "5");
             }
         }
 

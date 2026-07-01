@@ -565,6 +565,79 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceInsertsDeletedContentControlsIntoOriginalFootnote() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_footnote_sdt_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
+                document.Save(false);
+            }
+
+            AddContentControlToFirstFootnote(sourcePath, "Deleted note control");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_footnote_sdt_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Footnote anchor").AddFootNote("Footnote body");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_footnote_sdt_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(outputPath, false);
+            Footnotes footnotes = package.MainDocumentPart!.FootnotesPart!.Footnotes!;
+            Footnote note = footnotes.Elements<Footnote>().First(footnote => footnote.Type == null || footnote.Type.Value == FootnoteEndnoteValues.Normal);
+            Assert.Contains(note.Descendants<DeletedRun>(), deleted => deleted.InnerText == "Deleted note control");
+            Assert.Empty(footnotes.Elements<SdtBlock>());
+            Assert.Empty(footnotes.Elements<Paragraph>());
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceCopiesDeletedImageHyperlinkRelationships() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string stableImagePath = Path.Combine(_directoryWithImages, "snail.bmp");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph().AddImage(imagePath, 80, 40);
+                document.AddParagraph().AddImage(stableImagePath, 40, 40);
+                document.Save(false);
+            }
+
+            AddDrawingImageHyperlinkClick(sourcePath, "https://evotec.xyz/deleted-image");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph().AddImage(stableImagePath, 40, 40);
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_image_hyperlink_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(outputPath, false);
+            MainDocumentPart mainPart = package.MainDocumentPart!;
+            DeletedRun deletedRun = Assert.Single(mainPart.Document.Body!.Descendants<DeletedRun>());
+            DocumentFormat.OpenXml.Drawing.HyperlinkOnClick hyperlink = Assert.Single(deletedRun.Descendants<DocumentFormat.OpenXml.Drawing.HyperlinkOnClick>());
+            Assert.NotNull(hyperlink.Id?.Value);
+            string relationshipId = hyperlink.Id!.Value!;
+            HyperlinkRelationship relationship = Assert.Single(mainPart.HyperlinkRelationships, item => item.Id == relationshipId);
+            Assert.Equal(new Uri("https://evotec.xyz/deleted-image"), relationship.Uri);
+        }
+
+        [Fact]
         public void TableOfContentRefreshCombinesSplitComplexTocInstruction() {
             string filePath = Path.Combine(_directoryWithFiles, "TocRefreshSplitComplexInstruction.docx");
 
@@ -1069,6 +1142,19 @@ namespace OfficeIMO.Tests {
             }
 
             document.Save(false);
+        }
+
+        private static void AddContentControlToFirstFootnote(string path, string text) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Footnote footnote = document.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().First(item => item.Type == null || item.Type.Value == FootnoteEndnoteValues.Normal);
+            footnote.Append(new SdtBlock(
+                new SdtProperties(
+                    new SdtAlias { Val = "Deleted note control" },
+                    new Tag { Val = "DeletedNoteControl" }),
+                new SdtContentBlock(
+                    new Paragraph(
+                        new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })))));
+            document.MainDocumentPart.FootnotesPart.Footnotes.Save();
         }
 
         private static void CreateRevisionRegressionDocument(string path, params string[] insertedTexts) {
