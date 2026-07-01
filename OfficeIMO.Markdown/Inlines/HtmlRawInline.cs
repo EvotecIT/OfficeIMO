@@ -20,7 +20,7 @@ public sealed class HtmlRawInline : MarkdownInline, IRenderableMarkdownInline, I
         return handling switch {
             RawHtmlHandling.Allow => options?.GitHubHtmlTagFilter == true ? GitHubHtmlTagFilter.Apply(Html) : Html,
             RawHtmlHandling.Escape => HtmlTextEncoder.Encode(Html, options),
-            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html),
+            RawHtmlHandling.Sanitize => RawHtmlSanitizer.Sanitize(Html, options),
             _ => string.Empty
         };
     }

@@ -175,9 +175,6 @@ public static partial class MarkdownReader {
                 return false;
             }
 
-            if (!rejectUnderscoreInHost && i >= 2 && (label[0] == '_' || label.IndexOf('_') >= 0)) {
-                return false;
-            }
         }
 
         return true;

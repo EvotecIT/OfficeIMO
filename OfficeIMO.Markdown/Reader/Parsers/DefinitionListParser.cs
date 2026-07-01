@@ -87,6 +87,12 @@ public static partial class MarkdownReader {
                 }
 
                 var definitionObject = new DefinitionListDefinition(definitionBlocks);
+                if (definitionBlocks.Count == 1 &&
+                    definitionBlocks[0] is ParagraphBlock definitionParagraph &&
+                    !definitionParagraph.Attributes.IsEmpty) {
+                    definitionObject.ForceParagraphHtml = true;
+                }
+
                 definitionObject.ReplaceBlankLineSourceSpans(GetDefinitionBlankLineSourceSpans(definitionSourceLines, state));
                 definitionObject.ReplaceContinuationIndentSourceSpans(continuationIndentSourceSpans);
                 var group = new DefinitionListGroup(

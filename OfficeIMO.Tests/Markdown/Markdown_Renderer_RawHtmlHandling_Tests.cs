@@ -77,6 +77,23 @@ public class Markdown_Renderer_RawHtmlHandling_Tests {
         Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void HtmlOptions_Can_Sanitize_Inline_RawHtml_With_NonAscii_Text_Literal() {
+        const string md = "Before <span>åbad</span> and <u>åok</u>";
+        var opts = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            RawHtmlHandling = RawHtmlHandling.Sanitize,
+            EscapeNonAsciiText = false
+        };
+
+        var html = MarkdownReader.Parse(md).ToHtmlFragment(opts);
+
+        Assert.Contains("Before &lt;span&gt;åbad&lt;/span&gt; and <u>åok</u>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("&#229;", html, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("type 1 script", "<script>\nalert(1)\n</script>", "<script>", "&lt;script&gt;")]
     [InlineData("type 2 comment", "<!-- keep -->", "<!-- keep -->", "&lt;!-- keep --&gt;")]

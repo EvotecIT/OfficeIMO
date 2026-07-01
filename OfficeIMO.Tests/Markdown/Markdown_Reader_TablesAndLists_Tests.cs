@@ -94,6 +94,40 @@ First paragraph
         }
 
         [Fact]
+        public void Structured_Table_Cells_Preserve_Autolink_Rejection_Options_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| # Visit https://exa_mple.com |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.AutolinkRejectUnderscoreInUrlHost = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains(">Visit https://exa_mple.com</h1>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://exa_mple.com\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Delimited_Table_Stops_Before_Plain_Paragraph_Line() {
+            const string md = """
+| A |
+|---|
+| B |
+plain text
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            Assert.IsType<TableBlock>(doc.Blocks[0]);
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+            Assert.Equal("plain text", paragraph.Inlines.RenderMarkdown());
+        }
+
+        [Fact]
         public void Table_Parsing_Does_Not_Treat_Unmatched_Multi_Backticks_As_Code_Spans() {
             string md = """
 | Col1 | Col2 |

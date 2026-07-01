@@ -201,10 +201,16 @@ public sealed partial class TableBlock {
         clone.AutolinkAllowBalancedParenthesesWithTrailingPunctuation = source.AutolinkAllowBalancedParenthesesWithTrailingPunctuation;
         clone.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = source.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis;
         clone.AutolinkTrimSingleTrailingPunctuationOrUnderscore = source.AutolinkTrimSingleTrailingPunctuationOrUnderscore;
+        clone.AutolinkKeepTrailingSemicolonPunctuation = source.AutolinkKeepTrailingSemicolonPunctuation;
         clone.AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix;
         clone.AutolinkRejectUnderscoreInWwwHost = source.AutolinkRejectUnderscoreInWwwHost;
+        clone.AutolinkRejectUnderscoreInUrlHost = source.AutolinkRejectUnderscoreInUrlHost;
+        clone.AutolinkRejectUserInfoAuthority = source.AutolinkRejectUserInfoAuthority;
+        clone.AutolinkAllowClosingBracketInUrl = source.AutolinkAllowClosingBracketInUrl;
+        clone.AutolinkKeepTrailingQuotePunctuation = source.AutolinkKeepTrailingQuotePunctuation;
         clone.AutolinkRequireLowercaseBareSchemePrefix = source.AutolinkRequireLowercaseBareSchemePrefix;
         clone.AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly;
+        clone.AutolinkBareMailtoMarkdigSemicolonHandling = source.AutolinkBareMailtoMarkdigSemicolonHandling;
         clone.AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters;
         clone.AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls;
         clone.AutolinkBareSchemePrefixes = source.AutolinkBareSchemePrefixes == null

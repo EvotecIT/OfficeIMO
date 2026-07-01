@@ -741,6 +741,18 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Autolinks_Default_Profile_Allows_Www_Host_Underscores_When_Rejection_Is_Disabled() {
+        var options = new MarkdownReaderOptions {
+            AutolinkRejectUnderscoreInWwwHost = false
+        };
+
+        var doc = MarkdownReader.Parse("Visit www.foo.bar_baz.com now", options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("<a href=\"https://www.foo.bar_baz.com\">www.foo.bar_baz.com</a>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Require_Lowercase_Www_Prefix_But_Allow_Mixed_Case_Host() {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         var upperPrefix = MarkdownReader.Parse("Visit WWW.example.com now", options)
