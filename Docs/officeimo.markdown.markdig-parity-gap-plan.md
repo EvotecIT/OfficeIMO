@@ -246,6 +246,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
 - [ ] Associate syntax nodes with semantic subobjects such as callout titles, list item paragraphs, definition groups/definitions, table rows/cells, and sequence-style inline wrappers.
   - [x] Native table row projections now carry their source row, syntax node, source span, row markdown, cell projections, navigation, source fields, source slices, source edits, and snapshots for parsed pipe-table header/body rows.
   - [x] Native table cells now surface as repeated `tableCell` source fields with stable occurrence indexes, snapshot entries, caret lookup, source edits, and empty-cell coverage.
+  - [x] Native definition-list groups now surface as repeated `definitionGroup` source fields with stable occurrence indexes, snapshot entries, caret lookup, and source edits while narrower term/marker/body fields keep priority.
 - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node roundtrip semantics.
 - [ ] Complete delimiter-token coverage for extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.

@@ -584,6 +584,10 @@ public sealed partial class MarkdownNativeDocument {
         var definitionIndex = 0;
         for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
             var group = definitionList.Groups[groupIndex];
+            if (group.SourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("definitionGroup", null, group.SourceSpan.Value, definitionList, groupIndex);
+            }
+
             for (var termOffset = 0; termOffset < group.Terms.Count; termOffset++) {
                 var term = group.Terms[termOffset];
                 if (term.SourceSpan.HasValue) {
