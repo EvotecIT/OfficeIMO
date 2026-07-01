@@ -326,19 +326,24 @@ internal static class MarkdownInlineMetadataSourceSpans {
             EscapedCharacter = escapedCharacter ?? string.Empty,
             EscapedCharacterSpan = escapedCharacterSpan
         };
+        inline.SetMarkdownSyntaxMetadataSpans(escapeMarker, escapeMarkerSpan, escapedCharacter, escapedCharacterSpan);
     }
 
     internal static string? GetEscapeMarker(TextRun? inline) =>
-        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarker : null;
+        inline?.EscapeMarker
+        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarker : null);
 
     internal static MarkdownSourceSpan? GetEscapeMarkerSpan(TextRun? inline) =>
-        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarkerSpan : null;
+        inline?.EscapeMarkerSourceSpan
+        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapeMarkerSpan : null);
 
     internal static string? GetEscapedCharacter(TextRun? inline) =>
-        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacter : null;
+        inline?.EscapedCharacter
+        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacter : null);
 
     internal static MarkdownSourceSpan? GetEscapedCharacterSpan(TextRun? inline) =>
-        inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacterSpan : null;
+        inline?.EscapedCharacterSourceSpan
+        ?? (inline != null && _escapedTextSpans.TryGetValue(inline, out var holder) ? holder.State?.EscapedCharacterSpan : null);
 
     internal static void SetDecodedEntity(
         DecodedHtmlEntityTextRun? inline,
@@ -357,13 +362,16 @@ internal static class MarkdownInlineMetadataSourceSpans {
             SourceText = sourceText ?? string.Empty,
             SourceTextSpan = sourceTextSpan
         };
+        inline.SetMarkdownSyntaxMetadataSpans(sourceText, sourceTextSpan);
     }
 
     internal static string? GetDecodedEntitySourceText(DecodedHtmlEntityTextRun? inline) =>
-        inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceText : null;
+        inline?.SourceText
+        ?? (inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceText : null);
 
     internal static MarkdownSourceSpan? GetDecodedEntitySourceTextSpan(DecodedHtmlEntityTextRun? inline) =>
-        inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceTextSpan : null;
+        inline?.SourceTextSourceSpan
+        ?? (inline != null && _decodedEntitySpans.TryGetValue(inline, out var holder) ? holder.State?.SourceTextSpan : null);
 
     internal static void SetHardBreakMarker(
         HardBreakInline? inline,
@@ -382,13 +390,16 @@ internal static class MarkdownInlineMetadataSourceSpans {
             Marker = marker ?? string.Empty,
             MarkerSpan = markerSpan
         };
+        inline.SetMarkdownSyntaxMetadataSpans(marker, markerSpan);
     }
 
     internal static string? GetHardBreakMarker(HardBreakInline? inline) =>
-        inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.Marker : null;
+        inline?.Marker
+        ?? (inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.Marker : null);
 
     internal static MarkdownSourceSpan? GetHardBreakMarkerSpan(HardBreakInline? inline) =>
-        inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.MarkerSpan : null;
+        inline?.MarkerSourceSpan
+        ?? (inline != null && _hardBreakMarkerSpans.TryGetValue(inline, out var holder) ? holder.State?.MarkerSpan : null);
 
     internal static void SetAbbreviationParts(
         AbbreviationInline? inline,

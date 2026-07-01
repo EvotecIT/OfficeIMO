@@ -755,6 +755,11 @@ baz*
         Assert.Equal(2, escaped.Length);
         Assert.Equal("*", escaped[0].Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), escaped[0].SourceSpan);
+        var firstEscapedRun = Assert.IsType<TextRun>(escaped[0].AssociatedObject);
+        Assert.Equal("\\", firstEscapedRun.EscapeMarker);
+        Assert.Equal("*", firstEscapedRun.EscapedCharacter);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), firstEscapedRun.EscapeMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 6), firstEscapedRun.EscapedCharacterSourceSpan);
         Assert.Collection(escaped[0].Children,
             escapeMarker => {
                 Assert.Equal(MarkdownSyntaxKind.InlineEscapeMarker, escapeMarker.Kind);
@@ -771,9 +776,17 @@ baz*
         Assert.Collection(escaped[1].Children,
             escapeMarker => Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), escapeMarker.SourceSpan),
             escapedCharacter => Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 15), escapedCharacter.SourceSpan));
+        var secondEscapedRun = Assert.IsType<TextRun>(escaped[1].AssociatedObject);
+        Assert.Equal("\\", secondEscapedRun.EscapeMarker);
+        Assert.Equal("*", secondEscapedRun.EscapedCharacter);
+        Assert.Equal(new MarkdownSourceSpan(1, 14, 1, 14), secondEscapedRun.EscapeMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 15, 1, 15), secondEscapedRun.EscapedCharacterSourceSpan);
 
         Assert.Equal("&", entity.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 25), entity.SourceSpan);
+        var entityRun = Assert.IsType<DecodedHtmlEntityTextRun>(entity.AssociatedObject);
+        Assert.Equal("&amp;", entityRun.SourceText);
+        Assert.Equal(new MarkdownSourceSpan(1, 21, 1, 25), entityRun.SourceTextSourceSpan);
         var sourceText = Assert.Single(entity.Children);
         Assert.Equal(MarkdownSyntaxKind.InlineEntitySourceText, sourceText.Kind);
         Assert.Equal("&amp;", sourceText.Literal);
@@ -805,6 +818,9 @@ baz*
             twoSpaces => {
                 Assert.Equal("\\n", twoSpaces.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 5), twoSpaces.SourceSpan);
+                var hardBreak = Assert.IsType<HardBreakInline>(twoSpaces.AssociatedObject);
+                Assert.Equal("  ", hardBreak.Marker);
+                Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 5), hardBreak.MarkerSourceSpan);
                 var marker = Assert.Single(twoSpaces.Children);
                 Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind);
                 Assert.Equal("  ", marker.Literal);
@@ -814,6 +830,9 @@ baz*
             backslash => {
                 Assert.Equal("\\n", backslash.Literal);
                 Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 6), backslash.SourceSpan);
+                var hardBreak = Assert.IsType<HardBreakInline>(backslash.AssociatedObject);
+                Assert.Equal("\\", hardBreak.Marker);
+                Assert.Equal(new MarkdownSourceSpan(2, 6, 2, 6), hardBreak.MarkerSourceSpan);
                 var marker = Assert.Single(backslash.Children);
                 Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind);
                 Assert.Equal("\\", marker.Literal);
@@ -823,6 +842,9 @@ baz*
             htmlBreak => {
                 Assert.Equal("\\n", htmlBreak.Literal);
                 Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 10), htmlBreak.SourceSpan);
+                var hardBreak = Assert.IsType<HardBreakInline>(htmlBreak.AssociatedObject);
+                Assert.Equal("<br />", hardBreak.Marker);
+                Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 10), hardBreak.MarkerSourceSpan);
                 var marker = Assert.Single(htmlBreak.Children);
                 Assert.Equal(MarkdownSyntaxKind.InlineHardBreakMarker, marker.Kind);
                 Assert.Equal("<br />", marker.Literal);
