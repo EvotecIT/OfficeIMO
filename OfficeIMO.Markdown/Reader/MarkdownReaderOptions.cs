@@ -93,6 +93,7 @@ public sealed class MarkdownReaderOptions {
             TaskLists = true,
             Tables = true,
             AllowHeaderlessTables = false,
+            RequireTableBodyRowPipes = false,
             ParseTableCellBlocks = false,
             DefinitionLists = false,
             TocPlaceholders = false,
@@ -111,6 +112,7 @@ public sealed class MarkdownReaderOptions {
             AutolinkAllowQueryAndFragmentSpecialCharacters = true,
             AutolinkAllowBalancedParenthesesWithTrailingPunctuation = true,
             AutolinkRequireLowercaseWwwPrefix = true,
+            AutolinkRejectUnderscoreInWwwSubdomainLabels = true,
             AutolinkRequireLowercaseBareSchemePrefix = true,
             AutolinkBareSchemeUrls = true,
             AutolinkWwwUrls = true,
@@ -191,6 +193,12 @@ public sealed class MarkdownReaderOptions {
     /// Disable this for stricter GitHub Flavored Markdown compatibility, where a delimiter row is required.
     /// </summary>
     public bool AllowHeaderlessTables { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, rows after a table delimiter row must still contain a pipe character.
+    /// OfficeIMO defaults to the conservative form so ordinary paragraphs after a table are not
+    /// consumed as body rows; the GFM profile disables this to match cmark-gfm pipe-table fixtures.
+    /// </summary>
+    public bool RequireTableBodyRowPipes { get; set; } = true;
     /// <summary>
     /// When <c>true</c>, table cells that look like nested markdown can be upgraded to structured block content.
     /// Disable this for GitHub Flavored Markdown compatibility, where table cells contain inline content only.
@@ -327,6 +335,13 @@ public sealed class MarkdownReaderOptions {
     /// behavior available for existing consumers.
     /// </summary>
     public bool AutolinkRejectUnderscoreInWwwHost { get; set; } = false;
+
+    /// <summary>
+    /// When <c>true</c>, bare <c>www.</c> autolinks reject underscores in labels after the first
+    /// host label. This mirrors cmark-gfm's extension fixture boundary while allowing
+    /// <c>www._first.example</c>.
+    /// </summary>
+    public bool AutolinkRejectUnderscoreInWwwSubdomainLabels { get; set; } = false;
 
     /// <summary>
     /// When <c>true</c>, bare URL autolinks with an authority such as <c>https://</c> or

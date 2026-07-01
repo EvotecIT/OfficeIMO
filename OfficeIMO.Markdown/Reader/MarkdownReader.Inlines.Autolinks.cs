@@ -138,7 +138,11 @@ public static partial class MarkdownReader {
         var token = text.Substring(start, i - start);
         if (token.Length <= 4) return false;
         if (!options.AutolinkAllowDomainWithoutPeriod && token.IndexOf('.', 4) < 0) return false;
-        if (!IsGfmWwwHostAllowed(token, options.AutolinkAllowDomainWithoutPeriod, options.AutolinkRejectUnderscoreInWwwHost)) return false;
+        if (!IsGfmWwwHostAllowed(
+            token,
+            options.AutolinkAllowDomainWithoutPeriod,
+            options.AutolinkRejectUnderscoreInWwwHost,
+            options.AutolinkRejectUnderscoreInWwwSubdomainLabels)) return false;
 
         // Right boundary: avoid linking as part of an identifier-like token.
         if (scanEnd < text.Length && IsEmailChar(text[scanEnd])) return false;
@@ -147,7 +151,11 @@ public static partial class MarkdownReader {
         return end > start + 4;
     }
 
-    private static bool IsGfmWwwHostAllowed(string token, bool allowDomainWithoutPeriod, bool rejectUnderscoreInHost) {
+    private static bool IsGfmWwwHostAllowed(
+        string token,
+        bool allowDomainWithoutPeriod,
+        bool rejectUnderscoreInHost,
+        bool rejectUnderscoreInSubdomainLabels) {
         if (string.IsNullOrEmpty(token) || !token.StartsWith("www.", StringComparison.OrdinalIgnoreCase)) return false;
 
         int hostEnd = token.Length;
@@ -172,6 +180,13 @@ public static partial class MarkdownReader {
             }
 
             if (rejectUnderscoreInHost && label.IndexOf('_') >= 0) {
+                return false;
+            }
+
+            if (!rejectUnderscoreInHost &&
+                rejectUnderscoreInSubdomainLabels &&
+                i >= 2 &&
+                label.IndexOf('_') >= 0) {
                 return false;
             }
 

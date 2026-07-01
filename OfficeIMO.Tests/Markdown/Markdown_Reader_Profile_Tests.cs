@@ -69,6 +69,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.True(options.TaskLists);
         Assert.True(options.Tables);
         Assert.False(options.AllowHeaderlessTables);
+        Assert.False(options.RequireTableBodyRowPipes);
         Assert.False(options.ParseTableCellBlocks);
         Assert.False(options.PreserveTrivia);
         Assert.False(options.DefinitionLists);
@@ -86,6 +87,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(options.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
         Assert.True(options.AutolinkRequireLowercaseWwwPrefix);
         Assert.False(options.AutolinkRejectUnderscoreInWwwHost);
+        Assert.True(options.AutolinkRejectUnderscoreInWwwSubdomainLabels);
         Assert.False(options.AutolinkRejectUnderscoreInUrlHost);
         Assert.True(options.AutolinkRequireLowercaseBareSchemePrefix);
         Assert.False(options.AutolinkBareMailtoDisplayAddressOnly);
@@ -149,6 +151,7 @@ public class Markdown_Reader_Profile_Tests {
         Assert.False(office.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
         Assert.False(office.AutolinkRequireLowercaseWwwPrefix);
         Assert.False(office.AutolinkRejectUnderscoreInWwwHost);
+        Assert.False(office.AutolinkRejectUnderscoreInWwwSubdomainLabels);
         Assert.False(office.AutolinkRejectUnderscoreInUrlHost);
         Assert.False(office.AutolinkRequireLowercaseBareSchemePrefix);
         Assert.False(office.AutolinkBareMailtoDisplayAddressOnly);

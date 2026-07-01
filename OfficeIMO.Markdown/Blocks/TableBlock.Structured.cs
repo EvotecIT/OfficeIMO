@@ -184,6 +184,7 @@ public sealed partial class TableBlock {
         clone.TaskLists = source.TaskLists;
         clone.OrderedLists = source.OrderedLists;
         clone.Tables = false;
+        clone.RequireTableBodyRowPipes = source.RequireTableBodyRowPipes;
         clone.DefinitionLists = source.DefinitionLists;
         clone.TocPlaceholders = source.TocPlaceholders;
         clone.Footnotes = source.Footnotes;
@@ -204,6 +205,7 @@ public sealed partial class TableBlock {
         clone.AutolinkKeepTrailingSemicolonPunctuation = source.AutolinkKeepTrailingSemicolonPunctuation;
         clone.AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix;
         clone.AutolinkRejectUnderscoreInWwwHost = source.AutolinkRejectUnderscoreInWwwHost;
+        clone.AutolinkRejectUnderscoreInWwwSubdomainLabels = source.AutolinkRejectUnderscoreInWwwSubdomainLabels;
         clone.AutolinkRejectUnderscoreInUrlHost = source.AutolinkRejectUnderscoreInUrlHost;
         clone.AutolinkRejectUserInfoAuthority = source.AutolinkRejectUserInfoAuthority;
         clone.AutolinkAllowClosingBracketInUrl = source.AutolinkAllowClosingBracketInUrl;

@@ -423,7 +423,7 @@ public static partial class MarkdownReader {
         var line = lines[index];
         if (string.IsNullOrWhiteSpace(line)) return false;
 
-        if (!LooksLikeTableRow(line)) return false;
+        if (options.RequireTableBodyRowPipes && !LooksLikeTableRow(line)) return false;
         return !IsTableTerminatingBlockStart(lines, index, options);
     }
 
