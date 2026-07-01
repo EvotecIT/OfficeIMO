@@ -92,7 +92,7 @@ namespace OfficeIMO.Word {
             return document.InspectReview().Revisions
                 .Select(revision => new RevisionSnapshot(
                     revision.Index,
-                    GetRevisionMatchKey(revision),
+                    GetRevisionMatchKey(revision, options),
                     GetRevisionSignature(revision, options),
                     GetRevisionDisplayText(revision),
                     GetRevisionDetailedLocation(revision),
@@ -100,18 +100,18 @@ namespace OfficeIMO.Word {
                 .ToList();
         }
 
-        private static string GetRevisionMatchKey(WordRevisionInfo revision) {
+        private static string GetRevisionMatchKey(WordRevisionInfo revision, WordComparisonOptions options) {
             return string.Join(
                 "|",
-                revision.LocationKind.ToString(),
-                revision.PartUri,
                 revision.RevisionType.ToString(),
                 revision.ElementName,
-                NormalizeFeatureText(revision.AffectedText),
-                NormalizeFeatureText(revision.LocationText),
-                revision.IsInTable ? "table" : string.Empty,
-                revision.IsInContentControl ? "content-control" : string.Empty,
-                revision.IsInTextBox ? "text-box" : string.Empty);
+                options.CompareRevisionText ? NormalizeComparisonText(revision.AffectedText, options) : string.Empty,
+                options.CompareRevisionLocations ? revision.LocationKind.ToString() : string.Empty,
+                options.CompareRevisionLocations ? revision.PartUri : string.Empty,
+                options.CompareRevisionLocations ? NormalizeComparisonText(revision.LocationText, options) : string.Empty,
+                options.CompareRevisionLocations && revision.IsInTable ? "table" : string.Empty,
+                options.CompareRevisionLocations && revision.IsInContentControl ? "content-control" : string.Empty,
+                options.CompareRevisionLocations && revision.IsInTextBox ? "text-box" : string.Empty);
         }
 
         private static string GetRevisionSignature(WordRevisionInfo revision, WordComparisonOptions options) {

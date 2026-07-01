@@ -1010,7 +1010,10 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 AddClientCustomXmlPart(document, storeItemId, schemaUri, "Alice");
-                document._document.MainDocumentPart!.Document.Body!.Append(new Table(CreateBoundClientRowContentControl(storeItemId, schemaUri, "Placeholder", "Keep me")));
+                SdtRow control = CreateBoundClientRowContentControl(storeItemId, schemaUri, "Placeholder", "Keep me");
+                control.Descendants<TableCell>().First().Descendants<Paragraph>().First()
+                    .Append(new Run(new Text(" stale") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
+                document._document.MainDocumentPart!.Document.Body!.Append(new Table(control));
 
                 WordContentControlDataBindingResult result = WordMailMerge.RefreshContentControlDataBindings(document);
 

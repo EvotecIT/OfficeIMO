@@ -31,8 +31,8 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                string? sourceText = ExtractContentControlFindingText(finding.SourceText);
-                string? targetText = ExtractContentControlFindingText(finding.TargetText);
+                string? sourceText = GetContentControlRedlineText(sourceControls, finding.SourceIndex, finding.SourceText);
+                string? targetText = GetContentControlRedlineText(targetControls, targetIndex, finding.TargetText);
                 if (string.Equals(sourceText, targetText, StringComparison.Ordinal)) {
                     continue;
                 }
@@ -81,7 +81,7 @@ namespace OfficeIMO.Word {
             }
 
             SdtElement deletedControl = (SdtElement)sourceControls[sourceIndex].ContentControl.CloneNode(true);
-            if (!RewriteContentControlWithTrackedText(deletedControl, ExtractContentControlFindingText(finding.SourceText), null, options)) {
+            if (!RewriteContentControlWithTrackedText(deletedControl, GetContentControlRedlineText(sourceControls, sourceIndex, finding.SourceText), null, options)) {
                 return false;
             }
 
@@ -350,12 +350,22 @@ namespace OfficeIMO.Word {
             }
 
             const string textMarker = "; text=";
-            int markerIndex = displayText.IndexOf(textMarker, StringComparison.Ordinal);
+            int markerIndex = displayText.LastIndexOf(textMarker, StringComparison.Ordinal);
             if (markerIndex < 0) {
                 return displayText;
             }
 
             return displayText.Substring(markerIndex + textMarker.Length);
+        }
+
+        private static string? GetContentControlRedlineText(IReadOnlyList<RedlineContentControlEntry> entries, int? index, string? fallbackDisplayText) {
+            if (index.HasValue &&
+                index.Value >= 0 &&
+                index.Value < entries.Count) {
+                return NormalizeFeatureText(entries[index.Value].ContentControl.InnerText ?? string.Empty);
+            }
+
+            return ExtractContentControlFindingText(fallbackDisplayText);
         }
 
         private static void InsertDeletedContentControl(WordprocessingDocument targetDocument, RedlineContentControlEntry entry, SdtElement deletedControl) {
