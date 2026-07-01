@@ -90,14 +90,12 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
 
     private string RenderHtml(bool tightListItem) {
         var sb = new StringBuilder();
-        sb.Append("<div");
-        if (!string.IsNullOrWhiteSpace(Name)) {
-            sb.Append(" class=\"")
-                .Append(HtmlTextEncoder.Encode(Name, HtmlRenderContext.Options))
-                .Append('"');
-        }
-
-        sb.Append('>');
+        var containerClasses = string.IsNullOrWhiteSpace(Name)
+            ? Array.Empty<string>()
+            : new[] { Name };
+        sb.Append("<div")
+            .Append(MarkdownHtmlAttributes.Render(Attributes, HtmlRenderContext.Options, additionalClasses: containerClasses, additionalClassesFirst: true))
+            .Append('>');
         for (var i = 0; i < ChildBlocks.Count; i++) {
             if (tightListItem) {
                 sb.Append(MarkdownBlockRenderDispatcher.RenderTightListItemHtml(ChildBlocks[i]));

@@ -51,13 +51,17 @@ internal static class HtmlAttributeUrlEncoder {
     private static bool TryNormalizeAbsoluteUrl(string value, bool normalizeHostsToIdn, bool percentEncodeTilde, out string normalized) {
         normalized = string.Empty;
         var schemeSeparator = value.IndexOf("://", System.StringComparison.Ordinal);
-        if (schemeSeparator <= 0) {
+        var isProtocolRelative = schemeSeparator < 0 &&
+            value.Length >= 2 &&
+            value[0] == '/' &&
+            value[1] == '/';
+        if (schemeSeparator <= 0 && !isProtocolRelative) {
             return false;
         }
 
-        var scheme = value.Substring(0, schemeSeparator);
+        var scheme = isProtocolRelative ? string.Empty : value.Substring(0, schemeSeparator);
         var builder = new System.Text.StringBuilder(value.Length);
-        var authorityStart = schemeSeparator + 3;
+        var authorityStart = isProtocolRelative ? 2 : schemeSeparator + 3;
         var authorityEnd = value.Length;
         for (var i = authorityStart; i < value.Length; i++) {
             var current = value[i];
@@ -77,7 +81,13 @@ internal static class HtmlAttributeUrlEncoder {
             return false;
         }
 
-        builder.Append(scheme).Append("://").Append(normalizeHostsToIdn ? NormalizeAuthorityHost(authority) : authority);
+        if (isProtocolRelative) {
+            builder.Append("//");
+        } else {
+            builder.Append(scheme).Append("://");
+        }
+
+        builder.Append(normalizeHostsToIdn ? NormalizeAuthorityHost(authority) : authority);
         builder.Append(PercentEncodeRelativeUrl(value.Substring(authorityEnd), percentEncodeTilde));
         normalized = builder.ToString();
         return true;

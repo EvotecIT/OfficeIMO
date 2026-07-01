@@ -17,10 +17,21 @@ public static partial class MarkdownReader {
             var bodyStart = i + 1;
             var closingIndex = -1;
             var closingFenceLength = opening.FenceLength;
+            var nestedDepth = 0;
             for (var candidate = bodyStart; candidate < lines.Length; candidate++) {
                 if (TryParseClosingFence(lines[candidate], opening.FenceLength, out closingFenceLength)) {
-                    closingIndex = candidate;
-                    break;
+                    if (nestedDepth == 0) {
+                        closingIndex = candidate;
+                        break;
+                    }
+
+                    nestedDepth--;
+                    continue;
+                }
+
+                if (TryParseOpeningFence(lines[candidate], out var nestedOpening) &&
+                    nestedOpening.FenceLength >= opening.FenceLength) {
+                    nestedDepth++;
                 }
             }
 
@@ -92,10 +103,21 @@ public static partial class MarkdownReader {
             }
 
             var bodyStart = startIndex + 1;
+            var nestedDepth = 0;
             for (var candidate = bodyStart; candidate < lines.Count; candidate++) {
                 if (TryParseClosingFence(lines[candidate], opening.FenceLength, out _)) {
-                    lineCount = candidate - startIndex + 1;
-                    return true;
+                    if (nestedDepth == 0) {
+                        lineCount = candidate - startIndex + 1;
+                        return true;
+                    }
+
+                    nestedDepth--;
+                    continue;
+                }
+
+                if (TryParseOpeningFence(lines[candidate], out var nestedOpening) &&
+                    nestedOpening.FenceLength >= opening.FenceLength) {
+                    nestedDepth++;
                 }
             }
 

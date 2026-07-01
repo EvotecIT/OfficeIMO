@@ -183,6 +183,18 @@ public class Markdown_Reader_Autolinks_Tests {
     }
 
     [Fact]
+    public void Protocol_Relative_Links_Render_Unicode_Domain_As_Idn() {
+        const string markdown = "[site](//éxample.com/a) ![alt](//пример.рф/img.png)";
+
+        var html = MarkdownReader.Parse(markdown)
+            .ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("href=\"//xn--xample-9ua.com/a\"", html, StringComparison.Ordinal);
+        Assert.Contains("src=\"//xn--e1afmkfd.xn--p1ai/img.png\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("//%C3%A9xample.com/a", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Gfm_Autolinks_Render_Unicode_Ftp_Domain_As_Idn_While_Preserving_Source_Metadata() {
         const string markdown = "Visit ftp://пример.рф/path now\n";
 

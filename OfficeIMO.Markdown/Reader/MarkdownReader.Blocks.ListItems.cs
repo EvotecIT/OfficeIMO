@@ -664,10 +664,10 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryGetRawListItemContentAfterMarker(string line, out string content) {
+    private static bool TryGetRawListItemContentAfterMarker(string line, out string content, MarkdownReaderOptions? options = null) {
         content = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
-        if (TryGetOrderedListMarkerInfo(line, out _, out _, out int orderedContentStartIndex)) {
+        if (TryGetOrderedListMarkerInfo(line, options, out _, out _, out int orderedContentStartIndex, out _, out _)) {
             content = line.Substring(orderedContentStartIndex);
             return true;
         }

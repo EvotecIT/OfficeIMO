@@ -1108,6 +1108,28 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     [Fact]
+    public void MarkdownReader_CustomContainers_Track_Nested_Same_Length_Fences() {
+        const string markdown = "::: outer\n::: inner\nx\n:::\n:::";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.CustomContainers = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(result.Document.Blocks));
+        var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(outer.ChildBlocks));
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Equal("outer", outer.Name);
+        Assert.Equal("inner", inner.Name);
+        Assert.Contains("<div class=\"outer\"><div class=\"inner\"><p>x</p></div></div>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<div></div>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownReader_CustomContainers_Writer_Reparse_Matches_Markdig_Extension() {
         const string markdown = "::: note\nhello\n:::";
         var htmlOptions = new HtmlOptions {
@@ -1129,6 +1151,31 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
         Assert.Equal(markdown, written);
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(reparsed));
+    }
+
+    [Fact]
+    public void MarkdownReader_GenericAttributes_On_CustomContainers_Match_Markdig_Extensions() {
+        const string markdown = "{#box .wide}\n::: note\nhello\n:::";
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseCustomContainers(builder);
+        Markdig.MarkdownExtensions.UseGenericAttributes(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.CustomContainers = true;
+        officeOptions.GenericAttributes = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
     }
 
     [Fact]

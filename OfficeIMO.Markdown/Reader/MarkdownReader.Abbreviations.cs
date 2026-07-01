@@ -88,6 +88,7 @@ public static partial class MarkdownReader {
                     line,
                     idx,
                     state,
+                    options,
                     out label,
                     out title,
                     out labelSpan,
@@ -179,6 +180,7 @@ public static partial class MarkdownReader {
         string line,
         int lineIndex,
         MarkdownReaderState? state,
+        MarkdownReaderOptions? options,
         out string label,
         out string title,
         out MarkdownSourceSpan? labelSpan,
@@ -193,7 +195,7 @@ public static partial class MarkdownReader {
         openingMarkerSpan = null;
         separatorMarkerSpan = null;
 
-        if (string.IsNullOrEmpty(line) || !TryGetRawListItemContentAfterMarker(line, out var content)) {
+        if (string.IsNullOrEmpty(line) || !TryGetRawListItemContentAfterMarker(line, out var content, options)) {
             return false;
         }
 

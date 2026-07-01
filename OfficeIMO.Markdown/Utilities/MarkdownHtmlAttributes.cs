@@ -5,7 +5,8 @@ internal static class MarkdownHtmlAttributes {
         MarkdownAttributeSet? attributes,
         HtmlOptions? options,
         string? fallbackElementId = null,
-        IReadOnlyList<string>? additionalClasses = null) {
+        IReadOnlyList<string>? additionalClasses = null,
+        bool additionalClassesFirst = false) {
         if ((attributes == null || attributes.IsEmpty)
             && string.IsNullOrWhiteSpace(fallbackElementId)
             && (additionalClasses == null || additionalClasses.Count == 0)) {
@@ -15,7 +16,7 @@ internal static class MarkdownHtmlAttributes {
         var builder = new StringBuilder();
         AppendId(builder, attributes?.ElementId ?? fallbackElementId, options);
         if (attributes != null || additionalClasses != null) {
-            AppendClasses(builder, attributes?.Classes, additionalClasses, options);
+            AppendClasses(builder, attributes?.Classes, additionalClasses, options, additionalClassesFirst);
         }
 
         if (attributes != null) {
@@ -39,15 +40,21 @@ internal static class MarkdownHtmlAttributes {
         StringBuilder builder,
         IReadOnlyList<string>? classes,
         IReadOnlyList<string>? additionalClasses,
-        HtmlOptions? options) {
+        HtmlOptions? options,
+        bool additionalClassesFirst) {
         if ((classes == null || classes.Count == 0)
             && (additionalClasses == null || additionalClasses.Count == 0)) {
             return;
         }
 
         var normalized = new List<string>();
-        AppendNormalizedClasses(classes, normalized);
-        AppendNormalizedClasses(additionalClasses, normalized);
+        if (additionalClassesFirst) {
+            AppendNormalizedClasses(additionalClasses, normalized);
+            AppendNormalizedClasses(classes, normalized);
+        } else {
+            AppendNormalizedClasses(classes, normalized);
+            AppendNormalizedClasses(additionalClasses, normalized);
+        }
 
         if (normalized.Count == 0) {
             return;
