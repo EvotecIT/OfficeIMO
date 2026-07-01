@@ -770,6 +770,9 @@ just to reserve names.
     endnote story text through native DOC save/reload.
   - [x] Preserve text-wrapping breaks inside authored footnote and endnote
     story text through native DOC save/reload.
+  - [x] Preserve page breaks inside authored footnote and endnote story text,
+    including simple note hyperlink display runs, through native DOC
+    save/reload.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

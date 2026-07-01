@@ -1551,6 +1551,13 @@ namespace OfficeIMO.Tests {
             Assert.Equal(expectedText, paragraph._paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
 
+        private static void AssertNotePageBreak(WordParagraph paragraph, params string[] expectedText) {
+            Break breakRun = Assert.Single(paragraph._paragraph.Descendants<Break>());
+            Assert.Equal(BreakValues.Page, breakRun.Type!.Value);
+            Assert.DoesNotContain(paragraph._paragraph.Descendants<Text>(), text => text.Text.Contains('\f'));
+            Assert.Equal(expectedText, paragraph._paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+        }
+
         private static void AssertHeaderFooterParagraphFormatting(WordParagraph paragraph, JustificationValues expectedAlignment) {
             Assert.Equal(expectedAlignment, paragraph.ParagraphAlignment);
             Assert.Equal(240, paragraph.LineSpacingBefore);
@@ -2825,6 +2832,8 @@ namespace OfficeIMO.Tests {
                     footnoteBody.AddHyperLink("site", new Uri("https://officeimo.net/footnote"), addStyle: true);
                     footnoteBody.Hyperlink!._hyperlink.Append(new Run(new TabChar()));
                     footnoteBody.Hyperlink!._hyperlink.Append(new Run(new Text("tab") { Space = SpaceProcessingModeValues.Preserve }));
+                    footnoteBody.Hyperlink!._hyperlink.Append(new Run(new Break { Type = BreakValues.Page }));
+                    footnoteBody.Hyperlink!._hyperlink.Append(new Run(new Text("page") { Space = SpaceProcessingModeValues.Preserve }));
 
                     WordParagraph endnoteReference = paragraph.AddEndNote("endnote ");
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
@@ -2844,15 +2853,17 @@ namespace OfficeIMO.Tests {
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 IReadOnlyList<WordParagraph> footnoteRuns = footnote.Paragraphs!;
                 string footnoteText = string.Concat(footnoteRuns.Select(GetNoteRunText));
-                Assert.Equal("footnote site\ttab", footnoteText);
+                Assert.Equal("footnote site\ttab\fpage", footnoteText);
                 Assert.DoesNotContain("HYPERLINK", footnoteText, StringComparison.Ordinal);
                 WordHyperLink? footnoteLink = footnoteRuns
                     .Where(run => run.IsHyperLink)
                     .Select(run => run.Hyperlink)
-                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "sitetab");
+                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "sitetabpage");
                 Assert.NotNull(footnoteLink);
                 Assert.Equal("https://officeimo.net/footnote", footnoteLink.Uri?.ToString());
                 Assert.Single(footnoteLink._hyperlink.Descendants<TabChar>());
+                Break footnoteBreak = Assert.Single(footnoteLink._hyperlink.Descendants<Break>());
+                Assert.Equal(BreakValues.Page, footnoteBreak.Type!.Value);
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 IReadOnlyList<WordParagraph> endnoteRuns = endnote.Paragraphs!;
@@ -3443,6 +3454,38 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 AssertNoteTextWrappingBreak(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote second");
                 AssertNoteTextWrappingBreak(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote second");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNotePageBreaksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string bodyText = "Body with note page breaks";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph(bodyText);
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote first");
+                    footnoteBody.AddBreak(BreakValues.Page);
+                    footnoteBody.AddText("Footnote page");
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote first");
+                    endnoteBody.AddBreak(BreakValues.Page);
+                    endnoteBody.AddText("Endnote page");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+                AssertNotePageBreak(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote page");
+                AssertNotePageBreak(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote page");
             } finally {
                 DeleteIfExists(docPath);
             }

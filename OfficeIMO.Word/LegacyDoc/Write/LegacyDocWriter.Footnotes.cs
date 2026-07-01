@@ -186,7 +186,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping breaks.");
+            if (breakType == BreakValues.Page) {
+                AppendFormattedNoteText(builder, runs, "\f", formatting, storyStart);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping and page breaks.");
         }
 
         private static void AppendSupportedNoteHyperlinkText(
@@ -257,7 +262,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text-wrapping breaks.");
+            if (breakType == BreakValues.Page) {
+                AppendFormattedNoteText(text, runs, "\f", formatting, storyStart);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text-wrapping and page breaks.");
         }
 
         private sealed class LegacyDocWritableFootnotes {

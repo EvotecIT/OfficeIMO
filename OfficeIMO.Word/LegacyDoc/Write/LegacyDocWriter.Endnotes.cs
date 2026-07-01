@@ -162,7 +162,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text-wrapping breaks.");
+            if (breakType == BreakValues.Page) {
+                AppendFormattedNoteText(builder, runs, "\f", formatting, storyStart);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text-wrapping and page breaks.");
         }
 
         private sealed class LegacyDocWritableEndnotes {
