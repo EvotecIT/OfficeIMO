@@ -796,6 +796,8 @@ just to reserve names.
   - [x] Read and write supported simple paragraph formatting inside
     header/footer story paragraphs through native DOC PAPX records, then reload
     alignment, spacing, and indentation through the legacy reader.
+  - [x] Read and write interior empty paragraphs inside simple header/footer
+    stories, while still ignoring trailing DOC story terminator paragraphs.
   - [x] Read and write the native first-page section flag (`sprmSFTitlePage`)
     so first-page header/footer intent is represented in SEPX, not only in the
     header/footer story slots.

@@ -232,10 +232,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return null;
             }
 
-            if (paragraphs.Any(paragraph => paragraph.Length == 0)) {
-                throw new NotSupportedException($"Native DOC saving currently supports only non-empty text paragraphs in {kind}s when the {kind} contains visible text.");
-            }
-
             storyText.Append('\r');
             return new LegacyDocWritableHeaderFooterStory(storyText.ToString(), formattedRuns, formattedParagraphs, bookmarks.Create());
         }

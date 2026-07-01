@@ -2355,10 +2355,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableLevelBookmark");
 
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                Assert.Equal("TableBookmarkCell", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Contains(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "TableBookmarkCell");
 
-                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
-                Table tableElement = Assert.Single(body.Elements<Table>());
+                Body reloadedBody = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(reloadedBody.Elements<Table>());
                 BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(tableElement.PreviousSibling());
                 Assert.Equal("TableLevelBookmark", bookmarkStart.Name?.Value);
                 BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(tableElement.NextSibling());
@@ -2391,10 +2391,15 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "BeforeTableBookmark");
 
-                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
-                Table tableElement = Assert.Single(body.Elements<Table>());
-                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(tableElement.PreviousSibling());
-                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(bookmarkEnd.PreviousSibling());
+                Body reloadedBody = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Contains(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "BeforeBookmarkCell");
+                BookmarkStart bookmarkStart = Assert.Single(
+                    reloadedBody.Descendants<BookmarkStart>(),
+                    bookmark => bookmark.Name?.Value == "BeforeTableBookmark");
+                BookmarkEnd bookmarkEnd = Assert.Single(
+                    reloadedBody.Descendants<BookmarkEnd>(),
+                    bookmark => bookmark.Id?.Value == bookmarkStart.Id?.Value);
                 Assert.Equal("BeforeTableBookmark", bookmarkStart.Name?.Value);
                 Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
             } finally {
@@ -2425,8 +2430,8 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "AfterTableBookmark");
 
-                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
-                Table tableElement = Assert.Single(body.Elements<Table>());
+                Body reloadedBody = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(reloadedBody.Elements<Table>());
                 BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(tableElement.NextSibling());
                 Assert.Equal("AfterTableBookmark", bookmarkStart.Name?.Value);
                 BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(bookmarkStart.NextSibling());
@@ -2461,12 +2466,12 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "ParagraphToTableBookmark");
 
-                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
-                Paragraph paragraph = Assert.Single(body.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Before table range");
-                BookmarkStart bookmarkStart = Assert.Single(paragraph.ChildElements.OfType<BookmarkStart>());
+                Body reloadedBody = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Paragraph reloadedParagraph = Assert.Single(reloadedBody.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Before table range");
+                BookmarkStart bookmarkStart = Assert.Single(reloadedParagraph.ChildElements.OfType<BookmarkStart>());
                 Assert.Equal("ParagraphToTableBookmark", bookmarkStart.Name?.Value);
 
-                Table tableElement = Assert.Single(body.Elements<Table>());
+                Table tableElement = Assert.Single(reloadedBody.Elements<Table>());
                 BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(tableElement.NextSibling());
                 Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
             } finally {
@@ -2499,13 +2504,13 @@ namespace OfficeIMO.Tests {
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableToParagraphBookmark");
 
-                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
-                Table tableElement = Assert.Single(body.Elements<Table>());
+                Body reloadedBody = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(reloadedBody.Elements<Table>());
                 BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(tableElement.PreviousSibling());
                 Assert.Equal("TableToParagraphBookmark", bookmarkStart.Name?.Value);
 
-                Paragraph paragraph = Assert.Single(body.Elements<Paragraph>(), paragraph => paragraph.InnerText == "After table range");
-                BookmarkEnd bookmarkEnd = Assert.Single(paragraph.ChildElements.OfType<BookmarkEnd>());
+                Paragraph reloadedParagraph = Assert.Single(reloadedBody.Elements<Paragraph>(), paragraph => paragraph.InnerText == "After table range");
+                BookmarkEnd bookmarkEnd = Assert.Single(reloadedParagraph.ChildElements.OfType<BookmarkEnd>());
                 Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
             } finally {
                 DeleteIfExists(docPath);
@@ -2559,6 +2564,47 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(reloadedSection.Footer.Default);
                 Assert.Equal("Saved header", Assert.Single(reloadedSection.Header.Default!.Paragraphs).Text);
                 Assert.Equal("Saved footer", Assert.Single(reloadedSection.Footer.Default!.Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterEmptyParagraphsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with header footer blank lines");
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    section.Header.Default!.AddParagraph("Header first");
+                    section.Header.Default.AddParagraph();
+                    section.Header.Default.AddParagraph("Header last");
+                    section.Footer.Default!.AddParagraph("Footer first");
+                    section.Footer.Default.AddParagraph();
+                    section.Footer.Default.AddParagraph("Footer last");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+
+                IReadOnlyList<WordParagraph> headerParagraphs = reloadedSection.Header.Default!.Paragraphs;
+                Assert.Equal(3, headerParagraphs.Count);
+                Assert.Equal("Header first", headerParagraphs[0].Text);
+                Assert.Equal(string.Empty, headerParagraphs[1].Text);
+                Assert.Equal("Header last", headerParagraphs[2].Text);
+
+                IReadOnlyList<WordParagraph> footerParagraphs = reloadedSection.Footer.Default!.Paragraphs;
+                Assert.Equal(3, footerParagraphs.Count);
+                Assert.Equal("Footer first", footerParagraphs[0].Text);
+                Assert.Equal(string.Empty, footerParagraphs[1].Text);
+                Assert.Equal("Footer last", footerParagraphs[2].Text);
             } finally {
                 DeleteIfExists(docPath);
             }

@@ -130,6 +130,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocTextCharacter[] storyCharacters = characters
                 .Where(character => character.CharacterPosition >= startCharacter && character.CharacterPosition < endCharacter)
                 .ToArray();
+            bool preserveEmptyParagraph = false;
 
             for (int index = 0; index < storyCharacters.Length; index++) {
                 LegacyDocTextCharacter character = storyCharacters[index];
@@ -156,8 +157,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (normalized == '\r') {
+                    preserveEmptyParagraph = HasLaterHeaderFooterParagraphContent(storyCharacters, index + 1);
                     AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset), character.CharacterPosition, isFinalParagraph: false);
                     currentParagraphStartCharacter = character.CharacterPosition + 1;
+                    preserveEmptyParagraph = false;
                     continue;
                 }
 
@@ -207,7 +210,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     ClearPendingBookmarks();
                 } else {
                     AddPendingBookmarks(paragraphBookmarks);
-                    if (isFinalParagraph && pendingBookmarks.Count > 0) {
+                    if (preserveEmptyParagraph) {
+                        paragraphs.Add(new LegacyDocHeaderFooterParagraph(
+                            Array.Empty<LegacyDocTextRun>(),
+                            format,
+                            currentParagraphStartCharacter,
+                            paragraphEndCharacter,
+                            MergePendingBookmarks(paragraphBookmarks)));
+                        ClearPendingBookmarks();
+                    } else if (isFinalParagraph && pendingBookmarks.Count > 0) {
                         paragraphs.Add(new LegacyDocHeaderFooterParagraph(
                             Array.Empty<LegacyDocTextRun>(),
                             format,
@@ -304,6 +315,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return LegacyDocParagraphFormat.Default;
+        }
+
+        private static bool HasLaterHeaderFooterParagraphContent(IReadOnlyList<LegacyDocTextCharacter> characters, int startIndex) {
+            for (int index = startIndex; index < characters.Count; index++) {
+                char normalized = characters[index].Character == '\a' ? '\r' : characters[index].Character;
+                if (normalized == '\r') {
+                    continue;
+                }
+
+                if (char.IsControl(normalized)
+                    && normalized != '\t'
+                    && normalized != '\v'
+                    && normalized != '\f') {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
     }
 }
