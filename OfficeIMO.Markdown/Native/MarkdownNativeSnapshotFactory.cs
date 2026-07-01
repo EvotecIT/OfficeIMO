@@ -458,8 +458,26 @@ internal static class MarkdownNativeSnapshotFactory {
 
         var snapshots = new List<MarkdownNativeDefinitionListGroupSnapshot>(groups.Count);
         for (var i = 0; i < groups.Count; i++) {
+            string? sourceText = null;
+            string? originalSourceText = null;
+            MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+            var failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+            if (document != null && document.TryCreateSourceSlice(groups[i], out var sourceSlice)) {
+                sourceText = sourceSlice.Text;
+            }
+
+            if (document != null && document.TryCreateOriginalSourceSlice(groups[i], out var originalSlice, out failureReason)) {
+                originalSourceText = originalSlice.Text;
+            } else if (document != null) {
+                originalFailureReason = failureReason;
+            }
+
             snapshots.Add(new MarkdownNativeDefinitionListGroupSnapshot(
                 ToSpanSnapshot(groups[i].SourceSpan),
+                sourceText,
+                originalSourceText,
+                originalFailureReason,
                 FromDefinitionTerms(document, groups[i].Terms),
                 FromDefinitions(document, groups[i].Definitions)));
         }
@@ -476,10 +494,28 @@ internal static class MarkdownNativeSnapshotFactory {
 
         var snapshots = new List<MarkdownNativeDefinitionListTermSnapshot>(terms.Count);
         for (var i = 0; i < terms.Count; i++) {
+            string? sourceText = null;
+            string? originalSourceText = null;
+            MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+            var failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+            if (document != null && document.TryCreateSourceSlice(terms[i], out var sourceSlice)) {
+                sourceText = sourceSlice.Text;
+            }
+
+            if (document != null && document.TryCreateOriginalSourceSlice(terms[i], out var originalSlice, out failureReason)) {
+                originalSourceText = originalSlice.Text;
+            } else if (document != null) {
+                originalFailureReason = failureReason;
+            }
+
             snapshots.Add(new MarkdownNativeDefinitionListTermSnapshot(
                 terms[i].Text,
                 terms[i].Markdown,
                 ToSpanSnapshot(terms[i].SourceSpan),
+                sourceText,
+                originalSourceText,
+                originalFailureReason,
                 FromInlines(document, terms[i].InlineRuns)));
         }
 
@@ -495,9 +531,27 @@ internal static class MarkdownNativeSnapshotFactory {
 
         var snapshots = new List<MarkdownNativeDefinitionListDefinitionSnapshot>(definitions.Count);
         for (var i = 0; i < definitions.Count; i++) {
+            string? sourceText = null;
+            string? originalSourceText = null;
+            MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+            var failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+            if (document != null && document.TryCreateSourceSlice(definitions[i], out var sourceSlice)) {
+                sourceText = sourceSlice.Text;
+            }
+
+            if (document != null && document.TryCreateOriginalSourceSlice(definitions[i], out var originalSlice, out failureReason)) {
+                originalSourceText = originalSlice.Text;
+            } else if (document != null) {
+                originalFailureReason = failureReason;
+            }
+
             snapshots.Add(new MarkdownNativeDefinitionListDefinitionSnapshot(
                 definitions[i].Markdown,
                 ToSpanSnapshot(definitions[i].SourceSpan),
+                sourceText,
+                originalSourceText,
+                originalFailureReason,
                 FromBlocks(document, definitions[i].Children)));
         }
 

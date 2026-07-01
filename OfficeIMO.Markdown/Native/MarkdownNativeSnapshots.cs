@@ -465,15 +465,30 @@ public sealed class MarkdownNativeBlockSourceFieldSnapshot {
 public sealed class MarkdownNativeDefinitionListGroupSnapshot {
     internal MarkdownNativeDefinitionListGroupSnapshot(
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason,
         IReadOnlyList<MarkdownNativeDefinitionListTermSnapshot> terms,
         IReadOnlyList<MarkdownNativeDefinitionListDefinitionSnapshot> definitions) {
         SourceSpan = sourceSpan;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
         Terms = terms ?? Array.Empty<MarkdownNativeDefinitionListTermSnapshot>();
         Definitions = definitions ?? Array.Empty<MarkdownNativeDefinitionListDefinitionSnapshot>();
     }
 
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Normalized markdown text backing this definition-list group when available.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Original reader input backing this definition-list group when available.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this group, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 
     /// <summary>Terms in this group.</summary>
     public IReadOnlyList<MarkdownNativeDefinitionListTermSnapshot> Terms { get; }
@@ -490,10 +505,16 @@ public sealed class MarkdownNativeDefinitionListTermSnapshot {
         string text,
         string markdown,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason,
         IReadOnlyList<MarkdownNativeInlineSnapshot> inlines) {
         Text = text ?? string.Empty;
         Markdown = markdown ?? string.Empty;
         SourceSpan = sourceSpan;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
     }
 
@@ -506,6 +527,15 @@ public sealed class MarkdownNativeDefinitionListTermSnapshot {
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
 
+    /// <summary>Normalized markdown text backing this definition-list term when available.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Original reader input backing this definition-list term when available.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this term, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
+
     /// <summary>Inline snapshots for the term.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }
 }
@@ -517,9 +547,15 @@ public sealed class MarkdownNativeDefinitionListDefinitionSnapshot {
     internal MarkdownNativeDefinitionListDefinitionSnapshot(
         string markdown,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason,
         IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
         Markdown = markdown ?? string.Empty;
         SourceSpan = sourceSpan;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
         Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
     }
 
@@ -528,6 +564,15 @@ public sealed class MarkdownNativeDefinitionListDefinitionSnapshot {
 
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Normalized markdown text backing this definition body when available.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Original reader input backing this definition body when available.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this definition body, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 
     /// <summary>Nested child block snapshots.</summary>
     public IReadOnlyList<MarkdownNativeBlockSnapshot> Children { get; }

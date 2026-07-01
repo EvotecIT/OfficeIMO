@@ -399,6 +399,7 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     public void NativeDefinitionList_SourceSlices_Address_Group_Term_And_Definition_Body() {
         var options = MarkdownReaderOptions.CreateCommonMarkProfile();
         options.DefinitionLists = true;
+        options.PreserveTrivia = true;
         var native = MarkdownNativeDocument.Parse("""
 Term
 :   First
@@ -410,10 +411,65 @@ Term
         Assert.True(native.TryCreateSourceSlice(group, out var groupSlice));
         Assert.True(native.TryCreateSourceSlice(term, out var termSlice));
         Assert.True(native.TryCreateSourceSlice(definition, out var definitionSlice));
+        Assert.True(native.TryCreateOriginalSourceSlice(group, out var originalGroupSlice, out var groupFailureReason));
+        Assert.True(native.TryCreateOriginalSourceSlice(term, out var originalTermSlice, out var termFailureReason));
+        Assert.True(native.TryCreateOriginalSourceSlice(definition, out var originalDefinitionSlice, out var definitionFailureReason));
 
         Assert.Equal("Term\n:   First", groupSlice.Text);
         Assert.Equal("Term", termSlice.Text);
         Assert.Equal("First", definitionSlice.Text);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, groupFailureReason);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, termFailureReason);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, definitionFailureReason);
+        Assert.Equal("Term\n:   First", originalGroupSlice.Text);
+        Assert.Equal("Term", originalTermSlice.Text);
+        Assert.Equal("First", originalDefinitionSlice.Text);
+
+        var snapshotGroup = Assert.Single(Assert.Single(native.ToSnapshot().Blocks).DefinitionGroups);
+        var snapshotTerm = Assert.Single(snapshotGroup.Terms);
+        var snapshotDefinition = Assert.Single(snapshotGroup.Definitions);
+
+        Assert.Equal(groupSlice.Text, snapshotGroup.SourceText);
+        Assert.Equal(originalGroupSlice.Text, snapshotGroup.OriginalSourceText);
+        Assert.Null(snapshotGroup.OriginalSourceFailureReason);
+        Assert.Equal(termSlice.Text, snapshotTerm.SourceText);
+        Assert.Equal(originalTermSlice.Text, snapshotTerm.OriginalSourceText);
+        Assert.Null(snapshotTerm.OriginalSourceFailureReason);
+        Assert.Equal(definitionSlice.Text, snapshotDefinition.SourceText);
+        Assert.Equal(originalDefinitionSlice.Text, snapshotDefinition.OriginalSourceText);
+        Assert.Null(snapshotDefinition.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void NativeDefinitionList_Snapshots_Report_Original_Source_Failure_When_Trivia_Is_Not_Preserved() {
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.DefinitionLists = true;
+        var native = MarkdownNativeDocument.Parse("""
+Term
+:   First
+""", options);
+
+        var snapshotGroup = Assert.Single(Assert.Single(native.ToSnapshot().Blocks).DefinitionGroups);
+        var snapshotTerm = Assert.Single(snapshotGroup.Terms);
+        var snapshotDefinition = Assert.Single(snapshotGroup.Definitions);
+
+        Assert.Equal("Term\n:   First", snapshotGroup.SourceText);
+        Assert.Null(snapshotGroup.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotGroup.OriginalSourceFailureReason);
+
+        Assert.Equal("Term", snapshotTerm.SourceText);
+        Assert.Null(snapshotTerm.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotTerm.OriginalSourceFailureReason);
+
+        Assert.Equal("First", snapshotDefinition.SourceText);
+        Assert.Null(snapshotDefinition.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotDefinition.OriginalSourceFailureReason);
     }
 
     [Fact]
