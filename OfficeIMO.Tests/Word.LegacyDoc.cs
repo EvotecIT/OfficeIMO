@@ -917,6 +917,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runProperties.GetFirstChild<Emboss>());
             Assert.NotNull(runProperties.GetFirstChild<Imprint>());
             Assert.NotNull(runProperties.GetFirstChild<Vanish>());
+            Assert.NotNull(runProperties.GetFirstChild<NoProof>());
             Underline underline = Assert.IsType<Underline>(runProperties.GetFirstChild<Underline>());
             Assert.Equal(UnderlineValues.Single, underline.Val!.Value);
             Highlight highlight = Assert.IsType<Highlight>(runProperties.GetFirstChild<Highlight>());
@@ -8689,6 +8690,7 @@ namespace OfficeIMO.Tests {
                             CreateCharacterSprm(0x0858, 1),
                             CreateCharacterSprm(0x0854, 1),
                             CreateCharacterSprm(0x083C, 1),
+                            CreateCharacterSprm(0x0875, 1),
                             CreateCharacterSprm(0x2A3E, 1),
                             CreateCharacterSprm(0x2A0C, 7),
                             CreateCharacterSprm(0x6870, 0x33, 0x66, 0x99, 0x00),

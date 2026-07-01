@@ -279,8 +279,9 @@ just to reserve names.
     formatting into normal OfficeIMO runs and custom DOCX style definitions
     with synthetic legacy DOC fixture proof.
   - [x] Project stylesheet-level proofing-exclusion run formatting from DOC
-    `sprmCFNoProof` into custom DOCX style definitions, and preserve supported
-    custom and built-in native style `w:noProof` through native DOC save/reload.
+    `sprmCFNoProof` into custom and built-in DOCX style definitions, and
+    preserve supported custom and built-in native style `w:noProof` through
+    native DOC save/reload.
   - [x] Project direct PAPX paragraph pagination flags plus stylesheet-level
     keep-lines, keep-next, page-break-before, and widow-control formatting into
     normal OfficeIMO paragraphs and custom DOCX style definitions with
