@@ -817,8 +817,8 @@ just to reserve names.
     and project it into the normal OfficeIMO `DifferentOddAndEvenPages`
     section/header-footer surface.
   - [x] Block unsupported visual and embedded related parts through a recursive
-    native-save preflight, including image parts owned by header/footer
-    relationship parts, before native `.doc` bytes are committed.
+    native-save preflight, including body image parts and image parts owned by
+    header/footer relationship parts, before native `.doc` bytes are committed.
   - [ ] Add bookmark locations outside body/table-cell/header/footer/footnote/
     endnote paragraphs, richer visual table style effects, nested tables,
     section breaks inside richer body shapes, and richer section writing as
