@@ -14,14 +14,22 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
         public string Key { get; }
         /// <summary>Entry value.</summary>
         public object? Value { get; }
+        /// <summary>Source span for the whole entry when parsed from markdown.</summary>
+        public MarkdownSourceSpan? SourceSpan { get; }
         /// <summary>Source span for the key token when parsed from markdown.</summary>
         public MarkdownSourceSpan? KeySourceSpan { get; }
         /// <summary>Source span for the value token or literal-block payload when parsed from markdown.</summary>
         public MarkdownSourceSpan? ValueSourceSpan { get; }
 
-        internal Entry(string key, object? value, MarkdownSourceSpan? keySourceSpan = null, MarkdownSourceSpan? valueSourceSpan = null) {
+        internal Entry(
+            string key,
+            object? value,
+            MarkdownSourceSpan? keySourceSpan = null,
+            MarkdownSourceSpan? valueSourceSpan = null,
+            MarkdownSourceSpan? sourceSpan = null) {
             Key = key;
             Value = value;
+            SourceSpan = sourceSpan;
             KeySourceSpan = keySourceSpan;
             ValueSourceSpan = valueSourceSpan;
         }
@@ -194,6 +202,10 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
 
         for (int i = 0; i < Entries.Count; i++) {
             var entry = Entries[i];
+            if (entry.SourceSpan.HasValue) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterEntry, entry.SourceSpan, null, associatedObject: entry));
+            }
+
             if (entry.KeySourceSpan.HasValue) {
                 children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterKey, entry.KeySourceSpan, entry.Key, associatedObject: entry));
             }

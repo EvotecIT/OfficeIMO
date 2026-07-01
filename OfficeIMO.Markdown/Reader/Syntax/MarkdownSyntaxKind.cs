@@ -230,6 +230,8 @@ public enum MarkdownSyntaxKind {
     FrontMatterOpeningFence,
     /// <summary>Closing fence marker token for a front matter block.</summary>
     FrontMatterClosingFence,
+    /// <summary>Complete front matter entry line or literal-value block.</summary>
+    FrontMatterEntry,
     /// <summary>Front matter entry key.</summary>
     FrontMatterKey,
     /// <summary>Front matter entry value.</summary>

@@ -61,6 +61,10 @@ public sealed partial class MarkdownNativeDocument {
             return 0;
         }
 
+        if (string.Equals(field.Name, "frontMatterEntry", StringComparison.OrdinalIgnoreCase)) {
+            return 0;
+        }
+
         return field.Name.EndsWith("Body", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
     }
 
@@ -561,6 +565,10 @@ public sealed partial class MarkdownNativeDocument {
 
         for (var i = 0; i < frontMatter.Entries.Count; i++) {
             var entry = frontMatter.Entries[i];
+            if (entry.SourceSpan.HasValue) {
+                yield return new MarkdownNativeBlockSourceField("frontMatterEntry", null, entry.SourceSpan.Value, frontMatter, i);
+            }
+
             if (entry.KeySourceSpan.HasValue) {
                 yield return new MarkdownNativeBlockSourceField("frontMatterKey", entry.Key, entry.KeySourceSpan.Value, frontMatter, i);
             }

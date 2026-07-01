@@ -672,6 +672,87 @@ Console.WriteLine();
     }
 
     [Fact]
+    public void Navigation_Helpers_Find_Front_Matter_Entry_Source_Fields_By_Position_And_Name() {
+        var markdown = """
+---
+title: Native projection
+description: |
+  first
+  second
+draft: false
+---
+# Body
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var frontMatter = Assert.IsType<MarkdownNativeFrontMatterBlock>(native.Blocks[0]);
+
+        var entries = native.EnumerateBlockSourceFields("frontMatterEntry").ToArray();
+        var keys = native.EnumerateBlockSourceFields("frontMatterKey").ToArray();
+        var values = native.EnumerateBlockSourceFields("frontMatterValue").ToArray();
+        var openingFence = Assert.Single(native.EnumerateBlockSourceFields("openingFence"));
+        var body = Assert.Single(native.EnumerateBlockSourceFields("frontMatterBody"));
+
+        Assert.Equal(3, entries.Length);
+        Assert.Equal(new[] { 0, 1, 2 }, entries.Select(field => field.Index).ToArray());
+        Assert.All(entries, field => Assert.Null(field.Value));
+        Assert.Equal(new[] { "title", "description", "draft" }, keys.Select(field => field.Value).ToArray());
+        Assert.Equal(new[] { "Native projection", "first\nsecond", "false" }, values.Select(field => field.Value!.Replace("\r\n", "\n")).ToArray());
+        Assert.Equal("title: Native projection\ndescription: |\n  first\n  second\ndraft: false", body.Value!.Replace("\r\n", "\n"));
+        Assert.All(entries, field => Assert.Same(frontMatter, field.Block));
+
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 24), frontMatter.Entries[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 5, 8), frontMatter.Entries[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(6, 1, 6, 12), frontMatter.Entries[2].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 24), entries[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 5, 8), entries[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(6, 1, 6, 12), entries[2].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 11), keys[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 3, 5, 8), values[1].SourceSpan);
+
+        AssertEquivalentField(keys[0], native.FindBlockSourceFieldAtPosition(2, 3));
+        AssertEquivalentField(entries[0], native.FindBlockSourceFieldAtPosition(2, 6));
+        AssertEquivalentField(values[0], native.FindBlockSourceFieldAtPosition(2, 8));
+        AssertEquivalentField(keys[1], native.FindBlockSourceFieldAtPosition(3, 4));
+        AssertEquivalentField(entries[1], native.FindBlockSourceFieldAtPosition(3, 13));
+        AssertEquivalentField(values[1], native.FindBlockSourceFieldAtPosition(4, 4));
+        AssertEquivalentField(values[2], native.FindBlockSourceFieldAtPosition(6, 8));
+        AssertEquivalentField(openingFence, native.FindBlockSourceFieldAtPosition(1, 1));
+
+        var snapshot = native.ToSnapshot().Blocks[0];
+        Assert.Equal(
+            new[] {
+                "openingFence",
+                "frontMatterEntry",
+                "frontMatterKey",
+                "frontMatterValue",
+                "frontMatterEntry",
+                "frontMatterKey",
+                "frontMatterValue",
+                "frontMatterEntry",
+                "frontMatterKey",
+                "frontMatterValue",
+                "frontMatterBody",
+                "closingFence"
+            },
+            snapshot.SourceFields.Select(field => field.Name).ToArray());
+
+        var edited = native.CreateReplaceEdit(entries[1], "summary: Rewritten").Apply(native.SourceMarkdown);
+        Assert.Contains("summary: Rewritten", edited, StringComparison.Ordinal);
+        Assert.DoesNotContain("description: |", edited, StringComparison.Ordinal);
+        Assert.DoesNotContain("  second", edited, StringComparison.Ordinal);
+
+        static void AssertEquivalentField(MarkdownNativeBlockSourceField expected, MarkdownNativeBlockSourceField? actual) {
+            Assert.NotNull(actual);
+            Assert.Equal(expected.Name, actual.Name);
+            Assert.Equal(expected.Value, actual.Value);
+            Assert.Equal(expected.SourceSpan, actual.SourceSpan);
+            Assert.Same(expected.Block, actual.Block);
+            Assert.Equal(expected.Index, actual.Index);
+        }
+    }
+
+    [Fact]
     public void Navigation_Helpers_Find_Definition_List_Source_Fields_By_Position_And_Name() {
         var markdown = """
 **Term**: Intro

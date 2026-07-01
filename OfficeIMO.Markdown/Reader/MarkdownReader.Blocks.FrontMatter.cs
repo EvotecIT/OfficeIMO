@@ -34,17 +34,36 @@ public static partial class MarkdownReader {
                 var sb = new StringBuilder(); int j = i + 1;
                 while (j <= end) { var raw = lines[j]; if (raw.StartsWith("  ")) { sb.AppendLine(raw.Substring(2)); j++; } else break; }
                 valueSpan = CreateFrontMatterLiteralValueSpan(lines, i + 1, j - 1, state);
-                i = j - 1; entries[key] = new FrontMatterBlock.Entry(key, sb.ToString().TrimEnd(), keySpan, valueSpan); continue;
+                entries[key] = new FrontMatterBlock.Entry(
+                    key,
+                    sb.ToString().TrimEnd(),
+                    keySpan,
+                    valueSpan,
+                    CreateFrontMatterEntrySpan(lines, i, j - 1, state));
+                i = j - 1;
+                continue;
             }
+            var entrySpan = CreateFrontMatterEntrySpan(lines, i, i, state);
             if (val.StartsWith("[") && val.EndsWith("]")) {
                 var inner = val.Substring(1, val.Length - 2).Trim(); var items = new List<string>(); var token = new StringBuilder(); bool inQuotes = false;
                 for (int k = 0; k < inner.Length; k++) { char ch = inner[k]; if (ch == '\"') { inQuotes = !inQuotes; continue; } if (ch == ',' && !inQuotes) { items.Add(token.ToString().Trim()); token.Clear(); continue; } token.Append(ch); }
                 if (token.Length > 0) items.Add(token.ToString().Trim());
-                entries[key] = new FrontMatterBlock.Entry(key, items, keySpan, valueSpan);
-            } else if (string.Equals(val, "true", StringComparison.OrdinalIgnoreCase)) { entries[key] = new FrontMatterBlock.Entry(key, true, keySpan, valueSpan); } else if (string.Equals(val, "false", StringComparison.OrdinalIgnoreCase)) { entries[key] = new FrontMatterBlock.Entry(key, false, keySpan, valueSpan); } else if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var num)) { entries[key] = new FrontMatterBlock.Entry(key, num, keySpan, valueSpan); } else if (val.StartsWith("\"") && val.EndsWith("\"")) { entries[key] = new FrontMatterBlock.Entry(key, val.Length >= 2 ? val.Substring(1, val.Length - 2) : string.Empty, keySpan, valueSpan); } else { entries[key] = new FrontMatterBlock.Entry(key, val, keySpan, valueSpan); }
+                entries[key] = new FrontMatterBlock.Entry(key, items, keySpan, valueSpan, entrySpan);
+            } else if (string.Equals(val, "true", StringComparison.OrdinalIgnoreCase)) { entries[key] = new FrontMatterBlock.Entry(key, true, keySpan, valueSpan, entrySpan); } else if (string.Equals(val, "false", StringComparison.OrdinalIgnoreCase)) { entries[key] = new FrontMatterBlock.Entry(key, false, keySpan, valueSpan, entrySpan); } else if (double.TryParse(val, NumberStyles.Any, CultureInfo.InvariantCulture, out var num)) { entries[key] = new FrontMatterBlock.Entry(key, num, keySpan, valueSpan, entrySpan); } else if (val.StartsWith("\"") && val.EndsWith("\"")) { entries[key] = new FrontMatterBlock.Entry(key, val.Length >= 2 ? val.Substring(1, val.Length - 2) : string.Empty, keySpan, valueSpan, entrySpan); } else { entries[key] = new FrontMatterBlock.Entry(key, val, keySpan, valueSpan, entrySpan); }
         }
 
         return entries.Values.ToArray();
+    }
+
+    private static MarkdownSourceSpan? CreateFrontMatterEntrySpan(string[] lines, int startLineIndex, int endLineIndex, MarkdownReaderState? state) {
+        if (endLineIndex < startLineIndex) {
+            return null;
+        }
+
+        int absoluteStartLine = (state?.SourceLineOffset ?? 0) + startLineIndex + 1;
+        int absoluteEndLine = (state?.SourceLineOffset ?? 0) + endLineIndex + 1;
+        int endColumn = Math.Max(1, lines[endLineIndex].Length);
+        return CreateSpan(state, absoluteStartLine, 1, absoluteEndLine, endColumn);
     }
 
     private static MarkdownSourceSpan? CreateFrontMatterKeySpan(string[] lines, int lineIndex, int colonIndex, MarkdownReaderState? state) {

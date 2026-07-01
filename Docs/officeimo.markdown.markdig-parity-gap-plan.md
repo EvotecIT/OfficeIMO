@@ -64,6 +64,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose semantic TextRun escape source spans, decoded entity source text spans, and HardBreakInline marker source spans so inline AST consumers can target parser-owned text metadata without detouring through native metadata.
   - [x] Engine: expose semantic CodeBlock and SemanticFencedBlock info/content source spans so extension and editor hosts can target fenced payload fields from the AST without detouring through native projection.
   - [x] Engine: expose semantic ImageBlock source spans for standalone and linked image alt/path/title/link target/link title tokens, with native projection reading from the semantic AST API.
+  - [x] Engine: expose front matter entry source spans and native `frontMatterEntry` source fields so editor hosts can replace a single YAML entry, including literal-block entries, without stitching key/value/body spans.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated-node roundtrip semantics, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
@@ -247,6 +248,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
   - [x] Native table row projections now carry their source row, syntax node, source span, row markdown, cell projections, navigation, source fields, source slices, source edits, and snapshots for parsed pipe-table header/body rows.
   - [x] Native table cells now surface as repeated `tableCell` source fields with stable occurrence indexes, snapshot entries, caret lookup, source edits, and empty-cell coverage.
   - [x] Native definition-list groups now surface as repeated `definitionGroup` source fields with stable occurrence indexes, snapshot entries, caret lookup, and source edits while narrower term/marker/body fields keep priority.
+  - [x] Native front matter entries now surface as repeated `frontMatterEntry` source fields with stable occurrence indexes, snapshot entries, caret lookup, and source edits while narrower key/value fields keep priority.
 - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node roundtrip semantics.
 - [ ] Complete delimiter-token coverage for extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.
