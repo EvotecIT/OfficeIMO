@@ -453,7 +453,8 @@ just to reserve names.
   - [x] Project simple section footnote placement, endnote placement, and
     footnote/endnote numbering restart, start, and format settings from DOC
     section records plus document options into normal OfficeIMO section note
-    properties, and preserve the supported subset through native DOC save/reload.
+    properties, including extended DOC `nfc` number-format values, and preserve
+    the supported subset through native DOC save/reload.
   - [x] Report multiple section descriptor records as unsupported/preserve-only
     before multi-section projection exists, so native DOC re-save is blocked
     instead of flattening section boundaries.
@@ -894,8 +895,8 @@ just to reserve names.
     out-of-range line-number intervals before native `.doc` bytes are
     committed.
   - [x] Write simple section footnote placement, endnote placement, and
-    footnote/endnote numbering settings, then reload them through the legacy
-    reader.
+    footnote/endnote numbering settings, including extended DOC `nfc`
+    number-format values, then reload them through the legacy reader.
   - [x] Block unsupported section endnote restart-per-page settings before
     native `.doc` bytes are committed, because Word 97-2003 endnote restart
     operands do not carry that mode.

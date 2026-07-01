@@ -75,6 +75,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         internal static byte? ToNfc(NumberFormatValues format) {
+            if (format == NumberFormatValues.Bullet) {
+                return null;
+            }
+
             foreach (NfcMap mapping in Mappings) {
                 if (mapping.Format == format) {
                     return mapping.Nfc;

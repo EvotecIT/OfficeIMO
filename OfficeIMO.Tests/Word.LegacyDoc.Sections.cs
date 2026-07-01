@@ -165,6 +165,64 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionExtendedNoteNumberFormats() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionNoteSettings("Extended note settings section", 22, 57);
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+
+            WordSection section = result.Document.Sections[0];
+            Assert.Equal("Extended note settings section", Assert.Single(result.Document.Paragraphs).Text);
+            Assert.Equal(FootnotePositionValues.BeneathText, section.FootnoteProperties.FootnotePosition?.Val?.Value);
+            Assert.Equal(RestartNumberValues.EachPage, section.FootnoteProperties.NumberingRestart?.Val?.Value);
+            Assert.Equal(3, (int?)section.FootnoteProperties.NumberingStart?.Val?.Value);
+            Assert.Equal(NumberFormatValues.DecimalZero, section.FootnoteProperties.NumberingFormat?.Val?.Value);
+            Assert.Equal(RestartNumberValues.EachSection, section.EndnoteProperties.NumberingRestart?.Val?.Value);
+            Assert.Equal(9, (int?)section.EndnoteProperties.NumberingStart?.Val?.Value);
+            Assert.Equal(NumberFormatValues.NumberInDash, section.EndnoteProperties.NumberingFormat?.Val?.Value);
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionExtendedNoteNumberingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Extended note numbering");
+                    document.Sections[0].AddFootnoteProperties(
+                        NumberFormatValues.DecimalZero,
+                        FootnotePositionValues.BeneathText,
+                        RestartNumberValues.EachPage,
+                        startNumber: 3);
+                    document.Sections[0].AddEndnoteProperties(
+                        numberingFormat: NumberFormatValues.NumberInDash,
+                        position: null,
+                        restartNumbering: RestartNumberValues.EachSection,
+                        startNumber: 9);
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x5040, 22);
+                AssertSectionSepxContainsUInt16Sprm(wordDocumentStream, tableStream, 0x5042, 57);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Extended note numbering", Assert.Single(reloaded.Paragraphs).Text);
+                Assert.Equal(NumberFormatValues.DecimalZero, reloaded.Sections[0].FootnoteProperties.NumberingFormat?.Val?.Value);
+                Assert.Equal(NumberFormatValues.NumberInDash, reloaded.Sections[0].EndnoteProperties.NumberingFormat?.Val?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         private static NumberFormatValues GetNumberFormatValue(string name) {
             switch (name) {
                 case "Ordinal":

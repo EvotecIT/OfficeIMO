@@ -11631,7 +11631,10 @@ namespace OfficeIMO.Tests {
             }
 
             internal static byte[] CreateSimpleDocWithSectionNoteSettings() {
-                const string paragraph = "Note settings section";
+                return CreateSimpleDocWithSectionNoteSettings("Note settings section", 3, 4);
+            }
+
+            internal static byte[] CreateSimpleDocWithSectionNoteSettings(string paragraph, int footnoteNumberFormat, int endnoteNumberFormat) {
                 string text = paragraph + "\r";
                 const int sepxOffset = 0x300;
 
@@ -11653,9 +11656,9 @@ namespace OfficeIMO.Tests {
                         footnoteRestart: 2,
                         endnoteRestart: 1,
                         footnoteStart: 3,
-                        footnoteNumberFormat: 3,
+                        footnoteNumberFormat: footnoteNumberFormat,
                         endnoteStart: 9,
-                        endnoteNumberFormat: 4));
+                        endnoteNumberFormat: endnoteNumberFormat));
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
