@@ -1181,6 +1181,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);
                         break;
+                    case SimpleField simpleField:
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, tableStyleRunFormatting);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);
                         break;
@@ -1192,7 +1195,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs, bookmarks, and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs, PAGE simple fields, bookmarks, and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

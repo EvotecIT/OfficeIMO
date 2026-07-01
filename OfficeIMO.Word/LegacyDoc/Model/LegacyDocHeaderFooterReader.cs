@@ -155,6 +155,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadPageNumber(
+                    storyCharacters,
+                    index,
+                    out int pageNumberResultStartIndex,
+                    out int pageNumberResultEndIndex,
+                    out int pageNumberFieldEndIndex)) {
+                    AppendPageNumberResult(pageNumberResultStartIndex, pageNumberResultEndIndex);
+                    index = pageNumberFieldEndIndex;
+                    continue;
+                }
+
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (normalized == '\r') {
                     preserveEmptyParagraph = HasLaterHeaderFooterParagraphContent(storyCharacters, index + 1);
@@ -191,6 +202,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 runText.Append(value);
                 runCharacterPositions.Add(characterPosition);
+            }
+
+            void AppendPageNumberResult(int resultStartIndex, int resultEndIndex) {
+                FlushRun();
+                LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
+                var positions = new List<int>();
+                for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                    LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
+                    if (char.IsControl(resultCharacter.Character)
+                        && !LegacyDocSpecialCharacters.IsSupportedInlineControl(resultCharacter.Character)) {
+                        continue;
+                    }
+
+                    if (positions.Count == 0) {
+                        format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                    }
+
+                    positions.Add(resultCharacter.CharacterPosition);
+                }
+
+                currentRuns.Add(LegacyDocTextRunFactory.CreatePageNumberRun(format, positions));
             }
 
             void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter, bool isFinalParagraph) {

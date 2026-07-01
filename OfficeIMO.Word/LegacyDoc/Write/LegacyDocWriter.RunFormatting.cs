@@ -33,6 +33,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case LastRenderedPageBreak:
                         break;
+                    case DocumentFormat.OpenXml.Wordprocessing.PageNumber:
+                        AppendSupportedPageNumberField(text, runs, formatting);
+                        break;
                     case Text textNode:
                         AppendFormattedText(text, runs, textNode.Text, formatting);
                         break;
@@ -58,7 +61,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendEndnoteReference(text, runs, endnotes, endnoteReference);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote references only. Unsupported run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, page-number fields, carriage returns, soft/no-break hyphens, text-wrapping/page/column breaks, and simple footnote/endnote references only. Unsupported run element: {child.LocalName}.");
                 }
             }
         }

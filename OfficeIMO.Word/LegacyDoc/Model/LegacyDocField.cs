@@ -72,6 +72,29 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return true;
         }
 
+        internal static bool TryReadPageNumber(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (!TryReadField(
+                characters,
+                startIndex,
+                out string instruction,
+                out resultStartIndex,
+                out resultEndIndex,
+                out fieldEndIndex)) {
+                return false;
+            }
+
+            return IsPageNumberInstruction(instruction);
+        }
+
         private static bool TryReadHyperlinkInstruction(string instruction, out LegacyDocHyperlinkTarget target) {
             target = default;
             string trimmed = instruction.Trim();
@@ -105,6 +128,80 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             target = LegacyDocHyperlinkTarget.ForUri(parsed.ToString());
             return true;
+        }
+
+        private static bool TryReadField(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out string instruction,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            instruction = string.Empty;
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (startIndex < 0
+                || startIndex >= characters.Count
+                || characters[startIndex].Character != Begin) {
+                return false;
+            }
+
+            int separatorIndex = -1;
+            for (int index = startIndex + 1; index < characters.Count; index++) {
+                char character = characters[index].Character;
+                if (character == Separator) {
+                    separatorIndex = index;
+                    break;
+                }
+
+                if (character == Begin || character == End || IsBodyBoundary(character)) {
+                    return false;
+                }
+            }
+
+            if (separatorIndex < 0) {
+                return false;
+            }
+
+            int endIndex = -1;
+            for (int index = separatorIndex + 1; index < characters.Count; index++) {
+                char character = characters[index].Character;
+                if (character == End) {
+                    endIndex = index;
+                    break;
+                }
+
+                if (character == Begin || character == Separator || IsBodyBoundary(character) || !IsSupportedResultCharacter(character)) {
+                    return false;
+                }
+            }
+
+            if (endIndex <= separatorIndex + 1) {
+                return false;
+            }
+
+            instruction = new string(characters
+                .Skip(startIndex + 1)
+                .Take(separatorIndex - startIndex - 1)
+                .Select(character => character.Character)
+                .ToArray());
+
+            resultStartIndex = separatorIndex + 1;
+            resultEndIndex = endIndex;
+            fieldEndIndex = endIndex;
+            return true;
+        }
+
+        private static bool IsPageNumberInstruction(string instruction) {
+            string trimmed = instruction.Trim();
+            if (!trimmed.StartsWith("PAGE", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            return trimmed.Length == "PAGE".Length
+                || char.IsWhiteSpace(trimmed["PAGE".Length]);
         }
 
         private static int IndexOfHyperlinkAnchorSwitch(string instruction, int startIndex) {

@@ -358,6 +358,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes);
                         break;
+                    case SimpleField simpleField:
+                        AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, LegacyDocWritableFormatting.Plain);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);
                         break;
@@ -369,7 +372,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, PAGE simple fields, bookmarks, and simple hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

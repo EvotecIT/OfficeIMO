@@ -767,6 +767,11 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocRuns(WordParagraph paragraph, IReadOnlyList<LegacyDocTextRun> paragraphRuns, int startIndex, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
             for (int index = startIndex; index < paragraphRuns.Count; index++) {
                 LegacyDocTextRun legacyRun = paragraphRuns[index];
+                if (legacyRun.IsPageNumber) {
+                    AddLegacyDocPageNumber(paragraph, legacyRun, bookmarks);
+                    continue;
+                }
+
                 if (legacyRun.HyperlinkTarget.HasValue) {
                     int hyperlinkStartIndex = index;
                     LegacyDocHyperlinkTarget hyperlinkTarget = legacyRun.HyperlinkTarget;
@@ -788,6 +793,11 @@ namespace OfficeIMO.Word {
         }
 
         private static void AddLegacyDocRunContent(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocNoteProjection notes, LegacyDocBookmarkProjection bookmarks) {
+            if (legacyRun.IsPageNumber) {
+                AddLegacyDocPageNumber(paragraph, legacyRun, bookmarks);
+                return;
+            }
+
             if (legacyRun.HyperlinkTarget.HasValue) {
                 AddLegacyDocHyperlinkRunContent(paragraph, legacyRun, notes, bookmarks);
                 return;
@@ -1049,7 +1059,16 @@ namespace OfficeIMO.Word {
                 source.FontSizeHalfPoints,
                 source.ColorHex,
                 source.FontFamily,
-                source.CharacterPositions);
+                source.CharacterPositions,
+                isPageNumber: source.IsPageNumber);
+        }
+
+        private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
+            var run = new Run(new DocumentFormat.OpenXml.Wordprocessing.PageNumber());
+            paragraph._paragraph.Append(run);
+            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
         private static void AddLegacyDocBreak(WordParagraph paragraph, LegacyDocTextRun legacyRun, BreakValues? breakType) {

@@ -250,6 +250,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, hyperlink, relationshipOwner, kind);
                         break;
+                    case SimpleField simpleField:
+                        AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, text, simpleField, kind);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyText.Length);
                         break;
@@ -261,7 +264,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, PAGE simple fields, bookmarks, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -282,6 +285,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
+        private static void AppendFormattedHeaderFooterPageNumberField(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, SimpleField simpleField, string kind) {
+            int before = storyText.Length;
+            try {
+                AppendSupportedPageNumberFieldFromSimpleField(storyText, formattedRuns, simpleField, LegacyDocWritableFormatting.Plain);
+            } catch (NotSupportedException exception) {
+                throw new NotSupportedException($"Native DOC saving supports simple {kind} PAGE fields only. {exception.Message}", exception);
+            }
+
+            if (storyText.Length > before) {
+                paragraphText.Append(storyText.ToString(before, storyText.Length - before));
+            }
+        }
+
         private static void AppendFormattedHeaderFooterRun(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Run run, string kind) {
             LegacyDocWritableFormatting formatting = ReadSupportedRunFormatting(run.RunProperties);
             foreach (OpenXmlElement child in run.ChildElements) {
@@ -289,6 +305,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case RunProperties:
                         break;
                     case LastRenderedPageBreak:
+                        break;
+                    case DocumentFormat.OpenXml.Wordprocessing.PageNumber:
+                        AppendFormattedHeaderFooterPageNumberRun(storyText, formattedRuns, paragraphText, formatting);
                         break;
                     case Text textNode:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, textNode.Text, formatting);
@@ -309,9 +328,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendFormattedHeaderFooterBreak(storyText, formattedRuns, paragraphText, breakNode, kind, formatting);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text, PAGE fields, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
                 }
             }
+        }
+
+        private static void AppendFormattedHeaderFooterPageNumberRun(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, LegacyDocWritableFormatting formatting) {
+            int before = storyText.Length;
+            AppendSupportedPageNumberField(storyText, formattedRuns, formatting);
+            paragraphText.Append(storyText.ToString(before, storyText.Length - before));
         }
 
         private static void AppendFormattedHeaderFooterText(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, string? value, LegacyDocWritableFormatting formatting) {

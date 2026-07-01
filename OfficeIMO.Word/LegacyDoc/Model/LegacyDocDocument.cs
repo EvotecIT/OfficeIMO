@@ -528,6 +528,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadPageNumber(
+                    characters,
+                    characterIndex,
+                    out int pageNumberResultStartIndex,
+                    out int pageNumberResultEndIndex,
+                    out int pageNumberFieldEndIndex)) {
+                    AppendPageNumberResult(pageNumberResultStartIndex, pageNumberResultEndIndex);
+                    characterIndex = pageNumberFieldEndIndex;
+                    continue;
+                }
+
                 if (textCharacter.Character == '\a') {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
                     if (paragraphFormat.IsInTable == true) {
@@ -636,6 +647,30 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
                     AppendRunCharacter(normalized.Value, format, resultCharacter.CharacterPosition, hyperlinkTarget);
                     bodyText.Append(normalized.Value);
+                }
+            }
+
+            void AppendPageNumberResult(int resultStartIndex, int resultEndIndex) {
+                FlushRun();
+                LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
+                var positions = new List<int>();
+                for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                    LegacyDocTextCharacter resultCharacter = characters[resultIndex];
+                    char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
+                    if (normalized == null) {
+                        continue;
+                    }
+
+                    if (positions.Count == 0) {
+                        format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                    }
+
+                    positions.Add(resultCharacter.CharacterPosition);
+                }
+
+                currentRuns.Add(LegacyDocTextRunFactory.CreatePageNumberRun(format, positions));
+                if (inTable) {
+                    justClosedCell = false;
                 }
             }
 

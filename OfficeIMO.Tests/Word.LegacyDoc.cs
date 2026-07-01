@@ -2620,6 +2620,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFooterPageNumberFieldAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with footer page number");
+                    WordFooter footer = document.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default);
+                    footer.AddParagraph("Page ").AddPageNumber();
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                string wordDocumentAscii = Encoding.ASCII.GetString(wordDocumentStream);
+                Assert.Contains("PAGE", wordDocumentAscii);
+                Assert.Contains((byte)LegacyDocField.Begin, wordDocumentStream);
+                Assert.Contains((byte)LegacyDocField.Separator, wordDocumentStream);
+                Assert.Contains((byte)LegacyDocField.End, wordDocumentStream);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                WordParagraph footerParagraph = Assert.Single(
+                    reloaded.Sections[0].Footer.Default!.Paragraphs,
+                    paragraph => paragraph.Text == "Page ");
+                Assert.Equal("Page ", footerParagraph.Text);
+                Assert.Single(footerParagraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageNumber>());
+                Assert.DoesNotContain("PAGE", footerParagraph._paragraph.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain(footerParagraph._paragraph.InnerText, character => character == LegacyDocField.Begin);
+                Assert.DoesNotContain(footerParagraph._paragraph.InnerText, character => character == LegacyDocField.Separator);
+                Assert.DoesNotContain(footerParagraph._paragraph.InnerText, character => character == LegacyDocField.End);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterEmptyParagraphsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

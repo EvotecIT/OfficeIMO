@@ -611,6 +611,9 @@ just to reserve names.
   - [x] Ignore OpenXML proofing error boundary markers during native DOC save,
     then reload body, table-cell, header/footer, and note story text without
     exposing spell/grammar UI metadata as content.
+  - [x] Write simple `PAGE` fields from OfficeIMO page-number runs/simple fields
+    into native DOC field characters, then reload them as real OpenXML
+    page-number runs instead of exposing field instructions as visible text.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

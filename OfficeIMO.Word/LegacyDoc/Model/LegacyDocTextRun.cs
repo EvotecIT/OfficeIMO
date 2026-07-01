@@ -20,7 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? fontFamily,
             string? hyperlinkUri = null,
             string? hyperlinkAnchor = null,
-            bool noProof = false)
+            bool noProof = false,
+            bool isPageNumber = false)
             : this(
                 text,
                 bold,
@@ -42,7 +43,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fontFamily,
                 Array.Empty<int>(),
                 hyperlinkUri,
-                hyperlinkAnchor) {
+                hyperlinkAnchor,
+                isPageNumber) {
         }
 
         internal LegacyDocTextRun(
@@ -66,7 +68,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? fontFamily,
             IReadOnlyList<int> characterPositions,
             string? hyperlinkUri = null,
-            string? hyperlinkAnchor = null) {
+            string? hyperlinkAnchor = null,
+            bool isPageNumber = false) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -90,6 +93,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : characterPositions.ToArray();
             HyperlinkUri = string.IsNullOrWhiteSpace(hyperlinkUri) ? null : hyperlinkUri;
             HyperlinkAnchor = string.IsNullOrWhiteSpace(hyperlinkAnchor) ? null : hyperlinkAnchor;
+            IsPageNumber = isPageNumber;
         }
 
         internal string Text { get; }
@@ -133,6 +137,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? HyperlinkUri { get; }
 
         internal string? HyperlinkAnchor { get; }
+
+        internal bool IsPageNumber { get; }
 
         internal LegacyDocHyperlinkTarget HyperlinkTarget {
             get {
