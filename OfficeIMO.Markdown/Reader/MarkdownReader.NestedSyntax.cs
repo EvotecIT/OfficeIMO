@@ -240,7 +240,7 @@ public static partial class MarkdownReader {
         ShouldParseBlockGenericAttributes(options, state)
         && (state == null || !state.SuppressedParagraphGenericAttributeStartLines.Contains(startLineIndex));
 
-    private static bool ShouldParseNestedStandaloneFencedCodeGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int lineIndex) {
+    private static bool ShouldParseNestedStandaloneGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state, int lineIndex) {
         if (options?.GenericAttributes != true) {
             return false;
         }

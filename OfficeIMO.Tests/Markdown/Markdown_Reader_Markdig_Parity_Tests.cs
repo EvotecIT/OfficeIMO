@@ -424,6 +424,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> GenericAttributesPipeTableExtensionCases() {
         yield return new object[] { "standalone-attribute-before-pipe-table", "{#tbl .wide title=\"Overview\"}\n| A |\n|---|\n| B |" };
+        yield return new object[] { "blockquote-standalone-attribute-before-pipe-table", "> {#tbl .wide}\n> | A |\n> |---|\n> | B |" };
+        yield return new object[] { "list-standalone-attribute-before-pipe-table", "- item\n\n  {#tbl .wide}\n  | A |\n  |---|\n  | B |" };
         yield return new object[] { "standalone-attribute-after-pipe-table-stays-paragraph", "| A |\n|---|\n| B |\n{#tbl .wide}" };
         yield return new object[] { "pipe-table-header-cell-attribute", "| A {#tbl .wide title=\"Overview\"} |\n|---|\n| B |" };
         yield return new object[] { "pipe-table-second-header-cell-attribute", "| A | B {#tbl .wide} |\n|---|---|\n| C | D |" };

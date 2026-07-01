@@ -83,16 +83,23 @@ public static partial class MarkdownReader {
             }
 
             return state.QuoteContainerLines.Contains(i)
-                && IsQuoteStandaloneAttributeSupportedBlock(lines[i], options);
+                && IsQuoteStandaloneAttributeSupportedBlock(lines, i, options, state);
         }
 
         return false;
     }
 
-    private static bool IsQuoteStandaloneAttributeSupportedBlock(string line, MarkdownReaderOptions options) =>
-        (options.FencedCode && IsCodeFenceOpen(line, out _, out _, out _))
-        || (options.UnorderedLists && IsUnorderedListLine(line, out _, out _, out _, out _))
-        || (options.OrderedLists && IsOrderedListLine(line, out _, out _));
+    private static bool IsQuoteStandaloneAttributeSupportedBlock(
+        string[] lines,
+        int lineIndex,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state) {
+        var line = lines[lineIndex];
+        return (options.FencedCode && IsCodeFenceOpen(line, out _, out _, out _))
+            || (options.UnorderedLists && IsUnorderedListLine(line, out _, out _, out _, out _))
+            || (options.OrderedLists && IsOrderedListLine(line, out _, out _))
+            || StartsTable(lines, lineIndex, options, state);
+    }
 
     private static bool HasFollowingConsumedStandaloneAttributeTarget(
         string[] lines,

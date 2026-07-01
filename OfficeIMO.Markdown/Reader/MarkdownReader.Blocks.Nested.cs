@@ -103,6 +103,7 @@ public static partial class MarkdownReader {
                         continuationIndent,
                         options,
                         state,
+                        NestedStandaloneGenericAttributeTarget.Any,
                         out _,
                         out _,
                         out _)) {
@@ -282,6 +283,7 @@ public static partial class MarkdownReader {
                 continuationIndent,
                 options,
                 state,
+                NestedStandaloneGenericAttributeTarget.FencedCode,
                 out attributeSet,
                 out attributeSourceText,
                 out attributeSourceSpan)) {
@@ -357,12 +359,19 @@ public static partial class MarkdownReader {
         return true;
     }
 
+    private enum NestedStandaloneGenericAttributeTarget {
+        Any,
+        FencedCode,
+        Table
+    }
+
     private static bool TryConsumeNestedStandaloneGenericAttributeLine(
         string[] lines,
         int index,
         int continuationIndent,
         MarkdownReaderOptions options,
         MarkdownReaderState state,
+        NestedStandaloneGenericAttributeTarget target,
         out MarkdownAttributeSet attributes,
         out string sourceText,
         out MarkdownSourceSpan? sourceSpan) {
@@ -370,7 +379,7 @@ public static partial class MarkdownReader {
         sourceText = string.Empty;
         sourceSpan = null;
 
-        if (!ShouldParseNestedStandaloneFencedCodeGenericAttributes(options, state, index)
+        if (!ShouldParseNestedStandaloneGenericAttributes(options, state, index)
             || lines == null
             || index < 0
             || index + 1 >= lines.Length) {
@@ -401,14 +410,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        var next = lines[index + 1] ?? string.Empty;
-        if (CountLeadingIndentColumns(next) < continuationIndent) {
-            attributes = MarkdownAttributeSet.Empty;
-            return false;
-        }
-
-        var nextSlice = StripLeadingIndentColumns(next, continuationIndent);
-        if (!IsCodeFenceOpen(nextSlice, out _, out _, out _)) {
+        if (!IsNestedStandaloneGenericAttributeTarget(lines, index + 1, continuationIndent, options, state, target)) {
             attributes = MarkdownAttributeSet.Empty;
             return false;
         }
@@ -423,6 +425,53 @@ public static partial class MarkdownReader {
             absoluteLine,
             startColumn + sourceText.Length - 1);
         return true;
+    }
+
+    private static bool IsNestedStandaloneGenericAttributeTarget(
+        string[] lines,
+        int index,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        NestedStandaloneGenericAttributeTarget target) {
+        if (lines == null || index < 0 || index >= lines.Length) {
+            return false;
+        }
+
+        var next = lines[index] ?? string.Empty;
+        if (CountLeadingIndentColumns(next) < continuationIndent) {
+            return false;
+        }
+
+        var nextSlice = StripLeadingIndentColumns(next, continuationIndent);
+        if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.FencedCode)
+            && IsCodeFenceOpen(nextSlice, out _, out _, out _)) {
+            return true;
+        }
+
+        if (target != NestedStandaloneGenericAttributeTarget.Any && target != NestedStandaloneGenericAttributeTarget.Table) {
+            return false;
+        }
+
+        var tableLines = new List<string>();
+        for (int i = index; i < lines.Length; i++) {
+            var line = lines[i] ?? string.Empty;
+            if (CountLeadingIndentColumns(line) < continuationIndent) {
+                break;
+            }
+
+            var sliced = StripLeadingIndentColumns(line, continuationIndent);
+            if (string.IsNullOrWhiteSpace(sliced)) {
+                break;
+            }
+
+            tableLines.Add(sliced);
+            if (tableLines.Count >= 2 && !LooksLikeTableRow(sliced.TrimStart()) && !IsAlignmentRow(sliced.TrimStart())) {
+                break;
+            }
+        }
+
+        return tableLines.Count > 0 && StartsTable(tableLines.ToArray(), 0, options, state);
     }
 
     private static bool TryParseNestedIndentedCodeBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, out CodeBlock? block) {
@@ -616,6 +665,25 @@ public static partial class MarkdownReader {
         if (lines == null || index < 0 || index >= lines.Length) return false;
         if (!options.Tables) return false;
 
+        var attributeSourceText = string.Empty;
+        MarkdownAttributeSet attributeSet = MarkdownAttributeSet.Empty;
+        MarkdownSourceSpan? attributeSourceSpan = null;
+        if (TryConsumeNestedStandaloneGenericAttributeLine(
+                lines,
+                index,
+                continuationIndent,
+                options,
+                state,
+                NestedStandaloneGenericAttributeTarget.Table,
+                out attributeSet,
+                out attributeSourceText,
+                out attributeSourceSpan)) {
+            index++;
+            if (index >= lines.Length) {
+                return false;
+            }
+        }
+
         string line = lines[index] ?? string.Empty;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
         string slice = StripLeadingIndentColumns(line, continuationIndent);
@@ -650,6 +718,11 @@ public static partial class MarkdownReader {
         }
 
         table = parsedTable;
+        if (!attributeSet.IsEmpty && table.Attributes.IsEmpty) {
+            table.SetAttributes(attributeSet);
+            MarkdownGenericAttributeSourceSpans.Set(table, attributeSourceText, attributeSourceSpan);
+        }
+
         index = j;
         return true;
     }
