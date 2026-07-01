@@ -128,6 +128,19 @@ namespace OfficeIMO.Word {
                 pageNumber++;
             }
 
+            bool containsOwnCaption = ContainsSequenceField(paragraph, sequenceIdentifier, includeTextBoxContent: false);
+            if (containsOwnCaption) {
+                AddCaptionEntry(
+                    paragraph,
+                    sequenceIdentifier,
+                    entries,
+                    existingBookmarkNames,
+                    pageNumber,
+                    ref captionIndex,
+                    ref skippedCaptionCount,
+                    captionTextOverride: GetParagraphTextOutsideTextBoxes(paragraph));
+            }
+
             IReadOnlyList<Paragraph> textBoxCaptionParagraphs = GetTextBoxCaptionParagraphs(paragraph, sequenceIdentifier);
             if (textBoxCaptionParagraphs.Count > 0) {
                 var seenCaptionText = new HashSet<string>(StringComparer.Ordinal);
@@ -142,7 +155,7 @@ namespace OfficeIMO.Word {
                         ref skippedCaptionCount,
                         seenCaptionText);
                 }
-            } else if (ContainsSequenceField(paragraph, sequenceIdentifier)) {
+            } else if (!containsOwnCaption && ContainsSequenceField(paragraph, sequenceIdentifier)) {
                 AddCaptionEntry(
                     paragraph,
                     sequenceIdentifier,
@@ -168,8 +181,9 @@ namespace OfficeIMO.Word {
             int pageNumber,
             ref int captionIndex,
             ref int skippedCaptionCount,
-            HashSet<string>? seenCaptionText = null) {
-            string captionText = GetParagraphText(paragraph).Trim();
+            HashSet<string>? seenCaptionText = null,
+            string? captionTextOverride = null) {
+            string captionText = (captionTextOverride ?? GetParagraphText(paragraph)).Trim();
             if (captionText.Length == 0) {
                 skippedCaptionCount++;
                 return;
@@ -194,6 +208,12 @@ namespace OfficeIMO.Word {
             return captionParagraphs;
         }
 
+        private static string GetParagraphTextOutsideTextBoxes(Paragraph paragraph) {
+            return string.Concat(paragraph.Descendants<Text>()
+                .Where(text => !text.Ancestors<TextBoxContent>().Any())
+                .Select(text => text.Text));
+        }
+
         private void ReplaceCaptionListContent(string instruction, string sequenceIdentifier, string title, IReadOnlyList<CaptionListEntry> entries, ISet<int> pageNumberSuppressedLevels, string pageNumberSeparator) {
             SdtContentBlock content = _sdtBlock.SdtContentBlock
                 ?? throw new InvalidOperationException("Table of contents content block is missing.");
@@ -212,19 +232,36 @@ namespace OfficeIMO.Word {
         }
 
         private static bool ContainsSequenceField(Paragraph paragraph, string sequenceIdentifier) {
+            return ContainsSequenceField(paragraph, sequenceIdentifier, includeTextBoxContent: true);
+        }
+
+        private static bool ContainsSequenceField(Paragraph paragraph, string sequenceIdentifier, bool includeTextBoxContent) {
             foreach (SimpleField simpleField in paragraph.Descendants<SimpleField>()) {
+                if (!includeTextBoxContent && simpleField.Ancestors<TextBoxContent>().Any()) {
+                    continue;
+                }
+
                 if (IsSequenceInstruction(simpleField.Instruction?.Value ?? simpleField.Instruction, sequenceIdentifier)) {
                     return true;
                 }
             }
 
             foreach (FieldCode fieldCode in paragraph.Descendants<FieldCode>()) {
+                if (!includeTextBoxContent && fieldCode.Ancestors<TextBoxContent>().Any()) {
+                    continue;
+                }
+
                 if (IsSequenceInstruction(fieldCode.Text, sequenceIdentifier)) {
                     return true;
                 }
             }
 
-            string combinedInstruction = string.Concat(paragraph.Descendants<FieldCode>().Select(fieldCode => fieldCode.Text));
+            IEnumerable<FieldCode> fieldCodes = paragraph.Descendants<FieldCode>();
+            if (!includeTextBoxContent) {
+                fieldCodes = fieldCodes.Where(fieldCode => !fieldCode.Ancestors<TextBoxContent>().Any());
+            }
+
+            string combinedInstruction = string.Concat(fieldCodes.Select(fieldCode => fieldCode.Text));
             return IsSequenceInstruction(combinedInstruction, sequenceIdentifier);
         }
 

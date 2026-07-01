@@ -72,11 +72,7 @@ namespace OfficeIMO.Word {
                 }
 
                 if (child is Paragraph paragraph) {
-                    foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(paragraph, customStyleLevels, sourceOptions)) {
-                        ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
-                    }
-
-                    ProcessHeadingParagraph(paragraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
+                    ProcessHeadingParagraphWithTextBoxes(paragraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                     continue;
                 }
 
@@ -86,11 +82,7 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(nestedParagraph, customStyleLevels, sourceOptions)) {
-                            ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
-                        }
-
-                        ProcessHeadingParagraph(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
+                        ProcessHeadingParagraphWithTextBoxes(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                     }
 
                     continue;
@@ -102,16 +94,35 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(nestedParagraph, customStyleLevels, sourceOptions)) {
-                            ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
-                        }
-
-                        ProcessHeadingParagraph(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
+                        ProcessHeadingParagraphWithTextBoxes(nestedParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex);
                     }
                 }
             }
 
             return entries;
+        }
+
+        private void ProcessHeadingParagraphWithTextBoxes(
+            Paragraph paragraph,
+            string? tcEntryTypeFilter,
+            IReadOnlyDictionary<string, int> customStyleLevels,
+            string? bookmarkScope,
+            BookmarkRange? bookmarkRange,
+            List<TocHeadingEntry> entries,
+            HashSet<string> existingBookmarkNames,
+            TocSourceOptions sourceOptions,
+            ref int pageNumber,
+            ref int headingIndex) {
+            if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+                pageNumber++;
+            }
+
+            foreach (Paragraph textBoxHeadingParagraph in GetBodyTextBoxHeadingParagraphs(paragraph, customStyleLevels, sourceOptions)) {
+                ProcessHeadingParagraph(textBoxHeadingParagraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex, countPageBreakBefore: false, countTrailingBreaks: false);
+            }
+
+            ProcessHeadingParagraph(paragraph, tcEntryTypeFilter, customStyleLevels, bookmarkScope, bookmarkRange, entries, existingBookmarkNames, sourceOptions, ref pageNumber, ref headingIndex, countPageBreakBefore: false, countTrailingBreaks: false);
+            CountParagraphPageBreaks(paragraph, ref pageNumber);
         }
 
         private static IReadOnlyList<Paragraph> GetBodyTextBoxHeadingParagraphs(
@@ -151,8 +162,10 @@ namespace OfficeIMO.Word {
             HashSet<string> existingBookmarkNames,
             TocSourceOptions sourceOptions,
             ref int pageNumber,
-            ref int headingIndex) {
-            if (paragraph.ParagraphProperties?.PageBreakBefore != null) {
+            ref int headingIndex,
+            bool countPageBreakBefore = true,
+            bool countTrailingBreaks = true) {
+            if (countPageBreakBefore && paragraph.ParagraphProperties?.PageBreakBefore != null) {
                 pageNumber++;
             }
 
@@ -179,6 +192,14 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            if (!countTrailingBreaks) {
+                return;
+            }
+
+            CountParagraphPageBreaks(paragraph, ref pageNumber);
+        }
+
+        private static void CountParagraphPageBreaks(Paragraph paragraph, ref int pageNumber) {
             pageNumber += paragraph.Descendants<Break>().Count(documentBreak => documentBreak.Type?.Value == BreakValues.Page);
 
             if (StartsNewPage(paragraph.ParagraphProperties?.SectionProperties)) {

@@ -366,6 +366,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshEntriesAppliesAnchorPageBreakBeforeToTextBoxHeadings() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesTextBoxHeadingAnchorBreak.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 2);
+                document.AddParagraph("Intro text");
+                Paragraph hostParagraph = CreateTextBoxHeadingParagraph("Anchored text-box heading", "Heading1");
+                hostParagraph.ParagraphProperties ??= new ParagraphProperties();
+                hostParagraph.ParagraphProperties.PageBreakBefore = new PageBreakBefore();
+                AppendBodyParagraph(document, hostParagraph);
+
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                WordTableOfContentEntry entry = Assert.Single(report.Entries);
+                Assert.Equal("Anchored text-box heading", entry.Text);
+                Assert.Equal(2, entry.PageNumber);
+                Assert.Contains("Anchored text-box heading", TocText(toc));
+                Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTextBoxHeadings() {
             string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "FieldEvaluation", "word-generated-toc-text-box.docx"));
             Assert.True(File.Exists(sourcePath), $"Missing Word-generated text-box TOC fixture: {sourcePath}");
@@ -1833,6 +1855,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshListOfFiguresIncludesParentAndAnchoredTextBoxCaptions() {
+            string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresParentAndTextBox.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent list = document.AddTableOfContent();
+                AppendBodyParagraph(document, CreateParentAndTextBoxCaptionParagraph("Figure", "Parent deployment map", "Text-box fallback map"));
+
+                WordCaptionListRefreshReport report = list.RefreshListOfFigures();
+
+                Assert.Equal("Figure", report.SequenceIdentifier);
+                Assert.Equal(2, report.EntryCount);
+                Assert.Equal(
+                    new[] { "Figure 1 Parent deployment map", "Figure 2 Text-box fallback map" },
+                    report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.Equal(new[] { 1, 1 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
+                Assert.Contains("Figure 1 Parent deployment map", TocText(list));
+                Assert.Contains("Figure 2 Text-box fallback map", TocText(list));
+                Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshIndexCountsEveryExplicitPageBreak() {
             string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshEntriesMultipleBreaks.docx");
 
@@ -2930,6 +2974,30 @@ namespace OfficeIMO.Tests {
                         })));
 
             AppendBodyParagraph(document, hostParagraph);
+        }
+
+        private static Paragraph CreateParentAndTextBoxCaptionParagraph(string sequenceIdentifier, string parentCaptionText, string textBoxCaptionText) {
+            Paragraph textBoxCaptionParagraph = new Paragraph(
+                new ParagraphProperties(new ParagraphStyleId { Val = "Caption" }),
+                new Run(new Text(sequenceIdentifier + " ") { Space = SpaceProcessingModeValues.Preserve }),
+                CreateCaptionSequenceField(sequenceIdentifier, "2"),
+                new Run(new Text(" " + textBoxCaptionText) { Space = SpaceProcessingModeValues.Preserve }));
+
+            return new Paragraph(
+                new ParagraphProperties(new ParagraphStyleId { Val = "Caption" }),
+                new Run(new Text(sequenceIdentifier + " ") { Space = SpaceProcessingModeValues.Preserve }),
+                CreateCaptionSequenceField(sequenceIdentifier, "1"),
+                new Run(new Text(" " + parentCaptionText) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(
+                    new Picture(
+                        new V.Shape(
+                            new V.TextBox(
+                                new TextBoxContent(textBoxCaptionParagraph))) {
+                            Id = "OfficeIMO_TextBox_Anchored_Caption",
+                            Style = "width:240pt;height:40pt",
+                            Filled = false,
+                            Stroked = true
+                        })));
         }
 
         private static SimpleField CreateCaptionSequenceField(string sequenceIdentifier) {
