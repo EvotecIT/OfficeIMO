@@ -6452,6 +6452,70 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleBasedOnCustomBorderStyleAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocBaseBorderTable";
+            const string childStyleId = "NativeDocInheritedBorderTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
+                    baseStyle.Append(new StyleName { Val = "Native DOC Base Border Table" });
+                    baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                    baseStyle.Append(new StyleTableProperties(
+                        new TableBorders(
+                            new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U, Space = 0U },
+                            new LeftBorder { Val = BorderValues.Single, Color = "0000ff", Size = 4U, Space = 0U },
+                            new BottomBorder { Val = BorderValues.Single, Color = "00ff00", Size = 4U, Space = 0U },
+                            new RightBorder { Val = BorderValues.Single, Color = "000000", Size = 4U, Space = 0U },
+                            new InsideHorizontalBorder { Val = BorderValues.Single, Color = "c0c0c0", Size = 4U, Space = 0U },
+                            new InsideVerticalBorder { Val = BorderValues.Single, Color = "808080", Size = 4U, Space = 0U })));
+
+                    var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
+                    childStyle.Append(new StyleName { Val = "Native DOC Inherited Border Table" });
+                    childStyle.Append(new BasedOn { Val = baseStyleId });
+
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    styles.Append(baseStyle);
+                    styles.Append(childStyle);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
+                Assert.Equal("A1", firstCell.Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.TopStyle);
+                Assert.Equal("ff0000", firstCell.Borders.TopColorHex);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.LeftStyle);
+                Assert.Equal("0000ff", firstCell.Borders.LeftColorHex);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.BottomStyle);
+                Assert.Equal("c0c0c0", firstCell.Borders.BottomColorHex);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.RightStyle);
+                Assert.Equal("808080", firstCell.Borders.RightColorHex);
+
+                WordTableCell lastCell = reloadedTable.Rows[1].Cells[1];
+                Assert.Equal("B2", lastCell.Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, lastCell.Borders.BottomStyle);
+                Assert.Equal("00ff00", lastCell.Borders.BottomColorHex);
+                Assert.Equal(BorderValues.Single, lastCell.Borders.RightStyle);
+                Assert.Equal("000000", lastCell.Borders.RightColorHex);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleBordersAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocPaletteBorderTable";
@@ -8047,6 +8111,44 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains("table style shading", exception.Message.ToLowerInvariant());
                 Assert.Contains("palette fill colors", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedInheritedCustomTableStyleShadingBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocBaseShadingTable";
+            const string childStyleId = "NativeDocInheritedUnsupportedShadingTable";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
+                baseStyle.Append(new StyleName { Val = "Native DOC Base Shading Table" });
+                baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                baseStyle.Append(new StyleTableProperties(
+                    new Shading {
+                        Val = ShadingPatternValues.Clear,
+                        Fill = "ff0000"
+                    }));
+
+                var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
+                childStyle.Append(new StyleName { Val = "Native DOC Inherited Unsupported Shading Table" });
+                childStyle.Append(new BasedOn { Val = baseStyleId });
+
+                Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(baseStyle);
+                styles.Append(childStyle);
+
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+                table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
+                table.Rows[0].Cells[0].AddParagraph("Inherited shading", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("inherited custom table-level formatting is supported borders", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

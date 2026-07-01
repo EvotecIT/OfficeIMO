@@ -34,8 +34,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
-            ThrowIfUnsupportedTableStyle(styleId!, style);
-            LegacyDocTableBorders inheritedBorders = ReadSupportedTableStyleBaseBorders(style);
+            ThrowIfUnsupportedTableStyle(styleId!, style, tableStyleDefinitions);
+            LegacyDocTableBorders inheritedBorders = ReadSupportedTableStyleBaseBorders(style, tableStyleDefinitions);
             TableBorders? customBorders = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
             LegacyDocTableBorders ownBorders = customBorders == null ? default : ReadSupportedTableBorders(customBorders);
             return MergeSupportedTableBorders(ownBorders, inheritedBorders);
@@ -57,7 +57,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
-            ThrowIfUnsupportedTableStyle(styleId!, style);
+            ThrowIfUnsupportedTableStyle(styleId!, style, tableStyleDefinitions);
             Shading? customShading = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
             return customShading == null ? default : ReadSupportedTableCellShading(customShading, "table style shading");
         }
@@ -136,7 +136,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException($"Native DOC saving supports simple tables only when table style '{styleId}' can be resolved to supported table-level formatting.");
             }
 
-            ThrowIfUnsupportedTableStyle(styleId!, style);
+            ThrowIfUnsupportedTableStyle(styleId!, style, tableStyleDefinitions);
             return style;
         }
 
@@ -152,7 +152,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static bool IsTableGridStyle(string? styleId) =>
             string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase);
 
-        private static void ThrowIfUnsupportedTableStyle(string styleId, Style style) {
+        private static void ThrowIfUnsupportedTableStyle(string styleId, Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
             if (style.Type?.Value != StyleValues.Table) {
                 throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it is a table style.");
             }
@@ -169,7 +169,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StylePaneFormatFilter:
                         break;
                     case BasedOn basedOn:
-                        ThrowIfUnsupportedTableStyleBase(styleId, basedOn);
+                        ThrowIfUnsupportedTableStyleBase(styleId, basedOn, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase) { styleId });
                         break;
                     case StyleTableProperties styleTableProperties:
                         ThrowIfUnsupportedStyleTableProperties(styleId, styleTableProperties);
@@ -205,20 +205,99 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleBase(string styleId, BasedOn basedOn) {
+        private static void ThrowIfUnsupportedTableStyleBase(string styleId, BasedOn basedOn, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
             string? baseStyleId = basedOn.Val?.Value;
             if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it is based on TableNormal or TableGrid.");
+            if (string.IsNullOrWhiteSpace(baseStyleId)
+                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when its base style can be resolved to supported table-level formatting.");
+            }
+
+            ThrowIfUnsupportedInheritedTableStyleBase(styleId, baseStyleId!, baseStyle, tableStyleDefinitions, visitedStyleIds);
         }
 
-        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style) {
+        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            return ReadSupportedTableStyleBaseBorders(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
-            return IsTableGridStyle(baseStyleId)
-                ? ReadSupportedTableGridBorders()
-                : default;
+            if (IsNoOpTableStyle(baseStyleId)) {
+                return default;
+            }
+
+            if (IsTableGridStyle(baseStyleId)) {
+                return ReadSupportedTableGridBorders();
+            }
+
+            if (string.IsNullOrWhiteSpace(baseStyleId)
+                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                return default;
+            }
+
+            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
+                throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
+            }
+
+            ThrowIfUnsupportedInheritedTableStyleBase(currentStyleId, baseStyleId!, baseStyle, tableStyleDefinitions, visitedStyleIds);
+            LegacyDocTableBorders inheritedBorders = ReadSupportedTableStyleBaseBorders(baseStyle, tableStyleDefinitions, visitedStyleIds);
+            LegacyDocTableBorders baseBorders = ReadSupportedTableStyleOwnBorders(baseStyle);
+            return MergeSupportedTableBorders(baseBorders, inheritedBorders);
+        }
+
+        private static void ThrowIfUnsupportedInheritedTableStyleBase(string styleId, string baseStyleId, Style baseStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            if (baseStyle.Type?.Value != StyleValues.Table) {
+                throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when it is a table style.");
+            }
+
+            if (!visitedStyleIds.Add(baseStyleId)) {
+                throw new NotSupportedException($"Native DOC saving cannot write table style '{styleId}' because its basedOn chain contains a cycle.");
+            }
+
+            foreach (OpenXmlElement child in baseStyle.ChildElements) {
+                switch (child) {
+                    case StyleName:
+                    case UIPriority:
+                    case Rsid:
+                    case SemiHidden:
+                    case UnhideWhenUsed:
+                    case PrimaryStyle:
+                    case Locked:
+                    case StylePaneFormatFilter:
+                        break;
+                    case BasedOn basedOn:
+                        ThrowIfUnsupportedTableStyleBase(baseStyleId, basedOn, tableStyleDefinitions, visitedStyleIds);
+                        break;
+                    case StyleTableProperties styleTableProperties:
+                        ThrowIfUnsupportedInheritedStyleTableProperties(styleId, baseStyleId, styleTableProperties);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom formatting is supported table borders. Unsupported base style element: {child.LocalName}.");
+                }
+            }
+
+            visitedStyleIds.Remove(baseStyleId);
+        }
+
+        private static void ThrowIfUnsupportedInheritedStyleTableProperties(string styleId, string baseStyleId, StyleTableProperties styleTableProperties) {
+            foreach (OpenXmlElement child in styleTableProperties.ChildElements) {
+                switch (child) {
+                    case TableBorders tableBorders:
+                        ReadSupportedTableBorders(tableBorders);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom table-level formatting is supported borders. Unsupported inherited table style property: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static LegacyDocTableBorders ReadSupportedTableStyleOwnBorders(Style style) {
+            TableBorders? borders = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
+            return borders == null ? default : ReadSupportedTableBorders(borders);
         }
 
         private static LegacyDocTableBorders ReadSupportedTableGridBorders() {
