@@ -796,7 +796,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentHyperlinkTarget.Uri,
                     currentHyperlinkTarget.Anchor,
                     specified: currentFormat.Specified,
-                    characterSpacingTwips: currentFormat.CharacterSpacingTwips));
+                    characterSpacingTwips: currentFormat.CharacterSpacingTwips,
+                    language: currentFormat.Language,
+                    eastAsiaLanguage: currentFormat.EastAsiaLanguage));
                 runText.Clear();
                 runCharacterPositions.Clear();
                 currentHyperlinkTarget = default;

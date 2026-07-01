@@ -20,7 +20,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         FontSize = 1 << 15,
         Color = 1 << 16,
         FontFamily = 1 << 17,
-        CharacterSpacing = 1 << 18
+        CharacterSpacing = 1 << 18,
+        Language = 1 << 19
     }
 
     internal readonly struct LegacyDocCharacterFormat : IEquatable<LegacyDocCharacterFormat> {
@@ -43,6 +44,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? colorHex,
             string? fontFamily,
             int? characterSpacingTwips,
+            string? language,
+            string? eastAsiaLanguage,
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None) {
             Bold = bold;
             Italic = italic;
@@ -62,6 +65,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ColorHex = colorHex;
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
+            Language = language;
+            EastAsiaLanguage = eastAsiaLanguage;
             Specified = specified;
         }
 
@@ -101,6 +106,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal int? CharacterSpacingTwips { get; }
 
+        internal string? Language { get; }
+
+        internal string? EastAsiaLanguage { get; }
+
         internal LegacyDocCharacterFormatProperties Specified { get; }
 
         internal bool HasFormatting =>
@@ -122,9 +131,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || ColorHex != null
             || FontFamily != null
             || CharacterSpacingTwips != null
+            || Language != null
+            || EastAsiaLanguage != null
             || Specified != LegacyDocCharacterFormatProperties.None;
 
-        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null, null);
+        internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null, null, null, null);
 
         internal bool IsSpecified(LegacyDocCharacterFormatProperties property) {
             return (Specified & property) != 0;
@@ -149,6 +160,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
                 && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
                 && CharacterSpacingTwips == other.CharacterSpacingTwips
+                && string.Equals(Language, other.Language, StringComparison.OrdinalIgnoreCase)
+                && string.Equals(EastAsiaLanguage, other.EastAsiaLanguage, StringComparison.OrdinalIgnoreCase)
                 && Specified == other.Specified;
         }
 
@@ -176,6 +189,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
             hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
+            hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(Language ?? string.Empty);
+            hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(EastAsiaLanguage ?? string.Empty);
             hash = (hash * 31) + Specified.GetHashCode();
             return hash;
         }

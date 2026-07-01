@@ -1185,7 +1185,10 @@ namespace OfficeIMO.Word {
                 source.CharacterPositions,
                 fieldKind: source.FieldKind,
                 fieldInstruction: source.FieldInstruction,
-                specified: source.Specified);
+                specified: source.Specified,
+                characterSpacingTwips: source.CharacterSpacingTwips,
+                language: source.Language,
+                eastAsiaLanguage: source.EastAsiaLanguage);
         }
 
         private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
@@ -2130,6 +2133,14 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
+            if (!string.IsNullOrEmpty(characterFormat.Language) || !string.IsNullOrEmpty(characterFormat.EastAsiaLanguage)) {
+                properties.Append(new Languages {
+                    Val = characterFormat.Language,
+                    EastAsia = characterFormat.EastAsiaLanguage
+                });
+                hasProperties = true;
+            }
+
             hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Bold>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
             hasProperties |= AppendLegacyDocStyleRunOnOffProperty<BoldComplexScript>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
             hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Italic>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
@@ -2314,6 +2325,15 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.CharacterSpacingTwips != null || legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.CharacterSpacing)) {
                 run.Spacing = legacyRun.CharacterSpacingTwips ?? 0;
+            }
+
+            if (!string.IsNullOrEmpty(legacyRun.Language) || !string.IsNullOrEmpty(legacyRun.EastAsiaLanguage)) {
+                RunProperties runProperties = run._runProperties ?? new RunProperties();
+                run._runProperties = runProperties;
+                runProperties.Languages = new Languages {
+                    Val = legacyRun.Language,
+                    EastAsia = legacyRun.EastAsiaLanguage
+                };
             }
         }
 

@@ -18,6 +18,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmCIco = 0x2A42;
         private const ushort SprmCIss = 0x2A48;
         private const ushort SprmCHps = 0x4A43;
+        private const ushort SprmCRgLid0 = 0x486D;
+        private const ushort SprmCRgLid1 = 0x486E;
         private const ushort SprmCRgFtc0 = 0x4A4F;
         private const ushort SprmCFDStrike = 0x2A53;
         private const ushort SprmCCv = 0x6870;
@@ -133,6 +135,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? colorHex = null;
             string? fontFamily = null;
             int? characterSpacingTwips = null;
+            string? language = null;
+            string? eastAsiaLanguage = null;
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None;
 
             while (offset + 2 <= end) {
@@ -251,6 +255,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (sprm == SprmCRgLid0 || sprm == SprmCRgLid1) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    string? languageTag = LegacyDocLanguageMapper.TryGetLanguageTag(LegacyDocFib.ReadUInt16(bytes, offset + 2));
+                    if (languageTag != null) {
+                        if (sprm == SprmCRgLid0) {
+                            language = languageTag;
+                        } else {
+                            eastAsiaLanguage = languageTag;
+                        }
+
+                        specified |= LegacyDocCharacterFormatProperties.Language;
+                    }
+
+                    offset += 4;
+                    continue;
+                }
+
                 if (sprm == SprmCRgFtc0) {
                     if (offset + 4 > end) {
                         break;
@@ -288,7 +312,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, characterSpacingTwips, specified);
+            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, characterSpacingTwips, language, eastAsiaLanguage, specified);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {

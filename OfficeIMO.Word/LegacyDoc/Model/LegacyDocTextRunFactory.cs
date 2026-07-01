@@ -28,7 +28,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fieldKind: fieldKind,
                 fieldInstruction: fieldInstruction,
                 specified: format.Specified,
-                characterSpacingTwips: format.CharacterSpacingTwips);
+                characterSpacingTwips: format.CharacterSpacingTwips,
+                language: format.Language,
+                eastAsiaLanguage: format.EastAsiaLanguage);
         }
     }
 }

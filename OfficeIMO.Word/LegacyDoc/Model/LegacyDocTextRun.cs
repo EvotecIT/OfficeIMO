@@ -23,7 +23,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool noProof = false,
             LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None,
             string? fieldInstruction = null,
-            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None)
+            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
+            string? language = null,
+            string? eastAsiaLanguage = null)
             : this(
                 text,
                 bold,
@@ -49,7 +51,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 fieldKind,
                 fieldInstruction,
                 specified,
-                characterSpacingTwips: null) {
+                characterSpacingTwips: null,
+                language: language,
+                eastAsiaLanguage: eastAsiaLanguage) {
         }
 
         internal LegacyDocTextRun(
@@ -77,7 +81,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None,
             string? fieldInstruction = null,
             LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None,
-            int? characterSpacingTwips = null) {
+            int? characterSpacingTwips = null,
+            string? language = null,
+            string? eastAsiaLanguage = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -97,6 +103,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ColorHex = colorHex;
             FontFamily = fontFamily;
             CharacterSpacingTwips = characterSpacingTwips;
+            Language = language;
+            EastAsiaLanguage = eastAsiaLanguage;
             CharacterPositions = characterPositions.Count == 0
                 ? Array.Empty<int>()
                 : characterPositions.ToArray();
@@ -144,6 +152,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         internal string? FontFamily { get; }
 
         internal int? CharacterSpacingTwips { get; }
+
+        internal string? Language { get; }
+
+        internal string? EastAsiaLanguage { get; }
 
         internal IReadOnlyList<int> CharacterPositions { get; }
 

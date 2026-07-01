@@ -9467,19 +9467,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedRunFormattingBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocRunLanguageAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                WordParagraph formatted = document.AddParagraph("Formatted");
-                formatted._run!.RunProperties ??= new RunProperties();
-                formatted._run.RunProperties.Languages = new Languages { Val = "en-US" };
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph formatted = document.AddParagraph("Jezyk");
+                    formatted.SetLanguage("pl-PL");
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("unsupported run property", exception.Message.ToLowerInvariant());
-                Assert.False(File.Exists(docPath));
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "Jezyk".Length, 0x486D, 0x15, 0x04);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "Jezyk".Length, 0x486E, 0x15, 0x04);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph run = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Jezyk", run.Text);
+                Assert.Equal("pl-PL", run.Language);
+                Languages languages = Assert.IsType<Languages>(run._runProperties?.Languages);
+                Assert.Equal("pl-PL", languages.Val?.Value);
+                Assert.Equal("pl-PL", languages.EastAsia?.Value);
             } finally {
                 DeleteIfExists(docPath);
             }

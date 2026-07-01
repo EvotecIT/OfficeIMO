@@ -230,6 +230,8 @@ just to reserve names.
   - [x] Project direct CHPX font size into both OpenXML `FontSize` and
     `FontSizeComplexScript`, matching style-level DOC font-size projection.
   - [x] Extend character projection to font family through the DOC font table.
+  - [x] Project direct DOC run language identifiers into OpenXML `w:lang`
+    values when they map to recognized culture tags.
   - [x] Project direct PAPX paragraph alignment into OfficeIMO paragraphs.
   - [x] Project direct PAPX paragraph spacing and indentation into OfficeIMO paragraphs.
   - [x] Project fixed built-in paragraph styles from PAPX base style indexes and
@@ -610,6 +612,8 @@ just to reserve names.
     font-table slot.
   - [x] Write direct and custom paragraph-style character spacing through
     `sprmCDxaSpace`, then reload it through the dependency-free legacy reader.
+  - [x] Write direct run language formatting through `sprmCRgLid0` and
+    `sprmCRgLid1`, then reload it as OpenXML `w:lang`.
   - [x] Write direct paragraph alignment PAPX records and reload them through
     the legacy reader.
   - [x] Write direct paragraph spacing and indentation PAPX records and reload

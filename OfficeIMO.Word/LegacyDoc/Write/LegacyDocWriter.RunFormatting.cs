@@ -167,6 +167,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             string? colorHex = null;
             string? fontFamily = null;
             int? characterSpacingTwips = null;
+            ushort? languageId = null;
+            ushort? eastAsiaLanguageId = null;
             LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None;
             foreach (OpenXmlElement property in runProperties.ChildElements) {
                 switch (property) {
@@ -258,14 +260,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         specified |= LegacyDocWritableFormattingProperties.CharacterSpacing;
                         characterSpacingTwips = ReadSupportedCharacterSpacing(spacing);
                         break;
+                    case Languages languages:
+                        LegacyDocWritableLanguageIds languageIds = ReadSupportedRunLanguages(languages);
+                        if (languageIds.HasAny) {
+                            specified |= LegacyDocWritableFormattingProperties.Language;
+                            languageId = languageIds.LanguageId;
+                            eastAsiaLanguageId = languageIds.EastAsiaLanguageId;
+                        }
+
+                        break;
                     case RunStyle runStyle when allowHyperlinkRunStyle && string.Equals(runStyle.Val?.Value, "Hyperlink", StringComparison.OrdinalIgnoreCase):
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, font family, and character spacing run formatting. Unsupported run property: {property.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, font family, character spacing, and language run formatting. Unsupported run property: {property.LocalName}.");
                 }
             }
 
-            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified, characterSpacingTwips: characterSpacingTwips);
+            return new LegacyDocWritableFormatting(bold == true, italic == true, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, false, caps, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified, characterSpacingTwips: characterSpacingTwips, languageId: languageId, eastAsiaLanguageId: eastAsiaLanguageId);
         }
 
         private static bool IsEnabled(OnOffType property) {
@@ -446,6 +457,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return value;
         }
 
+        private static LegacyDocWritableLanguageIds ReadSupportedRunLanguages(Languages languages) {
+            ushort? languageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.Val?.Value, "run language");
+            ushort? eastAsiaLanguageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.EastAsia?.Value, "run East Asian language");
+            ushort? bidiLanguageId = LegacyDocLanguageMapper.TryReadLanguageId(languages.Bidi?.Value, "run bidirectional language");
+
+            if (bidiLanguageId != null) {
+                if (languageId != null && languageId.Value != bidiLanguageId.Value) {
+                    throw new NotSupportedException("Native DOC saving supports run bidirectional language only when it matches the primary run language.");
+                }
+
+                languageId ??= bidiLanguageId;
+            }
+
+            return new LegacyDocWritableLanguageIds(languageId, eastAsiaLanguageId);
+        }
+
         private static void AppendFormattedText(
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
@@ -602,6 +629,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddUInt16Sprm(grpprl, SprmCRgFtc0, checked((ushort)fontIndex));
             }
 
+            if (formatting.LanguageId != null) {
+                AddUInt16Sprm(grpprl, SprmCRgLid0, formatting.LanguageId.Value);
+            }
+
+            if (formatting.EastAsiaLanguageId != null) {
+                AddUInt16Sprm(grpprl, SprmCRgLid1, formatting.EastAsiaLanguageId.Value);
+            }
+
             if (formatting.CharacterSpacingTwips != null || formatting.IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing)) {
                 AddInt16CharacterSprm(grpprl, SprmCDxaSpace, formatting.CharacterSpacingTwips ?? 0);
             }
@@ -703,14 +738,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             FontSize = 1 << 15,
             Color = 1 << 16,
             FontFamily = 1 << 17,
-            CharacterSpacing = 1 << 18
+            CharacterSpacing = 1 << 18,
+            Language = 1 << 19
         }
 
         private readonly struct LegacyDocWritableFormatting : IEquatable<LegacyDocWritableFormatting> {
             internal static readonly LegacyDocWritableFormatting Plain = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
             internal static readonly LegacyDocWritableFormatting SpecialCharacter = new LegacyDocWritableFormatting(false, false, false, false, false, false, false, false, false, false, true, null, null, null, null, null, null, null, LegacyDocWritableFormattingProperties.Special);
 
-            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None, int? characterSpacingTwips = null) {
+            internal LegacyDocWritableFormatting(bool bold, bool italic, bool strike, bool doubleStrike, bool outline, bool shadow, bool emboss, bool imprint, bool hidden, bool noProof, bool special, byte? caps, byte? verticalPosition, byte? underline, byte? highlight, int? fontSizeHalfPoints, string? colorHex, string? fontFamily, LegacyDocWritableFormattingProperties specified = LegacyDocWritableFormattingProperties.None, int? characterSpacingTwips = null, ushort? languageId = null, ushort? eastAsiaLanguageId = null) {
                 Bold = bold;
                 Italic = italic;
                 Strike = strike;
@@ -730,6 +766,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ColorHex = colorHex;
                 FontFamily = fontFamily;
                 CharacterSpacingTwips = characterSpacingTwips;
+                LanguageId = languageId;
+                EastAsiaLanguageId = eastAsiaLanguageId;
                 Specified = specified;
             }
 
@@ -771,7 +809,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal int? CharacterSpacingTwips { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || CharacterSpacingTwips != null || HasExplicitOffFormatting;
+            internal ushort? LanguageId { get; }
+
+            internal ushort? EastAsiaLanguageId { get; }
+
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || CharacterSpacingTwips != null || LanguageId != null || EastAsiaLanguageId != null || HasExplicitOffFormatting;
 
             private LegacyDocWritableFormattingProperties Specified { get; }
 
@@ -800,7 +842,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     IsSpecified(LegacyDocWritableFormattingProperties.Color) ? ColorHex : inherited.ColorHex,
                     IsSpecified(LegacyDocWritableFormattingProperties.FontFamily) ? FontFamily : inherited.FontFamily,
                     Specified | inherited.Specified,
-                    characterSpacingTwips: IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing) ? CharacterSpacingTwips : inherited.CharacterSpacingTwips);
+                    characterSpacingTwips: IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing) ? CharacterSpacingTwips : inherited.CharacterSpacingTwips,
+                    languageId: IsSpecified(LegacyDocWritableFormattingProperties.Language) ? LanguageId : inherited.LanguageId,
+                    eastAsiaLanguageId: IsSpecified(LegacyDocWritableFormattingProperties.Language) ? EastAsiaLanguageId : inherited.EastAsiaLanguageId);
             }
 
             private bool HasExplicitOffFormatting =>
@@ -818,7 +862,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 || (IsSpecified(LegacyDocWritableFormattingProperties.VerticalPosition) && VerticalPosition == null)
                 || (IsSpecified(LegacyDocWritableFormattingProperties.Underline) && Underline == null)
                 || (IsSpecified(LegacyDocWritableFormattingProperties.Highlight) && Highlight == null)
-                || (IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing) && CharacterSpacingTwips == null);
+                || (IsSpecified(LegacyDocWritableFormattingProperties.CharacterSpacing) && CharacterSpacingTwips == null)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Language) && LanguageId == null && EastAsiaLanguageId == null);
 
             internal bool IsSpecified(LegacyDocWritableFormattingProperties property) {
                 return (Specified & property) != 0;
@@ -843,7 +888,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     && FontSizeHalfPoints == other.FontSizeHalfPoints
                     && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
                     && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
-                    && CharacterSpacingTwips == other.CharacterSpacingTwips;
+                    && CharacterSpacingTwips == other.CharacterSpacingTwips
+                    && LanguageId == other.LanguageId
+                    && EastAsiaLanguageId == other.EastAsiaLanguageId;
             }
 
             public override bool Equals(object? obj) {
@@ -871,8 +918,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
                 hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
                 hash = (hash * 31) + CharacterSpacingTwips.GetHashCode();
+                hash = (hash * 31) + LanguageId.GetHashCode();
+                hash = (hash * 31) + EastAsiaLanguageId.GetHashCode();
                 return hash;
             }
+        }
+
+        private readonly struct LegacyDocWritableLanguageIds {
+            internal LegacyDocWritableLanguageIds(ushort? languageId, ushort? eastAsiaLanguageId) {
+                LanguageId = languageId;
+                EastAsiaLanguageId = eastAsiaLanguageId;
+            }
+
+            internal ushort? LanguageId { get; }
+
+            internal ushort? EastAsiaLanguageId { get; }
+
+            internal bool HasAny => LanguageId != null || EastAsiaLanguageId != null;
         }
 
         private readonly struct LegacyDocWritableRun {
