@@ -227,6 +227,68 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Single(references);
     }
 
+    [Fact]
+    public void LegacyDocRuntime_StaysFirstPartyAndDependencyFree() {
+        string[] forbiddenPackageIds = [
+            "NPOI",
+            "OpenMcdf",
+            "ExcelDataReader",
+            "Microsoft.Office.Interop.Word",
+            "Microsoft.Office.Interop.Excel",
+            "System.Data.OleDb"
+        ];
+        string[] forbiddenSourceTerms = [
+            "NPOI",
+            "OpenMcdf",
+            "ExcelDataReader",
+            "Microsoft.Office.Interop",
+            "Word.Application",
+            "LibreOffice",
+            "soffice",
+            "OleDb",
+            "Jet.OLEDB",
+            "ACE.OLEDB"
+        ];
+
+        string projectPath = GetRepositoryPath("OfficeIMO.Word/OfficeIMO.Word.csproj");
+        Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+        var projectDocument = XDocument.Load(projectPath);
+        var ns = projectDocument.Root?.Name.Namespace ?? XNamespace.None;
+
+        string[] packageOffenders = projectDocument
+            .Descendants(ns + "PackageReference")
+            .Select(static element => (string?)element.Attribute("Include") ?? string.Empty)
+            .Where(include => forbiddenPackageIds.Contains(include, StringComparer.OrdinalIgnoreCase))
+            .ToArray();
+        Assert.Empty(packageOffenders);
+
+        string[] sourceRoots = [
+            "OfficeIMO.Word/LegacyDoc",
+            "OfficeIMO.Shared/Compound"
+        ];
+        string[] sourceFiles = sourceRoots
+            .Select(GetRepositoryPath)
+            .Where(Directory.Exists)
+            .SelectMany(root => Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories))
+            .Concat(new[] {
+                GetRepositoryPath("OfficeIMO.Word/WordDocument.LoadRouting.cs")
+            })
+            .Where(File.Exists)
+            .ToArray();
+
+        var sourceOffenders = new List<string>();
+        foreach (string sourceFile in sourceFiles) {
+            string source = File.ReadAllText(sourceFile);
+            foreach (string forbiddenTerm in forbiddenSourceTerms) {
+                if (source.Contains(forbiddenTerm, StringComparison.OrdinalIgnoreCase)) {
+                    sourceOffenders.Add(GetRepositoryRelativePath(sourceFile) + " -> " + forbiddenTerm);
+                }
+            }
+        }
+
+        Assert.Empty(sourceOffenders);
+    }
+
     public static IEnumerable<object[]> PdfConversionAdapters() {
         yield return new object[] {
             "OfficeIMO.Excel.Pdf/OfficeIMO.Excel.Pdf.csproj",

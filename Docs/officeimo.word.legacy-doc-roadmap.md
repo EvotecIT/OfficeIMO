@@ -505,6 +505,11 @@ just to reserve names.
   checked-in fixtures are the source of CI proof.
 - [ ] Add optional NPOI fixture-generation tooling only if a feature slice needs
   deterministic `.doc` shapes that are awkward to produce through Word COM.
+  - [x] Add an architecture guardrail proving the OfficeIMO.Word legacy DOC
+    runtime path stays first-party and dependency-free by blocking COM,
+    LibreOffice/process converters, OLE DB, NPOI, ExcelDataReader, and OpenMcdf
+    references from the runtime project/source while keeping test-only fixture
+    dependencies allowed.
 - [x] Add an opt-in desktop Word COM validation lane that checks generated DOC
   import, native DOC save, and checked-in corpus openability without running in
   normal CI.
