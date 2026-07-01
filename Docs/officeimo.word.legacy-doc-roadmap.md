@@ -941,6 +941,10 @@ just to reserve names.
     - [x] Write body bookmark ranges that cross paragraph/table block
       boundaries in either direction, then reload the paragraph-side and
       table-side bookmark markers without reporting preserve-only loss.
+    - [x] Write direct table-child bookmark markers at the outer table edges
+      into native DOC table-boundary bookmark ranges, then reload them as the
+      supported table-sibling bookmark marker shape while row-level table
+      bookmarks remain blocked until row-boundary projection exists.
     - [x] Write simple body and table-cell block content controls by flattening
       supported child paragraphs/tables into native DOC content, while still
       blocking nested tables and unsupported child markup before bytes are

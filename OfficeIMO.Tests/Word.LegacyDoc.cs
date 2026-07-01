@@ -2570,6 +2570,48 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableChildBoundaryBookmarksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Before table child bookmark");
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].AddParagraph("TableChildBookmarkCell", removeExistingParagraphs: true);
+                    document.AddParagraph("After table child bookmark");
+
+                    TableRow row = Assert.Single(table._table.Elements<TableRow>());
+                    table._table.InsertBefore(new BookmarkStart { Id = "58", Name = "TableChildBoundaryBookmark" }, row);
+                    OpenXmlElement afterRow = table._table.InsertAfter(new BookmarkEnd { Id = "58" }, row)!;
+                    afterRow = table._table.InsertAfter(new BookmarkStart { Id = "60", Name = "AfterTableChildZeroLengthBookmark" }, afterRow)!;
+                    table._table.InsertAfter(new BookmarkEnd { Id = "60" }, afterRow);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableChildBoundaryBookmark");
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "AfterTableChildZeroLengthBookmark");
+
+                Body reloadedBody = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(reloadedBody.Elements<Table>());
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(tableElement.PreviousSibling());
+                Assert.Equal("TableChildBoundaryBookmark", bookmarkStart.Name?.Value);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(tableElement.NextSibling());
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+                BookmarkStart zeroLengthStart = Assert.IsType<BookmarkStart>(bookmarkEnd.NextSibling());
+                Assert.Equal("AfterTableChildZeroLengthBookmark", zeroLengthStart.Name?.Value);
+                BookmarkEnd zeroLengthEnd = Assert.IsType<BookmarkEnd>(zeroLengthStart.NextSibling());
+                Assert.Equal(zeroLengthStart.Id?.Value, zeroLengthEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocBeforeTableZeroLengthBookmarkAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -8300,6 +8342,28 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("nested tables", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedRowLevelTableBookmarksBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                WordTable table = document.AddTable(2, 1);
+                table.Rows[0].Cells[0].AddParagraph("First row", removeExistingParagraphs: true);
+                table.Rows[1].Cells[0].AddParagraph("Second row", removeExistingParagraphs: true);
+                TableRow[] rows = table._table.Elements<TableRow>().ToArray();
+                table._table.InsertAfter(new BookmarkStart { Id = "59", Name = "RowLevelBookmark" }, rows[0]);
+                table._table.InsertBefore(new BookmarkEnd { Id = "59" }, rows[1]);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("row-level table bookmarks", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

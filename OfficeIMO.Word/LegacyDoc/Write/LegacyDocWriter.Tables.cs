@@ -15,6 +15,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports simple tables only when at least one row is present.");
             }
 
+            AppendLeadingTableBoundaryBookmarks(table, bookmarks, text.Length);
             TableProperties? tableProperties = table.GetFirstChild<TableProperties>();
             LegacyDocTableAlignment? tableAlignment = ReadSupportedTableAlignment(tableProperties);
             tableAlignment ??= ReadSupportedTableStyleAlignment(tableProperties?.GetFirstChild<TableStyle>(), tableStyleDefinitions);
@@ -94,9 +95,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             text.Append('\r');
+            AppendTrailingTableBoundaryBookmarks(table, bookmarks, text.Length);
         }
 
         private static void ThrowIfUnsupportedTableShape(Table table, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            bool sawRow = false;
+            bool sawTrailingBoundaryBookmark = false;
             foreach (OpenXmlElement child in table.ChildElements) {
                 switch (child) {
                     case TableProperties tableProperties:
@@ -106,10 +110,59 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ThrowIfUnsupportedTableGrid(tableGrid);
                         break;
                     case TableRow:
+                        if (sawTrailingBoundaryBookmark) {
+                            throw new NotSupportedException("Native DOC saving supports table-child bookmark markers only at the outer table edges. Row-level table bookmarks are not supported yet.");
+                        }
+
+                        sawRow = true;
+                        break;
+                    case BookmarkStart:
+                    case BookmarkEnd:
+                        if (sawRow) {
+                            sawTrailingBoundaryBookmark = true;
+                        }
+
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table element: {child.LocalName}.");
                 }
+            }
+        }
+
+        private static void AppendLeadingTableBoundaryBookmarks(Table table, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
+            foreach (OpenXmlElement child in table.ChildElements) {
+                if (child is TableRow) {
+                    return;
+                }
+
+                AppendSupportedTableBoundaryBookmark(bookmarks, child, characterPosition);
+            }
+        }
+
+        private static void AppendTrailingTableBoundaryBookmarks(Table table, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
+            var trailingChildren = new List<OpenXmlElement>();
+            foreach (OpenXmlElement child in table.ChildElements) {
+                if (child is TableRow) {
+                    trailingChildren.Clear();
+                    continue;
+                }
+
+                trailingChildren.Add(child);
+            }
+
+            foreach (OpenXmlElement child in trailingChildren) {
+                AppendSupportedTableBoundaryBookmark(bookmarks, child, characterPosition);
+            }
+        }
+
+        private static void AppendSupportedTableBoundaryBookmark(LegacyDocWritableBookmarksBuilder bookmarks, OpenXmlElement child, int characterPosition) {
+            switch (child) {
+                case BookmarkStart bookmarkStart:
+                    bookmarks.AddStart(bookmarkStart, characterPosition);
+                    break;
+                case BookmarkEnd bookmarkEnd:
+                    bookmarks.AddEnd(bookmarkEnd, characterPosition);
+                    break;
             }
         }
 
