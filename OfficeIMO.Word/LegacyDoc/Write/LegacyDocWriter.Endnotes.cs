@@ -129,11 +129,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TabChar:
                         AppendFormattedNoteText(builder, runs, "\t", formatting, storyStart);
                         break;
+                    case CarriageReturn:
+                        AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
+                        break;
                     case Break breakNode:
                         AppendSimpleEndnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text, tabs, and simple line breaks. Unsupported endnote run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote id '{id}' only with text, tabs, carriage returns, and text-wrapping/page/column breaks. Unsupported endnote run element: {child.LocalName}.");
                 }
             }
         }

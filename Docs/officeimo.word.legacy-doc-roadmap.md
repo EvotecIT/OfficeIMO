@@ -600,8 +600,8 @@ just to reserve names.
   - [x] Project imported tab characters and native-written tabs as real Word
     tab runs after legacy DOC reload.
   - [x] Project imported line/page/column break characters and native-written
-    text-wrapping/page/column breaks as real Word break runs after legacy DOC
-    reload.
+    text-wrapping, carriage-return, page, and column breaks as real Word break
+    runs after legacy DOC reload.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.
@@ -769,8 +769,8 @@ just to reserve names.
     spacing, and indentation through the legacy reader.
   - [x] Preserve interior empty paragraphs inside authored footnote and
     endnote story text through native DOC save/reload.
-  - [x] Preserve text-wrapping breaks inside authored footnote and endnote
-    story text through native DOC save/reload.
+  - [x] Preserve text-wrapping and carriage-return breaks inside authored
+    footnote and endnote story text through native DOC save/reload.
   - [x] Preserve page breaks inside authored footnote and endnote story text,
     including simple note hyperlink display runs, through native DOC
     save/reload.
@@ -802,8 +802,9 @@ just to reserve names.
   - [x] Read and write supported direct run formatting inside simple
     header/footer story text through native DOC CHPX records, then reload bold
     and italic header/footer runs through the legacy reader.
-  - [x] Preserve tabs and text-wrapping breaks inside native-written simple
-    header/footer story text, then reload them as real Word tab and break runs.
+  - [x] Preserve tabs, text-wrapping breaks, and carriage-return breaks inside
+    native-written simple header/footer story text, then reload them as real
+    Word tab and break runs.
   - [x] Preserve page breaks inside native-written simple header/footer story
     text and simple hyperlink display runs, then reload them as real Word page
     break runs.

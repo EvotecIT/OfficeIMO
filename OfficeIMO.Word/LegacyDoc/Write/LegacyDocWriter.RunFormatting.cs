@@ -37,6 +37,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TabChar:
                         AppendFormattedText(text, runs, "\t", formatting);
                         break;
+                    case CarriageReturn:
+                        AppendFormattedText(text, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting);
+                        break;
                     case Break breakNode:
                         AppendSupportedBreak(text, runs, breakNode, formatting);
                         break;
@@ -47,7 +50,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendEndnoteReference(text, runs, endnotes, endnoteReference);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, line breaks, page breaks, and simple footnote/endnote references only. Unsupported run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports text, tabs, carriage returns, text-wrapping/page/column breaks, and simple footnote/endnote references only. Unsupported run element: {child.LocalName}.");
                 }
             }
         }

@@ -153,11 +153,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TabChar:
                         AppendFormattedNoteText(builder, runs, "\t", formatting, storyStart);
                         break;
+                    case CarriageReturn:
+                        AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
+                        break;
                     case Break breakNode:
                         AppendSimpleFootnoteBreak(builder, runs, breakNode, id, formatting, storyStart);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text, tabs, and simple line breaks. Unsupported footnote run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text, tabs, carriage returns, and text-wrapping/page/column breaks. Unsupported footnote run element: {child.LocalName}.");
                 }
             }
         }
@@ -244,11 +247,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TabChar:
                         AppendFormattedNoteText(text, runs, "\t", formatting, storyStart);
                         break;
+                    case CarriageReturn:
+                        AppendFormattedNoteText(text, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
+                        break;
                     case Break breakNode:
                         AppendSupportedNoteHyperlinkBreak(text, runs, breakNode, id, noteKind, storyStart, formatting);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text, tabs, and text-wrapping break display runs. Unsupported hyperlink run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text, tabs, carriage returns, and text-wrapping/page/column break display runs. Unsupported hyperlink run element: {child.LocalName}.");
                 }
             }
         }

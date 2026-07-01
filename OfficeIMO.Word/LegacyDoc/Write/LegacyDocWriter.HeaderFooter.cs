@@ -290,11 +290,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TabChar:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, "\t", formatting);
                         break;
+                    case CarriageReturn:
+                        AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting);
+                        break;
                     case Break breakNode:
                         AppendFormattedHeaderFooterBreak(storyText, formattedRuns, paragraphText, breakNode, kind, formatting);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text, tabs, and simple line breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text, tabs, carriage returns, and text-wrapping/page/column breaks in {kind}s. Unsupported {kind} run element: {child.LocalName}.");
                 }
             }
         }
