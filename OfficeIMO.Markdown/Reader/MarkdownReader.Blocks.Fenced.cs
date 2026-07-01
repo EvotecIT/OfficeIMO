@@ -14,12 +14,23 @@ public static partial class MarkdownReader {
         out char fenceChar,
         out int fenceLength,
         out int fenceIndentColumns,
-        out int infoPaddingColumns) {
+        out int infoPaddingColumns) =>
+        IsCodeFenceOpen(line, out infoString, out fenceChar, out fenceLength, out fenceIndentColumns, out infoPaddingColumns, out _);
+
+    private static bool IsCodeFenceOpen(
+        string line,
+        out string infoString,
+        out char fenceChar,
+        out int fenceLength,
+        out int fenceIndentColumns,
+        out int infoPaddingColumns,
+        out int infoPaddingCharacters) {
         infoString = string.Empty;
         fenceChar = '\0';
         fenceLength = 0;
         fenceIndentColumns = 0;
         infoPaddingColumns = 0;
+        infoPaddingCharacters = 0;
         if (line is null) return false;
         int indent = CountLeadingIndentColumns(line);
         if (indent > 3) return false;
@@ -39,7 +50,8 @@ public static partial class MarkdownReader {
         fenceChar = ch;
         fenceLength = run;
         fenceIndentColumns = indent;
-        infoPaddingColumns = CountLeadingIndentColumns(parsedInfoString);
+        infoPaddingColumns = CountLeadingWhitespaceColumns(parsedInfoString, indent + run + 1);
+        infoPaddingCharacters = CountLeadingWhitespaceCharacters(parsedInfoString);
         infoString = parsedInfoString.Trim();
         return true;
     }
@@ -75,20 +87,21 @@ public static partial class MarkdownReader {
         int fenceIndentColumns = 0,
         int fenceLength = 3,
         int infoPaddingColumns = 0,
+        int infoPaddingCharacters = 0,
         char fenceChar = '`',
         bool hasClosingFence = true,
         int closingFenceIndentColumns = 0,
         int closingFenceLength = 3) {
         var extendedBlock = TryCreateExtendedFencedBlock(options?.FencedBlockExtensions, infoString, content, isFenced, caption);
         if (extendedBlock != null) {
-            ApplyFenceSourceInfo(extendedBlock, fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+            ApplyFenceSourceInfo(extendedBlock, fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
             return extendedBlock;
         }
 
         var codeBlock = new CodeBlock(infoString, content, isFenced) {
             Caption = caption
         };
-        codeBlock.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+        codeBlock.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
         return codeBlock;
     }
 
@@ -97,18 +110,46 @@ public static partial class MarkdownReader {
         int fenceIndentColumns,
         int fenceLength,
         int infoPaddingColumns,
+        int infoPaddingCharacters,
         char fenceChar,
         bool hasClosingFence,
         int closingFenceIndentColumns,
         int closingFenceLength) {
         switch (block) {
             case CodeBlock code:
-                code.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+                code.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
                 break;
             case SemanticFencedBlock semantic:
-                semantic.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+                semantic.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
                 break;
         }
+    }
+
+    private static int CountLeadingWhitespaceCharacters(string text) {
+        if (string.IsNullOrEmpty(text)) {
+            return 0;
+        }
+
+        int count = 0;
+        while (count < text.Length && char.IsWhiteSpace(text[count])) {
+            count++;
+        }
+
+        return count;
+    }
+
+    private static int CountLeadingWhitespaceColumns(string text, int startColumn) {
+        if (string.IsNullOrEmpty(text)) {
+            return 0;
+        }
+
+        int column = Math.Max(1, startColumn);
+        int initialColumn = column;
+        for (int i = 0; i < text.Length && char.IsWhiteSpace(text[i]); i++) {
+            column = MarkdownSourceColumns.AdvanceColumn(column, text[i]);
+        }
+
+        return column - initialColumn;
     }
 
     internal static IMarkdownBlock? TryCreateExtendedFencedBlock(

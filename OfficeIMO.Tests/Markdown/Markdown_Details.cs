@@ -46,6 +46,19 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_Preserves_Details_Same_Line_Body_Source_Column() {
+            string markdown = "<details>body</details>";
+
+            var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+            var details = Assert.IsType<DetailsBlock>(Assert.Single(result.Document.Blocks));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(details.ChildBlocks));
+
+            Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 13), paragraph.SourceSpan);
+            Assert.True(result.TryCreateSourceSlice(paragraph.SourceSpan!.Value, out var slice));
+            Assert.Equal("body", slice.Text);
+        }
+
+        [Fact]
         public void Summary_RenderMarkdown_Preserves_Inline_Markup() {
             var summary = new SummaryBlock(new InlineSequence()
                 .Text("Use ")

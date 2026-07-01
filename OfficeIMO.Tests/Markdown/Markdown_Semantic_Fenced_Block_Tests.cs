@@ -181,6 +181,18 @@ _Chart caption_
     }
 
     [Fact]
+    public void Native_SourceFields_Target_Tab_Padded_Fence_Info_String() {
+        const string markdown = "```\tcsharp\nbody\n```\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var infoString = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
+
+        Assert.Equal("csharp", infoString.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 10), infoString.SourceSpan);
+        Assert.Equal("```\tfsharp\nbody\n```\n", native.CreateReplaceEdit(infoString, "fsharp").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
     public void SemanticFencedBlock_RenderHtml_Projects_GenericAttributes_To_Default_Pre() {
         var options = CreateSemanticOptions("ix-chart", MarkdownSemanticKinds.Chart);
         var markdown = """

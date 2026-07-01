@@ -309,8 +309,9 @@ public static partial class MarkdownReader {
             }
 
             string body = inner.Substring(bodyStart);
-            int bodyLineOffset = state.SourceLineOffset + startLineIndex + CountNewLines(htmlContent, 0, tagEnd + 1) + CountNewLines(inner, 0, bodyStart);
-            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(body, options, state, bodyLineOffset);
+            int bodyStartInHtml = tagEnd + 1 + bodyStart;
+            var bodySourceLines = CreateDetailsBodySourceLines(htmlContent, body, bodyStartInHtml, startLineIndex, state);
+            var (childBlocks, syntaxChildren) = ParseNestedMarkdownBlocks(bodySourceLines, options, state);
             block = new DetailsBlock(summary, childBlocks, isOpen) {
                 InsertBlankLineAfterSummary = body.StartsWith("\n\n", StringComparison.Ordinal),
                 InsertBlankLineBeforeClosing = body.EndsWith("\n\n", StringComparison.Ordinal),
@@ -321,6 +322,43 @@ public static partial class MarkdownReader {
             };
             block.SyntaxChildren = syntaxChildren;
             return true;
+        }
+
+        private static IReadOnlyList<MarkdownSourceLineSlice> CreateDetailsBodySourceLines(
+            string htmlContent,
+            string body,
+            int bodyStartInHtml,
+            int startLineIndex,
+            MarkdownReaderState state) {
+            if (string.IsNullOrEmpty(body)) {
+                return Array.Empty<MarkdownSourceLineSlice>();
+            }
+
+            var sourceLines = new List<MarkdownSourceLineSlice>();
+            int lineStart = 0;
+            while (lineStart <= body.Length) {
+                int lineEnd = lineStart;
+                while (lineEnd < body.Length && body[lineEnd] != '\r' && body[lineEnd] != '\n') {
+                    lineEnd++;
+                }
+
+                string text = body.Substring(lineStart, lineEnd - lineStart);
+                int sourceIndex = Math.Min(bodyStartInHtml + lineStart, Math.Max(0, htmlContent.Length - 1));
+                GetDetailsSourcePosition(htmlContent, sourceIndex, out int lineOffset, out int columnOffset);
+                int absoluteLine = state.SourceLineOffset + startLineIndex + lineOffset + 1;
+                sourceLines.Add(new MarkdownSourceLineSlice(text, absoluteLine, columnOffset + 1));
+
+                if (lineEnd >= body.Length) {
+                    break;
+                }
+
+                lineStart = lineEnd + 1;
+                if (body[lineEnd] == '\r' && lineStart < body.Length && body[lineStart] == '\n') {
+                    lineStart++;
+                }
+            }
+
+            return sourceLines;
         }
 
         private static MarkdownSourceSpan CreateDetailsSourceSpan(

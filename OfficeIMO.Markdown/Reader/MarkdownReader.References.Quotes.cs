@@ -110,6 +110,10 @@ public static partial class MarkdownReader {
             return false;
         }
 
+        if (CountLeadingIndentColumns(line) > 3) {
+            return false;
+        }
+
         var trimmed = line.TrimStart();
         if (trimmed.Length == 0 || trimmed[0] != '>') {
             return false;

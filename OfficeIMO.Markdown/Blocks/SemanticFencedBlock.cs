@@ -44,6 +44,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
     internal char FenceChar { get; private set; } = '`';
     internal int FenceLength { get; private set; } = 3;
     internal int FenceInfoPaddingColumns { get; private set; }
+    internal int FenceInfoPaddingCharacters { get; private set; }
     internal bool HasClosingFence { get; private set; } = true;
     internal int ClosingFenceIndentColumns { get; private set; }
     internal int ClosingFenceLength { get; private set; } = 3;
@@ -60,6 +61,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
         int fenceIndentColumns,
         int fenceLength,
         int infoPaddingColumns,
+        int infoPaddingCharacters,
         char fenceChar = '`',
         bool hasClosingFence = true,
         int closingFenceIndentColumns = 0,
@@ -68,6 +70,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
         FenceChar = fenceChar == '~' ? '~' : '`';
         FenceLength = Math.Max(3, fenceLength);
         FenceInfoPaddingColumns = Math.Max(0, infoPaddingColumns);
+        FenceInfoPaddingCharacters = Math.Max(0, infoPaddingCharacters);
         HasClosingFence = hasClosingFence;
         ClosingFenceIndentColumns = Math.Max(0, closingFenceIndentColumns);
         ClosingFenceLength = Math.Max(3, closingFenceLength);
@@ -151,7 +154,7 @@ public sealed class SemanticFencedBlock : MarkdownBlock, IMarkdownBlock, ICaptio
                 new string(FenceChar, FenceLength)));
         }
 
-        InfoStringSourceSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(span, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns);
+        InfoStringSourceSpan = MarkdownFencedBlockSourceSpans.GetInfoSpan(span, IsFenced, InfoString, FenceIndentColumns, FenceLength, FenceInfoPaddingColumns, FenceInfoPaddingCharacters);
         if (InfoStringSourceSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.CodeFenceInfo,

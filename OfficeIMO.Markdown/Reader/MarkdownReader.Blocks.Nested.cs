@@ -303,8 +303,7 @@ public static partial class MarkdownReader {
         int openingFenceIndent = CountLeadingIndentColumns(first);
         if (openingFenceIndent > 3) return false;
 
-        string openingFence = StripLeadingIndentColumns(first, openingFenceIndent);
-        if (!IsCodeFenceOpen(openingFence, out string language, out char fenceChar, out int fenceLen, out int fenceIndentColumns, out int infoPaddingColumns)) return false;
+        if (!IsCodeFenceOpen(first, out string language, out char fenceChar, out int fenceLen, out int fenceIndentColumns, out int infoPaddingColumns, out int infoPaddingCharacters)) return false;
 
         int j = index + 1;
         var code = new StringBuilder();
@@ -345,9 +344,10 @@ public static partial class MarkdownReader {
             isFenced: true,
             caption,
             options,
-            openingFenceIndent + fenceIndentColumns,
+            fenceIndentColumns,
             fenceLen,
             infoPaddingColumns,
+            infoPaddingCharacters,
             fenceChar,
             hasClosingFence,
             openingFenceIndent + closingFenceIndentColumns,

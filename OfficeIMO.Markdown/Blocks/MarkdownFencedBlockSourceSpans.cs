@@ -29,7 +29,8 @@ internal static class MarkdownFencedBlockSourceSpans {
         string? infoString,
         int fenceIndentColumns,
         int fenceLength,
-        int infoPaddingColumns) {
+        int infoPaddingColumns,
+        int infoPaddingCharacters) {
         if (!isFenced || !span.HasValue || string.IsNullOrEmpty(infoString)) {
             return null;
         }
@@ -50,7 +51,7 @@ internal static class MarkdownFencedBlockSourceSpans {
             startOffset = value.StartOffset.Value
                 + Math.Max(0, fenceIndentColumns)
                 + Math.Max(3, fenceLength)
-                + Math.Max(0, infoPaddingColumns);
+                + Math.Max(0, infoPaddingCharacters);
             endOffset = startOffset.Value + infoString.Length - 1;
         }
 
