@@ -118,6 +118,31 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return IsNumberOfPagesInstruction(instruction);
         }
 
+        internal static bool TryReadDate(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out string instruction,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            instruction = string.Empty;
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (!TryReadField(
+                characters,
+                startIndex,
+                out instruction,
+                out resultStartIndex,
+                out resultEndIndex,
+                out fieldEndIndex)) {
+                return false;
+            }
+
+            return IsDateInstruction(instruction);
+        }
+
         private static bool TryReadHyperlinkInstruction(string instruction, out LegacyDocHyperlinkTarget target) {
             target = default;
             string trimmed = instruction.Trim();
@@ -235,6 +260,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             return trimmed.Length == "NUMPAGES".Length
                 || char.IsWhiteSpace(trimmed["NUMPAGES".Length]);
+        }
+
+        private static bool IsDateInstruction(string instruction) {
+            string trimmed = instruction.Trim();
+            if (!trimmed.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            return trimmed.Length == "DATE".Length
+                || char.IsWhiteSpace(trimmed["DATE".Length]);
         }
 
         private static int IndexOfHyperlinkAnchorSwitch(string instruction, int startIndex) {

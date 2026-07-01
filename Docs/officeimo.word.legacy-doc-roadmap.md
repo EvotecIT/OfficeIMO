@@ -654,6 +654,10 @@ just to reserve names.
   - [x] Write supported footnote and endnote paragraphs whose OpenXML run
     sequence contains complex `PAGE` and `NUMPAGES` fields, preserving note
     story formatting offsets through native DOC save/reload.
+  - [x] Read and write simple and complex `DATE` fields with static display
+    result text across body, table-cell, header/footer, footnote, and endnote
+    stories, preserving the DOC field instruction and reloading them as normal
+    OpenXML simple fields.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

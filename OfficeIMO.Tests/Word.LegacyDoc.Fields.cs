@@ -1,4 +1,5 @@
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -101,6 +102,58 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocDateFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string dateInstruction = " DATE \\@ \"yyyy-MM-dd\" ";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph bodyParagraph = document.AddParagraph("Body date ");
+                    AppendSimpleField(bodyParagraph._paragraph, dateInstruction, "2026-07-01");
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell date ", removeExistingParagraphs: true);
+                    AppendComplexField(cellParagraph._paragraph, dateInstruction, "2026-07-02");
+
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header date ");
+                    AppendSimpleField(headerParagraph._paragraph, dateInstruction, "2026-07-03");
+
+                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer date ");
+                    AppendComplexField(footerParagraph._paragraph, dateInstruction, "2026-07-04");
+
+                    WordParagraph noteReferences = document.AddParagraph("Notes ");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    AppendSimpleField(footnoteBody._paragraph, dateInstruction, "2026-07-05");
+
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    AppendComplexField(endnoteBody._paragraph, dateInstruction, "2026-07-06");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                SimpleField[] dateFields = GetReloadedDateFields(mainPart).ToArray();
+                Assert.Equal(6, dateFields.Length);
+                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-01"));
+                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-02"));
+                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-03"));
+                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-04"));
+                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-05"));
+                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-06"));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         private static void AppendBookmarkedSimpleField(Paragraph paragraph, string id, string name, string instruction) {
             var simpleField = new SimpleField { Instruction = instruction };
             simpleField.Append(
@@ -119,6 +172,67 @@ namespace OfficeIMO.Tests {
                 new Run(new Text("1") { Space = SpaceProcessingModeValues.Preserve }),
                 new BookmarkEnd { Id = id },
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        }
+
+        private static void AppendSimpleField(Paragraph paragraph, string instruction, string resultText) {
+            var simpleField = new SimpleField { Instruction = instruction };
+            simpleField.Append(new Run(new Text(resultText) { Space = SpaceProcessingModeValues.Preserve }));
+            paragraph.Append(simpleField);
+        }
+
+        private static void AppendComplexField(Paragraph paragraph, string instruction, string resultText) {
+            paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(instruction) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text(resultText) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        }
+
+        private static IEnumerable<SimpleField> GetReloadedDateFields(MainDocumentPart mainPart) {
+            foreach (SimpleField field in mainPart.Document.Body!.Descendants<SimpleField>()) {
+                if (IsDateField(field)) {
+                    yield return field;
+                }
+            }
+
+            foreach (SimpleField field in mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SimpleField>())) {
+                if (IsDateField(field)) {
+                    yield return field;
+                }
+            }
+
+            foreach (SimpleField field in mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SimpleField>())) {
+                if (IsDateField(field)) {
+                    yield return field;
+                }
+            }
+
+            if (mainPart.FootnotesPart?.Footnotes != null) {
+                foreach (SimpleField field in mainPart.FootnotesPart.Footnotes.Descendants<SimpleField>()) {
+                    if (IsDateField(field)) {
+                        yield return field;
+                    }
+                }
+            }
+
+            if (mainPart.EndnotesPart?.Endnotes != null) {
+                foreach (SimpleField field in mainPart.EndnotesPart.Endnotes.Descendants<SimpleField>()) {
+                    if (IsDateField(field)) {
+                        yield return field;
+                    }
+                }
+            }
+        }
+
+        private static bool IsDateFieldWithText(SimpleField field, string expectedText) {
+            return IsDateField(field)
+                && string.Concat(field.Descendants<Text>().Select(text => text.Text)) == expectedText;
+        }
+
+        private static bool IsDateField(SimpleField field) {
+            string instruction = field.Instruction?.Value ?? string.Empty;
+            return instruction.TrimStart().StartsWith("DATE", StringComparison.OrdinalIgnoreCase);
         }
     }
 }

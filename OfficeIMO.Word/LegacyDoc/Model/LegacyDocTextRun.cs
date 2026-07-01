@@ -21,7 +21,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? hyperlinkUri = null,
             string? hyperlinkAnchor = null,
             bool noProof = false,
-            LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None)
+            LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None,
+            string? fieldInstruction = null)
             : this(
                 text,
                 bold,
@@ -44,7 +45,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 Array.Empty<int>(),
                 hyperlinkUri,
                 hyperlinkAnchor,
-                fieldKind) {
+                fieldKind,
+                fieldInstruction) {
         }
 
         internal LegacyDocTextRun(
@@ -69,7 +71,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             IReadOnlyList<int> characterPositions,
             string? hyperlinkUri = null,
             string? hyperlinkAnchor = null,
-            LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None) {
+            LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None,
+            string? fieldInstruction = null) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -94,6 +97,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             HyperlinkUri = string.IsNullOrWhiteSpace(hyperlinkUri) ? null : hyperlinkUri;
             HyperlinkAnchor = string.IsNullOrWhiteSpace(hyperlinkAnchor) ? null : hyperlinkAnchor;
             FieldKind = fieldKind;
+            FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
         }
 
         internal string Text { get; }
@@ -140,9 +144,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocFieldKind FieldKind { get; }
 
+        internal string? FieldInstruction { get; }
+
         internal bool IsPageNumber => FieldKind == LegacyDocFieldKind.Page;
 
         internal bool IsNumPages => FieldKind == LegacyDocFieldKind.NumPages;
+
+        internal bool IsDateField => FieldKind == LegacyDocFieldKind.Date;
 
         internal LegacyDocHyperlinkTarget HyperlinkTarget {
             get {

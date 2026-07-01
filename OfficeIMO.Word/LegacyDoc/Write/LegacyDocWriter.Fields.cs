@@ -7,16 +7,17 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
     internal static partial class LegacyDocWriter {
         private const string PageFieldInstruction = " PAGE   \\* MERGEFORMAT ";
         private const string NumberOfPagesFieldInstruction = " NUMPAGES   \\* MERGEFORMAT ";
+        private const string DateFieldInstruction = " DATE ";
 
         private static void AppendSupportedPageNumberField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFormatting formatting) {
-            AppendSupportedField(text, runs, LegacyDocFieldKind.Page, formatting);
+            AppendSupportedField(text, runs, GetSupportedFieldInstruction(LegacyDocFieldKind.Page), "1", formatting);
         }
 
-        private static void AppendSupportedField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocFieldKind fieldKind, LegacyDocWritableFormatting formatting) {
+        private static void AppendSupportedField(StringBuilder text, List<LegacyDocWritableRun> runs, string instruction, string resultText, LegacyDocWritableFormatting formatting) {
             AppendFormattedText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
-            AppendFormattedText(text, runs, GetSupportedFieldInstruction(fieldKind), LegacyDocWritableFormatting.Plain);
+            AppendFormattedText(text, runs, instruction, LegacyDocWritableFormatting.Plain);
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
-            AppendFormattedText(text, runs, "1", formatting);
+            AppendFormattedText(text, runs, resultText.Length == 0 ? "1" : resultText, formatting);
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
@@ -24,29 +25,31 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
             LegacyDocWritableBookmarksBuilder bookmarks,
-            LegacyDocFieldKind fieldKind,
+            string instruction,
+            string resultText,
             LegacyDocWritableFormatting formatting,
             IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers,
             int characterOffset) {
             AppendFormattedText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
-            AppendFormattedText(text, runs, GetSupportedFieldInstruction(fieldKind), LegacyDocWritableFormatting.Plain);
+            AppendFormattedText(text, runs, instruction, LegacyDocWritableFormatting.Plain);
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
             int resultStartCharacter = characterOffset + text.Length;
             AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: 0);
-            AppendFormattedText(text, runs, "1", formatting);
-            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: 1);
+            string safeResultText = resultText.Length == 0 ? "1" : resultText;
+            AppendFormattedText(text, runs, safeResultText, formatting);
+            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: safeResultText.Length);
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
         private static void AppendSupportedPageNumberFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, LegacyDocWritableFormatting inheritedFormatting) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
-                throw new NotSupportedException("Native DOC saving currently supports only PAGE and NUMPAGES simple fields. Other field types are not supported yet.");
+                throw new NotSupportedException("Native DOC saving currently supports only PAGE, NUMPAGES, and DATE simple fields. Other field types are not supported yet.");
             }
 
             LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
             LegacyDocWritableFormatting formatting = result.Formatting
                 .WithInheritedFormatting(inheritedFormatting);
-            AppendSupportedField(text, runs, bookmarks, fieldKind, formatting, result.BookmarkMarkers, characterOffset: 0);
+            AppendSupportedField(text, runs, bookmarks, field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind), result.Text, formatting, result.BookmarkMarkers, characterOffset: 0);
         }
 
         private static bool IsComplexFieldBeginRun(Run run) {
@@ -62,6 +65,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableBookmarksBuilder bookmarks,
             LegacyDocWritableFormatting inheritedFormatting) {
             var instruction = new StringBuilder();
+            var resultText = new StringBuilder();
             LegacyDocWritableFormatting? resultFormatting = null;
             var bookmarkMarkers = new List<LegacyDocSimpleFieldBookmarkMarker>();
             bool sawSeparator = false;
@@ -84,7 +88,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         continue;
                     }
 
-                    throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields only when the whole field is represented by adjacent runs.");
+                    throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only when the whole field is represented by adjacent runs.");
                 }
 
                 LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
@@ -96,13 +100,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         case FieldCode fieldCode when !sawSeparator:
                             instruction.Append(fieldCode.Text);
                             break;
-                        case Text when sawSeparator:
+                        case Text textNode when sawSeparator:
                             resultFormatting ??= runFormatting;
                             if (!resultFormatting.Value.Equals(runFormatting)) {
-                                throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields only when their display runs use one formatting set.");
+                                throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only when their display runs use one formatting set.");
                             }
 
-                            resultOffset = 1;
+                            resultText.Append(textNode.Text);
+                            resultOffset = resultText.Length;
                             break;
                         case FieldChar fieldChar:
                             FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
@@ -121,19 +126,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                             if (fieldCharType == FieldCharValues.End) {
                                 if (!TryReadSupportedFieldKind(instruction.ToString(), out LegacyDocFieldKind fieldKind)) {
-                                    throw new NotSupportedException("Native DOC saving currently supports only PAGE and NUMPAGES complex fields. Other field types are not supported yet.");
+                                    throw new NotSupportedException("Native DOC saving currently supports only PAGE, NUMPAGES, and DATE complex fields. Other field types are not supported yet.");
                                 }
 
                                 LegacyDocWritableFormatting formatting = (resultFormatting ?? LegacyDocWritableFormatting.Plain)
                                     .WithInheritedFormatting(inheritedFormatting);
-                                AppendSupportedField(text, runs, bookmarks, fieldKind, formatting, bookmarkMarkers, characterOffset: 0);
+                                AppendSupportedField(text, runs, bookmarks, instruction.ToString(), resultText.ToString(), formatting, bookmarkMarkers, characterOffset: 0);
                                 childIndex = index;
                                 return;
                             }
 
-                            throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields only with begin, separate, and end field characters.");
+                            throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only with begin, separate, and end field characters.");
                         default:
-                            throw new NotSupportedException($"Native DOC saving supports PAGE and NUMPAGES complex fields only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
+                            throw new NotSupportedException($"Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
                     }
                 }
             }
@@ -158,6 +163,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return true;
             }
 
+            if (IsFieldInstruction(trimmed, "DATE")) {
+                fieldKind = LegacyDocFieldKind.Date;
+                return true;
+            }
+
             return false;
         }
 
@@ -170,25 +180,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return fieldKind switch {
                 LegacyDocFieldKind.Page => PageFieldInstruction,
                 LegacyDocFieldKind.NumPages => NumberOfPagesFieldInstruction,
-                _ => throw new NotSupportedException("Native DOC saving supports only PAGE and NUMPAGES field instructions.")
+                LegacyDocFieldKind.Date => DateFieldInstruction,
+                _ => throw new NotSupportedException("Native DOC saving supports only PAGE, NUMPAGES, and DATE field instructions.")
             };
         }
 
         private static LegacyDocSimpleFieldResult ReadSimpleFieldResult(SimpleField field) {
             LegacyDocWritableFormatting? formatting = null;
             var bookmarkMarkers = new List<LegacyDocSimpleFieldBookmarkMarker>();
+            var resultText = new StringBuilder();
             int resultOffset = 0;
             foreach (OpenXmlElement child in field.ChildElements) {
                 switch (child) {
                     case Run run:
-                        EnsureSimplePageFieldResultRun(run);
+                        string runText = ReadSimpleFieldResultRunText(run);
                         LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
                         formatting ??= runFormatting;
                         if (!formatting.Value.Equals(runFormatting)) {
-                            throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES simple fields only when their display runs use one formatting set.");
+                            throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE simple fields only when their display runs use one formatting set.");
                         }
 
-                        resultOffset = 1;
+                        resultText.Append(runText);
+                        resultOffset = resultText.Length;
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarkMarkers.Add(new LegacyDocSimpleFieldBookmarkMarker(bookmarkStart, null, resultOffset));
@@ -201,24 +214,29 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports PAGE and NUMPAGES simple fields only when their display result contains text runs and bookmarks. Unsupported field result element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports PAGE, NUMPAGES, and DATE simple fields only when their display result contains text runs and bookmarks. Unsupported field result element: {child.LocalName}.");
                 }
             }
 
-            return new LegacyDocSimpleFieldResult(formatting ?? LegacyDocWritableFormatting.Plain, bookmarkMarkers);
+            return new LegacyDocSimpleFieldResult(resultText.ToString(), formatting ?? LegacyDocWritableFormatting.Plain, bookmarkMarkers);
         }
 
-        private static void EnsureSimplePageFieldResultRun(Run run) {
+        private static string ReadSimpleFieldResultRunText(Run run) {
+            var result = new StringBuilder();
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
                     case LastRenderedPageBreak:
-                    case Text:
+                        break;
+                    case Text text:
+                        result.Append(text.Text);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports PAGE and NUMPAGES simple fields only when their display result contains text runs. Unsupported field result element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports PAGE, NUMPAGES, and DATE simple fields only when their display result contains text runs. Unsupported field result element: {child.LocalName}.");
                 }
             }
+
+            return result.ToString();
         }
 
         private static void AddSimpleFieldBookmarkMarkers(
@@ -241,10 +259,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private readonly struct LegacyDocSimpleFieldResult {
-            internal LegacyDocSimpleFieldResult(LegacyDocWritableFormatting formatting, IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers) {
+            internal LegacyDocSimpleFieldResult(string text, LegacyDocWritableFormatting formatting, IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers) {
+                Text = text;
                 Formatting = formatting;
                 BookmarkMarkers = bookmarkMarkers;
             }
+
+            internal string Text { get; }
 
             internal LegacyDocWritableFormatting Formatting { get; }
 

@@ -1256,7 +1256,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs, PAGE and NUMPAGES simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs, PAGE, NUMPAGES, and DATE simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

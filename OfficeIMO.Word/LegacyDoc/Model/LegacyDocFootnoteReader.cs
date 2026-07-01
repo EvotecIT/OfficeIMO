@@ -304,7 +304,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     out int pageNumberResultStartIndex,
                     out int pageNumberResultEndIndex,
                     out int pageNumberFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.Page, pageNumberResultStartIndex, pageNumberResultEndIndex);
+                    AppendFieldResult(LegacyDocFieldKind.Page, fieldInstruction: null, pageNumberResultStartIndex, pageNumberResultEndIndex);
                     index = pageNumberFieldEndIndex;
                     atParagraphStart = false;
                     skipOptionalReferenceSpace = false;
@@ -317,8 +317,22 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     out int numberOfPagesResultStartIndex,
                     out int numberOfPagesResultEndIndex,
                     out int numberOfPagesFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
+                    AppendFieldResult(LegacyDocFieldKind.NumPages, fieldInstruction: null, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
                     index = numberOfPagesFieldEndIndex;
+                    atParagraphStart = false;
+                    skipOptionalReferenceSpace = false;
+                    continue;
+                }
+
+                if (LegacyDocField.TryReadDate(
+                    storyCharacters,
+                    index,
+                    out string dateInstruction,
+                    out int dateResultStartIndex,
+                    out int dateResultEndIndex,
+                    out int dateFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.Date, dateInstruction, dateResultStartIndex, dateResultEndIndex);
+                    index = dateFieldEndIndex;
                     atParagraphStart = false;
                     skipOptionalReferenceSpace = false;
                     continue;
@@ -378,7 +392,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 runCharacterPositions.Add(characterPosition);
             }
 
-            void AppendFieldResult(LegacyDocFieldKind fieldKind, int resultStartIndex, int resultEndIndex) {
+            void AppendFieldResult(LegacyDocFieldKind fieldKind, string? fieldInstruction, int resultStartIndex, int resultEndIndex) {
                 FlushRun();
                 LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
                 var positions = new List<int>();
@@ -401,6 +415,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
                     fieldKind == LegacyDocFieldKind.Page ? string.Empty : resultText.ToString(),
                     fieldKind,
+                    fieldInstruction,
                     format,
                     positions));
                 hasCurrentRun = false;

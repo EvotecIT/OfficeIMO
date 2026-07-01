@@ -545,8 +545,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     out int numberOfPagesResultStartIndex,
                     out int numberOfPagesResultEndIndex,
                     out int numberOfPagesFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
+                    AppendFieldResult(LegacyDocFieldKind.NumPages, fieldInstruction: null, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
                     characterIndex = numberOfPagesFieldEndIndex;
+                    continue;
+                }
+
+                if (LegacyDocField.TryReadDate(
+                    characters,
+                    characterIndex,
+                    out string dateInstruction,
+                    out int dateResultStartIndex,
+                    out int dateResultEndIndex,
+                    out int dateFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.Date, dateInstruction, dateResultStartIndex, dateResultEndIndex);
+                    characterIndex = dateFieldEndIndex;
                     continue;
                 }
 
@@ -662,10 +674,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             void AppendPageNumberResult(int resultStartIndex, int resultEndIndex) {
-                AppendFieldResult(LegacyDocFieldKind.Page, resultStartIndex, resultEndIndex);
+                AppendFieldResult(LegacyDocFieldKind.Page, fieldInstruction: null, resultStartIndex, resultEndIndex);
             }
 
-            void AppendFieldResult(LegacyDocFieldKind fieldKind, int resultStartIndex, int resultEndIndex) {
+            void AppendFieldResult(LegacyDocFieldKind fieldKind, string? fieldInstruction, int resultStartIndex, int resultEndIndex) {
                 FlushRun();
                 LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
                 var positions = new List<int>();
@@ -688,6 +700,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
                     fieldKind == LegacyDocFieldKind.Page ? string.Empty : resultText.ToString(),
                     fieldKind,
+                    fieldInstruction,
                     format,
                     positions));
                 if (inTable) {

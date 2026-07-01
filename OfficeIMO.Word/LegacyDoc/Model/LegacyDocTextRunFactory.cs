@@ -1,6 +1,10 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
     internal static class LegacyDocTextRunFactory {
         internal static LegacyDocTextRun CreateFieldRun(string resultText, LegacyDocFieldKind fieldKind, LegacyDocCharacterFormat format, IReadOnlyList<int> characterPositions) {
+            return CreateFieldRun(resultText, fieldKind, fieldInstruction: null, format, characterPositions);
+        }
+
+        internal static LegacyDocTextRun CreateFieldRun(string resultText, LegacyDocFieldKind fieldKind, string? fieldInstruction, LegacyDocCharacterFormat format, IReadOnlyList<int> characterPositions) {
             return new LegacyDocTextRun(
                 resultText,
                 format.Bold,
@@ -21,7 +25,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 format.ColorHex,
                 format.FontFamily,
                 characterPositions,
-                fieldKind: fieldKind);
+                fieldKind: fieldKind,
+                fieldInstruction: fieldInstruction);
         }
     }
 }
