@@ -134,6 +134,26 @@ First paragraph
         }
 
         [Fact]
+        public void Structured_Table_Cells_Preserve_Callout_Title_Mode_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| > [!NOTE] Title<br>> body |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.Callouts = true;
+            options.CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+            var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
+
+            Assert.IsType<QuoteBlock>(Assert.Single(cell.Blocks));
+            Assert.DoesNotContain(cell.Blocks, block => block is CalloutBlock);
+        }
+
+        [Fact]
         public void ListExtras_Ordered_List_Interrupts_Paragraph_When_Enabled() {
             const string md = """
 intro

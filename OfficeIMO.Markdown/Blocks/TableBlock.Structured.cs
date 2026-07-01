@@ -176,6 +176,7 @@ public sealed partial class TableBlock {
         var clone = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.OfficeIMO);
         clone.FrontMatter = false;
         clone.Callouts = source.Callouts;
+        clone.CalloutTitleMode = source.CalloutTitleMode;
         clone.Headings = source.Headings;
         clone.FencedCode = source.FencedCode;
         clone.IndentedCodeBlocks = source.IndentedCodeBlocks;
