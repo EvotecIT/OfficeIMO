@@ -271,6 +271,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocTextCharacter[] storyCharacters = characters
                 .Where(character => character.CharacterPosition >= startCharacter && character.CharacterPosition < endCharacter)
                 .ToArray();
+            bool preserveEmptyParagraph = false;
 
             for (int index = 0; index < storyCharacters.Length; index++) {
                 LegacyDocTextCharacter character = storyCharacters[index];
@@ -312,11 +313,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 atParagraphStart = false;
                 if (normalized == '\r') {
+                    preserveEmptyParagraph = HasLaterNoteParagraphContent(storyCharacters, index + 1);
                     AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset), character.CharacterPosition, isFinalParagraph: false);
                     isFirstParagraph = false;
                     atParagraphStart = true;
                     skipOptionalReferenceSpace = false;
                     currentParagraphStartCharacter = character.CharacterPosition + 1;
+                    preserveEmptyParagraph = false;
                     continue;
                 }
 
@@ -363,7 +366,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     ClearPendingBookmarks();
                 } else {
                     AddPendingBookmarks(paragraphBookmarks);
-                    if (isFinalParagraph && pendingBookmarks.Count > 0) {
+                    if (preserveEmptyParagraph) {
+                        paragraphs.Add(new LegacyDocNoteParagraph(
+                            Array.Empty<LegacyDocTextRun>(),
+                            format,
+                            currentParagraphStartCharacter,
+                            paragraphEndCharacter,
+                            MergePendingBookmarks(paragraphBookmarks)));
+                        ClearPendingBookmarks();
+                    } else if (isFinalParagraph && pendingBookmarks.Count > 0) {
                         paragraphs.Add(new LegacyDocNoteParagraph(
                             Array.Empty<LegacyDocTextRun>(),
                             format,
@@ -460,6 +471,36 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return LegacyDocParagraphFormat.Default;
+        }
+
+        private static bool HasLaterNoteParagraphContent(IReadOnlyList<LegacyDocTextCharacter> characters, int startIndex) {
+            bool skipOptionalReferenceSpace = false;
+            for (int index = startIndex; index < characters.Count; index++) {
+                char normalized = characters[index].Character == '\a' ? '\r' : characters[index].Character;
+                if (normalized == FootnoteReferenceCharacter) {
+                    skipOptionalReferenceSpace = true;
+                    continue;
+                }
+
+                if (skipOptionalReferenceSpace) {
+                    skipOptionalReferenceSpace = false;
+                    if (normalized == ' ') {
+                        continue;
+                    }
+                }
+
+                if (normalized == '\r') {
+                    continue;
+                }
+
+                if (char.IsControl(normalized) && normalized != '\t') {
+                    continue;
+                }
+
+                return true;
+            }
+
+            return false;
         }
     }
 }

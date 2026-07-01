@@ -766,6 +766,8 @@ just to reserve names.
   - [x] Write supported paragraph formatting inside authored footnote and
     endnote text bodies through native DOC PAPX records, then reload alignment,
     spacing, and indentation through the legacy reader.
+  - [x] Preserve interior empty paragraphs inside authored footnote and
+    endnote story text through native DOC save/reload.
   - [x] Keep blocking unsupported final-section properties before native `.doc`
     bytes are committed so unimplemented section features are not silently
     dropped.

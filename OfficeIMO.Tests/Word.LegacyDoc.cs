@@ -3370,6 +3370,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteEmptyParagraphsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string bodyText = "Body with empty note paragraphs";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph(bodyText);
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote first");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote first");
+                    WordParagraph footnoteEmpty = footnoteBody.AddParagraph();
+                    footnoteEmpty.AddParagraph("Footnote last");
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote first");
+                    WordParagraph endnoteEmpty = endnoteBody.AddParagraph();
+                    endnoteEmpty.AddParagraph("Endnote last");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                Assert.Equal("Footnote first", footnote.Paragraphs![1].Text);
+                Assert.Equal(string.Empty, footnote.Paragraphs[2].Text);
+                Assert.Equal("Footnote last", footnote.Paragraphs[3].Text);
+
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                Assert.Equal("Endnote first", endnote.Paragraphs![1].Text);
+                Assert.Equal(string.Empty, endnote.Paragraphs[2].Text);
+                Assert.Equal("Endnote last", endnote.Paragraphs[3].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFirstAndEvenHeaderFooterAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
