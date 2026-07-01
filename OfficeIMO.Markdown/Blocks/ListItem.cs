@@ -124,11 +124,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
             sbTight.Append(checkbox).Append(Content.RenderHtml()).Append(attributeWhitespace);
             for (int i = 0; i < Children.Count; i++) {
                 AppendTightListItemChildSeparator(sbTight, Children[i]);
-                if (Children[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
-                    sbTight.Append(tightHtmlBlock.RenderTightListItemHtml());
-                } else {
-                    sbTight.Append(MarkdownBlockRenderDispatcher.RenderHtml(Children[i]));
-                }
+                sbTight.Append(MarkdownBlockRenderDispatcher.RenderTightListItemHtml(Children[i]));
             }
             return sbTight.ToString();
         }

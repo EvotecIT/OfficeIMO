@@ -75,6 +75,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] `UseCustomContainers`: first core opt-in slice parses root/nested colon-fenced containers, renders scoped Markdig-compatible HTML, writes parsed Markdown, and maps opening fence/info/child/closing syntax.
   - [x] `UseCustomContainers`: native projection now exposes a custom-container block kind, source-backed opening fence/info/body/closing fence fields, snapshots, caret lookup, source slices, lossless source edits, and reparse proof.
   - [x] `UseCustomContainers`: paragraph interruption, malformed/ambiguous fence fallback, blockquote-contained containers, list-item-contained containers, tight-list HTML rendering, and remapped list-item fence/info/child/closing source spans now match focused Markdig comparison cases.
+  - [x] `UseCustomContainers`: tight-list custom-container HTML now routes syntax/type renderer overrides through the shared dispatcher, including nested child overrides and custom-container syntax source-slice access.
   - [ ] `UseGridTables`: decide whether grid tables belong in core, then implement malformed fallback, source spans, renderer, and writer behavior.
   - [x] `UseListExtras`: scoped core opt-in behavior exists for Markdig-style alphabetic and roman ordered-list markers, including marker-family splitting, nested markers, nested lower-roman lists after parent item text, HTML type/start output, syntax marker spans, and parsed-marker Markdown writing.
   - [x] `UseListExtras`: source-edit and reparse proof covers blockquote-contained alpha markers and nested unordered-list roman markers.
@@ -220,7 +221,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
 
 Do not implement these rows from nearby tests alone. Decide the product shape first.
 
-- [ ] `UseCustomContainers`: broaden remaining blockquote/container edge cases, renderer override seams, and writer behavior before promotion.
+- [ ] `UseCustomContainers`: broaden remaining blockquote/container edge cases and writer behavior before promotion.
 - [ ] `UseGridTables`: optional grid-table parser, semantic table model, malformed fallback, source spans, renderer, and writer.
 - [x] `UseListExtras`: inventory and scoped core opt-in parser support are complete for alpha/roman ordered markers, including nested lower-roman lists after parent item text.
 - [x] `UseListExtras`: blockquote and nested-list marker source edits now reparse to edited alpha/roman AST state.

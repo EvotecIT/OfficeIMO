@@ -88,8 +88,8 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
 
         sb.Append('>');
         for (var i = 0; i < ChildBlocks.Count; i++) {
-            if (tightListItem && ChildBlocks[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
-                sb.Append(tightHtmlBlock.RenderTightListItemHtml());
+            if (tightListItem) {
+                sb.Append(MarkdownBlockRenderDispatcher.RenderTightListItemHtml(ChildBlocks[i]));
             } else {
                 sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
             }

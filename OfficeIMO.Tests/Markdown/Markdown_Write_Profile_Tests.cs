@@ -510,6 +510,72 @@ Lead[^1]
     }
 
     [Fact]
+    public void Html_Syntax_Block_Render_Extension_Applies_To_Custom_Container_In_Tight_List_Item() {
+        const string markdown = """
+- item
+  ::: note
+  hello
+  :::
+""";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
+            PreserveTrivia = true,
+            CustomContainers = true
+        }).Document;
+        MarkdownSyntaxNode? seenSyntax = null;
+        MarkdownSourceSlice sourceSlice = default;
+        var sourceOk = false;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockHtmlRenderExtension.CreateContextual(
+            "tight-list-custom-container-html",
+            MarkdownSyntaxKind.CustomContainer,
+            (block, syntaxNode, context) => {
+                seenSyntax = syntaxNode;
+                sourceOk = context.TryCreateSourceSlice(syntaxNode, out sourceSlice);
+                var name = block is CustomContainerBlock container ? container.Name : string.Empty;
+                return $"<aside data-name=\"{context.EncodeAttributeValue(name)}\">custom</aside>";
+            }));
+
+        var html = document.ToHtmlFragment(options).Replace("\r\n", "\n");
+
+        Assert.Contains("<ul><li>item <aside data-name=\"note\">custom</aside></li></ul>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<div class=\"note\">", html, StringComparison.Ordinal);
+        Assert.NotNull(seenSyntax);
+        Assert.Equal(MarkdownSyntaxKind.CustomContainer, seenSyntax!.Kind);
+        Assert.True(sourceOk);
+        Assert.Equal(MarkdownSourceTextKind.Normalized, sourceSlice.TextKind);
+        Assert.Equal("::: note\n  hello\n  :::", sourceSlice.Text);
+    }
+
+    [Fact]
+    public void Html_Syntax_Block_Render_Extension_Applies_To_Custom_Container_Tight_List_Children() {
+        const string markdown = """
+- item
+  ::: note
+  hello
+  :::
+""";
+        var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions {
+            PreserveTrivia = true,
+            CustomContainers = true
+        }).Document;
+
+        var options = new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null };
+        options.SyntaxBlockRenderExtensions.Add(MarkdownSyntaxBlockHtmlRenderExtension.CreateContextual(
+            "tight-list-custom-container-child-html",
+            MarkdownSyntaxKind.Paragraph,
+            static (block, syntaxNode, context) =>
+                syntaxNode.Ancestors().Any(parent => parent.Kind == MarkdownSyntaxKind.CustomContainer)
+                    ? "<span data-container-child=\"true\">child</span>"
+                    : null));
+
+        var html = document.ToHtmlFragment(options).Replace("\r\n", "\n");
+
+        Assert.Contains("<ul><li>item <div class=\"note\"><span data-container-child=\"true\">child</span></div></li></ul>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<p>hello</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Markdown_Block_Render_Extension_Can_Create_Source_Slices_From_Token_Source_Spans() {
         const string markdown = "> [!TIP] Heads up\r\n> Body\r\n";
         var document = MarkdownReader.ParseWithSyntaxTree(markdown, new MarkdownReaderOptions { PreserveTrivia = true }).Document;

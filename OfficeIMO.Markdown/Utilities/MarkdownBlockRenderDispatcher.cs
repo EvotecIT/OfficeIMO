@@ -34,6 +34,35 @@ internal static class MarkdownBlockRenderDispatcher {
         return block.RenderHtml();
     }
 
+    internal static string RenderTightListItemHtml(IMarkdownBlock block) {
+        if (block == null) {
+            return string.Empty;
+        }
+
+        var context = HtmlRenderContext.BodyContext;
+        return context == null
+            ? RenderTightListItemHtmlFallback(block)
+            : RenderTightListItemHtml(block, context);
+    }
+
+    internal static string RenderTightListItemHtml(IMarkdownBlock block, MarkdownBodyRenderContext context) {
+        if (block == null) {
+            return string.Empty;
+        }
+
+        var overridden = TryRenderSyntaxBlockHtmlOverride(block, context);
+        if (overridden != null) {
+            return overridden;
+        }
+
+        overridden = TryRenderBlockHtmlOverride(block, context);
+        if (overridden != null) {
+            return overridden;
+        }
+
+        return RenderTightListItemHtmlFallback(block, context);
+    }
+
     internal static string RenderMarkdown(IMarkdownBlock block) {
         if (block == null) {
             return string.Empty;
@@ -155,5 +184,17 @@ internal static class MarkdownBlockRenderDispatcher {
         }
 
         return null;
+    }
+
+    private static string RenderTightListItemHtmlFallback(IMarkdownBlock block, MarkdownBodyRenderContext? context = null) {
+        if (block is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
+            return tightHtmlBlock.RenderTightListItemHtml();
+        }
+
+        if (context != null && block is IContextualHtmlMarkdownBlock contextualBlock) {
+            return contextualBlock.RenderHtml(context);
+        }
+
+        return block.RenderHtml();
     }
 }
