@@ -17,8 +17,8 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Official examples | 652 |
 | Pinned smoke fixtures | 316 |
 | Passing pinned fixtures | 316 |
-| Passing unpinned examples | 336 |
-| Failing examples | 0 |
+| Passing unpinned examples | 335 |
+| Failing examples | 1 |
 | Intentional deviations | 0 |
 
 ## Section Inventory
@@ -47,7 +47,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 | Links | 90 | 27 | 27 | 63 | 0 | 0 |
 | Images | 22 | 2 | 2 | 20 | 0 | 0 |
 | Autolinks | 19 | 12 | 12 | 7 | 0 | 0 |
-| Raw HTML | 20 | 8 | 8 | 12 | 0 | 0 |
+| Raw HTML | 20 | 8 | 8 | 11 | 1 | 0 |
 | Hard line breaks | 15 | 9 | 9 | 6 | 0 | 0 |
 | Soft line breaks | 2 | 2 | 2 | 0 | 0 | 0 |
 | Textual content | 3 | 0 | 0 | 3 | 0 | 0 |
@@ -56,6 +56,7 @@ Remove-Item Env:\OFFICEIMO_UPDATE_COMMONMARK_INVENTORY
 
 | Cluster | Failing | Sections | First examples |
 | --- | ---: | --- | --- |
+| HTML block/raw HTML grammar | 1 | Raw HTML | #632 |
 
 ## Next Use
 

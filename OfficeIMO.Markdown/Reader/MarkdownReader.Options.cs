@@ -30,6 +30,7 @@ public static partial class MarkdownReader {
             CjkFriendlyEmphasis = source.CjkFriendlyEmphasis,
             PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
             HtmlBlocks = source.HtmlBlocks,
+            AllowLooseHtmlBlockStartTags = source.AllowLooseHtmlBlockStartTags,
             PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,

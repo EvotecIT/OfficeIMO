@@ -369,8 +369,12 @@ public static partial class MarkdownReader {
             allowsBlankLines = false;
             tagName = null;
 
-            if (!TryParseTag(trimmedLine, out var parsedName, out var isClosing, out var endIndex)) return false;
-            if (endIndex < 0) return false;
+            string? parsedName;
+            bool isClosing;
+            bool parsed = options.AllowLooseHtmlBlockStartTags
+                ? TryReadHtmlTagNamePrefix(trimmedLine, out parsedName, out isClosing, out _)
+                : TryParseTag(trimmedLine, out parsedName, out isClosing, out var endIndex) && endIndex >= 0;
+            if (!parsed) return false;
             if (!s_BlockTags.Contains(parsedName!)) return false;
 
             if (!isClosing) {

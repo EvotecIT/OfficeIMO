@@ -192,6 +192,7 @@ public sealed partial class TableBlock {
         clone.CjkFriendlyEmphasis = source.CjkFriendlyEmphasis;
         clone.PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions;
         clone.HtmlBlocks = source.HtmlBlocks;
+        clone.AllowLooseHtmlBlockStartTags = source.AllowLooseHtmlBlockStartTags;
         clone.PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent;
         clone.Paragraphs = source.Paragraphs;
         clone.AutolinkUrls = source.AutolinkUrls;

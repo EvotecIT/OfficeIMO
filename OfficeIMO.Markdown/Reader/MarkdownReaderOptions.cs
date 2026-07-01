@@ -73,6 +73,7 @@ public sealed class MarkdownReaderOptions {
             GenericAttributes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
+            AllowLooseHtmlBlockStartTags = true,
             PreserveHtmlBlockBlankLineContent = false,
             Subscript = false,
             AutolinkUrls = false,
@@ -100,6 +101,7 @@ public sealed class MarkdownReaderOptions {
             GenericAttributes = false,
             StandaloneImageBlocks = false,
             StrictListIndentation = true,
+            AllowLooseHtmlBlockStartTags = true,
             PreserveHtmlBlockBlankLineContent = false,
             SingleTildeStrikethrough = true,
             Subscript = false,
@@ -246,6 +248,13 @@ public sealed class MarkdownReaderOptions {
     /// or render it verbatim.
     /// </summary>
     public bool HtmlBlocks { get; set; } = true;
+    /// <summary>
+    /// When <c>true</c>, CommonMark type-6 HTML block starts follow the spec's loose tag-name
+    /// condition and do not require the opening tag to be syntactically complete.
+    /// Strict OfficeIMO parsing keeps this disabled so malformed block tags do not consume
+    /// following parseable Markdown content.
+    /// </summary>
+    public bool AllowLooseHtmlBlockStartTags { get; set; } = false;
     /// <summary>
     /// When <c>true</c>, selected OfficeIMO-friendly raw HTML containers such as <c>table</c> and <c>details</c>
     /// can continue across blank lines until their matching closing tag. Strict CommonMark/GFM profiles disable

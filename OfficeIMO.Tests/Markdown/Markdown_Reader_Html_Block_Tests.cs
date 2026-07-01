@@ -314,10 +314,10 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
-        public void CommonMark_Profile_Rejects_Malformed_Type6_Block_Html_Starts() {
+        public void OfficeIMO_Profile_Rejects_Malformed_Type6_Block_Html_Starts() {
             string md = "<div class\n# Heading";
 
-            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateOfficeIMOProfile());
 
             var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
             Assert.Equal("<div class", paragraph.Inlines.RenderMarkdown());

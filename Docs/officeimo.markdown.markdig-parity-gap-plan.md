@@ -9,7 +9,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 ## Current State
 
 - [x] Markdig comparison baseline is pinned to Markdig `1.3.2` across tests, benchmarks, and compatibility docs.
-- [x] CommonMark `0.31.2` correctness is green: 652 of 652 official CommonMark `0.31.2` examples pass in the generated inventory; 0 are failing.
+- [ ] CommonMark `0.31.2` correctness is nearly green: 651 of 652 official CommonMark `0.31.2` examples pass in the generated inventory; 1 are failing.
 - [x] GFM tracked fixtures are green: 52 tracked GFM fixtures, 52 passing, 0 failing in the generated GFM inventory.
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
