@@ -1478,6 +1478,20 @@ namespace OfficeIMO.Tests {
             hyperlink.Append(new ProofError { Type = ProofingErrorValues.SpellEnd });
         }
 
+        private static void AddProofErrorAroundComplexFieldResults(Paragraph paragraph) {
+            foreach (Run run in paragraph.Elements<Run>().Where(run => HasFieldChar(run, FieldCharValues.Separate)).ToArray()) {
+                run.InsertAfterSelf(new ProofError { Type = ProofingErrorValues.SpellStart });
+            }
+
+            foreach (Run run in paragraph.Elements<Run>().Where(run => HasFieldChar(run, FieldCharValues.End)).ToArray()) {
+                run.InsertBeforeSelf(new ProofError { Type = ProofingErrorValues.SpellEnd });
+            }
+        }
+
+        private static bool HasFieldChar(Run run, FieldCharValues fieldCharType) {
+            return run.Elements<FieldChar>().Any(fieldChar => fieldChar.FieldCharType?.Value == fieldCharType);
+        }
+
         private static void ReplaceHyperlinkDisplayWithInlineContentControl(Hyperlink hyperlink, string alias, string first, string nested, string second) {
             foreach (OpenXmlElement child in hyperlink.ChildElements.ToArray()) {
                 child.Remove();
@@ -5042,6 +5056,71 @@ namespace OfficeIMO.Tests {
                     link => link?.Uri?.ToString() == "mailto:endnote-proofing@example.org")!;
                 Assert.Equal("link", endnoteHyperlink.Text);
                 Assert.Empty(endnoteHyperlink._hyperlink.Descendants<ProofError>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_IgnoresProofErrorMarkersInsideComplexPageFields() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph body = document.AddParagraph("Body field ");
+                    body.AddField(WordFieldType.Page, advanced: true);
+                    AddProofErrorAroundComplexFieldResults(body._paragraph);
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cell = table.Rows[0].Cells[0].AddParagraph("Cell field ", removeExistingParagraphs: true);
+                    cell.AddField(WordFieldType.Page, advanced: true);
+                    AddProofErrorAroundComplexFieldResults(cell._paragraph);
+
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header field ");
+                    header.AddField(WordFieldType.Page, advanced: true);
+                    AddProofErrorAroundComplexFieldResults(header._paragraph);
+
+                    WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer field ");
+                    footer.AddField(WordFieldType.Page, advanced: true);
+                    AddProofErrorAroundComplexFieldResults(footer._paragraph);
+
+                    WordParagraph paragraph = document.AddParagraph("Notes");
+                    WordParagraph footnoteBody = paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1];
+                    footnoteBody.AddField(WordFieldType.Page, advanced: true);
+                    AddProofErrorAroundComplexFieldResults(footnoteBody._paragraph);
+
+                    WordParagraph endnoteBody = paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1];
+                    endnoteBody.AddField(WordFieldType.Page, advanced: true);
+                    AddProofErrorAroundComplexFieldResults(endnoteBody._paragraph);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.DoesNotContain(reloaded.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Body field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.DoesNotContain(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                Assert.Contains(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph.Text == "Cell field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.DoesNotContain(reloadedSection.Header.Default!.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                Assert.Contains(reloadedSection.Header.Default!.Paragraphs, paragraph => paragraph.Text == "Header field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+                Assert.DoesNotContain(reloadedSection.Footer.Default!.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                Assert.Contains(reloadedSection.Footer.Default!.Paragraphs, paragraph => paragraph.Text == "Footer field " && paragraph._paragraph.Descendants<PageNumber>().Any());
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                Assert.DoesNotContain(footnote.Paragraphs!, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                Assert.Contains(footnote.Paragraphs!, paragraph => paragraph.Text == "Footnote" && paragraph._paragraph.Descendants<PageNumber>().Any());
+
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                Assert.DoesNotContain(endnote.Paragraphs!, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                Assert.Contains(endnote.Paragraphs!, paragraph => paragraph.Text == "Endnote" && paragraph._paragraph.Descendants<PageNumber>().Any());
             } finally {
                 DeleteIfExists(docPath);
             }

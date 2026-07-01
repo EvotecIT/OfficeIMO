@@ -315,6 +315,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             int index = childIndex;
             for (; index < paragraphChildren.Count; index++) {
                 if (paragraphChildren[index] is not Run run) {
+                    if (IsIgnorableParagraphMarkup(paragraphChildren[index])) {
+                        continue;
+                    }
+
                     throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields in note paragraphs only when the whole field is represented by adjacent runs.");
                 }
 
