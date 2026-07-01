@@ -323,7 +323,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (char.IsControl(normalized) && normalized != '\t') {
+                if (char.IsControl(normalized)
+                    && normalized != '\t'
+                    && normalized != '\v'
+                    && normalized != '\f') {
                     continue;
                 }
 
@@ -493,7 +496,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (char.IsControl(normalized) && normalized != '\t') {
+                if (char.IsControl(normalized)
+                    && normalized != '\t'
+                    && normalized != '\v'
+                    && normalized != '\f') {
                     continue;
                 }
 
