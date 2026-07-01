@@ -759,6 +759,9 @@ just to reserve names.
     conditional effects into native DOC `TC80` values, while keeping direct
     cell formatting as an override and blocking unsupported richer table
     effects before bytes are committed.
+  - [x] Apply conditional table-style effects in specific-to-broad precedence
+    order, so corner regions override broader row/column/band regions while
+    direct cell formatting still remains the strongest override.
   - [x] Write supported conditional table-style table-level shading and borders
     by flattening conditional `tblPr` first/last row, first/last column,
     corner, and banded effects into native DOC cell shading and `TC80` border

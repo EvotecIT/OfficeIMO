@@ -57,9 +57,41 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
             }
 
-            return conditionalStyles.Count == 0
+            LegacyDocTableConditionalStyle[] orderedConditionalStyles = conditionalStyles
+                .Select((style, index) => new { Style = style, Index = index })
+                .OrderBy(item => GetTableConditionalStylePrecedence(item.Style.Type))
+                .ThenBy(item => item.Index)
+                .Select(item => item.Style)
+                .ToArray();
+
+            return orderedConditionalStyles.Length == 0
                 ? new LegacyDocTableConditionalStyleSet(Array.Empty<LegacyDocTableConditionalStyle>(), rowBandSize, columnBandSize)
-                : new LegacyDocTableConditionalStyleSet(conditionalStyles, rowBandSize, columnBandSize);
+                : new LegacyDocTableConditionalStyleSet(orderedConditionalStyles, rowBandSize, columnBandSize);
+        }
+
+        private static int GetTableConditionalStylePrecedence(TableStyleOverrideValues type) {
+            if (type == TableStyleOverrideValues.NorthWestCell
+                || type == TableStyleOverrideValues.NorthEastCell
+                || type == TableStyleOverrideValues.SouthWestCell
+                || type == TableStyleOverrideValues.SouthEastCell) {
+                return 0;
+            }
+
+            if (type == TableStyleOverrideValues.FirstRow
+                || type == TableStyleOverrideValues.LastRow
+                || type == TableStyleOverrideValues.FirstColumn
+                || type == TableStyleOverrideValues.LastColumn) {
+                return 1;
+            }
+
+            if (type == TableStyleOverrideValues.Band1Horizontal
+                || type == TableStyleOverrideValues.Band2Horizontal
+                || type == TableStyleOverrideValues.Band1Vertical
+                || type == TableStyleOverrideValues.Band2Vertical) {
+                return 2;
+            }
+
+            return 3;
         }
 
         private static int ReadSupportedTableStyleBandSize(Int32Value? value, string axisName) {
