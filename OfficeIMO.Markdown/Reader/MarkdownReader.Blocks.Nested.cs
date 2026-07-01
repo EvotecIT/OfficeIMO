@@ -362,6 +362,7 @@ public static partial class MarkdownReader {
     private enum NestedStandaloneGenericAttributeTarget {
         Any,
         FencedCode,
+        List,
         Table
     }
 
@@ -446,6 +447,12 @@ public static partial class MarkdownReader {
         var nextSlice = StripLeadingIndentColumns(next, continuationIndent);
         if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.FencedCode)
             && IsCodeFenceOpen(nextSlice, out _, out _, out _)) {
+            return true;
+        }
+
+        if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.List)
+            && ((options.OrderedLists && IsOrderedListLine(nextSlice, out _, out _))
+                || (options.UnorderedLists && IsUnorderedListLine(nextSlice, out _, out _, out _, out _)))) {
             return true;
         }
 

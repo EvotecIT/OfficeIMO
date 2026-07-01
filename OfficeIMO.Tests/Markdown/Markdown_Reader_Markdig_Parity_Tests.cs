@@ -435,6 +435,7 @@ public class Markdown_Reader_Markdig_Parity_Tests {
 
     public static IEnumerable<object[]> GenericAttributesTaskListExtensionCases() {
         yield return new object[] { "blockquote-standalone-attribute-before-task-list", "> {#list .wide}\n> - [x] task" };
+        yield return new object[] { "list-standalone-attribute-before-nested-task-list", "- outer\n\n  {#tasks .wide}\n  - [x] done" };
         yield return new object[] { "task-list-item-attribute-is-consumed", "- [x] task {#task .done}" };
         yield return new object[] { "unchecked-task-list-item-attribute-is-consumed", "- [ ] task {#task .todo}" };
         yield return new object[] { "nested-task-list-item-attribute-is-consumed", "- outer\n  - [x] task {#task .done}" };

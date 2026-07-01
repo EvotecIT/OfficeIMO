@@ -97,6 +97,24 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (TryParseNestedAttributedListBlock(
+                    lines,
+                    k,
+                    itemLevelAbs,
+                    continuationIndent,
+                    options,
+                    state,
+                    allowNestedOrdered,
+                    allowNestedUnordered,
+                    out var attributedList,
+                    out var attributedListEndIndex)) {
+                item.Children.Add(attributedList);
+                AddListItemChildSyntaxNode(item, attributedList, lines, continuationIndent, k, attributedListEndIndex, state);
+                if (sawBlankLine) item.ForceLoose = true;
+                index = attributedListEndIndex;
+                continue;
+            }
+
             // Nested ordered list
             if (allowNestedOrdered
                 && options.OrderedLists
@@ -203,6 +221,70 @@ public static partial class MarkdownReader {
         endIndex = startIndex;
         syntaxNode = null;
         return false;
+    }
+
+    private static bool TryParseNestedAttributedListBlock(
+        string[] lines,
+        int attributeLineIndex,
+        int itemLevelAbs,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        bool allowNestedOrdered,
+        bool allowNestedUnordered,
+        out IMarkdownListBlock list,
+        out int endIndex) {
+
+        list = null!;
+        endIndex = attributeLineIndex;
+
+        if (!TryConsumeNestedStandaloneGenericAttributeLine(
+                lines,
+                attributeLineIndex,
+                continuationIndent,
+                options,
+                state,
+                NestedStandaloneGenericAttributeTarget.List,
+                out var attributeSet,
+                out var attributeSourceText,
+                out var attributeSourceSpan)) {
+            return false;
+        }
+
+        int listStartIndex = attributeLineIndex + 1;
+        if (listStartIndex >= lines.Length) {
+            return false;
+        }
+
+        IMarkdownBlockParser? parser = null;
+        var listLine = lines[listStartIndex] ?? string.Empty;
+        if (allowNestedOrdered
+            && options.OrderedLists
+            && CountLeadingIndentColumns(listLine) >= continuationIndent
+            && IsOrderedListLine(listLine, out int orderedLevel, out _, out _)
+            && orderedLevel >= itemLevelAbs + 1) {
+            parser = new OrderedListParser();
+        } else if (allowNestedUnordered
+            && options.UnorderedLists
+            && CountLeadingIndentColumns(listLine) >= continuationIndent
+            && IsUnorderedListLine(listLine, out int unorderedLevel, out _, out _, out _)
+            && unorderedLevel >= itemLevelAbs + 1) {
+            parser = new UnorderedListParser();
+        }
+
+        if (parser == null
+            || !TryParseNestedListBlock(lines, listStartIndex, continuationIndent, options, state, parser, out var parsedList, out var parsedEndIndex, out _)) {
+            return false;
+        }
+
+        if (parsedList is MarkdownObject markdownObject && markdownObject.Attributes.IsEmpty) {
+            markdownObject.SetAttributes(attributeSet);
+            MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, attributeSourceSpan);
+        }
+
+        list = parsedList;
+        endIndex = parsedEndIndex;
+        return true;
     }
 
     private static bool TryParseTrailingParagraphsForListItem(

@@ -586,6 +586,50 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void List_Standalone_GenericAttributes_Attach_To_Following_NestedTaskList_With_Source_Backup() {
+        const string markdown = "- outer\n\n  {#tasks .wide}\n  - [x] done\n";
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var nestedList = Assert.IsType<UnorderedListBlock>(Assert.Single(list.Items[0].Children));
+
+        Assert.Equal("tasks", nestedList.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, nestedList.Attributes.Classes);
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var nestedListNode = Assert.Single(
+            result.FinalSyntaxTree.Descendants().Where(node => node.Kind == MarkdownSyntaxKind.UnorderedList),
+            node => node.Children.Any(child => child.Kind == MarkdownSyntaxKind.GenericAttributeBlock));
+        var attributes = Assert.Single(nestedListNode.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#tasks .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 16), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#tasks .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeList = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(native.Blocks));
+        var nativeNestedList = Assert.IsType<MarkdownNativeListBlock>(Assert.Single(nativeList.Items[0].Children.OfType<MarkdownNativeListBlock>()));
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(nativeNestedList, field.Block);
+        Assert.Equal("{#tasks .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 3, 3, 16), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#todos .checked}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("- outer\n\n  {#todos .checked}\n  - [x] done\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Standalone_GenericAttributes_After_PipeTableLookingParagraph_Stay_Paragraph_Without_Metadata() {
         const string markdown = "| A |\n|---|\n| B |\n{#tbl .wide}\n";
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
