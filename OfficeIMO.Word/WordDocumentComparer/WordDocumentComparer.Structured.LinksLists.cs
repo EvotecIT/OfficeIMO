@@ -62,6 +62,9 @@ namespace OfficeIMO.Word {
                         NormalizeComparisonText(name, options),
                         options.CompareGeneratedIds ? NormalizeComparisonText(id, options) : string.Empty,
                         NormalizeComparisonText(text, options),
+                        root.LocationKind.ToString(),
+                        root.PartUri,
+                        GetStableElementPath(bookmarkStart),
                         IsInTableFeature(bookmarkStart) ? "table" : string.Empty,
                         IsInTextBoxFeature(bookmarkStart) ? "text-box" : string.Empty);
 

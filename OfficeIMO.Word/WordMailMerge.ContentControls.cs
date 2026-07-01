@@ -306,21 +306,29 @@ namespace OfficeIMO.Word {
                     return true;
                 case SdtRow row:
                     row.SdtContentRow ??= new SdtContentRow();
-                    SetFirstTextInComposite(row.SdtContentRow, value, () => {
-                        var tableRow = new TableRow(new TableCell(new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }))));
-                        row.SdtContentRow.Append(tableRow);
-                        return tableRow.Descendants<Text>().First();
-                    });
+                    SetTextInRowContent(row.SdtContentRow, value);
                     return true;
                 default:
                     return false;
             }
         }
 
-        private static void SetFirstTextInComposite(OpenXmlCompositeElement container, string value, Func<Text> createText) {
-            Text firstText = container.Descendants<Text>().FirstOrDefault() ?? createText();
-            firstText.Text = value;
-            firstText.Space = SpaceProcessingModeValues.Preserve;
+        private static void SetTextInRowContent(SdtContentRow rowContent, string value) {
+            TableCell? firstCell = rowContent.Descendants<TableCell>().FirstOrDefault();
+            if (firstCell != null) {
+                SetTextInComposite(firstCell, value, () => {
+                    var paragraph = new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }));
+                    firstCell.Append(paragraph);
+                    return paragraph.Descendants<Text>().First();
+                });
+                return;
+            }
+
+            SetTextInComposite(rowContent, value, () => {
+                var tableRow = new TableRow(new TableCell(new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }))));
+                rowContent.Append(tableRow);
+                return tableRow.Descendants<Text>().First();
+            });
         }
 
         private static void SetTextInComposite(OpenXmlCompositeElement container, string value, Func<Text> createText) {

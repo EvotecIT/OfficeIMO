@@ -47,6 +47,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsBookmarkLocationChangesWithIdenticalParagraphText() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_bookmark_moved_same_text_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Repeated").AddBookmark("SharedBookmark");
+                document.AddParagraph("Repeated");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_bookmark_moved_same_text_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Repeated");
+                document.AddParagraph("Repeated").AddBookmark("SharedBookmark");
+                document.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false,
+                IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Bookmark }
+            });
+
+            WordComparisonFinding bookmark = Assert.Single(result.Findings, finding => finding.Scope == WordComparisonScope.Bookmark);
+            Assert.Equal(WordComparisonChangeKind.Modified, bookmark.ChangeKind);
+            Assert.Contains("SharedBookmark", bookmark.TargetText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void CompareStructureMatchesRevisionsAcrossInsertedEarlierRevision() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_revision_insert_before_source.docx");
             CreateRevisionRegressionDocument(sourcePath, "Keep");
@@ -63,6 +89,34 @@ namespace OfficeIMO.Tests {
             WordComparisonFinding inserted = Assert.Single(result.Findings, finding => finding.Scope == WordComparisonScope.Revision);
             Assert.Equal(WordComparisonChangeKind.Inserted, inserted.ChangeKind);
             Assert.Contains("text=New", inserted.TargetText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CompareStructureHonorsRevisionTextAndLocationIgnoreOptionsWhenMatching() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_revision_ignore_location_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddHeadersAndFooters();
+                document.Sections[0].AddHeaderParagraph("Tracked header", removeExistingParagraphs: true)
+                    .AddInsertedText("Header revision", "OfficeIMO Tests", new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_revision_ignore_location_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Tracked body")
+                    .AddInsertedText("Body revision", "OfficeIMO Tests", new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
+                document.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false,
+                CompareVolatileMetadata = false,
+                CompareRevisionText = false,
+                CompareRevisionLocations = false,
+                IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Revision }
+            });
+
+            Assert.DoesNotContain(result.Findings, finding => finding.Scope == WordComparisonScope.Revision);
         }
 
         [Fact]
@@ -1094,6 +1148,39 @@ namespace OfficeIMO.Tests {
             using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
             DeletedRun deleted = Assert.Single(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText.Contains("before; text=after", StringComparison.Ordinal));
             Assert.Equal("OfficeIMO Tests", deleted.Author?.Value);
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceRedlinesContentControlTextWhenMetadataContainsTextDelimiter() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_modified_control_metadata_delimiter_source.docx");
+            CreateContentControlRegressionDocument(sourcePath, ("Customer; text=metadata", "Customer.Tag; text=metadata", "Old value"));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_modified_control_metadata_delimiter_target.docx");
+            CreateContentControlRegressionDocument(targetPath, ("Customer; text=metadata", "Customer.Tag; text=metadata", "New value"));
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_modified_control_metadata_delimiter_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.ContentControl }
+                    }
+                });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.ContentControl &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            DeletedRun deleted = Assert.Single(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "Old value");
+            InsertedRun inserted = Assert.Single(redline._document.Body!.Descendants<InsertedRun>(), run => run.InnerText == "New value");
+            Assert.Equal("OfficeIMO Tests", deleted.Author?.Value);
+            Assert.Equal("OfficeIMO Tests", inserted.Author?.Value);
+            Assert.DoesNotContain(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText.Contains("metadata", StringComparison.Ordinal));
         }
 
         [Fact]
