@@ -78,9 +78,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 }
 
                 TableStyleConditionalFormattingTableProperties? tableProperties = properties.GetFirstChild<TableStyleConditionalFormattingTableProperties>();
+                TableStyleConditionalFormattingTableRowProperties? rowProperties = properties.GetFirstChild<TableStyleConditionalFormattingTableRowProperties>();
                 TableStyleConditionalFormattingTableCellProperties? cellProperties = properties.GetFirstChild<TableStyleConditionalFormattingTableCellProperties>();
                 LegacyDocTableCellShading tableShading = ReadSupportedConditionalTableStyleShading(tableProperties?.GetFirstChild<Shading>());
                 LegacyDocTableBorders tableBorders = ReadSupportedConditionalTableStyleBorders(tableProperties?.GetFirstChild<TableBorders>());
+                LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedConditionalTableStyleRowProperties(rowProperties, type.Value);
                 LegacyDocTableCellVerticalAlignment? cellVerticalAlignment = ReadSupportedTableCellVerticalAlignment(cellProperties?.GetFirstChild<TableCellVerticalAlignment>());
                 LegacyDocTableCellTextDirection? cellTextDirection = ReadSupportedTableCellTextDirection(cellProperties?.GetFirstChild<TextDirection>());
                 bool? cellFitText = ReadSupportedTableCellFitText(cellProperties?.GetFirstChild<TableCellFitText>());
@@ -93,6 +95,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(properties.GetFirstChild<StyleRunProperties>());
                 if (tableShading.HasAny
                     || tableBorders.HasAny
+                    || rowFormatting.HasFormatting
                     || cellVerticalAlignment != null
                     || cellTextDirection != null
                     || cellFitText != null
@@ -103,7 +106,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     || cellBorders.HasAny
                     || paragraphFormatting.HasFormatting
                     || runFormatting.HasFormatting) {
-                    conditionalStyles.Add(new LegacyDocTableConditionalStyle(type.Value, tableShading, tableBorders, cellVerticalAlignment, cellTextDirection, cellFitText, cellNoWrap, cellHideMark, cellMargins, cellShading, cellBorders, paragraphFormatting, runFormatting));
+                    conditionalStyles.Add(new LegacyDocTableConditionalStyle(type.Value, tableShading, tableBorders, rowFormatting, cellVerticalAlignment, cellTextDirection, cellFitText, cellNoWrap, cellHideMark, cellMargins, cellShading, cellBorders, paragraphFormatting, runFormatting));
                 }
             }
         }
@@ -184,6 +187,56 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 (mask & TableLookLastColumn) == TableLookLastColumn,
                 (mask & TableLookNoHorizontalBand) == TableLookNoHorizontalBand,
                 (mask & TableLookNoVerticalBand) == TableLookNoVerticalBand);
+        }
+
+        private static LegacyDocWritableTableRowFormatting ReadSupportedConditionalTableStyleRowProperties(TableStyleConditionalFormattingTableRowProperties? rowProperties, TableStyleOverrideValues type) {
+            if (rowProperties == null) {
+                return LegacyDocWritableTableRowFormatting.Empty;
+            }
+
+            if (!IsSupportedTableStyleConditionalRowType(type)) {
+                throw new NotSupportedException($"Native DOC saving supports conditional table style row formatting only for whole-table, first/last row, and horizontal band regions. Unsupported conditional row type: {type}.");
+            }
+
+            int? rowHeightTwips = null;
+            bool rowHeightIsExact = false;
+            bool? rowCantSplit = null;
+            bool? rowIsHeader = null;
+            bool hasRowHeight = false;
+            bool hasCantSplit = false;
+            bool hasTableHeader = false;
+            foreach (OpenXmlElement property in rowProperties.ChildElements) {
+                switch (property) {
+                    case TableRowHeight rowHeight:
+                        if (hasRowHeight) {
+                            throw new NotSupportedException("Native DOC saving supports conditional table style row formatting only with one row height.");
+                        }
+
+                        ReadSupportedTableRowHeight(rowHeight, out rowHeightTwips, out rowHeightIsExact);
+                        hasRowHeight = true;
+                        break;
+                    case CantSplit cantSplit:
+                        if (hasCantSplit) {
+                            throw new NotSupportedException("Native DOC saving supports conditional table style row formatting only with one row no-split flag.");
+                        }
+
+                        rowCantSplit = ReadTableRowOnOff(cantSplit);
+                        hasCantSplit = true;
+                        break;
+                    case TableHeader tableHeader:
+                        if (hasTableHeader) {
+                            throw new NotSupportedException("Native DOC saving supports conditional table style row formatting only with one row header flag.");
+                        }
+
+                        rowIsHeader = ReadTableRowOnOff(tableHeader);
+                        hasTableHeader = true;
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports conditional table style row formatting only with row height, no-split, and header flags. Unsupported conditional row property: {property.LocalName}.");
+                }
+            }
+
+            return new LegacyDocWritableTableRowFormatting(rowHeightTwips, rowHeightIsExact, rowCantSplit, rowIsHeader);
         }
 
         private static void ApplyExpandedTableLookFlag(OnOffValue? value, int flag, ref int mask) {
@@ -296,6 +349,65 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return styledCells;
+        }
+
+        private static LegacyDocWritableTableRowFormatting ApplySupportedTableConditionalRowFormatting(
+            LegacyDocWritableTableRowFormatting rowFormatting,
+            LegacyDocTableConditionalStyleSet conditionalStyles,
+            LegacyDocTableLook tableLook,
+            int rowIndex,
+            int rowCount) {
+            if (!conditionalStyles.HasAny) {
+                return rowFormatting;
+            }
+
+            foreach (LegacyDocTableConditionalStyle conditionalStyle in conditionalStyles.Styles) {
+                if (!conditionalStyle.RowFormatting.HasFormatting
+                    || !AppliesToRow(conditionalStyle.Type, tableLook, conditionalStyles.RowBandSize, rowIndex, rowCount)) {
+                    continue;
+                }
+
+                rowFormatting = rowFormatting.WithInheritedRowFormatting(conditionalStyle.RowFormatting);
+            }
+
+            return rowFormatting;
+        }
+
+        private static bool AppliesToRow(
+            TableStyleOverrideValues type,
+            LegacyDocTableLook tableLook,
+            int rowBandSize,
+            int rowIndex,
+            int rowCount) {
+            if (rowIndex < 0 || rowIndex >= rowCount) {
+                return false;
+            }
+
+            if (type == TableStyleOverrideValues.WholeTable) {
+                return true;
+            }
+
+            if (type == TableStyleOverrideValues.FirstRow) {
+                return tableLook.FirstRow && rowIndex == 0;
+            }
+
+            if (type == TableStyleOverrideValues.LastRow) {
+                return tableLook.LastRow && rowIndex + 1 == rowCount;
+            }
+
+            if (type == TableStyleOverrideValues.Band1Horizontal || type == TableStyleOverrideValues.Band2Horizontal) {
+                return !tableLook.NoHorizontalBand && TryGetBandType(rowIndex, tableLook.FirstRow, rowBandSize, type == TableStyleOverrideValues.Band1Horizontal);
+            }
+
+            return false;
+        }
+
+        private static bool IsSupportedTableStyleConditionalRowType(TableStyleOverrideValues type) {
+            return type == TableStyleOverrideValues.WholeTable
+                || type == TableStyleOverrideValues.FirstRow
+                || type == TableStyleOverrideValues.LastRow
+                || type == TableStyleOverrideValues.Band1Horizontal
+                || type == TableStyleOverrideValues.Band2Horizontal;
         }
 
         private static bool AppliesToCell(
@@ -434,6 +546,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 TableStyleOverrideValues type,
                 LegacyDocTableCellShading tableShading,
                 LegacyDocTableBorders tableBorders,
+                LegacyDocWritableTableRowFormatting rowFormatting,
                 LegacyDocTableCellVerticalAlignment? cellVerticalAlignment,
                 LegacyDocTableCellTextDirection? cellTextDirection,
                 bool? cellFitText,
@@ -447,6 +560,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 Type = type;
                 TableShading = tableShading;
                 TableBorders = tableBorders;
+                RowFormatting = rowFormatting;
                 CellVerticalAlignment = cellVerticalAlignment;
                 CellTextDirection = cellTextDirection;
                 CellFitText = cellFitText;
@@ -464,6 +578,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal LegacyDocTableCellShading TableShading { get; }
 
             internal LegacyDocTableBorders TableBorders { get; }
+
+            internal LegacyDocWritableTableRowFormatting RowFormatting { get; }
 
             internal LegacyDocTableCellVerticalAlignment? CellVerticalAlignment { get; }
 

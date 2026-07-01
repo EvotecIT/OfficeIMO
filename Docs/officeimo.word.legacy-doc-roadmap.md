@@ -1035,9 +1035,12 @@ just to reserve names.
     - [x] Write last-row, last-column, and south-east corner conditional table
       style effects from a compact `w:tblLook` mask, then reload the precedence
       and expanded DOC cell shading through the legacy reader.
-    - [x] Block unsupported own or inherited conditional table-style child
-      elements before native DOC bytes are committed, so row-level or other
-      richer conditional effects are not silently dropped.
+    - [x] Write own and inherited conditional table-style row height, header,
+      and no-split formatting through native DOC save/reload for supported
+      row-scoped regions.
+    - [x] Block unsupported conditional table-style row regions and row
+      properties before native DOC bytes are committed, so richer row-level
+      conditional effects are not silently dropped.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

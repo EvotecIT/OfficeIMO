@@ -39,6 +39,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             for (int rowIndex = 0; rowIndex < rows.Length; rowIndex++) {
                 TableRow row = rows[rowIndex];
                 LegacyDocWritableTableRowFormatting rowFormatting = ReadSupportedTableRowFormatting(row, out TableCell[] cells);
+                rowFormatting = ApplySupportedTableConditionalRowFormatting(rowFormatting, conditionalStyles, tableLook, rowIndex, rows.Length);
                 if (cells.Length == 0) {
                     throw new NotSupportedException("Native DOC saving supports simple tables only when every row contains at least one cell.");
                 }
@@ -1347,6 +1348,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             internal bool? RowCantSplit { get; }
 
             internal bool? RowIsHeader { get; }
+
+            internal bool HasFormatting => RowHeightTwips != null || RowCantSplit != null || RowIsHeader != null;
+
+            internal LegacyDocWritableTableRowFormatting WithInheritedRowFormatting(LegacyDocWritableTableRowFormatting inherited) {
+                return new LegacyDocWritableTableRowFormatting(
+                    RowHeightTwips ?? inherited.RowHeightTwips,
+                    RowHeightTwips != null ? RowHeightIsExact : inherited.RowHeightIsExact,
+                    RowCantSplit ?? inherited.RowCantSplit,
+                    RowIsHeader ?? inherited.RowIsHeader);
+            }
         }
 
         private readonly struct LegacyDocTableBorders {

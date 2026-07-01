@@ -181,11 +181,12 @@ bidirectional paragraph layout, mirror indents, contextual spacing, East Asian
 typography and punctuation spacing flags, and automatic hyphenation suppression,
 tabs, soft/no-break hyphen runs, line/carriage-return/page/column breaks, simple
 body tables, supported table-style border, shading, layout, paragraph
-formatting, run formatting, default-cell expansion, and conditional table/cell
-border, shading, paragraph formatting, run formatting, and cell-layout
-expansion, paragraph-boundary sections, page setup, simple header/footer stories
-with tabs, soft/no-break hyphen runs, text-wrapping, carriage-return, and column
-breaks, supported direct run formatting, and supported paragraph formatting,
+formatting, run formatting, default-cell expansion, conditional table/cell
+border, shading, paragraph formatting, run formatting, cell-layout expansion,
+and conditional row height/header/no-split formatting, paragraph-boundary
+sections, page setup, simple header/footer stories with tabs, soft/no-break
+hyphen runs, text-wrapping, carriage-return, and column breaks, supported
+direct run formatting, and supported paragraph formatting,
 simple footnote/endnote bodies with supported direct run and paragraph
 formatting and soft/no-break hyphen runs, supported section note settings, and
 scalar document properties. Unsupported features such as macros, embedded OLE

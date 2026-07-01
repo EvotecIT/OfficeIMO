@@ -8489,18 +8489,173 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedConditionalTableStyleChildrenBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocConditionalTableStyleRowFormattingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string styleId = "NativeDocUnsupportedConditionalTableStyleChild";
+            const string styleId = "NativeDocConditionalTableStyleRowFormatting";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Conditional Table Style Row Formatting" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableRowProperties(
+                            new TableRowHeight { Val = 720U, HeightType = HeightRuleValues.Exact },
+                            new CantSplit(),
+                            new TableHeader())) {
+                        Type = TableStyleOverrideValues.FirstRow
+                    });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 1, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table._tableProperties.TableLook = new TableLook { FirstRow = true };
+                    table.Rows[0].Cells[0].AddParagraph("Styled header", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("Styled body", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x04, 0x34, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmTTableHeader from first-row conditional table style row formatting.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x66, 0x34, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmTFCantSplit90 from first-row conditional table style row formatting.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x07, 0x94),
+                    "Expected the native DOC paragraph property stream to contain sprmTDyaRowHeight from first-row conditional table style row formatting.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(2, reloadedTable.Rows.Count);
+                Assert.Equal("Styled header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal(720, reloadedTable.Rows[0].Height);
+                Assert.True(reloadedTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+                Assert.False(reloadedTable.Rows[0].AllowRowToBreakAcrossPages);
+                Assert.Equal("Styled body", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.Null(reloadedTable.Rows[1].Height);
+                Assert.False(reloadedTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
+                Assert.True(reloadedTable.Rows[1].AllowRowToBreakAcrossPages);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocInheritedConditionalTableStyleRowFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocBaseConditionalTableStyleRowFormatting";
+            const string childStyleId = "NativeDocInheritedConditionalTableStyleRowFormatting";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
+                    baseStyle.Append(new StyleName { Val = "Native DOC Base Conditional Table Style Row Formatting" });
+                    baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                    baseStyle.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableRowProperties(
+                            new TableRowHeight { Val = 720U, HeightType = HeightRuleValues.Exact },
+                            new CantSplit(),
+                            new TableHeader())) {
+                        Type = TableStyleOverrideValues.FirstRow
+                    });
+
+                    var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
+                    childStyle.Append(new StyleName { Val = "Native DOC Inherited Conditional Table Style Row Formatting" });
+                    childStyle.Append(new BasedOn { Val = baseStyleId });
+
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    styles.Append(baseStyle);
+                    styles.Append(childStyle);
+
+                    WordTable table = document.AddTable(2, 1, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
+                    table._tableProperties.TableLook = new TableLook { FirstRow = true };
+                    table.Rows[0].Cells[0].AddParagraph("Inherited header", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("Inherited body", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x04, 0x34, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmTTableHeader from inherited first-row conditional table style row formatting.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x66, 0x34, 0x01),
+                    "Expected the native DOC paragraph property stream to contain sprmTFCantSplit90 from inherited first-row conditional table style row formatting.");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x07, 0x94),
+                    "Expected the native DOC paragraph property stream to contain sprmTDyaRowHeight from inherited first-row conditional table style row formatting.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(2, reloadedTable.Rows.Count);
+                Assert.Equal("Inherited header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal(720, reloadedTable.Rows[0].Height);
+                Assert.True(reloadedTable.Rows[0].RepeatHeaderRowAtTheTopOfEachPage);
+                Assert.False(reloadedTable.Rows[0].AllowRowToBreakAcrossPages);
+                Assert.Equal("Inherited body", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.Null(reloadedTable.Rows[1].Height);
+                Assert.False(reloadedTable.Rows[1].RepeatHeaderRowAtTheTopOfEachPage);
+                Assert.True(reloadedTable.Rows[1].AllowRowToBreakAcrossPages);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksConditionalTableStyleRowFormattingOnColumnRegionBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocUnsupportedConditionalTableStyleRowRegion";
 
             try {
                 using WordDocument document = WordDocument.Create();
                 var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
-                style.Append(new StyleName { Val = "Native DOC Unsupported Conditional Table Style Child" });
+                style.Append(new StyleName { Val = "Native DOC Unsupported Conditional Table Style Row Region" });
                 style.Append(new BasedOn { Val = "TableNormal" });
                 style.Append(new TableStyleProperties(
                     new TableStyleConditionalFormattingTableRowProperties(
                         new CantSplit())) {
+                    Type = TableStyleOverrideValues.FirstColumn
+                });
+                document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+                table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                table._tableProperties.TableLook = new TableLook { FirstColumn = true };
+                table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                string message = exception.Message.ToLowerInvariant();
+                Assert.Contains("conditional row formatting", message);
+                Assert.Contains("unsupported conditional row type", message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedConditionalTableStyleRowPropertiesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocUnsupportedConditionalTableStyleRowProperty";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                style.Append(new StyleName { Val = "Native DOC Unsupported Conditional Table Style Row Property" });
+                style.Append(new BasedOn { Val = "TableNormal" });
+                style.Append(new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableRowProperties(
+                        new GridAfter { Val = 1 })) {
                     Type = TableStyleOverrideValues.FirstRow
                 });
                 document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
@@ -8512,48 +8667,8 @@ namespace OfficeIMO.Tests {
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("conditional formatting", exception.Message.ToLowerInvariant());
-                Assert.Contains("trPr", exception.Message);
-                Assert.False(File.Exists(docPath));
-            } finally {
-                DeleteIfExists(docPath);
-            }
-        }
-
-        [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedInheritedConditionalTableStyleChildrenBeforeCreatingFile() {
-            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
-            const string baseStyleId = "NativeDocBaseUnsupportedConditionalTableStyleChild";
-            const string childStyleId = "NativeDocInheritedUnsupportedConditionalTableStyleChild";
-
-            try {
-                using WordDocument document = WordDocument.Create();
-                var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
-                baseStyle.Append(new StyleName { Val = "Native DOC Base Unsupported Conditional Table Style Child" });
-                baseStyle.Append(new BasedOn { Val = "TableNormal" });
-                baseStyle.Append(new TableStyleProperties(
-                    new TableStyleConditionalFormattingTableRowProperties(
-                        new CantSplit())) {
-                    Type = TableStyleOverrideValues.FirstRow
-                });
-
-                var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
-                childStyle.Append(new StyleName { Val = "Native DOC Inherited Unsupported Conditional Table Style Child" });
-                childStyle.Append(new BasedOn { Val = baseStyleId });
-
-                Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
-                styles.Append(baseStyle);
-                styles.Append(childStyle);
-
-                WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
-                table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
-                table._tableProperties.TableLook = new TableLook { FirstRow = true };
-                table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
-
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
-
-                Assert.Contains("conditional formatting", exception.Message.ToLowerInvariant());
-                Assert.Contains("trPr", exception.Message);
+                Assert.Contains("conditional row formatting", exception.Message.ToLowerInvariant());
+                Assert.Contains("gridAfter", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
