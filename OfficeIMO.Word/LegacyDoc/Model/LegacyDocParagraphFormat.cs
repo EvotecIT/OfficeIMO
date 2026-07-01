@@ -58,7 +58,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool hasInnerTableTerminatingParagraphMarker = false,
             LegacyDocParagraphShading? paragraphShading = null,
             LegacyDocParagraphBorders? paragraphBorders = null,
-            byte? outlineLevel = null) {
+            byte? outlineLevel = null,
+            LegacyDocCharacterFormat? paragraphMarkFormat = null) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -160,6 +161,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : null;
             ParagraphBorders = paragraphBorders.HasValue && paragraphBorders.Value.HasAny
                 ? paragraphBorders
+                : null;
+            ParagraphMarkFormat = paragraphMarkFormat.HasValue && paragraphMarkFormat.Value.HasFormatting
+                ? paragraphMarkFormat
                 : null;
         }
 
@@ -279,6 +283,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocParagraphBorders? ParagraphBorders { get; }
 
+        internal LegacyDocCharacterFormat? ParagraphMarkFormat { get; }
+
         internal bool HasFormatting => Alignment != null
             || StyleIndex != null
             || SpacingBeforeTwips != null
@@ -335,7 +341,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || HasInnerTableCellMarker
             || HasInnerTableTerminatingParagraphMarker
             || ParagraphShading != null
-            || ParagraphBorders != null;
+            || ParagraphBorders != null
+            || ParagraphMarkFormat != null;
 
         internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
 
@@ -397,7 +404,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && HasInnerTableCellMarker == other.HasInnerTableCellMarker
                 && HasInnerTableTerminatingParagraphMarker == other.HasInnerTableTerminatingParagraphMarker
                 && ParagraphShading.Equals(other.ParagraphShading)
-                && ParagraphBorders.Equals(other.ParagraphBorders);
+                && ParagraphBorders.Equals(other.ParagraphBorders)
+                && ParagraphMarkFormat.Equals(other.ParagraphMarkFormat);
         }
 
         public override bool Equals(object? obj) {
@@ -451,6 +459,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + HasInnerTableTerminatingParagraphMarker.GetHashCode();
             hash = (hash * 31) + ParagraphShading.GetHashCode();
             hash = (hash * 31) + ParagraphBorders.GetHashCode();
+            hash = (hash * 31) + ParagraphMarkFormat.GetHashCode();
             foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {
                 hash = (hash * 31) + merge.GetHashCode();
             }
@@ -501,6 +510,69 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             }
 
             return hash;
+        }
+
+        internal LegacyDocParagraphFormat WithParagraphMarkFormat(LegacyDocCharacterFormat paragraphMarkFormat) {
+            return new LegacyDocParagraphFormat(
+                Alignment,
+                StyleIndex,
+                SpacingBeforeTwips,
+                SpacingAfterTwips,
+                LineSpacingTwips,
+                LeftIndentTwips,
+                RightIndentTwips,
+                FirstLineIndentTwips,
+                KeepLinesTogether,
+                KeepWithNext,
+                PageBreakBefore,
+                AvoidWidowAndOrphan,
+                SuppressLineNumbers,
+                SuppressAutoHyphens,
+                ContextualSpacing,
+                MirrorIndents,
+                Kinsoku,
+                WordWrap,
+                OverflowPunctuation,
+                TopLinePunctuation,
+                AutoSpaceDE,
+                AutoSpaceDN,
+                Bidirectional,
+                NumberingListIndex,
+                NumberingLevel,
+                VerticalCharacterAlignment,
+                IsInTable,
+                IsTableTerminatingParagraph,
+                TabStops,
+                TableCellWidthsTwips,
+                TableLeftIndentTwips,
+                TableRowHeightTwips,
+                TableRowHeightIsExact,
+                TableRowCantSplit,
+                TableRowIsHeader,
+                TableAlignment,
+                TablePreferredWidth,
+                TableAutofit,
+                TableCellHorizontalMerges,
+                TableCellVerticalMerges,
+                TableCellVerticalAlignments,
+                TableCellTextDirections,
+                TableCellFitTexts,
+                TableCellNoWraps,
+                TableCellHideMarks,
+                TableCellMargins,
+                TableCellShadings,
+                TableCellBorders,
+                DefaultTableCellMargins,
+                DefaultTableCellSpacingTwips,
+                HasMergedTableCells,
+                HasNestedTable,
+                MaximumTableDepth,
+                HasInnerTableCellMarker,
+                HasInnerTableTerminatingParagraphMarker,
+                ParagraphShading,
+                ParagraphBorders,
+                OutlineLevel,
+                paragraphMarkFormat);
         }
 
         private static bool TableCellWidthsEqual(IReadOnlyList<int> first, IReadOnlyList<int> second) {

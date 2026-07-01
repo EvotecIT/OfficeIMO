@@ -144,6 +144,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return ReadSupportedRunFormatting(runProperties, allowHyperlinkRunStyle: false);
         }
 
+        private static LegacyDocWritableFormatting ReadSupportedParagraphMarkRunFormatting(ParagraphProperties? paragraphProperties) {
+            return ReadSupportedRunFormatting(paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
+        }
+
+        private static void AddParagraphMarkRunFormatting(List<LegacyDocWritableRun> runs, int paragraphMarkPosition, LegacyDocWritableFormatting formatting) {
+            if (formatting.HasFormatting) {
+                runs.Add(new LegacyDocWritableRun(paragraphMarkPosition, 1, formatting));
+            }
+        }
+
         private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties, bool allowHyperlinkRunStyle) {
             if (runProperties == null || !runProperties.HasChildren) {
                 return LegacyDocWritableFormatting.Plain;

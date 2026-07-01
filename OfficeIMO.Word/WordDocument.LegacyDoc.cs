@@ -1439,6 +1439,10 @@ namespace OfficeIMO.Word {
                 ApplyLegacyDocParagraphStyle(paragraph, paragraphFormat.StyleIndex.Value, styleSheet);
             }
 
+            if (paragraphFormat.ParagraphMarkFormat != null) {
+                ApplyLegacyDocParagraphMarkRunFormatting(paragraph, paragraphFormat.ParagraphMarkFormat.Value);
+            }
+
             if (paragraphFormat.NumberingListIndex != null) {
                 ApplyLegacyDocParagraphNumbering(paragraph, paragraphFormat.NumberingListIndex.Value, paragraphFormat.NumberingLevel ?? 0);
             }
@@ -1557,6 +1561,22 @@ namespace OfficeIMO.Word {
                     paragraph.AddTabStop(tabStop.PositionTwips, tabAlignment, leader);
                 }
             }
+        }
+
+        private static void ApplyLegacyDocParagraphMarkRunFormatting(WordParagraph paragraph, LegacyDocCharacterFormat characterFormat) {
+            StyleRunProperties? styleRunProperties = CreateLegacyDocStyleRunProperties(characterFormat);
+            if (styleRunProperties == null) {
+                return;
+            }
+
+            ParagraphProperties paragraphProperties = EnsureLegacyDocParagraphProperties(paragraph);
+            paragraphProperties.RemoveAllChildren<ParagraphMarkRunProperties>();
+            var paragraphMarkRunProperties = new ParagraphMarkRunProperties();
+            foreach (OpenXmlElement property in styleRunProperties.ChildElements) {
+                paragraphMarkRunProperties.Append(property.CloneNode(true));
+            }
+
+            paragraphProperties.Append(paragraphMarkRunProperties);
         }
 
         private static bool TryMapVerticalCharacterAlignment(byte alignment, out VerticalTextAlignmentValues verticalCharacterAlignment) {

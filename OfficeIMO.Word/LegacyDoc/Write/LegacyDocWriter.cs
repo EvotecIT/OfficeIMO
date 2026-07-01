@@ -468,7 +468,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBodyParagraphFormatting(paragraph.GetFirstChild<ParagraphProperties>(), styleIndexes);
+            ParagraphProperties? paragraphProperties = paragraph.GetFirstChild<ParagraphProperties>();
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBodyParagraphFormatting(paragraphProperties, styleIndexes);
+            LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraphProperties);
             int paragraphStart = text.Length;
 
             OpenXmlElement[] children = paragraph.ChildElements.ToArray();
@@ -510,6 +512,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             text.Append('\r');
+            AddParagraphMarkRunFormatting(runs, text.Length - 1, paragraphMarkFormatting);
             if (paragraphFormatting.HasFormatting) {
                 paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
             }

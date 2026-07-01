@@ -607,6 +607,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 if (textCharacter.Character == '\a') {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
+                    LegacyDocCharacterFormat paragraphMarkFormat = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
+                    if (paragraphMarkFormat.HasFormatting) {
+                        paragraphFormat = paragraphFormat.WithParagraphMarkFormat(paragraphMarkFormat);
+                    }
+
                     if (paragraphFormat.IsInTable == true) {
                         if (paragraphFormat.IsTableTerminatingParagraph == true) {
                             AddCurrentTableRow(paragraphFormat, textCharacter.CharacterPosition + 1);
@@ -629,6 +634,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
                 if (normalized.Value == '\r') {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
+                    if (format.HasFormatting) {
+                        paragraphFormat = paragraphFormat.WithParagraphMarkFormat(format);
+                    }
+
                     if (paragraphFormat.IsInTable == true && paragraphFormat.IsTableTerminatingParagraph != true) {
                         AddCurrentTextAsTableCellParagraph(paragraphFormat);
                     } else if (inTable) {

@@ -59,9 +59,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 foreach (LegacyDocWritableTableCell writableCell in writableCells) {
                     LegacyDocWritableParagraphFormatting cellParagraphFormatting = writableCell.ParagraphFormatting.WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
                     LegacyDocWritableFormatting cellRunFormatting = writableCell.RunFormatting.WithInheritedFormatting(tableStyleRunFormatting);
-                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, bookmarks, writableCell.SourceCell, mainPart, styleIndexes, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, out int finalParagraphStart)
+                    LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCell(text, runs, paragraphFormats, bookmarks, writableCell.SourceCell, mainPart, styleIndexes, cellParagraphFormatting, cellRunFormatting, footnotes, endnotes, out int finalParagraphStart, out LegacyDocWritableFormatting finalParagraphMarkFormatting)
                         .WithTableMarkers(isTableTerminatingParagraph: false);
                     text.Append('\a');
+                    AddParagraphMarkRunFormatting(runs, text.Length - 1, finalParagraphMarkFormatting);
                     paragraphFormats.Add(new LegacyDocWritableParagraph(finalParagraphStart, text.Length - finalParagraphStart, paragraphFormatting));
                 }
 
@@ -1152,8 +1153,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableFormatting tableStyleRunFormatting,
             LegacyDocWritableFootnotes footnotes,
             LegacyDocWritableEndnotes endnotes,
-            out int finalParagraphStart) {
+            out int finalParagraphStart,
+            out LegacyDocWritableFormatting finalParagraphMarkFormatting) {
             finalParagraphStart = text.Length;
+            finalParagraphMarkFormatting = LegacyDocWritableFormatting.Plain;
             if (cell == null) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
@@ -1196,13 +1199,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         int paragraphStart = text.Length;
                         paragraphIndex++;
                         bool isFinalParagraph = paragraphIndex == paragraphCount;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraph, mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes);
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraph, mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting);
                         if (isFinalParagraph) {
                             finalParagraphStart = paragraphStart;
                             finalParagraphFormatting = paragraphFormatting;
+                            finalParagraphMarkFormatting = paragraphMarkFormatting;
                         } else {
                             paragraphFormatting = paragraphFormatting.WithTableMarkers(isTableTerminatingParagraph: false);
                             text.Append('\r');
+                            AddParagraphMarkRunFormatting(runs, text.Length - 1, paragraphMarkFormatting);
                             paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
                         }
 
@@ -1290,7 +1295,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
+        private static LegacyDocWritableParagraphFormatting AppendTableCellParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableParagraphFormatting tableStyleParagraphFormatting, LegacyDocWritableFormatting tableStyleRunFormatting, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes, out LegacyDocWritableFormatting paragraphMarkFormatting) {
+            paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
                 .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
 

@@ -934,6 +934,9 @@ just to reserve names.
   - [x] Write supported direct run formatting inside authored footnote and
     endnote text bodies through native DOC CHPX records, then reload the note
     text and supported direct run formatting through the legacy reader.
+  - [x] Write direct paragraph-mark run formatting in body, table-cell,
+    header/footer, footnote, and endnote paragraphs as native DOC CHPX on the
+    paragraph terminator, then reload it as OpenXML `w:pPr/w:rPr`.
   - [x] Write supported paragraph formatting inside authored footnote and
     endnote text bodies through native DOC PAPX records, then reload alignment,
     spacing, and indentation through the legacy reader.

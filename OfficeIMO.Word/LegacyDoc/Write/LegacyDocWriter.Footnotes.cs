@@ -92,6 +92,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             switch (child) {
                 case Paragraph paragraph:
                     int paragraphStart = isFirstParagraph ? 0 : builder.Length;
+                    LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
                     LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleFootnoteParagraph(paragraph, id, runs, bookmarks, builder.Length, isFirstParagraph, relationshipOwner, out string paragraphText);
                     if (!string.IsNullOrEmpty(paragraphText)) {
                         hasBodyText = true;
@@ -99,6 +100,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                     builder.Append(paragraphText);
                     builder.Append('\r');
+                    AddParagraphMarkRunFormatting(runs, builder.Length - 1, paragraphMarkFormatting);
                     if (paragraphFormatting.HasFormatting) {
                         formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, builder.Length - paragraphStart, paragraphFormatting));
                     }

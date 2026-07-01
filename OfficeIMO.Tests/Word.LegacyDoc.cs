@@ -9499,52 +9499,100 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedHeaderParagraphPropertiesBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBodyAndTableParagraphMarkRunPropertiesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Body");
-                document.AddHeadersAndFooters();
-                WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
-                headerParagraph.AddText("Rich header");
-                ParagraphProperties? paragraphProperties = headerParagraph._paragraph.GetFirstChild<ParagraphProperties>();
-                if (paragraphProperties == null) {
-                    paragraphProperties = headerParagraph._paragraph.PrependChild(new ParagraphProperties());
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph bodyParagraph = document.AddParagraph("Body paragraph mark");
+                    ParagraphProperties bodyProperties = bodyParagraph._paragraph.GetFirstChild<ParagraphProperties>()
+                        ?? bodyParagraph._paragraph.PrependChild(new ParagraphProperties());
+                    bodyProperties.Append(new ParagraphMarkRunProperties(new Bold()));
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell paragraph mark", removeExistingParagraphs: true);
+                    ParagraphProperties cellProperties = cellParagraph._paragraph.GetFirstChild<ParagraphProperties>()
+                        ?? cellParagraph._paragraph.PrependChild(new ParagraphProperties());
+                    cellProperties.Append(new ParagraphMarkRunProperties(new Bold()));
+
+                    document.Save(docPath);
                 }
 
-                paragraphProperties.Append(new ParagraphMarkRunProperties(new Bold()));
+                using WordDocument reloaded = WordDocument.Load(docPath);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph reloadedBody = Assert.Single(reloaded.Paragraphs, paragraph => paragraph.Text == "Body paragraph mark");
+                ParagraphMarkRunProperties bodyMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
+                    reloadedBody._paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
+                Assert.NotNull(bodyMarkRunProperties.GetFirstChild<Bold>());
 
-                Assert.Contains("Unsupported paragraph property: rPr", exception.Message);
-                Assert.False(File.Exists(docPath));
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph reloadedCell = Assert.Single(reloadedTable.Rows[0].Cells[0].Paragraphs);
+                Assert.Equal("Cell paragraph mark", reloadedCell.Text);
+                ParagraphMarkRunProperties cellMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
+                    reloadedCell._paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
+                Assert.NotNull(cellMarkRunProperties.GetFirstChild<Bold>());
             } finally {
                 DeleteIfExists(docPath);
             }
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedNoteParagraphPropertiesBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderParagraphMarkRunPropertiesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                WordParagraph paragraph = document.AddParagraph("Body");
-                WordParagraph footnoteReference = paragraph.AddFootNote("Rich footnote");
-                WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Rich footnote");
-                ParagraphProperties? paragraphProperties = footnoteBody._paragraph.GetFirstChild<ParagraphProperties>();
-                if (paragraphProperties == null) {
-                    paragraphProperties = footnoteBody._paragraph.PrependChild(new ParagraphProperties());
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body");
+                    document.AddHeadersAndFooters();
+                    WordParagraph headerParagraph = document.Sections[0].Header.Default!.AddParagraph();
+                    headerParagraph.AddText("Rich header");
+                    ParagraphProperties paragraphProperties = headerParagraph._paragraph.GetFirstChild<ParagraphProperties>()
+                        ?? headerParagraph._paragraph.PrependChild(new ParagraphProperties());
+
+                    paragraphProperties.Append(new ParagraphMarkRunProperties(new Bold()));
+
+                    document.Save(docPath);
                 }
 
-                paragraphProperties.Append(new ParagraphMarkRunProperties(new Bold()));
+                using WordDocument reloaded = WordDocument.Load(docPath);
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph header = Assert.Single(Assert.Single(reloaded.Sections).Header.Default!.Paragraphs);
+                Assert.Equal("Rich header", header.Text);
+                ParagraphMarkRunProperties paragraphMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
+                    header._paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
+                Assert.NotNull(paragraphMarkRunProperties.GetFirstChild<Bold>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
 
-                Assert.Contains("supported paragraph formatting", exception.Message);
-                Assert.Contains("Unsupported paragraph property: rPr", exception.Message);
-                Assert.False(File.Exists(docPath));
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteParagraphMarkRunPropertiesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Rich footnote");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Rich footnote");
+                    ParagraphProperties paragraphProperties = footnoteBody._paragraph.GetFirstChild<ParagraphProperties>()
+                        ?? footnoteBody._paragraph.PrependChild(new ParagraphProperties());
+
+                    paragraphProperties.Append(new ParagraphMarkRunProperties(new Bold()));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                WordParagraph reloadedFootnoteBody = footnote.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Rich footnote");
+                ParagraphMarkRunProperties paragraphMarkRunProperties = Assert.IsType<ParagraphMarkRunProperties>(
+                    reloadedFootnoteBody._paragraphProperties?.GetFirstChild<ParagraphMarkRunProperties>());
+                Assert.NotNull(paragraphMarkRunProperties.GetFirstChild<Bold>());
             } finally {
                 DeleteIfExists(docPath);
             }

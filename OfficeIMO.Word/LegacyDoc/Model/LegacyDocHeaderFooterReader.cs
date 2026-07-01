@@ -204,8 +204,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (normalized == '\r') {
+                    LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset);
+                    LegacyDocCharacterFormat paragraphMarkFormat = GetFormatForFileOffset(formattingRanges, character.FileOffset);
+                    if (paragraphMarkFormat.HasFormatting) {
+                        paragraphFormat = paragraphFormat.WithParagraphMarkFormat(paragraphMarkFormat);
+                    }
+
                     preserveEmptyParagraph = HasLaterHeaderFooterParagraphContent(storyCharacters, index + 1);
-                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset), character.CharacterPosition, isFinalParagraph: false);
+                    AddCurrentParagraph(paragraphFormat, character.CharacterPosition, isFinalParagraph: false);
                     currentParagraphStartCharacter = character.CharacterPosition + 1;
                     preserveEmptyParagraph = false;
                     continue;

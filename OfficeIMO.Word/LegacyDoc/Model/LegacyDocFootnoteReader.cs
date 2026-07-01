@@ -368,8 +368,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 atParagraphStart = false;
                 if (normalized == '\r') {
+                    LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset);
+                    LegacyDocCharacterFormat paragraphMarkFormat = GetFormatForFileOffset(formattingRanges, character.FileOffset);
+                    if (paragraphMarkFormat.HasFormatting) {
+                        paragraphFormat = paragraphFormat.WithParagraphMarkFormat(paragraphMarkFormat);
+                    }
+
                     preserveEmptyParagraph = HasLaterNoteParagraphContent(storyCharacters, index + 1);
-                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset), character.CharacterPosition, isFinalParagraph: false);
+                    AddCurrentParagraph(paragraphFormat, character.CharacterPosition, isFinalParagraph: false);
                     isFirstParagraph = false;
                     atParagraphStart = true;
                     skipOptionalReferenceSpace = false;

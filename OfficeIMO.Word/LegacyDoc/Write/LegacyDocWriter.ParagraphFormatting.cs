@@ -135,6 +135,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case OutlineLevel outlineLevel:
                         paragraphOutlineLevel = ReadSupportedOutlineLevel(outlineLevel, builtInStyleIndex, allowDirectOutlineLevel: allowParagraphStyleId || allowDirectOutlineLevel);
                         break;
+                    case ParagraphMarkRunProperties when allowParagraphStyleId:
+                        break;
+                    case ParagraphMarkRunProperties:
+                        throw new NotSupportedException("Native DOC saving supports paragraph mark run formatting only on direct paragraph properties. Unsupported paragraph property: rPr.");
                     case SectionProperties when allowSectionProperties:
                         break;
                     default:

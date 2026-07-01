@@ -277,9 +277,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             string kind,
             IReadOnlyDictionary<string, ushort> styleIndexes) {
             int paragraphStart = storyText.Length;
+            LegacyDocWritableFormatting paragraphMarkFormatting = ReadSupportedParagraphMarkRunFormatting(paragraph.ParagraphProperties);
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
             paragraphs.Add(paragraphText);
             storyText.Append('\r');
+            AddParagraphMarkRunFormatting(formattedRuns, storyText.Length - 1, paragraphMarkFormatting);
             if (paragraphFormatting.HasFormatting) {
                 formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, storyText.Length - paragraphStart, paragraphFormatting));
             }
