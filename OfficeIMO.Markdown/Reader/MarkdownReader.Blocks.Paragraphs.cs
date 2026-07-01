@@ -349,6 +349,21 @@ public static partial class MarkdownReader {
             return;
         }
 
+        if (block is CustomContainerBlock customContainerBlock && customContainerBlock.OpeningFenceSourceSpan.HasValue) {
+            var opening = customContainerBlock.OpeningFenceSourceSpan.Value;
+            var closing = customContainerBlock.ClosingFenceSourceSpan ?? customContainerBlock.SourceSpan ?? opening;
+            var sourceSpan = new MarkdownSourceSpan(
+                opening.StartLine,
+                opening.StartColumn ?? 1,
+                closing.EndLine,
+                closing.EndColumn ?? opening.EndColumn ?? 1);
+            var mappedNode = BuildSyntaxNode(customContainerBlock, sourceSpan);
+            SynchronizeOwnedSyntaxCaches(mappedNode);
+            MarkdownObjectTreeBinder.BindSourceSpans(mappedNode);
+            item.SyntaxChildren.Add(mappedNode);
+            return;
+        }
+
         var lastLine = slices[slices.Count - 1].Text;
         var localSpan = new MarkdownSourceSpan(1, 1, slices.Count, Math.Max(1, lastLine.Length));
         var markdownObject = block as MarkdownObject;

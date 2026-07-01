@@ -111,6 +111,7 @@ public static partial class MarkdownReader {
                 }
 
                 if (IsCodeFenceOpen(slice, out _, out _, out _)) break;
+                if (IsCustomContainerOpeningLine(slice, options)) break;
                 if (sliceTrim.StartsWith(">")) break;
 
                 if (options.HtmlBlocks && sliceTrim.StartsWith("<")) {
@@ -666,6 +667,59 @@ public static partial class MarkdownReader {
         }
 
         return column;
+    }
+
+    private static bool TryParseNestedCustomContainerBlock(
+        string[] lines,
+        ref int index,
+        int continuationIndent,
+        MarkdownReaderOptions options,
+        MarkdownReaderState state,
+        out CustomContainerBlock? container,
+        out MarkdownSyntaxNode? syntaxNode) {
+
+        container = null;
+        syntaxNode = null;
+        if (lines == null || index < 0 || index >= lines.Length || !options.CustomContainers) return false;
+
+        string line = lines[index] ?? string.Empty;
+        if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+
+        string slice = StripLeadingIndentColumns(line, continuationIndent);
+        if (!IsCustomContainerOpeningLine(slice, options)) return false;
+
+        var collected = new List<string>();
+        int j = index;
+        while (j < lines.Length) {
+            string raw = lines[j] ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(raw) && CountLeadingIndentColumns(raw) < continuationIndent) {
+                break;
+            }
+
+            collected.Add(string.IsNullOrWhiteSpace(raw)
+                ? string.Empty
+                : StripLeadingIndentColumns(raw, continuationIndent));
+            j++;
+        }
+
+        if (!CustomContainerParser.TryGetContainerLineCount(collected, 0, out var lineCount) || lineCount <= 0) {
+            return false;
+        }
+
+        var endIndex = Math.Min(lines.Length, index + lineCount);
+        var sourceLines = BuildListItemNestedSourceLines(lines, continuationIndent, index, endIndex, state);
+        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(sourceLines, options, state);
+        if (blocks.Count == 0 || blocks[0] is not CustomContainerBlock parsedContainer) {
+            return false;
+        }
+
+        container = parsedContainer;
+        if (syntaxChildren.Count > 0 && syntaxChildren[0].Kind == MarkdownSyntaxKind.CustomContainer) {
+            syntaxNode = syntaxChildren[0];
+        }
+
+        index = endIndex;
+        return true;
     }
 
     private static bool TryParseNestedTableBlock(string[] lines, ref int index, int continuationIndent, MarkdownReaderOptions options, MarkdownReaderState state, out TableBlock? table) {

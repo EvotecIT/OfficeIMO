@@ -3,7 +3,7 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Markdig-style colon-fenced custom container block rendered as an HTML <c>div</c>.
 /// </summary>
-public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock, ITightListItemHtmlMarkdownBlock {
     private readonly IReadOnlyList<IMarkdownBlock> _childBlocks;
 
     /// <summary>First token from the container info string, used as the rendered CSS class.</summary>
@@ -70,6 +70,14 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
     }
 
     string IMarkdownBlock.RenderHtml() {
+        return RenderHtml(tightListItem: false);
+    }
+
+    string ITightListItemHtmlMarkdownBlock.RenderTightListItemHtml() {
+        return RenderHtml(tightListItem: true);
+    }
+
+    private string RenderHtml(bool tightListItem) {
         var sb = new StringBuilder();
         sb.Append("<div");
         if (!string.IsNullOrWhiteSpace(Name)) {
@@ -80,7 +88,11 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
 
         sb.Append('>');
         for (var i = 0; i < ChildBlocks.Count; i++) {
-            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
+            if (tightListItem && ChildBlocks[i] is ITightListItemHtmlMarkdownBlock tightHtmlBlock) {
+                sb.Append(tightHtmlBlock.RenderTightListItemHtml());
+            } else {
+                sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
+            }
         }
 
         sb.Append("</div>");

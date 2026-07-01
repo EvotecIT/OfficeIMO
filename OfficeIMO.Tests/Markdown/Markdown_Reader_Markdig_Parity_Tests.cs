@@ -494,7 +494,12 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "simple-container", "::: note\nhello\n:::" };
         yield return new object[] { "container-info-uses-first-token", "::: note title text\nhello\n:::" };
         yield return new object[] { "container-with-list", "::: note\n- a\n- b\n:::" };
+        yield return new object[] { "container-inside-blockquote", "> ::: note\n> hello\n> :::" };
+        yield return new object[] { "container-inside-list-item", "- item\n  ::: note\n  hello\n  :::" };
         yield return new object[] { "nested-container-with-longer-outer-fence", ":::: note\n::: inner\ntext\n:::\n::::" };
+        yield return new object[] { "unclosed-container-closes-at-document-end", "::: note\nhello" };
+        yield return new object[] { "shorter-closing-fence-stays-in-body", ":::: note\ntext\n:::\nmore\n::::" };
+        yield return new object[] { "closing-fence-with-trailing-text-stays-in-body", "::: note\ntext\n::: trailing\n:::" };
         yield return new object[] { "no-space-info", ":::note\nhello\n:::" };
     }
 

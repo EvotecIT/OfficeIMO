@@ -154,7 +154,7 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
     }
 
     private static void AppendTightListItemChildSeparator(StringBuilder builder, IMarkdownBlock child) {
-        if (child is not TableBlock ||
+        if (child is not TableBlock && child is not CustomContainerBlock ||
             builder.Length == 0 ||
             char.IsWhiteSpace(builder[builder.Length - 1])) {
             return;

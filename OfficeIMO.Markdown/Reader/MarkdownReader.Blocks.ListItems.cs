@@ -77,6 +77,20 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            // Nested custom container
+            tmp = k;
+            if (TryParseNestedCustomContainerBlock(lines, ref tmp, continuationIndent, options, state, out var customContainer, out var customContainerSyntaxNode) && customContainer != null) {
+                item.Children.Add(customContainer);
+                if (customContainerSyntaxNode != null) {
+                    item.SyntaxChildren.Add(customContainerSyntaxNode);
+                } else {
+                    AddListItemChildSyntaxNode(item, customContainer, lines, continuationIndent, k, tmp, state);
+                }
+                if (sawBlankLine) item.ForceLoose = true;
+                index = tmp;
+                continue;
+            }
+
             // Nested table
             tmp = k;
             if (TryParseNestedTableBlock(lines, ref tmp, continuationIndent, options, state, out var table) && table != null) {

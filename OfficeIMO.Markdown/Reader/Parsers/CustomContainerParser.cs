@@ -1,6 +1,9 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
+    private static bool IsCustomContainerOpeningLine(string? line, MarkdownReaderOptions options) =>
+        options.CustomContainers && CustomContainerParser.IsOpeningLine(line);
+
     internal sealed class CustomContainerParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.CustomContainers || lines == null || i < 0 || i >= lines.Length) {
@@ -72,6 +75,31 @@ public static partial class MarkdownReader {
 
             doc.Add(block);
             i = closingIndex < 0 ? lines.Length : closingIndex + 1;
+            return true;
+        }
+
+        internal static bool IsOpeningLine(string? line) =>
+            TryParseOpeningFence(line, out _);
+
+        internal static bool TryGetContainerLineCount(IReadOnlyList<string> lines, int startIndex, out int lineCount) {
+            lineCount = 0;
+            if (lines == null || startIndex < 0 || startIndex >= lines.Count) {
+                return false;
+            }
+
+            if (!TryParseOpeningFence(lines[startIndex], out var opening)) {
+                return false;
+            }
+
+            var bodyStart = startIndex + 1;
+            for (var candidate = bodyStart; candidate < lines.Count; candidate++) {
+                if (TryParseClosingFence(lines[candidate], opening.FenceLength, out _)) {
+                    lineCount = candidate - startIndex + 1;
+                    return true;
+                }
+            }
+
+            lineCount = lines.Count - startIndex;
             return true;
         }
 

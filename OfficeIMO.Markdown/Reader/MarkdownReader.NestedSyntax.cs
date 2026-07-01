@@ -208,6 +208,9 @@ public static partial class MarkdownReader {
 
             case CustomContainerBlock customContainerBlock:
                 customContainerBlock.SyntaxChildren = GetCustomContainerBodySyntaxChildren(node);
+                customContainerBlock.OpeningFenceSourceSpan = GetChildSourceSpan(node, MarkdownSyntaxKind.CustomContainerOpeningFence);
+                customContainerBlock.InfoSourceSpan = GetChildSourceSpan(node, MarkdownSyntaxKind.CustomContainerInfo);
+                customContainerBlock.ClosingFenceSourceSpan = GetChildSourceSpan(node, MarkdownSyntaxKind.CustomContainerClosingFence);
                 break;
 
             case TableCell tableCell:
