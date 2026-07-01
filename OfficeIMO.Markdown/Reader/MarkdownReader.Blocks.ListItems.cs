@@ -119,7 +119,7 @@ public static partial class MarkdownReader {
             if (allowNestedOrdered
                 && options.OrderedLists
                 && CountLeadingIndentColumns(lines[k] ?? string.Empty) >= continuationIndent
-                && IsOrderedListLine(lines[k], out int lvlAbsO2, out _, out _)
+                && IsOrderedListLine(lines[k], options, out int lvlAbsO2, out _, out _, out _)
                 && lvlAbsO2 >= itemLevelAbs + 1) {
                 if (TryParseNestedListBlock(lines, k, continuationIndent, options, state, new OrderedListParser(), out var orderedList, out var orderedEndIndex, out var orderedSyntaxNode)) {
                     item.Children.Add(orderedList);
@@ -261,7 +261,7 @@ public static partial class MarkdownReader {
         if (allowNestedOrdered
             && options.OrderedLists
             && CountLeadingIndentColumns(listLine) >= continuationIndent
-            && IsOrderedListLine(listLine, out int orderedLevel, out _, out _)
+            && IsOrderedListLine(listLine, options, out int orderedLevel, out _, out _, out _)
             && orderedLevel >= itemLevelAbs + 1) {
             parser = new OrderedListParser();
         } else if (allowNestedUnordered
@@ -305,7 +305,7 @@ public static partial class MarkdownReader {
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
         if (IsListNestedBlockStart(line, continuationIndent, itemLevelAbs, allowNestedOrdered: true, allowNestedUnordered: true, options)) return false;
-        if (IsUnorderedListLine(line, out _, out _, out _, out _) || IsOrderedListLine(line, out _, out _, out _)) return false;
+        if (IsUnorderedListLine(line, out _, out _, out _, out _) || IsOrderedListLine(line, options, out _, out _, out _, out _)) return false;
 
         string firstContent = StripLeadingIndentColumns(line, continuationIndent);
         firstContent = firstContent.TrimStart();
@@ -345,7 +345,7 @@ public static partial class MarkdownReader {
         if (nextIndentColumns < continuationIndent) return false;
 
         if (allowNestedOrdered && options.OrderedLists &&
-            IsOrderedListLine(line, out int lvlAbsO, out _, out _) &&
+            IsOrderedListLine(line, options, out int lvlAbsO, out _, out _, out _) &&
             lvlAbsO >= itemLevelAbs + 1) {
             return true;
         }
@@ -373,18 +373,33 @@ public static partial class MarkdownReader {
     }
 
     private static bool IsOrderedListLine(string line, out int number, out string content) {
+        return IsOrderedListLine(line, null, out number, out content);
+    }
+
+    private static bool IsOrderedListLine(string line, MarkdownReaderOptions? options, out int number, out string content) {
         number = 0;
         content = string.Empty;
-        if (!TryGetOrderedListMarkerInfo(line, out _, out number, out int contentStartIndex)) return false;
+        if (!TryGetOrderedListMarkerInfo(line, options, out _, out number, out int contentStartIndex, out _, out _)) return false;
         content = line.Substring(contentStartIndex);
         return true;
     }
 
     private static bool IsOrderedListLine(string line, out int level, out int number, out string content) {
+        return IsOrderedListLine(line, null, out level, out number, out content, out _);
+    }
+
+    private static bool IsOrderedListLine(
+        string line,
+        MarkdownReaderOptions? options,
+        out int level,
+        out int number,
+        out string content,
+        out MarkdownOrderedListMarkerStyle markerStyle) {
         level = 0;
         number = 0;
         content = string.Empty;
-        if (!TryGetOrderedListMarkerInfo(line, out int spaces, out number, out int contentStartIndex)) return false;
+        markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
+        if (!TryGetOrderedListMarkerInfo(line, options, out int spaces, out number, out int contentStartIndex, out _, out markerStyle)) return false;
         content = line.Substring(contentStartIndex);
         level = spaces / 2;
         return true;
@@ -453,11 +468,11 @@ public static partial class MarkdownReader {
         return options.CalloutTitleMode != MarkdownCalloutTitleMode.MarkdigCompatible || string.IsNullOrWhiteSpace(title);
     }
 
-    private static int GetListContinuationIndent(string line) {
+    private static int GetListContinuationIndent(string line, MarkdownReaderOptions? options = null) {
         if (string.IsNullOrEmpty(line)) return 0;
-        if (TryGetOrderedListMarkerInfo(line, out int orderedLeadingSpaces, out _, out int orderedContentStartIndex)) {
+        if (TryGetOrderedListMarkerInfo(line, options, out int orderedLeadingSpaces, out _, out int orderedContentStartIndex, out _, out _)) {
             if (string.IsNullOrWhiteSpace(line.Substring(orderedContentStartIndex))
-                && TryGetOrderedListMarkerWidth(line, orderedLeadingSpaces, out int orderedMarkerWidth)) {
+                && TryGetOrderedListMarkerWidth(line, orderedLeadingSpaces, options, out int orderedMarkerWidth)) {
                 return orderedLeadingSpaces + orderedMarkerWidth + 1;
             }
 
@@ -515,33 +530,29 @@ public static partial class MarkdownReader {
             : 0;
     }
 
-    private static void SetListItemMarkerSourceSpans(ListItem item, string line, int lineIndex, bool isTask, MarkdownReaderState state) {
+    private static void SetListItemMarkerSourceSpans(ListItem item, string line, int lineIndex, bool isTask, MarkdownReaderOptions options, MarkdownReaderState state) {
         if (item == null) {
             return;
         }
 
         int absoluteLineNumber = state.SourceLineOffset + lineIndex + 1;
-        item.MarkerSourceSpan = TryCreateListMarkerSourceSpan(line, absoluteLineNumber, state);
-        item.MarkerText = TryGetListMarkerText(line);
+        item.MarkerSourceSpan = TryCreateListMarkerSourceSpan(line, absoluteLineNumber, options, state);
+        item.MarkerText = TryGetListMarkerText(line, options);
         if (isTask) {
-            item.TaskMarkerSourceSpan = TryCreateTaskMarkerSourceSpan(line, absoluteLineNumber, state);
+            item.TaskMarkerSourceSpan = TryCreateTaskMarkerSourceSpan(line, absoluteLineNumber, options, state);
             item.TaskMarkerText = TryGetTaskMarkerText(line);
         } else {
             item.TaskMarkerText = null;
         }
     }
 
-    private static string? TryGetListMarkerText(string line) {
+    private static string? TryGetListMarkerText(string line, MarkdownReaderOptions? options = null) {
         if (string.IsNullOrEmpty(line)) {
             return null;
         }
 
-        if (TryGetOrderedListMarkerInfo(line, out int orderedLeadingSpaces, out _, out _, out _)) {
-            int delimiterIndex = orderedLeadingSpaces;
-            while (delimiterIndex < line.Length && char.IsDigit(line[delimiterIndex])) {
-                delimiterIndex++;
-            }
-
+        if (TryGetOrderedListMarkerInfo(line, options, out int orderedLeadingSpaces, out _, out _, out _, out _)) {
+            int delimiterIndex = GetOrderedListMarkerDelimiterIndex(line, orderedLeadingSpaces);
             return delimiterIndex < line.Length
                 ? line.Substring(orderedLeadingSpaces, delimiterIndex - orderedLeadingSpaces + 1)
                 : null;
@@ -562,17 +573,13 @@ public static partial class MarkdownReader {
         return content.Length >= 3 ? content.Substring(0, 3) : null;
     }
 
-    private static MarkdownSourceSpan? TryCreateListMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderState state) {
+    private static MarkdownSourceSpan? TryCreateListMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderOptions? options, MarkdownReaderState state) {
         if (string.IsNullOrEmpty(line)) {
             return null;
         }
 
-        if (TryGetOrderedListMarkerInfo(line, out int orderedLeadingSpaces, out _, out _, out _)) {
-            int delimiterIndex = orderedLeadingSpaces;
-            while (delimiterIndex < line.Length && char.IsDigit(line[delimiterIndex])) {
-                delimiterIndex++;
-            }
-
+        if (TryGetOrderedListMarkerInfo(line, options, out int orderedLeadingSpaces, out _, out _, out _, out _)) {
+            int delimiterIndex = GetOrderedListMarkerDelimiterIndex(line, orderedLeadingSpaces);
             if (delimiterIndex < line.Length) {
                 return CreateSpan(state, absoluteLineNumber, orderedLeadingSpaces + 1, absoluteLineNumber, delimiterIndex + 1);
             }
@@ -586,7 +593,7 @@ public static partial class MarkdownReader {
         return null;
     }
 
-    private static MarkdownSourceSpan? TryCreateTaskMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderState state) {
+    private static MarkdownSourceSpan? TryCreateTaskMarkerSourceSpan(string line, int absoluteLineNumber, MarkdownReaderOptions options, MarkdownReaderState state) {
         if (string.IsNullOrEmpty(line)) {
             return null;
         }
@@ -596,7 +603,7 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        int startColumn = GetListContinuationIndent(line) + 1;
+        int startColumn = GetListContinuationIndent(line, options) + 1;
         return CreateSpan(state, absoluteLineNumber, startColumn, absoluteLineNumber, startColumn + 2);
     }
 
@@ -660,28 +667,123 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryGetOrderedListMarkerInfo(string line, out int leadingSpaces, out int number, out int contentStartIndex) {
-        return TryGetOrderedListMarkerInfo(line, out leadingSpaces, out number, out contentStartIndex, out _);
+        return TryGetOrderedListMarkerInfo(line, null, out leadingSpaces, out number, out contentStartIndex, out _, out _);
     }
 
     private static bool TryGetOrderedListMarkerInfo(string line, out int leadingSpaces, out int number, out int contentStartIndex, out char delimiter) {
+        return TryGetOrderedListMarkerInfo(line, null, out leadingSpaces, out number, out contentStartIndex, out delimiter, out _);
+    }
+
+    private static bool TryGetOrderedListMarkerInfo(
+        string line,
+        MarkdownReaderOptions? options,
+        out int leadingSpaces,
+        out int number,
+        out int contentStartIndex,
+        out char delimiter,
+        out MarkdownOrderedListMarkerStyle markerStyle) {
         leadingSpaces = 0;
         number = 0;
         contentStartIndex = 0;
         delimiter = '\0';
+        markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
         if (string.IsNullOrEmpty(line)) return false;
 
         while (leadingSpaces < line.Length && line[leadingSpaces] == ' ') leadingSpaces++;
 
-        int digitsStart = leadingSpaces;
-        int digitsEnd = digitsStart;
-        while (digitsEnd < line.Length && char.IsDigit(line[digitsEnd])) digitsEnd++;
-        if (digitsEnd == digitsStart) return false;
-        if (digitsEnd - digitsStart > 9) return false;
-        if (digitsEnd >= line.Length || (line[digitsEnd] != '.' && line[digitsEnd] != ')')) return false;
-        delimiter = line[digitsEnd];
-        if (!TryGetListContentStartIndex(line, digitsEnd, out contentStartIndex)) return false;
-        if (!int.TryParse(line.Substring(digitsStart, digitsEnd - digitsStart), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
-        return true;
+        int markerStart = leadingSpaces;
+        int markerEnd = markerStart;
+        while (markerEnd < line.Length && char.IsDigit(line[markerEnd])) markerEnd++;
+        if (markerEnd > markerStart) {
+            if (markerEnd - markerStart > 9) return false;
+            if (markerEnd >= line.Length || (line[markerEnd] != '.' && line[markerEnd] != ')')) return false;
+            delimiter = line[markerEnd];
+            if (!TryGetListContentStartIndex(line, markerEnd, out contentStartIndex)) return false;
+            if (!int.TryParse(line.Substring(markerStart, markerEnd - markerStart), NumberStyles.Integer, CultureInfo.InvariantCulture, out number)) number = 1;
+            markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
+            return true;
+        }
+
+        if (options?.ListExtras != true) return false;
+
+        while (markerEnd < line.Length && IsAsciiLetter(line[markerEnd])) markerEnd++;
+        if (markerEnd == markerStart) return false;
+        if (markerEnd >= line.Length || (line[markerEnd] != '.' && line[markerEnd] != ')')) return false;
+        delimiter = line[markerEnd];
+        if (!TryGetListContentStartIndex(line, markerEnd, out contentStartIndex)) return false;
+
+        var marker = line.Substring(markerStart, markerEnd - markerStart);
+        if (TryParseRomanListExtraMarker(marker, out number, out markerStyle)) {
+            return true;
+        }
+
+        if (marker.Length == 1) {
+            var ch = marker[0];
+            markerStyle = char.IsUpper(ch) ? MarkdownOrderedListMarkerStyle.UpperAlpha : MarkdownOrderedListMarkerStyle.LowerAlpha;
+            number = char.ToUpperInvariant(ch) - 'A' + 1;
+            return number >= 1 && number <= 26;
+        }
+
+        number = 0;
+        markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
+        return false;
+    }
+
+    private static int GetOrderedListMarkerDelimiterIndex(string line, int leadingSpaces) {
+        var delimiterIndex = leadingSpaces;
+        while (delimiterIndex < line.Length
+               && (char.IsDigit(line[delimiterIndex]) || IsAsciiLetter(line[delimiterIndex]))) {
+            delimiterIndex++;
+        }
+
+        return delimiterIndex;
+    }
+
+    private static bool TryParseRomanListExtraMarker(string marker, out int number, out MarkdownOrderedListMarkerStyle markerStyle) {
+        number = 0;
+        markerStyle = MarkdownOrderedListMarkerStyle.Decimal;
+        if (string.IsNullOrEmpty(marker)) {
+            return false;
+        }
+
+        var upper = char.IsUpper(marker[0]);
+        var lower = marker.ToLowerInvariant();
+        for (int i = 0; i < lower.Length; i++) {
+            var ch = lower[i];
+            if (ch != 'i' && ch != 'v' && ch != 'x') {
+                return false;
+            }
+        }
+
+        for (int value = 1; value <= 39; value++) {
+            if (string.Equals(lower, FormatListExtraRoman(value), StringComparison.Ordinal)) {
+                number = value;
+                markerStyle = upper
+                    ? MarkdownOrderedListMarkerStyle.UpperRoman
+                    : MarkdownOrderedListMarkerStyle.LowerRoman;
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string FormatListExtraRoman(int value) {
+        var tens = value / 10;
+        var ones = value % 10;
+        return new string('x', tens) + (ones switch {
+            0 => string.Empty,
+            1 => "i",
+            2 => "ii",
+            3 => "iii",
+            4 => "iv",
+            5 => "v",
+            6 => "vi",
+            7 => "vii",
+            8 => "viii",
+            9 => "ix",
+            _ => string.Empty
+        });
     }
 
     private static bool TryGetUnorderedListMarkerInfo(string line, out int leadingSpaces, out int contentStartIndex) {
@@ -767,15 +869,19 @@ public static partial class MarkdownReader {
     }
 
     private static bool TryGetOrderedListMarkerWidth(string line, int leadingSpaces, out int markerWidth) {
+        return TryGetOrderedListMarkerWidth(line, leadingSpaces, null, out markerWidth);
+    }
+
+    private static bool TryGetOrderedListMarkerWidth(string line, int leadingSpaces, MarkdownReaderOptions? options, out int markerWidth) {
         markerWidth = 0;
         if (string.IsNullOrEmpty(line) || leadingSpaces >= line.Length) return false;
 
-        int digitsEnd = leadingSpaces;
-        while (digitsEnd < line.Length && char.IsDigit(line[digitsEnd])) digitsEnd++;
-        if (digitsEnd == leadingSpaces || digitsEnd - leadingSpaces > 9) return false;
-        if (digitsEnd >= line.Length || (line[digitsEnd] != '.' && line[digitsEnd] != ')')) return false;
+        if (!TryGetOrderedListMarkerInfo(line, options, out _, out _, out _, out _, out _)) {
+            return false;
+        }
 
-        markerWidth = digitsEnd - leadingSpaces + 1;
+        var delimiterIndex = GetOrderedListMarkerDelimiterIndex(line, leadingSpaces);
+        markerWidth = delimiterIndex - leadingSpaces + 1;
         return true;
     }
 

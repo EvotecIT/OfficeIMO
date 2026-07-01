@@ -717,7 +717,7 @@ Term
                 MarkdownSyntaxKind.OrderedList
             },
             definitionValue.Children.Select(child => child.Kind).ToArray());
-        Assert.Equal("Term\n:   First\n    1. item\n\n    1. sibling", written);
+        Assert.Equal("Term\n:   First\n    1. item\n\n    1) sibling", written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(reparsedOffice));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);

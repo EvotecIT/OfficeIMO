@@ -865,7 +865,7 @@ public static partial class MarkdownReader {
             return true;
         }
 
-        if (options.OrderedLists && IsOrderedListLine(trimmed, out _, out _)) {
+        if (options.OrderedLists && IsOrderedListLine(trimmed, options, out _, out _)) {
             return true;
         }
 

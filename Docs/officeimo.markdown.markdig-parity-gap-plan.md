@@ -13,7 +13,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [x] GFM tracked fixtures are green: 52 tracked GFM fixtures, 52 passing, 0 failing in the generated GFM inventory.
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
-- [ ] Markdig extension parity is not closed: 13 rows are covered, 6 partial, 3 intentional, and 11 gap.
+- [ ] Markdig extension parity is not closed: 13 rows are covered, 7 partial, 3 intentional, and 10 gap.
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
@@ -74,7 +74,8 @@ Each unchecked item should be treated as exactly one lane before work starts: en
 - [ ] Optional parser gaps need product scope before implementation.
   - [ ] `UseCustomContainers`: decide core versus optional package, then implement colon-fence parsing, child source mapping, renderer seams, and writer support.
   - [ ] `UseGridTables`: decide whether grid tables belong in core, then implement malformed fallback, source spans, renderer, and writer behavior.
-  - [ ] `UseListExtras`: inventory Markdig list-extra syntax first, then choose core versus optional behavior.
+  - [x] `UseListExtras`: scoped core opt-in behavior exists for Markdig-style alphabetic and roman ordered-list markers, including marker-family splitting, nested markers, HTML type/start output, syntax marker spans, and parsed-marker Markdown writing.
+  - [ ] `UseListExtras`: broaden source-edit and reparse proof for nested/container combinations before promoting beyond `Partial`.
   - [ ] `UseMathematics`: decide inline/block math ownership and renderer handoff before adding delimiter parsing.
   - [ ] `UseMediaLinks`: decide provider and safe-renderer policy before parser shortcuts.
   - [ ] `UseFigures`: separate HTML-import recovery from Markdown figure syntax before parser work.
@@ -218,7 +219,8 @@ Do not implement these rows from nearby tests alone. Decide the product shape fi
 
 - [ ] `UseCustomContainers`: core extension seam plus optional colon-fenced container parser, child source ownership, renderer seams, and writer support.
 - [ ] `UseGridTables`: optional grid-table parser, semantic table model, malformed fallback, source spans, renderer, and writer.
-- [ ] `UseListExtras`: inventory Markdig list-extra syntax first, then decide whether it belongs in core list behavior or an optional extension.
+- [x] `UseListExtras`: inventory and first scoped core opt-in parser support are complete for alpha/roman ordered markers.
+- [ ] `UseListExtras`: keep remaining source-edit/reparse/container breadth open before promotion.
 - [ ] `UseMathematics`: decide inline/block math delimiter ownership, AST/source/native metadata, writer preservation, and renderer handoff.
 - [ ] `UseMediaLinks`: decide provider model and safe renderer policy before parser behavior.
 - [ ] `UseFigures`: separate HTML-import figure recovery from Markdown figure syntax.

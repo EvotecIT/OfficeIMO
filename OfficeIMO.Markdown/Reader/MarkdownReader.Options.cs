@@ -18,6 +18,7 @@ public static partial class MarkdownReader {
             UnorderedLists = source.UnorderedLists,
             TaskLists = source.TaskLists,
             OrderedLists = source.OrderedLists,
+            ListExtras = source.ListExtras,
             Tables = source.Tables,
             AllowHeaderlessTables = source.AllowHeaderlessTables,
             ParseTableCellBlocks = source.ParseTableCellBlocks,

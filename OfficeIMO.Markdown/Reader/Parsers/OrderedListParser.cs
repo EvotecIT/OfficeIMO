@@ -18,13 +18,17 @@ public static partial class MarkdownReader {
 
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.OrderedLists) return false;
-            if (!IsOrderedListLine(lines[i], out int lvl0Abs, out int startNum, out var firstContent)) return false;
-            if (!TryGetOrderedListMarkerInfo(lines[i], out int firstMarkerIndent, out _, out _, out char firstDelimiter)) return false;
+            if (!IsOrderedListLine(lines[i], options, out int lvl0Abs, out int startNum, out var firstContent, out var firstMarkerStyle)) return false;
+            if (!TryGetOrderedListMarkerInfo(lines[i], options, out int firstMarkerIndent, out _, out _, out char firstDelimiter, out _)) return false;
             if (options.StrictListIndentation && firstMarkerIndent - state.ListMarkerIndentOffset > 3) return false;
             using var headingAttributeScope = SuppressHeadingGenericAttributesInListItems(state);
-            var ol = new OrderedListBlock { Start = startNum };
+            var ol = new OrderedListBlock {
+                Start = startNum,
+                MarkerStyle = firstMarkerStyle,
+                MarkerDelimiter = firstDelimiter
+            };
             var continuationIndentsByLevel = options.StrictListIndentation ? new List<int>() : null;
-            int firstContinuationIndent = GetListContinuationIndent(lines[i]);
+            int firstContinuationIndent = GetListContinuationIndent(lines[i], options);
             int firstStartColumn;
 
             int j = i + 1;
@@ -51,7 +55,7 @@ public static partial class MarkdownReader {
                 state: state);
             var first = CreateListItemFromLeadLines(firstLines, firstIsTask, firstDone, options, state, i, firstSourceLines);
             first.Level = 0;
-            SetListItemMarkerSourceSpans(first, lines[i], i, firstIsTask, state);
+            SetListItemMarkerSourceSpans(first, lines[i], i, firstIsTask, options, state);
             if (continuationIndentsByLevel != null) {
                 TrackListItemContinuationIndent(continuationIndentsByLevel, first.Level, firstContinuationIndent);
             }
@@ -69,11 +73,12 @@ public static partial class MarkdownReader {
                 }
 
                 if (itemStart >= lines.Length
-                    || !IsOrderedListLine(lines[itemStart], out var lvlAbs, out _, out var content)
+                    || !IsOrderedListLine(lines[itemStart], options, out var lvlAbs, out _, out var content, out var markerStyle)
                     || lvlAbs < lvl0Abs
-                    || !TryGetOrderedListMarkerInfo(lines[itemStart], out int markerIndent, out _, out _, out char delimiter)
+                    || !TryGetOrderedListMarkerInfo(lines[itemStart], options, out int markerIndent, out _, out _, out char delimiter, out _)
                     || (options.StrictListIndentation && markerIndent - firstMarkerIndent > 3)
-                    || delimiter != firstDelimiter) {
+                    || delimiter != firstDelimiter
+                    || markerStyle != firstMarkerStyle) {
                     break;
                 }
 
@@ -81,7 +86,7 @@ public static partial class MarkdownReader {
                     first.ForceLoose = true;
                 }
 
-                int continuationIndent = GetListContinuationIndent(lines[itemStart]);
+                int continuationIndent = GetListContinuationIndent(lines[itemStart], options);
                 int next = itemStart + 1;
                 bool isTask = TryStripTaskMarker(content, options, out _, out bool done, out var stripped);
                 int startColumn;
@@ -109,7 +114,7 @@ public static partial class MarkdownReader {
                 li.Level = continuationIndentsByLevel != null
                     ? GetRelativeListItemLevel(continuationIndentsByLevel, lines[itemStart])
                     : lvlAbs - lvl0Abs;
-                SetListItemMarkerSourceSpans(li, lines[itemStart], itemStart, isTask, state);
+                SetListItemMarkerSourceSpans(li, lines[itemStart], itemStart, isTask, options, state);
                 if (separatedByBlankLine) {
                     li.ForceLoose = true;
                 }

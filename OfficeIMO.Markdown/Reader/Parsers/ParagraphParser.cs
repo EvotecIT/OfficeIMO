@@ -10,7 +10,7 @@ public static partial class MarkdownReader {
                 StartsTable(lines, i, options, state) ||
                 IsParagraphInterruptingThematicBreakLine(lines[i]) ||
                 IsParagraphInterruptingUnorderedListLine(lines[i]) ||
-                IsOrderedListLine(lines[i], out _, out _) ||
+                IsOrderedListLine(lines[i], options, out _, out _) ||
                 (options.Callouts && IsCalloutHeader(lines[i], options, out _, out _)) ||
                 IsQuoteStarter(lines[i]) ||
                 HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options) ||

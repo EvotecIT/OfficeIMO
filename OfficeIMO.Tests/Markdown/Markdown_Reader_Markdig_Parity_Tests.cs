@@ -461,6 +461,21 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "definition-list-term-attribute", "Term {#term .wide}\n:   Definition" };
     }
 
+    public static IEnumerable<object[]> ListExtrasExtensionCases() {
+        yield return new object[] { "lower-alpha", "a. alpha\nb. beta\n" };
+        yield return new object[] { "upper-alpha", "A. alpha\nB. beta\n" };
+        yield return new object[] { "lower-roman", "i. one\nii. two\n" };
+        yield return new object[] { "upper-roman", "I. one\nII. two\n" };
+        yield return new object[] { "lower-roman-start-four", "iv. four\nv. five\n" };
+        yield return new object[] { "lower-roman-start-ten", "x. ten\nxi. eleven\n" };
+        yield return new object[] { "lower-alpha-parenthesis-delimiter", "a) alpha\nb) beta\n" };
+        yield return new object[] { "lower-alpha-start-three", "c. starts-three\nd. next\n" };
+        yield return new object[] { "double-alpha-marker-stays-continuation", "z. zed\naa. double\n" };
+        yield return new object[] { "alpha-then-decimal-splits-lists", "a. alpha\n1. one\n" };
+        yield return new object[] { "roman-then-alpha-splits-lists", "i. one\na. alpha\n" };
+        yield return new object[] { "nested-lower-alpha", "- outer\n\n  a. alpha\n  b. beta\n" };
+    }
+
     public static IEnumerable<object[]> AlertBlocksExtensionCases() {
         yield return new object[] { "note-paragraph", "> [!NOTE]\n> Body" };
         yield return new object[] { "note-empty", "> [!NOTE]" };
@@ -1018,6 +1033,67 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeGenericAttributesHtmlForParity(markdig), NormalizeGenericAttributesHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(ListExtrasExtensionCases))]
+    public void MarkdownReader_ListExtras_Match_Markdig_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseListExtras(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.ListExtras = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Fact]
+    public void MarkdownReader_ListExtras_Are_OptIn() {
+        const string markdown = "a. alpha\nb. beta\n";
+        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile());
+
+        Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+    }
+
+    [Fact]
+    public void MarkdownReader_ListExtras_Preserve_Marker_Source_And_Writer_Output() {
+        const string markdown = "iv. four\nv. five\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.ListExtras = true;
+        options.PreserveTrivia = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var list = Assert.IsType<OrderedListBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal(4, list.Start);
+        Assert.Equal(MarkdownOrderedListMarkerStyle.LowerRoman, list.MarkerStyle);
+        Assert.Equal('.', list.MarkerDelimiter);
+
+        Assert.Equal("iv.", list.Items[0].MarkerText);
+        Assert.Equal("v.", list.Items[1].MarkerText);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), list.Items[0].MarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 2), list.Items[1].MarkerSourceSpan);
+
+        var syntaxList = Assert.Single(result.FinalSyntaxTree.Children, node => node.Kind == MarkdownSyntaxKind.OrderedList);
+        var firstMarker = Assert.Single(syntaxList.Children[0].Children, node => node.Kind == MarkdownSyntaxKind.ListMarker);
+        Assert.Equal("iv.", firstMarker.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), firstMarker.SourceSpan);
+
+        Assert.Equal(markdown.TrimEnd(), result.Document.ToMarkdown().Replace("\r\n", "\n").TrimEnd());
     }
 
     private static string NormalizeAlertHtmlForParity(string html) {

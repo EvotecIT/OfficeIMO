@@ -10,15 +10,15 @@ Use it as the control board for parity slices:
 
 ## Summary
 
-Current inventory: 33 Markdig extension-family rows; 13 covered, 6 partial, 3 intentional, 11 gap.
+Current inventory: 33 Markdig extension-family rows; 13 covered, 7 partial, 3 intentional, 10 gap.
 
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
 | Covered | 13 |
-| Partial | 6 |
+| Partial | 7 |
 | Intentional | 3 |
-| Gap | 11 |
+| Gap | 10 |
 
 ## Execution Matrix
 
@@ -44,7 +44,7 @@ Current inventory: 33 Markdig extension-family rows; 13 covered, 6 partial, 3 in
 | `UseGlobalization` | `Gap` | Deferred | Deferred | Deferred | Deferred | Needs real consumer requirement | Revisit only if a real consumer needs culture-sensitive Markdown behavior. |
 | `UseGridTables` | `Gap` | Optional block parser | Missing grid-table parser | Missing table source model | Missing HTML/Markdown writer behavior | Missing malformed fallback fixtures | Decide if grid tables belong in core or an optional extension package. |
 | `UseJiraLinks` | `Gap` | Optional link extension | Missing issue-key parser | Needs source metadata | Needs resolver/render policy | Needs opt-in fixtures | Treat as optional link extension after core link/source mapping is stable. |
-| `UseListExtras` | `Gap` | Optional list parser | Missing syntax inventory | Needs canonical ListItem source model | Needs writer policy after scope | Needs Markdig syntax inventory first | Inventory Markdig list-extra syntax before choosing scope. |
+| `UseListExtras` | `Partial` | Core opt-in parser | Alpha and roman ordered markers are parsed for the scoped Markdig syntax | Uses canonical OrderedListBlock/ListItem marker style, delimiter, marker text, and syntax marker spans; needs broader source-edit APIs | HTML type/start and parsed-marker Markdown writing are covered for scoped cases | Needs broader nested/container reparse and source-edit proof | Expand source-edit and reparse proof for nested/container combinations before promoting to Covered. |
 | `UseMathematics` | `Partial` | Optional parser plus renderer policy | Missing delimiter parity | Needs math node/source metadata | Needs renderer handoff and writer policy | Needs inline/block math fixtures | Define math parser ownership and compare inline/block math fixtures. |
 | `UseMediaLinks` | `Partial` | Renderer policy plus optional parser | Missing shortcut parser | Needs source metadata for providers | Needs safe renderer output policy | Needs provider comparison fixtures | Route shortcut media providers through renderer/host extension seams if in scope. |
 | `UseNonAsciiNoEscape` | `Covered` | Renderer/host policy | Covered | Covered | Covered | Covered | Keep direct encoder audits and focused non-ASCII render-policy tests current when adding new HTML output paths. |

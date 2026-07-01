@@ -172,6 +172,12 @@ public sealed class MarkdownReaderOptions {
     /// <summary>Enable ordered (numbered) lists.</summary>
     public bool OrderedLists { get; set; } = true;
     /// <summary>
+    /// Enable Markdig-style extra ordered-list markers such as alphabetic <c>a.</c>/<c>A.</c>
+    /// and lower/upper roman markers up to <c>xxxix</c>.
+    /// Default: <c>false</c>; opt in when mirroring Markdig's <c>UseListExtras</c> extension.
+    /// </summary>
+    public bool ListExtras { get; set; } = false;
+    /// <summary>
     /// When <c>true</c>, nested list levels are derived from continuation-indent rules instead of the library's
     /// more permissive legacy indentation heuristic. Enabled by stricter compatibility profiles.
     /// </summary>

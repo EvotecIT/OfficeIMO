@@ -97,7 +97,7 @@ public static partial class MarkdownReader {
         var line = lines[lineIndex];
         return (options.FencedCode && IsCodeFenceOpen(line, out _, out _, out _))
             || (options.UnorderedLists && IsUnorderedListLine(line, out _, out _, out _, out _))
-            || (options.OrderedLists && IsOrderedListLine(line, out _, out _))
+            || (options.OrderedLists && IsOrderedListLine(line, options, out _, out _))
             || StartsTable(lines, lineIndex, options, state);
     }
 
@@ -189,7 +189,7 @@ public static partial class MarkdownReader {
             }
 
             if (options.OrderedLists
-                && IsOrderedListLine(lines[i], out _, out _)) {
+                && IsOrderedListLine(lines[i], options, out _, out _)) {
                 return true;
             }
 
@@ -223,7 +223,7 @@ public static partial class MarkdownReader {
                 && !StartsTable(lines, i, options)
                 && !IsParagraphInterruptingThematicBreakLine(lines[i])
                 && !IsParagraphInterruptingUnorderedListLine(lines[i])
-                && !IsOrderedListLine(lines[i], out _, out _)
+                && !IsOrderedListLine(lines[i], options, out _, out _)
                 && (!options.Callouts || !IsCalloutHeader(lines[i], options, out _, out _))
                 && !IsQuoteStarter(lines[i])
                 && !HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options)

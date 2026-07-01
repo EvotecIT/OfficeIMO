@@ -89,7 +89,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
             case "UseGridTables":
                 return new MatrixCells("Optional block parser", "Missing grid-table parser", "Missing table source model", "Missing HTML/Markdown writer behavior", "Missing malformed fallback fixtures", row.NextAction);
             case "UseListExtras":
-                return new MatrixCells("Optional list parser", "Missing syntax inventory", "Needs canonical ListItem source model", "Needs writer policy after scope", "Needs Markdig syntax inventory first", row.NextAction);
+                return new MatrixCells("Core opt-in parser", "Alpha and roman ordered markers are parsed for the scoped Markdig syntax", "Uses canonical OrderedListBlock/ListItem marker style, delimiter, marker text, and syntax marker spans; needs broader source-edit APIs", "HTML type/start and parsed-marker Markdown writing are covered for scoped cases", "Needs broader nested/container reparse and source-edit proof", row.NextAction);
             case "UseMathematics":
                 return new MatrixCells("Optional parser plus renderer policy", "Missing delimiter parity", "Needs math node/source metadata", "Needs renderer handoff and writer policy", "Needs inline/block math fixtures", row.NextAction);
             case "UseMediaLinks":
