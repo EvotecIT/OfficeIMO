@@ -13,10 +13,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableParagraphFormatting ReadSupportedStyleParagraphFormatting(StyleParagraphProperties? paragraphProperties) =>
             ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false);
 
+        private static LegacyDocWritableParagraphFormatting ReadSupportedCustomParagraphStyleParagraphFormatting(StyleParagraphProperties? paragraphProperties) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, allowDirectOutlineLevel: true);
+
         private static LegacyDocWritableParagraphFormatting ReadSupportedBuiltInStyleParagraphFormatting(ushort styleIndex, StyleParagraphProperties? paragraphProperties) =>
             ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, builtInStyleIndex: styleIndex);
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId, ushort? builtInStyleIndex = null, bool allowSectionProperties = false) {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId, ushort? builtInStyleIndex = null, bool allowSectionProperties = false, bool allowDirectOutlineLevel = false) {
             if (paragraphProperties == null || !paragraphProperties.HasChildren) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
@@ -130,7 +133,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tabStops = ReadSupportedTabStops(tabs);
                         break;
                     case OutlineLevel outlineLevel:
-                        paragraphOutlineLevel = ReadSupportedOutlineLevel(outlineLevel, builtInStyleIndex, allowDirectOutlineLevel: allowParagraphStyleId);
+                        paragraphOutlineLevel = ReadSupportedOutlineLevel(outlineLevel, builtInStyleIndex, allowDirectOutlineLevel: allowParagraphStyleId || allowDirectOutlineLevel);
                         break;
                     case SectionProperties when allowSectionProperties:
                         break;

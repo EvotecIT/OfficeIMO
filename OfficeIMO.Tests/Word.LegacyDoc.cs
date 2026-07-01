@@ -864,6 +864,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelParagraphOutlineLevel() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelParagraphOutlineLevel();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("style outline level", paragraph.Text);
+            Assert.Equal("LegacyDocOutlineLevel", paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style outlineStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocOutlineLevel");
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(outlineStyle.StyleParagraphProperties);
+            OutlineLevel outlineLevel = Assert.IsType<OutlineLevel>(paragraphProperties.GetFirstChild<OutlineLevel>());
+            Assert.Equal(3, outlineLevel.Val!.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelParagraphLayoutFlags() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelParagraphLayoutFlags();
 
@@ -6090,6 +6108,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleOutlineLevelAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocOutlineLevelStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCOutlineLevelStyle";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Outline Level Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleParagraphProperties(new OutlineLevel { Val = 3 }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled outline level").SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x40, 0x26, 0x03),
+                    "Expected the native DOC stylesheet stream to contain sprmPOutLvl for custom paragraph style outline level 3.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled outline level", paragraph.Text);
+                Assert.Equal(projectedStyleId, paragraph.StyleId);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
+                StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(customStyle.StyleParagraphProperties);
+                OutlineLevel outlineLevel = Assert.IsType<OutlineLevel>(paragraphProperties.GetFirstChild<OutlineLevel>());
+                Assert.Equal(3, outlineLevel.Val!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleBiDiAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocBiDiStyle";
@@ -11027,6 +11085,29 @@ namespace OfficeIMO.Tests {
                         CreateStyleParagraphFormatting(CreateParagraphTabStopsSprm(
                             new[] { 3600 },
                             (1800, 1, 1)))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithStyleLevelParagraphOutlineLevel() {
+                const string text = "style outline level\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Outline Level",
+                        CreateStyleParagraphFormatting(CreateParagraphSprm(0x2640, 3))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
 

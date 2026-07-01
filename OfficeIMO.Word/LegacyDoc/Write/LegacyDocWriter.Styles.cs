@@ -190,7 +190,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ushort baseStyleIndex = ResolveBaseStyleIndex(style, styleIndexes);
                 ushort nextStyleIndex = ResolveNextStyleIndex(style, styleIndex, styleIndexes);
                 string styleName = ReadStyleName(style, styleId);
-                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedStyleParagraphFormatting(style.StyleParagraphProperties);
+                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedCustomParagraphStyleParagraphFormatting(style.StyleParagraphProperties);
                 LegacyDocWritableFormatting characterFormatting = ReadSupportedRunFormatting(style.StyleRunProperties);
                 byte[] paragraphUpx = LegacyDocParagraphFormattingWriter.CreateStyleParagraphUpx(paragraphFormatting);
                 byte[] characterUpx = CreateStyleCharacterUpx(characterFormatting, fontFamilyIndexes);
