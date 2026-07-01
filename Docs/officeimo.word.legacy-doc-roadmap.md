@@ -577,6 +577,9 @@ just to reserve names.
   - [x] Write explicit off CHPX toggles for native DOC run/style formatting so
     inherited bold/italic-style effects can be cleared without adding runtime
     dependencies.
+  - [x] Prove direct native DOC explicit-off run toggles are emitted as CHPX
+    zero operands and reload through the dependency-free legacy reader as
+    OpenXML `w:val="false"` toggle properties.
   - [x] Write direct all-caps and small-caps CHPX runs and reload them through
     the legacy reader.
   - [x] Preserve all-caps/small-caps when the sibling OpenXML toggle is off,

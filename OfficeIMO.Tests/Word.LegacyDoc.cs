@@ -4892,6 +4892,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocExplicitOffRunTogglesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph formatted = document.AddParagraph("off");
+                    formatted._run!.RunProperties = new RunProperties(
+                        new Bold { Val = false },
+                        new BoldComplexScript { Val = false },
+                        new Italic { Val = false },
+                        new ItalicComplexScript { Val = false },
+                        new Strike { Val = false },
+                        new DoubleStrike { Val = false },
+                        new Outline { Val = false },
+                        new Shadow { Val = false },
+                        new Emboss { Val = false },
+                        new Imprint { Val = false },
+                        new Vanish { Val = false },
+                        new NoProof { Val = false },
+                        new Caps { Val = false },
+                        new SmallCaps { Val = false });
+
+                    document.Save(docPath);
+                }
+
+                byte[] compoundBytes = File.ReadAllBytes(docPath);
+                byte[] wordDocumentStream = ReadCompoundStream(compoundBytes, "WordDocument");
+                byte[] tableStream = ReadCompoundStream(compoundBytes, "1Table");
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0835, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0836, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0837, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x2A53, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0838, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0839, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0858, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0854, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x083B, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x0875, 0);
+                AssertChpxContainsSprmForCharacterRange(wordDocumentStream, tableStream, 0, "off".Length, 0x083A, 0);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph run = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("off", run.Text);
+                RunProperties runProperties = Assert.IsType<RunProperties>(run._runProperties);
+                Assert.False(Assert.IsType<Bold>(runProperties.GetFirstChild<Bold>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<BoldComplexScript>(runProperties.GetFirstChild<BoldComplexScript>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Italic>(runProperties.GetFirstChild<Italic>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<ItalicComplexScript>(runProperties.GetFirstChild<ItalicComplexScript>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Strike>(runProperties.GetFirstChild<Strike>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<DoubleStrike>(runProperties.GetFirstChild<DoubleStrike>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Outline>(runProperties.GetFirstChild<Outline>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Shadow>(runProperties.GetFirstChild<Shadow>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Emboss>(runProperties.GetFirstChild<Emboss>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Imprint>(runProperties.GetFirstChild<Imprint>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Vanish>(runProperties.GetFirstChild<Vanish>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<NoProof>(runProperties.GetFirstChild<NoProof>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Caps>(runProperties.GetFirstChild<Caps>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<SmallCaps>(runProperties.GetFirstChild<SmallCaps>()).Val?.Value ?? true);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocComplexScriptBoldItalicAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
