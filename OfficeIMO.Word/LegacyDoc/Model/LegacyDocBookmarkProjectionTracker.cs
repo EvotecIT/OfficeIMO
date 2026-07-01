@@ -66,6 +66,28 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return result;
         }
 
+        internal IReadOnlyList<LegacyDocBookmark> ExtractZeroLengthBoundaryBookmarks(int boundaryCharacter) {
+            if (_bookmarks.Count == 0) {
+                return Array.Empty<LegacyDocBookmark>();
+            }
+
+            var result = new List<LegacyDocBookmark>();
+            foreach (LegacyDocBookmark bookmark in _bookmarks) {
+                if (!bookmark.IsZeroLength
+                    || bookmark.StartCharacter != boundaryCharacter
+                    || _projectedStarts.Contains(bookmark)
+                    || _projectedEnds.Contains(bookmark)) {
+                    continue;
+                }
+
+                result.Add(bookmark);
+                _projectedStarts.Add(bookmark);
+                _projectedEnds.Add(bookmark);
+            }
+
+            return result;
+        }
+
         private static bool IsBookmarkStartAtBlockBoundary(LegacyDocBookmark bookmark, int blockStartCharacter, int blockEndCharacter) =>
             bookmark.StartCharacter == blockStartCharacter
             || (bookmark.IsZeroLength && bookmark.StartCharacter == blockEndCharacter);

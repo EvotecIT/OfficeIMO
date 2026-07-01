@@ -513,6 +513,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool reportedUnprojectedSectionBoundary = false;
             int currentParagraphStartCharacter = 0;
             int? currentTableStartCharacter = null;
+            int? currentTableRowStartCharacter = null;
+            IReadOnlyList<LegacyDocBookmark>? currentTableRowBoundaryBookmarks = null;
 
             for (int characterIndex = 0; characterIndex < characters.Count; characterIndex++) {
                 LegacyDocTextCharacter textCharacter = characters[characterIndex];
@@ -567,7 +569,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
                     if (paragraphFormat.IsInTable == true) {
                         if (paragraphFormat.IsTableTerminatingParagraph == true) {
-                            AddCurrentTableRow(paragraphFormat);
+                            AddCurrentTableRow(paragraphFormat, textCharacter.CharacterPosition + 1);
                         } else {
                             AddCurrentTextAsTableCell(paragraphFormat, allowHeuristicRowTerminator: false);
                         }
@@ -781,6 +783,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     inTable = true;
                     justClosedCell = false;
                     currentTableStartCharacter = currentParagraphStartCharacter;
+                    currentTableRowStartCharacter = currentParagraphStartCharacter;
                 }
 
                 currentTableCellParagraphs.Add(CreateCurrentTableCellParagraph(paragraphFormat));
@@ -795,14 +798,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     inTable = true;
                     justClosedCell = false;
                     currentTableStartCharacter = currentParagraphStartCharacter;
+                    currentTableRowStartCharacter = currentParagraphStartCharacter;
                 }
 
                 if (allowHeuristicRowTerminator && currentRuns.Count == 0 && justClosedCell) {
                     if (currentTableRow.Count > 0) {
-                        tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray()));
+                        tableRows.Add(new LegacyDocTableRow(currentTableRow.ToArray(), bookmarksBefore: currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks()));
                         currentTableRow.Clear();
                     }
 
+                    currentTableRowBoundaryBookmarks = null;
                     justClosedCell = false;
                     return;
                 }
@@ -818,11 +823,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 justClosedCell = true;
             }
 
-            void AddCurrentTableRow(LegacyDocParagraphFormat paragraphFormat) {
+            void AddCurrentTableRow(LegacyDocParagraphFormat paragraphFormat, int rowEndCharacter) {
                 FlushRun();
                 if (!inTable) {
                     inTable = true;
                     currentTableStartCharacter = currentParagraphStartCharacter;
+                    currentTableRowStartCharacter = currentParagraphStartCharacter;
                 }
 
                 if (currentRuns.Count > 0 || currentTableCellParagraphs.Count > 0 || (!justClosedCell && currentTableRow.Count == 0)) {
@@ -857,12 +863,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.GetTableCellBordersForCellCount(currentTableRow.Count),
                         paragraphFormat.DefaultTableCellSpacingTwips,
                         paragraphFormat.TablePreferredWidth,
-                        paragraphFormat.TableAutofit));
+                        paragraphFormat.TableAutofit,
+                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks()));
                     currentTableRow.Clear();
                 }
 
                 hasCurrentRun = false;
                 justClosedCell = false;
+                currentTableRowBoundaryBookmarks = null;
+                currentTableRowStartCharacter = rowEndCharacter;
             }
 
             void FlushTable(LegacyDocParagraphFormat paragraphFormat, int tableEndCharacter) {
@@ -899,7 +908,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         paragraphFormat.GetTableCellBordersForCellCount(currentTableRow.Count),
                         paragraphFormat.DefaultTableCellSpacingTwips,
                         paragraphFormat.TablePreferredWidth,
-                        paragraphFormat.TableAutofit));
+                        paragraphFormat.TableAutofit,
+                        currentTableRowBoundaryBookmarks ?? ExtractCurrentTableRowBoundaryBookmarks()));
                     currentTableRow.Clear();
                 }
 
@@ -917,18 +927,33 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 inTable = false;
                 justClosedCell = false;
                 currentTableStartCharacter = null;
+                currentTableRowStartCharacter = null;
+                currentTableRowBoundaryBookmarks = null;
             }
 
             LegacyDocTableCellParagraph CreateCurrentTableCellParagraph(LegacyDocParagraphFormat paragraphFormat) {
                 IReadOnlyList<LegacyDocTextRun> runs = currentRuns.ToArray();
                 int paragraphStartCharacter = GetRunStartCharacter(runs);
                 int paragraphEndCharacter = GetRunEndCharacter(runs);
+                if (currentTableRowBoundaryBookmarks == null
+                    && currentTableRowStartCharacter.HasValue
+                    && paragraphStartCharacter == currentTableRowStartCharacter.Value) {
+                    currentTableRowBoundaryBookmarks = ExtractCurrentTableRowBoundaryBookmarks();
+                }
+
                 return new LegacyDocTableCellParagraph(
                     runs,
                     paragraphFormat,
                     paragraphStartCharacter,
                     paragraphEndCharacter,
                     bookmarkProjection.ExtractProjectedParagraphBookmarks(paragraphStartCharacter, paragraphEndCharacter));
+            }
+
+            IReadOnlyList<LegacyDocBookmark> ExtractCurrentTableRowBoundaryBookmarks() {
+                int rowStartCharacter = currentTableRowStartCharacter ?? currentTableStartCharacter ?? currentParagraphStartCharacter;
+                return rowStartCharacter != currentTableStartCharacter
+                    ? bookmarkProjection.ExtractZeroLengthBoundaryBookmarks(rowStartCharacter)
+                    : Array.Empty<LegacyDocBookmark>();
             }
 
             int GetTableStartCharacter(IReadOnlyList<LegacyDocTableRow> rows) {

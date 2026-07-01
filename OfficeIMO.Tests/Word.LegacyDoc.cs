@@ -8349,7 +8349,41 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedRowLevelTableBookmarksBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocRowLevelTableBookmarksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(2, 1);
+                    table.Rows[0].Cells[0].AddParagraph("First row", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("Second row", removeExistingParagraphs: true);
+                    TableRow[] rows = table._table.Elements<TableRow>().ToArray();
+                    table._table.InsertAfter(new BookmarkStart { Id = "59", Name = "RowLevelBookmark" }, rows[0]);
+                    table._table.InsertBefore(new BookmarkEnd { Id = "59" }, rows[1]);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "RowLevelBookmark");
+
+                Table reloadedTable = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Table>());
+                TableRow[] reloadedRows = reloadedTable.Elements<TableRow>().ToArray();
+                Assert.Equal(2, reloadedRows.Length);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(reloadedRows[1].PreviousSibling());
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(bookmarkEnd.PreviousSibling());
+                Assert.Equal("RowLevelBookmark", bookmarkStart.Name?.Value);
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedRowLevelTableBookmarkRangesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
@@ -8358,12 +8392,12 @@ namespace OfficeIMO.Tests {
                 table.Rows[0].Cells[0].AddParagraph("First row", removeExistingParagraphs: true);
                 table.Rows[1].Cells[0].AddParagraph("Second row", removeExistingParagraphs: true);
                 TableRow[] rows = table._table.Elements<TableRow>().ToArray();
-                table._table.InsertAfter(new BookmarkStart { Id = "59", Name = "RowLevelBookmark" }, rows[0]);
-                table._table.InsertBefore(new BookmarkEnd { Id = "59" }, rows[1]);
+                table._table.InsertAfter(new BookmarkStart { Id = "61", Name = "RowLevelRangeBookmark" }, rows[0]);
+                table._table.InsertAfter(new BookmarkEnd { Id = "61" }, rows[1]);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("row-level table bookmarks", exception.Message.ToLowerInvariant());
+                Assert.Contains("zero-length", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

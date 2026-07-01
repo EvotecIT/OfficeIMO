@@ -394,7 +394,24 @@ namespace OfficeIMO.Word {
                 }
             }
 
+            AddLegacyDocTableRowBoundaryBookmarks(table, tableBlock);
             AddLegacyDocTableBlockBookmarks(table, tableBlock);
+        }
+
+        private static void AddLegacyDocTableRowBoundaryBookmarks(WordTable table, LegacyDocTableBlock tableBlock) {
+            int rowCount = Math.Min(table.Rows.Count, tableBlock.Rows.Count);
+            for (int rowIndex = 0; rowIndex < rowCount; rowIndex++) {
+                LegacyDocTableRow sourceRow = tableBlock.Rows[rowIndex];
+                if (sourceRow.BookmarksBefore.Count == 0) {
+                    continue;
+                }
+
+                TableRow row = table.Rows[rowIndex]._tableRow;
+                foreach (LegacyDocBookmark bookmark in sourceRow.BookmarksBefore.OrderBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
+                    table._table.InsertBefore(new BookmarkStart { Id = bookmark.ProjectionId, Name = bookmark.Name }, row);
+                    table._table.InsertBefore(new BookmarkEnd { Id = bookmark.ProjectionId }, row);
+                }
+            }
         }
 
         private static void AddLegacyDocTableBlockBookmarks(WordTable table, LegacyDocTableBlock tableBlock) {

@@ -92,6 +92,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         defaultTableCellSpacingTwips: defaultCellSpacingTwips,
                         tablePreferredWidth: tablePreferredWidth,
                         tableAutofit: tableAutofit)));
+                if (rowIndex + 1 < rows.Length) {
+                    AppendTableRowBoundaryBookmarks(table, row, bookmarks, text.Length);
+                }
             }
 
             text.Append('\r');
@@ -99,8 +102,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ThrowIfUnsupportedTableShape(Table table, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
-            bool sawRow = false;
-            bool sawTrailingBoundaryBookmark = false;
             foreach (OpenXmlElement child in table.ChildElements) {
                 switch (child) {
                     case TableProperties tableProperties:
@@ -110,22 +111,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ThrowIfUnsupportedTableGrid(tableGrid);
                         break;
                     case TableRow:
-                        if (sawTrailingBoundaryBookmark) {
-                            throw new NotSupportedException("Native DOC saving supports table-child bookmark markers only at the outer table edges. Row-level table bookmarks are not supported yet.");
-                        }
-
-                        sawRow = true;
                         break;
                     case BookmarkStart:
                     case BookmarkEnd:
-                        if (sawRow) {
-                            sawTrailingBoundaryBookmark = true;
-                        }
-
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table element: {child.LocalName}.");
                 }
+            }
+        }
+
+        private static void AppendTableRowBoundaryBookmarks(Table table, TableRow row, LegacyDocWritableBookmarksBuilder bookmarks, int characterPosition) {
+            OpenXmlElement? child = row.NextSibling();
+            while (child != null && child is not TableRow) {
+                if (child is not BookmarkStart bookmarkStart) {
+                    child = child.NextSibling();
+                    continue;
+                }
+
+                OpenXmlElement? endMarker = child.NextSibling();
+                if (endMarker is not BookmarkEnd bookmarkEnd || bookmarkEnd.Id?.Value != bookmarkStart.Id?.Value) {
+                    throw new NotSupportedException("Native DOC saving supports row-level table bookmarks only as zero-length start/end marker pairs between table rows.");
+                }
+
+                bookmarks.AddStart(bookmarkStart, characterPosition);
+                bookmarks.AddEnd(bookmarkEnd, characterPosition);
+                child = endMarker.NextSibling();
             }
         }
 
