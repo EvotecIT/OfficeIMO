@@ -396,6 +396,49 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("> {#docs .items}\n> - item\n", roundtrip.Markdown);
     }
 
+    [Theory]
+    [InlineData("ordered", "> {#list .wide}\n> 1. item\n", MarkdownSyntaxKind.OrderedList, "> {#docs .items}\n> 1. item\n")]
+    [InlineData("task", "> {#list .wide}\n> - [x] item\n", MarkdownSyntaxKind.UnorderedList, "> {#docs .items}\n> - [x] item\n")]
+    public void BlockquoteContained_Standalone_GenericAttributes_Attach_To_Following_Ordered_And_Task_Lists_With_Source_Edit(
+        string _,
+        string markdown,
+        MarkdownSyntaxKind expectedListKind,
+        string expectedRoundtrip) {
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            TaskLists = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var list = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == expectedListKind);
+        var attributes = Assert.Single(list.Children, node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+
+        Assert.Equal("{#list .wide}", attributes.Literal);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 15), attributes.SourceSpan);
+        Assert.True(result.TryCreateOriginalSourceSlice(attributes, out var slice));
+        Assert.Equal("{#list .wide}", slice.Text);
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var nativeQuote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var nativeList = Assert.Single(nativeQuote.Children.OfType<MarkdownNativeListBlock>());
+        var field = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(nativeList, field.Block);
+        Assert.Equal("{#list .wide}", field.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 15), field.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(field, "{#docs .items}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal(expectedRoundtrip, roundtrip.Markdown);
+    }
+
     [Fact]
     public void Standalone_GenericAttributes_Attach_To_Following_PipeTable_With_Source_Backup() {
         const string markdown = "{#tbl .wide}\n| A |\n|---|\n| B |\n";
