@@ -1026,6 +1026,9 @@ just to reserve names.
     - [x] Block unsupported reserved `w:tblLook` mask bits before native DOC
       bytes are committed, while keeping the supported first/last row,
       first/last column, and horizontal/vertical banding flags writable.
+    - [x] Honor compact hexadecimal `w:tblLook` masks for supported first-row
+      conditional table style expansion through native DOC save/reload, proving
+      supported masks are not limited to expanded boolean attributes.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
