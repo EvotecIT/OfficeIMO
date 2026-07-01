@@ -674,6 +674,9 @@ just to reserve names.
   - [x] Preserve native DOC custom paragraph styles that inherit from other
     supported custom paragraph styles, including base style paragraph/run
     formatting and child style overrides after legacy reader reload.
+  - [x] Preserve supported custom paragraph style numbering properties through
+    native DOC STSH records, reloading `sprmPIlvl`/`sprmPIlfo` as normal
+    OpenXML style numbering properties.
   - [x] Write supported paragraph style next-style metadata into native DOC STSH
     records and reload it through the legacy reader for fixture-backed built-in
     Heading and custom next-style links.
