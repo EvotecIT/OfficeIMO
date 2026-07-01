@@ -17,7 +17,7 @@ public static partial class MarkdownReader {
             var continuationIndentsByLevel = options.StrictListIndentation ? new List<int>() : null;
             int firstContinuationIndent = GetListContinuationIndent(lines[i], options);
             int firstStartColumn;
-            if (!isTask && TryGetIndentedCodeListLead(lines[i], out int codeLeadIndent, out string codeLeadContent, out int codeLeadStartColumn)) {
+            if (!isTask && TryGetIndentedCodeListLead(lines[i], options, out int codeLeadIndent, out string codeLeadContent, out int codeLeadStartColumn)) {
                 firstContinuationIndent = codeLeadIndent;
                 firstContent = codeLeadContent;
                 firstStartColumn = codeLeadStartColumn;
@@ -80,7 +80,7 @@ public static partial class MarkdownReader {
                 }
                 int continuationIndent = GetListContinuationIndent(lines[itemStart], options);
                 int startColumn;
-                if (!isTask2 && TryGetIndentedCodeListLead(lines[itemStart], out int itemCodeLeadIndent, out string itemCodeLeadContent, out int itemCodeLeadStartColumn)) {
+                if (!isTask2 && TryGetIndentedCodeListLead(lines[itemStart], options, out int itemCodeLeadIndent, out string itemCodeLeadContent, out int itemCodeLeadStartColumn)) {
                     continuationIndent = itemCodeLeadIndent;
                     content2 = itemCodeLeadContent;
                     startColumn = itemCodeLeadStartColumn;

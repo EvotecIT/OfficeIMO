@@ -16,7 +16,7 @@ public static partial class MarkdownReader {
             StartsTable(lines, index, options) ||
             IsParagraphInterruptingThematicBreakLine(line) ||
             IsParagraphInterruptingUnorderedListLine(line) ||
-            IsParagraphInterruptingOrderedListLine(line) ||
+            IsParagraphInterruptingOrderedListLine(line, options) ||
             (options.Callouts && IsCalloutHeader(line, options, out _, out _)) ||
             IsQuoteStarter(line) ||
             HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options) ||

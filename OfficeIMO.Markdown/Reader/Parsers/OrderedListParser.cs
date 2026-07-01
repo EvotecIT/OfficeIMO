@@ -33,7 +33,7 @@ public static partial class MarkdownReader {
 
             int j = i + 1;
             bool firstIsTask = TryStripTaskMarker(firstContent, options, out _, out bool firstDone, out var strippedFirst);
-            if (!firstIsTask && TryGetIndentedCodeListLead(lines[i], out int codeLeadIndent, out string codeLeadContent, out int codeLeadStartColumn)) {
+            if (!firstIsTask && TryGetIndentedCodeListLead(lines[i], options, out int codeLeadIndent, out string codeLeadContent, out int codeLeadStartColumn)) {
                 firstContinuationIndent = codeLeadIndent;
                 strippedFirst = codeLeadContent;
                 firstStartColumn = codeLeadStartColumn;
@@ -90,7 +90,7 @@ public static partial class MarkdownReader {
                 int next = itemStart + 1;
                 bool isTask = TryStripTaskMarker(content, options, out _, out bool done, out var stripped);
                 int startColumn;
-                if (!isTask && TryGetIndentedCodeListLead(lines[itemStart], out int itemCodeLeadIndent, out string itemCodeLeadContent, out int itemCodeLeadStartColumn)) {
+                if (!isTask && TryGetIndentedCodeListLead(lines[itemStart], options, out int itemCodeLeadIndent, out string itemCodeLeadContent, out int itemCodeLeadStartColumn)) {
                     continuationIndent = itemCodeLeadIndent;
                     stripped = itemCodeLeadContent;
                     startColumn = itemCodeLeadStartColumn;

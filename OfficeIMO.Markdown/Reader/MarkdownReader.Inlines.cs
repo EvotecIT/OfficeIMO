@@ -603,7 +603,7 @@ public static partial class MarkdownReader {
             }
             if (text[pos] == '[') {
                 if (allowLinks) {
-                    if (TryParseLink(text, pos, sourceMap, state, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
+                    if (TryParseLink(text, pos, options, sourceMap, state, out int consumed2, out var label2, out var href3, out var title2, out int hrefStart2, out int hrefLength2, out int? titleStart2, out int? titleLength2)) {
                         var labelSeq = ParseInlinesInternal(label2, options, state, allowLinks: false, allowImages: true, SliceMap(pos + 1, label2.Length));
 
                         // Allow empty href: commonly used as placeholder or to be filled by the host.
@@ -621,9 +621,9 @@ public static partial class MarkdownReader {
                         pos += consumed2; continue;
                     }
 
-                    if (state != null && TryParseCollapsedRef(text, pos, out int consumedC, out var lbl2)) {
+                    if (state != null && TryParseCollapsedRef(text, pos, options, out int consumedC, out var lbl2)) {
                         var key = NormalizeReferenceLabel(lbl2);
-                        if (ContainsResolvedLinkInLabel(lbl2, state)) {
+                        if (ContainsResolvedLinkInLabel(lbl2, options, state)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;
@@ -643,9 +643,9 @@ public static partial class MarkdownReader {
                         AddTextNode(text.Substring(pos, consumedC), pos, consumedC);
                         pos += consumedC; continue;
                     }
-                    if (state != null && TryParseRefLink(text, pos, out int consumedR, out var lbl, out var refLabel)) {
+                    if (state != null && TryParseRefLink(text, pos, options, out int consumedR, out var lbl, out var refLabel)) {
                         var key = NormalizeReferenceLabel(refLabel);
-                        if (ContainsResolvedLinkInLabel(lbl, state)) {
+                        if (ContainsResolvedLinkInLabel(lbl, options, state)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;
@@ -662,9 +662,9 @@ public static partial class MarkdownReader {
                             pos += consumedR; continue;
                         }
                     }
-                    if (state != null && TryParseShortcutRef(text, pos, out int consumedS, out var lbl3)) {
+                    if (state != null && TryParseShortcutRef(text, pos, options, out int consumedS, out var lbl3)) {
                         var key = NormalizeReferenceLabel(lbl3);
-                        if (ContainsResolvedLinkInLabel(lbl3, state)) {
+                        if (ContainsResolvedLinkInLabel(lbl3, options, state)) {
                             AddTextNode("[", pos, 1);
                             pos++;
                             continue;

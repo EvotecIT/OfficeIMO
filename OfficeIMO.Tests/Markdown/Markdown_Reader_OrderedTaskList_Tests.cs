@@ -52,5 +52,25 @@ public class Markdown_Reader_OrderedTaskList_Tests {
                 Assert.Equal("[x]tight", InlinePlainText.Extract(item.Content));
             });
     }
+
+    [Fact]
+    public void ListExtras_Ordered_Task_Items_Preserve_Task_Marker_Source() {
+        const string md = "a. [x] Alpha\n";
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.ListExtras = true;
+
+        var doc = MarkdownReader.Parse(md, options);
+        var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
+        var item = Assert.Single(list.Items);
+
+        Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+        Assert.True(item.IsTask);
+        Assert.True(item.Checked);
+        Assert.Equal("a.", item.MarkerText);
+        Assert.Equal("[x]", item.TaskMarkerText);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 2), item.MarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 6), item.TaskMarkerSourceSpan);
+        Assert.Equal("Alpha", item.Content.RenderMarkdown());
+    }
 }
 

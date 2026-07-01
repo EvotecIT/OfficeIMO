@@ -284,7 +284,7 @@ public static partial class MarkdownReader {
 
         int continuationIndent = GetListContinuationIndent(previous, options);
         if (currentIndent == 0 &&
-            TryGetRawListItemContentAfterMarker(previous, out var previousListContent) &&
+            TryGetRawListItemContentAfterMarker(previous, out var previousListContent, options) &&
             GetLeadingQuoteMarkerDepth(previousListContent) > 0) {
             normalized = new string(' ', Math.Max(continuationIndent, 1)) + trimmed;
             return true;

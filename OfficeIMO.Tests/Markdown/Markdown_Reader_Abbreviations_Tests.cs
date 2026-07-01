@@ -103,6 +103,21 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void Abbreviation_PreScan_Respects_Disabled_Ordered_Lists() {
+        const string markdown = "1. *[HTML]: Hyper Text Markup Language\n\nHTML";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+        options.OrderedLists = false;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+
+        Assert.Empty(result.AbbreviationDefinitions);
+        Assert.DoesNotContain("<abbr", html, StringComparison.Ordinal);
+        Assert.Contains("HTML", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Abbreviation_PreScan_Ignores_Definitions_Inside_Raw_Html_Blocks() {
         const string markdown = "<script>\n*[HTML]: Hyper Text Markup Language\n</script>\n\nHTML";
         var options = MarkdownReaderOptions.CreatePortableProfile();

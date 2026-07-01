@@ -181,6 +181,23 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Quote_ListExtras_Item_With_Nested_Quote_Lazy_Continuation_Stays_In_List_Item() {
+            const string md = "> a. > inner\n> continuation";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var qb = Assert.IsType<QuoteBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(qb.Children.First());
+            var item = Assert.Single(list.Items);
+            var innerQuote = Assert.IsType<QuoteBlock>(Assert.Single(item.Children));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(innerQuote.Children));
+
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("inner\ncontinuation", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+        }
+
+        [Fact]
         public void Quote_Indented_Paragraph_Line_Can_Stay_In_Paragraph_And_Allow_Lazy_Continuation() {
             const string md = "> quote\n>     code\ncontinuation";
 

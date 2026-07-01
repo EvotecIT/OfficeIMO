@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
-    private static int FindMatchingBracket(string text, int openIndex) {
+    private static int FindMatchingBracket(string text, int openIndex, MarkdownReaderOptions? options = null) {
         if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
 
         int depth = 0;
@@ -18,7 +18,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (TrySkipLinkLabelInlineSpan(text, i, out int spanConsumed)) {
+            if (TrySkipLinkLabelInlineSpan(text, i, options, out int spanConsumed)) {
                 i += spanConsumed - 1;
                 continue;
             }
@@ -37,7 +37,7 @@ public static partial class MarkdownReader {
         return -1;
     }
 
-    private static bool TrySkipLinkLabelInlineSpan(string text, int start, out int consumed) {
+    private static bool TrySkipLinkLabelInlineSpan(string text, int start, MarkdownReaderOptions? options, out int consumed) {
         consumed = 0;
         if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
 
@@ -46,7 +46,8 @@ public static partial class MarkdownReader {
         }
 
         if (text[start] == '<') {
-            if (TryConsumeSupportedInlineHtmlWrapperSpan(text, start, out consumed)) {
+            bool inlineHtml = options?.InlineHtml != false;
+            if (inlineHtml && TryConsumeSupportedInlineHtmlWrapperSpan(text, start, out consumed)) {
                 return true;
             }
 
@@ -54,7 +55,7 @@ public static partial class MarkdownReader {
                 return true;
             }
 
-            if (TryConsumeRawInlineHtmlTag(text, start, out consumed)) {
+            if (inlineHtml && TryConsumeRawInlineHtmlTag(text, start, out consumed)) {
                 return true;
             }
         }
@@ -164,42 +165,42 @@ public static partial class MarkdownReader {
         return UnescapeMarkdownBackslashEscapes(value);
     }
 
-    private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {
+    private static bool TryParseRefLink(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label, out string refLabel) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start, options); if (rb < 0) return false;
         if (rb + 1 >= text.Length || text[rb + 1] != '[') return false;
-        int rb2 = FindMatchingBracket(text, rb + 1); if (rb2 < 0) return false;
+        int rb2 = FindMatchingBracket(text, rb + 1, options); if (rb2 < 0) return false;
         label = text.Substring(start + 1, rb - (start + 1));
         refLabel = text.Substring(rb + 2, rb2 - (rb + 2));
         consumed = rb2 - start + 1; return true;
     }
 
-    private static bool TryParseCollapsedRef(string text, int start, out int consumed, out string label) {
+    private static bool TryParseCollapsedRef(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start, options); if (rb < 0) return false;
         if (rb + 2 >= text.Length || text[rb + 1] != '[' || text[rb + 2] != ']') return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 3 - start;
         return true;
     }
 
-    private static bool TryParseShortcutRef(string text, int start, out int consumed, out string label) {
+    private static bool TryParseShortcutRef(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start, options); if (rb < 0) return false;
         if (rb + 1 < text.Length && text[rb + 1] == '[') return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 1 - start;
         return true;
     }
 
-    private static bool ContainsResolvedLinkInLabel(string label, MarkdownReaderState? state) {
+    private static bool ContainsResolvedLinkInLabel(string label, MarkdownReaderOptions? options, MarkdownReaderState? state) {
         if (string.IsNullOrEmpty(label)) return false;
 
         for (int i = 0; i < label.Length; i++) {
-            if (TrySkipLinkLabelInlineSpan(label, i, out int spanConsumed)) {
+            if (TrySkipLinkLabelInlineSpan(label, i, options, out int spanConsumed)) {
                 i += spanConsumed - 1;
                 continue;
             }
@@ -215,6 +216,7 @@ public static partial class MarkdownReader {
             if (TryParseLink(
                 label,
                 i,
+                options,
                 sourceMap: null,
                 state,
                 out _,
@@ -232,17 +234,17 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (TryParseRefLink(label, i, out _, out _, out var referenceLabel)
+            if (TryParseRefLink(label, i, options, out _, out _, out var referenceLabel)
                 && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(referenceLabel))) {
                 return true;
             }
 
-            if (TryParseCollapsedRef(label, i, out _, out var collapsedLabel)
+            if (TryParseCollapsedRef(label, i, options, out _, out var collapsedLabel)
                 && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(collapsedLabel))) {
                 return true;
             }
 
-            if (TryParseShortcutRef(label, i, out _, out var shortcutLabel)
+            if (TryParseShortcutRef(label, i, options, out _, out var shortcutLabel)
                 && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(shortcutLabel))) {
                 return true;
             }
@@ -254,6 +256,7 @@ public static partial class MarkdownReader {
     private static bool TryParseLink(
         string text,
         int start,
+        MarkdownReaderOptions? options,
         MarkdownInlineSourceMap? sourceMap,
         MarkdownReaderState? state,
         out int consumed,
@@ -267,14 +270,14 @@ public static partial class MarkdownReader {
         consumed = 0; label = href = string.Empty; title = null;
         hrefStart = 0; hrefLength = 0; titleStart = null; titleLength = null;
         if (start >= text.Length || text[start] != '[') return false;
-        int labelEnd = FindMatchingBracket(text, start);
+        int labelEnd = FindMatchingBracket(text, start, options);
         if (labelEnd < 0) return false;
         int parenOpen = (labelEnd + 1 < text.Length && text[labelEnd + 1] == '(') ? labelEnd + 1 : -1;
         if (parenOpen < 0) return false;
         int parenClose = FindMatchingParen(text, parenOpen);
         if (parenClose < 0) return false;
         label = text.Substring(start + 1, labelEnd - (start + 1));
-        if (ContainsResolvedLinkInLabel(label, state)) return false;
+        if (ContainsResolvedLinkInLabel(label, options, state)) return false;
 
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
         if (!TrySplitUrlAndOptionalTitle(

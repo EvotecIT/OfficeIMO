@@ -63,4 +63,21 @@ public class Markdown_Reader_ReferenceLinks_Prescan_Tests {
         Assert.Contains("href=\"https://example.com/\"", html, StringComparison.OrdinalIgnoreCase);
         Assert.Contains(">x<", html, StringComparison.Ordinal);
     }
+
+    [Fact]
+    public void Reference_PreScan_Uses_ListExtras_For_Paragraph_Interrupts() {
+        var md = """
+[x]
+a. item
+[x]: /url
+""";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.ListExtras = true;
+
+        var doc = MarkdownReader.Parse(md, options);
+        var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+        Assert.Contains("href=\"/url\"", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("<ol type=\"a\">", html, StringComparison.Ordinal);
+    }
 }

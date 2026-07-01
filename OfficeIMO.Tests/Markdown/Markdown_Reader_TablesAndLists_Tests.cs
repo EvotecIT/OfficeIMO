@@ -173,6 +173,21 @@ a. alpha
         }
 
         [Fact]
+        public void ListExtras_Ordered_Item_Preserves_Indented_Code_Lead() {
+            const string md = "a.     code\n";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
+            var item = Assert.Single(list.Items);
+            var code = Assert.IsType<CodeBlock>(Assert.Single(item.Children));
+
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("code", code.Content);
+        }
+
+        [Fact]
         public void Delimited_Table_Stops_Before_ListExtras_Ordered_List_When_Body_Pipes_Are_Optional() {
             const string md = """
 | A |

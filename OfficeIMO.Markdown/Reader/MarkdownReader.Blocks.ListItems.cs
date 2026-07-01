@@ -554,7 +554,7 @@ public static partial class MarkdownReader {
         item.MarkerText = TryGetListMarkerText(line, options);
         if (isTask) {
             item.TaskMarkerSourceSpan = TryCreateTaskMarkerSourceSpan(line, absoluteLineNumber, options, state);
-            item.TaskMarkerText = TryGetTaskMarkerText(line);
+            item.TaskMarkerText = TryGetTaskMarkerText(line, options);
         } else {
             item.TaskMarkerText = null;
         }
@@ -577,9 +577,9 @@ public static partial class MarkdownReader {
             : null;
     }
 
-    private static string? TryGetTaskMarkerText(string line) {
+    private static string? TryGetTaskMarkerText(string line, MarkdownReaderOptions? options = null) {
         if (string.IsNullOrEmpty(line)
-            || !TryGetRawListItemContentAfterMarker(line, out string content)
+            || !TryGetRawListItemContentAfterMarker(line, out string content, options)
             || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
             return null;
         }
@@ -612,7 +612,7 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        if (!TryGetRawListItemContentAfterMarker(line, out string content)
+        if (!TryGetRawListItemContentAfterMarker(line, out string content, options)
             || !TryGetTaskListMarkerContentStartIndex(content, out _)) {
             return null;
         }
@@ -667,12 +667,14 @@ public static partial class MarkdownReader {
     private static bool TryGetRawListItemContentAfterMarker(string line, out string content, MarkdownReaderOptions? options = null) {
         content = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
-        if (TryGetOrderedListMarkerInfo(line, options, out _, out _, out int orderedContentStartIndex, out _, out _)) {
+        if (options?.OrderedLists != false &&
+            TryGetOrderedListMarkerInfo(line, options, out _, out _, out int orderedContentStartIndex, out _, out _)) {
             content = line.Substring(orderedContentStartIndex);
             return true;
         }
 
-        if (TryGetUnorderedListMarkerInfo(line, out _, out int unorderedContentStartIndex)) {
+        if (options?.UnorderedLists != false &&
+            TryGetUnorderedListMarkerInfo(line, out _, out int unorderedContentStartIndex)) {
             content = line.Substring(unorderedContentStartIndex);
             return true;
         }
@@ -854,7 +856,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool TryGetIndentedCodeListLead(string line, out int continuationIndent, out string content, out int startColumn) {
+    private static bool TryGetIndentedCodeListLead(string line, MarkdownReaderOptions? options, out int continuationIndent, out string content, out int startColumn) {
         continuationIndent = 0;
         content = string.Empty;
         startColumn = 1;
@@ -865,7 +867,7 @@ public static partial class MarkdownReader {
         if (leadingSpaces >= line.Length) return false;
 
         int markerWidth;
-        if (TryGetOrderedListMarkerWidth(line, leadingSpaces, out markerWidth)) {
+        if (TryGetOrderedListMarkerWidth(line, leadingSpaces, options, out markerWidth)) {
             if (!HasIndentedCodePaddingAfterMarker(line, leadingSpaces + markerWidth - 1)) return false;
         } else {
             char marker = line[leadingSpaces];
@@ -917,7 +919,7 @@ public static partial class MarkdownReader {
         int startColumn = GetListContinuationIndent(line, options) + 1;
         if (!stripTaskMarker) return startColumn;
 
-        return TryGetRawListItemContentAfterMarker(line, out string content)
+        return TryGetRawListItemContentAfterMarker(line, out string content, options)
             ? startColumn + GetTaskMarkerConsumedColumns(content)
             : startColumn;
     }
