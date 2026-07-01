@@ -118,6 +118,22 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
+    public void Abbreviation_PreScan_Ignores_Indented_Code_List_Markers_With_Strict_List_Indentation() {
+        const string markdown = "    - *[HTML]: Hyper Text Markup Language\n\nHTML";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+        options.StrictListIndentation = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var html = result.Document.ToHtmlFragment(CreatePlainHtmlOptions());
+
+        Assert.Empty(result.AbbreviationDefinitions);
+        Assert.IsType<CodeBlock>(result.Document.Blocks[0]);
+        Assert.Contains("<p>HTML</p>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<abbr", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Abbreviation_PreScan_Ignores_Definitions_Inside_Raw_Html_Blocks() {
         const string markdown = "<script>\n*[HTML]: Hyper Text Markup Language\n</script>\n\nHTML";
         var options = MarkdownReaderOptions.CreatePortableProfile();

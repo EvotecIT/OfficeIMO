@@ -440,6 +440,7 @@ public static partial class MarkdownReader {
         if (IsParagraphInterruptingOrderedListLine(line, options)) return true;
         if (IsQuoteStarter(line)) return true;
         if (HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options)) return true;
+        if (IsCustomContainerOpeningLine(line, options)) return true;
         if (TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _)) return true;
         if (options?.Footnotes == true && IsTableTerminatingFootnoteDefinitionStart(line)) return true;
         return false;

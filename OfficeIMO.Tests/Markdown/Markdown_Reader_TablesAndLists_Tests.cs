@@ -211,6 +211,30 @@ a. alpha
         }
 
         [Fact]
+        public void Delimited_Table_Stops_Before_Custom_Container_When_Body_Pipes_Are_Optional() {
+            const string md = """
+| A |
+|---|
+body row
+::: note
+inside
+:::
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.CustomContainers = true;
+            options.RequireTableBodyRowPipes = false;
+
+            var doc = MarkdownReader.Parse(md, options);
+
+            Assert.Equal(2, doc.Blocks.Count);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            var container = Assert.IsType<CustomContainerBlock>(doc.Blocks[1]);
+
+            Assert.Equal(new[] { "body row" }, Assert.Single(table.Rows));
+            Assert.Equal("note", container.Info);
+        }
+
+        [Fact]
         public void Delimited_Table_Stops_Before_Plain_Paragraph_Line() {
             const string md = """
 | A |

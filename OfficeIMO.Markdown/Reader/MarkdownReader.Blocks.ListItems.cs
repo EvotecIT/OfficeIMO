@@ -668,13 +668,21 @@ public static partial class MarkdownReader {
         content = string.Empty;
         if (string.IsNullOrEmpty(line)) return false;
         if (options?.OrderedLists != false &&
-            TryGetOrderedListMarkerInfo(line, options, out _, out _, out int orderedContentStartIndex, out _, out _)) {
+            TryGetOrderedListMarkerInfo(line, options, out var orderedLeadingSpaces, out _, out int orderedContentStartIndex, out _, out _)) {
+            if (options?.StrictListIndentation == true && orderedLeadingSpaces > 3) {
+                return false;
+            }
+
             content = line.Substring(orderedContentStartIndex);
             return true;
         }
 
         if (options?.UnorderedLists != false &&
-            TryGetUnorderedListMarkerInfo(line, out _, out int unorderedContentStartIndex)) {
+            TryGetUnorderedListMarkerInfo(line, out var unorderedLeadingSpaces, out int unorderedContentStartIndex)) {
+            if (options?.StrictListIndentation == true && unorderedLeadingSpaces > 3) {
+                return false;
+            }
+
             content = line.Substring(unorderedContentStartIndex);
             return true;
         }

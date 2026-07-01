@@ -14,6 +14,16 @@ public class Markdown_Reader_Syntax_Tests {
     }
 
     [Fact]
+    public void Paragraph_Literal_Html_Uses_Soft_Line_Break_When_InlineHtml_Disabled() {
+        var options = new MarkdownReaderOptions { InlineHtml = false };
+
+        var doc = MarkdownReader.Parse("<a\nhref=\"/\">x</a>", options);
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+        Assert.Equal("<a href=\"/\">x</a>", paragraph.Inlines.RenderMarkdown());
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_TopLevel_Block_Kinds_And_Spans() {
         var markdown = """
 # Title

@@ -14,7 +14,7 @@ public static partial class MarkdownReader {
             offset >= ContentStart && offset < ContentEnd;
     }
 
-    private static bool[] FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(IReadOnlyList<string> lines) {
+    private static bool[] FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(IReadOnlyList<string> lines, MarkdownReaderOptions options) {
         if (lines == null || lines.Count <= 1) {
             return Array.Empty<bool>();
         }
@@ -25,7 +25,9 @@ public static partial class MarkdownReader {
         }
 
         var ranges = FindMatchedCodeSpanRanges(text);
-        ranges.AddRange(FindMatchedRawInlineHtmlTagRanges(text));
+        if (options?.InlineHtml == true) {
+            ranges.AddRange(FindMatchedRawInlineHtmlTagRanges(text));
+        }
 
         var result = new bool[lines.Count - 1];
         var offset = 0;

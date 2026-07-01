@@ -20,6 +20,7 @@ public static partial class MarkdownReader {
             (options.Callouts && IsCalloutHeader(line, options, out _, out _)) ||
             IsQuoteStarter(line) ||
             HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options) ||
+            IsCustomContainerOpeningLine(line, options) ||
             TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _) ||
             IsFootnoteDefinitionStarterForParagraphInterruption(line, options) ||
             (options.StandaloneImageBlocks && IsImageLine(line))) {

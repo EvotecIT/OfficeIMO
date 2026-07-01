@@ -962,7 +962,7 @@ public static partial class MarkdownReader {
     }
 
     private static string JoinParagraphLines(List<string> lines, MarkdownReaderOptions options) {
-        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines);
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines, options);
         var sb = new StringBuilder();
         bool prevHard = false;
         for (int i = 0; i < lines.Count; i++) {
@@ -998,7 +998,7 @@ public static partial class MarkdownReader {
         var pointList = new List<MarkdownSourcePoint?>();
         var tokenSpanList = new List<MarkdownSourceSpan?>();
         var tokenLiteralList = new List<string?>();
-        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines);
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(lines, options);
         ParagraphLineJoinInfo? previousJoinInfo = null;
         var previousAbsoluteLine = absoluteLineOffset + 1;
         var previousJoinColumn = 1;
@@ -1090,7 +1090,7 @@ public static partial class MarkdownReader {
         var points = new List<MarkdownSourcePoint?>();
         var tokenSpans = new List<MarkdownSourceSpan?>();
         var tokenLiterals = new List<string?>();
-        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(plainLines);
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(plainLines, options);
         MarkdownSourceLineSlice? previousLine = null;
         ParagraphLineJoinInfo? previousJoinInfo = null;
 
@@ -1156,7 +1156,7 @@ public static partial class MarkdownReader {
             plainLines.Add(lines[i].Text);
         }
 
-        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(plainLines);
+        var preservedInlineLineBreaks = FindParagraphLineBreaksInsideMatchedInlinePreserveSpans(plainLines, options);
         var sb = new StringBuilder();
         ParagraphLineJoinInfo? previousJoinInfo = null;
         MarkdownSourceLineSlice? previousLine = null;

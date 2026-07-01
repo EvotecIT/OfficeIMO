@@ -42,7 +42,7 @@ public static partial class MarkdownReader {
 
         var strippedLines = new string[lines.Length];
         var contentStartColumns = new int[lines.Length];
-        for (int i = index; i < lines.Length; i++) {
+        for (int i = Math.Max(0, index - 1); i < lines.Length; i++) {
             if (TryStripQuotedPreScanLine(lines[i], out var content, out var contentStartColumn)) {
                 strippedLines[i] = content;
                 contentStartColumns[i] = contentStartColumn;
@@ -53,6 +53,11 @@ public static partial class MarkdownReader {
         }
 
         if (contentStartColumns[index] == 0) {
+            return false;
+        }
+
+        if (HasOpenQuotedParagraphBeforeReference(strippedLines, contentStartColumns, index, options)
+            && !CanReferenceDefinitionResolveOpenShortcutParagraph(strippedLines, index)) {
             return false;
         }
 
@@ -100,6 +105,24 @@ public static partial class MarkdownReader {
             RemapQuotedReferenceSourceSpan(openingMarkerSpan, contentStartColumns, state),
             RemapQuotedReferenceSourceSpan(separatorMarkerSpan, contentStartColumns, state));
         return true;
+    }
+
+    private static bool HasOpenQuotedParagraphBeforeReference(
+        string[] strippedLines,
+        int[] contentStartColumns,
+        int index,
+        MarkdownReaderOptions options) {
+        if (strippedLines == null || contentStartColumns == null || index <= 0) {
+            return false;
+        }
+
+        int previousIndex = index - 1;
+        if (previousIndex >= contentStartColumns.Length || contentStartColumns[previousIndex] == 0) {
+            return false;
+        }
+
+        return !string.IsNullOrWhiteSpace(strippedLines[previousIndex])
+               && IsReferenceDefinitionParagraphContinuationLine(strippedLines, previousIndex, options);
     }
 
     private static bool TryStripQuotedPreScanLine(string line, out string content, out int contentStartColumn) {
