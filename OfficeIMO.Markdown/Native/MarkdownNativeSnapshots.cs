@@ -48,6 +48,19 @@ public sealed class MarkdownNativeSourceTriviaSnapshot {
         SourceSpan = new MarkdownNativeSourceSpanSnapshot(trivia.SourceSpan);
     }
 
+    internal MarkdownNativeSourceTriviaSnapshot(
+        MarkdownNativeSourceTrivia trivia,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason) {
+        Kind = trivia.Kind;
+        Text = trivia.Text;
+        SourceSpan = new MarkdownNativeSourceSpanSnapshot(trivia.SourceSpan);
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
+    }
+
     /// <summary>Trivia kind.</summary>
     public MarkdownNativeSourceTriviaKind Kind { get; }
 
@@ -56,6 +69,15 @@ public sealed class MarkdownNativeSourceTriviaSnapshot {
 
     /// <summary>Source span for the trivia content.</summary>
     public MarkdownNativeSourceSpanSnapshot SourceSpan { get; }
+
+    /// <summary>Exact normalized source text represented by this trivia when it could be materialized.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Exact original reader input represented by this trivia when trivia was preserved and mapping succeeded.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this trivia, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 }
 
 /// <summary>

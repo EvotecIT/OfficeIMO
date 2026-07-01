@@ -19,7 +19,7 @@ internal static class MarkdownNativeSnapshotFactory {
 
         var sourceTrivia = new List<MarkdownNativeSourceTriviaSnapshot>(document.SourceTrivia.Count);
         for (var i = 0; i < document.SourceTrivia.Count; i++) {
-            sourceTrivia.Add(new MarkdownNativeSourceTriviaSnapshot(document.SourceTrivia[i]));
+            sourceTrivia.Add(FromSourceTrivia(document, document.SourceTrivia[i]));
         }
 
         var diagnostics = new List<MarkdownNativeDiagnosticSnapshot>(document.Diagnostics.Count);
@@ -228,6 +228,30 @@ internal static class MarkdownNativeSnapshotFactory {
 
         snapshot.SourceFields = FromSourceFields(document, block);
         return snapshot;
+    }
+
+    private static MarkdownNativeSourceTriviaSnapshot FromSourceTrivia(
+        MarkdownNativeDocument document,
+        MarkdownNativeSourceTrivia trivia) {
+        string? sourceText = null;
+        string? originalSourceText = null;
+        MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+
+        if (document.TryCreateSourceSlice(trivia, out var sourceSlice)) {
+            sourceText = sourceSlice.Text;
+        }
+
+        if (document.TryCreateOriginalSourceSlice(trivia, out var originalSlice, out var failureReason)) {
+            originalSourceText = originalSlice.Text;
+        } else {
+            originalFailureReason = failureReason;
+        }
+
+        return new MarkdownNativeSourceTriviaSnapshot(
+            trivia,
+            sourceText,
+            originalSourceText,
+            originalFailureReason);
     }
 
     private static IReadOnlyDictionary<string, string?> FromFrontMatter(MarkdownNativeFrontMatterBlock frontMatter) {

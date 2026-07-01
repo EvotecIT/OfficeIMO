@@ -207,10 +207,23 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
         Assert.Equal(4, snapshotTrivia.Length);
         Assert.Equal(MarkdownNativeSourceTriviaKind.TrailingWhitespace, snapshotTrivia[0].Kind);
         Assert.Equal("  ", snapshotTrivia[0].Text);
+        Assert.Equal("  ", snapshotTrivia[0].SourceText);
+        Assert.Equal("  ", snapshotTrivia[0].OriginalSourceText);
+        Assert.Null(snapshotTrivia[0].OriginalSourceFailureReason);
         Assert.Equal(MarkdownNativeSourceTriviaKind.LeadingWhitespace, snapshotTrivia[1].Kind);
         Assert.Equal("\t", snapshotTrivia[1].Text);
+        Assert.Equal("\t", snapshotTrivia[1].SourceText);
+        Assert.Equal("\t", snapshotTrivia[1].OriginalSourceText);
+        Assert.Null(snapshotTrivia[1].OriginalSourceFailureReason);
+        Assert.Equal(MarkdownNativeSourceTriviaKind.TrailingWhitespace, snapshotTrivia[2].Kind);
+        Assert.Equal("\t ", snapshotTrivia[2].SourceText);
+        Assert.Equal("\t ", snapshotTrivia[2].OriginalSourceText);
+        Assert.Null(snapshotTrivia[2].OriginalSourceFailureReason);
         Assert.Equal(MarkdownNativeSourceTriviaKind.BlankLine, snapshotTrivia[3].Kind);
         Assert.Equal("   ", snapshotTrivia[3].Text);
+        Assert.Equal("   ", snapshotTrivia[3].SourceText);
+        Assert.Equal("   ", snapshotTrivia[3].OriginalSourceText);
+        Assert.Null(snapshotTrivia[3].OriginalSourceFailureReason);
     }
 
     [Fact]
@@ -242,6 +255,31 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
             .ToArray();
         Assert.Equal(3, snapshotTrivia.Length);
         Assert.All(snapshotTrivia, item => Assert.Equal("\n", item.Text));
+        Assert.All(snapshotTrivia, item => Assert.Equal("\n", item.SourceText));
+        Assert.Equal(expectedOriginalText, snapshotTrivia.Select(item => item.OriginalSourceText).ToArray());
+        Assert.All(snapshotTrivia, item => Assert.Null(item.OriginalSourceFailureReason));
+    }
+
+    [Fact]
+    public void NativeDocument_SourceTrivia_Snapshots_Report_Original_Source_Failure_When_Trivia_Is_Not_Preserved() {
+        var native = MarkdownNativeDocument.Parse("# Title  \n");
+
+        var snapshotTrivia = native.ToSnapshot().SourceTrivia.ToArray();
+
+        Assert.Equal(2, snapshotTrivia.Length);
+        Assert.Equal(MarkdownNativeSourceTriviaKind.TrailingWhitespace, snapshotTrivia[0].Kind);
+        Assert.Equal("  ", snapshotTrivia[0].Text);
+        Assert.Equal("  ", snapshotTrivia[0].SourceText);
+        Assert.Null(snapshotTrivia[0].OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotTrivia[0].OriginalSourceFailureReason);
+        Assert.Equal(MarkdownNativeSourceTriviaKind.LineEnding, snapshotTrivia[1].Kind);
+        Assert.Equal("\n", snapshotTrivia[1].SourceText);
+        Assert.Null(snapshotTrivia[1].OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotTrivia[1].OriginalSourceFailureReason);
     }
 
     [Fact]
