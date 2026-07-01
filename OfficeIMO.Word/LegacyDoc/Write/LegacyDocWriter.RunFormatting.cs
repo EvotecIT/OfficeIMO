@@ -507,44 +507,44 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static List<byte> CreateCharacterGrpprl(LegacyDocWritableFormatting formatting, IReadOnlyDictionary<string, int> fontFamilyIndexes) {
             var grpprl = new List<byte>(18);
-            if (formatting.Bold) {
-                AddSingleByteSprm(grpprl, SprmCFBold, 1);
+            if (formatting.Bold || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Bold)) {
+                AddSingleByteSprm(grpprl, SprmCFBold, formatting.Bold ? (byte)1 : (byte)0);
             }
 
-            if (formatting.Italic) {
-                AddSingleByteSprm(grpprl, SprmCFItalic, 1);
+            if (formatting.Italic || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Italic)) {
+                AddSingleByteSprm(grpprl, SprmCFItalic, formatting.Italic ? (byte)1 : (byte)0);
             }
 
-            if (formatting.Strike) {
-                AddSingleByteSprm(grpprl, SprmCFStrike, 1);
+            if (formatting.Strike || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Strike)) {
+                AddSingleByteSprm(grpprl, SprmCFStrike, formatting.Strike ? (byte)1 : (byte)0);
             }
 
-            if (formatting.DoubleStrike) {
-                AddSingleByteSprm(grpprl, SprmCFDStrike, 1);
+            if (formatting.DoubleStrike || formatting.IsSpecified(LegacyDocWritableFormattingProperties.DoubleStrike)) {
+                AddSingleByteSprm(grpprl, SprmCFDStrike, formatting.DoubleStrike ? (byte)1 : (byte)0);
             }
 
-            if (formatting.Outline) {
-                AddSingleByteSprm(grpprl, SprmCFOutline, 1);
+            if (formatting.Outline || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Outline)) {
+                AddSingleByteSprm(grpprl, SprmCFOutline, formatting.Outline ? (byte)1 : (byte)0);
             }
 
-            if (formatting.Shadow) {
-                AddSingleByteSprm(grpprl, SprmCFShadow, 1);
+            if (formatting.Shadow || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Shadow)) {
+                AddSingleByteSprm(grpprl, SprmCFShadow, formatting.Shadow ? (byte)1 : (byte)0);
             }
 
-            if (formatting.Emboss) {
-                AddSingleByteSprm(grpprl, SprmCFEmboss, 1);
+            if (formatting.Emboss || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Emboss)) {
+                AddSingleByteSprm(grpprl, SprmCFEmboss, formatting.Emboss ? (byte)1 : (byte)0);
             }
 
-            if (formatting.Imprint) {
-                AddSingleByteSprm(grpprl, SprmCFImprint, 1);
+            if (formatting.Imprint || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Imprint)) {
+                AddSingleByteSprm(grpprl, SprmCFImprint, formatting.Imprint ? (byte)1 : (byte)0);
             }
 
-            if (formatting.Hidden) {
-                AddSingleByteSprm(grpprl, SprmCFVanish, 1);
+            if (formatting.Hidden || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Hidden)) {
+                AddSingleByteSprm(grpprl, SprmCFVanish, formatting.Hidden ? (byte)1 : (byte)0);
             }
 
-            if (formatting.NoProof) {
-                AddSingleByteSprm(grpprl, SprmCFNoProof, 1);
+            if (formatting.NoProof || formatting.IsSpecified(LegacyDocWritableFormattingProperties.NoProof)) {
+                AddSingleByteSprm(grpprl, SprmCFNoProof, formatting.NoProof ? (byte)1 : (byte)0);
             }
 
             if (formatting.Special) {
@@ -555,18 +555,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmCFCaps, 1);
             } else if (formatting.Caps == 2) {
                 AddSingleByteSprm(grpprl, SprmCFSmallCaps, 1);
+            } else if (formatting.IsSpecified(LegacyDocWritableFormattingProperties.Caps)) {
+                AddSingleByteSprm(grpprl, SprmCFCaps, 0);
+                AddSingleByteSprm(grpprl, SprmCFSmallCaps, 0);
             }
 
-            if (formatting.VerticalPosition != null) {
-                AddSingleByteSprm(grpprl, SprmCIss, formatting.VerticalPosition.Value);
+            if (formatting.VerticalPosition != null || formatting.IsSpecified(LegacyDocWritableFormattingProperties.VerticalPosition)) {
+                AddSingleByteSprm(grpprl, SprmCIss, formatting.VerticalPosition ?? 0);
             }
 
-            if (formatting.Underline != null) {
-                AddSingleByteSprm(grpprl, SprmCKul, formatting.Underline.Value);
+            if (formatting.Underline != null || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Underline)) {
+                AddSingleByteSprm(grpprl, SprmCKul, formatting.Underline ?? 0);
             }
 
-            if (formatting.Highlight != null) {
-                AddSingleByteSprm(grpprl, SprmCHighlight, formatting.Highlight.Value);
+            if (formatting.Highlight != null || formatting.IsSpecified(LegacyDocWritableFormattingProperties.Highlight)) {
+                AddSingleByteSprm(grpprl, SprmCHighlight, formatting.Highlight ?? 0);
             }
 
             if (formatting.FontSizeHalfPoints != null) {
@@ -734,7 +737,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal string? FontFamily { get; }
 
-            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null;
+            internal bool HasFormatting => Bold || Italic || Strike || DoubleStrike || Outline || Shadow || Emboss || Imprint || Hidden || NoProof || Special || Caps != null || VerticalPosition != null || Underline != null || Highlight != null || FontSizeHalfPoints != null || ColorHex != null || FontFamily != null || HasExplicitOffFormatting;
 
             private LegacyDocWritableFormattingProperties Specified { get; }
 
@@ -765,7 +768,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     Specified | inherited.Specified);
             }
 
-            private bool IsSpecified(LegacyDocWritableFormattingProperties property) {
+            private bool HasExplicitOffFormatting =>
+                (IsSpecified(LegacyDocWritableFormattingProperties.Bold) && !Bold)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Italic) && !Italic)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Strike) && !Strike)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.DoubleStrike) && !DoubleStrike)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Outline) && !Outline)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Shadow) && !Shadow)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Emboss) && !Emboss)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Imprint) && !Imprint)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Hidden) && !Hidden)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.NoProof) && !NoProof)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Caps) && Caps == null)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.VerticalPosition) && VerticalPosition == null)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Underline) && Underline == null)
+                || (IsSpecified(LegacyDocWritableFormattingProperties.Highlight) && Highlight == null);
+
+            internal bool IsSpecified(LegacyDocWritableFormattingProperties property) {
                 return (Specified & property) != 0;
             }
 

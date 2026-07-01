@@ -453,6 +453,64 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleExplicitOffRunFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocOffBase";
+            const string childStyleId = "NativeDocOffChild";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    var baseStyle = new Style { Type = StyleValues.Paragraph, StyleId = baseStyleId, CustomStyle = true };
+                    baseStyle.Append(new StyleName { Val = "Native DOC Off Base" });
+                    baseStyle.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    baseStyle.Append(new StyleRunProperties(new Bold(), new BoldComplexScript()));
+                    styles.Append(baseStyle);
+
+                    var childStyle = new Style { Type = StyleValues.Paragraph, StyleId = childStyleId, CustomStyle = true };
+                    childStyle.Append(new StyleName { Val = "Native DOC Off Child" });
+                    childStyle.Append(new BasedOn { Val = baseStyleId });
+                    childStyle.Append(new StyleRunProperties(
+                        new Bold { Val = false },
+                        new BoldComplexScript { Val = false },
+                        new Italic(),
+                        new ItalicComplexScript()));
+                    styles.Append(childStyle);
+
+                    document.AddParagraph("Native custom explicit off child").SetStyleId(childStyleId);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Native custom explicit off child", paragraph.Text);
+                Assert.Equal("LegacyDocNativeDOCOffChild", paragraph.StyleId);
+
+                Styles reloadedStyles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style baseStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == "LegacyDocNativeDOCOffBase");
+                StyleRunProperties baseRunProperties = Assert.IsType<StyleRunProperties>(baseStyleAfterReload.StyleRunProperties);
+                Assert.NotNull(baseRunProperties.GetFirstChild<Bold>());
+                Assert.NotNull(baseRunProperties.GetFirstChild<BoldComplexScript>());
+
+                Style childStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == "LegacyDocNativeDOCOffChild");
+                Assert.Equal("LegacyDocNativeDOCOffBase", childStyleAfterReload.BasedOn?.Val?.Value);
+                StyleRunProperties childRunProperties = Assert.IsType<StyleRunProperties>(childStyleAfterReload.StyleRunProperties);
+                Bold childBold = Assert.IsType<Bold>(childRunProperties.GetFirstChild<Bold>());
+                BoldComplexScript childComplexBold = Assert.IsType<BoldComplexScript>(childRunProperties.GetFirstChild<BoldComplexScript>());
+                Assert.False(childBold.Val?.Value ?? true);
+                Assert.False(childComplexBold.Val?.Value ?? true);
+                Assert.NotNull(childRunProperties.GetFirstChild<Italic>());
+                Assert.NotNull(childRunProperties.GetFirstChild<ItalicComplexScript>());
+            } finally {
+                if (File.Exists(docPath)) {
+                    File.Delete(docPath);
+                }
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInParagraphStyleNextStyleAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             string heading1StyleId = WordParagraphStyles.Heading1.ToStringStyle();

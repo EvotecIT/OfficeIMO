@@ -1,4 +1,27 @@
 namespace OfficeIMO.Word.LegacyDoc.Model {
+    [Flags]
+    internal enum LegacyDocCharacterFormatProperties {
+        None = 0,
+        Bold = 1 << 0,
+        Italic = 1 << 1,
+        Strike = 1 << 2,
+        DoubleStrike = 1 << 3,
+        Outline = 1 << 4,
+        Shadow = 1 << 5,
+        Emboss = 1 << 6,
+        Imprint = 1 << 7,
+        Hidden = 1 << 8,
+        NoProof = 1 << 9,
+        Caps = 1 << 10,
+        SmallCaps = 1 << 11,
+        VerticalPosition = 1 << 12,
+        Underline = 1 << 13,
+        Highlight = 1 << 14,
+        FontSize = 1 << 15,
+        Color = 1 << 16,
+        FontFamily = 1 << 17
+    }
+
     internal readonly struct LegacyDocCharacterFormat : IEquatable<LegacyDocCharacterFormat> {
         internal LegacyDocCharacterFormat(
             bool bold,
@@ -17,7 +40,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocHighlightColorKind? highlight,
             int? fontSizeHalfPoints,
             string? colorHex,
-            string? fontFamily) {
+            string? fontFamily,
+            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None) {
             Bold = bold;
             Italic = italic;
             Strike = strike;
@@ -35,6 +59,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             FontSizeHalfPoints = fontSizeHalfPoints;
             ColorHex = colorHex;
             FontFamily = fontFamily;
+            Specified = specified;
         }
 
         internal bool Bold { get; }
@@ -71,6 +96,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal string? FontFamily { get; }
 
+        internal LegacyDocCharacterFormatProperties Specified { get; }
+
         internal bool HasFormatting =>
             Bold
             || Italic
@@ -88,9 +115,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || Highlight != null
             || FontSizeHalfPoints != null
             || ColorHex != null
-            || FontFamily != null;
+            || FontFamily != null
+            || Specified != LegacyDocCharacterFormatProperties.None;
 
         internal static LegacyDocCharacterFormat Default { get; } = new LegacyDocCharacterFormat(false, false, false, false, false, false, false, false, false, false, null, null, null, null, null, null, null);
+
+        internal bool IsSpecified(LegacyDocCharacterFormatProperties property) {
+            return (Specified & property) != 0;
+        }
 
         public bool Equals(LegacyDocCharacterFormat other) {
             return Bold == other.Bold
@@ -109,7 +141,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && Highlight == other.Highlight
                 && FontSizeHalfPoints == other.FontSizeHalfPoints
                 && string.Equals(ColorHex, other.ColorHex, StringComparison.OrdinalIgnoreCase)
-                && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase);
+                && string.Equals(FontFamily, other.FontFamily, StringComparison.OrdinalIgnoreCase)
+                && Specified == other.Specified;
         }
 
         public override bool Equals(object? obj) {
@@ -135,6 +168,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + FontSizeHalfPoints.GetHashCode();
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(ColorHex ?? string.Empty);
             hash = (hash * 31) + StringComparer.OrdinalIgnoreCase.GetHashCode(FontFamily ?? string.Empty);
+            hash = (hash * 31) + Specified.GetHashCode();
             return hash;
         }
     }

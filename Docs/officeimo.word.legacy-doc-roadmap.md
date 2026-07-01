@@ -344,6 +344,9 @@ just to reserve names.
     into the merged OpenXML style definition.
   - [x] Preserve custom-to-custom DOC paragraph style inheritance, keeping the
     child style's OpenXML `basedOn` link and the base style's own formatting.
+  - [x] Preserve explicit off run-formatting toggles in DOC style definitions
+    so child paragraph styles can disable inherited bold/italic-style effects
+    while keeping their own formatting.
   - [x] Project DOC paragraph style next-style metadata from STSH records into
     OpenXML `w:next` style links for fixture-backed built-in Heading and custom
     styles.
@@ -566,6 +569,9 @@ just to reserve names.
   - [x] Write direct hidden-text CHPX runs and reload them through the legacy reader.
   - [x] Write direct double-strikethrough CHPX runs and reload them through
     the legacy reader.
+  - [x] Write explicit off CHPX toggles for native DOC run/style formatting so
+    inherited bold/italic-style effects can be cleared without adding runtime
+    dependencies.
   - [x] Write direct all-caps and small-caps CHPX runs and reload them through
     the legacy reader.
   - [x] Preserve all-caps/small-caps when the sibling OpenXML toggle is off,

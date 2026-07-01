@@ -2007,65 +2007,20 @@ namespace OfficeIMO.Word {
                 hasProperties = true;
             }
 
-            if (characterFormat.Bold) {
-                properties.Append(new Bold());
-                properties.Append(new BoldComplexScript());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Italic) {
-                properties.Append(new Italic());
-                properties.Append(new ItalicComplexScript());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Strike) {
-                properties.Append(new Strike());
-                hasProperties = true;
-            }
-
-            if (characterFormat.DoubleStrike) {
-                properties.Append(new DoubleStrike());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Outline) {
-                properties.Append(new Outline());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Shadow) {
-                properties.Append(new Shadow());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Emboss) {
-                properties.Append(new Emboss());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Imprint) {
-                properties.Append(new Imprint());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Hidden) {
-                properties.Append(new Vanish());
-                hasProperties = true;
-            }
-
-            if (characterFormat.NoProof) {
-                properties.Append(new NoProof());
-                hasProperties = true;
-            }
-
-            if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
-                properties.Append(new Caps());
-                hasProperties = true;
-            } else if (characterFormat.Caps == LegacyDocCapsKind.SmallCaps) {
-                properties.Append(new SmallCaps());
-                hasProperties = true;
-            }
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Bold>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<BoldComplexScript>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Italic>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<ItalicComplexScript>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Strike>(properties, characterFormat.Strike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<DoubleStrike>(properties, characterFormat.DoubleStrike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Outline>(properties, characterFormat.Outline, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Shadow>(properties, characterFormat.Shadow, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Emboss>(properties, characterFormat.Emboss, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Imprint>(properties, characterFormat.Imprint, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Vanish>(properties, characterFormat.Hidden, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<NoProof>(properties, characterFormat.NoProof, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<Caps>(properties, characterFormat.Caps == LegacyDocCapsKind.Caps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
+            hasProperties |= AppendLegacyDocStyleRunOnOffProperty<SmallCaps>(properties, characterFormat.Caps == LegacyDocCapsKind.SmallCaps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
 
             if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
                 properties.Append(new Color { Val = characterFormat.ColorHex! });
@@ -2095,6 +2050,20 @@ namespace OfficeIMO.Word {
             }
 
             return hasProperties ? properties : null;
+        }
+
+        private static bool AppendLegacyDocStyleRunOnOffProperty<T>(StyleRunProperties properties, bool enabled, bool specified) where T : OnOffType, new() {
+            if (!enabled && !specified) {
+                return false;
+            }
+
+            var property = new T();
+            if (!enabled) {
+                property.Val = false;
+            }
+
+            properties.Append(property);
+            return true;
         }
 
         private static bool TryMapBuiltInParagraphStyle(ushort styleIndex, out WordParagraphStyles style) {

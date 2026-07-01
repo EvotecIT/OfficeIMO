@@ -131,6 +131,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? fontSizeHalfPoints = null;
             string? colorHex = null;
             string? fontFamily = null;
+            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None;
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -142,28 +143,40 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     bool enabled = bytes[offset + 2] != 0;
                     if (sprm == SprmCFBold) {
                         bold = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Bold;
                     } else if (sprm == SprmCFItalic) {
                         italic = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Italic;
                     } else if (sprm == SprmCFStrike) {
                         strike = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Strike;
                     } else if (sprm == SprmCFOutline) {
                         outline = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Outline;
                     } else if (sprm == SprmCFShadow) {
                         shadow = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Shadow;
                     } else if (sprm == SprmCFEmboss) {
                         emboss = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Emboss;
                     } else if (sprm == SprmCFImprint) {
                         imprint = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Imprint;
                     } else if (sprm == SprmCFVanish) {
                         hidden = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Hidden;
                     } else if (sprm == SprmCFNoProof) {
                         noProof = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.NoProof;
                     } else if (sprm == SprmCFSmallCaps) {
                         smallCaps = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.SmallCaps;
                     } else if (sprm == SprmCFDStrike) {
                         doubleStrike = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.DoubleStrike;
                     } else {
                         caps = enabled;
+                        specified |= LegacyDocCharacterFormatProperties.Caps;
                     }
 
                     offset += 3;
@@ -176,6 +189,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     highlight = MapHighlight(bytes[offset + 2]);
+                    specified |= LegacyDocCharacterFormatProperties.Highlight;
                     offset += 3;
                     continue;
                 }
@@ -186,6 +200,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     underline = MapUnderline(bytes[offset + 2]);
+                    specified |= LegacyDocCharacterFormatProperties.Underline;
                     offset += 3;
                     continue;
                 }
@@ -196,6 +211,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     verticalPosition = MapVerticalPosition(bytes[offset + 2]);
+                    specified |= LegacyDocCharacterFormatProperties.VerticalPosition;
                     offset += 3;
                     continue;
                 }
@@ -206,6 +222,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     colorHex = MapIndexedColor(bytes[offset + 2]);
+                    specified |= LegacyDocCharacterFormatProperties.Color;
                     offset += 3;
                     continue;
                 }
@@ -216,6 +233,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     fontSizeHalfPoints = LegacyDocFib.ReadUInt16(bytes, offset + 2);
+                    specified |= LegacyDocCharacterFormatProperties.FontSize;
                     offset += 4;
                     continue;
                 }
@@ -228,6 +246,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     int fontIndex = LegacyDocFib.ReadUInt16(bytes, offset + 2);
                     if (fontIndex >= 0 && fontIndex < fontFamilies.Count && !string.IsNullOrWhiteSpace(fontFamilies[fontIndex])) {
                         fontFamily = fontFamilies[fontIndex];
+                        specified |= LegacyDocCharacterFormatProperties.FontFamily;
                     }
 
                     offset += 4;
@@ -240,6 +259,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     colorHex = ReadColorRef(bytes, offset + 2);
+                    specified |= LegacyDocCharacterFormatProperties.Color;
                     offset += 6;
                     continue;
                 }
@@ -255,7 +275,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? LegacyDocCapsKind.Caps
                 : smallCaps ? LegacyDocCapsKind.SmallCaps : null;
 
-            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily);
+            return new LegacyDocCharacterFormat(bold, italic, strike, doubleStrike, outline, shadow, emboss, imprint, hidden, noProof, capsKind, verticalPosition, underline, highlight, fontSizeHalfPoints, colorHex, fontFamily, specified);
         }
 
         private static LegacyDocVerticalPositionKind? MapVerticalPosition(byte value) {

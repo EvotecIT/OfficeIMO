@@ -194,57 +194,20 @@ namespace OfficeIMO.Word {
                 });
             }
 
-            if (characterFormat.Bold) {
-                ReplaceStyleProperty(properties, new Bold());
-                ReplaceStyleProperty(properties, new BoldComplexScript());
-            }
-
-            if (characterFormat.Italic) {
-                ReplaceStyleProperty(properties, new Italic());
-                ReplaceStyleProperty(properties, new ItalicComplexScript());
-            }
-
-            if (characterFormat.Strike) {
-                ReplaceStyleProperty(properties, new Strike());
-            }
-
-            if (characterFormat.DoubleStrike) {
-                ReplaceStyleProperty(properties, new DoubleStrike());
-            }
-
-            if (characterFormat.Outline) {
-                ReplaceStyleProperty(properties, new Outline());
-            }
-
-            if (characterFormat.Shadow) {
-                ReplaceStyleProperty(properties, new Shadow());
-            }
-
-            if (characterFormat.Emboss) {
-                ReplaceStyleProperty(properties, new Emboss());
-            }
-
-            if (characterFormat.Imprint) {
-                ReplaceStyleProperty(properties, new Imprint());
-            }
-
-            if (characterFormat.Hidden) {
-                ReplaceStyleProperty(properties, new Vanish());
-            }
-
-            if (characterFormat.NoProof) {
-                ReplaceStyleProperty(properties, new NoProof());
-            }
-
-            if (characterFormat.Caps == LegacyDocCapsKind.Caps) {
-                RemoveStyleProperties<Caps>(properties);
-                RemoveStyleProperties<SmallCaps>(properties);
-                properties.Append(new Caps());
-            } else if (characterFormat.Caps == LegacyDocCapsKind.SmallCaps) {
-                RemoveStyleProperties<Caps>(properties);
-                RemoveStyleProperties<SmallCaps>(properties);
-                properties.Append(new SmallCaps());
-            }
+            ReplaceStyleOnOffProperty<Bold>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            ReplaceStyleOnOffProperty<BoldComplexScript>(properties, characterFormat.Bold, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Bold));
+            ReplaceStyleOnOffProperty<Italic>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            ReplaceStyleOnOffProperty<ItalicComplexScript>(properties, characterFormat.Italic, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Italic));
+            ReplaceStyleOnOffProperty<Strike>(properties, characterFormat.Strike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Strike));
+            ReplaceStyleOnOffProperty<DoubleStrike>(properties, characterFormat.DoubleStrike, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.DoubleStrike));
+            ReplaceStyleOnOffProperty<Outline>(properties, characterFormat.Outline, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Outline));
+            ReplaceStyleOnOffProperty<Shadow>(properties, characterFormat.Shadow, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Shadow));
+            ReplaceStyleOnOffProperty<Emboss>(properties, characterFormat.Emboss, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Emboss));
+            ReplaceStyleOnOffProperty<Imprint>(properties, characterFormat.Imprint, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Imprint));
+            ReplaceStyleOnOffProperty<Vanish>(properties, characterFormat.Hidden, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Hidden));
+            ReplaceStyleOnOffProperty<NoProof>(properties, characterFormat.NoProof, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.NoProof));
+            ReplaceStyleOnOffProperty<Caps>(properties, characterFormat.Caps == LegacyDocCapsKind.Caps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Caps));
+            ReplaceStyleOnOffProperty<SmallCaps>(properties, characterFormat.Caps == LegacyDocCapsKind.SmallCaps, characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.SmallCaps));
 
             if (!string.IsNullOrEmpty(characterFormat.ColorHex)) {
                 ReplaceStyleProperty(properties, new Color { Val = characterFormat.ColorHex! });
@@ -272,6 +235,19 @@ namespace OfficeIMO.Word {
         private static void ReplaceStyleProperty<T>(OpenXmlCompositeElement parent, T replacement) where T : OpenXmlElement {
             RemoveStyleProperties<T>(parent);
             parent.Append(replacement);
+        }
+
+        private static void ReplaceStyleOnOffProperty<T>(OpenXmlCompositeElement parent, bool enabled, bool specified) where T : OnOffType, new() {
+            if (!enabled && !specified) {
+                return;
+            }
+
+            var replacement = new T();
+            if (!enabled) {
+                replacement.Val = false;
+            }
+
+            ReplaceStyleProperty(parent, replacement);
         }
 
         private static void RemoveStyleProperties<T>(OpenXmlCompositeElement parent) where T : OpenXmlElement {
