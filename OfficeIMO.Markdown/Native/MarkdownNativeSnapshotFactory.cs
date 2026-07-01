@@ -375,6 +375,21 @@ internal static class MarkdownNativeSnapshotFactory {
 
         var snapshots = new List<MarkdownNativeListItemSnapshot>(items.Count);
         for (var i = 0; i < items.Count; i++) {
+            string? sourceText = null;
+            string? originalSourceText = null;
+            MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+            var failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+            if (document != null && document.TryCreateSourceSlice(items[i], out var sourceSlice)) {
+                sourceText = sourceSlice.Text;
+            }
+
+            if (document != null && document.TryCreateOriginalSourceSlice(items[i], out var originalSlice, out failureReason)) {
+                originalSourceText = originalSlice.Text;
+            } else if (document != null) {
+                originalFailureReason = failureReason;
+            }
+
             snapshots.Add(new MarkdownNativeListItemSnapshot(
                 items[i].Id,
                 items[i].Text,
@@ -386,6 +401,9 @@ internal static class MarkdownNativeSnapshotFactory {
                 items[i].MarkerText,
                 ToSpanSnapshot(items[i].TaskMarkerSourceSpan),
                 items[i].TaskMarkerText,
+                sourceText,
+                originalSourceText,
+                originalFailureReason,
                 FromInlines(document, items[i].InlineRuns),
                 FromListItemParagraphs(document, items[i].Paragraphs),
                 FromBlocks(document, items[i].Children)));
@@ -403,10 +421,28 @@ internal static class MarkdownNativeSnapshotFactory {
 
         var snapshots = new List<MarkdownNativeListItemParagraphSnapshot>(paragraphs.Count);
         for (var i = 0; i < paragraphs.Count; i++) {
+            string? sourceText = null;
+            string? originalSourceText = null;
+            MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+            var failureReason = MarkdownOriginalSourceSliceFailureReason.None;
+
+            if (document != null && document.TryCreateSourceSlice(paragraphs[i], out var sourceSlice)) {
+                sourceText = sourceSlice.Text;
+            }
+
+            if (document != null && document.TryCreateOriginalSourceSlice(paragraphs[i], out var originalSlice, out failureReason)) {
+                originalSourceText = originalSlice.Text;
+            } else if (document != null) {
+                originalFailureReason = failureReason;
+            }
+
             snapshots.Add(new MarkdownNativeListItemParagraphSnapshot(
                 paragraphs[i].Index,
                 paragraphs[i].Text,
                 ToSpanSnapshot(paragraphs[i].SourceSpan),
+                sourceText,
+                originalSourceText,
+                originalFailureReason,
                 FromInlines(document, paragraphs[i].InlineRuns)));
         }
 

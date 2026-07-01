@@ -699,6 +699,9 @@ public sealed class MarkdownNativeListItemSnapshot {
         string? markerText,
         MarkdownNativeSourceSpanSnapshot? taskMarkerSourceSpan,
         string? taskMarkerText,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason,
         IReadOnlyList<MarkdownNativeInlineSnapshot> inlines,
         IReadOnlyList<MarkdownNativeListItemParagraphSnapshot> paragraphs,
         IReadOnlyList<MarkdownNativeBlockSnapshot> children) {
@@ -712,6 +715,9 @@ public sealed class MarkdownNativeListItemSnapshot {
         MarkerText = markerText;
         TaskMarkerSourceSpan = taskMarkerSourceSpan;
         TaskMarkerText = taskMarkerText;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
         Paragraphs = paragraphs ?? Array.Empty<MarkdownNativeListItemParagraphSnapshot>();
         Children = children ?? Array.Empty<MarkdownNativeBlockSnapshot>();
@@ -747,6 +753,15 @@ public sealed class MarkdownNativeListItemSnapshot {
     /// <summary>Exact task marker token when available.</summary>
     public string? TaskMarkerText { get; }
 
+    /// <summary>Normalized markdown text backing the list item content span when available.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Original reader input backing the list item content span when available.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this list item, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
+
     /// <summary>Lead inline snapshots.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }
 
@@ -765,10 +780,16 @@ public sealed class MarkdownNativeListItemParagraphSnapshot {
         int index,
         string text,
         MarkdownNativeSourceSpanSnapshot? sourceSpan,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason,
         IReadOnlyList<MarkdownNativeInlineSnapshot> inlines) {
         Index = index;
         Text = text ?? string.Empty;
         SourceSpan = sourceSpan;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
         Inlines = inlines ?? Array.Empty<MarkdownNativeInlineSnapshot>();
     }
 
@@ -780,6 +801,15 @@ public sealed class MarkdownNativeListItemParagraphSnapshot {
 
     /// <summary>Source span snapshot when available.</summary>
     public MarkdownNativeSourceSpanSnapshot? SourceSpan { get; }
+
+    /// <summary>Normalized markdown text backing this list-item paragraph when available.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Original reader input backing this list-item paragraph when available.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this paragraph, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 
     /// <summary>Inline snapshots for this paragraph.</summary>
     public IReadOnlyList<MarkdownNativeInlineSnapshot> Inlines { get; }

@@ -135,20 +135,34 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
         Assert.True(native.TryCreateSourceSlice(paragraphs[1], out var secondSlice));
         Assert.Equal("alpha **one**", firstSlice.Text);
         Assert.Equal("beta [two](https://example.com)", secondSlice.Text);
+        Assert.True(native.TryCreateSourceSlice(item, out var itemSlice));
         Assert.NotNull(paragraphs[1].SyntaxNode);
         Assert.False(paragraphs[1].SyntaxNode.IsGenerated);
+        Assert.True(native.TryCreateOriginalSourceSlice(item, out var originalItemSlice, out var originalItemReason));
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalItemReason);
         Assert.True(native.TryCreateOriginalSourceSlice(paragraphs[1], out var originalSecondSlice, out var originalReason));
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, originalReason);
         Assert.Equal("beta [two](https://example.com)", originalSecondSlice.Text);
         Assert.Contains(paragraphs[0].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "one");
         Assert.Contains(paragraphs[1].InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "two");
 
-        var snapshotParagraphs = Assert.Single(native.ToSnapshot().Blocks).Items[0].Paragraphs;
+        var snapshotItem = Assert.Single(native.ToSnapshot().Blocks).Items[0];
+        Assert.Equal(itemSlice.Text, snapshotItem.SourceText);
+        Assert.Equal(originalItemSlice.Text, snapshotItem.OriginalSourceText);
+        Assert.Null(snapshotItem.OriginalSourceFailureReason);
+
+        var snapshotParagraphs = snapshotItem.Paragraphs;
         Assert.Equal(2, snapshotParagraphs.Count);
         Assert.Equal("alpha one", snapshotParagraphs[0].Text);
         Assert.Equal("beta two", snapshotParagraphs[1].Text);
         Assert.NotNull(snapshotParagraphs[0].SourceSpan);
         Assert.NotNull(snapshotParagraphs[1].SourceSpan);
+        Assert.Equal("alpha **one**", snapshotParagraphs[0].SourceText);
+        Assert.Equal("alpha **one**", snapshotParagraphs[0].OriginalSourceText);
+        Assert.Null(snapshotParagraphs[0].OriginalSourceFailureReason);
+        Assert.Equal("beta [two](https://example.com)", snapshotParagraphs[1].SourceText);
+        Assert.Equal("beta [two](https://example.com)", snapshotParagraphs[1].OriginalSourceText);
+        Assert.Null(snapshotParagraphs[1].OriginalSourceFailureReason);
         Assert.Contains(snapshotParagraphs[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Strong && inline.Text == "one");
         Assert.Contains(snapshotParagraphs[1].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link && inline.Text == "two");
 
@@ -158,6 +172,26 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
         Assert.Contains("  gamma [three](https://example.org)", edit.Apply(native.SourceMarkdown));
         Assert.Contains("  gamma [three](https://example.org)", roundtrip.Markdown);
         Assert.Empty(roundtrip.Diagnostics);
+    }
+
+    [Fact]
+    public void NativeListItem_Snapshots_Report_Original_Source_Failure_When_Trivia_Is_Not_Preserved() {
+        var native = MarkdownNativeDocument.Parse("- Plain");
+
+        var snapshotItem = Assert.Single(native.ToSnapshot().Blocks).Items[0];
+        var snapshotParagraph = Assert.Single(snapshotItem.Paragraphs);
+
+        Assert.Equal("Plain", snapshotItem.SourceText);
+        Assert.Null(snapshotItem.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotItem.OriginalSourceFailureReason);
+
+        Assert.Equal("Plain", snapshotParagraph.SourceText);
+        Assert.Null(snapshotParagraph.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            snapshotParagraph.OriginalSourceFailureReason);
     }
 
     [Fact]
