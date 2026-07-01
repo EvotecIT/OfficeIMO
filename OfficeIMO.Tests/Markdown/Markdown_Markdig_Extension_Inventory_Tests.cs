@@ -53,6 +53,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains("Engine parser", markdigCompatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains("AST/source", markdigCompatibilityMatrix, StringComparison.Ordinal);
         Assert.Contains("Writer/render", markdigCompatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains("semantic ImageBlock source spans", markdigCompatibilityMatrix, StringComparison.Ordinal);
 
         string parityGapPlan = File.ReadAllText(Path.Combine(repositoryRoot, "Docs", "officeimo.markdown.markdig-parity-gap-plan.md"));
         Assert.Contains(rowText, parityGapPlan, StringComparison.Ordinal);
@@ -60,6 +61,7 @@ public sealed class Markdown_Markdig_Extension_Inventory_Tests {
         Assert.Contains("Markdig extension compatibility matrix", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Route", parityGapPlan, StringComparison.Ordinal);
         Assert.Contains("Scope decision", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains("semantic ImageBlock source spans", parityGapPlan, StringComparison.Ordinal);
     }
 
     private static string GetRepositoryRoot() {

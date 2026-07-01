@@ -56,6 +56,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose emphasis-extra opening and closing delimiters for strikethrough, highlight, inserted, superscript, and subscript through source-order native metadata snapshots and source edits.
   - [x] Engine: expose footnote definition opening/separator markers and front-matter opening/closing fences through native source fields, snapshots, and source edits.
   - [x] Engine: expose code and semantic fenced-block opening/closing marker values through native source fields, snapshots, position lookup, and source edits.
+  - [x] Engine: expose semantic ImageBlock source spans for standalone and linked image alt/path/title/link target/link title tokens, with native projection reading from the semantic AST API.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated-node roundtrip semantics, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
