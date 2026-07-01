@@ -264,7 +264,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, PAGE simple fields, bookmarks, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, PAGE and NUMPAGES simple fields, bookmarks, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -290,7 +290,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             try {
                 AppendSupportedPageNumberFieldFromSimpleField(storyText, formattedRuns, simpleField, LegacyDocWritableFormatting.Plain);
             } catch (NotSupportedException exception) {
-                throw new NotSupportedException($"Native DOC saving supports simple {kind} PAGE fields only. {exception.Message}", exception);
+                throw new NotSupportedException($"Native DOC saving supports simple {kind} PAGE and NUMPAGES fields only. {exception.Message}", exception);
             }
 
             if (storyText.Length > before) {

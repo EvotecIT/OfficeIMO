@@ -70,7 +70,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
                 formatting ??= runFormatting;
                 if (!formatting.Value.Equals(runFormatting)) {
-                    throw new NotSupportedException("Native DOC saving supports PAGE simple fields only when their display runs use one formatting set.");
+                    throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES simple fields only when their display runs use one formatting set.");
                 }
             }
 

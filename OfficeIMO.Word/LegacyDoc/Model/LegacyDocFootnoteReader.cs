@@ -298,6 +298,32 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadPageNumber(
+                    storyCharacters,
+                    index,
+                    out int pageNumberResultStartIndex,
+                    out int pageNumberResultEndIndex,
+                    out int pageNumberFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.Page, pageNumberResultStartIndex, pageNumberResultEndIndex);
+                    index = pageNumberFieldEndIndex;
+                    atParagraphStart = false;
+                    skipOptionalReferenceSpace = false;
+                    continue;
+                }
+
+                if (LegacyDocField.TryReadNumberOfPages(
+                    storyCharacters,
+                    index,
+                    out int numberOfPagesResultStartIndex,
+                    out int numberOfPagesResultEndIndex,
+                    out int numberOfPagesFieldEndIndex)) {
+                    AppendFieldResult(LegacyDocFieldKind.NumPages, numberOfPagesResultStartIndex, numberOfPagesResultEndIndex);
+                    index = numberOfPagesFieldEndIndex;
+                    atParagraphStart = false;
+                    skipOptionalReferenceSpace = false;
+                    continue;
+                }
+
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (isFirstParagraph && atParagraphStart && normalized == FootnoteReferenceCharacter) {
                     skipOptionalReferenceSpace = true;
@@ -350,6 +376,35 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 runText.Append(value);
                 runCharacterPositions.Add(characterPosition);
+            }
+
+            void AppendFieldResult(LegacyDocFieldKind fieldKind, int resultStartIndex, int resultEndIndex) {
+                FlushRun();
+                LegacyDocCharacterFormat format = LegacyDocCharacterFormat.Default;
+                var positions = new List<int>();
+                var resultText = new System.Text.StringBuilder();
+                for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                    LegacyDocTextCharacter resultCharacter = storyCharacters[resultIndex];
+                    if (char.IsControl(resultCharacter.Character)
+                        && !LegacyDocSpecialCharacters.IsSupportedInlineControl(resultCharacter.Character)) {
+                        continue;
+                    }
+
+                    if (positions.Count == 0) {
+                        format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                    }
+
+                    resultText.Append(resultCharacter.Character);
+                    positions.Add(resultCharacter.CharacterPosition);
+                }
+
+                currentRuns.Add(LegacyDocTextRunFactory.CreateFieldRun(
+                    fieldKind == LegacyDocFieldKind.Page ? string.Empty : resultText.ToString(),
+                    fieldKind,
+                    format,
+                    positions));
+                hasCurrentRun = false;
+                currentHyperlinkTarget = default;
             }
 
             void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter, bool isFinalParagraph) {

@@ -109,6 +109,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "footnote", storyStart);
                         break;
+                    case SimpleField simpleField:
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
                         break;
@@ -120,7 +123,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, bookmarks, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, PAGE and NUMPAGES simple fields, bookmarks, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -213,6 +216,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping, page, and column breaks.");
+        }
+
+        private static void AppendSupportedNoteFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, SimpleField field, int storyStart) {
+            if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
+                throw new NotSupportedException("Native DOC saving currently supports only PAGE and NUMPAGES simple fields in note paragraphs. Other field types are not supported yet.");
+            }
+
+            LegacyDocWritableFormatting formatting = ReadSimpleFieldResultFormatting(field);
+            AppendFormattedNoteText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+            AppendFormattedNoteText(text, runs, GetSupportedFieldInstruction(fieldKind), LegacyDocWritableFormatting.Plain, storyStart);
+            AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+            AppendFormattedNoteText(text, runs, "1", formatting, storyStart);
+            AppendFormattedNoteText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
         }
 
         private static void AppendSupportedNoteHyperlinkText(

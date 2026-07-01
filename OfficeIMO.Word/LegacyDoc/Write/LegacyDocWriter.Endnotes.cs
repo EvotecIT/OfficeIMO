@@ -97,6 +97,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "endnote", storyStart);
                         break;
+                    case SimpleField simpleField:
+                        AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
                         break;
@@ -108,7 +111,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs, bookmarks, and simple hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs, PAGE and NUMPAGES simple fields, bookmarks, and simple hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
                 }
             }
 

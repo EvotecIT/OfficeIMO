@@ -1379,6 +1379,28 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(runs[2]._runProperties?.ItalicComplexScript);
         }
 
+        private static void AssertNotePageFields(IReadOnlyList<WordParagraph> paragraphs, string expectedPrefix) {
+            Assert.Contains(paragraphs, paragraph => paragraph.Text == expectedPrefix);
+            Assert.Contains(paragraphs, paragraph => paragraph.Text == " of ");
+            Assert.Contains(paragraphs, paragraph => paragraph.Text == " done");
+            Assert.Single(paragraphs
+                .SelectMany(paragraph => paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageNumber>())
+                .Distinct());
+            SimpleField totalPagesField = Assert.Single(
+                paragraphs
+                    .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
+                    .Distinct(),
+                field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
+            Assert.Equal("1", totalPagesField.InnerText);
+            foreach (WordParagraph paragraph in paragraphs) {
+                Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Begin);
+                Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Separator);
+                Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.End);
+            }
+        }
+
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsInternalBookmarkHyperlinkFields() {
             string fieldText = LegacyDocField.Begin
@@ -3461,6 +3483,42 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Body with native endnote", Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 Assert.Equal("Native endnote", endnote.Paragraphs![1].Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNotePageFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with note page fields");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote page ");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote page ");
+                    footnoteBody.AddPageNumber(includeTotalPages: true);
+                    footnoteBody.AddText(" done");
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote page ");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote page ");
+                    endnoteBody.AddPageNumber(includeTotalPages: true);
+                    endnoteBody.AddText(" done");
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                string wordDocumentAscii = Encoding.ASCII.GetString(wordDocumentStream);
+                Assert.Contains("PAGE", wordDocumentAscii);
+                Assert.Contains("NUMPAGES", wordDocumentAscii);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, "Footnote page ");
+                AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, "Endnote page ");
             } finally {
                 DeleteIfExists(docPath);
             }

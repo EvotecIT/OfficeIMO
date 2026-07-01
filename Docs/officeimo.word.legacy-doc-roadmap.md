@@ -618,6 +618,9 @@ just to reserve names.
     `AddPageNumber(includeTotalPages: true)` path into native DOC field
     characters, then reload them as supported OpenXML simple fields without
     exposing field instructions as visible text.
+  - [x] Write simple `PAGE` and `NUMPAGES` fields inside authored footnote and
+    endnote story paragraphs, then reload them through the legacy reader without
+    exposing DOC field instructions as visible note text.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.
