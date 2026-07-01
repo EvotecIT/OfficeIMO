@@ -2403,6 +2403,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellLevelBookmarkBoundariesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body before table cell level bookmark");
+                    WordTable table = document.AddTable(1, 1);
+                    WordTableCell cell = table.Rows[0].Cells[0];
+                    cell._tableCell.RemoveAllChildren<Paragraph>();
+                    cell._tableCell.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC table cell content control bookmark" }),
+                        new SdtContentBlock(
+                            new BookmarkStart { Id = "57", Name = "TableCellLevelBookmark" },
+                            new Paragraph(new Run(new Text("CellBoundaryOne") { Space = SpaceProcessingModeValues.Preserve })),
+                            new SdtBlock(
+                                new SdtProperties(new SdtAlias { Val = "Legacy DOC nested table cell content control bookmark" }),
+                                new SdtContentBlock(
+                                    new BookmarkEnd { Id = "57" },
+                                    new Paragraph(new Run(new Text("CellBoundaryTwo") { Space = SpaceProcessingModeValues.Preserve })))))));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableCellLevelBookmark");
+
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell reloadedCell = reloadedTable.Rows[0].Cells[0];
+                WordParagraph firstParagraph = AssertSingleParagraphWithBookmarkStart(reloadedCell.Paragraphs, "TableCellLevelBookmark");
+                WordParagraph secondParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    reloadedCell.Paragraphs,
+                    AssertBookmarkStartId(firstParagraph, "TableCellLevelBookmark"));
+                AssertParagraphBoundaryBookmarkContent(firstParagraph, secondParagraph, "TableCellLevelBookmark", "CellBoundaryOne", "CellBoundaryTwo");
+                Assert.Empty(reloadedCell._tableCell.Descendants<SdtBlock>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableLevelBookmarkBoundariesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

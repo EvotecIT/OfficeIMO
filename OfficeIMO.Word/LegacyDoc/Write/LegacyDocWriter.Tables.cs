@@ -1094,55 +1094,83 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 throw new NotSupportedException("Native DOC saving supports simple tables only. Nested tables are not supported yet.");
             }
 
-            var paragraphs = new List<Paragraph>();
+            var content = new List<OpenXmlElement>();
             foreach (OpenXmlElement child in cell.ChildElements) {
                 switch (child) {
                     case TableCellProperties cellProperties:
                         ThrowIfUnsupportedTableCellProperties(cellProperties);
                         break;
                     case Paragraph cellParagraph:
-                        paragraphs.Add(cellParagraph);
+                        content.Add(cellParagraph);
                         break;
                     case SdtBlock sdtBlock:
-                        AddSupportedTableCellContentControlParagraphs(sdtBlock, paragraphs);
+                        AddSupportedTableCellContentControlChildren(sdtBlock, content);
+                        break;
+                    case BookmarkStart:
+                    case BookmarkEnd:
+                        content.Add(child);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell element: {child.LocalName}.");
                 }
             }
 
-            if (paragraphs.Count == 0) {
+            int paragraphCount = content.Count(child => child is Paragraph);
+            if (paragraphCount == 0) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
-            for (int index = 0; index < paragraphs.Count - 1; index++) {
-                int paragraphStart = text.Length;
-                LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraphs[index], mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes)
-                    .WithTableMarkers(isTableTerminatingParagraph: false);
-                text.Append('\r');
-                paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
+            int paragraphIndex = 0;
+            LegacyDocWritableParagraphFormatting finalParagraphFormatting = LegacyDocWritableParagraphFormatting.Plain;
+            foreach (OpenXmlElement child in content) {
+                switch (child) {
+                    case Paragraph paragraph:
+                        int paragraphStart = text.Length;
+                        paragraphIndex++;
+                        bool isFinalParagraph = paragraphIndex == paragraphCount;
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = AppendTableCellParagraph(text, runs, bookmarks, paragraph, mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes);
+                        if (isFinalParagraph) {
+                            finalParagraphStart = paragraphStart;
+                            finalParagraphFormatting = paragraphFormatting;
+                        } else {
+                            paragraphFormatting = paragraphFormatting.WithTableMarkers(isTableTerminatingParagraph: false);
+                            text.Append('\r');
+                            paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
+                        }
+
+                        break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                        break;
+                }
             }
 
-            finalParagraphStart = text.Length;
-            return AppendTableCellParagraph(text, runs, bookmarks, paragraphs[paragraphs.Count - 1], mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes);
+            return finalParagraphFormatting;
         }
 
-        private static void AddSupportedTableCellContentControlParagraphs(SdtBlock sdtBlock, List<Paragraph> paragraphs) {
+        private static void AddSupportedTableCellContentControlChildren(SdtBlock sdtBlock, List<OpenXmlElement> content) {
             SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
             if (contentBlock == null) {
-                throw new NotSupportedException("Native DOC saving supports table cell content controls only when they contain simple paragraphs.");
+                throw new NotSupportedException("Native DOC saving supports table cell content controls only when they contain simple paragraphs and bookmarks.");
             }
 
             foreach (OpenXmlElement child in contentBlock.ChildElements) {
                 switch (child) {
                     case Paragraph paragraph:
-                        paragraphs.Add(paragraph);
+                        content.Add(paragraph);
                         break;
                     case SdtBlock childContentControl:
-                        AddSupportedTableCellContentControlParagraphs(childContentControl, paragraphs);
+                        AddSupportedTableCellContentControlChildren(childContentControl, content);
+                        break;
+                    case BookmarkStart:
+                    case BookmarkEnd:
+                        content.Add(child);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table cell content controls only when they contain simple paragraphs. Unsupported table cell content control element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table cell content controls only when they contain simple paragraphs and bookmarks. Unsupported table cell content control element: {child.LocalName}.");
                 }
             }
         }

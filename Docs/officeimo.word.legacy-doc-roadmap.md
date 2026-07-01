@@ -878,6 +878,10 @@ just to reserve names.
     - [x] Write footnote/endnote-level bookmark start/end markers that sit
       between note paragraphs into native DOC bookmark PLCs, then reload them
       as paragraph-boundary bookmark ranges through the legacy reader.
+    - [x] Write table-cell-level bookmark start/end markers that sit between
+      table-cell paragraphs, including markers inside simple table-cell content
+      controls, into native DOC bookmark PLCs, then reload them as
+      paragraph-boundary bookmark ranges through the legacy reader.
     - [x] Write whole-table body bookmark start/end markers around native DOC
       table blocks, then reload them as table-sibling bookmark markers through
       the legacy reader.
