@@ -81,6 +81,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// Invalid or conflicting merged table cell descriptors were found.
         /// </summary>
-        MergedTableCell
+        MergedTableCell,
+
+        /// <summary>
+        /// Nested table descriptors were found before nested table projection is supported.
+        /// </summary>
+        NestedTable
     }
 }

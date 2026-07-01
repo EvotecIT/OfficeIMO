@@ -459,17 +459,26 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return;
             }
 
+            bool reportedNestedTable = false;
             for (int index = 0; index < paragraphFormattingRanges.Count; index++) {
-                if (!paragraphFormattingRanges[index].Format.HasMergedTableCells) {
-                    continue;
+                LegacyDocParagraphFormat format = paragraphFormattingRanges[index].Format;
+                if (!reportedNestedTable && format.HasNestedTable) {
+                    AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                        LegacyDocUnsupportedFeatureKind.NestedTable,
+                        "DOC-NESTED-TABLES-PRESENT",
+                        "The legacy DOC contains nested table descriptors. Nested tables are preserved in the source file but cannot be safely projected into the OfficeIMO table model yet.",
+                        detailCode: "PAPX:sprmPItap"));
+                    reportedNestedTable = true;
                 }
 
-                AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
-                    LegacyDocUnsupportedFeatureKind.MergedTableCell,
-                    "DOC-MERGED-TABLE-CELLS-PRESENT",
-                    "The legacy DOC contains unsupported or conflicting merged table cell descriptors. That table structure is preserved in the source file but cannot be safely projected into the OfficeIMO table model yet.",
-                    detailCode: "PAPX:sprmTDefTable"));
-                return;
+                if (format.HasMergedTableCells) {
+                    AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
+                        LegacyDocUnsupportedFeatureKind.MergedTableCell,
+                        "DOC-MERGED-TABLE-CELLS-PRESENT",
+                        "The legacy DOC contains unsupported or conflicting merged table cell descriptors. That table structure is preserved in the source file but cannot be safely projected into the OfficeIMO table model yet.",
+                        detailCode: "PAPX:sprmTDefTable"));
+                    return;
+                }
             }
         }
 

@@ -52,6 +52,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocTableCellMargins? defaultTableCellMargins = null,
             int? defaultTableCellSpacingTwips = null,
             bool hasMergedTableCells = false,
+            bool hasNestedTable = false,
             LegacyDocParagraphShading? paragraphShading = null,
             LegacyDocParagraphBorders? paragraphBorders = null) {
             Alignment = alignment;
@@ -141,6 +142,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 ? defaultTableCellSpacingTwips
                 : null;
             HasMergedTableCells = hasMergedTableCells;
+            HasNestedTable = hasNestedTable;
             ParagraphShading = paragraphShading.HasValue && paragraphShading.Value.HasAny
                 ? paragraphShading
                 : null;
@@ -251,6 +253,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool HasMergedTableCells { get; }
 
+        internal bool HasNestedTable { get; }
+
         internal LegacyDocParagraphShading? ParagraphShading { get; }
 
         internal LegacyDocParagraphBorders? ParagraphBorders { get; }
@@ -305,6 +309,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || DefaultTableCellMargins != null
             || DefaultTableCellSpacingTwips != null
             || HasMergedTableCells
+            || HasNestedTable
             || ParagraphShading != null
             || ParagraphBorders != null;
 
@@ -362,6 +367,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && DefaultTableCellMargins.Equals(other.DefaultTableCellMargins)
                 && DefaultTableCellSpacingTwips == other.DefaultTableCellSpacingTwips
                 && HasMergedTableCells == other.HasMergedTableCells
+                && HasNestedTable == other.HasNestedTable
                 && ParagraphShading.Equals(other.ParagraphShading)
                 && ParagraphBorders.Equals(other.ParagraphBorders);
         }
@@ -410,6 +416,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + TableAutofit.GetHashCode();
             hash = (hash * 31) + DefaultTableCellSpacingTwips.GetHashCode();
             hash = (hash * 31) + HasMergedTableCells.GetHashCode();
+            hash = (hash * 31) + HasNestedTable.GetHashCode();
             hash = (hash * 31) + ParagraphShading.GetHashCode();
             hash = (hash * 31) + ParagraphBorders.GetHashCode();
             foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {

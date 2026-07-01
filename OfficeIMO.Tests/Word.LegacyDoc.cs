@@ -340,6 +340,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsNestedTableDescriptors() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithNestedTableDescriptors();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+            Assert.Equal(LegacyDocUnsupportedFeatureKind.NestedTable, feature.Kind);
+            Assert.Equal("DOC-NESTED-TABLES-PRESENT", feature.Code);
+            Assert.Equal("PAPX:sprmPItap", feature.DetailCode);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.NestedTable]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-NESTED-TABLES-PRESENT"]);
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["NestedTable|DOC-NESTED-TABLES-PRESENT|PAPX:sprmPItap"]);
+            Assert.Contains(result.Document.LegacyDocUnsupportedFeatures, item => item.Code == "DOC-NESTED-TABLES-PRESENT");
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFormattedTableCellRuns() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithFormattedTableCell();
 
@@ -9757,6 +9775,34 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithNestedTableDescriptors() {
+                const string text = "A1\aB1\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    new[] { 1440, 2880 },
+                    extraRowSprms: new[] {
+                        CreateInt32ParagraphSprm(0x6649, 2),
+                        CreateParagraphSprm(0x244C, 1)
+                    },
+                    extraCellSprms: new[] {
+                        CreateInt32ParagraphSprm(0x6649, 2),
+                        CreateParagraphSprm(0x244B, 1)
+                    });
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithVerticalMergedTableCells() {
                 const string text = "A1\aB1\a\aA2\aB2\a\a\r";
                 const int textOffset = 0x200;
@@ -11437,7 +11483,8 @@ namespace OfficeIMO.Tests {
                 int tableLeftIndentTwips = 0,
                 IReadOnlyList<byte[]>? tableCellPaddingSprms = null,
                 IReadOnlyList<byte[]>? tableCellBorderBytes = null,
-                IReadOnlyList<byte[]>? extraRowSprms = null) {
+                IReadOnlyList<byte[]>? extraRowSprms = null,
+                IReadOnlyList<byte[]>? extraCellSprms = null) {
                 const int fibLength = 0x1AA;
                 byte[] textBytes = Encoding.Unicode.GetBytes(text);
                 var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
@@ -11456,7 +11503,14 @@ namespace OfficeIMO.Tests {
                 int secondCellMarkerEnd = markerEnds[1];
                 int rowMarkerEnd = markerEnds[2];
                 int end = textOffset + (text.Length * 2);
-                byte[] tableCellPapx = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x2416, 1));
+                var cellSprms = new List<byte[]> {
+                    CreateParagraphSprm(0x2416, 1)
+                };
+                if (extraCellSprms != null) {
+                    cellSprms.AddRange(extraCellSprms);
+                }
+
+                byte[] tableCellPapx = CreateParagraphPropertiesPapx(cellSprms.ToArray());
                 var rowSprms = new List<byte[]> {
                     CreateParagraphSprm(0x2416, 1),
                     CreateParagraphSprm(0x2417, 1)
@@ -12594,6 +12648,15 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(bytes, 0, sprm);
                 Buffer.BlockCopy(operand, 0, bytes, 2, operand.Length);
                 return bytes;
+            }
+
+            private static byte[] CreateInt32ParagraphSprm(ushort sprm, int operand) {
+                return CreateParagraphSprm(
+                    sprm,
+                    (byte)(operand & 0xFF),
+                    (byte)((operand >> 8) & 0xFF),
+                    (byte)((operand >> 16) & 0xFF),
+                    (byte)((operand >> 24) & 0xFF));
             }
 
             private static int[] GetFirstMarkerEnds(string text, int textOffset, int markerCount) {

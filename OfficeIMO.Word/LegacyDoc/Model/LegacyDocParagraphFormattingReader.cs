@@ -18,6 +18,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPFMirrorIndents = 0x2470;
         private const ushort SprmPFInTable = 0x2416;
         private const ushort SprmPFTtp = 0x2417;
+        private const ushort SprmPItap = 0x6649;
+        private const ushort SprmPDtap = 0x664A;
+        private const ushort SprmPFInnerTableCell = 0x244B;
+        private const ushort SprmPFInnerTtp = 0x244C;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPJc80 = 0x2403;
         private const ushort SprmPFBiDi = 0x2441;
@@ -210,6 +214,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocParagraphBorder paragraphBetweenBorder = default;
             bool? isInTable = null;
             bool? isTableTerminatingParagraph = null;
+            int tableDepth = 0;
+            bool hasNestedTable = false;
             var tabStops = new List<LegacyDocTabStop>();
             IReadOnlyList<int>? tableCellWidthsTwips = null;
             int? tableLeftIndentTwips = null;
@@ -262,7 +268,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     || sprm == SprmPFWidowControl
                     || sprm == SprmPFBiDi
                     || sprm == SprmPFInTable
-                    || sprm == SprmPFTtp) {
+                    || sprm == SprmPFTtp
+                    || sprm == SprmPFInnerTableCell
+                    || sprm == SprmPFInnerTtp) {
                     if (offset + 3 > end) {
                         break;
                     }
@@ -320,9 +328,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                         case SprmPFTtp:
                             isTableTerminatingParagraph = value;
                             break;
+                        case SprmPFInnerTableCell:
+                        case SprmPFInnerTtp:
+                            hasNestedTable |= value == true;
+                            break;
                     }
 
                     offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmPItap || sprm == SprmPDtap) {
+                    if (offset + 6 > end) {
+                        break;
+                    }
+
+                    int operand = LegacyDocFib.ReadInt32(bytes, offset + 2);
+                    tableDepth = sprm == SprmPItap
+                        ? operand
+                        : tableDepth + operand;
+                    hasNestedTable |= tableDepth > 1;
+                    offset += 6;
                     continue;
                 }
 
@@ -670,6 +696,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 defaultTableCellMargins,
                 defaultTableCellSpacingTwips,
                 hasMergedTableCells,
+                hasNestedTable,
                 paragraphShading,
                 new LegacyDocParagraphBorders(
                     paragraphTopBorder,
