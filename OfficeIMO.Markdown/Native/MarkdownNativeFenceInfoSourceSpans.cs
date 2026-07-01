@@ -30,7 +30,7 @@ internal static class MarkdownNativeFenceInfoSourceSpans {
 
         var span = infoStringSourceSpan.Value;
         var startColumn = span.StartColumn.Value + relativeStart;
-        var endColumn = startColumn + sourceText.Length - 1;
+        var endColumn = startColumn + sourceText!.Length - 1;
         int? startOffset = span.StartOffset.HasValue ? span.StartOffset.Value + relativeStart : null;
         int? endOffset = startOffset.HasValue ? startOffset.Value + sourceText.Length - 1 : null;
         return new MarkdownSourceSpan(span.StartLine, startColumn, span.StartLine, endColumn, startOffset, endOffset);

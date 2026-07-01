@@ -423,7 +423,7 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        char delimiter = literal[literal.Length - 1];
+        char delimiter = literal![literal.Length - 1];
         return delimiter == '.' || delimiter == ')' ? delimiter.ToString() : null;
     }
 }

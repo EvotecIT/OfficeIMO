@@ -44,6 +44,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Diagnostics: expose reason-aware original-source slice failures and include the mapping reason in source-edit roundtrip fallback diagnostics.
   - [x] Engine: expose native inline and inline-metadata source-slice APIs so editor hosts can address inline content, link targets, titles, and similar metadata without rescanning raw markdown.
   - [x] Engine: align native source-slice APIs with source-edit targets for blocks, list item content, table cells, definition-list groups/terms/bodies, reference definitions, and reference-definition fields.
+  - [x] Engine: expose inspectable source mappings that pair normalized source slices with original source slices when available, including explicit exact, line-ending-equivalent, unavailable, and generated-node states.
   - [x] Engine: expose paragraph-level native projections, source slices, and source edits for list-item paragraphs so editor hosts can address individual loose-list paragraphs instead of treating the whole item content as one span.
   - [x] Engine: reconcile parsed-compatible list-item paragraph syntax as source-backed when the cached literal still matches the semantic paragraph, so individual loose-list paragraph edits can preserve original source bytes instead of reporting generated-node fallback.
   - [x] Engine: expose document-level blank-line source trivia, snapshots, and source slices so editor hosts can address empty and whitespace-only lines without rescanning raw markdown.
@@ -271,6 +272,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
   - [x] Inline link and image opening, separator, and closing delimiters now expose source-order native metadata snapshots, position lookup, and source edits.
   - [x] Code fences and semantic fenced extension nodes now expose value-bearing opening/closing fence markers in native source fields and snapshots, with position lookup and source-edit proof.
 - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, transformed nodes, generated nodes, and normalized paragraph text.
+  - [x] Parse-result and native document callers can now request a single source-mapping object for a span/node/native target instead of inferring mapping state from separate normalized/original slice probes.
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
 - [x] Add structured fallback diagnostics when exact source preservation is unavailable, including machine-readable roundtrip diagnostic reasons.
 - [x] Expose parse-result generated syntax diagnostics so final syntax nodes rebuilt from semantic content are visible without native-projection-specific checks.

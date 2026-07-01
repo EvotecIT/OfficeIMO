@@ -240,7 +240,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
     }
 
     private static string NormalizeAlertKind(string? kind) {
-        var normalized = string.IsNullOrWhiteSpace(kind) ? "note" : kind.Trim().ToLowerInvariant();
+        var sourceKind = string.IsNullOrWhiteSpace(kind) ? "note" : kind!;
+        var normalized = sourceKind.Trim().ToLowerInvariant();
         var builder = new StringBuilder(normalized.Length);
         for (int i = 0; i < normalized.Length; i++) {
             var ch = normalized[i];

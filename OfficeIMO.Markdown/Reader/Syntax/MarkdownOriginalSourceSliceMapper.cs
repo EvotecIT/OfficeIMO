@@ -1,6 +1,71 @@
 namespace OfficeIMO.Markdown;
 
 internal static class MarkdownOriginalSourceSliceMapper {
+    public static bool TryCreateMapping(
+        string originalMarkdown,
+        string sourceMarkdown,
+        bool preservesOriginalMarkdown,
+        MarkdownSourceSpan span,
+        out MarkdownSourceMapping mapping) {
+        if (!MarkdownSourceSlice.TryCreate(sourceMarkdown, span, MarkdownSourceTextKind.Normalized, out var normalizedSlice)) {
+            mapping = default;
+            return false;
+        }
+
+        if (!preservesOriginalMarkdown) {
+            mapping = CreateOriginalUnavailableMapping(
+                span,
+                normalizedSlice,
+                MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved);
+            return true;
+        }
+
+        if (string.Equals(originalMarkdown, sourceMarkdown, StringComparison.Ordinal)) {
+            if (MarkdownSourceSlice.TryCreate(originalMarkdown, span, MarkdownSourceTextKind.Original, out var originalSlice)) {
+                mapping = new MarkdownSourceMapping(
+                    span,
+                    normalizedSlice,
+                    hasOriginalSource: true,
+                    originalSlice,
+                    MarkdownOriginalSourceMappingKind.Exact,
+                    MarkdownOriginalSourceSliceFailureReason.None);
+                return true;
+            }
+
+            mapping = CreateOriginalUnavailableMapping(
+                span,
+                normalizedSlice,
+                MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable);
+            return true;
+        }
+
+        if (!LineEndingsAreEquivalent(originalMarkdown, sourceMarkdown)) {
+            mapping = CreateOriginalUnavailableMapping(
+                span,
+                normalizedSlice,
+                MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent);
+            return true;
+        }
+
+        if (TryCreateOriginalSourceSliceFromEquivalentLineEndings(originalMarkdown, sourceMarkdown, span, out var lineEndingMappedSlice)
+            || MarkdownSourceSlice.TryCreateFromLineColumns(originalMarkdown, span, MarkdownSourceTextKind.Original, out lineEndingMappedSlice)) {
+            mapping = new MarkdownSourceMapping(
+                span,
+                normalizedSlice,
+                hasOriginalSource: true,
+                lineEndingMappedSlice,
+                MarkdownOriginalSourceMappingKind.LineEndingEquivalent,
+                MarkdownOriginalSourceSliceFailureReason.None);
+            return true;
+        }
+
+        mapping = CreateOriginalUnavailableMapping(
+            span,
+            normalizedSlice,
+            MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable);
+        return true;
+    }
+
     public static bool TryCreate(
         string originalMarkdown,
         string sourceMarkdown,
@@ -8,37 +73,34 @@ internal static class MarkdownOriginalSourceSliceMapper {
         MarkdownSourceSpan span,
         out MarkdownSourceSlice slice,
         out MarkdownOriginalSourceSliceFailureReason failureReason) {
-        if (!preservesOriginalMarkdown) {
+        if (!TryCreateMapping(originalMarkdown, sourceMarkdown, preservesOriginalMarkdown, span, out var mapping)) {
             slice = default;
-            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved;
-            return false;
-        }
-
-        if (string.Equals(originalMarkdown, sourceMarkdown, StringComparison.Ordinal)) {
-            if (MarkdownSourceSlice.TryCreate(originalMarkdown, span, MarkdownSourceTextKind.Original, out slice)) {
-                failureReason = MarkdownOriginalSourceSliceFailureReason.None;
-                return true;
-            }
-
             failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable;
             return false;
         }
 
-        if (!LineEndingsAreEquivalent(originalMarkdown, sourceMarkdown)) {
-            slice = default;
-            failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent;
-            return false;
-        }
-
-        if (TryCreateOriginalSourceSliceFromEquivalentLineEndings(originalMarkdown, sourceMarkdown, span, out slice)
-            || MarkdownSourceSlice.TryCreateFromLineColumns(originalMarkdown, span, MarkdownSourceTextKind.Original, out slice)) {
+        failureReason = mapping.OriginalSourceFailureReason;
+        if (mapping.HasOriginalSource) {
+            slice = mapping.OriginalSourceSlice;
             failureReason = MarkdownOriginalSourceSliceFailureReason.None;
             return true;
         }
 
-        failureReason = MarkdownOriginalSourceSliceFailureReason.OriginalSpanUnavailable;
+        slice = default;
         return false;
     }
+
+    private static MarkdownSourceMapping CreateOriginalUnavailableMapping(
+        MarkdownSourceSpan span,
+        MarkdownSourceSlice normalizedSlice,
+        MarkdownOriginalSourceSliceFailureReason failureReason) =>
+        new MarkdownSourceMapping(
+            span,
+            normalizedSlice,
+            hasOriginalSource: false,
+            originalSourceSlice: default,
+            MarkdownOriginalSourceMappingKind.Unavailable,
+            failureReason);
 
     private static bool LineEndingsAreEquivalent(string originalMarkdown, string sourceMarkdown) =>
         string.Equals(NormalizeLineEndings(originalMarkdown), sourceMarkdown, StringComparison.Ordinal);

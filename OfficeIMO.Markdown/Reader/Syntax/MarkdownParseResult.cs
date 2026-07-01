@@ -132,6 +132,51 @@ public sealed class MarkdownParseResult {
         MarkdownSourceSlice.TryCreate(SourceMarkdown, span, MarkdownSourceTextKind.Normalized, out slice);
 
     /// <summary>
+    /// Creates a source mapping that always includes the normalized slice and includes the original-input slice when it maps safely.
+    /// </summary>
+    public bool TryCreateSourceMapping(object associatedObject, out MarkdownSourceMapping mapping) {
+        var node = FindFinalNodeForAssociatedObject(associatedObject);
+        if (node == null) {
+            mapping = default;
+            return false;
+        }
+
+        return TryCreateSourceMapping(node, out mapping);
+    }
+
+    /// <summary>
+    /// Creates a source mapping that always includes the normalized slice and includes the original-input slice when it maps safely.
+    /// </summary>
+    public bool TryCreateSourceMapping(MarkdownSyntaxNode node, out MarkdownSourceMapping mapping) {
+        if (node == null || !node.SourceSpan.HasValue) {
+            mapping = default;
+            return false;
+        }
+
+        if (!TryCreateSourceMapping(node.SourceSpan.Value, out mapping)) {
+            return false;
+        }
+
+        if (node.IsGenerated) {
+            mapping = mapping.WithOriginalFailure(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode);
+        }
+
+        return true;
+    }
+
+    /// <summary>
+    /// Creates a source mapping that always includes the normalized slice and includes the original-input slice when it maps safely.
+    /// </summary>
+    public bool TryCreateSourceMapping(MarkdownSourceSpan span, out MarkdownSourceMapping mapping) {
+        return MarkdownOriginalSourceSliceMapper.TryCreateMapping(
+            OriginalMarkdown,
+            SourceMarkdown,
+            PreservesOriginalMarkdown,
+            span,
+            out mapping);
+    }
+
+    /// <summary>
     /// Creates a source slice over the original reader input when it is safely equivalent to the normalized span text.
     /// </summary>
     public bool TryCreateOriginalSourceSlice(MarkdownSyntaxNode node, out MarkdownSourceSlice slice) {

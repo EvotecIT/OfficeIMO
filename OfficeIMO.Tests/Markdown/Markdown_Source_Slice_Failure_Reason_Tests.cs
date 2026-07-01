@@ -6,6 +6,101 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Source_Slice_Failure_Reason_Tests {
     [Fact]
+    public void SourceMapping_Reports_Exact_Original_And_Normalized_Slices() {
+        var result = MarkdownReader.ParseWithSyntaxTree("# Title\n\nText\n", new MarkdownReaderOptions {
+            PreserveTrivia = true
+        });
+        var heading = result.SyntaxTree.Children[0];
+
+        var created = result.TryCreateSourceMapping(heading, out var mapping);
+
+        Assert.True(created);
+        Assert.Equal("# Title", mapping.NormalizedSourceSlice.Text);
+        Assert.True(mapping.HasOriginalSource);
+        Assert.Equal("# Title", mapping.OriginalSourceSlice.Text);
+        Assert.Equal(MarkdownOriginalSourceMappingKind.Exact, mapping.OriginalSourceMappingKind);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, mapping.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void SourceMapping_Reports_LineEnding_Equivalent_Original_Slices_With_Original_Offsets() {
+        var result = MarkdownReader.ParseWithSyntaxTree("# Title\r\n\r\nText\r\n", new MarkdownReaderOptions {
+            PreserveTrivia = true
+        });
+        var paragraph = result.SyntaxTree.Children[1];
+
+        var created = result.TryCreateSourceMapping(paragraph, out var mapping);
+
+        Assert.True(created);
+        Assert.Equal("Text", mapping.NormalizedSourceSlice.Text);
+        Assert.Equal(9, mapping.NormalizedSourceSlice.StartOffset);
+        Assert.True(mapping.HasOriginalSource);
+        Assert.Equal("Text", mapping.OriginalSourceSlice.Text);
+        Assert.Equal(11, mapping.OriginalSourceSlice.StartOffset);
+        Assert.Equal(MarkdownOriginalSourceMappingKind.LineEndingEquivalent, mapping.OriginalSourceMappingKind);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, mapping.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void SourceMapping_Keeps_Normalized_Slice_When_Original_Markdown_Was_Not_Preserved() {
+        var result = MarkdownReader.ParseWithSyntaxTree("# Title\n");
+        var heading = result.SyntaxTree.Children[0];
+
+        var created = result.TryCreateSourceMapping(heading, out var mapping);
+
+        Assert.True(created);
+        Assert.Equal("# Title", mapping.NormalizedSourceSlice.Text);
+        Assert.False(mapping.HasOriginalSource);
+        Assert.Equal(MarkdownOriginalSourceMappingKind.Unavailable, mapping.OriginalSourceMappingKind);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, mapping.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void SourceMapping_Keeps_Normalized_Slice_When_Original_Text_Is_Not_Equivalent() {
+        var options = new MarkdownReaderOptions {
+            PreserveTrivia = true,
+            InputNormalization = new MarkdownInputNormalizationOptions {
+                NormalizeZeroWidthSpacingArtifacts = true
+            }
+        };
+        var result = MarkdownReader.ParseWithSyntaxTree("# Ti\u200Btle\n", options);
+        var heading = result.SyntaxTree.Children[0];
+
+        var created = result.TryCreateSourceMapping(heading, out var mapping);
+
+        Assert.True(created);
+        Assert.Equal("# Title", mapping.NormalizedSourceSlice.Text);
+        Assert.False(mapping.HasOriginalSource);
+        Assert.Equal(MarkdownOriginalSourceMappingKind.Unavailable, mapping.OriginalSourceMappingKind);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent, mapping.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void NativeSourceMapping_Reports_Generated_Node_Reason_While_Keeping_Normalized_Slice() {
+        var native = MarkdownNativeDocument.Parse("text\n", new MarkdownReaderOptions {
+            PreserveTrivia = true
+        });
+        var syntaxNode = new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.InlineText,
+            new MarkdownSourceSpan(1, 1, 1, 4),
+            literal: "text",
+            isGenerated: true);
+        var inline = new MarkdownNativeInline(
+            MarkdownNativeInlineKind.Text,
+            syntaxNode,
+            Array.Empty<MarkdownNativeInline>(),
+            Array.Empty<MarkdownNativeInlineMetadata>());
+
+        var created = native.TryCreateSourceMapping(inline, out var mapping);
+
+        Assert.True(created);
+        Assert.Equal("text", mapping.NormalizedSourceSlice.Text);
+        Assert.False(mapping.HasOriginalSource);
+        Assert.Equal(MarkdownOriginalSourceMappingKind.Unavailable, mapping.OriginalSourceMappingKind);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, mapping.OriginalSourceFailureReason);
+    }
+
+    [Fact]
     public void OriginalSourceSlice_Returns_NotPreserved_Reason_When_Trivia_Is_Disabled() {
         var result = MarkdownReader.ParseWithSyntaxTree("# Title\n");
         var heading = result.SyntaxTree.Children[0];
