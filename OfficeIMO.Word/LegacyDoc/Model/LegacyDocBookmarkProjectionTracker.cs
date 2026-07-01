@@ -38,6 +38,28 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return result;
         }
 
+        internal IReadOnlyList<LegacyDocBookmark> ExtractUnprojectedBlockBookmarks(int blockStartCharacter, int blockEndCharacter) {
+            if (_bookmarks.Count == 0) {
+                return Array.Empty<LegacyDocBookmark>();
+            }
+
+            var result = new List<LegacyDocBookmark>();
+            foreach (LegacyDocBookmark bookmark in _bookmarks) {
+                if (bookmark.StartCharacter != blockStartCharacter
+                    || bookmark.EndCharacter != blockEndCharacter
+                    || _projectedStarts.Contains(bookmark)
+                    || _projectedEnds.Contains(bookmark)) {
+                    continue;
+                }
+
+                result.Add(bookmark);
+                _projectedStarts.Add(bookmark);
+                _projectedEnds.Add(bookmark);
+            }
+
+            return result;
+        }
+
         internal IEnumerable<LegacyDocBookmark> GetUnprojectedBookmarks() {
             foreach (LegacyDocBookmark bookmark in _bookmarks) {
                 if (!_projectedStarts.Contains(bookmark) || !_projectedEnds.Contains(bookmark)) {

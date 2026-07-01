@@ -820,6 +820,9 @@ just to reserve names.
     - [x] Write footnote/endnote-level bookmark start/end markers that sit
       between note paragraphs into native DOC bookmark PLCs, then reload them
       as paragraph-boundary bookmark ranges through the legacy reader.
+    - [x] Write whole-table body bookmark start/end markers around native DOC
+      table blocks, then reload them as table-sibling bookmark markers through
+      the legacy reader.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

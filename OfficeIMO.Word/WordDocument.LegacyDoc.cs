@@ -387,6 +387,29 @@ namespace OfficeIMO.Word {
                     }
                 }
             }
+
+            AddLegacyDocTableBlockBookmarks(table, tableBlock);
+        }
+
+        private static void AddLegacyDocTableBlockBookmarks(WordTable table, LegacyDocTableBlock tableBlock) {
+            if (tableBlock.Bookmarks.Count == 0 || table._table.Parent is not OpenXmlCompositeElement parent) {
+                return;
+            }
+
+            foreach (LegacyDocBookmark bookmark in tableBlock.Bookmarks
+                .Where(bookmark => bookmark.StartCharacter == tableBlock.StartCharacter)
+                .OrderByDescending(bookmark => bookmark.EndCharacter)
+                .ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
+                parent.InsertBefore(new BookmarkStart { Id = bookmark.ProjectionId, Name = bookmark.Name }, table._table);
+            }
+
+            OpenXmlElement afterAnchor = table._table;
+            foreach (LegacyDocBookmark bookmark in tableBlock.Bookmarks
+                .Where(bookmark => bookmark.EndCharacter == tableBlock.EndCharacter && !bookmark.IsZeroLength)
+                .OrderByDescending(bookmark => bookmark.StartCharacter)
+                .ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
+                afterAnchor = parent.InsertAfter(new BookmarkEnd { Id = bookmark.ProjectionId }, afterAnchor)!;
+            }
         }
 
         private static void ApplyLegacyDocTablePreferredWidth(WordTable table, LegacyDocTablePreferredWidth preferredWidth) {

@@ -2331,6 +2331,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableLevelBookmarkBoundariesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Before table bookmark");
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].AddParagraph("TableBookmarkCell", removeExistingParagraphs: true);
+                    document.AddParagraph("After table bookmark");
+
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                    body.InsertBefore(new BookmarkStart { Id = "52", Name = "TableLevelBookmark" }, table._table);
+                    body.InsertAfter(new BookmarkEnd { Id = "52" }, table._table);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableLevelBookmark");
+
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("TableBookmarkCell", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+
+                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(body.Elements<Table>());
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(tableElement.PreviousSibling());
+                Assert.Equal("TableLevelBookmark", bookmarkStart.Name?.Value);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(tableElement.NextSibling());
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedHyperlinkRunsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

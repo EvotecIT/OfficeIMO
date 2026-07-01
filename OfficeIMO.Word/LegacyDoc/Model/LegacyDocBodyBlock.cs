@@ -265,11 +265,24 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
     }
 
     internal sealed class LegacyDocTableBlock : LegacyDocBodyBlock {
-        internal LegacyDocTableBlock(IReadOnlyList<LegacyDocTableRow> rows) {
+        internal LegacyDocTableBlock(
+            IReadOnlyList<LegacyDocTableRow> rows,
+            int startCharacter,
+            int endCharacter,
+            IReadOnlyList<LegacyDocBookmark>? bookmarks = null) {
             Rows = rows;
+            StartCharacter = startCharacter;
+            EndCharacter = endCharacter;
+            Bookmarks = bookmarks ?? Array.Empty<LegacyDocBookmark>();
         }
 
         internal IReadOnlyList<LegacyDocTableRow> Rows { get; }
+
+        internal int StartCharacter { get; }
+
+        internal int EndCharacter { get; }
+
+        internal IReadOnlyList<LegacyDocBookmark> Bookmarks { get; }
     }
 
     internal sealed class LegacyDocTableRow {
