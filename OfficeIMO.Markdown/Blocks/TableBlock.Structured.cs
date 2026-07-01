@@ -180,9 +180,11 @@ public sealed partial class TableBlock {
         clone.FencedCode = source.FencedCode;
         clone.IndentedCodeBlocks = source.IndentedCodeBlocks;
         clone.Images = source.Images;
+        clone.StandaloneImageBlocks = source.StandaloneImageBlocks;
         clone.UnorderedLists = source.UnorderedLists;
         clone.TaskLists = source.TaskLists;
         clone.OrderedLists = source.OrderedLists;
+        clone.StrictListIndentation = source.StrictListIndentation;
         clone.Tables = false;
         clone.RequireTableBodyRowPipes = source.RequireTableBodyRowPipes;
         clone.DefinitionLists = source.DefinitionLists;

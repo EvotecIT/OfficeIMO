@@ -145,6 +145,39 @@ public class Markdown_Reader_Profile_Tests {
     }
 
     [Fact]
+    public void InlineHtml_Disabled_Keeps_Character_References_Literal() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.InlineHtml = false;
+
+        var document = MarkdownReader.Parse("&copy; stays literal", options);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
+
+        Assert.Equal("&copy; stays literal", text.Text);
+        Assert.Equal(
+            "<p>&amp;copy; stays literal</p>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+    }
+
+    [Fact]
+    public void Nested_Profile_Clones_Preserve_StandaloneImageBlocks_Option() {
+        const string markdown = "> ![Alt](image.png)";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.Children));
+
+        Assert.Contains(paragraph.Inlines.Nodes, node => node is ImageInline);
+        Assert.DoesNotContain(quote.Children, block => block is ImageBlock);
+    }
+
+    [Fact]
     public void CjkFriendlyEmphasis_Is_OptIn_And_Preserves_Markdown_Writing() {
         const string markdown = "これは**強調？**です";
         var htmlOptions = new HtmlOptions {

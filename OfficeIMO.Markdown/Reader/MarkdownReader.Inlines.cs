@@ -332,7 +332,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (TryConsumeHtmlEntityText(text, pos, out int consumedEntity, out string decodedEntity)) {
+            if (options.InlineHtml && TryConsumeHtmlEntityText(text, pos, out int consumedEntity, out string decodedEntity)) {
                 AddDecodedHtmlEntityNode(decodedEntity, pos, consumedEntity);
                 pos += consumedEntity;
                 continue;

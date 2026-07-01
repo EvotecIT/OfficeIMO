@@ -148,6 +148,79 @@ public static partial class MarkdownReader {
             return blockState.Kind != HtmlBlockKind.Type7;
         }
 
+        internal static bool TryGetHtmlBlockLineCount(
+            string[] lines,
+            int startIndex,
+            MarkdownReaderOptions options,
+            out int lineCount) {
+            lineCount = 0;
+            if (options?.HtmlBlocks != true || lines == null || startIndex < 0 || startIndex >= lines.Length) {
+                return false;
+            }
+
+            var line = lines[startIndex];
+            if (string.IsNullOrEmpty(line)) {
+                return false;
+            }
+
+            int indent = CountLeadingSpaces(line);
+            if (indent < 0 || indent > 3) {
+                return false;
+            }
+
+            string trimmed = indent == 0 ? line : line.Substring(indent);
+            if (trimmed.Length == 0 || trimmed[0] != '<') {
+                return false;
+            }
+
+            if (TryParseAngleAutolink(trimmed, 0, out _, out _, out _)) {
+                return false;
+            }
+
+            if (!TryGetHtmlBlockState(trimmed, options, out var blockState)) {
+                return false;
+            }
+
+            int j = startIndex;
+            int stackDepth = 0;
+            while (j < lines.Length) {
+                string current = lines[j];
+                string normalized = current.Length > 0 && current[current.Length - 1] == '\r'
+                    ? current.TrimEnd('\r')
+                    : current;
+                if (blockState.TracksStack) {
+                    stackDepth = UpdateStackDepth(blockState, normalized, stackDepth);
+                }
+
+                bool completed = blockState.IsSatisfiedBy(normalized);
+                j++;
+
+                if (completed) {
+                    break;
+                }
+
+                if (blockState.TracksStack
+                    && stackDepth <= 0
+                    && blockState.Kind is HtmlBlockKind.Type6 or HtmlBlockKind.Type7
+                    && string.Equals(blockState.PrimaryTagName, "details", StringComparison.OrdinalIgnoreCase)) {
+                    break;
+                }
+
+                if (blockState.EndsOnBlankLine && j < lines.Length && string.IsNullOrWhiteSpace(lines[j])) {
+                    if (!blockState.TracksStack) {
+                        break;
+                    }
+
+                    if (!blockState.AllowsBlankLineContinuation || stackDepth <= 0) {
+                        break;
+                    }
+                }
+            }
+
+            lineCount = Math.Max(1, j - startIndex);
+            return true;
+        }
+
         private static bool IsHeaderlessSingleRowTableMarker(string trimmed) {
             return string.Equals(trimmed.Trim(), TableBlock.HeaderlessSingleRowTableMarker, StringComparison.Ordinal);
         }

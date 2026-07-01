@@ -9,8 +9,15 @@ public sealed class HorizontalRuleBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     /// <summary>Exact thematic-break marker text when parsed from markdown.</summary>
     public string? MarkerText { get; internal set; }
 
-    string IMarkdownBlock.RenderMarkdown() => "---";
-    string IMarkdownBlock.RenderHtml() => "<hr />";
+    string IMarkdownBlock.RenderMarkdown() {
+        var attributes = MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
+        return string.IsNullOrEmpty(attributes) ? "---" : "--- " + attributes;
+    }
+
+    string IMarkdownBlock.RenderHtml() {
+        var attributes = MarkdownHtmlAttributes.Render(Attributes, HtmlRenderContext.Options);
+        return string.IsNullOrEmpty(attributes) ? "<hr />" : "<hr" + attributes + " />";
+    }
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var markerSpan = MarkerSourceSpan ?? span;
         var markerText = MarkerText ?? "---";

@@ -73,6 +73,11 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (HtmlBlockParser.TryGetHtmlBlockLineCount(lines, idx, options, out var htmlBlockLineCount)) {
+                idx += Math.Max(0, htmlBlockLineCount - 1);
+                continue;
+            }
+
             var isListItemDefinition = false;
             if (!TryParseAbbreviationDefinition(
                     line,
