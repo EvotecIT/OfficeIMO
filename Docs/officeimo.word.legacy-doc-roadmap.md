@@ -473,6 +473,10 @@ just to reserve names.
     - [x] Write section-breaking paragraphs inside simple body block content
       controls by flattening supported content-control children into native
       DOC body content, then reload the section split through the legacy reader.
+    - [x] Write simple header and footer block content controls by flattening
+      supported paragraphs, nested simple content controls, and bookmark
+      boundaries into native DOC header/footer stories, then reload the story
+      text and bookmarks through the legacy reader.
     - [x] Write simple footnote and endnote block content controls by
       flattening supported note paragraphs/bookmarks into native DOC note
       stories, then reload the note text through the legacy reader.
@@ -889,6 +893,11 @@ just to reserve names.
     - [x] Write simple body and table-cell block content controls by flattening
       supported child paragraphs/tables into native DOC content, while still
       blocking nested tables and unsupported child markup before bytes are
+      committed.
+    - [x] Write simple header and footer block content controls by flattening
+      supported paragraphs, nested simple content controls, and bookmark
+      boundaries into native DOC header/footer stories, while still blocking
+      unsupported header/footer content-control children before bytes are
       committed.
     - [x] Write simple footnote and endnote block content controls by
       flattening supported child paragraphs into native DOC note story text,

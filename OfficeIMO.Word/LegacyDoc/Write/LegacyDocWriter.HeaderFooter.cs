@@ -206,22 +206,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             foreach (OpenXmlElement child in container.ChildElements) {
-                switch (child) {
-                    case Paragraph paragraph:
-                        AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, kind, styleIndexes);
-                        break;
-                    case SdtBlock sdtBlock:
-                        AppendSimpleHeaderFooterContentControl(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, sdtBlock, relationshipOwner, kind, styleIndexes);
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, storyText.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, storyText.Length);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving currently supports only text paragraphs and bookmarks in {kind}s. Unsupported {kind} element: {child.LocalName}.");
-                }
+                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, kind, styleIndexes);
             }
 
             bool hasVisibleText = paragraphs.Any(paragraph => paragraph.Length > 0);
@@ -231,6 +216,34 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             storyText.Append('\r');
             return new LegacyDocWritableHeaderFooterStory(storyText.ToString(), formattedRuns, formattedParagraphs, bookmarks.Create());
+        }
+
+        private static void AppendSimpleHeaderFooterStoryChild(
+            StringBuilder storyText,
+            List<LegacyDocWritableRun> formattedRuns,
+            List<LegacyDocWritableParagraph> formattedParagraphs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            List<string> paragraphs,
+            OpenXmlElement child,
+            OpenXmlPartContainer relationshipOwner,
+            string kind,
+            IReadOnlyDictionary<string, ushort> styleIndexes) {
+            switch (child) {
+                case Paragraph paragraph:
+                    AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, kind, styleIndexes);
+                    break;
+                case SdtBlock sdtBlock:
+                    AppendSimpleHeaderFooterContentControl(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, sdtBlock, relationshipOwner, kind, styleIndexes);
+                    break;
+                case BookmarkStart bookmarkStart:
+                    bookmarks.AddStart(bookmarkStart, storyText.Length);
+                    break;
+                case BookmarkEnd bookmarkEnd:
+                    bookmarks.AddEnd(bookmarkEnd, storyText.Length);
+                    break;
+                default:
+                    throw new NotSupportedException($"Native DOC saving currently supports only text paragraphs, content controls, and bookmarks in {kind}s. Unsupported {kind} element: {child.LocalName}.");
+            }
         }
 
         private static void AppendSimpleHeaderFooterContentControl(
@@ -249,13 +262,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             foreach (OpenXmlElement child in contentBlock.ChildElements) {
-                switch (child) {
-                    case Paragraph paragraph:
-                        AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, kind, styleIndexes);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving supports {kind} content controls only when they contain simple paragraphs. Unsupported {kind} content control element: {child.LocalName}.");
-                }
+                AppendSimpleHeaderFooterStoryChild(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, child, relationshipOwner, kind, styleIndexes);
             }
         }
 

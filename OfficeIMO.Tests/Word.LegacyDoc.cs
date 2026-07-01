@@ -3123,6 +3123,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterContentControlsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with controlled header footer");
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+
+                    WordHeader header = section.Header.Default!;
+                    header._header!.RemoveAllChildren<Paragraph>();
+                    header._header.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC header content control" }),
+                        new SdtContentBlock(
+                            new BookmarkStart { Id = "65", Name = "HeaderContentControlBookmark" },
+                            new Paragraph(new Run(new Text("HeaderControlledOne") { Space = SpaceProcessingModeValues.Preserve })),
+                            new SdtBlock(
+                                new SdtProperties(new SdtAlias { Val = "Legacy DOC nested header content control" }),
+                                new SdtContentBlock(
+                                    new BookmarkEnd { Id = "65" },
+                                    new Paragraph(new Run(new Text("HeaderControlledTwo") { Space = SpaceProcessingModeValues.Preserve })))))));
+
+                    WordFooter footer = section.Footer.Default!;
+                    footer._footer!.RemoveAllChildren<Paragraph>();
+                    footer._footer.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC footer content control" }),
+                        new SdtContentBlock(
+                            new Paragraph(new Run(new Text("FooterControlledOne") { Space = SpaceProcessingModeValues.Preserve })),
+                            new SdtBlock(
+                                new SdtProperties(new SdtAlias { Val = "Legacy DOC nested footer content control" }),
+                                new SdtContentBlock(new Paragraph(new Run(new Text("FooterControlledTwo") { Space = SpaceProcessingModeValues.Preserve })))))));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderContentControlBookmark");
+
+                WordParagraph firstHeaderParagraph = AssertSingleParagraphWithBookmarkStart(reloadedSection.Header.Default!.Paragraphs, "HeaderContentControlBookmark");
+                WordParagraph secondHeaderParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    reloadedSection.Header.Default!.Paragraphs,
+                    AssertBookmarkStartId(firstHeaderParagraph, "HeaderContentControlBookmark"));
+                AssertParagraphBoundaryBookmarkContent(firstHeaderParagraph, secondHeaderParagraph, "HeaderContentControlBookmark", "HeaderControlledOne", "HeaderControlledTwo");
+
+                IReadOnlyList<WordParagraph> footerParagraphs = reloadedSection.Footer.Default!.Paragraphs;
+                Assert.Contains(footerParagraphs, paragraph => paragraph.Text == "FooterControlledOne");
+                Assert.Contains(footerParagraphs, paragraph => paragraph.Text == "FooterControlledTwo");
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.HeaderParts.SelectMany(part => part.Header.Descendants<SdtBlock>()));
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.FooterParts.SelectMany(part => part.Footer.Descendants<SdtBlock>()));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocNoteExternalHyperlinksAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
