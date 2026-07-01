@@ -66,6 +66,15 @@ namespace OfficeIMO.Word {
                 string targetText = targetParagraphs[targetIndex].Text;
 
                 if (!string.Equals(sourceParagraphs[sourceIndex].PartKind, targetParagraphs[targetIndex].PartKind, StringComparison.Ordinal)) {
+                    if (AreEquivalentRenumberedNoteParagraphs(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex])) {
+                        AnalyzeParagraphStyle(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                        AnalyzeParagraphEffectiveFormatting(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                        AnalyzeParagraphRuns(sourceParagraphs[sourceIndex], targetParagraphs[targetIndex], sourceIndex, targetIndex, result, options);
+                        sourceIndex++;
+                        targetIndex++;
+                        continue;
+                    }
+
                     result.Add(new WordComparisonFinding(
                         WordComparisonScope.Paragraph,
                         WordComparisonChangeKind.Deleted,
@@ -121,6 +130,31 @@ namespace OfficeIMO.Word {
                 AddDeletedParagraphFinding(sourceParagraphs, sourceIndex, result);
                 sourceIndex++;
             }
+        }
+
+        private static bool AreEquivalentRenumberedNoteParagraphs(ParagraphSnapshot sourceParagraph, ParagraphSnapshot targetParagraph) {
+            if (!IsNotePartKind(sourceParagraph.PartKind) ||
+                !IsNotePartKind(targetParagraph.PartKind) ||
+                !string.Equals(GetNotePartKindPrefix(sourceParagraph.PartKind), GetNotePartKindPrefix(targetParagraph.PartKind), StringComparison.Ordinal)) {
+                return false;
+            }
+
+            return string.Equals(sourceParagraph.MatchText, targetParagraph.MatchText, StringComparison.Ordinal) &&
+                string.Equals(sourceParagraph.ComparisonText, targetParagraph.ComparisonText, StringComparison.Ordinal);
+        }
+
+        private static bool IsNotePartKind(string partKind) =>
+            partKind.StartsWith(FootnotePartKeyPrefix, StringComparison.Ordinal) ||
+            partKind.StartsWith(EndnotePartKeyPrefix, StringComparison.Ordinal);
+
+        private static string GetNotePartKindPrefix(string partKind) {
+            if (partKind.StartsWith(FootnotePartKeyPrefix, StringComparison.Ordinal)) {
+                return FootnotePartKeyPrefix;
+            }
+
+            return partKind.StartsWith(EndnotePartKeyPrefix, StringComparison.Ordinal)
+                ? EndnotePartKeyPrefix
+                : string.Empty;
         }
 
         private static void AnalyzeParagraphStyle(
@@ -302,13 +336,15 @@ namespace OfficeIMO.Word {
 
                 List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = footnotes[footnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                        footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddParagraphSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
                 }
 
                 List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = endnotes[endnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                        endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddParagraphSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
                 }
             }

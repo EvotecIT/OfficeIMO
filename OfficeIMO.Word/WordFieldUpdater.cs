@@ -710,9 +710,18 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
+            if (!TryApplyReferenceTextFormat(parsed.FormatSwitches, value, out string formattedValue, out string? unsupportedFormat)) {
+                status = WordFieldUpdateStatus.Unsupported;
+                message = $"Text format switch {unsupportedFormat} is not supported for deterministic date refresh.";
+                return false;
+            }
+
+            value = formattedValue;
             if (!string.IsNullOrEmpty(value)) {
                 status = WordFieldUpdateStatus.Updated;
-                message = successMessage;
+                message = GetLastMeaningfulFormat(parsed.FormatSwitches) == null
+                    ? successMessage
+                    : successMessage + " Text format switch was applied.";
                 return true;
             }
 

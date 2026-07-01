@@ -7,11 +7,12 @@ namespace OfficeIMO.Word {
         private static void ApplyContentControlFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineContentControlEntry> sourceControls = GetRedlineContentControlEntries(sourceDocument);
             List<RedlineContentControlEntry> targetControls = GetRedlineContentControlEntries(targetDocument);
+            HashSet<int> deletedSourceIndexes = GetDeletedContentControlRedlineSourceIndexes(result, options, sourceControls);
             HashSet<int> redlineTargetIndexes = GetContentControlRedlineTargetIndexes(result, options, targetControls);
             var rewrittenControls = new HashSet<int>();
 
             foreach (WordComparisonFinding finding in result.Findings) {
-                if (TryApplyDeletedContentControlFinding(finding, options, sourceControls, targetDocument)) {
+                if (TryApplyDeletedContentControlFinding(finding, options, sourceControls, deletedSourceIndexes, targetDocument)) {
                     continue;
                 }
 
@@ -19,12 +20,14 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (rewrittenControls.Contains(targetIndex)) {
+                RedlineContentControlEntry entry = targetControls[targetIndex];
+                if (rewrittenControls.Contains(targetIndex) ||
+                    HasAncestorContentControlRedlineFinding(entry.ContentControl, targetControls, rewrittenControls)) {
                     continue;
                 }
 
-                RedlineContentControlEntry entry = targetControls[targetIndex];
-                if (HasDescendantContentControlRedlineFinding(entry.ContentControl, targetControls, redlineTargetIndexes)) {
+                if (HasDescendantContentControlRedlineFinding(entry.ContentControl, targetControls, redlineTargetIndexes) &&
+                    HasUnchangedDirectContentControlText(finding, sourceControls, entry.ContentControl)) {
                     continue;
                 }
 
@@ -55,6 +58,7 @@ namespace OfficeIMO.Word {
             WordComparisonFinding finding,
             WordComparisonRedlineOptions options,
             IReadOnlyList<RedlineContentControlEntry> sourceControls,
+            ISet<int> deletedSourceIndexes,
             WordprocessingDocument targetDocument) {
             if (!ShouldTrackFinding(finding, options) ||
                 finding.Scope != WordComparisonScope.ContentControl ||
@@ -70,6 +74,10 @@ namespace OfficeIMO.Word {
 
             if (sourceIndex < 0 || sourceIndex >= sourceControls.Count) {
                 return false;
+            }
+
+            if (HasAncestorContentControlRedlineFinding(sourceControls[sourceIndex].ContentControl, sourceControls, deletedSourceIndexes)) {
+                return true;
             }
 
             SdtElement deletedControl = (SdtElement)sourceControls[sourceIndex].ContentControl.CloneNode(true);
@@ -104,6 +112,35 @@ namespace OfficeIMO.Word {
             return entries;
         }
 
+        private static HashSet<int> GetDeletedContentControlRedlineSourceIndexes(
+            WordComparisonResult result,
+            WordComparisonRedlineOptions options,
+            IReadOnlyList<RedlineContentControlEntry> sourceControls) {
+            var sourceIndexes = new HashSet<int>();
+
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.ContentControl ||
+                    finding.ChangeKind != WordComparisonChangeKind.Deleted ||
+                    !HasTrackedText(finding) ||
+                    !HasChangedContentControlFindingText(finding)) {
+                    continue;
+                }
+
+                int sourceIndex = finding.SourceIndex ?? -1;
+                if (sourceIndex < 0 &&
+                    !TryParseIndexedLocation(finding.Location, "content-control", out sourceIndex)) {
+                    continue;
+                }
+
+                if (sourceIndex >= 0 && sourceIndex < sourceControls.Count) {
+                    sourceIndexes.Add(sourceIndex);
+                }
+            }
+
+            return sourceIndexes;
+        }
+
         private static HashSet<int> GetContentControlRedlineTargetIndexes(
             WordComparisonResult result,
             WordComparisonRedlineOptions options,
@@ -111,11 +148,9 @@ namespace OfficeIMO.Word {
             var targetIndexes = new HashSet<int>();
 
             foreach (WordComparisonFinding finding in result.Findings) {
-                if (TryGetContentControlRedlineTargetIndex(finding, options, targetControls, out int targetIndex)) {
-                    RedlineContentControlEntry entry = targetControls[targetIndex];
-                    if (HasChangedContentControlFindingText(finding)) {
-                        targetIndexes.Add(targetIndex);
-                    }
+                if (TryGetContentControlRedlineTargetIndex(finding, options, targetControls, out int targetIndex) &&
+                    HasChangedContentControlFindingText(finding)) {
+                    targetIndexes.Add(targetIndex);
                 }
             }
 
@@ -151,6 +186,52 @@ namespace OfficeIMO.Word {
             string? sourceText = ExtractContentControlFindingText(finding.SourceText);
             string? targetText = ExtractContentControlFindingText(finding.TargetText);
             return !string.Equals(sourceText, targetText, StringComparison.Ordinal);
+        }
+
+        private static bool HasUnchangedDirectContentControlText(
+            WordComparisonFinding finding,
+            IReadOnlyList<RedlineContentControlEntry> sourceControls,
+            SdtElement targetControl) {
+            int sourceIndex = finding.SourceIndex ?? -1;
+            if (sourceIndex < 0 &&
+                !TryParseIndexedLocation(finding.Location, "content-control", out sourceIndex)) {
+                return false;
+            }
+
+            if (sourceIndex < 0 || sourceIndex >= sourceControls.Count) {
+                return false;
+            }
+
+            string sourceDirectText = GetDirectContentControlText(sourceControls[sourceIndex].ContentControl);
+            string targetDirectText = GetDirectContentControlText(targetControl);
+            return string.Equals(sourceDirectText, targetDirectText, StringComparison.Ordinal);
+        }
+
+        private static string GetDirectContentControlText(SdtElement contentControl) {
+            return string.Concat(contentControl.Descendants<Text>()
+                .Where(text => !text.Ancestors<SdtElement>().Any(ancestor => !ReferenceEquals(ancestor, contentControl)))
+                .Select(text => text.Text ?? string.Empty));
+        }
+
+        private static bool HasAncestorContentControlRedlineFinding(
+            SdtElement contentControl,
+            IReadOnlyList<RedlineContentControlEntry> contentControls,
+            ISet<int> redlineIndexes) {
+            if (redlineIndexes.Count == 0) {
+                return false;
+            }
+
+            foreach (SdtElement ancestor in contentControl.Ancestors<SdtElement>()) {
+                foreach (int redlineIndex in redlineIndexes) {
+                    if (redlineIndex >= 0 &&
+                        redlineIndex < contentControls.Count &&
+                        ReferenceEquals(contentControls[redlineIndex].ContentControl, ancestor)) {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
         }
 
         private static bool HasDescendantContentControlRedlineFinding(

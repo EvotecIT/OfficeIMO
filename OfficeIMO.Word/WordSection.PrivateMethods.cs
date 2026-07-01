@@ -130,6 +130,14 @@ namespace OfficeIMO.Word {
                 SdtContentBlock content = sdtBlock.SdtContentBlock!;
                 int insertIndex = body.ChildElements.ToList().IndexOf(paragraph);
 
+                Paragraph? fieldStartPrefix = SplitFieldStartPrefix(paragraph, fieldChildIndex.Value);
+                if (fieldStartPrefix != null) {
+                    fieldChildIndex = FindSimpleTocOrIndexFieldChildIndex(paragraph);
+                    if (fieldChildIndex == null) {
+                        continue;
+                    }
+                }
+
                 Paragraph? fieldPrefix = SplitSimpleFieldPrefix(paragraph, fieldChildIndex.Value);
                 if (fieldPrefix != null) {
                     content.Append(fieldPrefix);
@@ -140,8 +148,17 @@ namespace OfficeIMO.Word {
 
                 document.AssignNewSdtIds(sdtBlock);
                 if (insertIndex >= 0 && insertIndex <= body.ChildElements.Count) {
+                    if (fieldStartPrefix != null) {
+                        body.InsertAt(fieldStartPrefix, insertIndex);
+                        insertIndex++;
+                    }
+
                     body.InsertAt(sdtBlock, insertIndex);
                 } else {
+                    if (fieldStartPrefix != null) {
+                        body.Append(fieldStartPrefix);
+                    }
+
                     body.Append(sdtBlock);
                 }
 
@@ -174,6 +191,13 @@ namespace OfficeIMO.Word {
                 SdtContentBlock content = sdtBlock.SdtContentBlock!;
                 int insertIndex = body.ChildElements.ToList().IndexOf(paragraph);
                 Paragraph? fieldStartPrefix = SplitFieldStartPrefix(paragraph, fieldStartChildIndex.Value);
+                if (fieldStartPrefix != null) {
+                    ComplexFieldEnd? adjustedFieldEnd = FindComplexFieldEnd(paragraphs, index, 0);
+                    if (adjustedFieldEnd != null) {
+                        fieldEnd = adjustedFieldEnd;
+                    }
+                }
+
                 foreach (Paragraph tocParagraph in paragraphs.Skip(index).Take(fieldEnd.ParagraphIndex - index + 1)) {
                     if (ReferenceEquals(tocParagraph, paragraphs[fieldEnd.ParagraphIndex])) {
                         Paragraph? fieldEndPrefix = SplitFieldEndPrefix(tocParagraph, fieldEnd.ChildIndex);
