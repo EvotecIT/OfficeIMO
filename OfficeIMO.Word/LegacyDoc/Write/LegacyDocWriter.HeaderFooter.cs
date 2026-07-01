@@ -308,6 +308,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendFormattedHeaderFooterPageNumberField(storyText, formattedRuns, text, simpleField, kind);
                         break;
+                    case SdtRun sdtRun:
+                        AppendFormattedHeaderFooterInlineContentControl(storyText, formattedRuns, text, bookmarks, sdtRun, relationshipOwner, kind);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyText.Length);
                         break;
@@ -319,7 +322,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, PAGE and NUMPAGES simple fields, bookmarks, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving currently supports only text runs, PAGE and NUMPAGES simple fields, bookmarks, inline content controls, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
                 }
             }
 

@@ -907,6 +907,10 @@ just to reserve names.
       flattening supported child paragraphs into native DOC note story text,
       while still blocking unsupported note content-control children before
       bytes are committed.
+    - [x] Write simple inline run content controls by flattening supported runs,
+      fields, hyperlinks, bookmarks, and nested inline content controls in body,
+      table-cell, header/footer, footnote, and endnote paragraphs through native
+      DOC save/reload.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

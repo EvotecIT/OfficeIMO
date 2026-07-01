@@ -185,6 +185,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendSupportedNoteFieldFromSimpleField(builder, runs, simpleField, storyStart);
                         break;
+                    case SdtRun sdtRun:
+                        AppendSupportedFootnoteInlineContentControl(builder, runs, bookmarks, sdtRun, relationshipOwner, id, storyStart);
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyStart + builder.Length);
                         break;
@@ -196,7 +199,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, PAGE and NUMPAGES simple fields, bookmarks, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, PAGE and NUMPAGES simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
                 }
             }
 

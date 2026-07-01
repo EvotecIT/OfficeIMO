@@ -1242,6 +1242,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case SimpleField simpleField:
                         AppendSupportedPageNumberFieldFromSimpleField(text, runs, simpleField, tableStyleRunFormatting);
                         break;
+                    case SdtRun sdtRun:
+                        AppendSupportedInlineContentControlText(text, runs, bookmarks, sdtRun, mainPart, footnotes, endnotes, tableStyleRunFormatting, "table cell inline content control");
+                        break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, text.Length);
                         break;
@@ -1253,7 +1256,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs, PAGE and NUMPAGES simple fields, bookmarks, and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple table cell paragraphs only with text runs, PAGE and NUMPAGES simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
 

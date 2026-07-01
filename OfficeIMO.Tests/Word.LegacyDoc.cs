@@ -1463,6 +1463,16 @@ namespace OfficeIMO.Tests {
             return string.Concat(hyperlink.Descendants<Text>().Select(text => text.Text));
         }
 
+        private static Run CreateTextRun(string value) {
+            return new Run(new Text(value) { Space = SpaceProcessingModeValues.Preserve });
+        }
+
+        private static SdtRun CreateInlineContentControl(string alias, params OpenXmlElement[] children) {
+            return new SdtRun(
+                new SdtProperties(new SdtAlias { Val = alias }),
+                new SdtContentRun(children));
+        }
+
         private static void AssertNoteBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText) {
             OpenXmlElement[] content = paragraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
@@ -3349,6 +3359,102 @@ namespace OfficeIMO.Tests {
                 string endnoteText = string.Concat(endnote.Paragraphs!.Select(GetNoteRunText));
                 Assert.Equal("EndnoteContentOneEndnoteContentTwo", endnoteText);
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.EndnotesPart!.Endnotes!.Descendants<SdtBlock>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocInlineContentControlsAcrossStoriesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph bodyParagraph = document.AddParagraph(string.Empty);
+                    bodyParagraph._paragraph.RemoveAllChildren<Run>();
+                    bodyParagraph._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC body inline content control",
+                        new BookmarkStart { Id = "91", Name = "BodyInlineContentControlBookmark" },
+                        CreateTextRun("BodyInlineOne"),
+                        CreateInlineContentControl("Legacy DOC nested body inline content control", CreateTextRun("BodyInlineNested")),
+                        CreateTextRun("BodyInlineTwo"),
+                        new BookmarkEnd { Id = "91" }));
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordTableCell cell = table.Rows[0].Cells[0];
+                    cell._tableCell.RemoveAllChildren<Paragraph>();
+                    cell._tableCell.Append(new Paragraph(CreateInlineContentControl(
+                        "Legacy DOC table cell inline content control",
+                        CreateTextRun("CellInlineOne"),
+                        CreateInlineContentControl("Legacy DOC nested table cell inline content control", CreateTextRun("CellInlineNested")),
+                        CreateTextRun("CellInlineTwo"))));
+
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    WordHeader header = section.Header.Default!;
+                    header._header!.RemoveAllChildren<Paragraph>();
+                    header._header.Append(new Paragraph(CreateInlineContentControl(
+                        "Legacy DOC header inline content control",
+                        CreateTextRun("HeaderInlineOne"),
+                        CreateInlineContentControl("Legacy DOC nested header inline content control", CreateTextRun("HeaderInlineNested")),
+                        CreateTextRun("HeaderInlineTwo"))));
+
+                    WordFooter footer = section.Footer.Default!;
+                    footer._footer!.RemoveAllChildren<Paragraph>();
+                    footer._footer.Append(new Paragraph(CreateInlineContentControl(
+                        "Legacy DOC footer inline content control",
+                        CreateTextRun("FooterInlineOne"),
+                        CreateInlineContentControl("Legacy DOC nested footer inline content control", CreateTextRun("FooterInlineNested")),
+                        CreateTextRun("FooterInlineTwo"))));
+
+                    WordParagraph noteReferences = document.AddParagraph("Body with inline controlled notes");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    footnoteBody._paragraph.RemoveAllChildren<Run>();
+                    footnoteBody._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC footnote inline content control",
+                        CreateTextRun("FootnoteInlineOne"),
+                        CreateInlineContentControl("Legacy DOC nested footnote inline content control", CreateTextRun("FootnoteInlineNested")),
+                        CreateTextRun("FootnoteInlineTwo")));
+
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    endnoteBody._paragraph.RemoveAllChildren<Run>();
+                    endnoteBody._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC endnote inline content control",
+                        CreateTextRun("EndnoteInlineOne"),
+                        CreateInlineContentControl("Legacy DOC nested endnote inline content control", CreateTextRun("EndnoteInlineNested")),
+                        CreateTextRun("EndnoteInlineTwo")));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "BodyInlineContentControlBookmark");
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "BodyInlineOneBodyInlineNestedBodyInlineTwo");
+
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell reloadedCell = Assert.Single(reloadedTable.Rows[0].Cells);
+                Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "CellInlineOneCellInlineNestedCellInlineTwo");
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.Contains(reloadedSection.Header.Default!.Paragraphs, paragraph => paragraph.Text == "HeaderInlineOneHeaderInlineNestedHeaderInlineTwo");
+                Assert.Contains(reloadedSection.Footer.Default!.Paragraphs, paragraph => paragraph.Text == "FooterInlineOneFooterInlineNestedFooterInlineTwo");
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                Assert.Equal("FootnoteInlineOneFootnoteInlineNestedFootnoteInlineTwo", string.Concat(footnote.Paragraphs!.Select(GetNoteRunText)));
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                Assert.Equal("EndnoteInlineOneEndnoteInlineNestedEndnoteInlineTwo", string.Concat(endnote.Paragraphs!.Select(GetNoteRunText)));
+
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                Assert.Empty(mainPart.Document.Descendants<SdtRun>());
+                Assert.Empty(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SdtRun>()));
+                Assert.Empty(mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SdtRun>()));
+                Assert.Empty(mainPart.FootnotesPart!.Footnotes!.Descendants<SdtRun>());
+                Assert.Empty(mainPart.EndnotesPart!.Endnotes!.Descendants<SdtRun>());
             } finally {
                 DeleteIfExists(docPath);
             }
