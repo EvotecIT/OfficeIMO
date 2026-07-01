@@ -859,6 +859,9 @@ just to reserve names.
   - [x] Write simple section footnote placement, endnote placement, and
     footnote/endnote numbering settings, then reload them through the legacy
     reader.
+  - [x] Block unsupported section endnote restart-per-page settings before
+    native `.doc` bytes are committed, because Word 97-2003 endnote restart
+    operands do not carry that mode.
   - [x] Write simple authored footnote references and text bodies through native
     DOC save, then reload them through the legacy reader.
   - [x] Write simple authored endnote references and text bodies through native
