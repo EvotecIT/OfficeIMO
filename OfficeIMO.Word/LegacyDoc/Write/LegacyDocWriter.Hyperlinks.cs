@@ -36,8 +36,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         EnsureSupportedHyperlinkRun(run);
                         AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
                         break;
+                    case SdtRun sdtRun:
+                        AppendSupportedHyperlinkInlineContentControlText(text, runs, sdtRun, footnotes, endnotes, inheritedFormatting);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when they contain text runs. Unsupported hyperlink element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when they contain text runs and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
                 }
             }
 
@@ -86,6 +89,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         throw new NotSupportedException("Native DOC saving supports hyperlink display text only as regular text runs. Footnote and endnote references inside hyperlinks are not supported yet.");
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when their display text contains text, tabs, carriage returns, soft/no-break hyphens, and supported breaks. Unsupported hyperlink run element: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static void AppendSupportedHyperlinkInlineContentControlText(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            SdtRun sdtRun,
+            LegacyDocWritableFootnotes footnotes,
+            LegacyDocWritableEndnotes endnotes,
+            LegacyDocWritableFormatting inheritedFormatting) {
+            OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, "hyperlink inline content control");
+            foreach (OpenXmlElement child in children) {
+                switch (child) {
+                    case Run run:
+                        EnsureSupportedHyperlinkRun(run);
+                        AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting, allowHyperlinkRunStyle: true);
+                        break;
+                    case SdtRun nestedSdtRun:
+                        AppendSupportedHyperlinkInlineContentControlText(text, runs, nestedSdtRun, footnotes, endnotes, inheritedFormatting);
+                        break;
+                    default:
+                        if (IsIgnorableParagraphMarkup(child)) {
+                            break;
+                        }
+
+                        throw new NotSupportedException($"Native DOC saving supports hyperlink inline content controls only when they contain supported text runs and nested inline content controls. Unsupported hyperlink inline content-control element: {child.LocalName}.");
                 }
             }
         }

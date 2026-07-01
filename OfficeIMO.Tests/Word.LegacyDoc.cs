@@ -1473,6 +1473,18 @@ namespace OfficeIMO.Tests {
                 new SdtContentRun(children));
         }
 
+        private static void ReplaceHyperlinkDisplayWithInlineContentControl(Hyperlink hyperlink, string alias, string first, string nested, string second) {
+            foreach (OpenXmlElement child in hyperlink.ChildElements.ToArray()) {
+                child.Remove();
+            }
+
+            hyperlink.Append(CreateInlineContentControl(
+                alias,
+                CreateTextRun(first),
+                CreateInlineContentControl(alias + " nested", CreateTextRun(nested)),
+                CreateTextRun(second)));
+        }
+
         private static void AssertNoteBookmarkContent(WordParagraph paragraph, string bookmarkName, string expectedText) {
             OpenXmlElement[] content = paragraph._paragraph.ChildElements
                 .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
@@ -1548,6 +1560,15 @@ namespace OfficeIMO.Tests {
             foreach (WordParagraph paragraph in paragraphs) {
                 if (seen.Add(paragraph._paragraph)) {
                     yield return paragraph;
+                }
+            }
+        }
+
+        private static IEnumerable<WordHyperLink> DistinctHyperlinks(IEnumerable<WordHyperLink?> hyperlinks) {
+            var seen = new HashSet<Hyperlink>();
+            foreach (WordHyperLink? hyperlink in hyperlinks) {
+                if (hyperlink != null && seen.Add(hyperlink._hyperlink)) {
+                    yield return hyperlink;
                 }
             }
         }
@@ -2656,6 +2677,92 @@ namespace OfficeIMO.Tests {
 
                 Assert.Contains("footnote and endnote references", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHyperlinkInlineContentControlsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph bodyParagraph = document.AddParagraph("Body ");
+                    bodyParagraph.AddHyperLink("placeholder", new Uri("https://officeimo.net/body-inline-control"), addStyle: true);
+                    ReplaceHyperlinkDisplayWithInlineContentControl(bodyParagraph.Hyperlink!._hyperlink, "Legacy DOC body hyperlink inline content control", "BodyLinkOne", "BodyLinkNested", "BodyLinkTwo");
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell ", removeExistingParagraphs: true);
+                    cellParagraph.AddHyperLink("placeholder", new Uri("mailto:cell@example.org"), addStyle: true);
+                    ReplaceHyperlinkDisplayWithInlineContentControl(cellParagraph.Hyperlink!._hyperlink, "Legacy DOC table hyperlink inline content control", "CellLinkOne", "CellLinkNested", "CellLinkTwo");
+
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header ");
+                    headerParagraph.AddHyperLink("placeholder", new Uri("https://officeimo.net/header-inline-control"), addStyle: true);
+                    ReplaceHyperlinkDisplayWithInlineContentControl(headerParagraph.Hyperlink!._hyperlink, "Legacy DOC header hyperlink inline content control", "HeaderLinkOne", "HeaderLinkNested", "HeaderLinkTwo");
+
+                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer ");
+                    footerParagraph.AddHyperLink("placeholder", new Uri("mailto:footer@example.org"), addStyle: true);
+                    ReplaceHyperlinkDisplayWithInlineContentControl(footerParagraph.Hyperlink!._hyperlink, "Legacy DOC footer hyperlink inline content control", "FooterLinkOne", "FooterLinkNested", "FooterLinkTwo");
+
+                    WordParagraph noteReferences = document.AddParagraph("Notes ");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    footnoteBody.AddHyperLink("placeholder", new Uri("https://officeimo.net/footnote-inline-control"), addStyle: true);
+                    ReplaceHyperlinkDisplayWithInlineContentControl(footnoteBody.Hyperlink!._hyperlink, "Legacy DOC footnote hyperlink inline content control", "FootnoteLinkOne", "FootnoteLinkNested", "FootnoteLinkTwo");
+
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    endnoteBody.AddHyperLink("placeholder", new Uri("mailto:endnote@example.org"), addStyle: true);
+                    ReplaceHyperlinkDisplayWithInlineContentControl(endnoteBody.Hyperlink!._hyperlink, "Legacy DOC endnote hyperlink inline content control", "EndnoteLinkOne", "EndnoteLinkNested", "EndnoteLinkTwo");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+
+                WordHyperLink bodyLink = Assert.Single(DistinctHyperlinks(reloaded.HyperLinks), link => GetHyperlinkText(link._hyperlink) == "BodyLinkOneBodyLinkNestedBodyLinkTwo");
+                Assert.Equal("https://officeimo.net/body-inline-control", bodyLink.Uri?.ToString());
+
+                WordHyperLink tableLink = Assert.Single(
+                    DistinctHyperlinks(Assert.Single(reloaded.Tables).Rows[0].Cells[0].Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => GetHyperlinkText(link!._hyperlink) == "CellLinkOneCellLinkNestedCellLinkTwo")!;
+                Assert.Equal("mailto:cell@example.org", tableLink.Uri?.ToString());
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                WordHyperLink headerLink = Assert.Single(
+                    DistinctHyperlinks(reloadedSection.Header.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => GetHyperlinkText(link!._hyperlink) == "HeaderLinkOneHeaderLinkNestedHeaderLinkTwo")!;
+                Assert.Equal("https://officeimo.net/header-inline-control", headerLink.Uri?.ToString());
+
+                WordHyperLink footerLink = Assert.Single(
+                    DistinctHyperlinks(reloadedSection.Footer.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => GetHyperlinkText(link!._hyperlink) == "FooterLinkOneFooterLinkNestedFooterLinkTwo")!;
+                Assert.Equal("mailto:footer@example.org", footerLink.Uri?.ToString());
+
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                WordHyperLink footnoteLink = Assert.Single(
+                    DistinctHyperlinks(footnote.Paragraphs!.Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => GetHyperlinkText(link!._hyperlink) == "FootnoteLinkOneFootnoteLinkNestedFootnoteLinkTwo")!;
+                Assert.Equal("https://officeimo.net/footnote-inline-control", footnoteLink.Uri?.ToString());
+
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                WordHyperLink endnoteLink = Assert.Single(
+                    DistinctHyperlinks(endnote.Paragraphs!.Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => GetHyperlinkText(link!._hyperlink) == "EndnoteLinkOneEndnoteLinkNestedEndnoteLinkTwo")!;
+                Assert.Equal("mailto:endnote@example.org", endnoteLink.Uri?.ToString());
+
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                Assert.Empty(mainPart.Document.Descendants<SdtRun>());
+                Assert.Empty(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SdtRun>()));
+                Assert.Empty(mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SdtRun>()));
+                Assert.Empty(mainPart.FootnotesPart!.Footnotes!.Descendants<SdtRun>());
+                Assert.Empty(mainPart.EndnotesPart!.Endnotes!.Descendants<SdtRun>());
             } finally {
                 DeleteIfExists(docPath);
             }

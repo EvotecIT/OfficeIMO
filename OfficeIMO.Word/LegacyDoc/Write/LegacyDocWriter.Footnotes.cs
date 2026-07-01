@@ -397,8 +397,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         EnsureSupportedHyperlinkRun(run);
                         AppendSupportedNoteHyperlinkRunText(text, runs, run, id, noteKind, storyStart);
                         break;
+                    case SdtRun sdtRun:
+                        AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, sdtRun, id, noteKind, storyStart);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} hyperlinks only when they contain text runs. Unsupported hyperlink element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple {noteKind} hyperlinks only when they contain text runs and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
                 }
             }
 
@@ -438,6 +441,33 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text, tabs, carriage returns, soft/no-break hyphens, and text-wrapping/page/column break display runs. Unsupported hyperlink run element: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static void AppendSupportedNoteHyperlinkInlineContentControlText(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            SdtRun sdtRun,
+            long id,
+            string noteKind,
+            int storyStart) {
+            OpenXmlElement[] children = GetInlineContentControlChildren(sdtRun, $"{noteKind} id '{id}' hyperlink inline content control");
+            foreach (OpenXmlElement child in children) {
+                switch (child) {
+                    case Run run:
+                        EnsureSupportedHyperlinkRun(run);
+                        AppendSupportedNoteHyperlinkRunText(text, runs, run, id, noteKind, storyStart);
+                        break;
+                    case SdtRun nestedSdtRun:
+                        AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, nestedSdtRun, id, noteKind, storyStart);
+                        break;
+                    default:
+                        if (IsIgnorableParagraphMarkup(child)) {
+                            break;
+                        }
+
+                        throw new NotSupportedException($"Native DOC saving supports {noteKind} id '{id}' hyperlink inline content controls only when they contain supported text runs and nested inline content controls. Unsupported {noteKind} hyperlink inline content-control element: {child.LocalName}.");
                 }
             }
         }
