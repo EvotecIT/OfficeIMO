@@ -1032,6 +1032,9 @@ just to reserve names.
     - [x] Write corner conditional table style effects with the expected
       precedence over first-row and first-column effects, then reload the
       expanded DOC cell shading through the legacy reader.
+    - [x] Write last-row, last-column, and south-east corner conditional table
+      style effects from a compact `w:tblLook` mask, then reload the precedence
+      and expanded DOC cell shading through the legacy reader.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
