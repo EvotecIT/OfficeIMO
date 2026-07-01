@@ -544,6 +544,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectExplicitOffUnderlineHighlightAndVerticalPositionRuns() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleRunFormattingAndDirectExplicitOffRunFormatting();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph run = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("direct off", run.Text);
+            Assert.Equal("LegacyDocInheritedRunStyle", run.StyleId);
+
+            RunProperties runProperties = Assert.IsType<RunProperties>(run._runProperties);
+            Assert.Equal(UnderlineValues.None, runProperties.GetFirstChild<Underline>()?.Val?.Value);
+            Assert.Equal(HighlightColorValues.None, runProperties.GetFirstChild<Highlight>()?.Val?.Value);
+            Assert.Equal(VerticalPositionValues.Baseline, runProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
+
+            Style style = Assert.Single(
+                result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Elements<Style>(),
+                styleDefinition => styleDefinition.StyleId == "LegacyDocInheritedRunStyle");
+            StyleRunProperties styleRunProperties = Assert.IsType<StyleRunProperties>(style.StyleRunProperties);
+            Assert.Equal(UnderlineValues.Single, styleRunProperties.GetFirstChild<Underline>()?.Val?.Value);
+            Assert.Equal(HighlightColorValues.Yellow, styleRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
+            Assert.Equal(VerticalPositionValues.Superscript, styleRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsFontFamilyRunsThroughFontTable() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithFontFamilyFormatting();
 
@@ -11844,6 +11869,49 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithStyleRunFormattingAndDirectExplicitOffRunFormatting() {
+                const string text = "direct off\r";
+                const int textOffset = 0x200;
+                const int chpxFkpOffset = 0x400;
+                const int papxFkpOffset = 0x600;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Inherited Run Style",
+                        Array.Empty<byte>(),
+                        CreateStyleCharacterFormatting(
+                            CreateCharacterSprm(0x2A3E, 1),
+                            CreateCharacterSprm(0x2A0C, 7),
+                            CreateCharacterSprm(0x2A48, 1))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndexAndDirectCharacterFormatting(
+                    text,
+                    textOffset,
+                    chpxFkpOffset,
+                    papxFkpOffset,
+                    styleSheet.Length,
+                    1,
+                    CreateChpx(
+                        CreateCharacterSprm(0x2A3E, 0),
+                        CreateCharacterSprm(0x2A0C, 0),
+                        CreateCharacterSprm(0x2A48, 0)));
+                byte[] tableStream = CreateUnicodeTableStreamWithCharacterAndParagraphBinTablesAndStyleSheet(
+                    text.Length,
+                    textOffset,
+                    chpxFkpOffset / 512,
+                    papxFkpOffset / 512,
+                    styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithCustomStyleLevelParagraphFrame() {
                 const string text = "custom frame style\r";
                 const int textOffset = 0x200;
@@ -13141,6 +13209,50 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithStyleIndexAndDirectCharacterFormatting(string text, int textOffset, int chpxFkpOffset, int papxFkpOffset, int styleSheetLength, ushort styleIndex, byte[] chpx) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = System.Text.Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(Math.Max(chpxFkpOffset, papxFkpOffset) + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0xA2, 46);
+                WriteInt32(stream, 0xA6, styleSheetLength);
+                WriteInt32(stream, 0xFA, 21);
+                WriteInt32(stream, 0xFE, 12);
+                WriteInt32(stream, 0x102, 33);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                WriteChpxFkp(
+                    stream,
+                    chpxFkpOffset,
+                    new[] { textOffset, textOffset + textBytes.Length },
+                    new Dictionary<int, byte[]> {
+                        [0] = chpx
+                    });
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] { textOffset, textOffset + textBytes.Length },
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphPropertiesPapx(
+                            CreateParagraphSprm(
+                                0x4600,
+                                (byte)(styleIndex & 0xFF),
+                                (byte)(styleIndex >> 8)))
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableStream(int characterCount, int textOffset = 0x200) {
                 var table = new byte[21];
                 table[0] = 0x02;
@@ -13231,6 +13343,26 @@ namespace OfficeIMO.Tests {
                 byte[] table = CreateUnicodeTableStreamWithParagraphBinTable(characterCount, textOffset, papxFkpPageNumber);
                 Array.Resize(ref table, table.Length + 1 + styleSheet.Length);
                 Buffer.BlockCopy(styleSheet, 0, table, 34, styleSheet.Length);
+                return table;
+            }
+
+            private static byte[] CreateUnicodeTableStreamWithCharacterAndParagraphBinTablesAndStyleSheet(int characterCount, int textOffset, int chpxFkpPageNumber, int papxFkpPageNumber, byte[] styleSheet) {
+                var table = new byte[46 + styleSheet.Length];
+                table[0] = 0x02;
+                WriteInt32(table, 1, 16);
+                WriteInt32(table, 5, 0);
+                WriteInt32(table, 9, characterCount);
+                WriteUInt16(table, 13, 0);
+                WriteUInt32(table, 15, unchecked((uint)textOffset));
+                WriteUInt16(table, 19, 0);
+
+                WriteInt32(table, 21, textOffset);
+                WriteInt32(table, 25, textOffset + (characterCount * 2));
+                WriteInt32(table, 29, chpxFkpPageNumber);
+                WriteInt32(table, 33, textOffset);
+                WriteInt32(table, 37, textOffset + (characterCount * 2));
+                WriteInt32(table, 41, papxFkpPageNumber);
+                Buffer.BlockCopy(styleSheet, 0, table, 46, styleSheet.Length);
                 return table;
             }
 
@@ -13427,6 +13559,18 @@ namespace OfficeIMO.Tests {
                 chpx[0] = checked((byte)(2 + operand.Length));
                 WriteUInt16(chpx, 1, sprm);
                 Buffer.BlockCopy(operand, 0, chpx, 3, operand.Length);
+                return chpx;
+            }
+
+            private static byte[] CreateChpx(params byte[][] sprms) {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0);
+                foreach (byte[] sprm in sprms) {
+                    stream.Write(sprm, 0, sprm.Length);
+                }
+
+                byte[] chpx = stream.ToArray();
+                chpx[0] = checked((byte)(chpx.Length - 1));
                 return chpx;
             }
 

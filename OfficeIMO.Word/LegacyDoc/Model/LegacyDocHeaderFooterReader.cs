@@ -356,7 +356,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     currentFormat.FontFamily,
                     runCharacterPositions,
                     currentHyperlinkTarget.Uri,
-                    currentHyperlinkTarget.Anchor));
+                    currentHyperlinkTarget.Anchor,
+                    specified: currentFormat.Specified));
                 runText.Clear();
                 runCharacterPositions.Clear();
             }

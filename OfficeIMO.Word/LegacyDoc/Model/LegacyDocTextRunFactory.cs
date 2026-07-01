@@ -26,7 +26,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 format.FontFamily,
                 characterPositions,
                 fieldKind: fieldKind,
-                fieldInstruction: fieldInstruction);
+                fieldInstruction: fieldInstruction,
+                specified: format.Specified);
         }
     }
 }

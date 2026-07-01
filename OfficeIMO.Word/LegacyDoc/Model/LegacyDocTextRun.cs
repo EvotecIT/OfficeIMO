@@ -22,7 +22,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? hyperlinkAnchor = null,
             bool noProof = false,
             LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None,
-            string? fieldInstruction = null)
+            string? fieldInstruction = null,
+            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None)
             : this(
                 text,
                 bold,
@@ -46,7 +47,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 hyperlinkUri,
                 hyperlinkAnchor,
                 fieldKind,
-                fieldInstruction) {
+                fieldInstruction,
+                specified) {
         }
 
         internal LegacyDocTextRun(
@@ -72,7 +74,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             string? hyperlinkUri = null,
             string? hyperlinkAnchor = null,
             LegacyDocFieldKind fieldKind = LegacyDocFieldKind.None,
-            string? fieldInstruction = null) {
+            string? fieldInstruction = null,
+            LegacyDocCharacterFormatProperties specified = LegacyDocCharacterFormatProperties.None) {
             Text = text;
             Bold = bold;
             Italic = italic;
@@ -98,6 +101,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             HyperlinkAnchor = string.IsNullOrWhiteSpace(hyperlinkAnchor) ? null : hyperlinkAnchor;
             FieldKind = fieldKind;
             FieldInstruction = string.IsNullOrWhiteSpace(fieldInstruction) ? null : fieldInstruction;
+            Specified = specified;
         }
 
         internal string Text { get; }
@@ -146,6 +150,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal string? FieldInstruction { get; }
 
+        internal LegacyDocCharacterFormatProperties Specified { get; }
+
         internal bool IsPageNumber => FieldKind == LegacyDocFieldKind.Page;
 
         internal bool IsNumPages => FieldKind == LegacyDocFieldKind.NumPages;
@@ -156,6 +162,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || FieldKind == LegacyDocFieldKind.CreateDate
             || FieldKind == LegacyDocFieldKind.SaveDate
             || FieldKind == LegacyDocFieldKind.PrintDate;
+
+        internal bool IsSpecified(LegacyDocCharacterFormatProperties property) {
+            return (Specified & property) != 0;
+        }
 
         internal LegacyDocHyperlinkTarget HyperlinkTarget {
             get {

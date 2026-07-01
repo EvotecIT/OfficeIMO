@@ -1104,7 +1104,8 @@ namespace OfficeIMO.Word {
                 source.FontFamily,
                 source.CharacterPositions,
                 fieldKind: source.FieldKind,
-                fieldInstruction: source.FieldInstruction);
+                fieldInstruction: source.FieldInstruction,
+                specified: source.Specified);
         }
 
         private static void AddLegacyDocPageNumber(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
@@ -2174,14 +2175,20 @@ namespace OfficeIMO.Word {
 
             if (legacyRun.VerticalPosition != null && TryMapVerticalPosition(legacyRun.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
                 run.VerticalTextAlignment = verticalPosition;
+            } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.VerticalPosition)) {
+                run.VerticalTextAlignment = VerticalPositionValues.Baseline;
             }
 
             if (legacyRun.Underline != null && TryMapUnderline(legacyRun.Underline.Value, out UnderlineValues underline)) {
                 run.Underline = underline;
+            } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Underline)) {
+                run.Underline = UnderlineValues.None;
             }
 
             if (legacyRun.Highlight != null && TryMapHighlight(legacyRun.Highlight.Value, out HighlightColorValues highlight)) {
                 run.Highlight = highlight;
+            } else if (legacyRun.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)) {
+                run.Highlight = HighlightColorValues.None;
             }
 
             if (legacyRun.FontSizeHalfPoints != null) {
