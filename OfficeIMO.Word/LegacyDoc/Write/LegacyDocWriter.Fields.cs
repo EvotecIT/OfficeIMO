@@ -30,6 +30,79 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendSupportedField(text, runs, fieldKind, formatting);
         }
 
+        private static bool IsComplexFieldBeginRun(Run run) {
+            FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
+            return fieldChar?.FieldCharType?.Value == FieldCharValues.Begin;
+        }
+
+        private static void AppendSupportedComplexPageNumberField(
+            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            ref int childIndex,
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableFormatting inheritedFormatting) {
+            var instruction = new StringBuilder();
+            LegacyDocWritableFormatting? resultFormatting = null;
+            bool sawSeparator = false;
+            int index = childIndex;
+            for (; index < paragraphChildren.Count; index++) {
+                if (paragraphChildren[index] is not Run run) {
+                    throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields only when the whole field is represented by adjacent runs.");
+                }
+
+                LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    switch (child) {
+                        case RunProperties:
+                        case LastRenderedPageBreak:
+                            break;
+                        case FieldCode fieldCode when !sawSeparator:
+                            instruction.Append(fieldCode.Text);
+                            break;
+                        case Text when sawSeparator:
+                            resultFormatting ??= runFormatting;
+                            if (!resultFormatting.Value.Equals(runFormatting)) {
+                                throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields only when their display runs use one formatting set.");
+                            }
+
+                            break;
+                        case FieldChar fieldChar:
+                            FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                            if (fieldCharType == FieldCharValues.Begin) {
+                                if (index != childIndex) {
+                                    throw new NotSupportedException("Native DOC saving does not support nested complex fields in PAGE and NUMPAGES field runs.");
+                                }
+
+                                break;
+                            }
+
+                            if (fieldCharType == FieldCharValues.Separate) {
+                                sawSeparator = true;
+                                break;
+                            }
+
+                            if (fieldCharType == FieldCharValues.End) {
+                                if (!TryReadSupportedFieldKind(instruction.ToString(), out LegacyDocFieldKind fieldKind)) {
+                                    throw new NotSupportedException("Native DOC saving currently supports only PAGE and NUMPAGES complex fields. Other field types are not supported yet.");
+                                }
+
+                                LegacyDocWritableFormatting formatting = (resultFormatting ?? LegacyDocWritableFormatting.Plain)
+                                    .WithInheritedFormatting(inheritedFormatting);
+                                AppendSupportedField(text, runs, fieldKind, formatting);
+                                childIndex = index;
+                                return;
+                            }
+
+                            throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields only with begin, separate, and end field characters.");
+                        default:
+                            throw new NotSupportedException($"Native DOC saving supports PAGE and NUMPAGES complex fields only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
+                    }
+                }
+            }
+
+            throw new NotSupportedException("Native DOC saving cannot write an unterminated PAGE or NUMPAGES complex field.");
+        }
+
         private static bool TryReadSupportedFieldKind(string? instruction, out LegacyDocFieldKind fieldKind) {
             fieldKind = LegacyDocFieldKind.None;
             if (string.IsNullOrWhiteSpace(instruction)) {

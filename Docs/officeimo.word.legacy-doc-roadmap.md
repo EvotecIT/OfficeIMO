@@ -621,6 +621,9 @@ just to reserve names.
   - [x] Write simple `PAGE` and `NUMPAGES` fields inside authored footnote and
     endnote story paragraphs, then reload them through the legacy reader without
     exposing DOC field instructions as visible note text.
+  - [x] Write supported header/footer page-number style content controls whose
+    simple paragraphs contain complex `PAGE` and `NUMPAGES` fields, covering
+    the normal `AddPageNumber(WordPageNumberStyle.PageNumberXofY)` path.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

@@ -2726,6 +2726,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFooterPageNumberStyleAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with styled footer page number");
+                    WordFooter footer = document.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default);
+                    footer.AddPageNumber(WordPageNumberStyle.PageNumberXofY);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                string wordDocumentAscii = Encoding.ASCII.GetString(wordDocumentStream);
+                Assert.Contains("PAGE", wordDocumentAscii);
+                Assert.Contains("NUMPAGES", wordDocumentAscii);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                List<WordParagraph> footerParagraphs = reloaded.Sections[0].Footer.Default!.Paragraphs;
+                Assert.Contains(footerParagraphs, paragraph => paragraph.Text == "Page ");
+                Assert.Contains(footerParagraphs, paragraph => paragraph.Text == " of ");
+                Assert.Contains(
+                    footerParagraphs,
+                    paragraph => paragraph._paragraph.Descendants<DocumentFormat.OpenXml.Wordprocessing.PageNumber>().Any());
+                SimpleField totalPagesField = Assert.Single(
+                    footerParagraphs
+                        .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
+                        .Distinct(),
+                    field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
+                Assert.Equal("1", totalPagesField.InnerText);
+                foreach (WordParagraph paragraph in footerParagraphs) {
+                    Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                    Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Begin);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Separator);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.End);
+                }
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterEmptyParagraphsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

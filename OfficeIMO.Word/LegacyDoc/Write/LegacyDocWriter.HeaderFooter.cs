@@ -208,14 +208,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement child in container.ChildElements) {
                 switch (child) {
                     case Paragraph paragraph:
-                        int paragraphStart = storyText.Length;
-                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
-                        paragraphs.Add(paragraphText);
-                        storyText.Append('\r');
-                        if (paragraphFormatting.HasFormatting) {
-                            formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, storyText.Length - paragraphStart, paragraphFormatting));
-                        }
-
+                        AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, kind, styleIndexes);
+                        break;
+                    case SdtBlock sdtBlock:
+                        AppendSimpleHeaderFooterContentControl(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, sdtBlock, relationshipOwner, kind, styleIndexes);
                         break;
                     case BookmarkStart bookmarkStart:
                         bookmarks.AddStart(bookmarkStart, storyText.Length);
@@ -237,15 +233,67 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return new LegacyDocWritableHeaderFooterStory(storyText.ToString(), formattedRuns, formattedParagraphs, bookmarks.Create());
         }
 
+        private static void AppendSimpleHeaderFooterContentControl(
+            StringBuilder storyText,
+            List<LegacyDocWritableRun> formattedRuns,
+            List<LegacyDocWritableParagraph> formattedParagraphs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            List<string> paragraphs,
+            SdtBlock sdtBlock,
+            OpenXmlPartContainer relationshipOwner,
+            string kind,
+            IReadOnlyDictionary<string, ushort> styleIndexes) {
+            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
+            if (contentBlock == null) {
+                throw new NotSupportedException($"Native DOC saving supports {kind} content controls only when they contain simple paragraphs.");
+            }
+
+            foreach (OpenXmlElement child in contentBlock.ChildElements) {
+                switch (child) {
+                    case Paragraph paragraph:
+                        AppendSimpleHeaderFooterParagraph(storyText, formattedRuns, formattedParagraphs, bookmarks, paragraphs, paragraph, relationshipOwner, kind, styleIndexes);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports {kind} content controls only when they contain simple paragraphs. Unsupported {kind} content control element: {child.LocalName}.");
+                }
+            }
+        }
+
+        private static void AppendSimpleHeaderFooterParagraph(
+            StringBuilder storyText,
+            List<LegacyDocWritableRun> formattedRuns,
+            List<LegacyDocWritableParagraph> formattedParagraphs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            List<string> paragraphs,
+            Paragraph paragraph,
+            OpenXmlPartContainer relationshipOwner,
+            string kind,
+            IReadOnlyDictionary<string, ushort> styleIndexes) {
+            int paragraphStart = storyText.Length;
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
+            paragraphs.Add(paragraphText);
+            storyText.Append('\r');
+            if (paragraphFormatting.HasFormatting) {
+                formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, storyText.Length - paragraphStart, paragraphFormatting));
+            }
+        }
+
         private static LegacyDocWritableParagraphFormatting ReadSimpleHeaderFooterParagraph(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes, out string paragraphText) {
             var text = new StringBuilder();
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedHeaderFooterParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
+            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            for (int index = 0; index < children.Length; index++) {
+                OpenXmlElement child = children[index];
                 switch (child) {
                     case ParagraphProperties:
                         break;
                     case Run run:
-                        AppendFormattedHeaderFooterRun(storyText, formattedRuns, text, run, kind);
+                        if (IsComplexFieldBeginRun(run)) {
+                            AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, text, children, ref index, kind);
+                        } else {
+                            AppendFormattedHeaderFooterRun(storyText, formattedRuns, text, run, kind);
+                        }
+
                         break;
                     case Hyperlink hyperlink:
                         AppendFormattedHeaderFooterHyperlink(storyText, formattedRuns, text, hyperlink, relationshipOwner, kind);
@@ -272,6 +320,23 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return paragraphFormatting;
         }
 
+        private static LegacyDocWritableParagraphFormatting ReadSupportedHeaderFooterParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) {
+            ParagraphStyleId? paragraphStyleId = paragraphProperties?.GetFirstChild<ParagraphStyleId>();
+            string? styleId = paragraphStyleId?.Val?.Value;
+            if (!IsHeaderFooterParagraphStyle(styleId)) {
+                return ReadSupportedParagraphFormatting(paragraphProperties, styleIndexes);
+            }
+
+            ParagraphProperties clonedProperties = (ParagraphProperties)paragraphProperties!.CloneNode(true);
+            clonedProperties.RemoveAllChildren<ParagraphStyleId>();
+            return ReadSupportedParagraphFormatting(clonedProperties, styleIndexes);
+        }
+
+        private static bool IsHeaderFooterParagraphStyle(string? styleId) {
+            return string.Equals(styleId, "Header", StringComparison.OrdinalIgnoreCase)
+                || string.Equals(styleId, "Footer", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static void AppendFormattedHeaderFooterHyperlink(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Hyperlink hyperlink, OpenXmlPartContainer relationshipOwner, string kind) {
             int before = storyText.Length;
             try {
@@ -291,6 +356,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AppendSupportedPageNumberFieldFromSimpleField(storyText, formattedRuns, simpleField, LegacyDocWritableFormatting.Plain);
             } catch (NotSupportedException exception) {
                 throw new NotSupportedException($"Native DOC saving supports simple {kind} PAGE and NUMPAGES fields only. {exception.Message}", exception);
+            }
+
+            if (storyText.Length > before) {
+                paragraphText.Append(storyText.ToString(before, storyText.Length - before));
+            }
+        }
+
+        private static void AppendFormattedHeaderFooterComplexPageNumberField(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, IReadOnlyList<OpenXmlElement> paragraphChildren, ref int childIndex, string kind) {
+            int before = storyText.Length;
+            try {
+                AppendSupportedComplexPageNumberField(paragraphChildren, ref childIndex, storyText, formattedRuns, LegacyDocWritableFormatting.Plain);
+            } catch (NotSupportedException exception) {
+                throw new NotSupportedException($"Native DOC saving supports complex {kind} PAGE and NUMPAGES fields only. {exception.Message}", exception);
             }
 
             if (storyText.Length > before) {
