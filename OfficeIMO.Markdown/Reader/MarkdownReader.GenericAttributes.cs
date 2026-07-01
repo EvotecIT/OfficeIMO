@@ -134,17 +134,69 @@ public static partial class MarkdownReader {
         }
 
         if (target.Attributes.IsEmpty) {
-            if (target is HeadingBlock heading) {
-                heading.OffsetRelativeSourceInfoLines(Math.Max(0, blockStartLine + 1 - pending.SourceSpan.StartLine));
-            }
-
-            target.SetAttributes(pending.Attributes);
-            MarkdownGenericAttributeSourceSpans.Set(target, pending.SourceText, pending.SourceSpan);
+            ApplyPendingGenericAttributes(target, pending, blockStartLine);
+        } else {
+            target.SetAttributes(MergeGenericAttributes(pending.Attributes, target.Attributes));
         }
 
         captureStartLine = pending.SourceSpan.StartLine - 1;
         state.PendingGenericAttributeBlock = null;
         return true;
+    }
+
+    private static void ApplyPendingGenericAttributes(
+        MarkdownObject target,
+        MarkdownPendingGenericAttributeBlock pending,
+        int blockStartLine) {
+        if (target is HeadingBlock heading) {
+            heading.OffsetRelativeSourceInfoLines(Math.Max(0, blockStartLine + 1 - pending.SourceSpan.StartLine));
+        }
+
+        target.SetAttributes(pending.Attributes);
+        MarkdownGenericAttributeSourceSpans.Set(target, pending.SourceText, pending.SourceSpan);
+    }
+
+    private static MarkdownAttributeSet MergeGenericAttributes(MarkdownAttributeSet pending, MarkdownAttributeSet target) {
+        if (pending == null || pending.IsEmpty) {
+            return target ?? MarkdownAttributeSet.Empty;
+        }
+
+        if (target == null || target.IsEmpty) {
+            return pending;
+        }
+
+        var classes = new List<string>();
+        AddClasses(classes, pending.Classes);
+        AddClasses(classes, target.Classes);
+
+        var attributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var attribute in pending.Attributes) {
+            attributes[attribute.Key] = attribute.Value;
+        }
+
+        foreach (var attribute in target.Attributes) {
+            attributes[attribute.Key] = attribute.Value;
+        }
+
+        return MarkdownAttributeSet.Create(
+            string.IsNullOrWhiteSpace(target.ElementId) ? pending.ElementId : target.ElementId,
+            classes,
+            attributes);
+    }
+
+    private static void AddClasses(List<string> target, IReadOnlyList<string> source) {
+        if (target == null || source == null) {
+            return;
+        }
+
+        for (int i = 0; i < source.Count; i++) {
+            var className = source[i];
+            if (string.IsNullOrWhiteSpace(className) || target.Contains(className)) {
+                continue;
+            }
+
+            target.Add(className);
+        }
     }
 
     private static bool TryTakePendingGenericAttributeBlock(

@@ -108,6 +108,37 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("{#docs .anchor}\n# Heading\n", roundtrip.Markdown);
     }
 
+    [Fact]
+    public void Standalone_GenericAttributes_Merge_With_Following_Heading_TrailingAttributes() {
+        const string markdown = "{#outer .pending data-role=outer}\n# Heading {#inner .local data-role=inner data-extra=value}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var headingBlock = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("inner", headingBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "pending", "local" }, headingBlock.Attributes.Classes);
+        Assert.Equal("inner", headingBlock.Attributes.GetAttribute("data-role"));
+        Assert.Equal("value", headingBlock.Attributes.GetAttribute("data-extra"));
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            AutoHeadingIdentifiers = false
+        });
+
+        Assert.Contains("<h1", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"inner\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pending local\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-role=\"inner\"", html, StringComparison.Ordinal);
+        Assert.Contains("data-extra=\"value\"", html, StringComparison.Ordinal);
+        Assert.Contains(">Heading</h1>", html, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("{#intro .wide}\nHeading\n=====\n", 2, 3, "{#docs .anchor}\nHeading\n=====\n")]
     [InlineData("{#intro .wide}\n\nHeading\n=====\n", 3, 4, "{#docs .anchor}\n\nHeading\n=====\n")]

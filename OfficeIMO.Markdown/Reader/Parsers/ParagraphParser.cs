@@ -29,7 +29,7 @@ public static partial class MarkdownReader {
                    !StartsTable(lines, j, options, state) &&
                    !IsParagraphInterruptingThematicBreakLine(lines[j]) &&
                    !IsParagraphInterruptingUnorderedListLine(lines[j]) &&
-                   !IsParagraphInterruptingOrderedListLine(lines[j]) &&
+                   !IsParagraphInterruptingOrderedListLine(lines[j], options) &&
                    !IsCustomContainerOpeningLine(lines[j], options) &&
                    (!options.Callouts || !IsCalloutHeader(lines[j], options, out _, out _)) &&
                    !IsQuoteStarter(lines[j]) &&

@@ -273,7 +273,7 @@ public static partial class MarkdownReader {
                 return terms.Count > 0;
             }
 
-            if (!IsMarkdigDefinitionTermCandidate(line)) {
+            if (!IsMarkdigDefinitionTermCandidate(line, options)) {
                 return false;
             }
 
@@ -344,13 +344,13 @@ public static partial class MarkdownReader {
             consumedWhitespace);
     }
 
-    private static bool IsMarkdigDefinitionTermCandidate(string line) {
+    private static bool IsMarkdigDefinitionTermCandidate(string line, MarkdownReaderOptions options) {
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingIndentColumns(line) >= 4) return false;
         var trimmed = line.TrimStart();
         if (IsAtxHeading(trimmed, out _, out _)) return false;
         if (IsUnorderedListLine(trimmed, out _, out _, out _)) return false;
-        if (IsOrderedListLine(trimmed, out _, out _)) return false;
+        if (IsOrderedListLine(trimmed, options, out _, out _)) return false;
         if (StartsWithReferenceDefinitionLikeLabel(trimmed)) return false;
         return true;
     }

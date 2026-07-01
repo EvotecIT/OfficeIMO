@@ -262,6 +262,23 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocument_Does_Not_Drop_Repeated_List_Item_Paragraph_After_Nested_Block() {
+        string markdown = """
+            - repeat
+
+              > quote
+
+              repeat
+            """;
+
+        RtfDocument document = markdown.ToRtfDocumentFromMarkdown();
+        var plainText = document.Paragraphs.Select(paragraph => paragraph.ToPlainText()).ToArray();
+
+        Assert.Equal(2, plainText.Count(text => text == "repeat"));
+        Assert.Contains("quote", plainText);
+    }
+
+    [Fact]
     public void MarkdownToRtfDocumentKeepsNestedListsInSameListDefinition() {
         RtfDocument document = """
             3. Parent

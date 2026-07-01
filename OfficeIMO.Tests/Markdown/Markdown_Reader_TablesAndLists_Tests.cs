@@ -134,6 +134,25 @@ First paragraph
         }
 
         [Fact]
+        public void ListExtras_Ordered_List_Interrupts_Paragraph_When_Enabled() {
+            const string md = """
+intro
+a. alpha
+""";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[1]);
+
+            Assert.Equal("intro", paragraph.Inlines.RenderMarkdown());
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("alpha", Assert.Single(list.Items).Content.RenderMarkdown());
+        }
+
+        [Fact]
         public void Delimited_Table_Stops_Before_Plain_Paragraph_Line() {
             const string md = """
 | A |

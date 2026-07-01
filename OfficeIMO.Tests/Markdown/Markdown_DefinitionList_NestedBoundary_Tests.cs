@@ -777,6 +777,27 @@ Term
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Fact]
+    public void DefinitionList_Does_Not_Treat_ListExtras_Ordered_Item_As_Term() {
+        const string markdown = """
+a. item
+: definition
+""";
+
+        var options = CreateMarkdigDefinitionListReaderOptions();
+        options.ListExtras = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        Assert.DoesNotContain(result.Document.Blocks, block => block is DefinitionListBlock);
+        var list = Assert.IsType<OrderedListBlock>(Assert.Single(result.Document.Blocks));
+
+        Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+        Assert.Contains("item", Assert.Single(list.Items).Content.RenderMarkdown(), StringComparison.Ordinal);
+        Assert.Contains(": definition", list.Items[0].Content.RenderMarkdown(), StringComparison.Ordinal);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);

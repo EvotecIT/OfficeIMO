@@ -140,7 +140,7 @@ internal static class MarkdownToRtfConverter {
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-                if (IsDuplicateListItemContentBlock(item, item.ChildBlocks[childIndex])) {
+                if (childIndex == 0 && IsDuplicateListItemContentBlock(item, item.ChildBlocks[childIndex])) {
                     continue;
                 }
 
