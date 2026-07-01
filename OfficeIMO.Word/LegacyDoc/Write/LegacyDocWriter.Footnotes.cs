@@ -363,6 +363,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             resultText.Append(textNode.Text);
                             resultOffset = resultText.Length;
                             break;
+                        case TabChar when sawSeparator:
+                        case CarriageReturn when sawSeparator:
+                        case NoBreakHyphen when sawSeparator:
+                        case SoftHyphen when sawSeparator:
+                        case Break when sawSeparator:
+                            resultFormatting ??= runFormatting;
+                            if (!resultFormatting.Value.Equals(runFormatting)) {
+                                throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when their display runs use one formatting set.");
+                            }
+
+                            AppendSupportedFieldResultElementText(resultText, child);
+                            resultOffset = resultText.Length;
+                            break;
                         case FieldChar fieldChar:
                             FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
                             if (fieldCharType == FieldCharValues.Begin) {

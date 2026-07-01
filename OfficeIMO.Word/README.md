@@ -171,9 +171,10 @@ is available for the supported simple subset: paragraphs, simple zero-length,
 same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
 header/footer, and footnote/endnote paragraph bookmarks, simple external and
 internal bookmark hyperlinks with supported text, tab, soft/no-break hyphen,
-break display runs, simple static date/time fields with static display text
-including inside flattened inline content controls, simple inline
-content-control display text, and simple block content controls with nested
+break display runs, simple static date/time fields with static display text and
+supported inline result characters including inside flattened inline content
+controls, simple inline content-control display text, and simple block content
+controls with nested
 simple block controls plus nested inline content controls in
 body/table/header/footer/footnote/endnote stories, common run and paragraph
 formatting including proofing exclusion,

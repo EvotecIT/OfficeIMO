@@ -1134,6 +1134,15 @@ namespace OfficeIMO.Word {
                 || character == LegacyDocFootnoteReader.FootnoteReferenceCharacter;
         }
 
+        private static bool IsLegacyDocFieldResultSpecialRunCharacter(char character) {
+            return character == '\t'
+                || character == LegacyDocSpecialCharacters.SoftHyphen
+                || character == LegacyDocSpecialCharacters.NoBreakHyphen
+                || character == LegacyDocSpecialCharacters.TextWrappingBreak
+                || character == LegacyDocSpecialCharacters.PageBreak
+                || character == LegacyDocSpecialCharacters.ColumnBreak;
+        }
+
         private static bool IsLegacyDocHyperlinkSpecialRunCharacter(char character) {
             return character == '\t'
                 || character == LegacyDocSpecialCharacters.TextWrappingBreak
@@ -1190,25 +1199,66 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocNumberOfPages(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
             var simpleField = new SimpleField { Instruction = " NUMPAGES  " };
-            var run = new Run(new Text(string.IsNullOrEmpty(legacyRun.Text) ? "1" : legacyRun.Text) {
-                Space = SpaceProcessingModeValues.Preserve
-            });
-            simpleField.Append(run);
+            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, string.IsNullOrEmpty(legacyRun.Text) ? "1" : legacyRun.Text);
             paragraph._paragraph.Append(simpleField);
-            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
         private static void AddLegacyDocStaticDateTimeField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
             var simpleField = new SimpleField { Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction) ? GetLegacyDocStaticDateTimeInstruction(legacyRun.FieldKind) : legacyRun.FieldInstruction };
-            var run = new Run(new Text(legacyRun.Text) {
+            AppendLegacyDocFieldResultContent(simpleField, paragraph, legacyRun, legacyRun.Text);
+            paragraph._paragraph.Append(simpleField);
+            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
+        }
+
+        private static void AppendLegacyDocFieldResultContent(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, string resultText) {
+            int segmentStart = 0;
+            for (int index = 0; index < resultText.Length; index++) {
+                char character = resultText[index];
+                if (!IsLegacyDocFieldResultSpecialRunCharacter(character)) {
+                    continue;
+                }
+
+                AppendLegacyDocFieldTextSegment(simpleField, paragraph, legacyRun, resultText, segmentStart, index - segmentStart);
+                AppendLegacyDocFieldSpecialRun(simpleField, paragraph, legacyRun, character);
+                segmentStart = index + 1;
+            }
+
+            AppendLegacyDocFieldTextSegment(simpleField, paragraph, legacyRun, resultText, segmentStart, resultText.Length - segmentStart);
+            if (!simpleField.HasChildren) {
+                AppendLegacyDocFieldTextSegment(simpleField, paragraph, legacyRun, "1", 0, 1);
+            }
+        }
+
+        private static void AppendLegacyDocFieldTextSegment(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, string text, int startIndex, int length) {
+            if (length <= 0) {
+                return;
+            }
+
+            var run = new Run(new Text(text.Substring(startIndex, length)) {
                 Space = SpaceProcessingModeValues.Preserve
             });
             simpleField.Append(run);
-            paragraph._paragraph.Append(simpleField);
             ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
-            bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
+        }
+
+        private static void AppendLegacyDocFieldSpecialRun(SimpleField simpleField, WordParagraph paragraph, LegacyDocTextRun legacyRun, char character) {
+            var run = new Run();
+            if (character == '\t') {
+                run.Append(new TabChar());
+            } else if (character == LegacyDocSpecialCharacters.SoftHyphen) {
+                run.Append(new SoftHyphen());
+            } else if (character == LegacyDocSpecialCharacters.NoBreakHyphen) {
+                run.Append(new NoBreakHyphen());
+            } else {
+                run.Append(character == LegacyDocSpecialCharacters.TextWrappingBreak
+                    ? new Break()
+                    : new Break { Type = GetLegacyDocBreakType(character) });
+            }
+
+            simpleField.Append(run);
+            ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
         }
 
         private static string GetLegacyDocStaticDateTimeInstruction(LegacyDocFieldKind fieldKind) {

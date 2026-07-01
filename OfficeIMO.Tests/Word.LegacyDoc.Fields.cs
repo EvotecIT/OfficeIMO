@@ -187,6 +187,69 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocFieldResultInlineCharactersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    AppendSimpleFieldWithResultRun(
+                        document.AddParagraph("Body inline field ")._paragraph,
+                        " DATE \\@ \"yyyy-MM-dd\" ",
+                        "Body",
+                        BreakValues.TextWrapping);
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell inline field ", removeExistingParagraphs: true);
+                    AppendComplexFieldWithResultRun(
+                        cellParagraph._paragraph,
+                        " TIME \\@ \"HH:mm\" ",
+                        "Cell",
+                        BreakValues.Page);
+
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    AppendSimpleFieldWithResultRun(
+                        section.Header.Default!.AddParagraph("Header inline field ")._paragraph,
+                        " CREATEDATE \\@ \"yyyy-MM-dd\" ",
+                        "Header",
+                        BreakValues.Column);
+
+                    WordParagraph noteReferences = document.AddParagraph("Notes ");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    AppendSimpleFieldWithResultRun(
+                        footnoteBody._paragraph,
+                        " SAVEDATE \\@ \"yyyy-MM-dd\" ",
+                        "Footnote",
+                        BreakValues.TextWrapping);
+
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    AppendComplexFieldWithResultRun(
+                        endnoteBody._paragraph,
+                        " PRINTDATE \\@ \"yyyy-MM-dd\" ",
+                        "Endnote",
+                        BreakValues.Page);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                SimpleField[] fields = GetReloadedDateTimeFields(reloaded._wordprocessingDocument!.MainDocumentPart!).ToArray();
+                AssertFieldResultInlineContent(fields, "DATE", "BodyTextSoftHyphenHardHyphenWrap", BreakValues.TextWrapping);
+                AssertFieldResultInlineContent(fields, "TIME", "CellTextSoftHyphenHardHyphenWrap", BreakValues.Page);
+                AssertFieldResultInlineContent(fields, "CREATEDATE", "HeaderTextSoftHyphenHardHyphenWrap", BreakValues.Column);
+                AssertFieldResultInlineContent(fields, "SAVEDATE", "FootnoteTextSoftHyphenHardHyphenWrap", BreakValues.TextWrapping);
+                AssertFieldResultInlineContent(fields, "PRINTDATE", "EndnoteTextSoftHyphenHardHyphenWrap", BreakValues.Page);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocInlineContentControlStaticDateTimeFieldsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -289,6 +352,33 @@ namespace OfficeIMO.Tests {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
         }
 
+        private static void AppendSimpleFieldWithResultRun(Paragraph paragraph, string instruction, string prefix, BreakValues breakType) {
+            var simpleField = new SimpleField { Instruction = instruction };
+            simpleField.Append(CreateInlineFieldResultRun(prefix, breakType));
+            paragraph.Append(simpleField);
+        }
+
+        private static void AppendComplexFieldWithResultRun(Paragraph paragraph, string instruction, string prefix, BreakValues breakType) {
+            paragraph.Append(
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(instruction) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                CreateInlineFieldResultRun(prefix, breakType),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        }
+
+        private static Run CreateInlineFieldResultRun(string prefix, BreakValues breakType) {
+            return new Run(
+                new Text(prefix + "Text") { Space = SpaceProcessingModeValues.Preserve },
+                new TabChar(),
+                new SoftHyphen(),
+                new Text("SoftHyphen") { Space = SpaceProcessingModeValues.Preserve },
+                new NoBreakHyphen(),
+                new Text("HardHyphen") { Space = SpaceProcessingModeValues.Preserve },
+                breakType == BreakValues.TextWrapping ? new Break() : new Break { Type = breakType },
+                new Text("Wrap") { Space = SpaceProcessingModeValues.Preserve });
+        }
+
         private static SimpleField CreateSimpleField(string instruction, string resultText) {
             var simpleField = new SimpleField { Instruction = instruction };
             simpleField.Append(CreateTextRun(resultText));
@@ -334,6 +424,19 @@ namespace OfficeIMO.Tests {
         private static bool IsFieldWithText(SimpleField field, string fieldName, string expectedText) {
             return IsFieldInstruction(field, fieldName)
                 && string.Concat(field.Descendants<Text>().Select(text => text.Text)) == expectedText;
+        }
+
+        private static void AssertFieldResultInlineContent(IEnumerable<SimpleField> fields, string fieldName, string expectedText, BreakValues expectedBreakType) {
+            SimpleField field = Assert.Single(fields, field => IsFieldWithText(field, fieldName, expectedText));
+            Assert.Single(field.Descendants<TabChar>());
+            Assert.NotEmpty(field.Descendants<SoftHyphen>());
+            Assert.NotEmpty(field.Descendants<NoBreakHyphen>());
+            Break resultBreak = Assert.Single(field.Descendants<Break>());
+            if (expectedBreakType == BreakValues.TextWrapping) {
+                Assert.True(resultBreak.Type == null || resultBreak.Type.Value == BreakValues.TextWrapping);
+            } else {
+                Assert.Equal(expectedBreakType, resultBreak.Type?.Value);
+            }
         }
 
         private static bool IsStaticDateTimeField(SimpleField field) {

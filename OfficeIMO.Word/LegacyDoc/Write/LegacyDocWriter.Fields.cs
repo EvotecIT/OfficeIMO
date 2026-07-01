@@ -122,6 +122,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             resultText.Append(textNode.Text);
                             resultOffset = resultText.Length;
                             break;
+                        case TabChar when sawSeparator:
+                        case CarriageReturn when sawSeparator:
+                        case NoBreakHyphen when sawSeparator:
+                        case SoftHyphen when sawSeparator:
+                        case Break when sawSeparator:
+                            resultFormatting ??= runFormatting;
+                            if (!resultFormatting.Value.Equals(runFormatting)) {
+                                throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields only when their display runs use one formatting set.");
+                            }
+
+                            AppendSupportedFieldResultElementText(resultText, child);
+                            resultOffset = resultText.Length;
+                            break;
                         case FieldChar fieldChar:
                             FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
                             if (fieldCharType == FieldCharValues.Begin) {
@@ -279,8 +292,13 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case RunProperties:
                     case LastRenderedPageBreak:
                         break;
-                    case Text text:
-                        result.Append(text.Text);
+                    case Text:
+                    case TabChar:
+                    case CarriageReturn:
+                    case NoBreakHyphen:
+                    case SoftHyphen:
+                    case Break:
+                        AppendSupportedFieldResultElementText(result, child);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} simple fields only when their display result contains text runs. Unsupported field result element: {child.LocalName}.");
@@ -288,6 +306,48 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return result.ToString();
+        }
+
+        private static void AppendSupportedFieldResultElementText(StringBuilder result, OpenXmlElement element) {
+            switch (element) {
+                case Text text:
+                    result.Append(text.Text);
+                    break;
+                case TabChar:
+                    result.Append('\t');
+                    break;
+                case CarriageReturn:
+                    result.Append(LegacyDocSpecialCharacters.TextWrappingBreak);
+                    break;
+                case NoBreakHyphen:
+                    result.Append(LegacyDocSpecialCharacters.NoBreakHyphen);
+                    break;
+                case SoftHyphen:
+                    result.Append(LegacyDocSpecialCharacters.SoftHyphen);
+                    break;
+                case Break breakNode:
+                    result.Append(GetSupportedFieldResultBreakCharacter(breakNode));
+                    break;
+                default:
+                    throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} field result runs only when they contain text, tabs, carriage returns, soft/no-break hyphens, and supported breaks. Unsupported field result element: {element.LocalName}.");
+            }
+        }
+
+        private static char GetSupportedFieldResultBreakCharacter(Break breakNode) {
+            BreakValues? breakType = breakNode.Type?.Value;
+            if (breakType == null || breakType == BreakValues.TextWrapping) {
+                return LegacyDocSpecialCharacters.TextWrappingBreak;
+            }
+
+            if (breakType == BreakValues.Page) {
+                return LegacyDocSpecialCharacters.PageBreak;
+            }
+
+            if (breakType == BreakValues.Column) {
+                return LegacyDocSpecialCharacters.ColumnBreak;
+            }
+
+            throw new NotSupportedException($"Native DOC saving currently supports text-wrapping, page, and column breaks in {SupportedFieldNames} field result runs only. Unsupported break type: {breakType}.");
         }
 
         private static void AddSimpleFieldBookmarkMarkers(

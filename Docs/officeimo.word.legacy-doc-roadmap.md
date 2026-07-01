@@ -723,6 +723,9 @@ just to reserve names.
     result text across body, table-cell, header/footer, footnote, and endnote
     stories, preserving the DOC field instruction and reloading them as normal
     OpenXML simple fields.
+  - [x] Preserve supported inline result characters inside simple and complex
+    static date/time field display text, including tabs, soft/no-break hyphens,
+    and text-wrapping/page/column breaks through native DOC save/reload.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.
