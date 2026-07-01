@@ -1492,6 +1492,14 @@ namespace OfficeIMO.Tests {
             return run.Elements<FieldChar>().Any(fieldChar => fieldChar.FieldCharType?.Value == fieldCharType);
         }
 
+        private static void AddCommentMarkers(WordParagraph paragraph, string id) {
+            paragraph._paragraph.Append(
+                new CommentRangeStart { Id = id },
+                new Run(new Text("commented")),
+                new CommentRangeEnd { Id = id },
+                new Run(new CommentReference { Id = id }));
+        }
+
         private static void ReplaceHyperlinkDisplayWithInlineContentControl(Hyperlink hyperlink, string alias, string first, string nested, string second) {
             foreach (OpenXmlElement child in hyperlink.ChildElements.ToArray()) {
                 child.Remove();
@@ -8265,6 +8273,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksTrackedRevisionMarkupInNonBodyStoriesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Body");
+                WordSection section = document.Sections[0];
+                section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header ").AddInsertedText("inserted", "OfficeIMO");
+                section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer ").AddDeletedText("deleted", "OfficeIMO");
+
+                WordParagraph paragraph = document.AddParagraph("Notes");
+                paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1].AddInsertedText(" inserted", "OfficeIMO");
+                paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1].AddDeletedText(" deleted", "OfficeIMO");
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("tracked revision markup", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksCommentsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -8272,6 +8304,30 @@ namespace OfficeIMO.Tests {
                 using WordDocument document = WordDocument.Create();
                 WordParagraph paragraph = document.AddParagraph("Commented");
                 paragraph.AddComment("OfficeIMO", "OI", "Native DOC comments are not supported yet.");
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("comments", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksCommentMarkersInNonBodyStoriesBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Body");
+                WordSection section = document.Sections[0];
+                AddCommentMarkers(section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header "), "101");
+                AddCommentMarkers(section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer "), "102");
+
+                WordParagraph paragraph = document.AddParagraph("Notes");
+                AddCommentMarkers(paragraph.AddFootNote("Footnote").FootNote!.Paragraphs![1], "103");
+                AddCommentMarkers(paragraph.AddEndNote("Endnote").EndNote!.Paragraphs![1], "104");
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 

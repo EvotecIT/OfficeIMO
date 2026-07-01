@@ -876,6 +876,9 @@ just to reserve names.
   - [x] Cover native-save preflight for chart relationship parts and embedded
     package parts, so richer visual/embedded content is blocked before native
     `.doc` bytes are committed.
+  - [x] Extend native-save review/comment preflight beyond the body to
+    header/footer, footnote, and endnote stories, so tracked revisions and
+    comment markers are blocked before native `.doc` bytes are committed.
   - [ ] Add bookmark locations outside body/table-cell/header/footer/footnote/
     endnote paragraphs, richer visual table style effects, nested tables,
     section breaks inside richer body shapes, and richer section writing as
