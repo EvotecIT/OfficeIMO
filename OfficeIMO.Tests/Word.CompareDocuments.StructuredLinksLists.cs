@@ -1,5 +1,7 @@
 using System;
 using System.IO;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -115,6 +117,41 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.Findings, finding =>
                 (finding.Scope is WordComparisonScope.Bookmark or WordComparisonScope.Hyperlink or WordComparisonScope.List) &&
                 finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
+        public void CompareStructureIgnoresListNumberIdsWhenGeneratedIdsAreDisabled() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_list_generated_ids_source.docx");
+            CreateRawNumberedParagraphDocument(sourcePath, 101, "Imported list item");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_list_generated_ids_target.docx");
+            CreateRawNumberedParagraphDocument(targetPath, 202, "Imported list item");
+
+            WordComparisonResult relaxed = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false
+            });
+
+            Assert.DoesNotContain(relaxed.Findings, finding => finding.Scope == WordComparisonScope.List);
+
+            WordComparisonResult strict = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = true
+            });
+
+            Assert.Contains(strict.Findings, finding =>
+                finding.Scope == WordComparisonScope.List &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        private static void CreateRawNumberedParagraphDocument(string path, int numberingId, string text) {
+            using WordDocument document = WordDocument.Create(path);
+            document._document.Body!.RemoveAllChildren<Paragraph>();
+            document._document.Body!.Append(new Paragraph(
+                new ParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = numberingId })),
+                new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+            document.Save(false);
         }
     }
 }

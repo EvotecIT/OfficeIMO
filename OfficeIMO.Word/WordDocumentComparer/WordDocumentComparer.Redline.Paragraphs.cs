@@ -266,13 +266,13 @@ namespace OfficeIMO.Word {
 
             List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                 AddRedlineParagraphEntries(entries, FootnotePartKeyPrefix + noteId, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
             }
 
             List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                 AddRedlineParagraphEntries(entries, EndnotePartKeyPrefix + noteId, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
             }
 

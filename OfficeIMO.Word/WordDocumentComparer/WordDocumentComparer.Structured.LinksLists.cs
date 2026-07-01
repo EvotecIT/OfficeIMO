@@ -170,7 +170,7 @@ namespace OfficeIMO.Word {
                         IsInTextBoxFeature(paragraph) ? "text-box" : string.Empty);
                     string signature = string.Join(
                         "|",
-                        NormalizeComparisonText(numberId, options),
+                        options.CompareGeneratedIds ? NormalizeComparisonText(numberId, options) : string.Empty,
                         NormalizeComparisonText(level, options),
                         NormalizeComparisonText(text, options),
                         IsInTableFeature(paragraph) ? "table" : string.Empty,

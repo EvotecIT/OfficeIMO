@@ -216,7 +216,7 @@ namespace OfficeIMO.Word {
 
             List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                string key = FootnotePartKeyPrefix + footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string key = FootnotePartKeyPrefix + GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                 if (string.Equals(partKey, key, StringComparison.Ordinal)) {
                     return footnotes[footnoteIndex];
                 }
@@ -224,7 +224,7 @@ namespace OfficeIMO.Word {
 
             List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                string key = EndnotePartKeyPrefix + endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string key = EndnotePartKeyPrefix + GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                 if (string.Equals(partKey, key, StringComparison.Ordinal)) {
                     return endnotes[endnoteIndex];
                 }

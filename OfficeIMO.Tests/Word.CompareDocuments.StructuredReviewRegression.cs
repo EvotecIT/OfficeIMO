@@ -203,6 +203,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureKeysNoteTableSnapshotsByStableNoteIds() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_note_table_stable_id.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
+                doc.Save(false);
+            }
+
+            SetReferencedFootnoteIds(sourcePath, 10);
+            AppendTableToFootnote(sourcePath, 10, "Stable footnote table");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_note_table_stable_id.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph("Inserted footnote anchor").AddFootNote("Inserted footnote body");
+                doc.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
+                doc.Save(false);
+            }
+
+            SetReferencedFootnoteIds(targetPath, 9, 10);
+            AppendTableToFootnote(targetPath, 10, "Stable footnote table");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope is WordComparisonScope.Table or WordComparisonScope.TableCell);
+        }
+
+        [Fact]
         public void CompareStructureSplitsChangedParagraphMovedAcrossParts() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_changed_body_to_header.docx");
             using (WordDocument doc = WordDocument.Create(sourcePath)) {
@@ -405,6 +432,43 @@ namespace OfficeIMO.Tests {
             Footnote footnote = document.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().First(item => item.Type == null);
             footnote.Append(CreateOneCellTable(tableText));
             AppendNoteImage(document.MainDocumentPart.FootnotesPart, footnote, imagePath);
+            document.MainDocumentPart.FootnotesPart.Footnotes.Save();
+        }
+
+        private static void AppendTableToFootnote(string path, long footnoteId, string tableText) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Footnote footnote = document.MainDocumentPart!.FootnotesPart!.Footnotes!
+                .Elements<Footnote>()
+                .First(item => item.Id?.Value == footnoteId);
+            footnote.Append(CreateOneCellTable(tableText));
+            document.MainDocumentPart.FootnotesPart.Footnotes.Save();
+        }
+
+        private static void AppendParagraphToFootnote(string path, long footnoteId, string text) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Footnote footnote = document.MainDocumentPart!.FootnotesPart!.Footnotes!
+                .Elements<Footnote>()
+                .First(item => item.Id?.Value == footnoteId);
+            footnote.Append(new Paragraph(new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+            document.MainDocumentPart.FootnotesPart.Footnotes.Save();
+        }
+
+        private static void SetReferencedFootnoteIds(string path, params long[] ids) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            FootnoteReference[] references = document.MainDocumentPart!.Document!.Body!.Descendants<FootnoteReference>().ToArray();
+            Footnote[] footnotes = document.MainDocumentPart.FootnotesPart!.Footnotes!
+                .Elements<Footnote>()
+                .Where(item => item.Type == null || item.Type.Value == FootnoteEndnoteValues.Normal)
+                .ToArray();
+
+            Assert.True(ids.Length <= references.Length, "Not enough footnote references to assign stable ids.");
+            Assert.True(ids.Length <= footnotes.Length, "Not enough footnotes to assign stable ids.");
+            for (int index = 0; index < ids.Length; index++) {
+                references[index].Id = ids[index];
+                footnotes[index].Id = ids[index];
+            }
+
+            document.MainDocumentPart.Document.Save();
             document.MainDocumentPart.FootnotesPart.Footnotes.Save();
         }
 

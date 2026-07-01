@@ -18,6 +18,7 @@ namespace OfficeIMO.Word {
             if (string.IsNullOrEmpty(outputPath)) throw new ArgumentNullException(nameof(outputPath));
 
             options ??= new WordComparisonRedlineOptions();
+            ValidateRedlineOutputPath(sourcePath, targetPath, outputPath);
             WordComparisonResult result = CompareStructure(sourcePath, targetPath, options.ComparisonOptions);
 
             EnsureOutputDirectory(outputPath);
@@ -45,6 +46,20 @@ namespace OfficeIMO.Word {
 
             document.Save(false);
             return result;
+        }
+
+        private static void ValidateRedlineOutputPath(string sourcePath, string targetPath, string outputPath) {
+            string sourceFullPath = Path.GetFullPath(sourcePath);
+            string targetFullPath = Path.GetFullPath(targetPath);
+            string outputFullPath = Path.GetFullPath(outputPath);
+
+            if (string.Equals(outputFullPath, sourceFullPath, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidOperationException("Redline output must be written to a different path than the source document.");
+            }
+
+            if (string.Equals(outputFullPath, targetFullPath, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidOperationException("Redline output must be written to a different path than the target document.");
+            }
         }
 
         private static void EnsureOutputDirectory(string outputPath) {
@@ -294,13 +309,13 @@ namespace OfficeIMO.Word {
 
             List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                 AddRedlineTableEntries(entries, FootnotePartKeyPrefix + noteId, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
             }
 
             List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                 AddRedlineTableEntries(entries, EndnotePartKeyPrefix + noteId, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
             }
 

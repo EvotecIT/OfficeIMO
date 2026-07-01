@@ -547,13 +547,13 @@ namespace OfficeIMO.Word {
 
                 List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                     AddTableSnapshots(snapshots, document, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
                 }
 
                 List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                     AddTableSnapshots(snapshots, document, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
                 }
             }
