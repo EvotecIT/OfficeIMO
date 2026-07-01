@@ -481,8 +481,9 @@ just to reserve names.
       boundaries into native DOC header/footer stories, then reload the story
       text and bookmarks through the legacy reader.
     - [x] Write simple footnote and endnote block content controls by
-      flattening supported note paragraphs/bookmarks into native DOC note
-      stories, then reload the note text through the legacy reader.
+      flattening supported note paragraphs/bookmarks and nested simple block
+      content controls into native DOC note stories, then reload the note text
+      through the legacy reader.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
   - [x] Report unsupported header/footer, footnote, endnote, comment, and text
@@ -929,9 +930,9 @@ just to reserve names.
       unsupported header/footer content-control children before bytes are
       committed.
     - [x] Write simple footnote and endnote block content controls by
-      flattening supported child paragraphs into native DOC note story text,
-      while still blocking unsupported note content-control children before
-      bytes are committed.
+      flattening supported child paragraphs and nested simple block content
+      controls into native DOC note story text, while still blocking
+      unsupported note content-control children before bytes are committed.
     - [x] Write simple inline run content controls by flattening supported runs,
       fields, hyperlinks, bookmarks, and nested inline content controls in body,
       table-cell, header/footer, footnote, and endnote paragraphs through native

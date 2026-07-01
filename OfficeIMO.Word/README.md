@@ -172,10 +172,11 @@ same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
 header/footer, and footnote/endnote paragraph bookmarks, simple external and
 internal bookmark hyperlinks with supported text, tab, soft/no-break hyphen,
 break display runs, simple static date/time fields with static display text
-including inside flattened inline content controls, and simple inline
-content-control display text, simple block and inline content controls
-with nested inline content controls in body/table/header/footer/footnote/endnote
-stories, common run and paragraph formatting including proofing exclusion,
+including inside flattened inline content controls, simple inline
+content-control display text, and simple block content controls with nested
+simple block controls plus nested inline content controls in
+body/table/header/footer/footnote/endnote stories, common run and paragraph
+formatting including proofing exclusion,
 bidirectional paragraph layout, mirror indents, contextual spacing, East Asian
 typography and punctuation spacing flags, and automatic hyphenation suppression,
 tabs, soft/no-break hyphen runs, line/carriage-return/page/column breaks, simple

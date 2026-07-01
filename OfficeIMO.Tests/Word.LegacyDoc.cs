@@ -3459,6 +3459,9 @@ namespace OfficeIMO.Tests {
                         new SdtProperties(new SdtAlias { Val = "Legacy DOC footnote content control" }),
                         new SdtContentBlock(
                             (Paragraph)footnoteBody._paragraph.CloneNode(true),
+                            new SdtBlock(
+                                new SdtProperties(new SdtAlias { Val = "Legacy DOC nested footnote content control" }),
+                                new SdtContentBlock(new Paragraph(new Run(new Text("FootnoteContentNested") { Space = SpaceProcessingModeValues.Preserve })))),
                             new Paragraph(new Run(new Text("FootnoteContentTwo") { Space = SpaceProcessingModeValues.Preserve })))));
 
                     WordParagraph endnoteReference = paragraph.AddEndNote("endnote placeholder");
@@ -3473,6 +3476,9 @@ namespace OfficeIMO.Tests {
                         new SdtProperties(new SdtAlias { Val = "Legacy DOC endnote content control" }),
                         new SdtContentBlock(
                             (Paragraph)endnoteBody._paragraph.CloneNode(true),
+                            new SdtBlock(
+                                new SdtProperties(new SdtAlias { Val = "Legacy DOC nested endnote content control" }),
+                                new SdtContentBlock(new Paragraph(new Run(new Text("EndnoteContentNested") { Space = SpaceProcessingModeValues.Preserve })))),
                             new Paragraph(new Run(new Text("EndnoteContentTwo") { Space = SpaceProcessingModeValues.Preserve })))));
 
                     document.Save(docPath);
@@ -3486,12 +3492,12 @@ namespace OfficeIMO.Tests {
 
                 WordFootNote footnote = Assert.Single(reloaded.FootNotes);
                 string footnoteText = string.Concat(footnote.Paragraphs!.Select(GetNoteRunText));
-                Assert.Equal("FootnoteContentOneFootnoteContentTwo", footnoteText);
+                Assert.Equal("FootnoteContentOneFootnoteContentNestedFootnoteContentTwo", footnoteText);
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.FootnotesPart!.Footnotes!.Descendants<SdtBlock>());
 
                 WordEndNote endnote = Assert.Single(reloaded.EndNotes);
                 string endnoteText = string.Concat(endnote.Paragraphs!.Select(GetNoteRunText));
-                Assert.Equal("EndnoteContentOneEndnoteContentTwo", endnoteText);
+                Assert.Equal("EndnoteContentOneEndnoteContentNestedEndnoteContentTwo", endnoteText);
                 Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.EndnotesPart!.Endnotes!.Descendants<SdtBlock>());
             } finally {
                 DeleteIfExists(docPath);
