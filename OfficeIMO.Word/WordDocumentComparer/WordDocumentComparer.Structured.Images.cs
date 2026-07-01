@@ -169,13 +169,15 @@ namespace OfficeIMO.Word {
 
                 List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
-                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = footnotes[footnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                        footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddImageSnapshots(snapshots, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
                 }
 
                 List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
-                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = endnotes[endnoteIndex].Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                        endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
                     AddImageSnapshots(snapshots, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
                 }
             }
@@ -317,9 +319,36 @@ namespace OfficeIMO.Word {
             OpenXmlElement block = imageElement.Ancestors<Paragraph>().FirstOrDefault() ??
                                    imageElement.Ancestors<Table>().FirstOrDefault() ??
                                    imageElement;
-            return partKey + ":" + GetStableElementPath(block) +
+            return partKey + ":" + GetImageBlockPath(partKey, block) +
                    ":image:" + GetImageOrdinalWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture) +
                    ":offset:" + GetImageInlineOffsetWithinBlock(block, imageElement).ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static string GetImageBlockPath(string partKey, OpenXmlElement block) {
+            OpenXmlElement? noteRoot = null;
+            if (partKey.StartsWith(FootnotePartKeyPrefix, StringComparison.Ordinal)) {
+                noteRoot = block.Ancestors<Footnote>().FirstOrDefault();
+            } else if (partKey.StartsWith(EndnotePartKeyPrefix, StringComparison.Ordinal)) {
+                noteRoot = block.Ancestors<Endnote>().FirstOrDefault();
+            }
+
+            return noteRoot == null ? GetStableElementPath(block) : GetStableElementPathRelativeTo(block, noteRoot);
+        }
+
+        private static string GetStableElementPathRelativeTo(OpenXmlElement element, OpenXmlElement root) {
+            var segments = new Stack<string>();
+            OpenXmlElement? current = element;
+            while (current != null && current.Parent != null && !ReferenceEquals(current, root)) {
+                OpenXmlElement parent = current.Parent;
+                int ordinal = parent.Elements()
+                    .Where(item => item.GetType() == current.GetType())
+                    .TakeWhile(item => !ReferenceEquals(item, current))
+                    .Count();
+                segments.Push(current.GetType().Name + "[" + ordinal.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]");
+                current = parent;
+            }
+
+            return string.Join("/", segments.ToArray());
         }
 
         private static void RemoveVolatileDrawingAttributes(OpenXmlElement element) {

@@ -6,6 +6,9 @@ using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
+using A = DocumentFormat.OpenXml.Drawing;
+using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using PIC = DocumentFormat.OpenXml.Drawing.Pictures;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -800,6 +803,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureKeysFootnoteImagesByNoteId() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_footnote_image_id_source.docx");
+            CreateFootnoteIdRegressionDocument(
+                sourcePath,
+                (5, "Deleted anchor", "Deleted footnote"),
+                (9, "Stable anchor", "Stable footnote"));
+            AppendImageToFootnote(sourcePath, 9, Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_footnote_image_id_target.docx");
+            CreateFootnoteIdRegressionDocument(targetPath, (9, "Stable anchor", "Stable footnote"));
+            AppendImageToFootnote(targetPath, 9, Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(
+                sourcePath,
+                targetPath,
+                new WordComparisonOptions {
+                    IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Image }
+                });
+
+            Assert.DoesNotContain(result.Findings, finding => finding.Scope == WordComparisonScope.Image);
+        }
+
+        [Fact]
         public void TableOfContentRefreshCombinesSplitComplexTocInstruction() {
             string filePath = Path.Combine(_directoryWithFiles, "TocRefreshSplitComplexInstruction.docx");
 
@@ -1400,6 +1426,45 @@ namespace OfficeIMO.Tests {
 
             footnotesPart.Footnotes.Save();
             document.Save(false);
+        }
+
+        private static void AppendImageToFootnote(string path, int noteId, string imagePath) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            FootnotesPart footnotesPart = document.MainDocumentPart!.FootnotesPart!;
+            Footnote footnote = footnotesPart.Footnotes!.Elements<Footnote>().Single(item => item.Id?.Value == noteId);
+            ImagePart imagePart = footnotesPart.AddImagePart(ImagePartType.Png);
+            using (FileStream stream = File.OpenRead(imagePath)) {
+                imagePart.FeedData(stream);
+            }
+
+            string relationshipId = footnotesPart.GetIdOfPart(imagePart);
+            footnote.Append(new Paragraph(new Run(CreateFootnoteImageDrawing(relationshipId, 914400L, 457200L, 1U, "Stable note image"))));
+            footnotesPart.Footnotes.Save();
+        }
+
+        private static DocumentFormat.OpenXml.Wordprocessing.Drawing CreateFootnoteImageDrawing(string relationshipId, long widthEmu, long heightEmu, uint id, string name) {
+            return new DocumentFormat.OpenXml.Wordprocessing.Drawing(
+                new DW.Inline(
+                    new DW.Extent { Cx = widthEmu, Cy = heightEmu },
+                    new DW.EffectExtent { LeftEdge = 0L, TopEdge = 0L, RightEdge = 0L, BottomEdge = 0L },
+                    new DW.DocProperties { Id = id, Name = name },
+                    new DW.NonVisualGraphicFrameDrawingProperties(new A.GraphicFrameLocks { NoChangeAspect = true }),
+                    new A.Graphic(
+                        new A.GraphicData(
+                            new PIC.Picture(
+                                new PIC.NonVisualPictureProperties(
+                                    new PIC.NonVisualDrawingProperties { Id = id, Name = name },
+                                    new PIC.NonVisualPictureDrawingProperties()),
+                                new PIC.BlipFill(
+                                    new A.Blip { Embed = relationshipId },
+                                    new A.Stretch(new A.FillRectangle())),
+                                new PIC.ShapeProperties(
+                                    new A.Transform2D(
+                                        new A.Offset { X = 0L, Y = 0L },
+                                        new A.Extents { Cx = widthEmu, Cy = heightEmu }),
+                                    new A.PresetGeometry(new A.AdjustValueList()) { Preset = A.ShapeTypeValues.Rectangle })))
+                        { Uri = "http://schemas.openxmlformats.org/drawingml/2006/picture" }))
+                { DistanceFromTop = 0U, DistanceFromBottom = 0U, DistanceFromLeft = 0U, DistanceFromRight = 0U });
         }
 
         private static void AddContentControlToFirstFootnote(string path, string text) {
