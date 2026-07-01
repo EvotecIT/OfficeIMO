@@ -512,26 +512,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         }
 
         private static NumberFormatValues? ReadPageNumberFormat(byte value) {
-            switch (value) {
-                case 0:
-                    return NumberFormatValues.Decimal;
-                case 1:
-                    return NumberFormatValues.UpperRoman;
-                case 2:
-                    return NumberFormatValues.LowerRoman;
-                case 3:
-                    return NumberFormatValues.UpperLetter;
-                case 4:
-                    return NumberFormatValues.LowerLetter;
-                case 5:
-                    return NumberFormatValues.Ordinal;
-                case 6:
-                    return NumberFormatValues.CardinalText;
-                case 7:
-                    return NumberFormatValues.OrdinalText;
-                default:
-                    return null;
-            }
+            return LegacyDocNumberFormatMapper.FromNfc(value);
         }
 
         private static SectionMarkValues? ReadSectionBreakType(byte value) {

@@ -112,9 +112,13 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionOrdinalPageNumberFormat() {
-            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionOrdinalPageNumbering();
+        [Theory]
+        [InlineData(5, "Ordinal")]
+        [InlineData(22, "DecimalZero")]
+        [InlineData(57, "NumberInDash")]
+        [InlineData(59, "RussianUpper")]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionExtendedPageNumberFormats(byte nfc, string expectedFormatName) {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionPageNumbering("Extended page-numbered section", 5, nfc);
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
@@ -123,36 +127,58 @@ namespace OfficeIMO.Tests {
 
             PageNumberType pageNumberType = result.Document.Sections[0].PageNumberType;
             Assert.Equal(5, pageNumberType.Start?.Value);
-            Assert.Equal(NumberFormatValues.Ordinal, pageNumberType.Format?.Value);
+            Assert.Equal(GetNumberFormatValue(expectedFormatName), pageNumberType.Format?.Value);
         }
 
-        [Fact]
-        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionOrdinalTextPageNumberingAndReloadsThroughLegacyReader() {
+        [Theory]
+        [InlineData("OrdinalText", 7)]
+        [InlineData("DecimalZero", 22)]
+        [InlineData("NumberInDash", 57)]
+        [InlineData("RussianUpper", 59)]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionExtendedPageNumberingAndReloadsThroughLegacyReader(string formatName, byte expectedNfc) {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            NumberFormatValues format = GetNumberFormatValue(formatName);
 
             try {
                 using (WordDocument document = WordDocument.Create()) {
-                    document.AddParagraph("Section ordinal text page numbering");
-                    document.Sections[0].AddPageNumbering(7, NumberFormatValues.OrdinalText);
+                    document.AddParagraph("Section extended page numbering");
+                    document.Sections[0].AddPageNumbering(expectedNfc, format);
 
                     document.Save(docPath);
                 }
 
                 byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
                 Assert.True(
-                    ContainsBytePattern(wordDocumentStream, 0x0E, 0x30, 0x07),
-                    "Expected the native DOC section property block to contain sprmSNfcPgn with ordinal-text numbering.");
+                    ContainsBytePattern(wordDocumentStream, 0x0E, 0x30, expectedNfc),
+                    "Expected the native DOC section property block to contain sprmSNfcPgn with the requested extended numbering format.");
 
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
-                Assert.Equal("Section ordinal text page numbering", Assert.Single(reloaded.Paragraphs).Text);
+                Assert.Equal("Section extended page numbering", Assert.Single(reloaded.Paragraphs).Text);
 
                 PageNumberType pageNumberType = reloaded.Sections[0].PageNumberType;
-                Assert.Equal(7, pageNumberType.Start?.Value);
-                Assert.Equal(NumberFormatValues.OrdinalText, pageNumberType.Format?.Value);
+                Assert.Equal(expectedNfc, pageNumberType.Start?.Value);
+                Assert.Equal(format, pageNumberType.Format?.Value);
             } finally {
                 DeleteIfExists(docPath);
+            }
+        }
+
+        private static NumberFormatValues GetNumberFormatValue(string name) {
+            switch (name) {
+                case "Ordinal":
+                    return NumberFormatValues.Ordinal;
+                case "OrdinalText":
+                    return NumberFormatValues.OrdinalText;
+                case "DecimalZero":
+                    return NumberFormatValues.DecimalZero;
+                case "NumberInDash":
+                    return NumberFormatValues.NumberInDash;
+                case "RussianUpper":
+                    return NumberFormatValues.RussianUpper;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(name), name, "Unsupported test number format.");
             }
         }
 

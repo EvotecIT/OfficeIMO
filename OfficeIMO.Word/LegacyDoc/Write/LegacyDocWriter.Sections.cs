@@ -869,39 +869,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static byte? GetPageNumberFormatOperand(NumberFormatValues format) {
-            if (format == NumberFormatValues.Decimal) {
-                return 0;
-            }
-
-            if (format == NumberFormatValues.UpperRoman) {
-                return 1;
-            }
-
-            if (format == NumberFormatValues.LowerRoman) {
-                return 2;
-            }
-
-            if (format == NumberFormatValues.UpperLetter) {
-                return 3;
-            }
-
-            if (format == NumberFormatValues.LowerLetter) {
-                return 4;
-            }
-
-            if (format == NumberFormatValues.Ordinal) {
-                return 5;
-            }
-
-            if (format == NumberFormatValues.CardinalText) {
-                return 6;
-            }
-
-            if (format == NumberFormatValues.OrdinalText) {
-                return 7;
-            }
-
-            return null;
+            return LegacyDocNumberFormatMapper.ToNfc(format);
         }
 
         private static byte? GetLineNumberRestartOperand(LineNumberRestartValues restart) {

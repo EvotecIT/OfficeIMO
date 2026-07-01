@@ -11513,33 +11513,14 @@ namespace OfficeIMO.Tests {
             }
 
             internal static byte[] CreateSimpleDocWithSectionPageNumbering() {
-                const string paragraph = "Page-numbered section";
-                string text = paragraph + "\r";
-                const int sepxOffset = 0x300;
-
-                byte[] tableStream = CreateTableStream(text.Length);
-                int fcPlcfSed = tableStream.Length;
-                byte[] sectionDescriptorPlc = CreateOneSectionDescriptorPlc(text.Length, sepxOffset);
-                Array.Resize(ref tableStream, tableStream.Length + sectionDescriptorPlc.Length);
-                Buffer.BlockCopy(sectionDescriptorPlc, 0, tableStream, fcPlcfSed, sectionDescriptorPlc.Length);
-
-                byte[] wordDocumentStream = CreateWordDocumentStream(
-                    text,
-                    fcPlcfSed: fcPlcfSed,
-                    lcbPlcfSed: sectionDescriptorPlc.Length);
-                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(pageNumberStart: 3, pageNumberFormat: 1, restartPageNumbering: true));
-
-                using var package = new MemoryStream();
-                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
-                    WriteStream(root, "WordDocument", wordDocumentStream);
-                    WriteStream(root, "1Table", tableStream);
-                }
-
-                return package.ToArray();
+                return CreateSimpleDocWithSectionPageNumbering("Page-numbered section", 3, 1);
             }
 
             internal static byte[] CreateSimpleDocWithSectionOrdinalPageNumbering() {
-                const string paragraph = "Ordinal page-numbered section";
+                return CreateSimpleDocWithSectionPageNumbering("Ordinal page-numbered section", 5, 5);
+            }
+
+            internal static byte[] CreateSimpleDocWithSectionPageNumbering(string paragraph, int pageNumberStart, byte pageNumberFormat) {
                 string text = paragraph + "\r";
                 const int sepxOffset = 0x300;
 
@@ -11553,7 +11534,7 @@ namespace OfficeIMO.Tests {
                     text,
                     fcPlcfSed: fcPlcfSed,
                     lcbPlcfSed: sectionDescriptorPlc.Length);
-                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(pageNumberStart: 5, pageNumberFormat: 5, restartPageNumbering: true));
+                WriteBytesAt(ref wordDocumentStream, sepxOffset, CreateSectionSepx(pageNumberStart: pageNumberStart, pageNumberFormat: pageNumberFormat, restartPageNumbering: true));
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
