@@ -278,6 +278,9 @@ just to reserve names.
   - [x] Project direct CHPX highlight runs plus stylesheet-level highlight run
     formatting into normal OfficeIMO runs and custom DOCX style definitions
     with synthetic legacy DOC fixture proof.
+  - [x] Project custom stylesheet underline and highlight run formatting into
+    custom DOCX style definitions and write custom paragraph style
+    underline/highlight back through native DOC save/reload.
   - [x] Project stylesheet-level proofing-exclusion run formatting from DOC
     `sprmCFNoProof` into custom and built-in DOCX style definitions, and
     preserve supported custom and built-in native style `w:noProof` through

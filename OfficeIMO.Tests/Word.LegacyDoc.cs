@@ -981,6 +981,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomStyleLevelUnderlineAndHighlight() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithCustomStyleLevelUnderlineAndHighlight();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("style underline highlight", paragraph.Text);
+            Assert.Equal("LegacyDocUnderlineHighlight", paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style style = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == "LegacyDocUnderlineHighlight");
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(style.StyleRunProperties);
+            Underline underline = Assert.IsType<Underline>(runProperties.GetFirstChild<Underline>());
+            Assert.Equal(UnderlineValues.Single, underline.Val!.Value);
+            Highlight highlight = Assert.IsType<Highlight>(runProperties.GetFirstChild<Highlight>());
+            Assert.Equal(HighlightColorValues.Yellow, highlight.Val!.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInStyleLevelFormatting() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithBuiltInStyleLevelFormatting();
 
@@ -5873,6 +5893,51 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Courier New", runFonts.Ascii!.Value);
                 Assert.Equal("Courier New", runFonts.HighAnsi!.Value);
                 Assert.NotNull(runProperties.GetFirstChild<NoProof>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomParagraphStyleUnderlineAndHighlightAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocUnderlineHighlightStyle";
+            const string projectedStyleId = "LegacyDocNativeDOCUnderlineHighlightStyle";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Paragraph, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Underline Highlight Style" });
+                    style.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
+                    style.Append(new StyleRunProperties(
+                        new Underline { Val = UnderlineValues.Single },
+                        new Highlight { Val = HighlightColorValues.Yellow }));
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+                    document.AddParagraph("Styled underline highlight").SetStyleId(styleId);
+
+                    document.Save(docPath);
+                }
+
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3E, 0x2A, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmCKul for custom paragraph style underline.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x0C, 0x2A, 0x07),
+                    "Expected the native DOC stylesheet stream to contain sprmCHighlight for custom paragraph style highlight.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Styled underline highlight", paragraph.Text);
+                Assert.Equal(projectedStyleId, paragraph.StyleId);
+
+                Styles styles = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style customStyle = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == projectedStyleId);
+                StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.StyleRunProperties);
+                Assert.Equal(UnderlineValues.Single, runProperties.GetFirstChild<Underline>()!.Val!.Value);
+                Assert.Equal(HighlightColorValues.Yellow, runProperties.GetFirstChild<Highlight>()!.Val!.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -11192,6 +11257,32 @@ namespace OfficeIMO.Tests {
                         Array.Empty<byte>(),
                         CreateStyleCharacterFormatting(CreateCharacterSprm(0x2A48, 2))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleLevelCapsDoubleStrikeAndVerticalPosition(text, textOffset, papxFkpOffset, styleSheet.Length);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithCustomStyleLevelUnderlineAndHighlight() {
+                const string text = "style underline highlight\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Underline Highlight",
+                        Array.Empty<byte>(),
+                        CreateStyleCharacterFormatting(
+                            CreateCharacterSprm(0x2A3E, 1),
+                            CreateCharacterSprm(0x2A0C, 7))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
 
                 using var package = new MemoryStream();
