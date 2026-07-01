@@ -557,6 +557,23 @@ public sealed class MarkdownNativeInlineMetadataSnapshot {
         Index = index;
     }
 
+    internal MarkdownNativeInlineMetadataSnapshot(
+        MarkdownNativeInlineMetadata metadata,
+        int index,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason) {
+        Name = metadata?.Name ?? string.Empty;
+        Value = metadata?.Value ?? string.Empty;
+        SourceSpan = metadata?.SourceSpan.HasValue == true
+            ? new MarkdownNativeSourceSpanSnapshot(metadata.SourceSpan.Value)
+            : null;
+        Index = index;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
+    }
+
     /// <summary>Stable metadata field name such as <c>target</c>, <c>title</c>, or <c>openingMarker</c>.</summary>
     public string Name { get; }
 
@@ -568,6 +585,15 @@ public sealed class MarkdownNativeInlineMetadataSnapshot {
 
     /// <summary>Zero-based occurrence index in the source-order metadata list.</summary>
     public int Index { get; }
+
+    /// <summary>Exact normalized source text represented by the metadata field when it could be materialized.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Exact original reader input represented by the metadata field when trivia was preserved and mapping succeeded.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this metadata field, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 }
 
 /// <summary>

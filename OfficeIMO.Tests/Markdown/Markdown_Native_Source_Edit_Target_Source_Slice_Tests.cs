@@ -44,6 +44,62 @@ public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     }
 
     [Fact]
+    public void NativeInline_Metadata_Snapshots_Expose_Normalized_And_Original_Source_Text() {
+        var native = MarkdownNativeDocument.Parse(
+            "See [docs](https://example.com \"Docs\") and \\* &copy;",
+            new MarkdownReaderOptions { PreserveTrivia = true });
+
+        var snapshot = native.ToSnapshot();
+        var link = Assert.Single(snapshot.Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var openingMarker = Assert.Single(link.MetadataFields, field => field.Name == "openingMarker");
+        var target = Assert.Single(link.MetadataFields, field => field.Name == "target");
+        var title = Assert.Single(link.MetadataFields, field => field.Name == "title");
+        var closingMarker = Assert.Single(link.MetadataFields, field => field.Name == "closingMarker");
+        var inlineMetadata = snapshot.Blocks[0].Inlines.SelectMany(inline => inline.MetadataFields).ToArray();
+        var escapeMarker = Assert.Single(inlineMetadata, field => field.Name == "escapeMarker");
+        var entitySourceText = Assert.Single(inlineMetadata, field => field.Name == "sourceText");
+
+        Assert.Equal("[", openingMarker.SourceText);
+        Assert.Equal("[", openingMarker.OriginalSourceText);
+        Assert.Null(openingMarker.OriginalSourceFailureReason);
+
+        Assert.Equal("https://example.com", target.SourceText);
+        Assert.Equal("https://example.com", target.OriginalSourceText);
+        Assert.Null(target.OriginalSourceFailureReason);
+
+        Assert.Equal("Docs", title.SourceText);
+        Assert.Equal("Docs", title.OriginalSourceText);
+        Assert.Null(title.OriginalSourceFailureReason);
+
+        Assert.Equal(")", closingMarker.SourceText);
+        Assert.Equal(")", closingMarker.OriginalSourceText);
+        Assert.Null(closingMarker.OriginalSourceFailureReason);
+
+        Assert.Equal("\\", escapeMarker.SourceText);
+        Assert.Equal("\\", escapeMarker.OriginalSourceText);
+        Assert.Null(escapeMarker.OriginalSourceFailureReason);
+
+        Assert.Equal("&copy;", entitySourceText.SourceText);
+        Assert.Equal("&copy;", entitySourceText.OriginalSourceText);
+        Assert.Null(entitySourceText.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void NativeInline_Metadata_Snapshots_Report_Original_Source_Failure_When_Trivia_Is_Not_Preserved() {
+        var native = MarkdownNativeDocument.Parse("[docs](https://example.com)");
+
+        var snapshot = native.ToSnapshot();
+        var link = Assert.Single(snapshot.Blocks[0].Inlines, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var target = Assert.Single(link.MetadataFields, field => field.Name == "target");
+
+        Assert.Equal("https://example.com", target.SourceText);
+        Assert.Null(target.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            target.OriginalSourceFailureReason);
+    }
+
+    [Fact]
     public void NativeBlock_And_ListItem_SourceSlices_Match_ReplaceEdit_Targets() {
         var native = MarkdownNativeDocument.Parse("""
 # Title

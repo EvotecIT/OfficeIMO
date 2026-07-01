@@ -43,13 +43,13 @@ internal static class MarkdownNativeSnapshotFactory {
             case MarkdownNativeParagraphBlock paragraph:
                 snapshot.Text = paragraph.Text;
                 snapshot.Markdown = RenderBlock(paragraph.Paragraph);
-                snapshot.Inlines = FromInlines(paragraph.InlineRuns);
+                snapshot.Inlines = FromInlines(document, paragraph.InlineRuns);
                 snapshot.FieldSourceSpans = FieldSpans(("paragraphText", paragraph.TextSourceSpan));
                 break;
             case MarkdownNativeHeadingBlock heading:
                 snapshot.Text = heading.Text;
                 snapshot.Markdown = RenderBlock(heading.Heading);
-                snapshot.Inlines = FromInlines(heading.InlineRuns);
+                snapshot.Inlines = FromInlines(document, heading.InlineRuns);
                 snapshot.Fields = Fields(("level", heading.Level.ToString(System.Globalization.CultureInfo.InvariantCulture)));
                 snapshot.FieldSourceSpans = FieldSpans(
                     ("level", heading.LevelSourceSpan),
@@ -116,7 +116,7 @@ internal static class MarkdownNativeSnapshotFactory {
             case MarkdownNativeCalloutBlock callout:
                 snapshot.Text = callout.Title;
                 snapshot.Markdown = RenderBlock(callout.Callout);
-                snapshot.Inlines = FromInlines(callout.TitleInlineRuns);
+                snapshot.Inlines = FromInlines(document, callout.TitleInlineRuns);
                 snapshot.Children = FromBlocks(document, callout.Children);
                 snapshot.Fields = Fields(("calloutKind", callout.CalloutKind));
                 snapshot.FieldSourceSpans = FieldSpans(
@@ -146,7 +146,7 @@ internal static class MarkdownNativeSnapshotFactory {
             case MarkdownNativeDetailsBlock details:
                 snapshot.Text = details.Summary;
                 snapshot.Markdown = RenderBlock(details.Details);
-                snapshot.Inlines = FromInlines(details.SummaryInlineRuns);
+                snapshot.Inlines = FromInlines(document, details.SummaryInlineRuns);
                 snapshot.Children = FromBlocks(document, details.Children);
                 snapshot.Fields = Fields(("open", details.Open ? "true" : "false"));
                 snapshot.FieldSourceSpans = FieldSpans(
@@ -258,20 +258,22 @@ internal static class MarkdownNativeSnapshotFactory {
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeInlineSnapshot> FromInlines(IReadOnlyList<MarkdownNativeInline>? inlines) {
+    private static IReadOnlyList<MarkdownNativeInlineSnapshot> FromInlines(
+        MarkdownNativeDocument? document,
+        IReadOnlyList<MarkdownNativeInline>? inlines) {
         if (inlines == null || inlines.Count == 0) {
             return Array.Empty<MarkdownNativeInlineSnapshot>();
         }
 
         var snapshots = new List<MarkdownNativeInlineSnapshot>(inlines.Count);
         for (var i = 0; i < inlines.Count; i++) {
-            snapshots.Add(FromInline(inlines[i]));
+            snapshots.Add(FromInline(document, inlines[i]));
         }
 
         return snapshots;
     }
 
-    private static MarkdownNativeInlineSnapshot FromInline(MarkdownNativeInline inline) {
+    private static MarkdownNativeInlineSnapshot FromInline(MarkdownNativeDocument? document, MarkdownNativeInline inline) {
         var metadata = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
         var metadataSourceSpans = new Dictionary<string, MarkdownNativeSourceSpanSnapshot?>(StringComparer.OrdinalIgnoreCase);
         for (var i = 0; i < inline.Metadata.Count; i++) {
@@ -289,11 +291,13 @@ internal static class MarkdownNativeSnapshotFactory {
             ToSpanSnapshot(inline.SourceSpan),
             metadata,
             metadataSourceSpans,
-            FromInlineMetadata(inline.Metadata),
-            FromInlines(inline.Children));
+            FromInlineMetadata(document, inline.Metadata),
+            FromInlines(document, inline.Children));
     }
 
-    private static IReadOnlyList<MarkdownNativeInlineMetadataSnapshot> FromInlineMetadata(IReadOnlyList<MarkdownNativeInlineMetadata>? metadata) {
+    private static IReadOnlyList<MarkdownNativeInlineMetadataSnapshot> FromInlineMetadata(
+        MarkdownNativeDocument? document,
+        IReadOnlyList<MarkdownNativeInlineMetadata>? metadata) {
         if (metadata == null || metadata.Count == 0) {
             return Array.Empty<MarkdownNativeInlineMetadataSnapshot>();
         }
@@ -308,7 +312,31 @@ internal static class MarkdownNativeSnapshotFactory {
 
         var snapshots = new List<MarkdownNativeInlineMetadataSnapshot>(orderedMetadata.Length);
         for (var i = 0; i < orderedMetadata.Length; i++) {
-            snapshots.Add(new MarkdownNativeInlineMetadataSnapshot(orderedMetadata[i].value, i));
+            if (document == null) {
+                snapshots.Add(new MarkdownNativeInlineMetadataSnapshot(orderedMetadata[i].value, i));
+                continue;
+            }
+
+            string? sourceText = null;
+            string? originalSourceText = null;
+            MarkdownOriginalSourceSliceFailureReason? originalFailureReason = null;
+
+            if (document.TryCreateSourceSlice(orderedMetadata[i].value, out var sourceSlice)) {
+                sourceText = sourceSlice.Text;
+            }
+
+            if (document.TryCreateOriginalSourceSlice(orderedMetadata[i].value, out var originalSlice, out var failureReason)) {
+                originalSourceText = originalSlice.Text;
+            } else {
+                originalFailureReason = failureReason;
+            }
+
+            snapshots.Add(new MarkdownNativeInlineMetadataSnapshot(
+                orderedMetadata[i].value,
+                i,
+                sourceText,
+                originalSourceText,
+                originalFailureReason));
         }
 
         return snapshots;
@@ -334,15 +362,17 @@ internal static class MarkdownNativeSnapshotFactory {
                 items[i].MarkerText,
                 ToSpanSnapshot(items[i].TaskMarkerSourceSpan),
                 items[i].TaskMarkerText,
-                FromInlines(items[i].InlineRuns),
-                FromListItemParagraphs(items[i].Paragraphs),
+                FromInlines(document, items[i].InlineRuns),
+                FromListItemParagraphs(document, items[i].Paragraphs),
                 FromBlocks(document, items[i].Children)));
         }
 
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeListItemParagraphSnapshot> FromListItemParagraphs(IReadOnlyList<MarkdownNativeListItemParagraph> paragraphs) {
+    private static IReadOnlyList<MarkdownNativeListItemParagraphSnapshot> FromListItemParagraphs(
+        MarkdownNativeDocument? document,
+        IReadOnlyList<MarkdownNativeListItemParagraph> paragraphs) {
         if (paragraphs == null || paragraphs.Count == 0) {
             return Array.Empty<MarkdownNativeListItemParagraphSnapshot>();
         }
@@ -353,7 +383,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 paragraphs[i].Index,
                 paragraphs[i].Text,
                 ToSpanSnapshot(paragraphs[i].SourceSpan),
-                FromInlines(paragraphs[i].InlineRuns)));
+                FromInlines(document, paragraphs[i].InlineRuns)));
         }
 
         return snapshots;
@@ -370,14 +400,16 @@ internal static class MarkdownNativeSnapshotFactory {
         for (var i = 0; i < groups.Count; i++) {
             snapshots.Add(new MarkdownNativeDefinitionListGroupSnapshot(
                 ToSpanSnapshot(groups[i].SourceSpan),
-                FromDefinitionTerms(groups[i].Terms),
+                FromDefinitionTerms(document, groups[i].Terms),
                 FromDefinitions(document, groups[i].Definitions)));
         }
 
         return snapshots;
     }
 
-    private static IReadOnlyList<MarkdownNativeDefinitionListTermSnapshot> FromDefinitionTerms(IReadOnlyList<MarkdownNativeDefinitionListTerm> terms) {
+    private static IReadOnlyList<MarkdownNativeDefinitionListTermSnapshot> FromDefinitionTerms(
+        MarkdownNativeDocument? document,
+        IReadOnlyList<MarkdownNativeDefinitionListTerm> terms) {
         if (terms == null || terms.Count == 0) {
             return Array.Empty<MarkdownNativeDefinitionListTermSnapshot>();
         }
@@ -388,7 +420,7 @@ internal static class MarkdownNativeSnapshotFactory {
                 terms[i].Text,
                 terms[i].Markdown,
                 ToSpanSnapshot(terms[i].SourceSpan),
-                FromInlines(terms[i].InlineRuns)));
+                FromInlines(document, terms[i].InlineRuns)));
         }
 
         return snapshots;
@@ -451,7 +483,7 @@ internal static class MarkdownNativeSnapshotFactory {
             cell.ColumnIndex,
             cell.Alignment,
             ToSpanSnapshot(cell.SourceSpan),
-            FromInlines(cell.InlineRuns),
+            FromInlines(document, cell.InlineRuns),
             FromBlocks(document, cell.Children));
     }
 
