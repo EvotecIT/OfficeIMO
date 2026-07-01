@@ -1657,7 +1657,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
 
         var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(metadata, "{#changed .edited}"));
         Assert.Equal(
-            markdown.Replace(expectedLiteral, "{#changed .edited}", StringComparison.Ordinal),
+            markdown.Replace(expectedLiteral, "{#changed .edited}"),
             roundtrip.Markdown.TrimEnd('\r', '\n'));
 
         Assert.Equal(markdown, result.Document.ToMarkdown().TrimEnd('\r', '\n'));
@@ -1705,7 +1705,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         Assert.Equal("***both***{#changed .edited} tail", roundtrip.Markdown.TrimEnd('\r', '\n'));
 
         Assert.Equal(markdown, result.Document.ToMarkdown().TrimEnd('\r', '\n'));
-        Assert.Equal("<p><em id=\"both\" class=\"mix\"><strong id=\"both\" class=\"mix\">both</strong></em> tail</p>", result.Document.ToHtmlFragment(new HtmlOptions {
+        Assert.Equal("<p><em><strong id=\"both\" class=\"mix\">both</strong></em> tail</p>", result.Document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
             CssDelivery = CssDelivery.None,
             BodyClass = null

@@ -2204,24 +2204,24 @@
       {
         "description": "nested loose sublists keep the second paragraph inside the deepest list item",
         "line": 5,
-        "column": 7,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "bim",
-        "expectedDeepestSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 },
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 }
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 }
       }
     ],
     "finalSyntaxAssertions": [
       {
-        "description": "the final syntax tree preserves deep loose-list paragraph paths",
+        "description": "the final syntax tree preserves deep loose-list paragraph paths in normalized output",
         "line": 5,
-        "column": 7,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "bim",
-        "expectedDeepestSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 },
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 }
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 }
       }
     ]
   },

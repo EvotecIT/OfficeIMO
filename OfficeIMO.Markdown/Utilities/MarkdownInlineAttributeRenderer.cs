@@ -14,7 +14,9 @@ internal static class MarkdownInlineAttributeRenderer {
             return html;
         }
 
-        html = RenderNestedStrongEmphasisAttributes(inline, markdownObject.Attributes, html, options);
+        if (TryRenderNestedStrongEmphasisAttributes(inline, markdownObject.Attributes, html, options, out var nestedHtml)) {
+            return nestedHtml;
+        }
 
         if (html[0] != '<' || (html.Length > 1 && (html[1] == '/' || html[1] == '!' || html[1] == '?'))) {
             return html;
@@ -37,26 +39,31 @@ internal static class MarkdownInlineAttributeRenderer {
         return html.Substring(0, insertAt) + attributes + html.Substring(insertAt);
     }
 
-    private static string RenderNestedStrongEmphasisAttributes(
+    private static bool TryRenderNestedStrongEmphasisAttributes(
         IMarkdownInline inline,
         MarkdownAttributeSet attributes,
         string html,
-        HtmlOptions? options) {
+        HtmlOptions? options,
+        out string rendered) {
+        rendered = html;
+
         if (inline is ItalicSequenceInline italic &&
             italic.Inlines.Nodes.Count == 1 &&
             italic.Inlines.Nodes[0] is BoldSequenceInline bold &&
             bold.Attributes.IsEmpty) {
-            return InsertAttributesIntoFirstTag(html, "<strong", attributes, options);
+            rendered = InsertAttributesIntoFirstTag(html, "<strong", attributes, options);
+            return !string.Equals(rendered, html, StringComparison.Ordinal);
         }
 
         if (inline is BoldSequenceInline strong &&
             strong.Inlines.Nodes.Count == 1 &&
             strong.Inlines.Nodes[0] is ItalicSequenceInline emphasis &&
             emphasis.Attributes.IsEmpty) {
-            return InsertAttributesIntoFirstTag(html, "<em", attributes, options);
+            rendered = InsertAttributesIntoFirstTag(html, "<em", attributes, options);
+            return !string.Equals(rendered, html, StringComparison.Ordinal);
         }
 
-        return html;
+        return false;
     }
 
     private static string InsertAttributesIntoFirstTag(string html, string tagPrefix, MarkdownAttributeSet attributes, HtmlOptions? options) {

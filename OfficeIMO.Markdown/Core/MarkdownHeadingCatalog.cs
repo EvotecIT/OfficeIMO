@@ -16,10 +16,15 @@ internal sealed class MarkdownHeadingCatalog {
     }
 
     private readonly IReadOnlyList<HeadingEntry> _headings;
+    private readonly MarkdownHeadingIdentifierStyle _style;
 
-    private MarkdownHeadingCatalog(IReadOnlyList<HeadingEntry> headings, IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs) {
+    private MarkdownHeadingCatalog(
+        IReadOnlyList<HeadingEntry> headings,
+        IReadOnlyDictionary<IHeadingMarkdownBlock, string> headingSlugs,
+        MarkdownHeadingIdentifierStyle style) {
         _headings = headings;
         HeadingSlugs = headingSlugs;
+        _style = style;
     }
 
     internal IReadOnlyDictionary<IHeadingMarkdownBlock, string> HeadingSlugs { get; }
@@ -37,7 +42,7 @@ internal sealed class MarkdownHeadingCatalog {
             return slug;
         }
 
-        return MarkdownSlug.Generate(heading.Text, MarkdownHeadingIdentifierStyle.OfficeIMO);
+        return MarkdownSlug.Generate(heading.Text, _style);
     }
 
     internal static MarkdownHeadingCatalog Create(
@@ -62,7 +67,7 @@ internal sealed class MarkdownHeadingCatalog {
             headings.Add(new HeadingEntry(idx, heading, slug));
         }
 
-        return new MarkdownHeadingCatalog(headings, slugs);
+        return new MarkdownHeadingCatalog(headings, slugs, style);
     }
 
     internal string? GetPrecedingHeadingAnchor(IReadOnlyList<IMarkdownBlock> blocks, int blockIndex, TocOptions options) {

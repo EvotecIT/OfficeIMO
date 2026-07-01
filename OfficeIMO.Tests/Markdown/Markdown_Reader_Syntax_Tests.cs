@@ -5477,14 +5477,20 @@ title: Sample
                 Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), node.SourceSpan);
             },
             node => {
-                Assert.Equal(MarkdownSyntaxKind.FrontMatterKey, node.Kind);
-                Assert.Equal("title", node.Literal);
-                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), node.SourceSpan);
-            },
-            node => {
-                Assert.Equal(MarkdownSyntaxKind.FrontMatterValue, node.Kind);
-                Assert.Equal("Sample", node.Literal);
-                Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 13), node.SourceSpan);
+                Assert.Equal(MarkdownSyntaxKind.FrontMatterEntry, node.Kind);
+                Assert.Null(node.Literal);
+                Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), node.SourceSpan);
+                Assert.Collection(node.Children,
+                    child => {
+                        Assert.Equal(MarkdownSyntaxKind.FrontMatterKey, child.Kind);
+                        Assert.Equal("title", child.Literal);
+                        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), child.SourceSpan);
+                    },
+                    child => {
+                        Assert.Equal(MarkdownSyntaxKind.FrontMatterValue, child.Kind);
+                        Assert.Equal("Sample", child.Literal);
+                        Assert.Equal(new MarkdownSourceSpan(2, 8, 2, 13), child.SourceSpan);
+                    });
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.FrontMatterBody, node.Kind);
@@ -5497,7 +5503,8 @@ title: Sample
                 Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), node.SourceSpan);
             });
         Assert.Equal(MarkdownSyntaxKind.FrontMatterOpeningFence, result.FindDeepestNodeAtPosition(1, 2)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.FrontMatterBody, result.FindDeepestNodeAtPosition(2, 6)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.FrontMatterKey, result.FindDeepestNodeAtPosition(2, 2)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.FrontMatterEntry, result.FindDeepestNodeAtPosition(2, 6)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.FrontMatterValue, result.FindDeepestNodeAtPosition(2, 9)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.FrontMatterClosingFence, result.FindDeepestNodeAtPosition(3, 2)!.Kind);
     }

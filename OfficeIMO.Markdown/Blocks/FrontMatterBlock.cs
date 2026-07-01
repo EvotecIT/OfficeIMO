@@ -202,16 +202,17 @@ public sealed class FrontMatterBlock : MarkdownBlock, IFrontMatterMarkdownBlock,
 
         for (int i = 0; i < Entries.Count; i++) {
             var entry = Entries[i];
-            if (entry.SourceSpan.HasValue) {
-                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterEntry, entry.SourceSpan, null, associatedObject: entry));
-            }
-
+            var entryChildren = new List<MarkdownSyntaxNode>(2);
             if (entry.KeySourceSpan.HasValue) {
-                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterKey, entry.KeySourceSpan, entry.Key, associatedObject: entry));
+                entryChildren.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterKey, entry.KeySourceSpan, entry.Key, associatedObject: entry));
             }
 
             if (entry.ValueSourceSpan.HasValue) {
-                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterValue, entry.ValueSourceSpan, FormatSyntaxValue(entry.Value), associatedObject: entry));
+                entryChildren.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterValue, entry.ValueSourceSpan, FormatSyntaxValue(entry.Value), associatedObject: entry));
+            }
+
+            if (entry.SourceSpan.HasValue || entryChildren.Count > 0) {
+                children.Add(new MarkdownSyntaxNode(MarkdownSyntaxKind.FrontMatterEntry, entry.SourceSpan, children: entryChildren, associatedObject: entry));
             }
         }
 

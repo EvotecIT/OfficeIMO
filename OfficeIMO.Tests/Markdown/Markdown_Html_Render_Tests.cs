@@ -239,6 +239,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void HtmlOptions_Applies_Heading_Identifier_Style_To_Nested_Headings() {
+            const string markdown = "- # a_b c.d";
+
+            string html = MarkdownReader.Parse(markdown).ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                HeadingIdentifierStyle = MarkdownHeadingIdentifierStyle.MarkdigDefault
+            });
+
+            Assert.Contains("<h1 id=\"a_b-c.d\">a_b c.d</h1>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("id=\"a-b-c-d\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void HtmlOptions_Can_Render_NonAscii_Text_Literally_For_Markdig_Style_Output() {
             const string markdown = """
 åbc 1 < 2 & 'quote'
