@@ -248,5 +248,62 @@ namespace OfficeIMO.Tests {
                 DeleteIfExists(docPath);
             }
         }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleInheritedParagraphAndRunFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocBaseTextFormattingTable";
+            const string childStyleId = "NativeDocInheritedTextFormattingTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
+                    baseStyle.Append(new StyleName { Val = "Native DOC Base Text Formatting Table" });
+                    baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                    baseStyle.Append(new StyleParagraphProperties(
+                        new Justification { Val = JustificationValues.Center },
+                        new Indentation { Left = "360" }));
+                    baseStyle.Append(new StyleRunProperties(
+                        new Bold(),
+                        new Color { Val = "ff0000" },
+                        new FontSize { Val = "28" }));
+
+                    var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
+                    childStyle.Append(new StyleName { Val = "Native DOC Inherited Text Formatting Table" });
+                    childStyle.Append(new BasedOn { Val = baseStyleId });
+                    childStyle.Append(new StyleParagraphProperties(
+                        new SpacingBetweenLines { After = "240" }));
+                    childStyle.Append(new StyleRunProperties(
+                        new Italic(),
+                        new Color { Val = "0000ff" }));
+
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    styles.Append(baseStyle);
+                    styles.Append(childStyle);
+
+                    WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
+                    table.Rows[0].Cells[0].AddParagraph("Inherited text", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph paragraph = Assert.Single(Assert.Single(reloadedTable.Rows).Cells[0].Paragraphs);
+                Assert.Equal("Inherited text", paragraph.Text);
+                Assert.Equal(JustificationValues.Center, paragraph.ParagraphAlignment);
+                Assert.Equal(360, paragraph.IndentationBefore);
+                Assert.Equal(240, paragraph.LineSpacingAfter);
+                Assert.True(paragraph.Bold);
+                Assert.True(paragraph.Italic);
+                Assert.Equal("0000ff", paragraph.ColorHex);
+                Assert.Equal(14, paragraph.FontSize);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
     }
 }

@@ -748,6 +748,10 @@ just to reserve names.
     style by inheriting supported alignment, indentation, preferred width,
     fixed/autofit layout, default cell margins, default cell spacing, and band
     sizes, while preserving child style and direct table/cell overrides.
+  - [x] Write custom table styles based on another custom paragraph/run
+    formatting table style by inheriting supported paragraph and run formatting
+    into table-cell content, while preserving child style and direct cell
+    paragraph/run overrides.
   - [x] Write custom table styles whose only table-level formatting is
     supported palette-backed borders by expanding the style borders to native
     DOC `TC80` values, while continuing to block conditional, paragraph, run,
