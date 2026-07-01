@@ -490,8 +490,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StyleRunProperties styleRunProperties:
                         ThrowIfUnsupportedTableStyleRunProperties(baseStyleId, styleRunProperties);
                         break;
+                    case TableStyleProperties tableStyleProperties:
+                        ThrowIfUnsupportedTableStyleConditionalProperties(baseStyleId, tableStyleProperties);
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom formatting is supported table layout, borders, shading, default cell margins, default cell spacing, paragraph formatting, and run formatting. Unsupported base style element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom formatting is supported table layout, borders, shading, default cell margins, default cell spacing, paragraph formatting, run formatting, and conditional formatting. Unsupported base style element: {child.LocalName}.");
                 }
             }
 

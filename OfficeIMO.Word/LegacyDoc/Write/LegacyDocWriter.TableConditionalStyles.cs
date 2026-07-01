@@ -24,6 +24,47 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ?? ReadSupportedTableStyleBaseColumnBandSize(style, tableStyleDefinitions)
                 ?? 1;
             var conditionalStyles = new List<LegacyDocTableConditionalStyle>();
+            AppendSupportedTableConditionalStyles(style, conditionalStyles);
+            AppendSupportedTableStyleBaseConditionalStyles(style, tableStyleDefinitions, conditionalStyles);
+
+            LegacyDocTableConditionalStyle[] orderedConditionalStyles = conditionalStyles
+                .Select((style, index) => new { Style = style, Index = index })
+                .OrderBy(item => GetTableConditionalStylePrecedence(item.Style.Type))
+                .ThenBy(item => item.Index)
+                .Select(item => item.Style)
+                .ToArray();
+
+            return orderedConditionalStyles.Length == 0
+                ? new LegacyDocTableConditionalStyleSet(Array.Empty<LegacyDocTableConditionalStyle>(), rowBandSize, columnBandSize)
+                : new LegacyDocTableConditionalStyleSet(orderedConditionalStyles, rowBandSize, columnBandSize);
+        }
+
+        private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles) {
+            AppendSupportedTableStyleBaseConditionalStyles(style, tableStyleDefinitions, conditionalStyles, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        }
+
+        private static void AppendSupportedTableStyleBaseConditionalStyles(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, List<LegacyDocTableConditionalStyle> conditionalStyles, ISet<string> visitedStyleIds) {
+            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+            if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(baseStyleId)
+                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                return;
+            }
+
+            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
+                throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
+            }
+
+            ThrowIfUnsupportedInheritedTableStyleBase(currentStyleId, baseStyleId!, baseStyle, tableStyleDefinitions, visitedStyleIds);
+            AppendSupportedTableConditionalStyles(baseStyle, conditionalStyles);
+            AppendSupportedTableStyleBaseConditionalStyles(baseStyle, tableStyleDefinitions, conditionalStyles, visitedStyleIds);
+        }
+
+        private static void AppendSupportedTableConditionalStyles(Style style, List<LegacyDocTableConditionalStyle> conditionalStyles) {
             foreach (TableStyleProperties properties in style.Elements<TableStyleProperties>()) {
                 TableStyleOverrideValues? type = properties.Type?.Value;
                 if (type == null) {
@@ -59,17 +100,6 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     conditionalStyles.Add(new LegacyDocTableConditionalStyle(type.Value, tableShading, tableBorders, cellVerticalAlignment, cellTextDirection, cellFitText, cellNoWrap, cellHideMark, cellMargins, cellShading, cellBorders, paragraphFormatting, runFormatting));
                 }
             }
-
-            LegacyDocTableConditionalStyle[] orderedConditionalStyles = conditionalStyles
-                .Select((style, index) => new { Style = style, Index = index })
-                .OrderBy(item => GetTableConditionalStylePrecedence(item.Style.Type))
-                .ThenBy(item => item.Index)
-                .Select(item => item.Style)
-                .ToArray();
-
-            return orderedConditionalStyles.Length == 0
-                ? new LegacyDocTableConditionalStyleSet(Array.Empty<LegacyDocTableConditionalStyle>(), rowBandSize, columnBandSize)
-                : new LegacyDocTableConditionalStyleSet(orderedConditionalStyles, rowBandSize, columnBandSize);
         }
 
         private static int GetTableConditionalStylePrecedence(TableStyleOverrideValues type) {

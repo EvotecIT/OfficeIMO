@@ -305,5 +305,72 @@ namespace OfficeIMO.Tests {
                 DeleteIfExists(docPath);
             }
         }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleInheritedConditionalFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocBaseConditionalTable";
+            const string childStyleId = "NativeDocInheritedConditionalTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
+                    baseStyle.Append(new StyleName { Val = "Native DOC Base Conditional Table" });
+                    baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                    baseStyle.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                        Type = TableStyleOverrideValues.FirstRow
+                    });
+                    baseStyle.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ffff00" })) {
+                        Type = TableStyleOverrideValues.Band1Horizontal
+                    });
+
+                    var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
+                    childStyle.Append(new StyleName { Val = "Native DOC Inherited Conditional Table" });
+                    childStyle.Append(new BasedOn { Val = baseStyleId });
+                    childStyle.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00ff00" })) {
+                        Type = TableStyleOverrideValues.FirstRow
+                    });
+
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    styles.Append(baseStyle);
+                    styles.Append(childStyle);
+
+                    WordTable table = document.AddTable(3, 1, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
+                    table._tableProperties.TableLook = new TableLook {
+                        FirstRow = true,
+                        FirstColumn = false,
+                        LastRow = false,
+                        LastColumn = false,
+                        NoHorizontalBand = false,
+                        NoVerticalBand = true
+                    };
+                    table.Rows[0].Cells[0].AddParagraph("Header", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("Band", removeExistingParagraphs: true);
+                    table.Rows[2].Cells[0].AddParagraph("Plain", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("Header", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("00ff00", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("Band", reloadedTable.Rows[1].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("ffff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.Equal("Plain", reloadedTable.Rows[2].Cells[0].Paragraphs[0].Text);
+                Assert.Equal(string.Empty, reloadedTable.Rows[2].Cells[0].ShadingFillColorHex);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
     }
 }

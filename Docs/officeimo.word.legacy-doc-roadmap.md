@@ -752,6 +752,9 @@ just to reserve names.
     formatting table style by inheriting supported paragraph and run formatting
     into table-cell content, while preserving child style and direct cell
     paragraph/run overrides.
+  - [x] Write custom table styles based on another custom conditional table
+    style by inheriting supported conditional formatting regions, while keeping
+    child conditional regions stronger than inherited regions.
   - [x] Write custom table styles whose only table-level formatting is
     supported palette-backed borders by expanding the style borders to native
     DOC `TC80` values, while continuing to block conditional, paragraph, run,
