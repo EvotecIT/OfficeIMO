@@ -173,7 +173,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, storyStart);
+                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
                             AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
                         }
@@ -308,14 +308,28 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ref int childIndex,
             StringBuilder text,
             List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
             int storyStart) {
             var instruction = new StringBuilder();
             LegacyDocWritableFormatting? resultFormatting = null;
+            var bookmarkMarkers = new List<LegacyDocSimpleFieldBookmarkMarker>();
             bool sawSeparator = false;
+            int resultOffset = 0;
             int index = childIndex;
             for (; index < paragraphChildren.Count; index++) {
-                if (paragraphChildren[index] is not Run run) {
-                    if (IsIgnorableParagraphMarkup(paragraphChildren[index])) {
+                OpenXmlElement fieldChild = paragraphChildren[index];
+                if (fieldChild is BookmarkStart bookmarkStart && sawSeparator) {
+                    bookmarkMarkers.Add(new LegacyDocSimpleFieldBookmarkMarker(bookmarkStart, null, resultOffset));
+                    continue;
+                }
+
+                if (fieldChild is BookmarkEnd bookmarkEnd && sawSeparator) {
+                    bookmarkMarkers.Add(new LegacyDocSimpleFieldBookmarkMarker(null, bookmarkEnd, resultOffset));
+                    continue;
+                }
+
+                if (fieldChild is not Run run) {
+                    if (IsIgnorableParagraphMarkup(fieldChild)) {
                         continue;
                     }
 
@@ -337,6 +351,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                                 throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields in note paragraphs only when their display runs use one formatting set.");
                             }
 
+                            resultOffset = 1;
                             break;
                         case FieldChar fieldChar:
                             FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
@@ -358,7 +373,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                                     throw new NotSupportedException("Native DOC saving currently supports only PAGE and NUMPAGES complex fields in note paragraphs. Other field types are not supported yet.");
                                 }
 
-                                AppendSupportedNoteField(text, runs, fieldKind, resultFormatting ?? LegacyDocWritableFormatting.Plain, storyStart);
+                                AppendSupportedNoteField(text, runs, bookmarks, fieldKind, resultFormatting ?? LegacyDocWritableFormatting.Plain, bookmarkMarkers, storyStart);
                                 childIndex = index;
                                 return;
                             }

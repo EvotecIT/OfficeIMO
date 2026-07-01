@@ -476,7 +476,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendSupportedComplexPageNumberField(children, ref index, text, runs, LegacyDocWritableFormatting.Plain);
+                            AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, LegacyDocWritableFormatting.Plain);
                         } else {
                             AppendSupportedRunText(text, runs, run, footnotes, endnotes);
                         }

@@ -296,7 +296,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, text, children, ref index, kind);
+                            AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, text, bookmarks, children, ref index, kind);
                         } else {
                             AppendFormattedHeaderFooterRun(storyText, formattedRuns, text, run, kind);
                         }
@@ -373,10 +373,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void AppendFormattedHeaderFooterComplexPageNumberField(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, IReadOnlyList<OpenXmlElement> paragraphChildren, ref int childIndex, string kind) {
+        private static void AppendFormattedHeaderFooterComplexPageNumberField(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, LegacyDocWritableBookmarksBuilder bookmarks, IReadOnlyList<OpenXmlElement> paragraphChildren, ref int childIndex, string kind) {
             int before = storyText.Length;
             try {
-                AppendSupportedComplexPageNumberField(paragraphChildren, ref childIndex, storyText, formattedRuns, LegacyDocWritableFormatting.Plain);
+                AppendSupportedComplexPageNumberField(paragraphChildren, ref childIndex, storyText, formattedRuns, bookmarks, LegacyDocWritableFormatting.Plain);
             } catch (NotSupportedException exception) {
                 throw new NotSupportedException($"Native DOC saving supports complex {kind} PAGE and NUMPAGES fields only. {exception.Message}", exception);
             }

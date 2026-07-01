@@ -22,7 +22,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendSupportedComplexPageNumberField(children, ref index, text, runs, inheritedFormatting);
+                            AppendSupportedComplexPageNumberField(children, ref index, text, runs, bookmarks, inheritedFormatting);
                         } else {
                             AppendSupportedRunText(text, runs, run, footnotes, endnotes, inheritedFormatting);
                         }
@@ -67,7 +67,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, paragraphText, children, ref index, kind);
+                            AppendFormattedHeaderFooterComplexPageNumberField(storyText, formattedRuns, paragraphText, bookmarks, children, ref index, kind);
                         } else {
                             AppendFormattedHeaderFooterRun(storyText, formattedRuns, paragraphText, run, kind);
                         }
@@ -112,7 +112,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, storyStart);
+                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
                             AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
                         }
@@ -157,7 +157,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, storyStart);
+                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
                             AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
                         }

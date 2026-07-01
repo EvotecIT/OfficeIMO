@@ -161,7 +161,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Run run:
                         if (IsComplexFieldBeginRun(run)) {
-                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, storyStart);
+                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, bookmarks, storyStart);
                         } else {
                             AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
                         }
