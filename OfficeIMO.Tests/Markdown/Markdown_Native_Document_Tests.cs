@@ -2211,6 +2211,7 @@ beta
             roundtrip.Diagnostics,
             item => item.Id == "roundtrip.original-source-slice-unavailable");
         Assert.Contains("generated from semantic content", sourceFailure.Message, StringComparison.Ordinal);
+        Assert.Equal(MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode, sourceFailure.OriginalSourceFailureReason);
         Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 14), sourceFailure.SourceSpan);
 
         var fieldRoundtrip = native.WriteWithSourceEdit(fieldEdit);
@@ -2218,6 +2219,7 @@ beta
         Assert.Contains(
             fieldRoundtrip.Diagnostics,
             item => item.Id == "roundtrip.original-source-slice-unavailable" &&
+                    item.OriginalSourceFailureReason == MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode &&
                     item.SourceSpan.Equals(new MarkdownSourceSpan(1, 7, 1, 14)));
     }
 

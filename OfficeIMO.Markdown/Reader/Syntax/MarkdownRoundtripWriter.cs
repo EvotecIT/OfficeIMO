@@ -25,7 +25,8 @@ public static class MarkdownRoundtripWriter {
             return GeneratedWithDiagnostic(
                 result,
                 PreserveTriviaRequiredId,
-                "The parse result does not contain original reader input. Parse with PreserveTrivia enabled before requesting a lossless unchanged roundtrip.");
+                "The parse result does not contain original reader input. Parse with PreserveTrivia enabled before requesting a lossless unchanged roundtrip.",
+                originalSourceFailureReason: MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved);
         }
 
         if (HasSourceAffectingTransform(result)) {
@@ -82,7 +83,8 @@ public static class MarkdownRoundtripWriter {
             diagnostics.Add(new MarkdownRoundtripDiagnostic(
                 PreserveTriviaRequiredId,
                 "The parse result does not contain original reader input. Source edits were applied to normalized markdown. Parse with PreserveTrivia enabled before requesting a lossless source-edit roundtrip.",
-                editList[0].SourceSpan));
+                editList[0].SourceSpan,
+                originalSourceFailureReason: MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved));
             AddKnownOriginalSourceFailureDiagnostics(
                 editList,
                 diagnostics,
@@ -112,10 +114,11 @@ public static class MarkdownRoundtripWriter {
         string id,
         string message,
         MarkdownSourceSpan? sourceSpan = null,
-        IReadOnlyList<MarkdownSourceSpan>? relatedSourceSpans = null) {
+        IReadOnlyList<MarkdownSourceSpan>? relatedSourceSpans = null,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason = null) {
         return new MarkdownRoundtripResult(
             result.Document.ToMarkdown(),
-            new[] { new MarkdownRoundtripDiagnostic(id, message, sourceSpan, relatedSourceSpans) });
+            new[] { new MarkdownRoundtripDiagnostic(id, message, sourceSpan, relatedSourceSpans, originalSourceFailureReason) });
     }
 
     private static MarkdownSourceSpan? GetTransformFallbackSpan(MarkdownParseResult result) {
@@ -206,7 +209,8 @@ public static class MarkdownRoundtripWriter {
         return new MarkdownRoundtripDiagnostic(
             OriginalSourceSliceUnavailableId,
             "At least one source edit could not be mapped back to original reader input. Source edits were applied to normalized markdown instead. Reason: " + FormatOriginalSourceSliceFailureReason(failureReason),
-            sourceSpan);
+            sourceSpan,
+            originalSourceFailureReason: failureReason);
     }
 
     private static string FormatOriginalSourceSliceFailureReason(MarkdownOriginalSourceSliceFailureReason failureReason) =>

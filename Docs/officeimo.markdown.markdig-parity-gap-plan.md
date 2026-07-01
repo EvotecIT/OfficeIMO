@@ -68,7 +68,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Diagnostics: report generated final syntax nodes at parse-result level, including path, index path, source fallback anchor, and associated semantic object details.
   - [x] Diagnostics: original-source slice APIs reject generated syntax-node fallback anchors, including native inline and inline-metadata slices, with a dedicated generated-node failure reason instead of treating them as exact original source.
   - [x] Diagnostics: native source edits created from generated block, inline, list-item, list-item paragraph, table-cell, definition-list, block-field, and metadata targets now carry generated-node original-source failure metadata so roundtrip diagnostics can stay honest while normalized edits still apply.
-  - [ ] Diagnostics: report precise fallback reasons when exact source preservation is unavailable.
+  - [x] Diagnostics: report structured fallback reasons when exact source preservation is unavailable, including machine-readable roundtrip diagnostic reasons for original-source mapping failures.
   - [ ] Proof: add source-map and roundtrip tests after the mapping rules exist.
 - [ ] Optional parser gaps need product scope before implementation.
   - [ ] `UseCustomContainers`: decide core versus optional package, then implement colon-fence parsing, child source mapping, renderer seams, and writer support.
@@ -242,7 +242,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
   - [x] Code fences and semantic fenced extension nodes now expose value-bearing opening/closing fence markers in native source fields and snapshots, with position lookup and source-edit proof.
 - [ ] Establish one original-to-normalized mapping story for CRLF/LF/CR, tab expansion, nested containers, transformed nodes, generated nodes, and normalized paragraph text.
 - [ ] Broaden `MarkdownRoundtripWriter` beyond unchanged documents and explicit native edits.
-- [ ] Add precise fallback diagnostics when exact source preservation is unavailable.
+- [x] Add structured fallback diagnostics when exact source preservation is unavailable, including machine-readable roundtrip diagnostic reasons.
 - [x] Expose parse-result generated syntax diagnostics so final syntax nodes rebuilt from semantic content are visible without native-projection-specific checks.
 - [x] Return a dedicated original-source failure reason for generated syntax nodes so parse/native callers do not treat fallback anchors as byte-exact source.
 - [x] Reject generated native inline and inline-metadata original-source slices before span-only mapping so editor hosts do not overclaim exact original bytes for regenerated inline content.

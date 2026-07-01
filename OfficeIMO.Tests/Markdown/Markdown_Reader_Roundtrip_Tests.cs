@@ -528,6 +528,7 @@ Paragraph
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
             Assert.Equal("roundtrip.preserve-trivia-required", diagnostic.Id);
+            Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, diagnostic.OriginalSourceFailureReason);
             Assert.Equal(result.Document.ToMarkdown(), roundtrip.Markdown);
         }
 
@@ -807,6 +808,7 @@ beta
             Assert.False(roundtrip.IsLossless);
             var diagnostic = Assert.Single(roundtrip.Diagnostics);
             Assert.Equal("roundtrip.original-source-slice-unavailable", diagnostic.Id);
+            Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalTextNotEquivalent, diagnostic.OriginalSourceFailureReason);
             Assert.Equal(edit.SourceSpan, diagnostic.SourceSpan);
             Assert.Equal("# New\n", roundtrip.Markdown);
         }

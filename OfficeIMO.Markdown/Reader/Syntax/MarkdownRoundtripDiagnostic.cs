@@ -9,11 +9,13 @@ public sealed class MarkdownRoundtripDiagnostic {
         string id,
         string message,
         MarkdownSourceSpan? sourceSpan = null,
-        IReadOnlyList<MarkdownSourceSpan>? relatedSourceSpans = null) {
+        IReadOnlyList<MarkdownSourceSpan>? relatedSourceSpans = null,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason = null) {
         Id = id ?? string.Empty;
         Message = message ?? string.Empty;
         SourceSpan = sourceSpan;
         RelatedSourceSpans = relatedSourceSpans ?? Array.Empty<MarkdownSourceSpan>();
+        OriginalSourceFailureReason = originalSourceFailureReason;
     }
 
     /// <summary>Stable diagnostic identifier.</summary>
@@ -27,4 +29,7 @@ public sealed class MarkdownRoundtripDiagnostic {
 
     /// <summary>Additional source spans related to the fallback, such as individual transform input blocks.</summary>
     public IReadOnlyList<MarkdownSourceSpan> RelatedSourceSpans { get; }
+
+    /// <summary>Machine-readable reason an original source mapping failed, when the diagnostic represents that fallback.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 }
