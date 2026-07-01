@@ -15,6 +15,7 @@ internal static class MarkdownNativeProjectionFactory {
             UnorderedListBlock unordered => new MarkdownNativeListBlock(unordered, syntaxNode, CreateListItems(syntaxNode, diagnostics)),
             QuoteBlock quote => new MarkdownNativeQuoteBlock(quote, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
             CalloutBlock callout => new MarkdownNativeCalloutBlock(callout, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
+            CustomContainerBlock customContainer => new MarkdownNativeCustomContainerBlock(customContainer, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
             ImageBlock image => new MarkdownNativeImageBlock(image, syntaxNode),
             CodeBlock code => new MarkdownNativeCodeBlock(code, syntaxNode),
             HorizontalRuleBlock horizontalRule => new MarkdownNativeThematicBreakBlock(horizontalRule, syntaxNode),

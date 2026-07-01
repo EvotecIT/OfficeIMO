@@ -728,6 +728,86 @@ x < y
     }
 
     [Fact]
+    public void CustomContainer_SourceFields_Expose_Fences_Info_Body_And_SourceEdits() {
+        const string markdown = ":::: note wide\nhello\n::::\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.CustomContainers = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var container = Assert.IsType<MarkdownNativeCustomContainerBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(MarkdownNativeBlockKind.CustomContainer, container.Kind);
+        Assert.Equal("note", container.Name);
+        Assert.Equal("note wide", container.Info);
+        Assert.Equal("::::", container.OpeningFence);
+        Assert.Equal("::::", container.ClosingFence);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), container.OpeningFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 14), container.InfoSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), container.BodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), container.ClosingFenceSourceSpan);
+
+        var openingFence = Assert.Single(native.EnumerateBlockSourceFields("customContainerOpeningFence"));
+        Assert.Same(container, openingFence.Block);
+        Assert.Equal("::::", openingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 4), openingFence.SourceSpan);
+
+        var info = Assert.Single(native.EnumerateBlockSourceFields("customContainerInfo"));
+        Assert.Same(container, info.Block);
+        Assert.Equal("note wide", info.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 14), info.SourceSpan);
+
+        var body = Assert.Single(native.EnumerateBlockSourceFields("customContainerBody"));
+        Assert.Same(container, body.Block);
+        Assert.Null(body.Value);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), body.SourceSpan);
+
+        var closingFence = Assert.Single(native.EnumerateBlockSourceFields("customContainerClosingFence"));
+        Assert.Same(container, closingFence.Block);
+        Assert.Equal("::::", closingFence.Value);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), closingFence.SourceSpan);
+
+        Assert.Equal("customContainerOpeningFence", native.FindBlockSourceFieldAtPosition(1, 2)!.Name);
+        Assert.Equal("customContainerInfo", native.FindBlockSourceFieldAtPosition(1, 8)!.Name);
+        Assert.Equal("customContainerBody", native.FindBlockSourceFieldAtPosition(2, 3)!.Name);
+        Assert.Equal("customContainerClosingFence", native.FindBlockSourceFieldAtPosition(3, 2)!.Name);
+
+        Assert.True(native.TryCreateSourceSlice(body, out var bodySlice));
+        Assert.Equal("hello", bodySlice.Text);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Equal(MarkdownNativeBlockKind.CustomContainer, snapshot.Kind);
+        Assert.Equal(1, snapshot.FieldSourceSpans["customContainerOpeningFence"]!.StartLine);
+        Assert.Equal(6, snapshot.FieldSourceSpans["customContainerInfo"]!.StartColumn);
+        Assert.Equal(1, snapshot.FieldSourceSpans["customContainerBody"]!.StartColumn);
+        Assert.Equal(3, snapshot.FieldSourceSpans["customContainerClosingFence"]!.StartLine);
+        Assert.Contains(snapshot.SourceFields, field => field.Name == "customContainerInfo" && field.Value == "note wide");
+        Assert.Contains(snapshot.SourceFields, field => field.Name == "customContainerBody" && field.Value == null);
+
+        var infoRoundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(info, "warning"));
+        Assert.True(infoRoundtrip.IsLossless);
+        Assert.Equal(":::: warning\nhello\n::::\n", infoRoundtrip.Markdown.Replace("\r\n", "\n"));
+        var infoReparsed = MarkdownNativeDocument.Parse(infoRoundtrip.Markdown, options);
+        Assert.Equal("warning", Assert.IsType<MarkdownNativeCustomContainerBlock>(Assert.Single(infoReparsed.Blocks)).Name);
+
+        var bodyRoundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(body, "updated"));
+        Assert.True(bodyRoundtrip.IsLossless);
+        Assert.Equal(":::: note wide\nupdated\n::::\n", bodyRoundtrip.Markdown.Replace("\r\n", "\n"));
+        var bodyReparsed = MarkdownNativeDocument.Parse(bodyRoundtrip.Markdown, options);
+        var bodyParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(
+            Assert.Single(Assert.IsType<MarkdownNativeCustomContainerBlock>(Assert.Single(bodyReparsed.Blocks)).Children));
+        Assert.Equal("updated", bodyParagraph.Text);
+
+        var openingRoundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(openingFence, ":::"));
+        Assert.True(openingRoundtrip.IsLossless);
+        Assert.Equal("::: note wide\nhello\n::::\n", openingRoundtrip.Markdown.Replace("\r\n", "\n"));
+
+        var closingRoundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(closingFence, ":::"));
+        Assert.True(closingRoundtrip.IsLossless);
+        Assert.Equal(":::: note wide\nhello\n:::\n", closingRoundtrip.Markdown.Replace("\r\n", "\n"));
+    }
+
+    [Fact]
     public void Container_Body_SourceFields_Use_Structured_Child_Block_Spans() {
         var markdown = """
 > [!TIP] Title

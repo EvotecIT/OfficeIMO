@@ -19,6 +19,9 @@ public enum MarkdownNativeBlockKind {
     /// <summary>Docs-style callout/admonition with title and nested native blocks.</summary>
     Callout,
 
+    /// <summary>Markdig-style colon-fenced custom container with nested native blocks.</summary>
+    CustomContainer,
+
     /// <summary>Image block with source, alternate text, title, sizing, link, and caption metadata.</summary>
     Image,
 

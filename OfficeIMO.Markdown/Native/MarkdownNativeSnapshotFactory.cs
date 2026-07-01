@@ -124,6 +124,21 @@ internal static class MarkdownNativeSnapshotFactory {
                     ("title", callout.TitleSourceSpan),
                     ("calloutBody", callout.BodySourceSpan));
                 break;
+            case MarkdownNativeCustomContainerBlock customContainer:
+                snapshot.Text = customContainer.Name;
+                snapshot.Markdown = RenderBlock(customContainer.Container);
+                snapshot.Children = FromBlocks(customContainer.Children);
+                snapshot.Fields = Fields(
+                    ("name", customContainer.Name),
+                    ("info", customContainer.Info),
+                    ("openingFence", customContainer.OpeningFence),
+                    ("closingFence", customContainer.ClosingFence));
+                snapshot.FieldSourceSpans = FieldSpans(
+                    ("customContainerOpeningFence", customContainer.OpeningFenceSourceSpan),
+                    ("customContainerInfo", customContainer.InfoSourceSpan),
+                    ("customContainerBody", customContainer.BodySourceSpan),
+                    ("customContainerClosingFence", customContainer.ClosingFenceSourceSpan));
+                break;
             case MarkdownNativeDetailsBlock details:
                 snapshot.Text = details.Summary;
                 snapshot.Markdown = RenderBlock(details.Details);

@@ -173,6 +173,24 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 break;
+            case MarkdownNativeCustomContainerBlock customContainer:
+                if (customContainer.OpeningFenceSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("customContainerOpeningFence", customContainer.OpeningFence, customContainer.OpeningFenceSourceSpan.Value, customContainer);
+                }
+
+                if (customContainer.InfoSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("customContainerInfo", customContainer.Info, customContainer.InfoSourceSpan.Value, customContainer);
+                }
+
+                if (customContainer.BodySourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("customContainerBody", null, customContainer.BodySourceSpan.Value, customContainer);
+                }
+
+                if (customContainer.ClosingFenceSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("customContainerClosingFence", customContainer.ClosingFence, customContainer.ClosingFenceSourceSpan.Value, customContainer);
+                }
+
+                break;
             case MarkdownNativeDetailsBlock details:
                 if (details.OpeningTagSourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("detailsOpeningTag", details.OpeningTag, details.OpeningTagSourceSpan.Value, details);

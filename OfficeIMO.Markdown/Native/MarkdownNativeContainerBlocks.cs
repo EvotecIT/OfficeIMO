@@ -111,6 +111,68 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
 }
 
 /// <summary>
+/// Native projection for a Markdig-style colon-fenced custom container.
+/// </summary>
+public sealed class MarkdownNativeCustomContainerBlock : MarkdownNativeBlock {
+    internal MarkdownNativeCustomContainerBlock(
+        CustomContainerBlock container,
+        MarkdownSyntaxNode syntaxNode,
+        IReadOnlyList<MarkdownNativeBlock> children)
+        : base(MarkdownNativeBlockKind.CustomContainer, container, syntaxNode) {
+        Container = container;
+        Name = container.Name;
+        Info = container.Info;
+        OpeningFence = new string(':', Math.Max(3, container.OpeningFenceLength));
+        ClosingFence = new string(':', Math.Max(3, container.ClosingFenceLength));
+        OpeningFenceSourceSpan = container.OpeningFenceSourceSpan ?? FindCustomContainerChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CustomContainerOpeningFence);
+        InfoSourceSpan = container.InfoSourceSpan ?? FindCustomContainerChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CustomContainerInfo);
+        ClosingFenceSourceSpan = container.ClosingFenceSourceSpan ?? FindCustomContainerChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CustomContainerClosingFence);
+        Children = children ?? Array.Empty<MarkdownNativeBlock>();
+        BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);
+    }
+
+    /// <summary>Source custom container block.</summary>
+    public CustomContainerBlock Container { get; }
+
+    /// <summary>First token from the info string, used as the rendered CSS class.</summary>
+    public string Name { get; }
+
+    /// <summary>Full source info string after the opening colon fence.</summary>
+    public string Info { get; }
+
+    /// <summary>Opening colon fence marker.</summary>
+    public string OpeningFence { get; }
+
+    /// <summary>Closing colon fence marker.</summary>
+    public string ClosingFence { get; }
+
+    /// <summary>Source span for the opening colon fence marker when available.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; }
+
+    /// <summary>Source span for the container info string when available.</summary>
+    public MarkdownSourceSpan? InfoSourceSpan { get; }
+
+    /// <summary>Source span for the structured container body when available.</summary>
+    public MarkdownSourceSpan? BodySourceSpan { get; }
+
+    /// <summary>Source span for the closing colon fence marker when available.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; }
+
+    /// <summary>Nested native body blocks.</summary>
+    public IReadOnlyList<MarkdownNativeBlock> Children { get; }
+
+    private static MarkdownSourceSpan? FindCustomContainerChildSourceSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) {
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == kind) {
+                return syntaxNode.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
+}
+
+/// <summary>
 /// Native projection for a details/disclosure block.
 /// </summary>
 public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
