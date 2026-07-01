@@ -273,7 +273,7 @@ public static partial class MarkdownReader {
                 return terms.Count > 0;
             }
 
-            if (!IsMarkdigDefinitionTermCandidate(line, options)) {
+            if (!IsMarkdigDefinitionTermCandidate(lines, cursor, options, state)) {
                 return false;
             }
 
@@ -344,11 +344,18 @@ public static partial class MarkdownReader {
             consumedWhitespace);
     }
 
-    private static bool IsMarkdigDefinitionTermCandidate(string line, MarkdownReaderOptions options) {
+    private static bool IsMarkdigDefinitionTermCandidate(string[] lines, int index, MarkdownReaderOptions options, MarkdownReaderState state) {
+        if (lines == null || index < 0 || index >= lines.Length) return false;
+        var line = lines[index] ?? string.Empty;
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingIndentColumns(line) >= 4) return false;
         var trimmed = line.TrimStart();
         if (IsAtxHeading(trimmed, out _, out _)) return false;
+        if (options.FencedCode && IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
+        if (IsParagraphInterruptingThematicBreakLine(trimmed)) return false;
+        if (IsQuoteStarter(trimmed)) return false;
+        if (HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(trimmed, options)) return false;
+        if (StartsTable(lines, index, options, state)) return false;
         if (IsUnorderedListLine(trimmed, out _, out _, out _)) return false;
         if (IsOrderedListLine(trimmed, options, out _, out _)) return false;
         if (StartsWithReferenceDefinitionLikeLabel(trimmed)) return false;

@@ -2320,6 +2320,33 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
+    public void Standalone_GenericAttributes_Before_DefinitionList_Render_On_Dl() {
+        const string markdown = "{#glossary .wide}\nTerm\n:   Definition\n";
+        var options = new MarkdownReaderOptions {
+            DefinitionLists = true,
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal("glossary", definitionList.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, definitionList.Attributes.Classes);
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Contains("<dl id=\"glossary\" class=\"wide\">", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void DefinitionList_Continuation_Paragraph_GenericAttributes_Stay_Literal() {
         const string markdown = "Term\n:   first\n\n    second {#p .wide}\n";
         var options = new MarkdownReaderOptions {

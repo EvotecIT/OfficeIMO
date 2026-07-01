@@ -55,7 +55,8 @@ public static partial class MarkdownReader {
         char fenceChar = '\0';
         int fenceLen = 0;
 
-        for (int idx = 0; idx < lines.Length; idx++) {
+        int startIndex = GetAbbreviationPreScanStartIndex(lines, options);
+        for (int idx = startIndex; idx < lines.Length; idx++) {
             var line = lines[idx];
             if (string.IsNullOrWhiteSpace(line)) {
                 continue;
@@ -117,6 +118,24 @@ public static partial class MarkdownReader {
                 separatorMarkerSpan,
                 isListItemDefinition);
         }
+    }
+
+    private static int GetAbbreviationPreScanStartIndex(string[] lines, MarkdownReaderOptions options) {
+        if (options?.FrontMatter != true || lines == null || lines.Length == 0) {
+            return 0;
+        }
+
+        if (!string.Equals(lines[0]?.Trim(), "---", StringComparison.Ordinal)) {
+            return 0;
+        }
+
+        for (int idx = 1; idx < lines.Length; idx++) {
+            if (string.Equals(lines[idx]?.Trim(), "---", StringComparison.Ordinal)) {
+                return idx + 1;
+            }
+        }
+
+        return 0;
     }
 
     private static bool TryParseAbbreviationDefinition(

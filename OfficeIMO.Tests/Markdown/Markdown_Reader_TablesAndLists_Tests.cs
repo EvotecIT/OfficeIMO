@@ -153,6 +153,29 @@ a. alpha
         }
 
         [Fact]
+        public void Delimited_Table_Stops_Before_ListExtras_Ordered_List_When_Body_Pipes_Are_Optional() {
+            const string md = """
+| A |
+|---|
+body row
+a. alpha
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ListExtras = true;
+            options.RequireTableBodyRowPipes = false;
+
+            var doc = MarkdownReader.Parse(md, options);
+
+            Assert.Equal(2, doc.Blocks.Count);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[1]);
+
+            Assert.Equal(new[] { "body row" }, Assert.Single(table.Rows));
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("alpha", Assert.Single(list.Items).Content.RenderMarkdown());
+        }
+
+        [Fact]
         public void Delimited_Table_Stops_Before_Plain_Paragraph_Line() {
             const string md = """
 | A |

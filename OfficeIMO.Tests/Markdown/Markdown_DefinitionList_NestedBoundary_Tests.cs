@@ -798,6 +798,27 @@ a. item
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Fact]
+    public void DefinitionList_Does_Not_Treat_Fenced_Code_Block_Start_As_Term() {
+        const string markdown = """
+Term
+```text
+:   code
+```
+""";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateMarkdigDefinitionListReaderOptions());
+
+        Assert.DoesNotContain(result.Document.Blocks, block => block is DefinitionListBlock);
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+        var code = Assert.IsType<CodeBlock>(result.Document.Blocks[1]);
+
+        Assert.Equal("Term", paragraph.Inlines.RenderMarkdown());
+        Assert.Equal(":   code", code.Content.Trim());
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
     private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);

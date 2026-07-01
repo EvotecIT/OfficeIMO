@@ -132,7 +132,9 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
         StringBuilder sb = new StringBuilder();
-        sb.Append("<dl>");
+        sb.Append("<dl");
+        sb.Append(MarkdownHtmlAttributes.Render(Attributes, null));
+        sb.Append(">");
         for (int groupIndex = 0; groupIndex < _groups.Count; groupIndex++) {
             var group = _groups[groupIndex];
             for (int termIndex = 0; termIndex < group.TermItems.Count; termIndex++) {
