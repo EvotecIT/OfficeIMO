@@ -221,6 +221,10 @@ public sealed partial class MarkdownNativeDocument {
 
                 break;
             case MarkdownNativeFootnoteDefinitionBlock footnote:
+                if (footnote.SourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("footnoteDefinition", null, footnote.SourceSpan.Value, footnote);
+                }
+
                 if (footnote.OpeningMarkerSourceSpan.HasValue) {
                     yield return new MarkdownNativeBlockSourceField("footnoteOpeningMarker", "[^", footnote.OpeningMarkerSourceSpan.Value, footnote);
                 }

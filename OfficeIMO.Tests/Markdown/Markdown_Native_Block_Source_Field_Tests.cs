@@ -325,6 +325,46 @@ Heading Title
     }
 
     [Fact]
+    public void Footnote_Definition_SourceField_Uses_Whole_Definition_Span() {
+        const string markdown = """
+[^note]: Footnote body
+
+  - nested
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(Assert.Single(native.Blocks));
+
+        var definition = Assert.Single(native.EnumerateBlockSourceFields("footnoteDefinition"));
+        var label = Assert.Single(native.EnumerateBlockSourceFields("label"));
+        var body = Assert.Single(native.EnumerateBlockSourceFields("footnoteBody"));
+
+        Assert.Same(footnote, definition.Block);
+        Assert.Null(definition.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 10), footnote.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 10), definition.SourceSpan);
+
+        Assert.Equal("label", native.FindBlockSourceFieldAtPosition(1, 4)!.Name);
+        Assert.Equal("footnoteDefinition", native.FindBlockSourceFieldAtPosition(1, 9)!.Name);
+        Assert.Equal("footnoteBody", native.FindBlockSourceFieldAtPosition(1, 11)!.Name);
+        Assert.Equal("footnoteBody", native.FindBlockSourceFieldAtPosition(2, 1)!.Name);
+        Assert.Equal("footnoteBody", native.FindBlockSourceFieldAtPosition(3, 5)!.Name);
+        Assert.Same(label.Block, native.FindBlockSourceFieldAtPosition(1, 4)!.Block);
+        Assert.Same(body.Block, native.FindBlockSourceFieldAtPosition(1, 11)!.Block);
+
+        var snapshot = Assert.Single(native.ToSnapshot().Blocks);
+        Assert.Contains(snapshot.SourceFields, field =>
+            field.Name == "footnoteDefinition"
+            && field.Value == null
+            && field.SourceSpan.StartLine == 1
+            && field.SourceSpan.EndLine == 3
+            && field.SourceSpan.EndColumn == 10);
+
+        var edited = native.CreateReplaceEdit(definition, "[^memo]: Replacement").Apply(native.SourceMarkdown);
+        Assert.Equal("[^memo]: Replacement", edited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
     public void Footnote_Label_SourceField_Uses_Indented_Label_Token_Span() {
         const string markdown = """
   [^note]: Footnote body
@@ -1387,8 +1427,9 @@ summary: |
         Assert.Equal(2, found.Index);
         Assert.Equal("a, b", found.Value);
 
-        var bodyFound = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(4, 5));
-        Assert.Equal("frontMatterBody", bodyFound.Name);
+        var entryFound = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(4, 5));
+        Assert.Equal("frontMatterEntry", entryFound.Name);
+        Assert.Equal(2, entryFound.Index);
 
         var openingFound = Assert.IsType<MarkdownNativeBlockSourceField>(native.FindBlockSourceFieldAtPosition(1, 2));
         Assert.Equal("openingFence", openingFound.Name);
