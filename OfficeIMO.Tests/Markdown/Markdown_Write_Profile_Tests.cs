@@ -568,6 +568,22 @@ Lead[^1]
     }
 
     [Fact]
+    public void Markdown_Writer_Keeps_List_Item_First_Line_Definition_Like_Text_Literal() {
+        var list = new UnorderedListBlock();
+        var labelItem = ListItem.Text("Formula:");
+        labelItem.AdditionalParagraphs.Add(new InlineSequence().Text("Unsupported Word content: equation"));
+        list.Items.Add(labelItem);
+        list.Items.Add(ListItem.Text("[ref]: https://example.com"));
+
+        var written = MarkdownDoc.Create()
+            .Add(list)
+            .ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" })
+            .TrimEnd();
+
+        Assert.Equal("- Formula:\n\n  Unsupported Word content: equation\n- \\[ref\\]&#58; https://example.com", written);
+    }
+
+    [Fact]
     public void Html_Syntax_Block_Render_Extension_Applies_To_Custom_Container_In_Tight_List_Item() {
         const string markdown = """
 - item

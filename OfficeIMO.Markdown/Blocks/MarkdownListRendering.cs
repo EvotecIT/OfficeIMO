@@ -136,7 +136,7 @@ internal static class MarkdownListRendering {
             return string.Empty;
         }
 
-        var content = MarkdownEscaper.EscapeRenderedLineStarts(item.RenderMarkdown());
+        var content = MarkdownEscaper.EscapeRenderedListItemLineStarts(item.RenderMarkdown());
         if (item.SyntaxChildren.Count == 0) {
             return content;
         }
