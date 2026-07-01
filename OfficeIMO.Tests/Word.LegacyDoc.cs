@@ -858,6 +858,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomStyleLevelParagraphFrame() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithCustomStyleLevelParagraphFrame();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("custom frame style", paragraph.Text);
+            Assert.Equal("LegacyDocParagraphFrame", paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style frameStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocParagraphFrame");
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(frameStyle.StyleParagraphProperties);
+            Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
+            Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
+            Assert.Equal("auto", shading.Color!.Value);
+            Assert.Equal("ff0000", shading.Fill!.Value);
+            ParagraphBorders paragraphBorders = Assert.IsType<ParagraphBorders>(paragraphProperties.GetFirstChild<ParagraphBorders>());
+            Assert.Equal(BorderValues.Single, paragraphBorders.TopBorder!.Val!.Value);
+            Assert.Equal("ff0000", paragraphBorders.TopBorder.Color!.Value);
+            Assert.Equal(4U, paragraphBorders.TopBorder.Size!.Value);
+            Assert.Equal(2U, paragraphBorders.TopBorder.Space!.Value);
+            Assert.Equal(BorderValues.Double, paragraphBorders.LeftBorder!.Val!.Value);
+            Assert.Equal("0000ff", paragraphBorders.LeftBorder.Color!.Value);
+            Assert.Equal(8U, paragraphBorders.LeftBorder.Size!.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelCapsDoubleStrikeAndVerticalPosition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition();
 
@@ -10556,6 +10584,32 @@ namespace OfficeIMO.Tests {
                         Array.Empty<byte>(),
                         CreateStyleCharacterFormatting(CreateCharacterSprm(0x2A48, 2))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleLevelCapsDoubleStrikeAndVerticalPosition(text, textOffset, papxFkpOffset, styleSheet.Length);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithCustomStyleLevelParagraphFrame() {
+                const string text = "custom frame style\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Paragraph Frame",
+                        CreateStyleParagraphFormatting(
+                            CreateParagraphSprm(0x442D, 0xC0, 0x00),
+                            CreateParagraphSprm(0x6424, CreateBrc80(sizeEighthPoints: 4, borderType: 0x01, colorIndex: 6, spacePoints: 2)),
+                            CreateParagraphSprm(0x6425, CreateBrc80(sizeEighthPoints: 8, borderType: 0x03, colorIndex: 2, spacePoints: 0)))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
 
                 using var package = new MemoryStream();

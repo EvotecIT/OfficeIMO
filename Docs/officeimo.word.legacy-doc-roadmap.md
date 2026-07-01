@@ -318,8 +318,8 @@ just to reserve names.
     `sprmPShd80` into custom DOCX style definitions with synthetic legacy DOC
     fixture proof.
   - [x] Project simple palette-backed stylesheet paragraph borders from DOC
-    `sprmPBrc*80` into built-in DOCX style definitions with synthetic legacy
-    DOC fixture proof.
+    `sprmPBrc*80` into custom and built-in DOCX style definitions with
+    synthetic legacy DOC fixture proof.
   - [x] Project direct PAPX paragraph tab-stop changes, including clear stops,
     into normal OfficeIMO paragraph `TabStops` with synthetic legacy DOC fixture
     proof.
