@@ -1473,6 +1473,11 @@ namespace OfficeIMO.Tests {
                 new SdtContentRun(children));
         }
 
+        private static void AddProofErrorBoundary(Hyperlink hyperlink) {
+            hyperlink.PrependChild(new ProofError { Type = ProofingErrorValues.SpellStart });
+            hyperlink.Append(new ProofError { Type = ProofingErrorValues.SpellEnd });
+        }
+
         private static void ReplaceHyperlinkDisplayWithInlineContentControl(Hyperlink hyperlink, string alias, string first, string nested, string second) {
             foreach (OpenXmlElement child in hyperlink.ChildElements.ToArray()) {
                 child.Remove();
@@ -4948,22 +4953,37 @@ namespace OfficeIMO.Tests {
                 using (WordDocument document = WordDocument.Create()) {
                     WordParagraph body = document.AddParagraph("Body");
                     body._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    WordParagraph bodyLink = document.AddParagraph("BodyLink ");
+                    bodyLink.AddHyperLink("site", new Uri("https://officeimo.net/proofing"), addStyle: true);
+                    AddProofErrorBoundary(bodyLink.Hyperlink!._hyperlink);
 
                     WordTable table = document.AddTable(1, 1);
                     WordParagraph cell = table.Rows[0].Cells[0].AddParagraph("Cell", removeExistingParagraphs: true);
                     cell._paragraph.Append(new ProofError { Type = ProofingErrorValues.GrammarStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.GrammarEnd });
+                    cell.AddHyperLink("link", new Uri("https://officeimo.net/table-proofing"), addStyle: true);
+                    AddProofErrorBoundary(cell.Hyperlink!._hyperlink);
 
                     WordSection section = document.Sections[0];
                     WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header");
                     header._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    header.AddHyperLink("link", new Uri("https://officeimo.net/header-proofing"), addStyle: true);
+                    AddProofErrorBoundary(header.Hyperlink!._hyperlink);
                     WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer");
                     footer._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    footer.AddHyperLink("link", new Uri("https://officeimo.net/footer-proofing"), addStyle: true);
+                    AddProofErrorBoundary(footer.Hyperlink!._hyperlink);
 
                     WordParagraph paragraph = document.AddParagraph("Notes");
                     WordParagraph footnoteReference = paragraph.AddFootNote("Footnote");
-                    footnoteReference.FootNote!.Paragraphs![1]._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    footnoteBody._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    footnoteBody.AddHyperLink("link", new Uri("https://officeimo.net/footnote-proofing"), addStyle: true);
+                    AddProofErrorBoundary(footnoteBody.Hyperlink!._hyperlink);
                     WordParagraph endnoteReference = paragraph.AddEndNote("Endnote");
-                    endnoteReference.EndNote!.Paragraphs![1]._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    endnoteBody._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    endnoteBody.AddHyperLink("link", new Uri("mailto:endnote-proofing@example.org"), addStyle: true);
+                    AddProofErrorBoundary(endnoteBody.Hyperlink!._hyperlink);
 
                     document.Save(docPath);
                 }
@@ -4973,18 +4993,55 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 Assert.Contains(reloaded.Paragraphs, paragraph => paragraph._paragraph.InnerText == "BodyAfter");
+                WordHyperLink bodyHyperlink = Assert.Single(DistinctHyperlinks(reloaded.HyperLinks), link => link.Uri?.ToString() == "https://officeimo.net/proofing");
+                Assert.Equal("site", bodyHyperlink.Text);
+                Assert.Empty(bodyHyperlink._hyperlink.Descendants<ProofError>());
                 Assert.DoesNotContain(reloaded.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
 
                 WordTable reloadedTable = Assert.Single(reloaded.Tables);
-                WordParagraph reloadedCell = Assert.Single(reloadedTable.Rows[0].Cells[0].Paragraphs);
-                Assert.Equal("CellAfter", reloadedCell._paragraph.InnerText);
-                Assert.Empty(reloadedCell._paragraph.Descendants<ProofError>());
+                WordParagraph reloadedCell = reloadedTable.Rows[0].Cells[0].Paragraphs
+                    .First(paragraph => paragraph._paragraph.InnerText == "CellAfterlink");
+                Assert.Equal("CellAfterlink", reloadedCell._paragraph.InnerText);
+                Assert.DoesNotContain(reloadedTable.Rows[0].Cells[0].Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                WordHyperLink tableHyperlink = Assert.Single(
+                    DistinctHyperlinks(reloadedTable.Rows[0].Cells[0].Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => link?.Uri?.ToString() == "https://officeimo.net/table-proofing")!;
+                Assert.Equal("link", tableHyperlink.Text);
+                Assert.Empty(tableHyperlink._hyperlink.Descendants<ProofError>());
 
                 WordSection reloadedSection = Assert.Single(reloaded.Sections);
-                Assert.Equal("HeaderAfter", Assert.Single(reloadedSection.Header.Default!.Paragraphs)._paragraph.InnerText);
-                Assert.Equal("FooterAfter", Assert.Single(reloadedSection.Footer.Default!.Paragraphs)._paragraph.InnerText);
-                Assert.Equal("FootnoteAfter", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
-                Assert.Equal("EndnoteAfter", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
+                WordParagraph reloadedHeader = reloadedSection.Header.Default!.Paragraphs
+                    .First(paragraph => paragraph._paragraph.InnerText == "HeaderAfterlink");
+                Assert.Equal("HeaderAfterlink", reloadedHeader._paragraph.InnerText);
+                Assert.DoesNotContain(reloadedSection.Header.Default!.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                WordHyperLink headerHyperlink = Assert.Single(
+                    DistinctHyperlinks(reloadedSection.Header.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => link?.Uri?.ToString() == "https://officeimo.net/header-proofing")!;
+                Assert.Equal("link", headerHyperlink.Text);
+                Assert.Empty(headerHyperlink._hyperlink.Descendants<ProofError>());
+                WordParagraph reloadedFooter = reloadedSection.Footer.Default!.Paragraphs
+                    .First(paragraph => paragraph._paragraph.InnerText == "FooterAfterlink");
+                Assert.Equal("FooterAfterlink", reloadedFooter._paragraph.InnerText);
+                Assert.DoesNotContain(reloadedSection.Footer.Default!.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+                WordHyperLink footerHyperlink = Assert.Single(
+                    DistinctHyperlinks(reloadedSection.Footer.Default!.Paragraphs.SelectMany(paragraph => paragraph.GetRuns()).Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => link?.Uri?.ToString() == "https://officeimo.net/footer-proofing")!;
+                Assert.Equal("link", footerHyperlink.Text);
+                Assert.Empty(footerHyperlink._hyperlink.Descendants<ProofError>());
+                WordFootNote footnote = Assert.Single(reloaded.FootNotes);
+                Assert.Equal("FootnoteAfterlink", footnote.Paragraphs![1]._paragraph.InnerText);
+                WordHyperLink footnoteHyperlink = Assert.Single(
+                    DistinctHyperlinks(footnote.Paragraphs![1].GetRuns().Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => link?.Uri?.ToString() == "https://officeimo.net/footnote-proofing")!;
+                Assert.Equal("link", footnoteHyperlink.Text);
+                Assert.Empty(footnoteHyperlink._hyperlink.Descendants<ProofError>());
+                WordEndNote endnote = Assert.Single(reloaded.EndNotes);
+                Assert.Equal("EndnoteAfterlink", endnote.Paragraphs![1]._paragraph.InnerText);
+                WordHyperLink endnoteHyperlink = Assert.Single(
+                    DistinctHyperlinks(endnote.Paragraphs![1].GetRuns().Where(run => run.IsHyperLink).Select(run => run.Hyperlink)),
+                    link => link?.Uri?.ToString() == "mailto:endnote-proofing@example.org")!;
+                Assert.Equal("link", endnoteHyperlink.Text);
+                Assert.Empty(endnoteHyperlink._hyperlink.Descendants<ProofError>());
             } finally {
                 DeleteIfExists(docPath);
             }

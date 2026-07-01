@@ -626,6 +626,9 @@ just to reserve names.
   - [x] Ignore OpenXML proofing error boundary markers during native DOC save,
     then reload body, table-cell, header/footer, and note story text without
     exposing spell/grammar UI metadata as content.
+  - [x] Ignore OpenXML proofing error boundary markers inside simple body,
+    table-cell, header/footer, footnote, and endnote hyperlink display content
+    during native DOC save/reload.
   - [x] Write simple `PAGE` fields from OfficeIMO page-number runs/simple fields
     into native DOC field characters, then reload them as real OpenXML
     page-number runs instead of exposing field instructions as visible text.

@@ -401,6 +401,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedNoteHyperlinkInlineContentControlText(text, runs, sdtRun, id, noteKind, storyStart);
                         break;
                     default:
+                        if (IsIgnorableParagraphMarkup(child)) {
+                            break;
+                        }
+
                         throw new NotSupportedException($"Native DOC saving supports simple {noteKind} hyperlinks only when they contain text runs and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
                 }
             }

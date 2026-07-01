@@ -40,6 +40,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendSupportedHyperlinkInlineContentControlText(text, runs, sdtRun, footnotes, endnotes, inheritedFormatting);
                         break;
                     default:
+                        if (IsIgnorableParagraphMarkup(child)) {
+                            break;
+                        }
+
                         throw new NotSupportedException($"Native DOC saving supports simple hyperlinks only when they contain text runs and inline content controls. Unsupported hyperlink element: {child.LocalName}.");
                 }
             }
