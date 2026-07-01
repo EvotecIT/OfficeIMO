@@ -250,6 +250,8 @@ public class Markdown_Native_Block_Source_Field_Tests {
 
         Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), heading.LevelSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), heading.TextSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), heading.Heading.LevelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), heading.Heading.TextSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), heading.OpeningMarkerSourceSpan);
         Assert.Equal("###", heading.OpeningMarkerText);
         Assert.Equal(new MarkdownSourceSpan(1, 17, 1, 19), heading.ClosingMarkerSourceSpan);
@@ -301,6 +303,8 @@ Heading Title
 
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), heading.LevelSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), heading.TextSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), heading.Heading.LevelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), heading.Heading.TextSourceSpan);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), heading.SetextUnderlineMarkerSourceSpan);
         Assert.Equal("-------------", heading.SetextUnderlineMarkerText);
 

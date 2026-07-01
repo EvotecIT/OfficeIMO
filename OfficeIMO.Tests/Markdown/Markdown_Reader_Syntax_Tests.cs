@@ -459,6 +459,7 @@ Heading Title
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
+        var headingBlock = Assert.IsType<HeadingBlock>(heading.AssociatedObject);
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
         Assert.Equal("Heading Title", heading.Literal);
 
@@ -466,6 +467,7 @@ Heading Title
         Assert.Equal(MarkdownSyntaxKind.HeadingLevel, level.Kind);
         Assert.Equal("2", level.Literal);
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), level.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 13), headingBlock.LevelSourceSpan);
 
         var text = heading.Children[1];
         Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
@@ -473,6 +475,7 @@ Heading Title
         Assert.NotNull(text.SourceSpan);
         Assert.Equal(1, text.SourceSpan!.Value.StartLine);
         Assert.Equal(1, text.SourceSpan!.Value.EndLine);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), headingBlock.TextSourceSpan);
 
         var underlineMarker = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
         Assert.Equal("-------------", underlineMarker.Literal);
@@ -492,15 +495,18 @@ baz*
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
+        var headingBlock = Assert.IsType<HeadingBlock>(heading.AssociatedObject);
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
         Assert.Equal("Foo *bar baz*", heading.Literal);
 
         var underlineMarker = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
         Assert.Equal("====", underlineMarker.Literal);
         Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), underlineMarker.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 4), headingBlock.LevelSourceSpan);
 
         var text = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingText);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 4), text.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 2, 4), headingBlock.TextSourceSpan);
     }
 
     [Fact]
@@ -510,6 +516,7 @@ baz*
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
 
         var heading = Assert.Single(result.SyntaxTree.Children);
+        var headingBlock = Assert.IsType<HeadingBlock>(heading.AssociatedObject);
         Assert.Equal(MarkdownSyntaxKind.Heading, heading.Kind);
         Assert.Equal("Trimmed", heading.Literal);
 
@@ -517,11 +524,13 @@ baz*
         Assert.Equal(MarkdownSyntaxKind.HeadingLevel, level.Kind);
         Assert.Equal("3", level.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), level.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), headingBlock.LevelSourceSpan);
 
         var text = heading.Children[1];
         Assert.Equal(MarkdownSyntaxKind.HeadingText, text.Kind);
         Assert.Equal("Trimmed", text.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), text.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 15), headingBlock.TextSourceSpan);
         var openingMarker = Assert.Single(heading.Children, child => child.Kind == MarkdownSyntaxKind.HeadingOpeningMarker);
         Assert.Equal("###", openingMarker.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), openingMarker.SourceSpan);

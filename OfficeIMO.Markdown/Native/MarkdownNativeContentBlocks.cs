@@ -11,8 +11,8 @@ public sealed class MarkdownNativeHeadingBlock : MarkdownNativeBlock {
         Inlines = heading.Inlines;
         InlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.HeadingText);
         Text = heading.Text;
-        LevelSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingLevel);
-        TextSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingText);
+        LevelSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingLevel) ?? heading.LevelSourceSpan;
+        TextSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingText) ?? heading.TextSourceSpan;
         OpeningMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingOpeningMarker);
         OpeningMarkerText = heading.OpeningMarkerText;
         SetextUnderlineMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HeadingSetextUnderlineMarker);
