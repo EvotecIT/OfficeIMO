@@ -2212,6 +2212,59 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBodyLevelBookmarkRangesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph firstParagraph = document.AddParagraph("First");
+                    WordParagraph secondParagraph = document.AddParagraph("Second");
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+
+                    body.InsertBefore(new BookmarkStart { Id = "44", Name = "BodyLevelBookmark" }, firstParagraph._paragraph);
+                    body.InsertBefore(new BookmarkEnd { Id = "44" }, secondParagraph._paragraph);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "BodyLevelBookmark");
+
+                Paragraph[] paragraphs = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>().ToArray();
+                Assert.Collection(
+                    paragraphs,
+                    paragraph => Assert.Equal("First", paragraph.InnerText),
+                    paragraph => Assert.Equal("Second", paragraph.InnerText));
+                OpenXmlElement[] firstContent = paragraphs[0].ChildElements
+                    .Where(element => element is not ParagraphProperties)
+                    .ToArray();
+                OpenXmlElement[] secondContent = paragraphs[1].ChildElements
+                    .Where(element => element is not ParagraphProperties)
+                    .ToArray();
+
+                Assert.Collection(
+                    firstContent,
+                    element => {
+                        BookmarkStart start = Assert.IsType<BookmarkStart>(element);
+                        Assert.Equal("BodyLevelBookmark", start.Name?.Value);
+                    },
+                    element => Assert.Equal("First", Assert.IsType<Text>(Assert.IsType<Run>(element).FirstChild).Text));
+                Assert.Collection(
+                    secondContent,
+                    element => Assert.IsType<BookmarkEnd>(element),
+                    element => Assert.Equal("Second", Assert.IsType<Text>(Assert.IsType<Run>(element).FirstChild).Text));
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[0]);
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(secondContent[0]);
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellBookmarkRangesAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

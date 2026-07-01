@@ -811,6 +811,9 @@ just to reserve names.
     endnote paragraphs, richer visual table style effects, nested tables,
     section breaks inside richer body shapes, and richer section writing as
     separate preflight-backed slices.
+    - [x] Write body-level bookmark start/end markers that sit between body
+      paragraphs into native DOC bookmark PLCs, then reload them as normal
+      cross-paragraph bookmark ranges through the legacy reader.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

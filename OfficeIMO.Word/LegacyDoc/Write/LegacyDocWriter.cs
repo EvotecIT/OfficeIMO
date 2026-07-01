@@ -179,6 +179,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart!, styleSheet.StyleIndexes, tableStyleDefinitions, footnotes, endnotes);
                         bodyContentCount++;
                         break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, text.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, text.Length);
+                        break;
                     case SectionProperties sectionProperties:
                         finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);
                         break;
