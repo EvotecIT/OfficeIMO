@@ -3,11 +3,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using V = DocumentFormat.OpenXml.Vml;
 
 namespace OfficeIMO.Tests {
     public partial class Word {
@@ -149,6 +151,118 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(insertedFootnote.Descendants<DeletedRun>(), run => run.InnerText == "Deleted stable footnote paragraph");
             Assert.Contains(stableFootnote.Descendants<DeletedRun>(), run => run.InnerText == "Deleted stable footnote paragraph" && run.Author?.Value == "OfficeIMO Tests");
+        }
+
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForDeletedFootnoteImageAfterInsertedNote() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_image_stable_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
+                document.Save(false);
+            }
+
+            SetReferencedFootnoteIds(sourcePath, 10);
+            AppendImageToFootnote(sourcePath, 10, Path.Combine(_directoryWithImages, "EvotecLogo.png"));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_image_stable_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Inserted footnote anchor").AddFootNote("Inserted footnote body");
+                document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
+                document.Save(false);
+            }
+
+            SetReferencedFootnoteIds(targetPath, 9, 10);
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_image_stable_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Footnotes footnotes = redline._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!;
+            Footnote insertedFootnote = footnotes.Elements<Footnote>().First(item => item.Id?.Value == 9);
+            Footnote stableFootnote = footnotes.Elements<Footnote>().First(item => item.Id?.Value == 10);
+
+            Assert.DoesNotContain(insertedFootnote.Descendants<DeletedRun>(), ContainsImageMarkup);
+            Assert.Contains(stableFootnote.Descendants<DeletedRun>(), run =>
+                run.Author?.Value == "OfficeIMO Tests" &&
+                ContainsImageMarkup(run));
+        }
+
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForDeletedRowAfterEarlierDeletedTable() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_row_after_deleted_table_source.docx");
+            CreateDocumentWithTables(
+                sourcePath,
+                CreateComparisonTable(new[] { "Earlier deleted table" }),
+                CreateComparisonTable(new[] { "Stable B" }, new[] { "Deleted B row" }));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_row_after_deleted_table_target.docx");
+            CreateDocumentWithTables(
+                targetPath,
+                CreateComparisonTable(new[] { "Stable B" }));
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_row_after_deleted_table_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.TableRow &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.SourceText == "Deleted B row");
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Table redlinedTable = Assert.Single(redline._document.Body!.Elements<Table>(), table => table.InnerText.Contains("Stable B", StringComparison.Ordinal));
+            Assert.Contains(redlinedTable.Descendants<DeletedRun>(), run => run.InnerText == "Deleted B row");
+            Assert.DoesNotContain(redlinedTable.Descendants<DeletedRun>(), run => run.InnerText == "Earlier deleted table");
+        }
+
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForRowContentControlsWithoutClearingSiblingCells() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_row_sdt_siblings_source.docx");
+            CreateDocumentWithTables(sourcePath, CreateTableWithRowContentControl("Source client", "Keep sibling"));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_row_sdt_siblings_target.docx");
+            CreateDocumentWithTables(targetPath, CreateTableWithRowContentControl("Target client", "Keep sibling"));
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_row_sdt_siblings_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.ContentControl &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            SdtRow rowControl = Assert.Single(redline._document.Body!.Descendants<SdtRow>());
+            TableRow row = Assert.Single(rowControl.Descendants<TableRow>());
+            TableCell[] cells = row.Elements<TableCell>().ToArray();
+
+            Assert.Equal(2, cells.Length);
+            Assert.Contains(cells[0].Descendants<DeletedRun>(), run => run.InnerText.Contains("Source client", StringComparison.Ordinal));
+            Assert.Contains(cells[0].Descendants<InsertedRun>(), run => run.InnerText.Contains("Target client", StringComparison.Ordinal));
+            Assert.Contains("Keep sibling", cells[1].InnerText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -2103,6 +2217,81 @@ namespace OfficeIMO.Tests {
 
             row._tableRow.InsertBeforeSelf(contentControl);
             row._tableRow.Remove();
+        }
+
+        private static void CreateDocumentWithTables(string path, params Table[] tables) {
+            using WordDocument document = WordDocument.Create(path);
+            document._document.Body!.RemoveAllChildren<Paragraph>();
+            foreach (Table table in tables) {
+                document._document.Body!.Append(table);
+            }
+
+            document.Save(false);
+        }
+
+        private static Table CreateComparisonTable(params string[][] rows) {
+            var table = new Table(
+                new TableProperties(
+                    new TableWidth {
+                        Width = "0",
+                        Type = TableWidthUnitValues.Auto
+                    }));
+
+            foreach (string[] rowValues in rows) {
+                table.Append(new TableRow(rowValues.Select(CreateComparisonCell).Cast<OpenXmlElement>()));
+            }
+
+            return table;
+        }
+
+        private static Table CreateTableWithRowContentControl(string firstCellText, string secondCellText) {
+            return new Table(
+                new TableProperties(
+                    new TableWidth {
+                        Width = "0",
+                        Type = TableWidthUnitValues.Auto
+                    }),
+                new SdtRow(
+                    new SdtProperties(
+                        new SdtAlias { Val = "Client row" },
+                        new Tag { Val = "ClientRow" }),
+                    new SdtContentRow(
+                        new TableRow(
+                            CreateComparisonCell(firstCellText),
+                            CreateComparisonCell(secondCellText)))));
+        }
+
+        private static TableCell CreateComparisonCell(string text) {
+            return new TableCell(
+                new Paragraph(
+                    new Run(
+                        new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+        }
+
+        private static void AppendImageToFootnote(string path, long footnoteId, string imagePath) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            FootnotesPart footnotesPart = document.MainDocumentPart!.FootnotesPart!;
+            ImagePart imagePart = footnotesPart.AddImagePart(ImagePartType.Png);
+            using (FileStream stream = File.OpenRead(imagePath)) {
+                imagePart.FeedData(stream);
+            }
+
+            string relationshipId = footnotesPart.GetIdOfPart(imagePart);
+            Footnote footnote = footnotesPart.Footnotes!.Elements<Footnote>().First(item => item.Id?.Value == footnoteId);
+            footnote.Append(new Paragraph(
+                new Run(
+                    new Picture(
+                        new V.Shape(
+                            new V.ImageData { RelationshipId = relationshipId }) {
+                            Id = "OfficeIMO_Deleted_Note_Image",
+                            Style = "width:24pt;height:24pt"
+                        }))));
+            footnotesPart.Footnotes.Save();
+        }
+
+        private static bool ContainsImageMarkup(DeletedRun run) {
+            return run.Descendants<V.ImageData>().Any() ||
+                run.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any(drawing => drawing.Descendants<A.Blip>().Any());
         }
 
         private static void AddNestedRunContentControl(WordDocument document, string value) {

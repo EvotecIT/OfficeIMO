@@ -273,8 +273,13 @@ namespace OfficeIMO.Word {
 
                         break;
                     case WordComparisonChangeKind.Deleted:
-                        if (tableIndex < sourceTables.Count && tableIndex < targetTables.Count) {
-                            List<TableRow> sourceRows = sourceTables[tableIndex].Table.Elements<TableRow>().ToList();
+                        if (tableIndex < targetTables.Count) {
+                            RedlineTableEntry? sourceTable = FindSourceTableForDeletedRow(sourceTables, targetTables[tableIndex], rowIndex, finding.SourceText);
+                            if (sourceTable == null) {
+                                break;
+                            }
+
+                            List<TableRow> sourceRows = sourceTable.Table.Elements<TableRow>().ToList();
                             if (rowIndex >= 0 && rowIndex < sourceRows.Count) {
                                 InsertDeletedRow(targetTables[tableIndex].Table, sourceRows[rowIndex], rowIndex, options);
                                 rewrittenRows.Add(rowKey);
@@ -284,6 +289,41 @@ namespace OfficeIMO.Word {
                         break;
                 }
             }
+        }
+
+        private static RedlineTableEntry? FindSourceTableForDeletedRow(
+            IReadOnlyList<RedlineTableEntry> sourceTables,
+            RedlineTableEntry targetTable,
+            int rowIndex,
+            string? sourceRowText) {
+            RedlineTableEntry? ordinalMatch = sourceTables.FirstOrDefault(table =>
+                string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal) &&
+                table.LocalIndex == targetTable.LocalIndex);
+
+            RedlineTableEntry? textMatch = sourceTables
+                .Where(table => string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal))
+                .Where(table => {
+                    List<TableRow> rows = table.Table.Elements<TableRow>().ToList();
+                    return rowIndex >= 0 &&
+                        rowIndex < rows.Count &&
+                        string.Equals(GetOpenXmlRowText(rows[rowIndex]), sourceRowText ?? string.Empty, StringComparison.Ordinal);
+                })
+                .OrderByDescending(table => GetRedlineTableSimilarity(table.Table, targetTable.Table))
+                .FirstOrDefault();
+
+            return textMatch ?? ordinalMatch;
+        }
+
+        private static double GetRedlineTableSimilarity(Table sourceTable, Table targetTable) {
+            return GetTextSimilarity(GetOpenXmlTableText(sourceTable), GetOpenXmlTableText(targetTable));
+        }
+
+        private static string GetOpenXmlTableText(Table table) {
+            return string.Join(TableRowSeparator, table.Elements<TableRow>().Select(GetOpenXmlRowText).ToArray());
+        }
+
+        private static string GetOpenXmlRowText(TableRow row) {
+            return string.Join(" | ", row.Elements<TableCell>().Select(GetOpenXmlCellText).ToArray());
         }
 
         private static List<RedlineTableEntry> GetRedlineTableEntries(WordprocessingDocument document) {

@@ -573,7 +573,13 @@ namespace OfficeIMO.Word {
         }
 
         private static string GetParagraphText(Paragraph paragraph) {
-            return string.Concat(paragraph.Descendants<Text>().Select(text => text.Text));
+            if (paragraph.Ancestors<TextBoxContent>().Any()) {
+                return string.Concat(paragraph.Descendants<Text>().Select(text => text.Text));
+            }
+
+            return string.Concat(paragraph.Descendants<Text>()
+                .Where(text => !text.Ancestors<TextBoxContent>().Any())
+                .Select(text => text.Text));
         }
 
         private static string? GetSingleSwitchValue(WordFieldInventory.ParsedFieldInstruction parsed, string switchName, bool normalizeQuotes) {

@@ -109,7 +109,7 @@ namespace OfficeIMO.Word {
             List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
             for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                 if (mainPart.FootnotesPart != null) {
-                    string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
                     containers.Add(new RedlineImageContainer(containers.Count, FootnotePartKeyPrefix + noteId, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride)));
                 }
             }
@@ -117,7 +117,7 @@ namespace OfficeIMO.Word {
             List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
             for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                 if (mainPart.EndnotesPart != null) {
-                    string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                    string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
                     containers.Add(new RedlineImageContainer(containers.Count, EndnotePartKeyPrefix + noteId, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride)));
                 }
             }

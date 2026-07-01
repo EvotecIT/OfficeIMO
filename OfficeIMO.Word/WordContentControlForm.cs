@@ -396,6 +396,14 @@ namespace OfficeIMO.Word {
                 var keys = GetFormKeys(keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias)
                     .ToList();
                 if (keys.Count == 0) {
+                    if (requireAllControls) {
+                        issues.Add(new WordContentControlFormIssue(
+                            WordContentControlFormIssueKind.UnmappedControl,
+                            string.Empty,
+                            "Structured document tag",
+                            "Structured document tag has no tag or alias that can be used as a form key."));
+                    }
+
                     continue;
                 }
 
