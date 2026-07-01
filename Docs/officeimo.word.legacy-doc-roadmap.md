@@ -301,6 +301,10 @@ just to reserve names.
     from DOC `sprmPFKinsoku`, `sprmPFWordWrap`, `sprmPFOverflowPunct`,
     `sprmPFTopLinePunct`, `sprmPFAutoSpaceDE`, and `sprmPFAutoSpaceDN` into
     normal OfficeIMO paragraphs with synthetic legacy DOC fixture proof.
+  - [x] Project stylesheet-level paragraph layout flags for automatic
+    hyphenation suppression, contextual spacing, mirror indents,
+    bidirectional layout, and East Asian typography/punctuation spacing into
+    custom DOCX style definitions with synthetic legacy DOC fixture proof.
   - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
     `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
     fixture proof.

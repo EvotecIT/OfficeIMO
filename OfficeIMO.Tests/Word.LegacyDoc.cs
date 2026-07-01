@@ -829,6 +829,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelParagraphLayoutFlags() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelParagraphLayoutFlags();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("style layout flags", paragraph.Text);
+            Assert.Equal("LegacyDocParagraphLayoutFlags", paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style layoutStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocParagraphLayoutFlags");
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(layoutStyle.StyleParagraphProperties);
+            Assert.NotNull(paragraphProperties.GetFirstChild<SuppressAutoHyphens>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<ContextualSpacing>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<MirrorIndents>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<BiDi>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<Kinsoku>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<WordWrap>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<OverflowPunctuation>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<TopLinePunctuation>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<AutoSpaceDE>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<AutoSpaceDN>());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelCapsDoubleStrikeAndVerticalPosition() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelCapsDoubleStrikeAndVerticalPosition();
 
@@ -8601,6 +8627,39 @@ namespace OfficeIMO.Tests {
                         CreateStyleParagraphFormatting(CreateParagraphTabStopsSprm(
                             new[] { 3600 },
                             (1800, 1, 1)))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithStyleLevelParagraphLayoutFlags() {
+                const string text = "style layout flags\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Paragraph Layout Flags",
+                        CreateStyleParagraphFormatting(
+                            CreateParagraphSprm(0x242A, 1),
+                            CreateParagraphSprm(0x246D, 1),
+                            CreateParagraphSprm(0x2470, 1),
+                            CreateParagraphSprm(0x2441, 1),
+                            CreateParagraphSprm(0x2433, 1),
+                            CreateParagraphSprm(0x2434, 1),
+                            CreateParagraphSprm(0x2435, 1),
+                            CreateParagraphSprm(0x2436, 1),
+                            CreateParagraphSprm(0x2437, 1),
+                            CreateParagraphSprm(0x2438, 1))));
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
 
