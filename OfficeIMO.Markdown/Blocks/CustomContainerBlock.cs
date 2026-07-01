@@ -43,7 +43,8 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
     }
 
     string IMarkdownBlock.RenderMarkdown() {
-        var fence = new string(':', Math.Max(3, OpeningFenceLength));
+        var fenceLength = GetRenderOpeningFenceLength();
+        var fence = new string(':', fenceLength);
         var sb = new StringBuilder();
         sb.Append(fence);
         if (!string.IsNullOrWhiteSpace(Info)) {
@@ -65,7 +66,7 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
         }
 
         sb.AppendLine();
-        sb.Append(new string(':', Math.Max(3, ClosingFenceLength)));
+        sb.Append(new string(':', Math.Max(fenceLength, Math.Max(3, ClosingFenceLength))));
         return sb.ToString();
     }
 
@@ -146,6 +147,35 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
         }
 
         return children.Where(static child => child != null).ToArray();
+    }
+
+    private int GetRenderOpeningFenceLength() {
+        var fenceLength = Math.Max(3, OpeningFenceLength);
+        var childFenceLength = GetMaxCustomContainerFenceLength(ChildBlocks);
+        return childFenceLength >= fenceLength
+            ? childFenceLength + 1
+            : fenceLength;
+    }
+
+    private static int GetMaxCustomContainerFenceLength(IEnumerable<IMarkdownBlock> blocks) {
+        var maxFenceLength = 0;
+        foreach (var block in blocks) {
+            if (block is CustomContainerBlock container) {
+                maxFenceLength = Math.Max(maxFenceLength, Math.Max(container.OpeningFenceLength, container.ClosingFenceLength));
+            }
+
+            if (block is IMarkdownListBlock listBlock) {
+                for (var i = 0; i < listBlock.ListItems.Count; i++) {
+                    maxFenceLength = Math.Max(maxFenceLength, GetMaxCustomContainerFenceLength(listBlock.ListItems[i].ChildBlocks));
+                }
+            }
+
+            if (block is IChildMarkdownBlockContainer childContainer) {
+                maxFenceLength = Math.Max(maxFenceLength, GetMaxCustomContainerFenceLength(childContainer.ChildBlocks));
+            }
+        }
+
+        return maxFenceLength;
     }
 
     private static string GetName(string info) {

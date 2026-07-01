@@ -189,7 +189,7 @@ internal static class MarkdownListRendering {
     }
 
     private static bool ShouldRenderAsTightChildContinuation(ListItem item, IMarkdownBlock child) =>
-        (child is TableBlock || child is QuoteBlock) &&
+        (child is TableBlock || child is QuoteBlock || child is CustomContainerBlock) &&
         item != null &&
         !item.RequiresLooseListRendering() &&
         item.AdditionalParagraphs.Count == 0 &&

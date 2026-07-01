@@ -510,6 +510,64 @@ Lead[^1]
     }
 
     [Fact]
+    public void Markdown_Writer_Lengthens_Custom_Container_Fence_Around_Nested_Custom_Container() {
+        var document = MarkdownDoc.Create().Add(new CustomContainerBlock(
+            "outer",
+            new IMarkdownBlock[] {
+                new CustomContainerBlock(
+                    "inner",
+                    new IMarkdownBlock[] {
+                        new ParagraphBlock(new InlineSequence().Text("hello"))
+                    })
+            }));
+
+        var written = document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd();
+
+        Assert.Equal(":::: outer\n::: inner\nhello\n:::\n::::", written);
+
+        var readerOptions = MarkdownReaderOptions.CreatePortableProfile();
+        readerOptions.CustomContainers = true;
+        var reparsed = MarkdownReader.Parse(written, readerOptions);
+
+        var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsed.Blocks));
+        var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(outer.ChildBlocks));
+        Assert.Equal("outer", outer.Name);
+        Assert.Equal("inner", inner.Name);
+        Assert.Equal("hello", Assert.IsType<ParagraphBlock>(Assert.Single(inner.ChildBlocks)).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void Markdown_Writer_Lengthens_Custom_Container_Fence_Around_List_Item_Custom_Container() {
+        var item = ListItem.Text("item");
+        item.Children.Add(new CustomContainerBlock(
+            "inner",
+            new IMarkdownBlock[] {
+                new ParagraphBlock(new InlineSequence().Text("hello"))
+            }));
+        var list = new UnorderedListBlock();
+        list.Items.Add(item);
+        var document = MarkdownDoc.Create().Add(new CustomContainerBlock(
+            "outer",
+            new IMarkdownBlock[] { list }));
+
+        var written = document.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd();
+
+        Assert.Equal(":::: outer\n- item\n  ::: inner\n  hello\n  :::\n::::", written);
+
+        var readerOptions = MarkdownReaderOptions.CreatePortableProfile();
+        readerOptions.CustomContainers = true;
+        var reparsed = MarkdownReader.Parse(written, readerOptions);
+
+        var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsed.Blocks));
+        var reparsedList = Assert.IsType<UnorderedListBlock>(Assert.Single(outer.ChildBlocks));
+        var reparsedItem = Assert.Single(reparsedList.Items);
+        var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsedItem.Children));
+        Assert.Equal("outer", outer.Name);
+        Assert.Equal("inner", inner.Name);
+        Assert.Equal("hello", Assert.IsType<ParagraphBlock>(Assert.Single(inner.ChildBlocks)).Inlines.RenderMarkdown());
+    }
+
+    [Fact]
     public void Html_Syntax_Block_Render_Extension_Applies_To_Custom_Container_In_Tight_List_Item() {
         const string markdown = """
 - item
