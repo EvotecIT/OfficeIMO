@@ -45,29 +45,34 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             var result = new List<LegacyDocBookmark>();
             foreach (LegacyDocBookmark bookmark in _bookmarks) {
-                if (!IsBlockBoundaryBookmark(bookmark, blockStartCharacter, blockEndCharacter)
-                    || _projectedStarts.Contains(bookmark)
-                    || _projectedEnds.Contains(bookmark)) {
+                bool containsStart = IsBookmarkStartAtBlockBoundary(bookmark, blockStartCharacter, blockEndCharacter)
+                    && !_projectedStarts.Contains(bookmark);
+                bool containsEnd = IsBookmarkEndAtBlockBoundary(bookmark, blockStartCharacter, blockEndCharacter)
+                    && !_projectedEnds.Contains(bookmark);
+                if (!containsStart && !containsEnd) {
                     continue;
                 }
 
                 result.Add(bookmark);
-                _projectedStarts.Add(bookmark);
-                _projectedEnds.Add(bookmark);
+                if (containsStart) {
+                    _projectedStarts.Add(bookmark);
+                }
+
+                if (containsEnd) {
+                    _projectedEnds.Add(bookmark);
+                }
             }
 
             return result;
         }
 
-        private static bool IsBlockBoundaryBookmark(LegacyDocBookmark bookmark, int blockStartCharacter, int blockEndCharacter) {
-            if (bookmark.StartCharacter == blockStartCharacter && bookmark.EndCharacter == blockEndCharacter) {
-                return true;
-            }
+        private static bool IsBookmarkStartAtBlockBoundary(LegacyDocBookmark bookmark, int blockStartCharacter, int blockEndCharacter) =>
+            bookmark.StartCharacter == blockStartCharacter
+            || (bookmark.IsZeroLength && bookmark.StartCharacter == blockEndCharacter);
 
-            return bookmark.IsZeroLength
-                && (bookmark.StartCharacter == blockStartCharacter
-                    || bookmark.StartCharacter == blockEndCharacter);
-        }
+        private static bool IsBookmarkEndAtBlockBoundary(LegacyDocBookmark bookmark, int blockStartCharacter, int blockEndCharacter) =>
+            bookmark.EndCharacter == blockEndCharacter
+            || (bookmark.IsZeroLength && bookmark.EndCharacter == blockStartCharacter);
 
         internal IEnumerable<LegacyDocBookmark> GetUnprojectedBookmarks() {
             foreach (LegacyDocBookmark bookmark in _bookmarks) {

@@ -2437,6 +2437,82 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphToTableBookmarkBoundaryAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph._paragraph.Append(
+                        new BookmarkStart { Id = "55", Name = "ParagraphToTableBookmark" },
+                        new Run(new Text("Before table range") { Space = SpaceProcessingModeValues.Preserve }));
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].AddParagraph("ParagraphToTableCell", removeExistingParagraphs: true);
+
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                    body.InsertAfter(new BookmarkEnd { Id = "55" }, table._table);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "ParagraphToTableBookmark");
+
+                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Paragraph paragraph = Assert.Single(body.Elements<Paragraph>(), paragraph => paragraph.InnerText == "Before table range");
+                BookmarkStart bookmarkStart = Assert.Single(paragraph.ChildElements.OfType<BookmarkStart>());
+                Assert.Equal("ParagraphToTableBookmark", bookmarkStart.Name?.Value);
+
+                Table tableElement = Assert.Single(body.Elements<Table>());
+                BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(tableElement.NextSibling());
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableToParagraphBookmarkBoundaryAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    table.Rows[0].Cells[0].AddParagraph("TableToParagraphCell", removeExistingParagraphs: true);
+                    WordParagraph paragraph = document.AddParagraph();
+                    paragraph._paragraph.Append(
+                        new BookmarkEnd { Id = "56" },
+                        new Run(new Text("After table range") { Space = SpaceProcessingModeValues.Preserve }));
+
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                    body.InsertBefore(new BookmarkStart { Id = "56", Name = "TableToParagraphBookmark" }, table._table);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "TableToParagraphBookmark");
+
+                Body body = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                Table tableElement = Assert.Single(body.Elements<Table>());
+                BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(tableElement.PreviousSibling());
+                Assert.Equal("TableToParagraphBookmark", bookmarkStart.Name?.Value);
+
+                Paragraph paragraph = Assert.Single(body.Elements<Paragraph>(), paragraph => paragraph.InnerText == "After table range");
+                BookmarkEnd bookmarkEnd = Assert.Single(paragraph.ChildElements.OfType<BookmarkEnd>());
+                Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksUnsupportedHyperlinkRunsBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
