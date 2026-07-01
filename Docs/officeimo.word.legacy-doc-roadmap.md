@@ -1020,6 +1020,9 @@ just to reserve names.
       with explicit row/column band sizes and `w:tblLook` banding flags, then
       reload the expanded DOC cell shading, vertical alignment, and no-wrap
       effects through the legacy reader.
+    - [x] Block malformed `w:tblLook` hexadecimal masks before native DOC bytes
+      are committed, so conditional table style effects cannot be silently
+      suppressed by an invalid table-look value.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

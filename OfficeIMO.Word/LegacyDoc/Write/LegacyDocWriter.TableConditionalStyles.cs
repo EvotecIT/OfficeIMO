@@ -151,8 +151,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             int mask = 0;
             string? value = tableLook.Val?.Value;
-            if (!string.IsNullOrWhiteSpace(value)
-                && int.TryParse(value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int parsed)) {
+            if (!string.IsNullOrWhiteSpace(value)) {
+                if (!int.TryParse(value, System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out int parsed)) {
+                    throw new NotSupportedException($"Native DOC saving supports table look masks only as hexadecimal values. Unsupported table look value: {value}.");
+                }
+
                 mask = parsed;
             }
 

@@ -8271,6 +8271,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksMalformedTableLookMaskBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocMalformedTableLook";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                style.Append(new StyleName { Val = "Native DOC Malformed Table Look" });
+                style.Append(new BasedOn { Val = "TableNormal" });
+                style.Append(new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableCellProperties(
+                        new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                    Type = TableStyleOverrideValues.FirstRow
+                });
+                document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+                table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                table._tableProperties.TableLook = new TableLook { Val = "not-hex" };
+                table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("table look", exception.Message.ToLowerInvariant());
+                Assert.Contains("hexadecimal", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableStyleParagraphFormattingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocTableParagraphFormatting";
