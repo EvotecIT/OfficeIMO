@@ -26,10 +26,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return default;
             }
 
-            if (string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
-                Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
-                TableBorders? borders = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
-                return borders == null ? default : ReadSupportedTableBorders(borders);
+            if (IsTableGridStyle(styleId)) {
+                return ReadSupportedTableGridBorders();
             }
 
             if (string.IsNullOrWhiteSpace(styleId) || !tableStyleDefinitions.TryGetValue(styleId!, out Style? style)) {
@@ -37,8 +35,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             ThrowIfUnsupportedTableStyle(styleId!, style);
+            LegacyDocTableBorders inheritedBorders = ReadSupportedTableStyleBaseBorders(style);
             TableBorders? customBorders = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
-            return customBorders == null ? default : ReadSupportedTableBorders(customBorders);
+            LegacyDocTableBorders ownBorders = customBorders == null ? default : ReadSupportedTableBorders(customBorders);
+            return MergeSupportedTableBorders(ownBorders, inheritedBorders);
         }
 
         private static LegacyDocTableCellShading ReadSupportedTableStyleShading(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
@@ -47,7 +47,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return default;
             }
 
-            if (string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+            if (IsTableGridStyle(styleId)) {
                 Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
                 Shading? shading = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
                 return shading == null ? default : ReadSupportedTableCellShading(shading, "table style shading");
@@ -128,7 +128,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return null;
             }
 
-            if (string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase)) {
+            if (IsTableGridStyle(styleId)) {
                 return WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
             }
 
@@ -148,6 +148,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return string.Equals(styleId, "TableNormal", StringComparison.OrdinalIgnoreCase)
                 || string.Equals(styleId, "NormalTable", StringComparison.OrdinalIgnoreCase);
         }
+
+        private static bool IsTableGridStyle(string? styleId) =>
+            string.Equals(styleId, "TableGrid", StringComparison.OrdinalIgnoreCase);
 
         private static void ThrowIfUnsupportedTableStyle(string styleId, Style style) {
             if (style.Type?.Value != StyleValues.Table) {
@@ -204,11 +207,38 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void ThrowIfUnsupportedTableStyleBase(string styleId, BasedOn basedOn) {
             string? baseStyleId = basedOn.Val?.Value;
-            if (IsNoOpTableStyle(baseStyleId)) {
+            if (IsNoOpTableStyle(baseStyleId) || IsTableGridStyle(baseStyleId)) {
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it is based on TableNormal.");
+            throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' only when it is based on TableNormal or TableGrid.");
+        }
+
+        private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style) {
+            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+            return IsTableGridStyle(baseStyleId)
+                ? ReadSupportedTableGridBorders()
+                : default;
+        }
+
+        private static LegacyDocTableBorders ReadSupportedTableGridBorders() {
+            Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
+            TableBorders? borders = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
+            return borders == null ? default : ReadSupportedTableBorders(borders);
+        }
+
+        private static LegacyDocTableBorders MergeSupportedTableBorders(LegacyDocTableBorders ownBorders, LegacyDocTableBorders inheritedBorders) {
+            if (!inheritedBorders.HasAny || !ownBorders.HasAny) {
+                return ownBorders.HasAny ? ownBorders : inheritedBorders;
+            }
+
+            return new LegacyDocTableBorders(
+                ownBorders.Top.HasAny ? ownBorders.Top : inheritedBorders.Top,
+                ownBorders.Left.HasAny ? ownBorders.Left : inheritedBorders.Left,
+                ownBorders.Bottom.HasAny ? ownBorders.Bottom : inheritedBorders.Bottom,
+                ownBorders.Right.HasAny ? ownBorders.Right : inheritedBorders.Right,
+                ownBorders.InsideHorizontal.HasAny ? ownBorders.InsideHorizontal : inheritedBorders.InsideHorizontal,
+                ownBorders.InsideVertical.HasAny ? ownBorders.InsideVertical : inheritedBorders.InsideVertical);
         }
 
         private static void ThrowIfUnsupportedStyleTableProperties(string styleId, StyleTableProperties styleTableProperties) {

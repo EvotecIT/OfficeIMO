@@ -737,6 +737,9 @@ just to reserve names.
     style-level border formatting to native DOC `TC80` values, while importing
     plain legacy DOC tables as `TableNormal` so source tables do not gain
     default OfficeIMO borders on re-save.
+  - [x] Write custom table styles based on `TableGrid` by inheriting the
+    supported built-in grid borders before expanding them to native DOC `TC80`
+    values.
   - [x] Write custom table styles whose only table-level formatting is
     supported palette-backed borders by expanding the style borders to native
     DOC `TC80` values, while continuing to block conditional, paragraph, run,

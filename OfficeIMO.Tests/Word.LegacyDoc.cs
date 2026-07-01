@@ -6406,6 +6406,52 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleBasedOnTableGridBordersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocTableGridBased";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC TableGrid Based" });
+                    style.Append(new BasedOn { Val = "TableGrid" });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell firstCell = reloadedTable.Rows[0].Cells[0];
+                Assert.Equal("A1", firstCell.Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.TopStyle);
+                Assert.Equal(4U, firstCell.Borders.TopSize?.Value);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.RightStyle);
+                Assert.Equal(4U, firstCell.Borders.RightSize?.Value);
+                Assert.Equal(BorderValues.Single, firstCell.Borders.BottomStyle);
+                Assert.Equal(4U, firstCell.Borders.BottomSize?.Value);
+
+                WordTableCell lastCell = reloadedTable.Rows[1].Cells[1];
+                Assert.Equal("B2", lastCell.Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, lastCell.Borders.BottomStyle);
+                Assert.Equal(4U, lastCell.Borders.BottomSize?.Value);
+                Assert.Equal(BorderValues.Single, lastCell.Borders.RightStyle);
+                Assert.Equal(4U, lastCell.Borders.RightSize?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleBordersAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocPaletteBorderTable";
