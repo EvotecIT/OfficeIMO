@@ -856,6 +856,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(capsProperties.GetFirstChild<Emboss>());
             Assert.NotNull(capsProperties.GetFirstChild<Imprint>());
             Assert.NotNull(capsProperties.GetFirstChild<Vanish>());
+            Assert.NotNull(capsProperties.GetFirstChild<NoProof>());
 
             Style smallCapsStyle = Assert.Single(styles.Elements<Style>(), style => style.StyleId == "LegacyDocSmallCaps");
             StyleRunProperties smallCapsProperties = Assert.IsType<StyleRunProperties>(smallCapsStyle.StyleRunProperties);
@@ -4028,7 +4029,8 @@ namespace OfficeIMO.Tests {
                         new Bold(),
                         new Color { Val = "FF0000" },
                         new FontSize { Val = "28" },
-                        new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" }));
+                        new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" },
+                        new NoProof()));
                     document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
                     document.AddParagraph("Styled custom paragraph").SetStyleId(styleId);
 
@@ -4066,6 +4068,7 @@ namespace OfficeIMO.Tests {
                 RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
                 Assert.Equal("Courier New", runFonts.Ascii!.Value);
                 Assert.Equal("Courier New", runFonts.HighAnsi!.Value);
+                Assert.NotNull(runProperties.GetFirstChild<NoProof>());
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4399,7 +4402,8 @@ namespace OfficeIMO.Tests {
                         new Underline { Val = UnderlineValues.Single },
                         new Color { Val = "336699" },
                         new FontSize { Val = "32" },
-                        new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" });
+                        new RunFonts { Ascii = "Courier New", HighAnsi = "Courier New" },
+                        new NoProof());
 
                     document.AddParagraph("Styled built-in paragraph").SetStyle(WordParagraphStyles.Heading1);
 
@@ -4432,6 +4436,7 @@ namespace OfficeIMO.Tests {
                 RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
                 Assert.Equal("Courier New", runFonts.Ascii!.Value);
                 Assert.Equal("Courier New", runFonts.HighAnsi!.Value);
+                Assert.NotNull(runProperties.GetFirstChild<NoProof>());
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -8625,7 +8630,8 @@ namespace OfficeIMO.Tests {
                             CreateCharacterSprm(0x0839, 1),
                             CreateCharacterSprm(0x0858, 1),
                             CreateCharacterSprm(0x0854, 1),
-                            CreateCharacterSprm(0x083C, 1))),
+                            CreateCharacterSprm(0x083C, 1),
+                            CreateCharacterSprm(0x0875, 1))),
                     CreateParagraphStyleRecord(
                         0x0FFF,
                         0,
