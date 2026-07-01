@@ -119,10 +119,13 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             var currentRuns = new List<LegacyDocTextRun>();
             var runText = new System.Text.StringBuilder(endCharacter - startCharacter);
             var runCharacterPositions = new List<int>();
+            var pendingBookmarks = new List<LegacyDocBookmark>();
             LegacyDocCharacterFormat currentFormat = LegacyDocCharacterFormat.Default;
             LegacyDocHyperlinkTarget currentHyperlinkTarget = default;
             bool hasCurrentRun = false;
             int currentParagraphStartCharacter = startCharacter;
+            int pendingBookmarkStartCharacter = int.MaxValue;
+            int pendingBookmarkEndCharacter = int.MinValue;
 
             LegacyDocTextCharacter[] storyCharacters = characters
                 .Where(character => character.CharacterPosition >= startCharacter && character.CharacterPosition < endCharacter)
@@ -153,7 +156,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                 char normalized = character.Character == '\a' ? '\r' : character.Character;
                 if (normalized == '\r') {
-                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset), character.CharacterPosition);
+                    AddCurrentParagraph(GetParagraphFormatForFileOffset(paragraphFormattingRanges, character.FileOffset), character.CharacterPosition, isFinalParagraph: false);
                     currentParagraphStartCharacter = character.CharacterPosition + 1;
                     continue;
                 }
@@ -172,7 +175,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     default);
             }
 
-            AddCurrentParagraph(LegacyDocParagraphFormat.Default, endCharacter);
+            AddCurrentParagraph(LegacyDocParagraphFormat.Default, endCharacter, isFinalParagraph: true);
             return paragraphs;
 
             void AppendRunCharacter(char value, LegacyDocCharacterFormat format, int characterPosition, LegacyDocHyperlinkTarget hyperlinkTarget) {
@@ -189,20 +192,66 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 runCharacterPositions.Add(characterPosition);
             }
 
-            void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter) {
+            void AddCurrentParagraph(LegacyDocParagraphFormat format, int paragraphEndCharacter, bool isFinalParagraph) {
                 FlushRun();
+                IReadOnlyList<LegacyDocBookmark> paragraphBookmarks = bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter);
                 if (currentRuns.Count > 0) {
+                    bool hasPendingBookmarks = pendingBookmarks.Count > 0;
                     paragraphs.Add(new LegacyDocHeaderFooterParagraph(
                         currentRuns.ToArray(),
                         format,
-                        currentParagraphStartCharacter,
-                        paragraphEndCharacter,
-                        bookmarkProjection.ExtractProjectedParagraphBookmarks(currentParagraphStartCharacter, paragraphEndCharacter)));
+                        hasPendingBookmarks ? Math.Min(currentParagraphStartCharacter, pendingBookmarkStartCharacter) : currentParagraphStartCharacter,
+                        hasPendingBookmarks ? Math.Max(paragraphEndCharacter, pendingBookmarkEndCharacter) : paragraphEndCharacter,
+                        MergePendingBookmarks(paragraphBookmarks)));
                     currentRuns.Clear();
+                    ClearPendingBookmarks();
+                } else {
+                    AddPendingBookmarks(paragraphBookmarks);
+                    if (isFinalParagraph && pendingBookmarks.Count > 0) {
+                        paragraphs.Add(new LegacyDocHeaderFooterParagraph(
+                            Array.Empty<LegacyDocTextRun>(),
+                            format,
+                            pendingBookmarkStartCharacter,
+                            pendingBookmarkEndCharacter,
+                            pendingBookmarks.ToArray()));
+                        ClearPendingBookmarks();
+                    }
                 }
 
                 hasCurrentRun = false;
                 currentHyperlinkTarget = default;
+            }
+
+            void AddPendingBookmarks(IReadOnlyList<LegacyDocBookmark> bookmarks) {
+                foreach (LegacyDocBookmark bookmark in bookmarks) {
+                    if (!pendingBookmarks.Contains(bookmark)) {
+                        pendingBookmarks.Add(bookmark);
+                    }
+
+                    pendingBookmarkStartCharacter = Math.Min(pendingBookmarkStartCharacter, bookmark.StartCharacter);
+                    pendingBookmarkEndCharacter = Math.Max(pendingBookmarkEndCharacter, bookmark.EndCharacter);
+                }
+            }
+
+            IReadOnlyList<LegacyDocBookmark> MergePendingBookmarks(IReadOnlyList<LegacyDocBookmark> paragraphBookmarks) {
+                if (pendingBookmarks.Count == 0) {
+                    return paragraphBookmarks;
+                }
+
+                if (paragraphBookmarks.Count == 0) {
+                    return pendingBookmarks.ToArray();
+                }
+
+                return pendingBookmarks
+                    .Concat(paragraphBookmarks)
+                    .Distinct()
+                    .ToArray();
+            }
+
+            void ClearPendingBookmarks() {
+                pendingBookmarks.Clear();
+                pendingBookmarkStartCharacter = int.MaxValue;
+                pendingBookmarkEndCharacter = int.MinValue;
             }
 
             void FlushRun() {

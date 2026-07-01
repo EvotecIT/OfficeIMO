@@ -814,6 +814,9 @@ just to reserve names.
     - [x] Write body-level bookmark start/end markers that sit between body
       paragraphs into native DOC bookmark PLCs, then reload them as normal
       cross-paragraph bookmark ranges through the legacy reader.
+    - [x] Write header/footer-level bookmark start/end markers that sit between
+      header or footer paragraphs into native DOC bookmark PLCs, then reload
+      them as paragraph-boundary bookmark ranges through the legacy reader.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound

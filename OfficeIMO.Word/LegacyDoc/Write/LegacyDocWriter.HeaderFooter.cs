@@ -205,16 +205,25 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             var formattedParagraphs = new List<LegacyDocWritableParagraph>();
             var bookmarks = new LegacyDocWritableBookmarksBuilder();
             foreach (OpenXmlElement child in container.ChildElements) {
-                if (child is not Paragraph paragraph) {
-                    throw new NotSupportedException($"Native DOC saving currently supports only text paragraphs in {kind}s. Unsupported {kind} element: {child.LocalName}.");
-                }
+                switch (child) {
+                    case Paragraph paragraph:
+                        int paragraphStart = storyText.Length;
+                        LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
+                        paragraphs.Add(paragraphText);
+                        storyText.Append('\r');
+                        if (paragraphFormatting.HasFormatting) {
+                            formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, storyText.Length - paragraphStart, paragraphFormatting));
+                        }
 
-                int paragraphStart = storyText.Length;
-                LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSimpleHeaderFooterParagraph(storyText, formattedRuns, bookmarks, paragraph, relationshipOwner, kind, styleIndexes, out string paragraphText);
-                paragraphs.Add(paragraphText);
-                storyText.Append('\r');
-                if (paragraphFormatting.HasFormatting) {
-                    formattedParagraphs.Add(new LegacyDocWritableParagraph(paragraphStart, storyText.Length - paragraphStart, paragraphFormatting));
+                        break;
+                    case BookmarkStart bookmarkStart:
+                        bookmarks.AddStart(bookmarkStart, storyText.Length);
+                        break;
+                    case BookmarkEnd bookmarkEnd:
+                        bookmarks.AddEnd(bookmarkEnd, storyText.Length);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving currently supports only text paragraphs and bookmarks in {kind}s. Unsupported {kind} element: {child.LocalName}.");
                 }
             }
 

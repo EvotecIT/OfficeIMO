@@ -1465,6 +1465,25 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(secondContent, element => element is BookmarkStart);
         }
 
+        private static void AssertParagraphBoundaryBookmarkContent(WordParagraph firstParagraph, WordParagraph secondParagraph, string bookmarkName, string firstText, string secondText) {
+            OpenXmlElement[] firstContent = firstParagraph._paragraph.ChildElements
+                .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
+                .ToArray();
+            OpenXmlElement[] secondContent = secondParagraph._paragraph.ChildElements
+                .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
+                .ToArray();
+            Assert.Equal(2, firstContent.Length);
+            Assert.Equal(2, secondContent.Length);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(firstContent[0]);
+            Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
+            Assert.Equal(firstText, Assert.IsType<Text>(Assert.IsType<Run>(firstContent[1]).FirstChild).Text);
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(secondContent[0]);
+            Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+            Assert.Equal(secondText, Assert.IsType<Text>(Assert.IsType<Run>(secondContent[1]).FirstChild).Text);
+            Assert.DoesNotContain(firstContent, element => element is BookmarkEnd);
+            Assert.DoesNotContain(secondContent, element => element is BookmarkStart);
+        }
+
         private static WordParagraph AssertSingleParagraphWithBookmarkStart(IEnumerable<WordParagraph> paragraphs, string bookmarkName) {
             return Assert.Single(
                 DistinctParagraphNodes(paragraphs),
@@ -2444,6 +2463,55 @@ namespace OfficeIMO.Tests {
                     reloadedSection.Header.Default!.Paragraphs,
                     AssertBookmarkStartId(firstReloadedHeaderParagraph, "HeaderCrossBookmark"));
                 AssertCrossParagraphBookmarkContent(firstReloadedHeaderParagraph, secondReloadedHeaderParagraph, "HeaderCrossBookmark", "HeaderFirst", "HeaderSecond");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterLevelBookmarkBoundariesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with header footer level bookmarks");
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    WordHeader header = section.Header.Default!;
+                    WordFooter footer = section.Footer.Default!;
+
+                    WordParagraph firstHeaderParagraph = header.AddParagraph("HeaderFirst");
+                    WordParagraph secondHeaderParagraph = header.AddParagraph("HeaderSecond");
+                    header._header!.InsertBefore(new BookmarkStart { Id = "63", Name = "HeaderLevelBookmark" }, firstHeaderParagraph._paragraph);
+                    header._header!.InsertBefore(new BookmarkEnd { Id = "63" }, secondHeaderParagraph._paragraph);
+
+                    WordParagraph firstFooterParagraph = footer.AddParagraph("FooterFirst");
+                    WordParagraph secondFooterParagraph = footer.AddParagraph("FooterSecond");
+                    footer._footer!.InsertBefore(new BookmarkStart { Id = "64", Name = "FooterLevelBookmark" }, firstFooterParagraph._paragraph);
+                    footer._footer!.InsertBefore(new BookmarkEnd { Id = "64" }, secondFooterParagraph._paragraph);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "HeaderLevelBookmark");
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "FooterLevelBookmark");
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                WordParagraph firstReloadedHeaderParagraph = AssertSingleParagraphWithBookmarkStart(reloadedSection.Header.Default!.Paragraphs, "HeaderLevelBookmark");
+                WordParagraph secondReloadedHeaderParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    reloadedSection.Header.Default!.Paragraphs,
+                    AssertBookmarkStartId(firstReloadedHeaderParagraph, "HeaderLevelBookmark"));
+                AssertParagraphBoundaryBookmarkContent(firstReloadedHeaderParagraph, secondReloadedHeaderParagraph, "HeaderLevelBookmark", "HeaderFirst", "HeaderSecond");
+
+                WordParagraph firstReloadedFooterParagraph = AssertSingleParagraphWithBookmarkStart(reloadedSection.Footer.Default!.Paragraphs, "FooterLevelBookmark");
+                WordParagraph secondReloadedFooterParagraph = AssertSingleParagraphWithBookmarkEnd(
+                    reloadedSection.Footer.Default!.Paragraphs,
+                    AssertBookmarkStartId(firstReloadedFooterParagraph, "FooterLevelBookmark"));
+                AssertParagraphBoundaryBookmarkContent(firstReloadedFooterParagraph, secondReloadedFooterParagraph, "FooterLevelBookmark", "FooterFirst", "FooterSecond");
             } finally {
                 DeleteIfExists(docPath);
             }
