@@ -53,6 +53,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             int? defaultTableCellSpacingTwips = null,
             bool hasMergedTableCells = false,
             bool hasNestedTable = false,
+            int maximumTableDepth = 0,
+            bool hasInnerTableCellMarker = false,
+            bool hasInnerTableTerminatingParagraphMarker = false,
             LegacyDocParagraphShading? paragraphShading = null,
             LegacyDocParagraphBorders? paragraphBorders = null,
             byte? outlineLevel = null) {
@@ -147,6 +150,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 : null;
             HasMergedTableCells = hasMergedTableCells;
             HasNestedTable = hasNestedTable;
+            MaximumTableDepth = maximumTableDepth > 0
+                ? maximumTableDepth
+                : 0;
+            HasInnerTableCellMarker = hasInnerTableCellMarker;
+            HasInnerTableTerminatingParagraphMarker = hasInnerTableTerminatingParagraphMarker;
             ParagraphShading = paragraphShading.HasValue && paragraphShading.Value.HasAny
                 ? paragraphShading
                 : null;
@@ -261,6 +269,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool HasNestedTable { get; }
 
+        internal int MaximumTableDepth { get; }
+
+        internal bool HasInnerTableCellMarker { get; }
+
+        internal bool HasInnerTableTerminatingParagraphMarker { get; }
+
         internal LegacyDocParagraphShading? ParagraphShading { get; }
 
         internal LegacyDocParagraphBorders? ParagraphBorders { get; }
@@ -317,6 +331,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             || DefaultTableCellSpacingTwips != null
             || HasMergedTableCells
             || HasNestedTable
+            || MaximumTableDepth > 0
+            || HasInnerTableCellMarker
+            || HasInnerTableTerminatingParagraphMarker
             || ParagraphShading != null
             || ParagraphBorders != null;
 
@@ -376,6 +393,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && DefaultTableCellSpacingTwips == other.DefaultTableCellSpacingTwips
                 && HasMergedTableCells == other.HasMergedTableCells
                 && HasNestedTable == other.HasNestedTable
+                && MaximumTableDepth == other.MaximumTableDepth
+                && HasInnerTableCellMarker == other.HasInnerTableCellMarker
+                && HasInnerTableTerminatingParagraphMarker == other.HasInnerTableTerminatingParagraphMarker
                 && ParagraphShading.Equals(other.ParagraphShading)
                 && ParagraphBorders.Equals(other.ParagraphBorders);
         }
@@ -426,6 +446,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + DefaultTableCellSpacingTwips.GetHashCode();
             hash = (hash * 31) + HasMergedTableCells.GetHashCode();
             hash = (hash * 31) + HasNestedTable.GetHashCode();
+            hash = (hash * 31) + MaximumTableDepth.GetHashCode();
+            hash = (hash * 31) + HasInnerTableCellMarker.GetHashCode();
+            hash = (hash * 31) + HasInnerTableTerminatingParagraphMarker.GetHashCode();
             hash = (hash * 31) + ParagraphShading.GetHashCode();
             hash = (hash * 31) + ParagraphBorders.GetHashCode();
             foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {

@@ -424,9 +424,9 @@ just to reserve names.
     `WordTableCell` paragraphs instead of splitting the table at the in-cell
     paragraph mark.
   - [x] Add table formatting and merged cells as separate fixture-backed slices.
-  - [x] Report nested table depth and inner nested row/cell descriptors from
-    DOC paragraph properties as unsupported/preserve-only before nested table
-    projection exists.
+  - [x] Report maximum nested table depth and inner nested row/cell marker
+    descriptors from DOC paragraph properties as unsupported/preserve-only
+    before nested table projection exists.
   - [ ] Add nested table projection only after TAP-backed nested table read/write
     coverage exists.
 - [ ] Add section/page setup, headers, footers, footnotes, and endnotes as

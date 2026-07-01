@@ -351,6 +351,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyDocUnsupportedFeatureKind.NestedTable, feature.Kind);
             Assert.Equal("DOC-NESTED-TABLES-PRESENT", feature.Code);
             Assert.Equal("PAPX:sprmPItap", feature.DetailCode);
+            Assert.Contains("maximum table depth 2", feature.Description, StringComparison.Ordinal);
+            Assert.Contains("inner table", feature.Description, StringComparison.Ordinal);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.NestedTable]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-NESTED-TABLES-PRESENT"]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["NestedTable|DOC-NESTED-TABLES-PRESENT|PAPX:sprmPItap"]);

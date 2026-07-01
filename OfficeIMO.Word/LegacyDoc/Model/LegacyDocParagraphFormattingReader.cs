@@ -217,7 +217,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool? isInTable = null;
             bool? isTableTerminatingParagraph = null;
             int tableDepth = 0;
+            int maximumTableDepth = 0;
             bool hasNestedTable = false;
+            bool hasInnerTableCellMarker = false;
+            bool hasInnerTableTerminatingParagraphMarker = false;
             var tabStops = new List<LegacyDocTabStop>();
             IReadOnlyList<int>? tableCellWidthsTwips = null;
             int? tableLeftIndentTwips = null;
@@ -331,7 +334,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                             isTableTerminatingParagraph = value;
                             break;
                         case SprmPFInnerTableCell:
+                            hasInnerTableCellMarker |= value == true;
+                            hasNestedTable |= value == true;
+                            break;
                         case SprmPFInnerTtp:
+                            hasInnerTableTerminatingParagraphMarker |= value == true;
                             hasNestedTable |= value == true;
                             break;
                     }
@@ -349,6 +356,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     tableDepth = sprm == SprmPItap
                         ? operand
                         : tableDepth + operand;
+                    if (tableDepth > maximumTableDepth) {
+                        maximumTableDepth = tableDepth;
+                    }
+
                     hasNestedTable |= tableDepth > 1;
                     offset += 6;
                     continue;
@@ -713,6 +724,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 defaultTableCellSpacingTwips,
                 hasMergedTableCells,
                 hasNestedTable,
+                maximumTableDepth,
+                hasInnerTableCellMarker,
+                hasInnerTableTerminatingParagraphMarker,
                 paragraphShading,
                 new LegacyDocParagraphBorders(
                     paragraphTopBorder,

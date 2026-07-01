@@ -466,7 +466,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                         LegacyDocUnsupportedFeatureKind.NestedTable,
                         "DOC-NESTED-TABLES-PRESENT",
-                        "The legacy DOC contains nested table descriptors. Nested tables are preserved in the source file but cannot be safely projected into the OfficeIMO table model yet.",
+                        BuildNestedTableDescription(format),
                         detailCode: "PAPX:sprmPItap"));
                     reportedNestedTable = true;
                 }
@@ -480,6 +480,25 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return;
                 }
             }
+        }
+
+        private static string BuildNestedTableDescription(LegacyDocParagraphFormat format) {
+            string depth = format.MaximumTableDepth > 1
+                ? $"maximum table depth {format.MaximumTableDepth}"
+                : "nested table depth marker";
+            var markers = new List<string>();
+            if (format.HasInnerTableCellMarker) {
+                markers.Add("inner table cell marker");
+            }
+
+            if (format.HasInnerTableTerminatingParagraphMarker) {
+                markers.Add("inner table row marker");
+            }
+
+            string markerText = markers.Count == 0
+                ? string.Empty
+                : $"; {string.Join(" and ", markers)} present";
+            return $"The legacy DOC contains nested table descriptors ({depth}{markerText}). Nested tables are preserved in the source file but cannot be safely projected into the OfficeIMO table model yet.";
         }
 
         private void ReportRemainingUnprojectedBookmarks(LegacyDocBookmarkProjectionTracker bookmarkProjection, bool reportUnsupportedFeatures) {
