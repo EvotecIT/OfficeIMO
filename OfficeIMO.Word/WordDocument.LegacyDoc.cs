@@ -80,7 +80,9 @@ namespace OfficeIMO.Word {
             WordSection section = document.Sections.Count > 0
                 ? document.Sections[0]
                 : new WordSection(document, null!, null!);
-            ApplyLegacyDocSectionFormatting(section, legacyDocument.SectionFormat);
+            var sectionFormats = new List<(WordSection Section, LegacyDocSectionFormat Format)> {
+                (section, legacyDocument.SectionFormat)
+            };
             LegacyDocNoteProjection notes = LegacyDocNoteProjection.Create(legacyDocument.Footnotes, legacyDocument.Endnotes, legacyDocument.StyleSheet);
 
             if (legacyDocument.BodyBlocks.Count == 0) {
@@ -91,11 +93,15 @@ namespace OfficeIMO.Word {
                         AddLegacyDocParagraph(section, paragraphBlock, legacyDocument.StyleSheet, notes);
                     } else if (block is LegacyDocSectionBreakBlock sectionBreakBlock) {
                         section = document.AddSection(sectionBreakBlock.Format.SectionBreakType ?? SectionMarkValues.NextPage);
-                        ApplyLegacyDocSectionFormatting(section, sectionBreakBlock.Format);
+                        sectionFormats.Add((section, sectionBreakBlock.Format));
                     } else if (block is LegacyDocTableBlock tableBlock) {
                         AddLegacyDocTable(section, tableBlock, legacyDocument.StyleSheet, notes);
                     }
                 }
+            }
+
+            foreach ((WordSection targetSection, LegacyDocSectionFormat sectionFormat) in sectionFormats) {
+                ApplyLegacyDocSectionFormatting(targetSection, sectionFormat);
             }
 
             ApplyLegacyDocDocumentOptions(document, legacyDocument);

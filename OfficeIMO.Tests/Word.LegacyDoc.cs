@@ -8647,6 +8647,66 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBodyContentControlTableSectionBreakAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Paragraph defaultParagraph = document.AddParagraph("Default section")._paragraph;
+                    var controlledTable = new Table(
+                        new TableRow(
+                            new TableCell(new Paragraph(new Run(new Text("Controlled A1")))),
+                            new TableCell(new Paragraph(new Run(new Text("Controlled B1"))))));
+                    var controlledSectionParagraph = new Paragraph(
+                        new ParagraphProperties(
+                            new SectionProperties(
+                                new PageSize {
+                                    Width = 15840U,
+                                    Height = 12240U,
+                                    Orient = PageOrientationValues.Landscape
+                                },
+                                new PageMargin {
+                                    Top = 720,
+                                    Right = 720U,
+                                    Bottom = 720,
+                                    Left = 720U
+                                })),
+                        new Run(new Text("Controlled section end")));
+                    var contentControl = new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC body content control table section" }),
+                        new SdtContentBlock(controlledTable, controlledSectionParagraph));
+
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                    body.InsertBefore(contentControl, defaultParagraph);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Equal(2, reloaded.Sections.Count);
+                WordTable reloadedTable = Assert.Single(reloaded.Sections[0].Tables);
+                WordTableRow row = Assert.Single(reloadedTable.Rows);
+                Assert.Equal("Controlled A1", row.Cells[0].Paragraphs[0].Text);
+                Assert.Equal("Controlled B1", row.Cells[1].Paragraphs[0].Text);
+                Assert.Equal("Controlled section end", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
+                Assert.Equal("Default section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Equal(PageOrientationValues.Landscape, reloaded.Sections[0].PageOrientation);
+                Assert.Equal((uint)15840, reloaded.Sections[0].PageSettings.Width!.Value);
+                Assert.Equal((uint)12240, reloaded.Sections[0].PageSettings.Height!.Value);
+                Assert.Equal(720, reloaded.Sections[0].Margins.Top);
+                Assert.Equal((uint)720, reloaded.Sections[0].Margins.Right!.Value);
+                Assert.Equal(720, reloaded.Sections[0].Margins.Bottom);
+                Assert.Equal((uint)720, reloaded.Sections[0].Margins.Left!.Value);
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Descendants<SdtBlock>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSectionBreakAfterTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

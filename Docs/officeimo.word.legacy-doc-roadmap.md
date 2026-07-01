@@ -476,6 +476,9 @@ just to reserve names.
     - [x] Write section-breaking paragraphs inside simple body block content
       controls by flattening supported content-control children into native
       DOC body content, then reload the section split through the legacy reader.
+    - [x] Write section breaks after simple tables inside body block content
+      controls, preserving the table and section page setup through native DOC
+      save/reload.
     - [x] Write simple header and footer block content controls by flattening
       supported paragraphs, nested simple content controls, and bookmark
       boundaries into native DOC header/footer stories, then reload the story

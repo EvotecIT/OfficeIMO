@@ -336,8 +336,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static bool IsPureSectionBreakParagraph(Paragraph paragraph) {
-            ParagraphProperties? paragraphProperties = paragraph.ParagraphProperties;
-            if (paragraphProperties?.SectionProperties == null) {
+            ParagraphProperties? paragraphProperties = paragraph.GetFirstChild<ParagraphProperties>();
+            if (paragraphProperties?.GetFirstChild<SectionProperties>() == null) {
                 return false;
             }
 
@@ -381,7 +381,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bodyContentCount++;
                     }
 
-                    SectionProperties? paragraphSectionProperties = paragraph.ParagraphProperties?.SectionProperties;
+                    SectionProperties? paragraphSectionProperties = paragraph.GetFirstChild<ParagraphProperties>()?.GetFirstChild<SectionProperties>();
                     if (paragraphSectionProperties != null) {
                         LegacyDocSectionFormat paragraphSectionFormat = ReadSupportedSectionProperties(paragraphSectionProperties);
                         AddSection(sections, text.Length, paragraphSectionFormat.WithSectionBreakType(pendingSectionBreakType));
@@ -465,7 +465,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {
-            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBodyParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
+            LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBodyParagraphFormatting(paragraph.GetFirstChild<ParagraphProperties>(), styleIndexes);
             int paragraphStart = text.Length;
 
             OpenXmlElement[] children = paragraph.ChildElements.ToArray();
