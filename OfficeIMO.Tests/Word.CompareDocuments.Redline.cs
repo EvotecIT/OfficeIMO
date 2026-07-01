@@ -53,6 +53,33 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureRedlineRejectsOutputPathsThatOverwriteInputs() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_output_alias_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Source text");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_output_alias_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Target text");
+                document.Save(false);
+            }
+
+            InvalidOperationException sourceException = Assert.Throws<InvalidOperationException>(() =>
+                WordDocumentComparer.CreateRedlineDocument(sourcePath, targetPath, sourcePath));
+            Assert.Contains("source document", sourceException.Message, StringComparison.OrdinalIgnoreCase);
+
+            InvalidOperationException targetException = Assert.Throws<InvalidOperationException>(() =>
+                WordDocumentComparer.CreateRedlineDocument(
+                    sourcePath,
+                    targetPath,
+                    targetPath,
+                    new WordComparisonRedlineOptions { Mode = WordComparisonRedlineMode.InPlaceTarget }));
+            Assert.Contains("target document", targetException.Message, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void CompareStructureRedlineCanKeepFeatureFindingsReportOnly() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_feature_policy_source.docx");
             CreateDocumentWithSimpleField(sourcePath, " AUTHOR ", "Same result");
@@ -78,6 +105,50 @@ namespace OfficeIMO.Tests {
 
             var errors = redline.ValidateDocument();
             Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+        }
+
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForDeletedFootnoteParagraphAfterInsertedNote() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_paragraph_stable_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
+                document.Save(false);
+            }
+
+            SetReferencedFootnoteIds(sourcePath, 10);
+            AppendParagraphToFootnote(sourcePath, 10, "Deleted stable footnote paragraph");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_paragraph_stable_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Inserted footnote anchor").AddFootNote("Inserted footnote body");
+                document.AddParagraph("Stable footnote anchor").AddFootNote("Stable footnote body");
+                document.Save(false);
+            }
+
+            SetReferencedFootnoteIds(targetPath, 9, 10);
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_note_deleted_paragraph_stable_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Paragraph &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.SourceText == "Deleted stable footnote paragraph");
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Footnotes footnotes = redline._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!;
+            Footnote insertedFootnote = footnotes.Elements<Footnote>().First(item => item.Id?.Value == 9);
+            Footnote stableFootnote = footnotes.Elements<Footnote>().First(item => item.Id?.Value == 10);
+
+            Assert.DoesNotContain(insertedFootnote.Descendants<DeletedRun>(), run => run.InnerText == "Deleted stable footnote paragraph");
+            Assert.Contains(stableFootnote.Descendants<DeletedRun>(), run => run.InnerText == "Deleted stable footnote paragraph" && run.Author?.Value == "OfficeIMO Tests");
         }
 
         [Fact]

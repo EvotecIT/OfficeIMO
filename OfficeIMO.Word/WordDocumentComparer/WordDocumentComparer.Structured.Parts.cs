@@ -227,6 +227,16 @@ namespace OfficeIMO.Word {
             return endnote.Type == null || endnote.Type.Value == FootnoteEndnoteValues.Normal;
         }
 
+        private static string GetNotePartKeyId(Footnote footnote, int fallbackIndex) {
+            return footnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                fallbackIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private static string GetNotePartKeyId(Endnote endnote, int fallbackIndex) {
+            return endnote.Id?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ??
+                fallbackIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
         private static List<Footnote> GetReferencedFootnotes(MainDocumentPart mainPart) {
             Dictionary<long, Footnote> footnotesById = mainPart.FootnotesPart?.Footnotes?.Elements<Footnote>()
                 .Where(IsVisibleNote)
