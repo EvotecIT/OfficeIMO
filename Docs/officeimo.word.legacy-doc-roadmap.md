@@ -939,6 +939,9 @@ just to reserve names.
     - [x] Block section properties inside header/footer, footnote, and endnote
       paragraphs before native DOC bytes are committed, keeping section breaks
       scoped to supported body paragraph boundaries.
+    - [x] Block richer unsupported final-section properties such as page borders
+      before native DOC bytes are committed, keeping unsupported section writing
+      fail-fast instead of producing a partial legacy DOC file.
     - [x] Write simple inline run content controls by flattening supported runs,
       fields, hyperlinks, bookmarks, and nested inline content controls in body,
       table-cell, header/footer, footnote, and endnote paragraphs through native
