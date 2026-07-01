@@ -8521,6 +8521,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedInheritedConditionalTableStyleChildrenBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocBaseUnsupportedConditionalTableStyleChild";
+            const string childStyleId = "NativeDocInheritedUnsupportedConditionalTableStyleChild";
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
+                baseStyle.Append(new StyleName { Val = "Native DOC Base Unsupported Conditional Table Style Child" });
+                baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                baseStyle.Append(new TableStyleProperties(
+                    new TableStyleConditionalFormattingTableRowProperties(
+                        new CantSplit())) {
+                    Type = TableStyleOverrideValues.FirstRow
+                });
+
+                var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
+                childStyle.Append(new StyleName { Val = "Native DOC Inherited Unsupported Conditional Table Style Child" });
+                childStyle.Append(new BasedOn { Val = baseStyleId });
+
+                Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                styles.Append(baseStyle);
+                styles.Append(childStyle);
+
+                WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
+                table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
+                table._tableProperties.TableLook = new TableLook { FirstRow = true };
+                table.Rows[0].Cells[0].AddParagraph("Styled", removeExistingParagraphs: true);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("conditional formatting", exception.Message.ToLowerInvariant());
+                Assert.Contains("trPr", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableStyleParagraphFormattingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocTableParagraphFormatting";
