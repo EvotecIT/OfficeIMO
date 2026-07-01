@@ -936,6 +936,9 @@ just to reserve names.
       fields, hyperlinks, bookmarks, and nested inline content controls in body,
       table-cell, header/footer, footnote, and endnote paragraphs through native
       DOC save/reload.
+    - [x] Write simple static date/time fields inside flattened inline content
+      controls across body, table-cell, header/footer, footnote, and endnote
+      stories through native DOC save/reload.
     - [x] Write simple hyperlink display text that contains inline run content
       controls and nested inline content controls across body, table-cell,
       header/footer, footnote, and endnote stories through native DOC

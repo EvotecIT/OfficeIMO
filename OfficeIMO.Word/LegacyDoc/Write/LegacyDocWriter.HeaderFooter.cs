@@ -365,7 +365,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             try {
                 AppendSupportedPageNumberFieldFromSimpleField(storyText, formattedRuns, bookmarks, simpleField, LegacyDocWritableFormatting.Plain);
             } catch (NotSupportedException exception) {
-                throw new NotSupportedException($"Native DOC saving supports simple {kind} PAGE and NUMPAGES fields only. {exception.Message}", exception);
+                throw new NotSupportedException($"Native DOC saving supports simple {kind} {SupportedFieldNames} fields only. {exception.Message}", exception);
             }
 
             if (storyText.Length > before) {
@@ -378,7 +378,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             try {
                 AppendSupportedComplexPageNumberField(paragraphChildren, ref childIndex, storyText, formattedRuns, bookmarks, LegacyDocWritableFormatting.Plain);
             } catch (NotSupportedException exception) {
-                throw new NotSupportedException($"Native DOC saving supports complex {kind} PAGE and NUMPAGES fields only. {exception.Message}", exception);
+                throw new NotSupportedException($"Native DOC saving supports complex {kind} {SupportedFieldNames} fields only. {exception.Message}", exception);
             }
 
             if (storyText.Length > before) {

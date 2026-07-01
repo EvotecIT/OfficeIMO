@@ -186,6 +186,74 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocInlineContentControlStaticDateTimeFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph bodyParagraph = document.AddParagraph("Body controlled ");
+                    bodyParagraph._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC body inline field",
+                        CreateSimpleField(" DATE \\@ \"yyyy-MM-dd\" ", "2026-07-01")));
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cellParagraph = table.Rows[0].Cells[0].AddParagraph("Cell controlled ", removeExistingParagraphs: true);
+                    cellParagraph._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC table inline field",
+                        CreateSimpleField(" TIME \\@ \"HH:mm\" ", "09:30")));
+
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph("Header controlled ");
+                    headerParagraph._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC header inline field",
+                        CreateSimpleField(" CREATEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-01")));
+
+                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph("Footer controlled ");
+                    footerParagraph._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC footer inline field",
+                        CreateSimpleField(" SAVEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-02")));
+
+                    WordParagraph noteReferences = document.AddParagraph("Notes ");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    footnoteBody._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC footnote inline field",
+                        CreateSimpleField(" PRINTDATE \\@ \"yyyy-MM-dd\" ", "2026-06-03")));
+
+                    WordParagraph endnoteReference = noteReferences.AddEndNote("endnote placeholder");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs![1];
+                    endnoteBody._paragraph.Append(CreateInlineContentControl(
+                        "Legacy DOC endnote inline field",
+                        CreateSimpleField(" DATE \\@ \"yyyy-MM-dd\" ", "2026-07-02")));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
+                SimpleField[] dateTimeFields = GetReloadedDateTimeFields(mainPart).ToArray();
+                Assert.Equal(6, dateTimeFields.Length);
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "DATE", "2026-07-01"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "TIME", "09:30"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "CREATEDATE", "2026-06-01"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "SAVEDATE", "2026-06-02"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "PRINTDATE", "2026-06-03"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "DATE", "2026-07-02"));
+                Assert.Empty(mainPart.Document.Descendants<SdtRun>());
+                Assert.Empty(mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SdtRun>()));
+                Assert.Empty(mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SdtRun>()));
+                Assert.Empty(mainPart.FootnotesPart!.Footnotes!.Descendants<SdtRun>());
+                Assert.Empty(mainPart.EndnotesPart!.Endnotes!.Descendants<SdtRun>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         private static void AppendBookmarkedSimpleField(Paragraph paragraph, string id, string name, string instruction) {
             var simpleField = new SimpleField { Instruction = instruction };
             simpleField.Append(
@@ -219,6 +287,12 @@ namespace OfficeIMO.Tests {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
                 new Run(new Text(resultText) { Space = SpaceProcessingModeValues.Preserve }),
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
+        }
+
+        private static SimpleField CreateSimpleField(string instruction, string resultText) {
+            var simpleField = new SimpleField { Instruction = instruction };
+            simpleField.Append(CreateTextRun(resultText));
+            return simpleField;
         }
 
         private static IEnumerable<SimpleField> GetReloadedDateTimeFields(MainDocumentPart mainPart) {

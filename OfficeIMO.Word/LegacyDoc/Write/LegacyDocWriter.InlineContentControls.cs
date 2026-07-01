@@ -48,7 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports {context}s only when they contain supported text runs, PAGE and NUMPAGES fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported inline content-control element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports {context}s only when they contain supported text runs, {SupportedFieldNames} fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported inline content-control element: {child.LocalName}.");
                 }
             }
         }
@@ -93,7 +93,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports {kind} inline content controls only when they contain supported text runs, PAGE and NUMPAGES fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported {kind} inline content-control element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports {kind} inline content controls only when they contain supported text runs, {SupportedFieldNames} fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported {kind} inline content-control element: {child.LocalName}.");
                 }
             }
         }
@@ -138,7 +138,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports footnote id '{id}' inline content controls only when they contain supported text runs, PAGE and NUMPAGES fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported footnote inline content-control element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports footnote id '{id}' inline content controls only when they contain supported text runs, {SupportedFieldNames} fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported footnote inline content-control element: {child.LocalName}.");
                 }
             }
         }
@@ -183,7 +183,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports endnote id '{id}' inline content controls only when they contain supported text runs, PAGE and NUMPAGES fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported endnote inline content-control element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports endnote id '{id}' inline content controls only when they contain supported text runs, {SupportedFieldNames} fields, bookmarks, nested inline content controls, and simple hyperlinks. Unsupported endnote inline content-control element: {child.LocalName}.");
                 }
             }
         }
