@@ -873,8 +873,10 @@ just to reserve names.
     reader.
   - [x] Write simple palette-backed final-section page borders through
     `sprmSBrc*80`, then reload top/left/bottom/right borders through the
-    legacy reader while blocking richer page-border positioning before native
-    `.doc` bytes are committed.
+    legacy reader.
+  - [x] Write final-section page-border display, offset, and z-order
+    positioning through `sprmSPgbProp`, then reload them through the legacy
+    reader as normal `PageBorders` attributes.
   - [x] Write simple equal-width section column count, spacing, and separator
     settings, then reload them through the legacy reader while blocking
     unequal section columns before native `.doc` bytes are committed.
@@ -1027,9 +1029,9 @@ just to reserve names.
     - [x] Block section properties inside header/footer, footnote, and endnote
       paragraphs before native DOC bytes are committed, keeping section breaks
       scoped to supported body paragraph boundaries.
-    - [x] Block richer unsupported final-section properties such as page-border
-      positioning before native DOC bytes are committed, keeping unsupported
-      section writing fail-fast instead of producing a partial legacy DOC file.
+    - [x] Write final-section page-border positioning before native DOC bytes
+      are committed, keeping the supported section-writing contract aligned
+      with WordprocessingML `PageBorders` attributes.
     - [x] Write simple inline run content controls by flattening supported runs,
       fields, hyperlinks, bookmarks, and nested inline content controls in body,
       table-cell, header/footer, footnote, and endnote paragraphs through native

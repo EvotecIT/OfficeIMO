@@ -70,26 +70,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedSectionPageBorderPositioningBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionPageBorderPositioningAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
-                using WordDocument document = WordDocument.Create();
-                document.AddParagraph("Unsupported page border positioning");
-                document.Sections[0]._sectionProperties.Append(new PageBorders(
-                    new TopBorder {
-                        Val = BorderValues.Single,
-                        Size = 4U,
-                        Space = 24U,
-                        Color = "000000"
-                    }) {
-                    OffsetFrom = PageBorderOffsetValues.Text
-                });
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Section page border positioning");
+                    document.Sections[0]._sectionProperties.Append(new PageBorders(
+                        new TopBorder {
+                            Val = BorderValues.Single,
+                            Size = 4U,
+                            Space = 24U,
+                            Color = "000000"
+                        }) {
+                        Display = PageBorderDisplayValues.NotFirstPage,
+                        OffsetFrom = PageBorderOffsetValues.Page,
+                        ZOrder = PageBorderZOrderValues.Back
+                    });
 
-                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+                    document.Save(docPath);
+                }
 
-                Assert.Contains("page-border positioning attributes", exception.Message);
-                Assert.False(File.Exists(docPath));
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x2F, 0x52, 0x2A, 0x00),
+                    "Expected the native DOC section property block to contain sprmSPgbProp for page-border positioning.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Section page border positioning", Assert.Single(reloaded.Paragraphs).Text);
+
+                PageBorders pageBorders = Assert.IsType<PageBorders>(reloaded.Sections[0]._sectionProperties.GetFirstChild<PageBorders>());
+                Assert.Equal(PageBorderDisplayValues.NotFirstPage, pageBorders.Display!.Value);
+                Assert.Equal(PageBorderOffsetValues.Page, pageBorders.OffsetFrom!.Value);
+                Assert.Equal(PageBorderZOrderValues.Back, pageBorders.ZOrder!.Value);
+                AssertPageBorder(pageBorders.TopBorder, BorderValues.Single, "000000", 4U, 24U);
             } finally {
                 DeleteIfExists(docPath);
             }

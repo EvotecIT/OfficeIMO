@@ -306,6 +306,12 @@ namespace OfficeIMO.Word {
             pageBorders?.Remove();
 
             pageBorders = new PageBorders();
+            if (borders.PageOptions.HasNonDefault) {
+                pageBorders.Display = GetLegacyDocPageBorderDisplay(borders.PageOptions.Display);
+                pageBorders.OffsetFrom = GetLegacyDocPageBorderOffsetFrom(borders.PageOptions.OffsetFrom);
+                pageBorders.ZOrder = GetLegacyDocPageBorderZOrder(borders.PageOptions.ZOrder);
+            }
+
             if (borders.Top.HasAny) {
                 pageBorders.TopBorder = CreateLegacyDocParagraphBorder<TopBorder>(borders.Top);
             }
@@ -324,6 +330,41 @@ namespace OfficeIMO.Word {
 
             if (pageBorders.ChildElements.Count > 0) {
                 section._sectionProperties.Append(pageBorders);
+            }
+        }
+
+        private static PageBorderDisplayValues GetLegacyDocPageBorderDisplay(LegacyDocPageBorderDisplay display) {
+            switch (display) {
+                case LegacyDocPageBorderDisplay.AllPages:
+                    return PageBorderDisplayValues.AllPages;
+                case LegacyDocPageBorderDisplay.FirstPage:
+                    return PageBorderDisplayValues.FirstPage;
+                case LegacyDocPageBorderDisplay.NotFirstPage:
+                    return PageBorderDisplayValues.NotFirstPage;
+                default:
+                    return PageBorderDisplayValues.AllPages;
+            }
+        }
+
+        private static PageBorderOffsetValues GetLegacyDocPageBorderOffsetFrom(LegacyDocPageBorderOffsetFrom offsetFrom) {
+            switch (offsetFrom) {
+                case LegacyDocPageBorderOffsetFrom.Text:
+                    return PageBorderOffsetValues.Text;
+                case LegacyDocPageBorderOffsetFrom.Page:
+                    return PageBorderOffsetValues.Page;
+                default:
+                    return PageBorderOffsetValues.Text;
+            }
+        }
+
+        private static PageBorderZOrderValues GetLegacyDocPageBorderZOrder(LegacyDocPageBorderZOrder zOrder) {
+            switch (zOrder) {
+                case LegacyDocPageBorderZOrder.Front:
+                    return PageBorderZOrderValues.Front;
+                case LegacyDocPageBorderZOrder.Back:
+                    return PageBorderZOrderValues.Back;
+                default:
+                    return PageBorderZOrderValues.Front;
             }
         }
 

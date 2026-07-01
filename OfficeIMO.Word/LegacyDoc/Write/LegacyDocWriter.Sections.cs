@@ -38,6 +38,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmSBrcLeft80 = 0x702C;
         private const ushort SprmSBrcBottom80 = 0x702D;
         private const ushort SprmSBrcRight80 = 0x702E;
+        private const ushort SprmSPgbProp = 0x522F;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
         private const ushort SprmSDxaLeft = 0xB021;
@@ -188,8 +189,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocParagraphBorders ReadSupportedSectionPageBorders(PageBorders pageBorders) {
-            if (pageBorders.GetAttributes().Any()) {
-                throw new NotSupportedException("Native DOC saving supports simple section page borders only without page-border positioning attributes.");
+            foreach (OpenXmlAttribute attribute in pageBorders.GetAttributes()) {
+                if (!string.Equals(attribute.LocalName, "display", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "offsetFrom", StringComparison.Ordinal)
+                    && !string.Equals(attribute.LocalName, "zOrder", StringComparison.Ordinal)) {
+                    throw new NotSupportedException($"Native DOC saving supports simple section page borders only. Unsupported page border attribute: {attribute.LocalName}.");
+                }
             }
 
             foreach (OpenXmlElement child in pageBorders.ChildElements) {
@@ -209,7 +214,67 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ReadSupportedSectionPageBorder(pageBorders.LeftBorder),
                 ReadSupportedSectionPageBorder(pageBorders.BottomBorder),
                 ReadSupportedSectionPageBorder(pageBorders.RightBorder),
-                default);
+                default,
+                ReadSupportedSectionPageBorderOptions(pageBorders));
+        }
+
+        private static LegacyDocPageBorderOptions ReadSupportedSectionPageBorderOptions(PageBorders pageBorders) {
+            return new LegacyDocPageBorderOptions(
+                ReadSupportedSectionPageBorderDisplay(pageBorders.Display),
+                ReadSupportedSectionPageBorderOffsetFrom(pageBorders.OffsetFrom),
+                ReadSupportedSectionPageBorderZOrder(pageBorders.ZOrder));
+        }
+
+        private static LegacyDocPageBorderDisplay ReadSupportedSectionPageBorderDisplay(EnumValue<PageBorderDisplayValues>? display) {
+            if (display == null) {
+                return LegacyDocPageBorderDisplay.AllPages;
+            }
+
+            if (display.Value == PageBorderDisplayValues.AllPages) {
+                return LegacyDocPageBorderDisplay.AllPages;
+            }
+
+            if (display.Value == PageBorderDisplayValues.FirstPage) {
+                return LegacyDocPageBorderDisplay.FirstPage;
+            }
+
+            if (display.Value == PageBorderDisplayValues.NotFirstPage) {
+                return LegacyDocPageBorderDisplay.NotFirstPage;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support section page border display '{display.Value}'.");
+        }
+
+        private static LegacyDocPageBorderOffsetFrom ReadSupportedSectionPageBorderOffsetFrom(EnumValue<PageBorderOffsetValues>? offsetFrom) {
+            if (offsetFrom == null) {
+                return LegacyDocPageBorderOffsetFrom.Text;
+            }
+
+            if (offsetFrom.Value == PageBorderOffsetValues.Text) {
+                return LegacyDocPageBorderOffsetFrom.Text;
+            }
+
+            if (offsetFrom.Value == PageBorderOffsetValues.Page) {
+                return LegacyDocPageBorderOffsetFrom.Page;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support section page border offset '{offsetFrom.Value}'.");
+        }
+
+        private static LegacyDocPageBorderZOrder ReadSupportedSectionPageBorderZOrder(EnumValue<PageBorderZOrderValues>? zOrder) {
+            if (zOrder == null) {
+                return LegacyDocPageBorderZOrder.Front;
+            }
+
+            if (zOrder.Value == PageBorderZOrderValues.Front) {
+                return LegacyDocPageBorderZOrder.Front;
+            }
+
+            if (zOrder.Value == PageBorderZOrderValues.Back) {
+                return LegacyDocPageBorderZOrder.Back;
+            }
+
+            throw new NotSupportedException($"Native DOC saving does not support section page border z-order '{zOrder.Value}'.");
         }
 
         private static LegacyDocParagraphBorder ReadSupportedSectionPageBorder(BorderType? border) {
@@ -678,6 +743,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AddSectionPageBorderSprmIfPresent(grpprl, SprmSBrcLeft80, borders.Left);
             AddSectionPageBorderSprmIfPresent(grpprl, SprmSBrcBottom80, borders.Bottom);
             AddSectionPageBorderSprmIfPresent(grpprl, SprmSBrcRight80, borders.Right);
+
+            if (borders.PageOptions.HasNonDefault) {
+                AddSectionPageBorderOptionsSprm(grpprl, borders.PageOptions);
+            }
+        }
+
+        private static void AddSectionPageBorderOptionsSprm(List<byte> grpprl, LegacyDocPageBorderOptions options) {
+            byte operand = (byte)(GetSectionPageBorderDisplayOperand(options.Display)
+                | (GetSectionPageBorderZOrderOperand(options.ZOrder) << 3)
+                | (GetSectionPageBorderOffsetOperand(options.OffsetFrom) << 5));
+
+            grpprl.Add((byte)(SprmSPgbProp & 0xFF));
+            grpprl.Add((byte)(SprmSPgbProp >> 8));
+            grpprl.Add(operand);
+            grpprl.Add(0);
         }
 
         private static void AddSectionPageBorderSprmIfPresent(List<byte> grpprl, ushort sprm, LegacyDocParagraphBorder border) {
@@ -726,6 +806,41 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 default:
                     borderType = 0;
                     return false;
+            }
+        }
+
+        private static byte GetSectionPageBorderDisplayOperand(LegacyDocPageBorderDisplay display) {
+            switch (display) {
+                case LegacyDocPageBorderDisplay.AllPages:
+                    return 0x00;
+                case LegacyDocPageBorderDisplay.FirstPage:
+                    return 0x01;
+                case LegacyDocPageBorderDisplay.NotFirstPage:
+                    return 0x02;
+                default:
+                    throw new NotSupportedException($"Native DOC saving does not support section page border display '{display}'.");
+            }
+        }
+
+        private static byte GetSectionPageBorderOffsetOperand(LegacyDocPageBorderOffsetFrom offsetFrom) {
+            switch (offsetFrom) {
+                case LegacyDocPageBorderOffsetFrom.Text:
+                    return 0x00;
+                case LegacyDocPageBorderOffsetFrom.Page:
+                    return 0x01;
+                default:
+                    throw new NotSupportedException($"Native DOC saving does not support section page border offset '{offsetFrom}'.");
+            }
+        }
+
+        private static byte GetSectionPageBorderZOrderOperand(LegacyDocPageBorderZOrder zOrder) {
+            switch (zOrder) {
+                case LegacyDocPageBorderZOrder.Front:
+                    return 0x00;
+                case LegacyDocPageBorderZOrder.Back:
+                    return 0x01;
+                default:
+                    throw new NotSupportedException($"Native DOC saving does not support section page border z-order '{zOrder}'.");
             }
         }
 

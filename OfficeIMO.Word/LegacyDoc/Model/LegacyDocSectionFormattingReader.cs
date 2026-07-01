@@ -32,6 +32,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmSBrcLeft80 = 0x702C;
         private const ushort SprmSBrcBottom80 = 0x702D;
         private const ushort SprmSBrcRight80 = 0x702E;
+        private const ushort SprmSPgbProp = 0x522F;
         private const ushort SprmSXaPage = 0xB01F;
         private const ushort SprmSYaPage = 0xB020;
         private const ushort SprmSDxaLeft = 0xB021;
@@ -152,6 +153,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocParagraphBorder pageLeftBorder = default;
             LegacyDocParagraphBorder pageBottomBorder = default;
             LegacyDocParagraphBorder pageRightBorder = default;
+            LegacyDocPageBorderOptions pageBorderOptions = default;
 
             while (offset + 2 <= end) {
                 ushort sprm = LegacyDocFib.ReadUInt16(bytes, offset);
@@ -296,6 +298,16 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     }
 
                     offset += 6;
+                    continue;
+                }
+
+                if (sprm == SprmSPgbProp) {
+                    if (offset + 4 > end) {
+                        break;
+                    }
+
+                    pageBorderOptions = ReadPageBorderOptions(bytes[offset + 2]);
+                    offset += 4;
                     continue;
                 }
 
@@ -444,7 +456,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 endnoteRestart,
                 endnoteStart,
                 endnoteNumberFormat,
-                new LegacyDocParagraphBorders(pageTopBorder, pageLeftBorder, pageBottomBorder, pageRightBorder, default));
+                new LegacyDocParagraphBorders(pageTopBorder, pageLeftBorder, pageBottomBorder, pageRightBorder, default, pageBorderOptions));
         }
 
         private static FootnotePositionValues? ReadFootnotePosition(byte value) {
@@ -556,6 +568,48 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             string? colorHex = LegacyDocColorPalette.GetHexForIco(colorIndex);
             return new LegacyDocParagraphBorder(style, colorHex, sizeEighthPoints, spacePoints);
+        }
+
+        private static LegacyDocPageBorderOptions ReadPageBorderOptions(byte operand) {
+            return new LegacyDocPageBorderOptions(
+                ReadPageBorderDisplay(operand & 0x07),
+                ReadPageBorderOffsetFrom((operand >> 5) & 0x07),
+                ReadPageBorderZOrder((operand >> 3) & 0x03));
+        }
+
+        private static LegacyDocPageBorderDisplay ReadPageBorderDisplay(int value) {
+            switch (value) {
+                case 0:
+                    return LegacyDocPageBorderDisplay.AllPages;
+                case 1:
+                    return LegacyDocPageBorderDisplay.FirstPage;
+                case 2:
+                    return LegacyDocPageBorderDisplay.NotFirstPage;
+                default:
+                    return LegacyDocPageBorderDisplay.AllPages;
+            }
+        }
+
+        private static LegacyDocPageBorderOffsetFrom ReadPageBorderOffsetFrom(int value) {
+            switch (value) {
+                case 0:
+                    return LegacyDocPageBorderOffsetFrom.Text;
+                case 1:
+                    return LegacyDocPageBorderOffsetFrom.Page;
+                default:
+                    return LegacyDocPageBorderOffsetFrom.Text;
+            }
+        }
+
+        private static LegacyDocPageBorderZOrder ReadPageBorderZOrder(int value) {
+            switch (value) {
+                case 0:
+                    return LegacyDocPageBorderZOrder.Front;
+                case 1:
+                    return LegacyDocPageBorderZOrder.Back;
+                default:
+                    return LegacyDocPageBorderZOrder.Front;
+            }
         }
 
         private static LegacyDocParagraphBorderStyle MapBrc80BorderStyle(byte borderType) {

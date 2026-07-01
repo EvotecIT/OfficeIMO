@@ -54,12 +54,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             LegacyDocParagraphBorder left,
             LegacyDocParagraphBorder bottom,
             LegacyDocParagraphBorder right,
-            LegacyDocParagraphBorder between) {
+            LegacyDocParagraphBorder between,
+            LegacyDocPageBorderOptions pageOptions = default) {
             Top = top;
             Left = left;
             Bottom = bottom;
             Right = right;
             Between = between;
+            PageOptions = pageOptions;
         }
 
         internal LegacyDocParagraphBorder Top { get; }
@@ -72,6 +74,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal LegacyDocParagraphBorder Between { get; }
 
+        internal LegacyDocPageBorderOptions PageOptions { get; }
+
         internal bool HasAny => Top.HasAny || Left.HasAny || Bottom.HasAny || Right.HasAny || Between.HasAny;
 
         public bool Equals(LegacyDocParagraphBorders other) {
@@ -79,7 +83,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 && Left.Equals(other.Left)
                 && Bottom.Equals(other.Bottom)
                 && Right.Equals(other.Right)
-                && Between.Equals(other.Between);
+                && Between.Equals(other.Between)
+                && PageOptions.Equals(other.PageOptions);
         }
 
         public override bool Equals(object? obj) {
@@ -93,6 +98,62 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             hash = (hash * 31) + Bottom.GetHashCode();
             hash = (hash * 31) + Right.GetHashCode();
             hash = (hash * 31) + Between.GetHashCode();
+            hash = (hash * 31) + PageOptions.GetHashCode();
+            return hash;
+        }
+    }
+
+    internal enum LegacyDocPageBorderDisplay {
+        AllPages,
+        FirstPage,
+        NotFirstPage
+    }
+
+    internal enum LegacyDocPageBorderOffsetFrom {
+        Text,
+        Page
+    }
+
+    internal enum LegacyDocPageBorderZOrder {
+        Front,
+        Back
+    }
+
+    internal readonly struct LegacyDocPageBorderOptions : IEquatable<LegacyDocPageBorderOptions> {
+        internal LegacyDocPageBorderOptions(
+            LegacyDocPageBorderDisplay display = LegacyDocPageBorderDisplay.AllPages,
+            LegacyDocPageBorderOffsetFrom offsetFrom = LegacyDocPageBorderOffsetFrom.Text,
+            LegacyDocPageBorderZOrder zOrder = LegacyDocPageBorderZOrder.Front) {
+            Display = display;
+            OffsetFrom = offsetFrom;
+            ZOrder = zOrder;
+        }
+
+        internal LegacyDocPageBorderDisplay Display { get; }
+
+        internal LegacyDocPageBorderOffsetFrom OffsetFrom { get; }
+
+        internal LegacyDocPageBorderZOrder ZOrder { get; }
+
+        internal bool HasNonDefault => Display != LegacyDocPageBorderDisplay.AllPages
+            || OffsetFrom != LegacyDocPageBorderOffsetFrom.Text
+            || ZOrder != LegacyDocPageBorderZOrder.Front;
+
+        public bool Equals(LegacyDocPageBorderOptions other) {
+            return Display == other.Display
+                && OffsetFrom == other.OffsetFrom
+                && ZOrder == other.ZOrder;
+        }
+
+        public override bool Equals(object? obj) {
+            return obj is LegacyDocPageBorderOptions other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            int hash = 17;
+            hash = (hash * 31) + Display.GetHashCode();
+            hash = (hash * 31) + OffsetFrom.GetHashCode();
+            hash = (hash * 31) + ZOrder.GetHashCode();
             return hash;
         }
     }
