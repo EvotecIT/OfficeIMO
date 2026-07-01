@@ -627,6 +627,9 @@ just to reserve names.
   - [x] Write supported body and table-cell paragraphs whose OpenXML run
     sequence contains complex `PAGE` and `NUMPAGES` fields, covering the normal
     advanced field representation path.
+  - [x] Write supported footnote and endnote paragraphs whose OpenXML run
+    sequence contains complex `PAGE` and `NUMPAGES` fields, preserving note
+    story formatting offsets through native DOC save/reload.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

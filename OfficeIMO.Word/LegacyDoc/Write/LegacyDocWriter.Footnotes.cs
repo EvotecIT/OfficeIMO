@@ -99,12 +99,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 paragraphFormatting = paragraphFormatting.WithStyleIndex(NoteTextParagraphStyleIndex);
             }
 
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
+            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            for (int index = 0; index < children.Length; index++) {
+                OpenXmlElement child = children[index];
                 switch (child) {
                     case ParagraphProperties:
                         break;
                     case Run run:
-                        AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
+                        if (IsComplexFieldBeginRun(run)) {
+                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, storyStart);
+                        } else {
+                            AppendSimpleFootnoteRun(builder, runs, run, id, storyStart);
+                        }
+
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "footnote", storyStart);
@@ -224,6 +231,76 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             LegacyDocWritableFormatting formatting = ReadSimpleFieldResultFormatting(field);
+            AppendSupportedNoteField(text, runs, fieldKind, formatting, storyStart);
+        }
+
+        private static void AppendSupportedNoteComplexPageNumberField(
+            IReadOnlyList<OpenXmlElement> paragraphChildren,
+            ref int childIndex,
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            int storyStart) {
+            var instruction = new StringBuilder();
+            LegacyDocWritableFormatting? resultFormatting = null;
+            bool sawSeparator = false;
+            int index = childIndex;
+            for (; index < paragraphChildren.Count; index++) {
+                if (paragraphChildren[index] is not Run run) {
+                    throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields in note paragraphs only when the whole field is represented by adjacent runs.");
+                }
+
+                LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    switch (child) {
+                        case RunProperties:
+                        case LastRenderedPageBreak:
+                            break;
+                        case FieldCode fieldCode when !sawSeparator:
+                            instruction.Append(fieldCode.Text);
+                            break;
+                        case Text when sawSeparator:
+                            resultFormatting ??= runFormatting;
+                            if (!resultFormatting.Value.Equals(runFormatting)) {
+                                throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields in note paragraphs only when their display runs use one formatting set.");
+                            }
+
+                            break;
+                        case FieldChar fieldChar:
+                            FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                            if (fieldCharType == FieldCharValues.Begin) {
+                                if (index != childIndex) {
+                                    throw new NotSupportedException("Native DOC saving does not support nested complex fields in note paragraph PAGE and NUMPAGES field runs.");
+                                }
+
+                                break;
+                            }
+
+                            if (fieldCharType == FieldCharValues.Separate) {
+                                sawSeparator = true;
+                                break;
+                            }
+
+                            if (fieldCharType == FieldCharValues.End) {
+                                if (!TryReadSupportedFieldKind(instruction.ToString(), out LegacyDocFieldKind fieldKind)) {
+                                    throw new NotSupportedException("Native DOC saving currently supports only PAGE and NUMPAGES complex fields in note paragraphs. Other field types are not supported yet.");
+                                }
+
+                                AppendSupportedNoteField(text, runs, fieldKind, resultFormatting ?? LegacyDocWritableFormatting.Plain, storyStart);
+                                childIndex = index;
+                                return;
+                            }
+
+                            throw new NotSupportedException("Native DOC saving supports PAGE and NUMPAGES complex fields in note paragraphs only with begin, separate, and end field characters.");
+                        default:
+                            throw new NotSupportedException($"Native DOC saving supports PAGE and NUMPAGES complex fields in note paragraphs only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
+                    }
+                }
+            }
+
+            throw new NotSupportedException("Native DOC saving cannot write an unterminated PAGE or NUMPAGES complex field in a note paragraph.");
+        }
+
+        private static void AppendSupportedNoteField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocFieldKind fieldKind, LegacyDocWritableFormatting formatting, int storyStart) {
             AppendFormattedNoteText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
             AppendFormattedNoteText(text, runs, GetSupportedFieldInstruction(fieldKind), LegacyDocWritableFormatting.Plain, storyStart);
             AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);

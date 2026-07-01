@@ -3671,6 +3671,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNoteComplexPageFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body with note complex page fields");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote page ");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote page ");
+                    footnoteBody.AddField(WordFieldType.Page, advanced: true);
+                    footnoteBody.AddText(" of ");
+                    footnoteBody.AddField(WordFieldType.NumPages, advanced: true);
+                    footnoteBody.AddText(" done");
+
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote page ");
+                    WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote page ");
+                    endnoteBody.AddField(WordFieldType.Page, advanced: true);
+                    endnoteBody.AddText(" of ");
+                    endnoteBody.AddField(WordFieldType.NumPages, advanced: true);
+                    endnoteBody.AddText(" done");
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                string wordDocumentAscii = Encoding.ASCII.GetString(wordDocumentStream);
+                Assert.Contains("PAGE", wordDocumentAscii);
+                Assert.Contains("NUMPAGES", wordDocumentAscii);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                AssertNotePageFields(Assert.Single(reloaded.FootNotes).Paragraphs!, "Footnote page ");
+                AssertNotePageFields(Assert.Single(reloaded.EndNotes).Paragraphs!, "Endnote page ");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocFormattedEndnoteRunsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string bodyText = "Zażółć body with formatted endnote";

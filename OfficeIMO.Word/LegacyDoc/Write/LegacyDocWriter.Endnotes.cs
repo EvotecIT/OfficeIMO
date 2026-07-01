@@ -87,12 +87,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 paragraphFormatting = paragraphFormatting.WithStyleIndex(NoteTextParagraphStyleIndex);
             }
 
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
+            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            for (int index = 0; index < children.Length; index++) {
+                OpenXmlElement child = children[index];
                 switch (child) {
                     case ParagraphProperties:
                         break;
                     case Run run:
-                        AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
+                        if (IsComplexFieldBeginRun(run)) {
+                            AppendSupportedNoteComplexPageNumberField(children, ref index, builder, runs, storyStart);
+                        } else {
+                            AppendSimpleEndnoteRun(builder, runs, run, id, storyStart);
+                        }
+
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedNoteHyperlinkText(builder, runs, hyperlink, relationshipOwner, id, "endnote", storyStart);
