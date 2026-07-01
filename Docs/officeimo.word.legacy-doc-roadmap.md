@@ -347,6 +347,8 @@ just to reserve names.
   - [x] Preserve explicit off run-formatting toggles in DOC style definitions
     so child paragraph styles can disable inherited bold/italic-style effects
     while keeping their own formatting.
+  - [x] Preserve explicit off underline, highlight, and vertical-position style
+    values so child paragraph styles can clear inherited non-toggle run effects.
   - [x] Project DOC paragraph style next-style metadata from STSH records into
     OpenXML `w:next` style links for fixture-backed built-in Heading and custom
     styles.

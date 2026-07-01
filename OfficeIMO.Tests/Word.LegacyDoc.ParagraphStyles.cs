@@ -464,7 +464,12 @@ namespace OfficeIMO.Tests {
                     var baseStyle = new Style { Type = StyleValues.Paragraph, StyleId = baseStyleId, CustomStyle = true };
                     baseStyle.Append(new StyleName { Val = "Native DOC Off Base" });
                     baseStyle.Append(new BasedOn { Val = WordParagraphStyles.Normal.ToStringStyle() });
-                    baseStyle.Append(new StyleRunProperties(new Bold(), new BoldComplexScript()));
+                    baseStyle.Append(new StyleRunProperties(
+                        new Bold(),
+                        new BoldComplexScript(),
+                        new Underline { Val = UnderlineValues.Single },
+                        new Highlight { Val = HighlightColorValues.Yellow },
+                        new VerticalTextAlignment { Val = VerticalPositionValues.Superscript }));
                     styles.Append(baseStyle);
 
                     var childStyle = new Style { Type = StyleValues.Paragraph, StyleId = childStyleId, CustomStyle = true };
@@ -474,7 +479,10 @@ namespace OfficeIMO.Tests {
                         new Bold { Val = false },
                         new BoldComplexScript { Val = false },
                         new Italic(),
-                        new ItalicComplexScript()));
+                        new ItalicComplexScript(),
+                        new Underline { Val = UnderlineValues.None },
+                        new Highlight { Val = HighlightColorValues.None },
+                        new VerticalTextAlignment { Val = VerticalPositionValues.Baseline }));
                     styles.Append(childStyle);
 
                     document.AddParagraph("Native custom explicit off child").SetStyleId(childStyleId);
@@ -493,6 +501,9 @@ namespace OfficeIMO.Tests {
                 StyleRunProperties baseRunProperties = Assert.IsType<StyleRunProperties>(baseStyleAfterReload.StyleRunProperties);
                 Assert.NotNull(baseRunProperties.GetFirstChild<Bold>());
                 Assert.NotNull(baseRunProperties.GetFirstChild<BoldComplexScript>());
+                Assert.Equal(UnderlineValues.Single, baseRunProperties.GetFirstChild<Underline>()?.Val?.Value);
+                Assert.Equal(HighlightColorValues.Yellow, baseRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
+                Assert.Equal(VerticalPositionValues.Superscript, baseRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
 
                 Style childStyleAfterReload = Assert.Single(reloadedStyles.Elements<Style>(), style => style.StyleId == "LegacyDocNativeDOCOffChild");
                 Assert.Equal("LegacyDocNativeDOCOffBase", childStyleAfterReload.BasedOn?.Val?.Value);
@@ -503,6 +514,9 @@ namespace OfficeIMO.Tests {
                 Assert.False(childComplexBold.Val?.Value ?? true);
                 Assert.NotNull(childRunProperties.GetFirstChild<Italic>());
                 Assert.NotNull(childRunProperties.GetFirstChild<ItalicComplexScript>());
+                Assert.Equal(UnderlineValues.None, childRunProperties.GetFirstChild<Underline>()?.Val?.Value);
+                Assert.Equal(HighlightColorValues.None, childRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
+                Assert.Equal(VerticalPositionValues.Baseline, childRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
             } finally {
                 if (File.Exists(docPath)) {
                     File.Delete(docPath);

@@ -2037,15 +2037,24 @@ namespace OfficeIMO.Word {
             if (characterFormat.Highlight != null && TryMapHighlight(characterFormat.Highlight.Value, out HighlightColorValues highlight)) {
                 properties.Append(new Highlight { Val = highlight });
                 hasProperties = true;
+            } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Highlight)) {
+                properties.Append(new Highlight { Val = HighlightColorValues.None });
+                hasProperties = true;
             }
 
             if (characterFormat.Underline != null && TryMapUnderline(characterFormat.Underline.Value, out UnderlineValues underline)) {
                 properties.Append(new Underline { Val = underline });
                 hasProperties = true;
+            } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.Underline)) {
+                properties.Append(new Underline { Val = UnderlineValues.None });
+                hasProperties = true;
             }
 
             if (characterFormat.VerticalPosition != null && TryMapVerticalPosition(characterFormat.VerticalPosition.Value, out VerticalPositionValues verticalPosition)) {
                 properties.Append(new VerticalTextAlignment { Val = verticalPosition });
+                hasProperties = true;
+            } else if (characterFormat.IsSpecified(LegacyDocCharacterFormatProperties.VerticalPosition)) {
+                properties.Append(new VerticalTextAlignment { Val = VerticalPositionValues.Baseline });
                 hasProperties = true;
             }
 
