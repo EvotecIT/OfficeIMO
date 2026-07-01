@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using OfficeIMO.Word.LegacyDoc.Model;
 using System.Text;
 
 namespace OfficeIMO.Word.LegacyDoc.Write {
@@ -309,16 +310,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendFormattedHeaderFooterBreak(StringBuilder storyText, List<LegacyDocWritableRun> formattedRuns, StringBuilder paragraphText, Break breakNode, string kind, LegacyDocWritableFormatting formatting) {
             BreakValues? breakType = breakNode.Type?.Value;
             if (breakType == null || breakType == BreakValues.TextWrapping) {
-                AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, "\v", formatting);
+                AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting);
                 return;
             }
 
             if (breakType == BreakValues.Page) {
-                AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, "\f", formatting);
+                AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, LegacyDocSpecialCharacters.PageBreak.ToString(), formatting);
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports simple {kind}s only with text-wrapping and page breaks.");
+            if (breakType == BreakValues.Column) {
+                AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, LegacyDocSpecialCharacters.ColumnBreak.ToString(), formatting);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple {kind}s only with text-wrapping, page, and column breaks.");
         }
 
         private static void ThrowIfUnreferencedHeaderFooterContent(MainDocumentPart mainPart, IEnumerable<SectionProperties> sectionPropertiesCollection) {

@@ -901,8 +901,9 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 case '\a':
                     return null;
                 case LegacyDocFootnoteReader.FootnoteReferenceCharacter:
-                case '\v':
-                case '\f':
+                case LegacyDocSpecialCharacters.TextWrappingBreak:
+                case LegacyDocSpecialCharacters.PageBreak:
+                case LegacyDocSpecialCharacters.ColumnBreak:
                     return character;
                 case '\n':
                     return '\r';

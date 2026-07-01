@@ -105,16 +105,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSupportedBreak(StringBuilder text, List<LegacyDocWritableRun> runs, Break breakNode, LegacyDocWritableFormatting formatting) {
             BreakValues? breakType = breakNode.Type?.Value;
             if (breakType == null || breakType == BreakValues.TextWrapping) {
-                AppendFormattedText(text, runs, "\v", formatting);
+                AppendFormattedText(text, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting);
                 return;
             }
 
             if (breakType == BreakValues.Page) {
-                AppendFormattedText(text, runs, "\f", formatting);
+                AppendFormattedText(text, runs, LegacyDocSpecialCharacters.PageBreak.ToString(), formatting);
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving currently supports text-wrapping and page breaks only. Unsupported break type: {breakType}.");
+            if (breakType == BreakValues.Column) {
+                AppendFormattedText(text, runs, LegacyDocSpecialCharacters.ColumnBreak.ToString(), formatting);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving currently supports text-wrapping, page, and column breaks only. Unsupported break type: {breakType}.");
         }
 
         private static LegacyDocWritableFormatting ReadSupportedRunFormatting(OpenXmlCompositeElement? runProperties) {

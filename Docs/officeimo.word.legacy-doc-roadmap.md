@@ -599,8 +599,9 @@ just to reserve names.
     and reload them through the legacy reader.
   - [x] Project imported tab characters and native-written tabs as real Word
     tab runs after legacy DOC reload.
-  - [x] Project imported line/page break characters and native-written
-    text-wrapping/page breaks as real Word break runs after legacy DOC reload.
+  - [x] Project imported line/page/column break characters and native-written
+    text-wrapping/page/column breaks as real Word break runs after legacy DOC
+    reload.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

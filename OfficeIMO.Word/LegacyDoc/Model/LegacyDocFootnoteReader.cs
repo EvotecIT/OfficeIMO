@@ -324,9 +324,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (char.IsControl(normalized)
-                    && normalized != '\t'
-                    && normalized != '\v'
-                    && normalized != '\f') {
+                    && !LegacyDocSpecialCharacters.IsSupportedInlineControl(normalized)) {
                     continue;
                 }
 
@@ -497,9 +495,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 }
 
                 if (char.IsControl(normalized)
-                    && normalized != '\t'
-                    && normalized != '\v'
-                    && normalized != '\f') {
+                    && !LegacyDocSpecialCharacters.IsSupportedInlineControl(normalized)) {
                     continue;
                 }
 

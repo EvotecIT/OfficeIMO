@@ -393,7 +393,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsLineAndPageBreaksAsWordBreakRuns() {
-            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Line\vBreak\fPage");
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Line\vBreak\u000EColumn\fPage");
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
@@ -401,11 +401,12 @@ namespace OfficeIMO.Tests {
             Assert.True(result.HasDocument);
             Paragraph paragraph = Assert.Single(result.Document._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
             Break[] breaks = paragraph.Descendants<Break>().ToArray();
-            Assert.Equal(2, breaks.Length);
+            Assert.Equal(3, breaks.Length);
             Assert.Null(breaks[0].Type);
-            Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
-            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\v') || text.Text.Contains('\f'));
-            Assert.Equal(new[] { "Line", "Break", "Page" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+            Assert.Equal(BreakValues.Column, breaks[1].Type!.Value);
+            Assert.Equal(BreakValues.Page, breaks[2].Type!.Value);
+            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\v') || text.Text.Contains('\u000E') || text.Text.Contains('\f'));
+            Assert.Equal(new[] { "Line", "Break", "Column", "Page" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
 
         [Fact]
@@ -1423,7 +1424,11 @@ namespace OfficeIMO.Tests {
                             builder.Append('\t');
                             break;
                         case Break breakNode:
-                            builder.Append(breakNode.Type?.Value == BreakValues.Page ? '\f' : '\v');
+                            builder.Append(breakNode.Type?.Value == BreakValues.Page
+                                ? LegacyDocSpecialCharacters.PageBreak
+                                : breakNode.Type?.Value == BreakValues.Column
+                                    ? LegacyDocSpecialCharacters.ColumnBreak
+                                    : LegacyDocSpecialCharacters.TextWrappingBreak);
                             break;
                     }
                 }
@@ -1541,17 +1546,27 @@ namespace OfficeIMO.Tests {
             Paragraph paragraph = paragraphs[0]._paragraph;
             Assert.Single(paragraph.Descendants<TabChar>());
             Break[] breaks = paragraph.Descendants<Break>().ToArray();
-            Assert.Equal(2, breaks.Length);
+            Assert.Equal(3, breaks.Length);
             Assert.Null(breaks[0].Type);
-            Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
-            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\t') || text.Text.Contains('\v') || text.Text.Contains('\f'));
-            Assert.Equal(new[] { "Left", "Right", "Next", "Page" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+            Assert.Equal(BreakValues.Column, breaks[1].Type!.Value);
+            Assert.Equal(BreakValues.Page, breaks[2].Type!.Value);
+            Assert.DoesNotContain(paragraph.Descendants<Text>(), text => text.Text.Contains('\t') || text.Text.Contains('\v') || text.Text.Contains('\u000E') || text.Text.Contains('\f'));
+            Assert.Equal(new[] { "Left", "Right", "Next", "Column", "Page" }, paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
 
         private static void AssertNoteTextWrappingBreak(WordParagraph paragraph, params string[] expectedText) {
             Break breakRun = Assert.Single(paragraph._paragraph.Descendants<Break>());
             Assert.Null(breakRun.Type);
             Assert.DoesNotContain(paragraph._paragraph.Descendants<Text>(), text => text.Text.Contains('\v'));
+            Assert.Equal(expectedText, paragraph._paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
+        }
+
+        private static void AssertNoteTextWrappingAndColumnBreaks(WordParagraph paragraph, params string[] expectedText) {
+            Break[] breaks = paragraph._paragraph.Descendants<Break>().ToArray();
+            Assert.Equal(2, breaks.Length);
+            Assert.Null(breaks[0].Type);
+            Assert.Equal(BreakValues.Column, breaks[1].Type!.Value);
+            Assert.DoesNotContain(paragraph._paragraph.Descendants<Text>(), text => text.Text.Contains('\v') || text.Text.Contains('\u000E'));
             Assert.Equal(expectedText, paragraph._paragraph.Descendants<Text>().Select(text => text.Text).ToArray());
         }
 
@@ -2114,8 +2129,10 @@ namespace OfficeIMO.Tests {
                     hyperlink.Append(new Run(new Text("B") { Space = SpaceProcessingModeValues.Preserve }));
                     hyperlink.Append(new Run(new Break()));
                     hyperlink.Append(new Run(new Text("C") { Space = SpaceProcessingModeValues.Preserve }));
-                    hyperlink.Append(new Run(new Break { Type = BreakValues.Page }));
+                    hyperlink.Append(new Run(new Break { Type = BreakValues.Column }));
                     hyperlink.Append(new Run(new Text("D") { Space = SpaceProcessingModeValues.Preserve }));
+                    hyperlink.Append(new Run(new Break { Type = BreakValues.Page }));
+                    hyperlink.Append(new Run(new Text("E") { Space = SpaceProcessingModeValues.Preserve }));
 
                     document.Save(docPath);
                 }
@@ -2125,12 +2142,13 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 WordHyperLink mixedLink = Assert.Single(reloaded.HyperLinks, link => link.Uri?.ToString() == "https://officeimo.net/mixed");
-                Assert.Equal("ABCD", GetHyperlinkText(mixedLink._hyperlink));
+                Assert.Equal("ABCDE", GetHyperlinkText(mixedLink._hyperlink));
                 Assert.Single(mixedLink._hyperlink.Descendants<TabChar>());
                 IReadOnlyList<Break> breaks = mixedLink._hyperlink.Descendants<Break>().ToArray();
-                Assert.Equal(2, breaks.Count);
+                Assert.Equal(3, breaks.Count);
                 Assert.Null(breaks[0].Type);
-                Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
+                Assert.Equal(BreakValues.Column, breaks[1].Type!.Value);
+                Assert.Equal(BreakValues.Page, breaks[2].Type!.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -2776,6 +2794,8 @@ namespace OfficeIMO.Tests {
                     header.AddHyperLink("site", new Uri("https://officeimo.net/header"), addStyle: true);
                     header.Hyperlink!._hyperlink.Append(new Run(new TabChar()));
                     header.Hyperlink!._hyperlink.Append(new Run(new Text("tab") { Space = SpaceProcessingModeValues.Preserve }));
+                    header.Hyperlink!._hyperlink.Append(new Run(new Break { Type = BreakValues.Column }));
+                    header.Hyperlink!._hyperlink.Append(new Run(new Text("column") { Space = SpaceProcessingModeValues.Preserve }));
                     header.Hyperlink!._hyperlink.Append(new Run(new Break { Type = BreakValues.Page }));
                     header.Hyperlink!._hyperlink.Append(new Run(new Text("page") { Space = SpaceProcessingModeValues.Preserve }));
                     header.AddText(" done");
@@ -2783,6 +2803,8 @@ namespace OfficeIMO.Tests {
                     footer.AddHyperLink("mail", new Uri("mailto:footer@example.org"), addStyle: true);
                     footer.Hyperlink!._hyperlink.Append(new Run(new Break()));
                     footer.Hyperlink!._hyperlink.Append(new Run(new Text("break") { Space = SpaceProcessingModeValues.Preserve }));
+                    footer.Hyperlink!._hyperlink.Append(new Run(new Break { Type = BreakValues.Column }));
+                    footer.Hyperlink!._hyperlink.Append(new Run(new Text("column") { Space = SpaceProcessingModeValues.Preserve }));
                     footer.Hyperlink!._hyperlink.Append(new Run(new Break { Type = BreakValues.Page }));
                     footer.Hyperlink!._hyperlink.Append(new Run(new Text("page") { Space = SpaceProcessingModeValues.Preserve }));
                     footer.AddText(" done");
@@ -2806,26 +2828,29 @@ namespace OfficeIMO.Tests {
                     .SelectMany(paragraph => paragraph.GetRuns())
                     .Where(run => run.IsHyperLink)
                     .Select(run => run.Hyperlink)
-                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "sitetabpage");
+                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "sitetabcolumnpage");
                 Assert.NotNull(headerLink);
                 Assert.Equal("https://officeimo.net/header", headerLink.Uri?.ToString());
-                Assert.Equal("site\ttab\fpage", GetHyperlinkDisplayText(headerLink._hyperlink));
+                Assert.Equal("site\ttab\u000Ecolumn\fpage", GetHyperlinkDisplayText(headerLink._hyperlink));
                 Assert.Single(headerLink._hyperlink.Descendants<TabChar>());
-                Break headerBreak = Assert.Single(headerLink._hyperlink.Descendants<Break>());
-                Assert.Equal(BreakValues.Page, headerBreak.Type!.Value);
+                Break[] headerBreaks = headerLink._hyperlink.Descendants<Break>().ToArray();
+                Assert.Equal(2, headerBreaks.Length);
+                Assert.Equal(BreakValues.Column, headerBreaks[0].Type!.Value);
+                Assert.Equal(BreakValues.Page, headerBreaks[1].Type!.Value);
 
                 WordHyperLink? footerLink = footerParagraphs
                     .SelectMany(paragraph => paragraph.GetRuns())
                     .Where(run => run.IsHyperLink)
                     .Select(run => run.Hyperlink)
-                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "mailbreakpage");
+                    .FirstOrDefault(link => GetHyperlinkText(link!._hyperlink) == "mailbreakcolumnpage");
                 Assert.NotNull(footerLink);
                 Assert.Equal("mailto:footer@example.org", footerLink.Uri?.ToString());
-                Assert.Equal("mail\vbreak\fpage", GetHyperlinkDisplayText(footerLink._hyperlink));
+                Assert.Equal("mail\vbreak\u000Ecolumn\fpage", GetHyperlinkDisplayText(footerLink._hyperlink));
                 Break[] footerBreaks = footerLink._hyperlink.Descendants<Break>().ToArray();
-                Assert.Equal(2, footerBreaks.Length);
+                Assert.Equal(3, footerBreaks.Length);
                 Assert.Null(footerBreaks[0].Type);
-                Assert.Equal(BreakValues.Page, footerBreaks[1].Type!.Value);
+                Assert.Equal(BreakValues.Column, footerBreaks[1].Type!.Value);
+                Assert.Equal(BreakValues.Page, footerBreaks[2].Type!.Value);
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -3126,22 +3151,26 @@ namespace OfficeIMO.Tests {
                     document.AddParagraph(bodyText);
                     WordSection section = document.Sections[0];
                     WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph();
-                    header.AddText("Left");
-                    header.AddTab();
-                    header.AddText("Right");
-                    header.AddBreak();
-                    header.AddText("Next");
-                    header.AddBreak(BreakValues.Page);
-                    header.AddText("Page");
+            header.AddText("Left");
+            header.AddTab();
+            header.AddText("Right");
+            header.AddBreak();
+            header.AddText("Next");
+            header.AddBreak(BreakValues.Column);
+            header.AddText("Column");
+            header.AddBreak(BreakValues.Page);
+            header.AddText("Page");
 
                     WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph();
-                    footer.AddText("Left");
-                    footer.AddTab();
-                    footer.AddText("Right");
-                    footer.AddBreak();
-                    footer.AddText("Next");
-                    footer.AddBreak(BreakValues.Page);
-                    footer.AddText("Page");
+            footer.AddText("Left");
+            footer.AddTab();
+            footer.AddText("Right");
+            footer.AddBreak();
+            footer.AddText("Next");
+            footer.AddBreak(BreakValues.Column);
+            footer.AddText("Column");
+            footer.AddBreak(BreakValues.Page);
+            footer.AddText("Page");
 
                     document.Save(docPath);
                 }
@@ -3455,11 +3484,15 @@ namespace OfficeIMO.Tests {
                     WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Footnote first");
                     footnoteBody.AddBreak();
                     footnoteBody.AddText("Footnote second");
+                    footnoteBody.AddBreak(BreakValues.Column);
+                    footnoteBody.AddText("Footnote column");
 
                     WordParagraph endnoteReference = paragraph.AddEndNote("Endnote first");
                     WordParagraph endnoteBody = endnoteReference.EndNote!.Paragraphs!.Single(noteParagraph => noteParagraph.Text == "Endnote first");
                     endnoteBody.AddBreak();
                     endnoteBody.AddText("Endnote second");
+                    endnoteBody.AddBreak(BreakValues.Column);
+                    endnoteBody.AddText("Endnote column");
 
                     document.Save(docPath);
                 }
@@ -3468,8 +3501,8 @@ namespace OfficeIMO.Tests {
 
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Equal(bodyText, Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text)).Text);
-                AssertNoteTextWrappingBreak(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote second");
-                AssertNoteTextWrappingBreak(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote second");
+                AssertNoteTextWrappingAndColumnBreaks(Assert.Single(reloaded.FootNotes).Paragraphs![1], "Footnote first", "Footnote second", "Footnote column");
+                AssertNoteTextWrappingAndColumnBreaks(Assert.Single(reloaded.EndNotes).Paragraphs![1], "Endnote first", "Endnote second", "Endnote column");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -4041,6 +4074,8 @@ namespace OfficeIMO.Tests {
                     paragraph.AddText("Line");
                     paragraph.AddBreak();
                     paragraph.AddText("Break");
+                    paragraph.AddBreak(BreakValues.Column);
+                    paragraph.AddText("Column");
                     paragraph.AddBreak(BreakValues.Page);
                     paragraph.AddText("Page");
 
@@ -4052,11 +4087,12 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Paragraph reloadedParagraph = Assert.Single(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Elements<Paragraph>());
                 Break[] breaks = reloadedParagraph.Descendants<Break>().ToArray();
-                Assert.Equal(2, breaks.Length);
+                Assert.Equal(3, breaks.Length);
                 Assert.Null(breaks[0].Type);
-                Assert.Equal(BreakValues.Page, breaks[1].Type!.Value);
-                Assert.DoesNotContain(reloadedParagraph.Descendants<Text>(), text => text.Text.Contains('\v') || text.Text.Contains('\f'));
-                Assert.Equal(new[] { "Line", "Break", "Page" }, reloadedParagraph.Descendants<Text>().Select(text => text.Text).ToArray());
+                Assert.Equal(BreakValues.Column, breaks[1].Type!.Value);
+                Assert.Equal(BreakValues.Page, breaks[2].Type!.Value);
+                Assert.DoesNotContain(reloadedParagraph.Descendants<Text>(), text => text.Text.Contains('\v') || text.Text.Contains('\u000E') || text.Text.Contains('\f'));
+                Assert.Equal(new[] { "Line", "Break", "Column", "Page" }, reloadedParagraph.Descendants<Text>().Select(text => text.Text).ToArray());
             } finally {
                 DeleteIfExists(docPath);
             }

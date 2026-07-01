@@ -184,9 +184,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         private static bool IsSupportedResultCharacter(char character) {
             return !char.IsControl(character)
-                || character == '\t'
-                || character == '\v'
-                || character == '\f';
+                || LegacyDocSpecialCharacters.IsSupportedInlineControl(character);
         }
     }
 }

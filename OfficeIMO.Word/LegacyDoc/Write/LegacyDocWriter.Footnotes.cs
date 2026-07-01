@@ -182,16 +182,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static void AppendSimpleFootnoteBreak(StringBuilder builder, List<LegacyDocWritableRun> runs, Break breakNode, long id, LegacyDocWritableFormatting formatting, int storyStart) {
             BreakValues? breakType = breakNode.Type?.Value;
             if (breakType == null || breakType == BreakValues.TextWrapping) {
-                AppendFormattedNoteText(builder, runs, "\v", formatting, storyStart);
+                AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
                 return;
             }
 
             if (breakType == BreakValues.Page) {
-                AppendFormattedNoteText(builder, runs, "\f", formatting, storyStart);
+                AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.PageBreak.ToString(), formatting, storyStart);
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping and page breaks.");
+            if (breakType == BreakValues.Column) {
+                AppendFormattedNoteText(builder, runs, LegacyDocSpecialCharacters.ColumnBreak.ToString(), formatting, storyStart);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple footnote id '{id}' only with text-wrapping, page, and column breaks.");
         }
 
         private static void AppendSupportedNoteHyperlinkText(
@@ -258,16 +263,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableFormatting formatting) {
             BreakValues? breakType = breakNode.Type?.Value;
             if (breakType == null || breakType == BreakValues.TextWrapping) {
-                AppendFormattedNoteText(text, runs, "\v", formatting, storyStart);
+                AppendFormattedNoteText(text, runs, LegacyDocSpecialCharacters.TextWrappingBreak.ToString(), formatting, storyStart);
                 return;
             }
 
             if (breakType == BreakValues.Page) {
-                AppendFormattedNoteText(text, runs, "\f", formatting, storyStart);
+                AppendFormattedNoteText(text, runs, LegacyDocSpecialCharacters.PageBreak.ToString(), formatting, storyStart);
                 return;
             }
 
-            throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text-wrapping and page breaks.");
+            if (breakType == BreakValues.Column) {
+                AppendFormattedNoteText(text, runs, LegacyDocSpecialCharacters.ColumnBreak.ToString(), formatting, storyStart);
+                return;
+            }
+
+            throw new NotSupportedException($"Native DOC saving supports simple {noteKind} id '{id}' hyperlinks only with text-wrapping, page, and column breaks.");
         }
 
         private sealed class LegacyDocWritableFootnotes {

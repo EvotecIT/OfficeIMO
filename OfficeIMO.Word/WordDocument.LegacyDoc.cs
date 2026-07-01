@@ -817,7 +817,7 @@ namespace OfficeIMO.Word {
                 } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
                     AddLegacyDocNoteReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
                 } else {
-                    AddLegacyDocBreak(paragraph, legacyRun, character == '\f' ? BreakValues.Page : null);
+                    AddLegacyDocBreak(paragraph, legacyRun, GetLegacyDocBreakType(character));
                 }
 
                 segmentStart = index + 1;
@@ -1004,15 +1004,29 @@ namespace OfficeIMO.Word {
 
         private static bool IsLegacyDocSpecialRunCharacter(char character) {
             return character == '\t'
-                || character == '\v'
-                || character == '\f'
+                || character == LegacyDocSpecialCharacters.TextWrappingBreak
+                || character == LegacyDocSpecialCharacters.PageBreak
+                || character == LegacyDocSpecialCharacters.ColumnBreak
                 || character == LegacyDocFootnoteReader.FootnoteReferenceCharacter;
         }
 
         private static bool IsLegacyDocHyperlinkSpecialRunCharacter(char character) {
             return character == '\t'
-                || character == '\v'
-                || character == '\f';
+                || character == LegacyDocSpecialCharacters.TextWrappingBreak
+                || character == LegacyDocSpecialCharacters.PageBreak
+                || character == LegacyDocSpecialCharacters.ColumnBreak;
+        }
+
+        private static BreakValues? GetLegacyDocBreakType(char character) {
+            if (character == LegacyDocSpecialCharacters.PageBreak) {
+                return BreakValues.Page;
+            }
+
+            if (character == LegacyDocSpecialCharacters.ColumnBreak) {
+                return BreakValues.Column;
+            }
+
+            return null;
         }
 
         private static LegacyDocTextRun CreateLegacyDocRunWithoutHyperlink(LegacyDocTextRun source) {
@@ -1134,7 +1148,8 @@ namespace OfficeIMO.Word {
                 if (character == '\t') {
                     AppendLegacyDocHyperlinkSpecialRun(hyperlink, paragraph, legacyRun, new TabChar());
                 } else {
-                    AppendLegacyDocHyperlinkSpecialRun(hyperlink, paragraph, legacyRun, character == '\f' ? new Break { Type = BreakValues.Page } : new Break());
+                    BreakValues? breakType = GetLegacyDocBreakType(character);
+                    AppendLegacyDocHyperlinkSpecialRun(hyperlink, paragraph, legacyRun, breakType == null ? new Break() : new Break { Type = breakType });
                 }
 
                 segmentStart = index + 1;
