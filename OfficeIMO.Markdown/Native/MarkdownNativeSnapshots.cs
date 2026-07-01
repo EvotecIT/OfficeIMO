@@ -335,6 +335,20 @@ public sealed class MarkdownNativeBlockSourceFieldSnapshot {
         Index = field.Index;
     }
 
+    internal MarkdownNativeBlockSourceFieldSnapshot(
+        MarkdownNativeBlockSourceField field,
+        string? sourceText,
+        string? originalSourceText,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason) {
+        Name = field.Name;
+        Value = field.Value;
+        SourceSpan = new MarkdownNativeSourceSpanSnapshot(field.SourceSpan);
+        Index = field.Index;
+        SourceText = sourceText;
+        OriginalSourceText = originalSourceText;
+        OriginalSourceFailureReason = originalSourceFailureReason;
+    }
+
     /// <summary>Stable field name such as <c>level</c>, <c>infoString</c>, or <c>quoteMarker</c>.</summary>
     public string Name { get; }
 
@@ -346,6 +360,15 @@ public sealed class MarkdownNativeBlockSourceFieldSnapshot {
 
     /// <summary>Zero-based occurrence index for repeated fields, or <c>-1</c> for singular fields.</summary>
     public int Index { get; }
+
+    /// <summary>Exact normalized source text represented by the field when it could be materialized.</summary>
+    public string? SourceText { get; }
+
+    /// <summary>Exact original reader input represented by the field when trivia was preserved and mapping succeeded.</summary>
+    public string? OriginalSourceText { get; }
+
+    /// <summary>Reason original reader input could not be materialized for this field, when applicable.</summary>
+    public MarkdownOriginalSourceSliceFailureReason? OriginalSourceFailureReason { get; }
 }
 
 /// <summary>

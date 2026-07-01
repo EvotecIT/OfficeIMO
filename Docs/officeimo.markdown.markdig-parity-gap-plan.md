@@ -67,6 +67,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose front matter entry source spans and native `frontMatterEntry` source fields so editor hosts can replace a single YAML entry, including literal-block entries, without stitching key/value/body spans.
   - [x] Engine: expose whole footnote definition native source fields so editor hosts can replace a single footnote definition without selecting only marker, label, or body spans.
   - [x] Engine: expose callout-specific `calloutTitle` native source fields so editor hosts can target titled callout headers without relying on generic `title` field names.
+  - [x] Engine: expose normalized and original raw source text on native block source-field snapshots, including original-source failure reasons when trivia was not preserved.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated-node roundtrip semantics, and normalized text.
   - [ ] Engine: define one original-to-normalized mapping story for CRLF/LF/CR, tabs, nested containers, transforms, generated nodes, and normalized paragraph text.
   - [ ] Engine: broaden source-edit support beyond the current native field and explicit-edit coverage.
@@ -254,6 +255,7 @@ This is the difference between "renders like Markdig" and "is a super-duper Mark
   - [x] Native front matter entries now surface as repeated `frontMatterEntry` source fields with stable occurrence indexes, snapshot entries, caret lookup, and source edits while narrower key/value fields keep priority.
   - [x] Native footnote definitions now surface as `footnoteDefinition` source fields with snapshot entries, caret lookup, and source edits while narrower marker, label, and body fields keep priority.
 - [ ] Capture lossless trivia: whitespace, blank lines, tabs, delimiters, raw slices, normalized text, and generated-node roundtrip semantics.
+  - [x] Native block source-field snapshots now carry normalized raw text, original raw text when available, and original-source failure reasons for UI/editor hosts that consume snapshots instead of live source-slice APIs.
 - [ ] Complete delimiter-token coverage for extension nodes.
   - [x] Raw inline HTML fragments now expose exact native/snapshot `html` metadata and source edits so editor hosts can address the raw tag without rescanning paragraph text.
   - [x] Raw HTML block comments, tag frames, CDATA, declarations, and processing instructions expose source-backed opening/body/closing tag or marker fields with snapshot and source-edit proof.

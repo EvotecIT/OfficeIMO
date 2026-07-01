@@ -6,6 +6,44 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Native_Source_Edit_Target_Source_Slice_Tests {
     [Fact]
+    public void NativeBlock_SourceField_Snapshots_Expose_Normalized_And_Original_Source_Text() {
+        var native = MarkdownNativeDocument.Parse(
+            "# Title\r\n\r\n> [!NOTE] Heads up\r\n> Body",
+            new MarkdownReaderOptions { PreserveTrivia = true });
+
+        var snapshot = native.ToSnapshot();
+        var headingText = Assert.Single(snapshot.Blocks[0].SourceFields, field => field.Name == "text");
+        var calloutTitle = Assert.Single(snapshot.Blocks[1].SourceFields, field => field.Name == "calloutTitle");
+        var calloutBody = Assert.Single(snapshot.Blocks[1].SourceFields, field => field.Name == "calloutBody");
+
+        Assert.Equal("Title", headingText.SourceText);
+        Assert.Equal("Title", headingText.OriginalSourceText);
+        Assert.Null(headingText.OriginalSourceFailureReason);
+
+        Assert.Equal("Heads up", calloutTitle.SourceText);
+        Assert.Equal("Heads up", calloutTitle.OriginalSourceText);
+        Assert.Null(calloutTitle.OriginalSourceFailureReason);
+
+        Assert.Equal("Body", calloutBody.SourceText);
+        Assert.Equal("Body", calloutBody.OriginalSourceText);
+        Assert.Null(calloutBody.OriginalSourceFailureReason);
+    }
+
+    [Fact]
+    public void NativeBlock_SourceField_Snapshots_Report_Original_Source_Failure_When_Trivia_Is_Not_Preserved() {
+        var native = MarkdownNativeDocument.Parse("# Title");
+
+        var snapshot = native.ToSnapshot();
+        var headingText = Assert.Single(snapshot.Blocks[0].SourceFields, field => field.Name == "text");
+
+        Assert.Equal("Title", headingText.SourceText);
+        Assert.Null(headingText.OriginalSourceText);
+        Assert.Equal(
+            MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved,
+            headingText.OriginalSourceFailureReason);
+    }
+
+    [Fact]
     public void NativeBlock_And_ListItem_SourceSlices_Match_ReplaceEdit_Targets() {
         var native = MarkdownNativeDocument.Parse("""
 # Title
