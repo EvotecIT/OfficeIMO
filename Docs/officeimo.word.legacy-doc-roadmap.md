@@ -654,6 +654,10 @@ just to reserve names.
   - [x] Preserve supported built-in Heading paragraph style all-caps,
     small-caps, superscript, and subscript run formatting through native DOC
     save/reload.
+  - [x] Preserve explicit off run-formatting values in built-in Heading style
+    inheritance so child built-in styles can clear inherited bold, caps,
+    underline, highlight, and vertical-position effects through native DOC
+    save/reload.
   - [x] Preserve native DOC custom paragraph styles that inherit from formatted
     built-in Heading styles by emitting the required built-in base style records
     even when the Heading style is not used directly.

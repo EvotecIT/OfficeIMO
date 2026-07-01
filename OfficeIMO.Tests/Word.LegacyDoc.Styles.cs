@@ -129,6 +129,93 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleExplicitOffRunFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string baseStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+            string childStyleId = WordParagraphStyles.Heading2.ToStringStyle();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    Style baseStyle = EnsureParagraphStyle(styles, baseStyleId);
+                    baseStyle.StyleRunProperties = new StyleRunProperties(
+                        new Bold(),
+                        new BoldComplexScript(),
+                        new Caps(),
+                        new Underline { Val = UnderlineValues.Single },
+                        new Highlight { Val = HighlightColorValues.Yellow },
+                        new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
+
+                    Style childStyle = EnsureParagraphStyle(styles, childStyleId);
+                    childStyle.GetFirstChild<BasedOn>()?.Remove();
+                    childStyle.Append(new BasedOn { Val = baseStyleId });
+                    childStyle.StyleRunProperties = new StyleRunProperties(
+                        new Bold { Val = false },
+                        new BoldComplexScript { Val = false },
+                        new Caps { Val = false },
+                        new SmallCaps { Val = false },
+                        new Underline { Val = UnderlineValues.None },
+                        new Highlight { Val = HighlightColorValues.None },
+                        new VerticalTextAlignment { Val = VerticalPositionValues.Baseline });
+
+                    document.AddParagraph("Built-in explicit off child").SetStyle(WordParagraphStyles.Heading2);
+
+                    document.Save(docPath);
+                }
+
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x35, 0x08, 0x00),
+                    "Expected the native DOC stylesheet stream to contain sprmCFBold off for the child built-in paragraph style.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3B, 0x08, 0x00),
+                    "Expected the native DOC stylesheet stream to contain sprmCFCaps off for the child built-in paragraph style.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3A, 0x08, 0x00),
+                    "Expected the native DOC stylesheet stream to contain sprmCFSmallCaps off for the child built-in paragraph style.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3E, 0x2A, 0x00),
+                    "Expected the native DOC stylesheet stream to contain sprmCKul none for the child built-in paragraph style.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x0C, 0x2A, 0x00),
+                    "Expected the native DOC stylesheet stream to contain sprmCHighlight none for the child built-in paragraph style.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x48, 0x2A, 0x00),
+                    "Expected the native DOC stylesheet stream to contain sprmCIss baseline for the child built-in paragraph style.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordParagraph paragraph = Assert.Single(reloaded.Paragraphs);
+                Assert.Equal("Built-in explicit off child", paragraph.Text);
+                Assert.Equal(childStyleId, paragraph.StyleId);
+
+                Styles stylesAfterReload = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Style baseStyleAfterReload = Assert.Single(stylesAfterReload.Elements<Style>(), style => style.StyleId == baseStyleId);
+                StyleRunProperties baseRunProperties = Assert.IsType<StyleRunProperties>(baseStyleAfterReload.StyleRunProperties);
+                Assert.NotNull(baseRunProperties.GetFirstChild<Bold>());
+                Assert.NotNull(baseRunProperties.GetFirstChild<BoldComplexScript>());
+                Assert.NotNull(baseRunProperties.GetFirstChild<Caps>());
+                Assert.Equal(UnderlineValues.Single, baseRunProperties.GetFirstChild<Underline>()?.Val?.Value);
+                Assert.Equal(HighlightColorValues.Yellow, baseRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
+                Assert.Equal(VerticalPositionValues.Superscript, baseRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
+
+                Style childStyleAfterReload = Assert.Single(stylesAfterReload.Elements<Style>(), style => style.StyleId == childStyleId);
+                Assert.Equal(baseStyleId, childStyleAfterReload.BasedOn?.Val?.Value);
+                StyleRunProperties childRunProperties = Assert.IsType<StyleRunProperties>(childStyleAfterReload.StyleRunProperties);
+                Assert.False(Assert.IsType<Bold>(childRunProperties.GetFirstChild<Bold>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<BoldComplexScript>(childRunProperties.GetFirstChild<BoldComplexScript>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<Caps>(childRunProperties.GetFirstChild<Caps>()).Val?.Value ?? true);
+                Assert.False(Assert.IsType<SmallCaps>(childRunProperties.GetFirstChild<SmallCaps>()).Val?.Value ?? true);
+                Assert.Equal(UnderlineValues.None, childRunProperties.GetFirstChild<Underline>()?.Val?.Value);
+                Assert.Equal(HighlightColorValues.None, childRunProperties.GetFirstChild<Highlight>()?.Val?.Value);
+                Assert.Equal(VerticalPositionValues.Baseline, childRunProperties.GetFirstChild<VerticalTextAlignment>()?.Val?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleShadingAndBordersAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
