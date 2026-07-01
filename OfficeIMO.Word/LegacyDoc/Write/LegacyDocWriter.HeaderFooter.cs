@@ -257,6 +257,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bookmarks.AddEnd(bookmarkEnd, storyText.Length);
                         break;
                     default:
+                        if (IsIgnorableParagraphMarkup(child)) {
+                            break;
+                        }
+
                         throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with supported direct formatting in {kind}s. Unsupported {kind} paragraph element: {child.LocalName}.");
                 }
             }

@@ -365,6 +365,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bookmarks.AddEnd(bookmarkEnd, text.Length);
                         break;
                     default:
+                        if (IsIgnorableParagraphMarkup(child)) {
+                            break;
+                        }
+
                         throw new NotSupportedException($"Native DOC saving currently supports only text runs, bookmarks, and simple hyperlinks with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family formatting. Unsupported paragraph element: {child.LocalName}.");
                 }
             }
@@ -373,6 +377,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (paragraphFormatting.HasFormatting) {
                 paragraphFormats.Add(new LegacyDocWritableParagraph(paragraphStart, text.Length - paragraphStart, paragraphFormatting));
             }
+        }
+
+        private static bool IsIgnorableParagraphMarkup(OpenXmlElement element) {
+            return element is ProofError;
         }
 
         private static byte[] CreateWordDocumentStream(LegacyDocWritableBody body) {

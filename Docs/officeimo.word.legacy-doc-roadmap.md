@@ -608,6 +608,9 @@ just to reserve names.
   - [x] Ignore OpenXML last-rendered page-break pagination markers during
     native DOC save, then reload the surrounding story text without exposing
     those layout-cache markers as content.
+  - [x] Ignore OpenXML proofing error boundary markers during native DOC save,
+    then reload body, table-cell, header/footer, and note story text without
+    exposing spell/grammar UI metadata as content.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

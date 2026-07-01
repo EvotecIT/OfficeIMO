@@ -116,6 +116,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         bookmarks.AddEnd(bookmarkEnd, storyStart + builder.Length);
                         break;
                     default:
+                        if (IsIgnorableParagraphMarkup(child)) {
+                            break;
+                        }
+
                         throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, bookmarks, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
                 }
             }

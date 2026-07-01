@@ -4239,6 +4239,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_IgnoresProofErrorMarkersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph body = document.AddParagraph("Body");
+                    body._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph cell = table.Rows[0].Cells[0].AddParagraph("Cell", removeExistingParagraphs: true);
+                    cell._paragraph.Append(new ProofError { Type = ProofingErrorValues.GrammarStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.GrammarEnd });
+
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header");
+                    header._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer");
+                    footer._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+
+                    WordParagraph paragraph = document.AddParagraph("Notes");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote");
+                    footnoteReference.FootNote!.Paragraphs![1]._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote");
+                    endnoteReference.EndNote!.Paragraphs![1]._paragraph.Append(new ProofError { Type = ProofingErrorValues.SpellStart }, new Run(new Text("After")), new ProofError { Type = ProofingErrorValues.SpellEnd });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph._paragraph.InnerText == "BodyAfter");
+                Assert.DoesNotContain(reloaded.Paragraphs, paragraph => paragraph._paragraph.Descendants<ProofError>().Any());
+
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph reloadedCell = Assert.Single(reloadedTable.Rows[0].Cells[0].Paragraphs);
+                Assert.Equal("CellAfter", reloadedCell._paragraph.InnerText);
+                Assert.Empty(reloadedCell._paragraph.Descendants<ProofError>());
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.Equal("HeaderAfter", Assert.Single(reloadedSection.Header.Default!.Paragraphs)._paragraph.InnerText);
+                Assert.Equal("FooterAfter", Assert.Single(reloadedSection.Footer.Default!.Paragraphs)._paragraph.InnerText);
+                Assert.Equal("FootnoteAfter", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal("EndnoteAfter", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphAlignmentAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
