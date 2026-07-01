@@ -2312,6 +2312,33 @@ ix:cached-tool-evidence:v1
     }
 
     [Fact]
+    public void Renderer_ParseNativeDocument_Forwards_Reader_Metadata_To_Native_Result() {
+        const string markdown = """
+*[HTML]: Hyper Text Markup Language
+[docs]: https://example.com/docs
+
+HTML [docs]
+""";
+        var options = new MarkdownRendererOptions {
+            ReaderOptions = new MarkdownReaderOptions {
+                Abbreviations = true,
+                PreserveTrivia = true
+            }
+        };
+
+        var native = MarkdownRenderer.MarkdownRenderer.ParseNativeDocument(markdown, options);
+
+        Assert.True(native.ParseResult.PreservesOriginalMarkdown);
+        Assert.Equal(markdown, native.ParseResult.OriginalMarkdown);
+        Assert.Equal("docs", Assert.Single(native.ReferenceLinkDefinitions).Label);
+        Assert.Equal("HTML", Assert.Single(native.AbbreviationDefinitions).Label);
+
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        Assert.True(native.TryCreateOriginalSourceSlice(paragraph, out var originalSlice));
+        Assert.Equal("HTML [docs]", originalSlice.Text);
+    }
+
+    [Fact]
     public void Parse_Projects_Transform_Diagnostic_Related_SourceSpans_Into_Native_Snapshots() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.DocumentTransforms.Add(new UppercaseParagraphsTransform());

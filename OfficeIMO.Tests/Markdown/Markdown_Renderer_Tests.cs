@@ -1394,6 +1394,24 @@ second
     }
 
     [Fact]
+    public void MarkdownRenderer_ParseDocumentResult_Provides_SourceMarkdown_To_Renderer_Transforms() {
+        var opts = new MarkdownRendererOptions();
+        bool createdSourceSlice = false;
+        string sourceText = string.Empty;
+        opts.DocumentTransforms.Add(new RendererInspectFirstParagraphSourceTransform((document, context) => {
+            var paragraph = Assert.IsType<ParagraphBlock>(document.Blocks[0]);
+            createdSourceSlice = context.TryCreateSourceSlice(paragraph, out var slice);
+            sourceText = slice.Text;
+            return document;
+        }));
+
+        MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("hello\n\nworld", opts);
+
+        Assert.True(createdSourceSlice);
+        Assert.Equal("hello", sourceText);
+    }
+
+    [Fact]
     public void MarkdownRenderer_RenderBodyHtml_Does_Not_Mutate_Caller_HtmlOptions_BaseUri() {
         var opts = new MarkdownRendererOptions {
             BaseHref = "https://example.com/docs/"
@@ -2077,6 +2095,13 @@ Lead[^1]
             }
 
             return rewritten;
+        }
+    }
+
+    private sealed class RendererInspectFirstParagraphSourceTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
+            return inspect(document, context);
         }
     }
 

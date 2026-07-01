@@ -74,7 +74,10 @@ public static partial class MarkdownRenderer {
         MarkdownReaderOptions readerOptions,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics,
         MarkdownSyntaxNode? syntaxTree = null,
-        IReadOnlyList<MarkdownSourceSpan?>? topLevelBlockSourceSpans = null) {
+        IReadOnlyList<MarkdownSourceSpan?>? topLevelBlockSourceSpans = null,
+        string? sourceMarkdown = null,
+        string? originalMarkdown = null,
+        bool preservesOriginalMarkdown = false) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -93,7 +96,10 @@ public static partial class MarkdownRenderer {
                 options,
                 diagnostics,
                 syntaxTree,
-                topLevelBlockSourceSpans));
+                topLevelBlockSourceSpans,
+                sourceMarkdown,
+                originalMarkdown,
+                preservesOriginalMarkdown));
     }
 
     private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownParseResult parseResult) {

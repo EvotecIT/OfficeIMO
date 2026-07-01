@@ -21,7 +21,7 @@ public static partial class MarkdownRenderer {
             var readerOptions = CreateEffectiveReaderOptions(options);
             markdown = PrepareMarkdown(markdown, options, renderErrorAsException: true);
             var doc = MarkdownReader.Parse(markdown, readerOptions);
-            return ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null);
+            return ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null, sourceMarkdown: markdown);
         }
 
         var result = ParseDocumentResult(markdown, options);
@@ -53,7 +53,10 @@ public static partial class MarkdownRenderer {
             readerOptions,
             transformDiagnostics,
             parseResult.SyntaxTree,
-            topLevelBlockSourceSpans);
+            topLevelBlockSourceSpans,
+            parseResult.SourceMarkdown,
+            parseResult.OriginalMarkdown,
+            parseResult.PreservesOriginalMarkdown);
         var rendererDiagnostics = transformDiagnostics.Count > readerDiagnosticCount
             ? transformDiagnostics.Skip(readerDiagnosticCount).ToArray()
             : Array.Empty<MarkdownDocumentTransformDiagnostic>();
@@ -68,7 +71,11 @@ public static partial class MarkdownRenderer {
             parseResult.SyntaxTree,
             finalSyntaxTree,
             transformDiagnostics,
-            preProcessorDiagnostics);
+            preProcessorDiagnostics,
+            parseResult.OriginalMarkdown,
+            parseResult.PreservesOriginalMarkdown,
+            parseResult.ReferenceLinkDefinitions,
+            parseResult.AbbreviationDefinitions);
     }
 
     /// <summary>
@@ -83,7 +90,11 @@ public static partial class MarkdownRenderer {
             result.SyntaxTree,
             result.FinalSyntaxTree,
             sourceMarkdown: result.SourceMarkdown,
-            transformDiagnostics: result.TransformDiagnostics);
+            originalMarkdown: result.OriginalMarkdown,
+            preservesOriginalMarkdown: result.PreservesOriginalMarkdown,
+            transformDiagnostics: result.TransformDiagnostics,
+            referenceLinkDefinitions: result.ReferenceLinkDefinitions,
+            abbreviationDefinitions: result.AbbreviationDefinitions);
         return MarkdownNativeDocument.FromParseResult(
             parseResult,
             sourceMarkdown: null,
@@ -104,7 +115,7 @@ public static partial class MarkdownRenderer {
             return ex.OverflowHtml;
         }
         var doc = MarkdownReader.Parse(markdown, readerOptions);
-        doc = ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null);
+        doc = ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null, sourceMarkdown: markdown);
 
         var priorBaseUri = htmlOptions.BaseUri;
         if (!string.IsNullOrWhiteSpace(options.BaseHref) && htmlOptions.BaseUri == null) {

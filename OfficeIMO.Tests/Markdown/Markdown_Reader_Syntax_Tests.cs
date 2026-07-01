@@ -6,6 +6,14 @@ namespace OfficeIMO.Tests.MarkdownSuite;
 
 public class Markdown_Reader_Syntax_Tests {
     [Fact]
+    public void Paragraph_RawInlineHtml_Preserves_Source_LineBreaks_Inside_Tag() {
+        var doc = MarkdownReader.Parse("<a href=\"foo  \nbar\">x</a>");
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+        Assert.Equal("<a href=\"foo  \nbar\">x</a>", paragraph.Inlines.RenderMarkdown());
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_TopLevel_Block_Kinds_And_Spans() {
         var markdown = """
 # Title

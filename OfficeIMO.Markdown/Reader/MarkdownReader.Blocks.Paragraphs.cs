@@ -71,17 +71,21 @@ public static partial class MarkdownReader {
             string text,
             bool hardBreak,
             string? hardBreakMarker,
-            MarkdownSourceSpan? hardBreakMarkerSpan) {
+            MarkdownSourceSpan? hardBreakMarkerSpan,
+            bool preserveLineBreak = false) {
             Text = text ?? string.Empty;
             HardBreak = hardBreak;
             HardBreakMarker = hardBreakMarker;
             HardBreakMarkerSpan = hardBreakMarkerSpan;
+            PreserveLineBreak = preserveLineBreak;
         }
 
         public string Text { get; }
         public bool HardBreak { get; }
         public string? HardBreakMarker { get; }
         public MarkdownSourceSpan? HardBreakMarkerSpan { get; }
+        public bool PreserveLineBreak { get; }
+        public bool UsesLineBreakSeparator => HardBreak || PreserveLineBreak;
     }
 
     private static List<InlineSequence> ParseParagraphsFromLines(List<string> lines, MarkdownReaderOptions options, MarkdownReaderState? state) {
@@ -974,7 +978,7 @@ public static partial class MarkdownReader {
 
             if (i > 0) sb.Append(prevHard ? "\n" : " ");
             sb.Append(joinInfo.Text);
-            prevHard = joinInfo.HardBreak;
+            prevHard = joinInfo.UsesLineBreakSeparator;
         }
         return sb.ToString();
     }
@@ -1005,7 +1009,7 @@ public static partial class MarkdownReader {
             if (previousJoinInfo.HasValue) {
                 var softLazyQuoteBreak = IsLazyQuoteContinuationLine(state, absoluteLineOffset + i) &&
                     !previousJoinInfo.Value.HardBreak;
-                textBuilder.Append(previousJoinInfo.Value.HardBreak || softLazyQuoteBreak ? '\n' : ' ');
+                textBuilder.Append(previousJoinInfo.Value.UsesLineBreakSeparator || softLazyQuoteBreak ? '\n' : ' ');
                 pointList.Add(state.SourceTextMap.CreatePoint(previousAbsoluteLine, previousJoinColumn));
                 tokenSpanList.Add(previousJoinInfo.Value.HardBreak
                     ? previousJoinInfo.Value.HardBreakMarkerSpan
@@ -1095,7 +1099,7 @@ public static partial class MarkdownReader {
             if (previousLine.HasValue && previousJoinInfo.HasValue) {
                 var softLazyQuoteBreak = IsLazyQuoteSoftBreak(previousLine.Value, slice) &&
                     !previousJoinInfo.Value.HardBreak;
-                textBuilder.Append(previousJoinInfo.Value.HardBreak || softLazyQuoteBreak ? '\n' : ' ');
+                textBuilder.Append(previousJoinInfo.Value.UsesLineBreakSeparator || softLazyQuoteBreak ? '\n' : ' ');
                 var previousJoinColumn = previousLine.Value.StartColumn + Math.Max(0, previousJoinInfo.Value.Text.Length - 1);
                 points.Add(state.SourceTextMap.CreatePoint(previousLine.Value.AbsoluteLine, previousJoinColumn));
                 tokenSpans.Add(previousJoinInfo.Value.HardBreak
@@ -1159,7 +1163,7 @@ public static partial class MarkdownReader {
         for (int i = 0; i < lines.Count; i++) {
             var slice = lines[i];
             if (previousLine.HasValue && previousJoinInfo.HasValue) {
-                sb.Append(previousJoinInfo.Value.HardBreak ||
+                sb.Append(previousJoinInfo.Value.UsesLineBreakSeparator ||
                           (IsLazyQuoteSoftBreak(previousLine.Value, slice) && !previousJoinInfo.Value.HardBreak)
                     ? '\n'
                     : ' ');
@@ -1223,7 +1227,7 @@ public static partial class MarkdownReader {
         bool preserveLineEndingInsideInlineSpan = false) {
         raw ??= string.Empty;
         if (preserveLineEndingInsideInlineSpan) {
-            return new ParagraphLineJoinInfo(raw, hardBreak: false, hardBreakMarker: null, hardBreakMarkerSpan: null);
+            return new ParagraphLineJoinInfo(raw, hardBreak: false, hardBreakMarker: null, hardBreakMarkerSpan: null, preserveLineBreak: true);
         }
 
         bool spaceHardBreak = EndsWithTwoSpacesLine(raw);

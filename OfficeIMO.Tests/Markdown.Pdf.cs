@@ -52,6 +52,20 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_PanelLists_DoNotDuplicate_ListItem_LeadParagraphs() {
+        string markdown = """
+> - Alpha
+>   - Beta
+""";
+
+        byte[] pdf = markdown.SaveAsPdf(new MarkdownPdfSaveOptions());
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Equal(1, CountOccurrences(text, "Alpha"));
+        Assert.Equal(1, CountOccurrences(text, "Beta"));
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_PreservesExplicitTableColumnAlignment() {
         string markdown = """
 # Invoice

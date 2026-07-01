@@ -14,6 +14,10 @@ public sealed class MarkdownRendererParseResult {
 
     /// <summary>The reader-normalized markdown source text used to compute syntax source spans.</summary>
     public string SourceMarkdown { get; }
+    /// <summary>The original reader input retained when trivia preservation is enabled; otherwise this falls back to <see cref="SourceMarkdown"/>.</summary>
+    public string OriginalMarkdown { get; }
+    /// <summary>Indicates whether <see cref="OriginalMarkdown"/> contains the exact reader input captured before normalization.</summary>
+    public bool PreservesOriginalMarkdown { get; }
 
     /// <summary>The original syntax tree produced before document transforms were applied.</summary>
     public MarkdownSyntaxNode SyntaxTree { get; }
@@ -25,6 +29,10 @@ public sealed class MarkdownRendererParseResult {
 
     /// <summary>Renderer pre-parse processing diagnostics.</summary>
     public IReadOnlyList<MarkdownRendererPreProcessorDiagnostic> PreProcessorDiagnostics { get; }
+    /// <summary>Effective reference-style link definitions collected by the reader parse.</summary>
+    public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions { get; }
+    /// <summary>Effective abbreviation definitions collected by the reader parse.</summary>
+    public IReadOnlyList<MarkdownAbbreviationDefinition> AbbreviationDefinitions { get; }
 
     internal MarkdownRendererParseResult(
         MarkdownDoc document,
@@ -33,14 +41,22 @@ public sealed class MarkdownRendererParseResult {
         MarkdownSyntaxNode syntaxTree,
         MarkdownSyntaxNode? finalSyntaxTree = null,
         IReadOnlyList<MarkdownDocumentTransformDiagnostic>? transformDiagnostics = null,
-        IReadOnlyList<MarkdownRendererPreProcessorDiagnostic>? preProcessorDiagnostics = null) {
+        IReadOnlyList<MarkdownRendererPreProcessorDiagnostic>? preProcessorDiagnostics = null,
+        string? originalMarkdown = null,
+        bool preservesOriginalMarkdown = false,
+        IReadOnlyList<MarkdownReferenceLinkDefinition>? referenceLinkDefinitions = null,
+        IReadOnlyList<MarkdownAbbreviationDefinition>? abbreviationDefinitions = null) {
         Document = document ?? throw new ArgumentNullException(nameof(document));
         PreprocessedMarkdown = preprocessedMarkdown ?? string.Empty;
         SourceMarkdown = sourceMarkdown ?? string.Empty;
+        OriginalMarkdown = preservesOriginalMarkdown ? originalMarkdown ?? string.Empty : SourceMarkdown;
+        PreservesOriginalMarkdown = preservesOriginalMarkdown;
         SyntaxTree = syntaxTree ?? throw new ArgumentNullException(nameof(syntaxTree));
         FinalSyntaxTree = finalSyntaxTree ?? SyntaxTree;
         TransformDiagnostics = transformDiagnostics ?? Array.Empty<MarkdownDocumentTransformDiagnostic>();
         PreProcessorDiagnostics = preProcessorDiagnostics ?? Array.Empty<MarkdownRendererPreProcessorDiagnostic>();
+        ReferenceLinkDefinitions = referenceLinkDefinitions ?? Array.Empty<MarkdownReferenceLinkDefinition>();
+        AbbreviationDefinitions = abbreviationDefinitions ?? Array.Empty<MarkdownAbbreviationDefinition>();
     }
 
     /// <summary>Finds the deepest syntax node in the original syntax tree whose source span contains the given 1-based line number.</summary>
