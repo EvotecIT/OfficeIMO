@@ -118,13 +118,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return IsNumberOfPagesInstruction(instruction);
         }
 
-        internal static bool TryReadDate(
+        internal static bool TryReadDateTimeField(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startIndex,
+            out LegacyDocFieldKind fieldKind,
             out string instruction,
             out int resultStartIndex,
             out int resultEndIndex,
             out int fieldEndIndex) {
+            fieldKind = LegacyDocFieldKind.None;
             instruction = string.Empty;
             resultStartIndex = -1;
             resultEndIndex = -1;
@@ -140,7 +142,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 return false;
             }
 
-            return IsDateInstruction(instruction);
+            return TryReadDateTimeFieldKind(instruction, out fieldKind);
         }
 
         private static bool TryReadHyperlinkInstruction(string instruction, out LegacyDocHyperlinkTarget target) {
@@ -262,14 +264,40 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 || char.IsWhiteSpace(trimmed["NUMPAGES".Length]);
         }
 
-        private static bool IsDateInstruction(string instruction) {
+        private static bool TryReadDateTimeFieldKind(string instruction, out LegacyDocFieldKind fieldKind) {
+            fieldKind = LegacyDocFieldKind.None;
             string trimmed = instruction.Trim();
-            if (!trimmed.StartsWith("DATE", StringComparison.OrdinalIgnoreCase)) {
-                return false;
+            if (IsInstruction(trimmed, "DATE")) {
+                fieldKind = LegacyDocFieldKind.Date;
+                return true;
             }
 
-            return trimmed.Length == "DATE".Length
-                || char.IsWhiteSpace(trimmed["DATE".Length]);
+            if (IsInstruction(trimmed, "TIME")) {
+                fieldKind = LegacyDocFieldKind.Time;
+                return true;
+            }
+
+            if (IsInstruction(trimmed, "CREATEDATE")) {
+                fieldKind = LegacyDocFieldKind.CreateDate;
+                return true;
+            }
+
+            if (IsInstruction(trimmed, "SAVEDATE")) {
+                fieldKind = LegacyDocFieldKind.SaveDate;
+                return true;
+            }
+
+            if (IsInstruction(trimmed, "PRINTDATE")) {
+                fieldKind = LegacyDocFieldKind.PrintDate;
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool IsInstruction(string trimmedInstruction, string fieldName) {
+            return trimmedInstruction.StartsWith(fieldName, StringComparison.OrdinalIgnoreCase)
+                && (trimmedInstruction.Length == fieldName.Length || char.IsWhiteSpace(trimmedInstruction[fieldName.Length]));
         }
 
         private static int IndexOfHyperlinkAnchorSwitch(string instruction, int startIndex) {

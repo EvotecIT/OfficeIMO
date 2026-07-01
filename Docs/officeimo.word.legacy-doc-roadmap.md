@@ -654,7 +654,8 @@ just to reserve names.
   - [x] Write supported footnote and endnote paragraphs whose OpenXML run
     sequence contains complex `PAGE` and `NUMPAGES` fields, preserving note
     story formatting offsets through native DOC save/reload.
-  - [x] Read and write simple and complex `DATE` fields with static display
+  - [x] Read and write simple and complex static date/time fields (`DATE`,
+    `TIME`, `CREATEDATE`, `SAVEDATE`, and `PRINTDATE`) with static display
     result text across body, table-cell, header/footer, footnote, and endnote
     stories, preserving the DOC field instruction and reloading them as normal
     OpenXML simple fields.

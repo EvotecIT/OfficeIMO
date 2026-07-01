@@ -8,6 +8,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const string PageFieldInstruction = " PAGE   \\* MERGEFORMAT ";
         private const string NumberOfPagesFieldInstruction = " NUMPAGES   \\* MERGEFORMAT ";
         private const string DateFieldInstruction = " DATE ";
+        private const string TimeFieldInstruction = " TIME ";
+        private const string CreateDateFieldInstruction = " CREATEDATE ";
+        private const string SaveDateFieldInstruction = " SAVEDATE ";
+        private const string PrintDateFieldInstruction = " PRINTDATE ";
+        private const string SupportedFieldNames = "PAGE, NUMPAGES, DATE, TIME, CREATEDATE, SAVEDATE, and PRINTDATE";
 
         private static void AppendSupportedPageNumberField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableFormatting formatting) {
             AppendSupportedField(text, runs, GetSupportedFieldInstruction(LegacyDocFieldKind.Page), "1", formatting);
@@ -43,7 +48,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void AppendSupportedPageNumberFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, LegacyDocWritableFormatting inheritedFormatting) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
-                throw new NotSupportedException("Native DOC saving currently supports only PAGE, NUMPAGES, and DATE simple fields. Other field types are not supported yet.");
+                throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields. Other field types are not supported yet.");
             }
 
             LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
@@ -88,7 +93,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         continue;
                     }
 
-                    throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only when the whole field is represented by adjacent runs.");
+                    throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields only when the whole field is represented by adjacent runs.");
                 }
 
                 LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
@@ -103,7 +108,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         case Text textNode when sawSeparator:
                             resultFormatting ??= runFormatting;
                             if (!resultFormatting.Value.Equals(runFormatting)) {
-                                throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only when their display runs use one formatting set.");
+                                throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields only when their display runs use one formatting set.");
                             }
 
                             resultText.Append(textNode.Text);
@@ -113,7 +118,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
                             if (fieldCharType == FieldCharValues.Begin) {
                                 if (index != childIndex) {
-                                    throw new NotSupportedException("Native DOC saving does not support nested complex fields in PAGE and NUMPAGES field runs.");
+                                    throw new NotSupportedException($"Native DOC saving does not support nested complex fields in {SupportedFieldNames} field runs.");
                                 }
 
                                 break;
@@ -126,7 +131,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                             if (fieldCharType == FieldCharValues.End) {
                                 if (!TryReadSupportedFieldKind(instruction.ToString(), out LegacyDocFieldKind fieldKind)) {
-                                    throw new NotSupportedException("Native DOC saving currently supports only PAGE, NUMPAGES, and DATE complex fields. Other field types are not supported yet.");
+                                    throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} complex fields. Other field types are not supported yet.");
                                 }
 
                                 LegacyDocWritableFormatting formatting = (resultFormatting ?? LegacyDocWritableFormatting.Plain)
@@ -136,14 +141,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                                 return;
                             }
 
-                            throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only with begin, separate, and end field characters.");
+                            throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields only with begin, separate, and end field characters.");
                         default:
-                            throw new NotSupportedException($"Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
+                            throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
                     }
                 }
             }
 
-            throw new NotSupportedException("Native DOC saving cannot write an unterminated PAGE or NUMPAGES complex field.");
+            throw new NotSupportedException($"Native DOC saving cannot write an unterminated {SupportedFieldNames} complex field.");
         }
 
         private static bool TryReadSupportedFieldKind(string? instruction, out LegacyDocFieldKind fieldKind) {
@@ -168,6 +173,26 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return true;
             }
 
+            if (IsFieldInstruction(trimmed, "TIME")) {
+                fieldKind = LegacyDocFieldKind.Time;
+                return true;
+            }
+
+            if (IsFieldInstruction(trimmed, "CREATEDATE")) {
+                fieldKind = LegacyDocFieldKind.CreateDate;
+                return true;
+            }
+
+            if (IsFieldInstruction(trimmed, "SAVEDATE")) {
+                fieldKind = LegacyDocFieldKind.SaveDate;
+                return true;
+            }
+
+            if (IsFieldInstruction(trimmed, "PRINTDATE")) {
+                fieldKind = LegacyDocFieldKind.PrintDate;
+                return true;
+            }
+
             return false;
         }
 
@@ -181,7 +206,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocFieldKind.Page => PageFieldInstruction,
                 LegacyDocFieldKind.NumPages => NumberOfPagesFieldInstruction,
                 LegacyDocFieldKind.Date => DateFieldInstruction,
-                _ => throw new NotSupportedException("Native DOC saving supports only PAGE, NUMPAGES, and DATE field instructions.")
+                LegacyDocFieldKind.Time => TimeFieldInstruction,
+                LegacyDocFieldKind.CreateDate => CreateDateFieldInstruction,
+                LegacyDocFieldKind.SaveDate => SaveDateFieldInstruction,
+                LegacyDocFieldKind.PrintDate => PrintDateFieldInstruction,
+                _ => throw new NotSupportedException($"Native DOC saving supports only {SupportedFieldNames} field instructions.")
             };
         }
 
@@ -197,7 +226,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
                         formatting ??= runFormatting;
                         if (!formatting.Value.Equals(runFormatting)) {
-                            throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE simple fields only when their display runs use one formatting set.");
+                            throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} simple fields only when their display runs use one formatting set.");
                         }
 
                         resultText.Append(runText);
@@ -214,7 +243,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports PAGE, NUMPAGES, and DATE simple fields only when their display result contains text runs and bookmarks. Unsupported field result element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} simple fields only when their display result contains text runs and bookmarks. Unsupported field result element: {child.LocalName}.");
                 }
             }
 
@@ -232,7 +261,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         result.Append(text.Text);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports PAGE, NUMPAGES, and DATE simple fields only when their display result contains text runs. Unsupported field result element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} simple fields only when their display result contains text runs. Unsupported field result element: {child.LocalName}.");
                 }
             }
 

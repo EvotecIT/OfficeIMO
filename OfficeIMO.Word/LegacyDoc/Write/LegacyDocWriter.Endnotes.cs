@@ -187,7 +187,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs, PAGE, NUMPAGES, and DATE simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple endnote paragraphs only with text runs, {SupportedFieldNames} simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported endnote paragraph element: {child.LocalName}.");
                 }
             }
 

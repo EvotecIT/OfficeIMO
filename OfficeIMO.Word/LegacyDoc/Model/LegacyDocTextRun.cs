@@ -150,7 +150,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
         internal bool IsNumPages => FieldKind == LegacyDocFieldKind.NumPages;
 
-        internal bool IsDateField => FieldKind == LegacyDocFieldKind.Date;
+        internal bool IsStaticDateTimeField =>
+            FieldKind == LegacyDocFieldKind.Date
+            || FieldKind == LegacyDocFieldKind.Time
+            || FieldKind == LegacyDocFieldKind.CreateDate
+            || FieldKind == LegacyDocFieldKind.SaveDate
+            || FieldKind == LegacyDocFieldKind.PrintDate;
 
         internal LegacyDocHyperlinkTarget HyperlinkTarget {
             get {

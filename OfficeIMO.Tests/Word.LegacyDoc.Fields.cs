@@ -141,14 +141,46 @@ namespace OfficeIMO.Tests {
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 MainDocumentPart mainPart = reloaded._wordprocessingDocument!.MainDocumentPart!;
-                SimpleField[] dateFields = GetReloadedDateFields(mainPart).ToArray();
+                SimpleField[] dateFields = GetReloadedDateTimeFields(mainPart).ToArray();
                 Assert.Equal(6, dateFields.Length);
-                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-01"));
-                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-02"));
-                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-03"));
-                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-04"));
-                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-05"));
-                Assert.Contains(dateFields, field => IsDateFieldWithText(field, "2026-07-06"));
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "2026-07-01"));
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "2026-07-02"));
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "2026-07-03"));
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "2026-07-04"));
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "2026-07-05"));
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "2026-07-06"));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocStaticDateTimeFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    AppendSimpleField(document.AddParagraph("Time ")._paragraph, " TIME \\@ \"HH:mm\" ", "09:30");
+                    AppendComplexField(document.AddParagraph("Created ")._paragraph, " CREATEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-01");
+                    AppendSimpleField(document.AddParagraph("Saved ")._paragraph, " SAVEDATE \\@ \"yyyy-MM-dd\" ", "2026-06-02");
+                    AppendComplexField(document.AddParagraph("Printed ")._paragraph, " PRINTDATE \\@ \"yyyy-MM-dd\" ", "2026-06-03");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                SimpleField[] dateTimeFields = reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!
+                    .Descendants<SimpleField>()
+                    .Where(IsStaticDateTimeField)
+                    .ToArray();
+                Assert.Equal(4, dateTimeFields.Length);
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "TIME", "09:30"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "CREATEDATE", "2026-06-01"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "SAVEDATE", "2026-06-02"));
+                Assert.Contains(dateTimeFields, field => IsFieldWithText(field, "PRINTDATE", "2026-06-03"));
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -189,28 +221,28 @@ namespace OfficeIMO.Tests {
                 new Run(new FieldChar { FieldCharType = FieldCharValues.End }));
         }
 
-        private static IEnumerable<SimpleField> GetReloadedDateFields(MainDocumentPart mainPart) {
+        private static IEnumerable<SimpleField> GetReloadedDateTimeFields(MainDocumentPart mainPart) {
             foreach (SimpleField field in mainPart.Document.Body!.Descendants<SimpleField>()) {
-                if (IsDateField(field)) {
+                if (IsStaticDateTimeField(field)) {
                     yield return field;
                 }
             }
 
             foreach (SimpleField field in mainPart.HeaderParts.SelectMany(part => part.Header.Descendants<SimpleField>())) {
-                if (IsDateField(field)) {
+                if (IsStaticDateTimeField(field)) {
                     yield return field;
                 }
             }
 
             foreach (SimpleField field in mainPart.FooterParts.SelectMany(part => part.Footer.Descendants<SimpleField>())) {
-                if (IsDateField(field)) {
+                if (IsStaticDateTimeField(field)) {
                     yield return field;
                 }
             }
 
             if (mainPart.FootnotesPart?.Footnotes != null) {
                 foreach (SimpleField field in mainPart.FootnotesPart.Footnotes.Descendants<SimpleField>()) {
-                    if (IsDateField(field)) {
+                    if (IsStaticDateTimeField(field)) {
                         yield return field;
                     }
                 }
@@ -218,21 +250,31 @@ namespace OfficeIMO.Tests {
 
             if (mainPart.EndnotesPart?.Endnotes != null) {
                 foreach (SimpleField field in mainPart.EndnotesPart.Endnotes.Descendants<SimpleField>()) {
-                    if (IsDateField(field)) {
+                    if (IsStaticDateTimeField(field)) {
                         yield return field;
                     }
                 }
             }
         }
 
-        private static bool IsDateFieldWithText(SimpleField field, string expectedText) {
-            return IsDateField(field)
+        private static bool IsFieldWithText(SimpleField field, string fieldName, string expectedText) {
+            return IsFieldInstruction(field, fieldName)
                 && string.Concat(field.Descendants<Text>().Select(text => text.Text)) == expectedText;
         }
 
-        private static bool IsDateField(SimpleField field) {
+        private static bool IsStaticDateTimeField(SimpleField field) {
+            return IsFieldInstruction(field, "DATE")
+                || IsFieldInstruction(field, "TIME")
+                || IsFieldInstruction(field, "CREATEDATE")
+                || IsFieldInstruction(field, "SAVEDATE")
+                || IsFieldInstruction(field, "PRINTDATE");
+        }
+
+        private static bool IsFieldInstruction(SimpleField field, string fieldName) {
             string instruction = field.Instruction?.Value ?? string.Empty;
-            return instruction.TrimStart().StartsWith("DATE", StringComparison.OrdinalIgnoreCase);
+            string trimmed = instruction.TrimStart();
+            return trimmed.StartsWith(fieldName, StringComparison.OrdinalIgnoreCase)
+                && (trimmed.Length == fieldName.Length || char.IsWhiteSpace(trimmed[fieldName.Length]));
         }
     }
 }

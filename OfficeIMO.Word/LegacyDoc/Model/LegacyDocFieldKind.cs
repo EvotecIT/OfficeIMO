@@ -3,6 +3,10 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         None,
         Page,
         NumPages,
-        Date
+        Date,
+        Time,
+        CreateDate,
+        SaveDate,
+        PrintDate
     }
 }

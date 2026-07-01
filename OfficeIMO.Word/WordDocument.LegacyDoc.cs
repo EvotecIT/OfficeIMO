@@ -777,8 +777,8 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (legacyRun.IsDateField) {
-                    AddLegacyDocDateField(paragraph, legacyRun, bookmarks);
+                if (legacyRun.IsStaticDateTimeField) {
+                    AddLegacyDocStaticDateTimeField(paragraph, legacyRun, bookmarks);
                     continue;
                 }
 
@@ -813,8 +813,8 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            if (legacyRun.IsDateField) {
-                AddLegacyDocDateField(paragraph, legacyRun, bookmarks);
+            if (legacyRun.IsStaticDateTimeField) {
+                AddLegacyDocStaticDateTimeField(paragraph, legacyRun, bookmarks);
                 return;
             }
 
@@ -1104,9 +1104,9 @@ namespace OfficeIMO.Word {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
         }
 
-        private static void AddLegacyDocDateField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
+        private static void AddLegacyDocStaticDateTimeField(WordParagraph paragraph, LegacyDocTextRun legacyRun, LegacyDocBookmarkProjection bookmarks) {
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunCharacterPosition(legacyRun, 0));
-            var simpleField = new SimpleField { Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction) ? " DATE  " : legacyRun.FieldInstruction };
+            var simpleField = new SimpleField { Instruction = string.IsNullOrWhiteSpace(legacyRun.FieldInstruction) ? GetLegacyDocStaticDateTimeInstruction(legacyRun.FieldKind) : legacyRun.FieldInstruction };
             var run = new Run(new Text(legacyRun.Text) {
                 Space = SpaceProcessingModeValues.Preserve
             });
@@ -1114,6 +1114,16 @@ namespace OfficeIMO.Word {
             paragraph._paragraph.Append(simpleField);
             ApplyLegacyDocRunFormatting(new WordParagraph(paragraph._document, paragraph._paragraph, run), legacyRun);
             bookmarks.EmitAt(paragraph._paragraph, GetLegacyDocRunEndCharacterPosition(legacyRun));
+        }
+
+        private static string GetLegacyDocStaticDateTimeInstruction(LegacyDocFieldKind fieldKind) {
+            return fieldKind switch {
+                LegacyDocFieldKind.Time => " TIME  ",
+                LegacyDocFieldKind.CreateDate => " CREATEDATE  ",
+                LegacyDocFieldKind.SaveDate => " SAVEDATE  ",
+                LegacyDocFieldKind.PrintDate => " PRINTDATE  ",
+                _ => " DATE  "
+            };
         }
 
         private static void AddLegacyDocBreak(WordParagraph paragraph, LegacyDocTextRun legacyRun, BreakValues? breakType) {

@@ -177,14 +177,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (LegacyDocField.TryReadDate(
+                if (LegacyDocField.TryReadDateTimeField(
                     storyCharacters,
                     index,
+                    out LegacyDocFieldKind dateTimeFieldKind,
                     out string dateInstruction,
                     out int dateResultStartIndex,
                     out int dateResultEndIndex,
                     out int dateFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.Date, dateInstruction, dateResultStartIndex, dateResultEndIndex);
+                    AppendFieldResult(dateTimeFieldKind, dateInstruction, dateResultStartIndex, dateResultEndIndex);
                     index = dateFieldEndIndex;
                     continue;
                 }

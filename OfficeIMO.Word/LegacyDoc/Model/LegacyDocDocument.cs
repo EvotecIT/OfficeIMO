@@ -550,14 +550,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
-                if (LegacyDocField.TryReadDate(
+                if (LegacyDocField.TryReadDateTimeField(
                     characters,
                     characterIndex,
+                    out LegacyDocFieldKind dateTimeFieldKind,
                     out string dateInstruction,
                     out int dateResultStartIndex,
                     out int dateResultEndIndex,
                     out int dateFieldEndIndex)) {
-                    AppendFieldResult(LegacyDocFieldKind.Date, dateInstruction, dateResultStartIndex, dateResultEndIndex);
+                    AppendFieldResult(dateTimeFieldKind, dateInstruction, dateResultStartIndex, dateResultEndIndex);
                     characterIndex = dateFieldEndIndex;
                     continue;
                 }

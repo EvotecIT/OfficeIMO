@@ -199,7 +199,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             break;
                         }
 
-                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, PAGE, NUMPAGES, and DATE simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports simple footnote paragraphs only with text runs, {SupportedFieldNames} simple fields, bookmarks, inline content controls, and simple hyperlinks. Unsupported footnote paragraph element: {child.LocalName}.");
                 }
             }
 
@@ -296,7 +296,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static void AppendSupportedNoteFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, int storyStart) {
             if (!TryReadSupportedFieldKind(field.Instruction?.Value, out LegacyDocFieldKind fieldKind)) {
-                throw new NotSupportedException("Native DOC saving currently supports only PAGE, NUMPAGES, and DATE simple fields in note paragraphs. Other field types are not supported yet.");
+                throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} simple fields in note paragraphs. Other field types are not supported yet.");
             }
 
             LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
@@ -334,7 +334,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         continue;
                     }
 
-                    throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields in note paragraphs only when the whole field is represented by adjacent runs.");
+                    throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when the whole field is represented by adjacent runs.");
                 }
 
                 LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(run.RunProperties);
@@ -349,7 +349,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         case Text textNode when sawSeparator:
                             resultFormatting ??= runFormatting;
                             if (!resultFormatting.Value.Equals(runFormatting)) {
-                                throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields in note paragraphs only when their display runs use one formatting set.");
+                                throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only when their display runs use one formatting set.");
                             }
 
                             resultText.Append(textNode.Text);
@@ -359,7 +359,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                             FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
                             if (fieldCharType == FieldCharValues.Begin) {
                                 if (index != childIndex) {
-                                    throw new NotSupportedException("Native DOC saving does not support nested complex fields in note paragraph PAGE and NUMPAGES field runs.");
+                                    throw new NotSupportedException($"Native DOC saving does not support nested complex fields in note paragraph {SupportedFieldNames} field runs.");
                                 }
 
                                 break;
@@ -372,7 +372,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                             if (fieldCharType == FieldCharValues.End) {
                                 if (!TryReadSupportedFieldKind(instruction.ToString(), out LegacyDocFieldKind fieldKind)) {
-                                    throw new NotSupportedException("Native DOC saving currently supports only PAGE, NUMPAGES, and DATE complex fields in note paragraphs. Other field types are not supported yet.");
+                                    throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} complex fields in note paragraphs. Other field types are not supported yet.");
                                 }
 
                                 AppendSupportedNoteField(text, runs, bookmarks, instruction.ToString(), resultText.ToString(), resultFormatting ?? LegacyDocWritableFormatting.Plain, bookmarkMarkers, storyStart);
@@ -380,14 +380,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                                 return;
                             }
 
-                            throw new NotSupportedException("Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields in note paragraphs only with begin, separate, and end field characters.");
+                            throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only with begin, separate, and end field characters.");
                         default:
-                            throw new NotSupportedException($"Native DOC saving supports PAGE, NUMPAGES, and DATE complex fields in note paragraphs only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
+                            throw new NotSupportedException($"Native DOC saving supports {SupportedFieldNames} complex fields in note paragraphs only with field code and display text runs. Unsupported field run element: {child.LocalName}.");
                     }
                 }
             }
 
-            throw new NotSupportedException("Native DOC saving cannot write an unterminated PAGE or NUMPAGES complex field in a note paragraph.");
+            throw new NotSupportedException($"Native DOC saving cannot write an unterminated {SupportedFieldNames} complex field in a note paragraph.");
         }
 
         private static void AppendSupportedNoteField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocFieldKind fieldKind, LegacyDocWritableFormatting formatting, int storyStart) {

@@ -157,9 +157,9 @@ reader projects supported Word 97-2003 body paragraphs, simple zero-length,
 same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
 header/footer, and footnote/endnote paragraph bookmarks, simple external and
 internal bookmark hyperlink fields with supported text, tab, soft/no-break
-hyphen, and break display runs, simple `DATE` field display results, common run
-and paragraph formatting including proofing exclusion, bidirectional paragraph
-layout, mirror indents, contextual spacing, East Asian typography and
+hyphen, and break display runs, simple static date/time field display results,
+common run and paragraph formatting including proofing exclusion, bidirectional
+paragraph layout, mirror indents, contextual spacing, East Asian typography and
 punctuation spacing flags, and automatic hyphenation suppression, built-in and
 custom paragraph styles, simple tables, paragraph-boundary sections, page setup,
 simple header/footer stories with tabs, text-wrapping and column breaks,
@@ -171,8 +171,8 @@ is available for the supported simple subset: paragraphs, simple zero-length,
 same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
 header/footer, and footnote/endnote paragraph bookmarks, simple external and
 internal bookmark hyperlinks with supported text, tab, soft/no-break hyphen,
-break display runs, simple `DATE` fields with static display text, and simple
-inline content-control display text, simple block and inline content controls
+break display runs, simple static date/time fields with static display text, and
+simple inline content-control display text, simple block and inline content controls
 with nested inline content controls in body/table/header/footer/footnote/endnote
 stories, common run and paragraph formatting including proofing exclusion,
 bidirectional paragraph layout, mirror indents, contextual spacing, East Asian
