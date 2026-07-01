@@ -9255,6 +9255,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksSectionPropertiesInsideTableCellContentControlBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Body with unsupported table cell section");
+                WordTable table = document.AddTable(1, 1);
+                WordTableCell cell = table.Rows[0].Cells[0];
+                cell._tableCell.RemoveAllChildren<Paragraph>();
+                cell._tableCell.Append(new SdtBlock(
+                    new SdtProperties(new SdtAlias { Val = "Legacy DOC unsupported table cell section" }),
+                    new SdtContentBlock(
+                        new Paragraph(
+                            new ParagraphProperties(
+                                new SectionProperties(
+                                    new PageSize {
+                                        Width = 15840U,
+                                        Height = 12240U,
+                                        Orient = PageOrientationValues.Landscape
+                                    })),
+                            new Run(new Text("Unsupported cell section"))))));
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("Table cell content controls cannot contain section properties", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSectionBreakAfterMultiParagraphTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

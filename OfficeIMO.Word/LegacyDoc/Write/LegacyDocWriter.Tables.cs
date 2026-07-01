@@ -1224,6 +1224,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement child in contentBlock.ChildElements) {
                 switch (child) {
                     case Paragraph paragraph:
+                        if (paragraph.ParagraphProperties?.GetFirstChild<SectionProperties>() != null) {
+                            throw new NotSupportedException("Native DOC saving keeps section breaks scoped to supported body paragraph boundaries. Table cell content controls cannot contain section properties.");
+                        }
+
                         content.Add(paragraph);
                         break;
                     case SdtBlock childContentControl:

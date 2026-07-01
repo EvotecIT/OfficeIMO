@@ -972,6 +972,9 @@ just to reserve names.
       supported child paragraphs/tables into native DOC content, while still
       blocking nested tables and unsupported child markup before bytes are
       committed.
+    - [x] Block section properties inside table-cell block content controls
+      before native DOC bytes are committed, keeping section breaks scoped to
+      supported body paragraph boundaries.
     - [x] Write simple header and footer block content controls by flattening
       supported paragraphs, nested simple content controls, and bookmark
       boundaries into native DOC header/footer stories, while still blocking
