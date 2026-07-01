@@ -74,8 +74,9 @@ Each unchecked item should be treated as exactly one lane before work starts: en
 - [ ] Optional parser gaps need product scope before implementation.
   - [ ] `UseCustomContainers`: decide core versus optional package, then implement colon-fence parsing, child source mapping, renderer seams, and writer support.
   - [ ] `UseGridTables`: decide whether grid tables belong in core, then implement malformed fallback, source spans, renderer, and writer behavior.
-  - [x] `UseListExtras`: scoped core opt-in behavior exists for Markdig-style alphabetic and roman ordered-list markers, including marker-family splitting, nested markers, HTML type/start output, syntax marker spans, and parsed-marker Markdown writing.
-  - [ ] `UseListExtras`: broaden source-edit and reparse proof for nested/container combinations before promoting beyond `Partial`.
+  - [x] `UseListExtras`: scoped core opt-in behavior exists for Markdig-style alphabetic and roman ordered-list markers, including marker-family splitting, nested markers, nested lower-roman lists after parent item text, HTML type/start output, syntax marker spans, and parsed-marker Markdown writing.
+  - [x] `UseListExtras`: source-edit and reparse proof covers blockquote-contained alpha markers and nested unordered-list roman markers.
+  - [ ] `UseListExtras`: broaden remaining source-edit/reparse/container edge breadth before promoting beyond `Partial`.
   - [ ] `UseMathematics`: decide inline/block math ownership and renderer handoff before adding delimiter parsing.
   - [ ] `UseMediaLinks`: decide provider and safe-renderer policy before parser shortcuts.
   - [ ] `UseFigures`: separate HTML-import recovery from Markdown figure syntax before parser work.
@@ -219,8 +220,9 @@ Do not implement these rows from nearby tests alone. Decide the product shape fi
 
 - [ ] `UseCustomContainers`: core extension seam plus optional colon-fenced container parser, child source ownership, renderer seams, and writer support.
 - [ ] `UseGridTables`: optional grid-table parser, semantic table model, malformed fallback, source spans, renderer, and writer.
-- [x] `UseListExtras`: inventory and first scoped core opt-in parser support are complete for alpha/roman ordered markers.
-- [ ] `UseListExtras`: keep remaining source-edit/reparse/container breadth open before promotion.
+- [x] `UseListExtras`: inventory and scoped core opt-in parser support are complete for alpha/roman ordered markers, including nested lower-roman lists after parent item text.
+- [x] `UseListExtras`: blockquote and nested-list marker source edits now reparse to edited alpha/roman AST state.
+- [ ] `UseListExtras`: keep remaining source-edit/reparse/container edge breadth open before promotion.
 - [ ] `UseMathematics`: decide inline/block math delimiter ownership, AST/source/native metadata, writer preservation, and renderer handoff.
 - [ ] `UseMediaLinks`: decide provider model and safe renderer policy before parser behavior.
 - [ ] `UseFigures`: separate HTML-import figure recovery from Markdown figure syntax.

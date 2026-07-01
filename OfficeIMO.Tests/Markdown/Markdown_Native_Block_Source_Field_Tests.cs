@@ -1004,6 +1004,61 @@ Lazy body
     }
 
     [Fact]
+    public void ListExtras_SourceFields_Roundtrip_Container_Marker_Edits() {
+        const string markdown = "> a. quote alpha\r\n> b. quote beta\r\n\r\n- parent\r\n  iv. child four\r\n  v. child five\r\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.ListExtras = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var listMarkers = native.EnumerateBlockSourceFields("listMarker").ToArray();
+
+        Assert.Collection(
+            listMarkers,
+            field => {
+                Assert.Equal("a.", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), field.SourceSpan);
+            },
+            field => {
+                Assert.Equal("b.", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 4), field.SourceSpan);
+            },
+            field => {
+                Assert.Equal("-", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 1), field.SourceSpan);
+            },
+            field => {
+                Assert.Equal("iv.", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(5, 3, 5, 5), field.SourceSpan);
+            },
+            field => {
+                Assert.Equal("v.", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(6, 3, 6, 4), field.SourceSpan);
+            });
+
+        var roundtrip = native.WriteWithSourceEdits(new[] {
+            native.CreateReplaceEdit(listMarkers[1], "c."),
+            native.CreateReplaceEdit(listMarkers[3], "vi.")
+        });
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("> a. quote alpha\r\n> c. quote beta\r\n\r\n- parent\r\n  vi. child four\r\n  v. child five\r\n", roundtrip.Markdown);
+
+        var reparsed = MarkdownReader.Parse(roundtrip.Markdown, options);
+        var quote = Assert.IsType<QuoteBlock>(reparsed.Blocks[0]);
+        var quoteList = Assert.IsType<OrderedListBlock>(Assert.Single(quote.ChildBlocks));
+        Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, quoteList.MarkerStyle);
+        Assert.Equal("c.", quoteList.Items[1].MarkerText);
+
+        var parentList = Assert.IsType<UnorderedListBlock>(reparsed.Blocks[1]);
+        var nestedRoman = Assert.IsType<OrderedListBlock>(Assert.Single(parentList.Items[0].Children));
+        Assert.Equal(6, nestedRoman.Start);
+        Assert.Equal(MarkdownOrderedListMarkerStyle.LowerRoman, nestedRoman.MarkerStyle);
+        Assert.Equal("vi.", nestedRoman.Items[0].MarkerText);
+    }
+
+    [Fact]
     public void ThematicBreak_SourceFields_Use_Exact_Marker_Token_Spans() {
         const string markdown = "  * * *  \n\nAfter";
 

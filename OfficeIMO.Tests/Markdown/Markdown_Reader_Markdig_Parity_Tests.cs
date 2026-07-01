@@ -474,6 +474,8 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "alpha-then-decimal-splits-lists", "a. alpha\n1. one\n" };
         yield return new object[] { "roman-then-alpha-splits-lists", "i. one\na. alpha\n" };
         yield return new object[] { "nested-lower-alpha", "- outer\n\n  a. alpha\n  b. beta\n" };
+        yield return new object[] { "nested-lower-roman-after-blank", "- outer\n\n  iv. four\n  v. five\n" };
+        yield return new object[] { "nested-lower-roman-after-text", "- outer\n  iv. four\n  v. five\n" };
     }
 
     public static IEnumerable<object[]> AlertBlocksExtensionCases() {
