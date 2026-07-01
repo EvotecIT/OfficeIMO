@@ -388,6 +388,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshEntriesSeparatesParentAndTextBoxHeadingText() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshEntriesParentAndTextBoxHeadings.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 2);
+                AppendBodyParagraph(document, CreateParentAndTextBoxHeadingParagraph("Parent TOC heading", "Anchored child heading"));
+
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                Assert.Equal(new[] { "Anchored child heading", "Parent TOC heading" }, report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.DoesNotContain(report.Entries, entry => entry.Text.Contains("Parent TOC headingAnchored child heading", StringComparison.Ordinal));
+                Assert.Contains("Parent TOC heading", TocText(toc));
+                Assert.Contains("Anchored child heading", TocText(toc));
+                Assert.DoesNotContain("Parent TOC headingAnchored child heading", TocText(toc));
+                Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTextBoxHeadings() {
             string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "FieldEvaluation", "word-generated-toc-text-box.docx"));
             Assert.True(File.Exists(sourcePath), $"Missing Word-generated text-box TOC fixture: {sourcePath}");
@@ -3095,6 +3114,25 @@ namespace OfficeIMO.Tests {
                                         new ParagraphProperties(new ParagraphStyleId { Val = styleId }),
                                         new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve }))))) {
                             Id = "OfficeIMO_Toc_TextBox",
+                            Style = "width:240pt;height:40pt",
+                            Filled = false,
+                            Stroked = true
+                        })));
+        }
+
+        private static Paragraph CreateParentAndTextBoxHeadingParagraph(string parentText, string textBoxText) {
+            return new Paragraph(
+                new ParagraphProperties(new ParagraphStyleId { Val = "Heading1" }),
+                new Run(new Text(parentText) { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(
+                    new Picture(
+                        new V.Shape(
+                            new V.TextBox(
+                                new TextBoxContent(
+                                    new Paragraph(
+                                        new ParagraphProperties(new ParagraphStyleId { Val = "Heading2" }),
+                                        new Run(new Text(textBoxText) { Space = SpaceProcessingModeValues.Preserve }))))) {
+                            Id = "OfficeIMO_Toc_Parent_TextBox",
                             Style = "width:240pt;height:40pt",
                             Filled = false,
                             Stroked = true

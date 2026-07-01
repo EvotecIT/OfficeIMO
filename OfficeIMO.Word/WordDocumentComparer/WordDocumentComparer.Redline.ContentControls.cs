@@ -311,7 +311,7 @@ namespace OfficeIMO.Word {
                 TableCell templateCell = templateCells[index];
                 row.Append(index == 0
                     ? CreateTrackedTableCell(templateCell, sourceText, targetText, options)
-                    : CreateEmptyTableCell(templateCell));
+                    : (TableCell)templateCell.CloneNode(true));
             }
 
             return row;
@@ -327,17 +327,6 @@ namespace OfficeIMO.Word {
             var paragraph = new Paragraph();
             AppendTrackedInlineContent(paragraph, sourceText, targetText, options);
             cell.Append(paragraph);
-            return cell;
-        }
-
-        private static TableCell CreateEmptyTableCell(TableCell templateCell) {
-            var cell = new TableCell();
-            TableCellProperties? cellProperties = templateCell.GetFirstChild<TableCellProperties>()?.CloneNode(true) as TableCellProperties;
-            if (cellProperties != null) {
-                cell.Append(cellProperties);
-            }
-
-            cell.Append(new Paragraph());
             return cell;
         }
 

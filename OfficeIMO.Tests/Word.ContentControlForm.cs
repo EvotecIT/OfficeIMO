@@ -345,6 +345,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ContentControlFormValidationReportsUnmappedPlainControls() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithUnmappedPlainContentControl.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.Append(new SdtBlock(
+                    new SdtProperties(),
+                    new SdtContentBlock(
+                        new Paragraph(
+                            new Run(
+                                new Text("Unmapped plain control") { Space = SpaceProcessingModeValues.Preserve })))));
+
+                WordContentControlFormValidationResult validation = document.ValidateContentControlValues(
+                    new Dictionary<string, object?>(),
+                    requireAllControls: true);
+
+                WordContentControlFormIssue issue = Assert.Single(validation.Issues, item => item.Kind == WordContentControlFormIssueKind.UnmappedControl);
+                Assert.Equal("Structured document tag", issue.ControlType);
+                Assert.False(validation.IsValid);
+            }
+        }
+
+        [Fact]
         public void Test_ContentControlFormValidationJsonEscapesControlCharacters() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithControlCharacterFormKeys.docx");
 
