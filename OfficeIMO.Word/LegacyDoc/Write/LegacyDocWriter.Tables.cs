@@ -1171,12 +1171,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedParagraphFormatting(paragraph.ParagraphProperties, styleIndexes)
                 .WithInheritedParagraphFormatting(tableStyleParagraphFormatting);
 
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
+            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            for (int index = 0; index < children.Length; index++) {
+                OpenXmlElement child = children[index];
                 switch (child) {
                     case ParagraphProperties:
                         break;
                     case Run run:
-                        AppendSupportedRunText(text, runs, run, footnotes, endnotes, tableStyleRunFormatting);
+                        if (IsComplexFieldBeginRun(run)) {
+                            AppendSupportedComplexPageNumberField(children, ref index, text, runs, tableStyleRunFormatting);
+                        } else {
+                            AppendSupportedRunText(text, runs, run, footnotes, endnotes, tableStyleRunFormatting);
+                        }
+
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes, tableStyleRunFormatting);

@@ -348,12 +348,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedBodyParagraphFormatting(paragraph.ParagraphProperties, styleIndexes);
             int paragraphStart = text.Length;
 
-            foreach (OpenXmlElement child in paragraph.ChildElements) {
+            OpenXmlElement[] children = paragraph.ChildElements.ToArray();
+            for (int index = 0; index < children.Length; index++) {
+                OpenXmlElement child = children[index];
                 switch (child) {
                     case ParagraphProperties:
                         break;
                     case Run run:
-                        AppendSupportedRunText(text, runs, run, footnotes, endnotes);
+                        if (IsComplexFieldBeginRun(run)) {
+                            AppendSupportedComplexPageNumberField(children, ref index, text, runs, LegacyDocWritableFormatting.Plain);
+                        } else {
+                            AppendSupportedRunText(text, runs, run, footnotes, endnotes);
+                        }
+
                         break;
                     case Hyperlink hyperlink:
                         AppendSupportedHyperlinkText(text, runs, hyperlink, mainPart, footnotes, endnotes);

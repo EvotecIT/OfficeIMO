@@ -624,6 +624,9 @@ just to reserve names.
   - [x] Write supported header/footer page-number style content controls whose
     simple paragraphs contain complex `PAGE` and `NUMPAGES` fields, covering
     the normal `AddPageNumber(WordPageNumberStyle.PageNumberXofY)` path.
+  - [x] Write supported body and table-cell paragraphs whose OpenXML run
+    sequence contains complex `PAGE` and `NUMPAGES` fields, covering the normal
+    advanced field representation path.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

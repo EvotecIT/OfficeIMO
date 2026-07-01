@@ -2772,6 +2772,106 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBodyComplexPageFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph paragraph = document.AddParagraph("Body page ");
+                    paragraph.AddField(WordFieldType.Page, advanced: true);
+                    paragraph.AddText(" of ");
+                    paragraph.AddField(WordFieldType.NumPages, advanced: true);
+                    paragraph.AddText(" done");
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                string wordDocumentAscii = Encoding.ASCII.GetString(wordDocumentStream);
+                Assert.Contains("PAGE", wordDocumentAscii);
+                Assert.Contains("NUMPAGES", wordDocumentAscii);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                List<WordParagraph> paragraphs = reloaded.Paragraphs;
+                Assert.Contains(paragraphs, paragraph => paragraph.Text == "Body page ");
+                Assert.Contains(paragraphs, paragraph => paragraph.Text == " of ");
+                Assert.Contains(paragraphs, paragraph => paragraph.Text == " done");
+                Assert.Contains(
+                    paragraphs,
+                    paragraph => paragraph._paragraph.Descendants<PageNumber>().Any());
+                SimpleField totalPagesField = Assert.Single(
+                    paragraphs
+                        .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
+                        .Distinct(),
+                    field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
+                Assert.Equal("1", totalPagesField.InnerText);
+                foreach (WordParagraph paragraph in paragraphs) {
+                    Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                    Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Begin);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Separator);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.End);
+                }
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellComplexPageFieldsAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 1);
+                    WordParagraph paragraph = table.Rows[0].Cells[0].AddParagraph("Cell page ", removeExistingParagraphs: true);
+                    paragraph.AddField(WordFieldType.Page, advanced: true);
+                    paragraph.AddText(" of ");
+                    paragraph.AddField(WordFieldType.NumPages, advanced: true);
+                    paragraph.AddText(" done");
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                string wordDocumentAscii = Encoding.ASCII.GetString(wordDocumentStream);
+                Assert.Contains("PAGE", wordDocumentAscii);
+                Assert.Contains("NUMPAGES", wordDocumentAscii);
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                List<WordParagraph> paragraphs = reloadedTable.Rows[0].Cells[0].Paragraphs;
+                Assert.Contains(paragraphs, paragraph => paragraph.Text == "Cell page ");
+                Assert.Contains(paragraphs, paragraph => paragraph.Text == " of ");
+                Assert.Contains(paragraphs, paragraph => paragraph.Text == " done");
+                Assert.Contains(
+                    paragraphs,
+                    paragraph => paragraph._paragraph.Descendants<PageNumber>().Any());
+                SimpleField totalPagesField = Assert.Single(
+                    paragraphs
+                        .SelectMany(paragraph => paragraph._paragraph.Descendants<SimpleField>())
+                        .Distinct(),
+                    field => field.Instruction?.Value?.Contains("NUMPAGES", StringComparison.OrdinalIgnoreCase) == true);
+                Assert.Equal("1", totalPagesField.InnerText);
+                foreach (WordParagraph paragraph in paragraphs) {
+                    Assert.DoesNotContain("PAGE", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                    Assert.DoesNotContain("NUMPAGES", paragraph._paragraph.InnerText, StringComparison.Ordinal);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Begin);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.Separator);
+                    Assert.DoesNotContain(paragraph._paragraph.InnerText, character => character == LegacyDocField.End);
+                }
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocHeaderFooterEmptyParagraphsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
