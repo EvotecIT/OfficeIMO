@@ -12,6 +12,12 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
     public string Src { get; }
     /// <summary>Optional title attribute shown as tooltip in HTML.</summary>
     public string? Title { get; }
+    /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
+    /// <summary>Source span for the image source token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? SrcSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
     /// <summary>Creates a new inline image.</summary>
     public ImageInline(string alt, string src, string? title = null, string? plainAlt = null) {
         Alt = alt ?? string.Empty;
@@ -19,6 +25,16 @@ public sealed class ImageInline : MarkdownInline, IRenderableMarkdownInline, IPl
         Src = src ?? string.Empty;
         Title = title;
     }
+
+    internal void SetMarkdownSyntaxMetadataSpans(
+        MarkdownSourceSpan? altSourceSpan,
+        MarkdownSourceSpan? srcSourceSpan,
+        MarkdownSourceSpan? titleSourceSpan) {
+        AltSourceSpan = altSourceSpan;
+        SrcSourceSpan = srcSourceSpan;
+        TitleSourceSpan = titleSourceSpan;
+    }
+
     internal string RenderMarkdown() {
         if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
             return RenderHtml();

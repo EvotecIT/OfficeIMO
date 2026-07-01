@@ -14,6 +14,14 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
     public string? LinkTarget { get; }
     /// <summary>Optional HTML rel attribute preserved from richer sources.</summary>
     public string? LinkRel { get; }
+    /// <summary>Source span for the link URL token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? UrlSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional link title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional HTML target attribute when imported from richer sources.</summary>
+    public MarkdownSourceSpan? HtmlTargetSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional HTML rel attribute when imported from richer sources.</summary>
+    public MarkdownSourceSpan? HtmlRelSourceSpan { get; internal set; }
 
     // Optional richer label representation (produced by the reader). When present, RenderHtml/RenderMarkdown
     // uses it instead of the plain Text property.
@@ -35,6 +43,18 @@ public sealed class LinkInline : MarkdownInline, IRenderableMarkdownInline, IPla
         : this(InlinePlainText.Extract(label), url, title, linkTarget, linkRel) {
         LabelInlines = label;
     }
+
+    internal void SetMarkdownSyntaxMetadataSpans(
+        MarkdownSourceSpan? urlSourceSpan,
+        MarkdownSourceSpan? titleSourceSpan,
+        MarkdownSourceSpan? htmlTargetSourceSpan = null,
+        MarkdownSourceSpan? htmlRelSourceSpan = null) {
+        UrlSourceSpan = urlSourceSpan;
+        TitleSourceSpan = titleSourceSpan;
+        HtmlTargetSourceSpan = htmlTargetSourceSpan;
+        HtmlRelSourceSpan = htmlRelSourceSpan;
+    }
+
     internal string RenderMarkdown() {
         string? autolinkMarkdown = TryRenderAutolinkMarkdown();
         if (autolinkMarkdown != null) {

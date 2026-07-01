@@ -57,6 +57,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Engine: expose footnote definition opening/separator markers and front-matter opening/closing fences through native source fields, snapshots, and source edits.
   - [x] Engine: expose code and semantic fenced-block opening/closing marker values through native source fields, snapshots, position lookup, and source edits.
   - [x] Engine: expose semantic HeadingBlock level/text source spans so heading AST consumers can target ATX and Setext fields without detouring through native projection.
+  - [x] Engine: expose semantic LinkInline/ImageInline/ImageLinkInline source spans so inline AST consumers can target link URL/title, image alt/source/title, and linked-image target/title fields without detouring through native metadata.
   - [x] Engine: expose semantic CodeBlock and SemanticFencedBlock info/content source spans so extension and editor hosts can target fenced payload fields from the AST without detouring through native projection.
   - [x] Engine: expose semantic ImageBlock source spans for standalone and linked image alt/path/title/link target/link title tokens, with native projection reading from the semantic AST API.
   - [ ] Engine: capture lossless trivia beyond current source slices: whitespace, blank lines, tabs, delimiters, raw slices, generated-node roundtrip semantics, and normalized text.

@@ -17,6 +17,16 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
     public string? Title { get; }
     /// <summary>Optional hyperlink title.</summary>
     public string? LinkTitle { get; }
+    /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
+    /// <summary>Source span for the embedded image URL token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? ImageUrlSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional embedded image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    /// <summary>Source span for the wrapping link URL token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkUrlSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional wrapping link title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkTitleSourceSpan { get; internal set; }
     /// <summary>Creates a linked image inline.</summary>
     public ImageLinkInline(string alt, string imageUrl, string linkUrl, string? title = null, string? linkTitle = null, string? plainAlt = null) {
         Alt = alt ?? string.Empty;
@@ -26,6 +36,20 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
         Title = title;
         LinkTitle = linkTitle;
     }
+
+    internal void SetMarkdownSyntaxMetadataSpans(
+        MarkdownSourceSpan? altSourceSpan,
+        MarkdownSourceSpan? imageUrlSourceSpan,
+        MarkdownSourceSpan? titleSourceSpan,
+        MarkdownSourceSpan? linkUrlSourceSpan,
+        MarkdownSourceSpan? linkTitleSourceSpan) {
+        AltSourceSpan = altSourceSpan;
+        ImageUrlSourceSpan = imageUrlSourceSpan;
+        TitleSourceSpan = titleSourceSpan;
+        LinkUrlSourceSpan = linkUrlSourceSpan;
+        LinkTitleSourceSpan = linkTitleSourceSpan;
+    }
+
     internal string RenderMarkdown() {
         if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
             return RenderHtml();

@@ -844,6 +844,7 @@ baz*
         var result = MarkdownReader.ParseWithSyntaxTree(markdown);
         var paragraph = Assert.Single(result.SyntaxTree.Children);
         var link = Assert.Single(paragraph.Children);
+        var linkInline = Assert.IsType<LinkInline>(link.AssociatedObject);
 
         Assert.Equal(MarkdownSyntaxKind.InlineLink, link.Kind);
         Assert.Equal("https://example.com", link.Literal);
@@ -868,11 +869,13 @@ baz*
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, node.Kind);
                 Assert.Equal("https://example.com", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 26), node.SourceSpan);
+                Assert.Equal(node.SourceSpan, linkInline.UrlSourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineLinkTitle, node.Kind);
                 Assert.Equal("Example title", node.Literal);
                 Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 41), node.SourceSpan);
+                Assert.Equal(node.SourceSpan, linkInline.TitleSourceSpan);
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, node.Kind);
@@ -897,9 +900,11 @@ baz*
         Assert.Equal(2, links.Length);
 
         var angleTarget = Assert.Single(links[0].Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var angleLink = Assert.IsType<LinkInline>(links[0].AssociatedObject);
         Assert.Equal("https://example.com/docs", links[0].Literal);
         Assert.Equal("https://example.com/docs", angleTarget.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 28), angleTarget.SourceSpan);
+        Assert.Equal(angleTarget.SourceSpan, angleLink.UrlSourceSpan);
         Assert.Collection(links[0].Children,
             openingMarker => {
                 Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, openingMarker.Kind);
@@ -924,8 +929,10 @@ baz*
         Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), Assert.Single(angleMetadata.Metadata, metadata => metadata.Name == "closingMarker").SourceSpan);
 
         var bareTarget = Assert.Single(links[1].Children, node => node.Kind == MarkdownSyntaxKind.InlineLinkTarget);
+        var bareLink = Assert.IsType<LinkInline>(links[1].AssociatedObject);
         Assert.Equal("mailto:user@example.com", bareTarget.Literal);
         Assert.Equal(new MarkdownSourceSpan(1, 35, 1, 57), bareTarget.SourceSpan);
+        Assert.Equal(bareTarget.SourceSpan, bareLink.UrlSourceSpan);
         Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 42)!.Kind);
     }
 
@@ -1920,6 +1927,7 @@ Lead {{core}} tail
         }, paragraph.Children.Select(node => node.Kind).ToArray());
 
         var image = paragraph.Children[1];
+        var imageInline = Assert.IsType<ImageInline>(image.AssociatedObject);
         Assert.Equal("image.png", image.Literal);
         Assert.Equal(new[] {
             MarkdownSyntaxKind.InlineOpeningMarker,
@@ -1941,6 +1949,9 @@ Lead {{core}} tail
         Assert.Equal(new MarkdownSourceSpan(1, 12, 1, 20), image.Children[3].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 23, 1, 27), image.Children[4].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(1, 29, 1, 29), image.Children[5].SourceSpan);
+        Assert.Equal(image.Children[1].SourceSpan, imageInline.AltSourceSpan);
+        Assert.Equal(image.Children[3].SourceSpan, imageInline.SrcSourceSpan);
+        Assert.Equal(image.Children[4].SourceSpan, imageInline.TitleSourceSpan);
         Assert.Equal(MarkdownSyntaxKind.InlineOpeningMarker, result.FindDeepestNodeAtPosition(1, 5)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, result.FindDeepestNodeAtPosition(1, 10)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ImageSource, result.FindDeepestNodeAtPosition(1, 15)!.Kind);
@@ -1962,6 +1973,7 @@ Lead {{core}} tail
         }, paragraph.Children.Select(node => node.Kind).ToArray());
 
         var imageLink = paragraph.Children[1];
+        var imageLinkInline = Assert.IsType<ImageLinkInline>(imageLink.AssociatedObject);
         Assert.Equal("https://example.com/docs", imageLink.Literal);
         Assert.Collection(imageLink.Children,
             node => {
@@ -2011,6 +2023,11 @@ Lead {{core}} tail
         Assert.Equal(MarkdownSyntaxKind.InlineSeparatorMarker, result.FindDeepestNodeAtPosition(1, 62)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.ImageLinkTitle, result.FindDeepestNodeAtPosition(1, 92)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineClosingMarker, result.FindDeepestNodeAtPosition(1, 101)!.Kind);
+        Assert.Equal(imageLink.Children[1].SourceSpan, imageLinkInline.AltSourceSpan);
+        Assert.Equal(imageLink.Children[2].SourceSpan, imageLinkInline.ImageUrlSourceSpan);
+        Assert.Equal(imageLink.Children[3].SourceSpan, imageLinkInline.TitleSourceSpan);
+        Assert.Equal(imageLink.Children[5].SourceSpan, imageLinkInline.LinkUrlSourceSpan);
+        Assert.Equal(imageLink.Children[6].SourceSpan, imageLinkInline.LinkTitleSourceSpan);
     }
 
     [Fact]
