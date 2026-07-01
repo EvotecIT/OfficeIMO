@@ -8314,6 +8314,65 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCornerConditionalTableStylesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocCornerVisualTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC Corner Visual Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "0000ff" })) {
+                        Type = TableStyleOverrideValues.NorthWestCell
+                    });
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "ff0000" })) {
+                        Type = TableStyleOverrideValues.FirstRow
+                    });
+                    style.Append(new TableStyleProperties(
+                        new TableStyleConditionalFormattingTableCellProperties(
+                            new Shading { Val = ShadingPatternValues.Clear, Fill = "00ff00" })) {
+                        Type = TableStyleOverrideValues.FirstColumn
+                    });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table._tableProperties.TableLook = new TableLook {
+                        FirstRow = true,
+                        LastRow = false,
+                        FirstColumn = true,
+                        LastColumn = false,
+                        NoHorizontalBand = true,
+                        NoVerticalBand = true
+                    };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("0000ff", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+                Assert.Equal("00ff00", reloadedTable.Rows[1].Cells[0].ShadingFillColorHex);
+                Assert.True(string.IsNullOrEmpty(reloadedTable.Rows[1].Cells[1].ShadingFillColorHex));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_BlocksMalformedTableLookMaskBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocMalformedTableLook";

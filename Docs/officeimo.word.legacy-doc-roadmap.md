@@ -1029,6 +1029,9 @@ just to reserve names.
     - [x] Honor compact hexadecimal `w:tblLook` masks for supported first-row
       conditional table style expansion through native DOC save/reload, proving
       supported masks are not limited to expanded boolean attributes.
+    - [x] Write corner conditional table style effects with the expected
+      precedence over first-row and first-column effects, then reload the
+      expanded DOC cell shading through the legacy reader.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
