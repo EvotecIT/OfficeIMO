@@ -90,6 +90,14 @@ public enum MarkdownSyntaxKind {
     InlineAbbreviationTitle,
     /// <summary>Generic Markdown attribute block token such as <c>{#id .class key=value}</c>.</summary>
     GenericAttributeBlock,
+    /// <summary>Colon-fenced custom container block.</summary>
+    CustomContainer,
+    /// <summary>Opening colon fence token for a custom container block.</summary>
+    CustomContainerOpeningFence,
+    /// <summary>Info string token for a custom container block.</summary>
+    CustomContainerInfo,
+    /// <summary>Closing colon fence token for a custom container block.</summary>
+    CustomContainerClosingFence,
     /// <summary>Paragraph block.</summary>
     Paragraph,
     /// <summary>Blockquote block.</summary>

@@ -5055,6 +5055,45 @@ Console.WriteLine("hi");
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Maps_CustomContainer_Fences_Info_And_Children() {
+        var markdown = """
+::: note
+hello
+:::
+""";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.CustomContainers = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        var container = Assert.Single(result.SyntaxTree.Children);
+        var block = Assert.IsType<CustomContainerBlock>(container.AssociatedObject);
+        Assert.Equal(MarkdownSyntaxKind.CustomContainer, container.Kind);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 3, 3), container.SourceSpan);
+        Assert.Equal("note", block.Name);
+        Assert.Equal("note", block.Info);
+
+        var opening = Assert.Single(container.Children, node => node.Kind == MarkdownSyntaxKind.CustomContainerOpeningFence);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 3), block.OpeningFenceSourceSpan);
+
+        var info = Assert.Single(container.Children, node => node.Kind == MarkdownSyntaxKind.CustomContainerInfo);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), info.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), block.InfoSourceSpan);
+
+        var paragraph = Assert.Single(container.Children, node => node.Kind == MarkdownSyntaxKind.Paragraph);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 5), paragraph.SourceSpan);
+
+        var closing = Assert.Single(container.Children, node => node.Kind == MarkdownSyntaxKind.CustomContainerClosingFence);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), closing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), block.ClosingFenceSourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.CustomContainerOpeningFence, result.FindDeepestNodeAtPosition(1, 2)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.CustomContainerInfo, result.FindDeepestNodeAtPosition(1, 6)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(2, 3)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.CustomContainerClosingFence, result.FindDeepestNodeAtPosition(3, 2)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Captures_Padded_Tilde_Fence_Info_SourceSpan() {
         var markdown = """
   ~~~~   json title="chart"

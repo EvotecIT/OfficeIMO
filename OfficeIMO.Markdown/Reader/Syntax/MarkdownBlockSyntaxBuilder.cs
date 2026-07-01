@@ -259,6 +259,7 @@ internal static class MarkdownBlockSyntaxBuilder {
             HorizontalRuleBlock => syntaxNode.Kind == MarkdownSyntaxKind.HorizontalRule,
             ImageBlock => syntaxNode.Kind == MarkdownSyntaxKind.Image,
             CalloutBlock => syntaxNode.Kind == MarkdownSyntaxKind.Callout,
+            CustomContainerBlock => syntaxNode.Kind == MarkdownSyntaxKind.CustomContainer,
             DefinitionListBlock => syntaxNode.Kind == MarkdownSyntaxKind.DefinitionList,
             FootnoteDefinitionBlock => syntaxNode.Kind == MarkdownSyntaxKind.FootnoteDefinition,
             DetailsBlock => syntaxNode.Kind == MarkdownSyntaxKind.Details,

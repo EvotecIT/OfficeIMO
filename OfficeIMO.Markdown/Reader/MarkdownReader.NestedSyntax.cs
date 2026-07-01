@@ -206,6 +206,10 @@ public static partial class MarkdownReader {
                 detailsBlock.SyntaxChildren = GetDetailsBodySyntaxChildren(detailsBlock, node);
                 break;
 
+            case CustomContainerBlock customContainerBlock:
+                customContainerBlock.SyntaxChildren = GetCustomContainerBodySyntaxChildren(node);
+                break;
+
             case TableCell tableCell:
                 tableCell.SyntaxChildren = node.Children.Count > 0 ? node.Children : null;
                 break;
@@ -311,6 +315,26 @@ public static partial class MarkdownReader {
         }
 
         return bodyChildren;
+    }
+
+    private static IReadOnlyList<MarkdownSyntaxNode>? GetCustomContainerBodySyntaxChildren(MarkdownSyntaxNode node) {
+        if (node.Children.Count == 0) {
+            return null;
+        }
+
+        var bodyChildren = new List<MarkdownSyntaxNode>();
+        for (int i = 0; i < node.Children.Count; i++) {
+            var child = node.Children[i];
+            if (child.Kind == MarkdownSyntaxKind.CustomContainerOpeningFence ||
+                child.Kind == MarkdownSyntaxKind.CustomContainerInfo ||
+                child.Kind == MarkdownSyntaxKind.CustomContainerClosingFence) {
+                continue;
+            }
+
+            bodyChildren.Add(child);
+        }
+
+        return bodyChildren.Count > 0 ? bodyChildren : null;
     }
 
     private static MarkdownSourceSpan? RemapNestedSourceSpan(

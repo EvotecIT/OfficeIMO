@@ -13,7 +13,7 @@ Use the Markdig extension inventory and Markdig extension compatibility matrix a
 - [x] GFM tracked fixtures are green: 52 tracked GFM fixtures, 52 passing, 0 failing in the generated GFM inventory.
 - [x] Markdig extension inventory exists: 33 Markdig extension-family rows.
 - [x] Markdig extension compatibility matrix exists with Decision, Route, Scope decision, Engine parser, AST/source, Writer/render, Proof, and Next-action lanes.
-- [ ] Markdig extension parity is not closed: 13 rows are covered, 7 partial, 3 intentional, and 10 gap.
+- [ ] Markdig extension parity is not closed: 13 rows are covered, 8 partial, 3 intentional, and 9 gap.
 - [ ] AST/source/lossless parity is not closed: full trivia, delimiter tokens, original-to-normalized mapping, broader source edits, and extension-node roundtrip still need work.
 - [ ] Performance parity is not known: release-mode benchmark comparison should wait until parser/source/writer behavior stops moving.
 
@@ -72,7 +72,7 @@ Each unchecked item should be treated as exactly one lane before work starts: en
   - [x] Diagnostics: report structured fallback reasons when exact source preservation is unavailable, including machine-readable roundtrip diagnostic reasons for original-source mapping failures.
   - [ ] Proof: add source-map and roundtrip tests after the mapping rules exist.
 - [ ] Optional parser gaps need product scope before implementation.
-  - [ ] `UseCustomContainers`: decide core versus optional package, then implement colon-fence parsing, child source mapping, renderer seams, and writer support.
+  - [x] `UseCustomContainers`: first core opt-in slice parses root/nested colon-fenced containers, renders scoped Markdig-compatible HTML, writes parsed Markdown, and maps opening fence/info/child/closing syntax.
   - [ ] `UseGridTables`: decide whether grid tables belong in core, then implement malformed fallback, source spans, renderer, and writer behavior.
   - [x] `UseListExtras`: scoped core opt-in behavior exists for Markdig-style alphabetic and roman ordered-list markers, including marker-family splitting, nested markers, nested lower-roman lists after parent item text, HTML type/start output, syntax marker spans, and parsed-marker Markdown writing.
   - [x] `UseListExtras`: source-edit and reparse proof covers blockquote-contained alpha markers and nested unordered-list roman markers.
@@ -218,7 +218,7 @@ The `UseDefinitionLists` promotion below is closed and retained as evidence, not
 
 Do not implement these rows from nearby tests alone. Decide the product shape first.
 
-- [ ] `UseCustomContainers`: core extension seam plus optional colon-fenced container parser, child source ownership, renderer seams, and writer support.
+- [ ] `UseCustomContainers`: broaden native projection, source edits, malformed-fence fallback, list/blockquote/container breadth, renderer override seams, and writer/source-slice behavior before promotion.
 - [ ] `UseGridTables`: optional grid-table parser, semantic table model, malformed fallback, source spans, renderer, and writer.
 - [x] `UseListExtras`: inventory and scoped core opt-in parser support are complete for alpha/roman ordered markers, including nested lower-roman lists after parent item text.
 - [x] `UseListExtras`: blockquote and nested-list marker source edits now reparse to edited alpha/roman AST state.

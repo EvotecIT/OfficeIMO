@@ -213,6 +213,11 @@ public sealed class MarkdownReaderOptions {
     /// </summary>
     public bool GenericAttributes { get; set; } = false;
     /// <summary>
+    /// Enable Markdig-style colon-fenced custom containers such as <c>::: note</c>.
+    /// Default: <c>false</c>; opt in when mirroring Markdig's <c>UseCustomContainers</c> extension.
+    /// </summary>
+    public bool CustomContainers { get; set; } = false;
+    /// <summary>
     /// When <c>true</c>, GitHub Flavored Markdown-style single-tilde strikethrough (<c>~text~</c>) is enabled.
     /// Default: <c>false</c>.
     /// </summary>

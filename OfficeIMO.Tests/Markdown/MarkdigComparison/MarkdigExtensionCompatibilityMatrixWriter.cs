@@ -75,7 +75,7 @@ internal static class MarkdigExtensionCompatibilityMatrixWriter {
             case "UseCjkFriendlyEmphasis":
                 return new MatrixCells("Core delimiter option", "Partial delimiter behavior", "Needs delimiter token proof", "Mostly shared with emphasis rendering", "Needs CJK comparison fixtures", row.NextAction);
             case "UseCustomContainers":
-                return new MatrixCells("Optional/core block extension", "Missing colon-fence parser", "Missing child-block source mapping", "Missing renderer/writer seams", "Missing Markdig comparison fixtures", row.NextAction);
+                return new MatrixCells("Optional/core block extension", "First root/nested colon-fence parser slice supports Markdig-style div/class HTML for scoped cases", "Source-backed opening fence, info, closing fence, and child block ownership started", "Parsed-block Markdown writing and default HTML output exist for scoped cases; override/native/source-edit seams remain partial", "Has focused Markdig comparison plus syntax/source proof; needs malformed-fence, list/blockquote, writer, and native breadth", row.NextAction);
             case "UseDefinitionLists":
                 return new MatrixCells("Core opt-in parser", "Partial", "Needs remaining source-map breadth", "Needs writer/reparse edge breadth", "Needs focused edge proof before promotion", row.NextAction);
             case "UseDiagrams":

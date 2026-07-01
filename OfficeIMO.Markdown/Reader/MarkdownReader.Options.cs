@@ -61,6 +61,7 @@ public static partial class MarkdownReader {
             InlineHtml = source.InlineHtml,
             Abbreviations = source.Abbreviations,
             GenericAttributes = source.GenericAttributes,
+            CustomContainers = source.CustomContainers,
             BaseUri = source.BaseUri,
             DisallowScriptUrls = source.DisallowScriptUrls,
             DisallowFileUrls = source.DisallowFileUrls,

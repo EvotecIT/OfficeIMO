@@ -490,6 +490,14 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "blockquote-nested-lower-roman-after-text", "> - outer\n>   iv. four\n>   v. five\n" };
     }
 
+    public static IEnumerable<object[]> CustomContainerExtensionCases() {
+        yield return new object[] { "simple-container", "::: note\nhello\n:::" };
+        yield return new object[] { "container-info-uses-first-token", "::: note title text\nhello\n:::" };
+        yield return new object[] { "container-with-list", "::: note\n- a\n- b\n:::" };
+        yield return new object[] { "nested-container-with-longer-outer-fence", ":::: note\n::: inner\ntext\n:::\n::::" };
+        yield return new object[] { "no-space-info", ":::note\nhello\n:::" };
+    }
+
     public static IEnumerable<object[]> AlertBlocksExtensionCases() {
         yield return new object[] { "note-paragraph", "> [!NOTE]\n> Body" };
         yield return new object[] { "note-empty", "> [!NOTE]" };
@@ -1070,6 +1078,53 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
 
         Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Theory]
+    [MemberData(nameof(CustomContainerExtensionCases))]
+    public void MarkdownReader_CustomContainers_Match_Markdig_Extension(string _, string markdown) {
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseCustomContainers(builder);
+
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.CustomContainers = true;
+
+        var office = MarkdownReader
+            .Parse(markdown, officeOptions)
+            .ToHtmlFragment(htmlOptions);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(office));
+    }
+
+    [Fact]
+    public void MarkdownReader_CustomContainers_Writer_Reparse_Matches_Markdig_Extension() {
+        const string markdown = "::: note\nhello\n:::";
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        var officeOptions = MarkdownReaderOptions.CreatePortableProfile();
+        officeOptions.CustomContainers = true;
+
+        var parsed = MarkdownReader.Parse(markdown, officeOptions);
+        var written = parsed.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" }).TrimEnd();
+        var reparsed = MarkdownReader.Parse(written, officeOptions).ToHtmlFragment(htmlOptions);
+
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseCustomContainers(builder);
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeHtmlForParity(markdig), NormalizeHtmlForParity(reparsed));
     }
 
     [Fact]

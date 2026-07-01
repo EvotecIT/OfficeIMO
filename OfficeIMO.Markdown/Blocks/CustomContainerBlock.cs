@@ -1,0 +1,152 @@
+namespace OfficeIMO.Markdown;
+
+/// <summary>
+/// Markdig-style colon-fenced custom container block rendered as an HTML <c>div</c>.
+/// </summary>
+public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
+    private readonly IReadOnlyList<IMarkdownBlock> _childBlocks;
+
+    /// <summary>First token from the container info string, used as the rendered CSS class.</summary>
+    public string Name { get; }
+
+    /// <summary>Full source info string after the opening colon fence.</summary>
+    public string Info { get; }
+
+    /// <summary>Number of colon characters in the opening fence.</summary>
+    public int OpeningFenceLength { get; }
+
+    /// <summary>Number of colon characters in the closing fence, when the source had one.</summary>
+    public int ClosingFenceLength { get; internal set; }
+
+    /// <summary>Parsed child blocks inside the container.</summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => _childBlocks;
+
+    /// <summary>Nested syntax nodes captured during parsing, when available.</summary>
+    internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
+
+    /// <summary>Source span for the opening colon fence marker.</summary>
+    public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
+
+    /// <summary>Source span for the container info string.</summary>
+    public MarkdownSourceSpan? InfoSourceSpan { get; internal set; }
+
+    /// <summary>Source span for the closing colon fence marker, when present.</summary>
+    public MarkdownSourceSpan? ClosingFenceSourceSpan { get; internal set; }
+
+    /// <summary>Creates a custom container block.</summary>
+    public CustomContainerBlock(string? info, IEnumerable<IMarkdownBlock>? children = null, int openingFenceLength = 3) {
+        Info = (info ?? string.Empty).Trim();
+        Name = GetName(Info);
+        OpeningFenceLength = Math.Max(3, openingFenceLength);
+        ClosingFenceLength = OpeningFenceLength;
+        _childBlocks = CopyChildren(children);
+    }
+
+    string IMarkdownBlock.RenderMarkdown() {
+        var fence = new string(':', Math.Max(3, OpeningFenceLength));
+        var sb = new StringBuilder();
+        sb.Append(fence);
+        if (!string.IsNullOrWhiteSpace(Info)) {
+            sb.Append(' ').Append(Info);
+        }
+
+        for (var i = 0; i < ChildBlocks.Count; i++) {
+            var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(ChildBlocks[i]);
+            if (string.IsNullOrWhiteSpace(rendered)) {
+                continue;
+            }
+
+            sb.AppendLine();
+            if (i > 0) {
+                sb.AppendLine();
+            }
+
+            sb.Append(rendered.TrimEnd());
+        }
+
+        sb.AppendLine();
+        sb.Append(new string(':', Math.Max(3, ClosingFenceLength)));
+        return sb.ToString();
+    }
+
+    string IMarkdownBlock.RenderHtml() {
+        var sb = new StringBuilder();
+        sb.Append("<div");
+        if (!string.IsNullOrWhiteSpace(Name)) {
+            sb.Append(" class=\"")
+                .Append(HtmlTextEncoder.Encode(Name, HtmlRenderContext.Options))
+                .Append('"');
+        }
+
+        sb.Append('>');
+        for (var i = 0; i < ChildBlocks.Count; i++) {
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
+        }
+
+        sb.Append("</div>");
+        return sb.ToString();
+    }
+
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
+        var children = new List<MarkdownSyntaxNode>();
+        if (OpeningFenceSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CustomContainerOpeningFence,
+                OpeningFenceSourceSpan,
+                new string(':', OpeningFenceLength)));
+        }
+
+        if (InfoSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CustomContainerInfo,
+                InfoSourceSpan,
+                Info));
+        }
+
+        var bodyChildren = MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
+        for (var i = 0; i < bodyChildren.Count; i++) {
+            children.Add(bodyChildren[i]);
+        }
+
+        if (ClosingFenceSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CustomContainerClosingFence,
+                ClosingFenceSourceSpan,
+                new string(':', Math.Max(3, ClosingFenceLength))));
+        }
+
+        return children;
+    }
+
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
+        new MarkdownSyntaxNode(
+            MarkdownSyntaxKind.CustomContainer,
+            span,
+            Info,
+            ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren(),
+            this);
+
+    private static IReadOnlyList<IMarkdownBlock> CopyChildren(IEnumerable<IMarkdownBlock>? children) {
+        if (children == null) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        return children.Where(static child => child != null).ToArray();
+    }
+
+    private static string GetName(string info) {
+        if (string.IsNullOrWhiteSpace(info)) {
+            return string.Empty;
+        }
+
+        var trimmed = info.Trim();
+        var end = 0;
+        while (end < trimmed.Length && !char.IsWhiteSpace(trimmed[end])) {
+            end++;
+        }
+
+        return trimmed.Substring(0, end);
+    }
+}

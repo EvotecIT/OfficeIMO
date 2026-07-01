@@ -20,6 +20,7 @@ public sealed class MarkdownReaderPipeline {
         if (options.FrontMatter) p.Add(new MarkdownReader.FrontMatterParser());
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterFrontMatter);
         p.Add(new MarkdownReader.QuoteParser());
+        if (options.CustomContainers) p.Add(new MarkdownReader.CustomContainerParser());
         if (options.FencedCode) p.Add(new MarkdownReader.FencedCodeParser());
         if (options.Images && options.StandaloneImageBlocks) p.Add(new MarkdownReader.ImageParser());
         p.Add(new MarkdownReader.HrParser());

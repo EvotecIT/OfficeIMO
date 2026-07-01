@@ -10,15 +10,15 @@ Use it as the control board for parity slices:
 
 ## Summary
 
-Current inventory: 33 Markdig extension-family rows; 13 covered, 7 partial, 3 intentional, 10 gap.
+Current inventory: 33 Markdig extension-family rows; 13 covered, 8 partial, 3 intentional, 9 gap.
 
 | Metric | Count |
 | --- | ---: |
 | Markdig extension-family rows | 33 |
 | Covered | 13 |
-| Partial | 7 |
+| Partial | 8 |
 | Intentional | 3 |
-| Gap | 10 |
+| Gap | 9 |
 
 ## Execution Matrix
 
@@ -32,7 +32,7 @@ Current inventory: 33 Markdig extension-family rows; 13 covered, 7 partial, 3 in
 | `UseBootstrap` | `Intentional` | Renderer/host policy | Not planned | Not planned | Intentional difference | Documented | Keep theme/rendering presets separate from parser parity. |
 | `UseCjkFriendlyEmphasis` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep the CJK-friendly option aligned with future emphasis delimiter rewrites and do not enable it by default in CommonMark/GFM profiles. |
 | `UseCitations` | `Gap` | Deferred | Deferred | Deferred | Deferred | Needs real consumer requirement | Decide whether citations are in scope after core CommonMark/GFM closure. |
-| `UseCustomContainers` | `Gap` | Optional/core block extension | Missing colon-fence parser | Missing child-block source mapping | Missing renderer/writer seams | Missing Markdig comparison fixtures | Route to block parser extensions plus renderer/writer source-slice contracts. |
+| `UseCustomContainers` | `Partial` | Optional/core block extension | First root/nested colon-fence parser slice supports Markdig-style div/class HTML for scoped cases | Source-backed opening fence, info, closing fence, and child block ownership started | Parsed-block Markdown writing and default HTML output exist for scoped cases; override/native/source-edit seams remain partial | Has focused Markdig comparison plus syntax/source proof; needs malformed-fence, list/blockquote, writer, and native breadth | Broaden container nesting/source-edit/writer coverage, then decide whether the built-in parser should stay core opt-in or move behind an optional extension package. |
 | `UseDefinitionLists` | `Covered` | Core engine | Covered | Covered | Covered | Covered | Keep definition-list comparison, native source, no generated-child diagnostic, and writer reparse fixtures aligned as lossless trivia work expands. |
 | `UseDiagrams` | `Partial` | Renderer/host policy | Semantic fences exist | Needs language/source mapping decision | Needs renderer package ownership | Needs renderer comparison fixtures | Compare Mermaid/Nomnom-style cases and decide renderer-package ownership. |
 | `UseEmojiAndSmiley` | `Gap` | Optional inline transform | Missing shortcode/smiley transform | Needs source metadata policy | Needs writer literal/normalized policy | Needs opt-in transform fixtures | Keep normalization separate from an optional inline replacement extension. |
