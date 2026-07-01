@@ -54,7 +54,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
             LegacyDocWritableFormatting formatting = result.Formatting
                 .WithInheritedFormatting(inheritedFormatting);
-            AppendSupportedField(text, runs, bookmarks, field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind), result.Text, formatting, result.BookmarkMarkers, characterOffset: 0);
+            AppendSupportedField(
+                text,
+                runs,
+                bookmarks,
+                field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind),
+                GetSupportedFieldResultText(fieldKind, result.Text),
+                formatting,
+                result.BookmarkMarkers,
+                characterOffset: 0);
         }
 
         private static bool IsComplexFieldBeginRun(Run run) {
@@ -136,7 +144,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
                                 LegacyDocWritableFormatting formatting = (resultFormatting ?? LegacyDocWritableFormatting.Plain)
                                     .WithInheritedFormatting(inheritedFormatting);
-                                AppendSupportedField(text, runs, bookmarks, instruction.ToString(), resultText.ToString(), formatting, bookmarkMarkers, characterOffset: 0);
+                                AppendSupportedField(
+                                    text,
+                                    runs,
+                                    bookmarks,
+                                    instruction.ToString(),
+                                    GetSupportedFieldResultText(fieldKind, resultText.ToString()),
+                                    formatting,
+                                    bookmarkMarkers,
+                                    characterOffset: 0);
                                 childIndex = index;
                                 return;
                             }
@@ -212,6 +228,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocFieldKind.PrintDate => PrintDateFieldInstruction,
                 _ => throw new NotSupportedException($"Native DOC saving supports only {SupportedFieldNames} field instructions.")
             };
+        }
+
+        private static string GetSupportedFieldResultText(LegacyDocFieldKind fieldKind, string resultText) {
+            return fieldKind == LegacyDocFieldKind.Page || fieldKind == LegacyDocFieldKind.NumPages
+                ? "1"
+                : resultText;
         }
 
         private static LegacyDocSimpleFieldResult ReadSimpleFieldResult(SimpleField field) {

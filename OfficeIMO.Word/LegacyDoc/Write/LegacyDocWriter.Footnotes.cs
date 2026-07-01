@@ -300,7 +300,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             LegacyDocSimpleFieldResult result = ReadSimpleFieldResult(field);
-            AppendSupportedNoteField(text, runs, bookmarks, field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind), result.Text, result.Formatting, result.BookmarkMarkers, storyStart);
+            AppendSupportedNoteField(
+                text,
+                runs,
+                bookmarks,
+                field.Instruction?.Value ?? GetSupportedFieldInstruction(fieldKind),
+                GetSupportedFieldResultText(fieldKind, result.Text),
+                result.Formatting,
+                result.BookmarkMarkers,
+                storyStart);
         }
 
         private static void AppendSupportedNoteComplexPageNumberField(
@@ -375,7 +383,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                                     throw new NotSupportedException($"Native DOC saving currently supports only {SupportedFieldNames} complex fields in note paragraphs. Other field types are not supported yet.");
                                 }
 
-                                AppendSupportedNoteField(text, runs, bookmarks, instruction.ToString(), resultText.ToString(), resultFormatting ?? LegacyDocWritableFormatting.Plain, bookmarkMarkers, storyStart);
+                                AppendSupportedNoteField(
+                                    text,
+                                    runs,
+                                    bookmarks,
+                                    instruction.ToString(),
+                                    GetSupportedFieldResultText(fieldKind, resultText.ToString()),
+                                    resultFormatting ?? LegacyDocWritableFormatting.Plain,
+                                    bookmarkMarkers,
+                                    storyStart);
                                 childIndex = index;
                                 return;
                             }
