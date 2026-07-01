@@ -305,6 +305,9 @@ just to reserve names.
     hyphenation suppression, contextual spacing, mirror indents,
     bidirectional layout, and East Asian typography/punctuation spacing into
     custom DOCX style definitions with synthetic legacy DOC fixture proof.
+  - [x] Project stylesheet-level suppress-line-numbers and vertical character
+    alignment into custom DOCX style definitions, extending the layout-flags
+    fixture proof without adding runtime dependencies.
   - [x] Project simple palette-backed direct PAPX paragraph shading from DOC
     `sprmPShd80` into normal OfficeIMO paragraphs with synthetic legacy DOC
     fixture proof.
