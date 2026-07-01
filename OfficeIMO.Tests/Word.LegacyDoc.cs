@@ -4188,6 +4188,57 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_IgnoresLastRenderedPageBreakMarkersAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph body = document.AddParagraph("Body");
+                    body._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
+
+                    WordParagraph linked = document.AddParagraph("Link ");
+                    linked.AddHyperLink("A", new Uri("https://officeimo.net/rendered-page-break"), addStyle: true);
+                    Hyperlink hyperlink = linked.Hyperlink!._hyperlink;
+                    hyperlink.Append(new Run(new LastRenderedPageBreak()));
+                    hyperlink.Append(new Run(new Text("B") { Space = SpaceProcessingModeValues.Preserve }));
+
+                    WordSection section = document.Sections[0];
+                    WordParagraph header = section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Header");
+                    header._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
+                    WordParagraph footer = section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Footer");
+                    footer._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
+
+                    WordParagraph paragraph = document.AddParagraph("Notes");
+                    WordParagraph footnoteReference = paragraph.AddFootNote("Footnote");
+                    footnoteReference.FootNote!.Paragraphs![1]._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
+                    WordParagraph endnoteReference = paragraph.AddEndNote("Endnote");
+                    endnoteReference.EndNote!.Paragraphs![1]._paragraph.Append(new Run(new LastRenderedPageBreak()), new Run(new Text("After")));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph._paragraph.InnerText == "BodyAfter");
+                Assert.DoesNotContain(reloaded.Paragraphs, paragraph => paragraph._paragraph.Descendants<LastRenderedPageBreak>().Any());
+
+                WordHyperLink link = Assert.Single(reloaded.HyperLinks, item => item.Uri?.ToString() == "https://officeimo.net/rendered-page-break");
+                Assert.Equal("AB", GetHyperlinkText(link._hyperlink));
+                Assert.False(link._hyperlink.Descendants<LastRenderedPageBreak>().Any());
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                Assert.Equal("HeaderAfter", Assert.Single(reloadedSection.Header.Default!.Paragraphs)._paragraph.InnerText);
+                Assert.Equal("FooterAfter", Assert.Single(reloadedSection.Footer.Default!.Paragraphs)._paragraph.InnerText);
+                Assert.Equal("FootnoteAfter", Assert.Single(reloaded.FootNotes).Paragraphs![1]._paragraph.InnerText);
+                Assert.Equal("EndnoteAfter", Assert.Single(reloaded.EndNotes).Paragraphs![1]._paragraph.InnerText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocParagraphAlignmentAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

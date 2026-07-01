@@ -73,6 +73,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
+                    case LastRenderedPageBreak:
                     case Text:
                     case TabChar:
                     case CarriageReturn:

@@ -605,6 +605,9 @@ just to reserve names.
   - [x] Write OpenXML soft-hyphen and no-break-hyphen run elements as Unicode
     DOC text and reload them through the legacy reader across body, hyperlink,
     header/footer, and note story paths.
+  - [x] Ignore OpenXML last-rendered page-break pagination markers during
+    native DOC save, then reload the surrounding story text without exposing
+    those layout-cache markers as content.
   - [x] Stop stamping quick-save count bits into native-written DOC FIB flags,
     and prove OfficeIMO-authored DOC output reloads without preserve-only FIB
     flag diagnostics.

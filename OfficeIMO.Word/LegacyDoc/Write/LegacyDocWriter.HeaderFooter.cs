@@ -284,6 +284,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case RunProperties:
                         break;
+                    case LastRenderedPageBreak:
+                        break;
                     case Text textNode:
                         AppendFormattedHeaderFooterText(storyText, formattedRuns, paragraphText, textNode.Text, formatting);
                         break;

@@ -147,6 +147,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 switch (child) {
                     case RunProperties:
                         break;
+                    case LastRenderedPageBreak:
+                        break;
                     case Text text:
                         AppendFormattedNoteText(builder, runs, text.Text, formatting, storyStart);
                         break;
@@ -176,6 +178,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
+                    case LastRenderedPageBreak:
                         break;
                     case FootnoteReferenceMark:
                         hasReferenceMark = true;
@@ -246,6 +249,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             foreach (OpenXmlElement child in run.ChildElements) {
                 switch (child) {
                     case RunProperties:
+                        break;
+                    case LastRenderedPageBreak:
                         break;
                     case Text textNode:
                         AppendFormattedNoteText(text, runs, textNode.Text, formatting, storyStart);
