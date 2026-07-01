@@ -46,6 +46,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
             byte? verticalCharacterAlignment = null;
+            byte? paragraphOutlineLevel = null;
             LegacyDocParagraphShading? paragraphShading = null;
             LegacyDocParagraphBorders? paragraphBorders = null;
             IReadOnlyList<LegacyDocTabStop>? tabStops = null;
@@ -129,7 +130,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         tabStops = ReadSupportedTabStops(tabs);
                         break;
                     case OutlineLevel outlineLevel:
-                        ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
+                        paragraphOutlineLevel = ReadSupportedOutlineLevel(outlineLevel, builtInStyleIndex, allowDirectOutlineLevel: allowParagraphStyleId);
                         break;
                     case SectionProperties when allowSectionProperties:
                         break;
@@ -188,7 +189,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 null,
                 null,
                 paragraphShading,
-                paragraphBorders);
+                paragraphBorders,
+                outlineLevel: paragraphOutlineLevel);
         }
 
         private static byte ReadSupportedVerticalCharacterAlignment(TextAlignment textAlignment) {
@@ -331,7 +333,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ReadSupportedBuiltInOutlineLevel(OutlineLevel outlineLevel, ushort? builtInStyleIndex) {
+            _ = ReadSupportedOutlineLevel(outlineLevel, builtInStyleIndex, allowDirectOutlineLevel: false);
+        }
+
+        private static byte? ReadSupportedOutlineLevel(OutlineLevel outlineLevel, ushort? builtInStyleIndex, bool allowDirectOutlineLevel) {
             if (builtInStyleIndex == null || builtInStyleIndex.Value == 0 || builtInStyleIndex.Value > 9) {
+                if (allowDirectOutlineLevel) {
+                    int directLevel = outlineLevel.Val?.Value ?? 9;
+                    if (directLevel >= 0 && directLevel <= 8) {
+                        return checked((byte)directLevel);
+                    }
+
+                    if (directLevel == 9) {
+                        return null;
+                    }
+                }
+
                 throw new NotSupportedException("Native DOC saving currently supports outline-level style formatting only for built-in Heading styles.");
             }
 
@@ -340,6 +357,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             if (level != expectedLevel) {
                 throw new NotSupportedException($"Native DOC saving supports built-in Heading style outline levels only when they match the heading level. Expected outline level {expectedLevel}, got {level}.");
             }
+
+            return null;
         }
 
         private static IReadOnlyList<LegacyDocTabStop> ReadSupportedTabStops(Tabs tabs) {

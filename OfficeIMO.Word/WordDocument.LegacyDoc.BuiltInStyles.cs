@@ -161,6 +161,10 @@ namespace OfficeIMO.Word {
                 ReplaceStyleProperty(properties, new TextAlignment { Val = verticalCharacterAlignment });
             }
 
+            if (paragraphFormat.OutlineLevel != null) {
+                ReplaceStyleProperty(properties, new OutlineLevel { Val = paragraphFormat.OutlineLevel.Value });
+            }
+
             if (paragraphFormat.ParagraphShading != null && !string.IsNullOrEmpty(paragraphFormat.ParagraphShading.Value.FillColorHex)) {
                 ReplaceStyleProperty(properties, new Shading {
                     Val = ShadingPatternValues.Clear,

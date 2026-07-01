@@ -326,6 +326,9 @@ just to reserve names.
   - [x] Project stylesheet-level paragraph tab-stop changes, including clear
     stops, into custom and built-in DOCX style definitions with synthetic
     legacy DOC fixture proof.
+  - [x] Project direct PAPX outline levels from DOC `sprmPOutLvl` into normal
+    OpenXML paragraph outline properties and write them back through native DOC
+    save/reload.
   - [x] Merge supported DOC stylesheet paragraph/run formatting into built-in
     DOCX style definitions, starting with a Heading 1 fixture that proves
     alignment, spacing, bold, underline, highlight, color, and size projection.

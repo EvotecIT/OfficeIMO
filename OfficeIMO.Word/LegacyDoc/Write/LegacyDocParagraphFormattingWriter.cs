@@ -35,6 +35,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmPIlvl = 0x260A;
+        private const ushort SprmPOutLvl = 0x2640;
         private const ushort SprmPIlfo = 0x460B;
         private const ushort SprmPWAlignFont = 0x4439;
         private const ushort SprmTTableHeader = 0x3404;
@@ -178,6 +179,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             if (formatting.VerticalCharacterAlignment != null) {
                 AddUInt16Sprm(grpprl, SprmPWAlignFont, formatting.VerticalCharacterAlignment.Value);
+            }
+
+            if (formatting.OutlineLevel != null) {
+                AddSingleByteSprm(grpprl, SprmPOutLvl, formatting.OutlineLevel.Value);
             }
 
             if (formatting.IsInTable == true) {
@@ -944,7 +949,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocParagraphShading? paragraphShading = null,
             LegacyDocParagraphBorders? paragraphBorders = null,
             LegacyDocTableCellMargins? defaultTableCellMargins = null,
-            int? defaultTableCellSpacingTwips = null) {
+            int? defaultTableCellSpacingTwips = null,
+            byte? outlineLevel = null) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -976,6 +982,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : null;
             VerticalCharacterAlignment = verticalCharacterAlignment.HasValue && verticalCharacterAlignment.Value <= 4
                 ? verticalCharacterAlignment
+                : null;
+            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 8
+                ? outlineLevel
                 : null;
             IsInTable = isInTable;
             IsTableTerminatingParagraph = isTableTerminatingParagraph;
@@ -1091,6 +1100,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal byte? VerticalCharacterAlignment { get; }
 
+        internal byte? OutlineLevel { get; }
+
         internal bool? IsInTable { get; }
 
         internal bool? IsTableTerminatingParagraph { get; }
@@ -1169,6 +1180,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || NumberingListIndex != null
             || NumberingLevel != null
             || VerticalCharacterAlignment != null
+            || OutlineLevel != null
             || IsInTable != null
             || IsTableTerminatingParagraph != null
             || TabStops.Count > 0
@@ -1248,7 +1260,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ParagraphShading,
                 ParagraphBorders,
                 DefaultTableCellMargins,
-                DefaultTableCellSpacingTwips);
+                DefaultTableCellSpacingTwips,
+                OutlineLevel);
         }
 
         internal LegacyDocWritableParagraphFormatting WithInheritedParagraphFormatting(LegacyDocWritableParagraphFormatting inherited) {
@@ -1308,7 +1321,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ParagraphShading ?? inherited.ParagraphShading,
                 ParagraphBorders ?? inherited.ParagraphBorders,
                 DefaultTableCellMargins ?? inherited.DefaultTableCellMargins,
-                DefaultTableCellSpacingTwips ?? inherited.DefaultTableCellSpacingTwips);
+                DefaultTableCellSpacingTwips ?? inherited.DefaultTableCellSpacingTwips,
+                OutlineLevel ?? inherited.OutlineLevel);
         }
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
@@ -1386,7 +1400,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ParagraphShading,
                 ParagraphBorders,
                 defaultTableCellMargins,
-                defaultTableCellSpacingTwips);
+                defaultTableCellSpacingTwips,
+                outlineLevel: OutlineLevel);
         }
 
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
@@ -1416,6 +1431,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && NumberingListIndex == other.NumberingListIndex
                 && NumberingLevel == other.NumberingLevel
                 && VerticalCharacterAlignment == other.VerticalCharacterAlignment
+                && OutlineLevel == other.OutlineLevel
                 && IsInTable == other.IsInTable
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
                 && TabStopsEqual(TabStops, other.TabStops)
@@ -1476,6 +1492,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + NumberingListIndex.GetHashCode();
             hash = (hash * 31) + NumberingLevel.GetHashCode();
             hash = (hash * 31) + VerticalCharacterAlignment.GetHashCode();
+            hash = (hash * 31) + OutlineLevel.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
             hash = (hash * 31) + TableLeftIndentTwips.GetHashCode();

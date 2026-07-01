@@ -40,6 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private const ushort SprmPFWidowControl = 0x2431;
         private const ushort SprmPChgTabsPapx = 0xC60D;
         private const ushort SprmPIlvl = 0x260A;
+        private const ushort SprmPOutLvl = 0x2640;
         private const ushort SprmPIlfo = 0x460B;
         private const ushort SprmPWAlignFont = 0x4439;
         private const ushort SprmTFCantSplit = 0x3403;
@@ -206,6 +207,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             ushort? numberingListIndex = null;
             byte? numberingLevel = null;
             byte? verticalCharacterAlignment = null;
+            byte? outlineLevel = null;
             LegacyDocParagraphShading? paragraphShading = null;
             LegacyDocParagraphBorder paragraphTopBorder = default;
             LegacyDocParagraphBorder paragraphLeftBorder = default;
@@ -370,6 +372,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     byte level = bytes[offset + 2];
                     if (level <= 8) {
                         numberingLevel = level;
+                    }
+
+                    offset += 3;
+                    continue;
+                }
+
+                if (sprm == SprmPOutLvl) {
+                    if (offset + 3 > end) {
+                        break;
+                    }
+
+                    byte level = bytes[offset + 2];
+                    if (level <= 8) {
+                        outlineLevel = level;
                     }
 
                     offset += 3;
@@ -703,7 +719,8 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     paragraphLeftBorder,
                     paragraphBottomBorder,
                     paragraphRightBorder,
-                    paragraphBetweenBorder));
+                    paragraphBetweenBorder),
+                outlineLevel);
         }
 
         private static LegacyDocParagraphShading ReadParagraphShading(ushort shd80) {

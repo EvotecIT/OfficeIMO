@@ -1325,6 +1325,10 @@ namespace OfficeIMO.Word {
                 paragraph.VerticalCharacterAlignmentOnLine = verticalCharacterAlignment;
             }
 
+            if (paragraphFormat.OutlineLevel != null) {
+                EnsureLegacyDocParagraphProperties(paragraph).Append(new OutlineLevel { Val = paragraphFormat.OutlineLevel.Value });
+            }
+
             if (paragraphFormat.SpacingBeforeTwips != null) {
                 paragraph.LineSpacingBefore = paragraphFormat.SpacingBeforeTwips;
             }
@@ -1919,6 +1923,11 @@ namespace OfficeIMO.Word {
 
             if (paragraphFormat.VerticalCharacterAlignment != null && TryMapVerticalCharacterAlignment(paragraphFormat.VerticalCharacterAlignment.Value, out VerticalTextAlignmentValues verticalCharacterAlignment)) {
                 properties.Append(new TextAlignment { Val = verticalCharacterAlignment });
+                hasProperties = true;
+            }
+
+            if (paragraphFormat.OutlineLevel != null) {
+                properties.Append(new OutlineLevel { Val = paragraphFormat.OutlineLevel.Value });
                 hasProperties = true;
             }
 
