@@ -1090,7 +1090,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
 
-            if (cell.Elements<Table>().Any()) {
+            if (cell.Descendants<Table>().Any()) {
                 throw new NotSupportedException("Native DOC saving supports simple tables only. Nested tables are not supported yet.");
             }
 
@@ -1102,6 +1102,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case Paragraph cellParagraph:
                         paragraphs.Add(cellParagraph);
+                        break;
+                    case SdtBlock sdtBlock:
+                        AddSupportedTableCellContentControlParagraphs(sdtBlock, paragraphs);
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports simple tables only. Unsupported table cell element: {child.LocalName}.");
@@ -1122,6 +1125,26 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             finalParagraphStart = text.Length;
             return AppendTableCellParagraph(text, runs, bookmarks, paragraphs[paragraphs.Count - 1], mainPart, styleIndexes, tableStyleParagraphFormatting, tableStyleRunFormatting, footnotes, endnotes);
+        }
+
+        private static void AddSupportedTableCellContentControlParagraphs(SdtBlock sdtBlock, List<Paragraph> paragraphs) {
+            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
+            if (contentBlock == null) {
+                throw new NotSupportedException("Native DOC saving supports table cell content controls only when they contain simple paragraphs.");
+            }
+
+            foreach (OpenXmlElement child in contentBlock.ChildElements) {
+                switch (child) {
+                    case Paragraph paragraph:
+                        paragraphs.Add(paragraph);
+                        break;
+                    case SdtBlock childContentControl:
+                        AddSupportedTableCellContentControlParagraphs(childContentControl, paragraphs);
+                        break;
+                    default:
+                        throw new NotSupportedException($"Native DOC saving supports table cell content controls only when they contain simple paragraphs. Unsupported table cell content control element: {child.LocalName}.");
+                }
+            }
         }
 
         private static void ThrowIfUnsupportedTableCellProperties(TableCellProperties cellProperties) {

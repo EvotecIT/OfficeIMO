@@ -160,37 +160,22 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             SectionMarkValues? pendingSectionBreakType = null;
             int bodyContentCount = 0;
             foreach (OpenXmlElement child in body.ChildElements) {
-                switch (child) {
-                    case Paragraph paragraph:
-                        if (!IsPureSectionBreakParagraph(paragraph)) {
-                            AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart!, styleSheet.StyleIndexes, footnotes, endnotes);
-                            bodyContentCount++;
-                        }
-
-                        SectionProperties? paragraphSectionProperties = paragraph.ParagraphProperties?.SectionProperties;
-                        if (paragraphSectionProperties != null) {
-                            LegacyDocSectionFormat paragraphSectionFormat = ReadSupportedSectionProperties(paragraphSectionProperties);
-                            AddSection(sections, text.Length, paragraphSectionFormat.WithSectionBreakType(pendingSectionBreakType));
-                            pendingSectionBreakType = paragraphSectionFormat.SectionBreakType;
-                        }
-
-                        break;
-                    case Table table:
-                        AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart!, styleSheet.StyleIndexes, tableStyleDefinitions, footnotes, endnotes);
-                        bodyContentCount++;
-                        break;
-                    case BookmarkStart bookmarkStart:
-                        bookmarks.AddStart(bookmarkStart, text.Length);
-                        break;
-                    case BookmarkEnd bookmarkEnd:
-                        bookmarks.AddEnd(bookmarkEnd, text.Length);
-                        break;
-                    case SectionProperties sectionProperties:
-                        finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);
-                        break;
-                    default:
-                        throw new NotSupportedException($"Native DOC saving currently supports body paragraphs and simple tables with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported body element: {child.LocalName}.");
-                }
+                AppendBodyChild(
+                    text,
+                    runs,
+                    paragraphFormats,
+                    bookmarks,
+                    child,
+                    mainPart!,
+                    styleSheet.StyleIndexes,
+                    tableStyleDefinitions,
+                    footnotes,
+                    endnotes,
+                    sections,
+                    ref finalSectionFormat,
+                    ref pendingSectionBreakType,
+                    ref bodyContentCount,
+                    "body");
             }
 
             if (bodyContentCount == 0) {
@@ -342,6 +327,112 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             sections.Add(new LegacyDocWritableSection(endCharacter, format));
+        }
+
+        private static void AppendBodyChild(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            List<LegacyDocWritableParagraph> paragraphFormats,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            OpenXmlElement child,
+            MainDocumentPart mainPart,
+            IReadOnlyDictionary<string, ushort> styleIndexes,
+            IReadOnlyDictionary<string, Style> tableStyleDefinitions,
+            LegacyDocWritableFootnotes footnotes,
+            LegacyDocWritableEndnotes endnotes,
+            List<LegacyDocWritableSection> sections,
+            ref LegacyDocSectionFormat finalSectionFormat,
+            ref SectionMarkValues? pendingSectionBreakType,
+            ref int bodyContentCount,
+            string containerDescription) {
+            switch (child) {
+                case Paragraph paragraph:
+                    if (!IsPureSectionBreakParagraph(paragraph)) {
+                        AppendParagraph(text, runs, paragraphFormats, bookmarks, paragraph, mainPart, styleIndexes, footnotes, endnotes);
+                        bodyContentCount++;
+                    }
+
+                    SectionProperties? paragraphSectionProperties = paragraph.ParagraphProperties?.SectionProperties;
+                    if (paragraphSectionProperties != null) {
+                        LegacyDocSectionFormat paragraphSectionFormat = ReadSupportedSectionProperties(paragraphSectionProperties);
+                        AddSection(sections, text.Length, paragraphSectionFormat.WithSectionBreakType(pendingSectionBreakType));
+                        pendingSectionBreakType = paragraphSectionFormat.SectionBreakType;
+                    }
+
+                    break;
+                case Table table:
+                    AppendTable(text, runs, paragraphFormats, bookmarks, table, mainPart, styleIndexes, tableStyleDefinitions, footnotes, endnotes);
+                    bodyContentCount++;
+                    break;
+                case SdtBlock sdtBlock:
+                    AppendBodyContentControl(
+                        text,
+                        runs,
+                        paragraphFormats,
+                        bookmarks,
+                        sdtBlock,
+                        mainPart,
+                        styleIndexes,
+                        tableStyleDefinitions,
+                        footnotes,
+                        endnotes,
+                        sections,
+                        ref finalSectionFormat,
+                        ref pendingSectionBreakType,
+                        ref bodyContentCount);
+                    break;
+                case BookmarkStart bookmarkStart:
+                    bookmarks.AddStart(bookmarkStart, text.Length);
+                    break;
+                case BookmarkEnd bookmarkEnd:
+                    bookmarks.AddEnd(bookmarkEnd, text.Length);
+                    break;
+                case SectionProperties sectionProperties:
+                    finalSectionFormat = ReadSupportedSectionProperties(sectionProperties);
+                    break;
+                default:
+                    throw new NotSupportedException($"Native DOC saving currently supports body paragraphs, simple body content controls, and simple tables with bold, italic, strikethrough, double-strikethrough, outline, shadow, emboss, imprint, hidden text, proofing exclusion, caps/small-caps, superscript/subscript, underline, highlight, font size, color, and font family text runs. Unsupported {containerDescription} element: {child.LocalName}.");
+            }
+        }
+
+        private static void AppendBodyContentControl(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            List<LegacyDocWritableParagraph> paragraphFormats,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            SdtBlock sdtBlock,
+            MainDocumentPart mainPart,
+            IReadOnlyDictionary<string, ushort> styleIndexes,
+            IReadOnlyDictionary<string, Style> tableStyleDefinitions,
+            LegacyDocWritableFootnotes footnotes,
+            LegacyDocWritableEndnotes endnotes,
+            List<LegacyDocWritableSection> sections,
+            ref LegacyDocSectionFormat finalSectionFormat,
+            ref SectionMarkValues? pendingSectionBreakType,
+            ref int bodyContentCount) {
+            SdtContentBlock? contentBlock = sdtBlock.SdtContentBlock;
+            if (contentBlock == null) {
+                throw new NotSupportedException("Native DOC saving supports body content controls only when they contain simple body content.");
+            }
+
+            foreach (OpenXmlElement child in contentBlock.ChildElements) {
+                AppendBodyChild(
+                    text,
+                    runs,
+                    paragraphFormats,
+                    bookmarks,
+                    child,
+                    mainPart,
+                    styleIndexes,
+                    tableStyleDefinitions,
+                    footnotes,
+                    endnotes,
+                    sections,
+                    ref finalSectionFormat,
+                    ref pendingSectionBreakType,
+                    ref bodyContentCount,
+                    "body content control");
+            }
         }
 
         private static void AppendParagraph(StringBuilder text, List<LegacyDocWritableRun> runs, List<LegacyDocWritableParagraph> paragraphFormats, LegacyDocWritableBookmarksBuilder bookmarks, Paragraph paragraph, MainDocumentPart mainPart, IReadOnlyDictionary<string, ushort> styleIndexes, LegacyDocWritableFootnotes footnotes, LegacyDocWritableEndnotes endnotes) {

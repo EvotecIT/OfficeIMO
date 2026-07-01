@@ -7961,6 +7961,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBodyContentControlSectionBreakAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Paragraph defaultParagraph = document.AddParagraph("Default section")._paragraph;
+                    var controlledParagraph = new Paragraph(
+                        new ParagraphProperties(
+                            new SectionProperties(
+                                new PageSize {
+                                    Width = 15840U,
+                                    Height = 12240U,
+                                    Orient = PageOrientationValues.Landscape
+                                })),
+                        new Run(new Text("Controlled section")));
+                    var contentControl = new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC body content control" }),
+                        new SdtContentBlock(controlledParagraph));
+
+                    Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+                    body.InsertBefore(contentControl, defaultParagraph);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("Controlled section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
+                Assert.Equal("Default section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+                Assert.Empty(reloaded._wordprocessingDocument!.MainDocumentPart!.Document.Body!.Descendants<SdtBlock>());
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSectionBreakAfterTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -7995,6 +8034,39 @@ namespace OfficeIMO.Tests {
                 Assert.Equal((uint)720, reloaded.Sections[1].Margins.Right!.Value);
                 Assert.Equal(720, reloaded.Sections[1].Margins.Bottom);
                 Assert.Equal((uint)720, reloaded.Sections[1].Margins.Left!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellContentControlAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with table cell content control");
+                    WordTable table = document.AddTable(1, 1);
+                    WordTableCell cell = table.Rows[0].Cells[0];
+                    cell._tableCell.RemoveAllChildren<Paragraph>();
+                    cell._tableCell.Append(new SdtBlock(
+                        new SdtProperties(new SdtAlias { Val = "Legacy DOC table cell content control" }),
+                        new SdtContentBlock(
+                            new Paragraph(new Run(new Text("Controlled cell paragraph one"))),
+                            new Paragraph(new Run(new Text("Controlled cell paragraph two"))))));
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordTableCell reloadedCell = reloadedTable.Rows[0].Cells[0];
+                Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Controlled cell paragraph one");
+                Assert.Contains(reloadedCell.Paragraphs, paragraph => paragraph.Text == "Controlled cell paragraph two");
+                Assert.Empty(reloadedCell._tableCell.Descendants<SdtBlock>());
             } finally {
                 DeleteIfExists(docPath);
             }

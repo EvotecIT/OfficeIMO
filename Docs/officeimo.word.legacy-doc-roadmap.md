@@ -470,6 +470,9 @@ just to reserve names.
     reader.
   - [ ] Add section breaks inside richer body shapes, headers, footers,
     footnotes, and endnotes as separate fixture-backed slices.
+    - [x] Write section-breaking paragraphs inside simple body block content
+      controls by flattening supported content-control children into native
+      DOC body content, then reload the section split through the legacy reader.
 - [x] Wire unsupported/preserve-only DOC features into `LegacyDocImportReport`
   and loaded `WordDocument` state.
   - [x] Report unsupported header/footer, footnote, endnote, comment, and text
@@ -880,6 +883,10 @@ just to reserve names.
     - [x] Write body bookmark ranges that cross paragraph/table block
       boundaries in either direction, then reload the paragraph-side and
       table-side bookmark markers without reporting preserve-only loss.
+    - [x] Write simple body and table-cell block content controls by flattening
+      supported child paragraphs/tables into native DOC content, while still
+      blocking nested tables and unsupported child markup before bytes are
+      committed.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
 - [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
