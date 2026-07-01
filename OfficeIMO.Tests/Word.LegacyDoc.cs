@@ -6,9 +6,11 @@ using OfficeIMO.Shared;
 using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.ExtendedProperties;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OpenMcdf;
 using Xunit;
+using Charts = DocumentFormat.OpenXml.Drawing.Charts;
 using Version = OpenMcdf.Version;
 using StorageModeFlags = OpenMcdf.StorageModeFlags;
 
@@ -7248,6 +7250,49 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("Images", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksChartPartsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Chart placeholder");
+                ChartPart chartPart = document._wordprocessingDocument!.MainDocumentPart!.AddNewPart<ChartPart>();
+                chartPart.ChartSpace = new Charts.ChartSpace(new Charts.Chart());
+                chartPart.ChartSpace.Save();
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("Charts", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksEmbeddedPackagePartsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Embedded package placeholder");
+                EmbeddedPackagePart embeddedPackagePart = document._wordprocessingDocument!.MainDocumentPart!.AddNewPart<EmbeddedPackagePart>(
+                    "application/octet-stream",
+                    "rIdLegacyDocEmbeddedPackagePreflight");
+                using (var stream = new MemoryStream(new byte[] { 1, 2, 3, 4 })) {
+                    embeddedPackagePart.FeedData(stream);
+                }
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("Embedded objects and packages", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
