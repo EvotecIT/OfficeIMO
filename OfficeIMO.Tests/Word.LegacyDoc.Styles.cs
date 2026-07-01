@@ -67,6 +67,68 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleCapsAndVerticalPositionAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string capsStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+            string smallCapsStyleId = WordParagraphStyles.Heading2.ToStringStyle();
+            string superscriptStyleId = WordParagraphStyles.Heading3.ToStringStyle();
+            string subscriptStyleId = WordParagraphStyles.Heading4.ToStringStyle();
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    EnsureParagraphStyle(styles, capsStyleId).StyleRunProperties = new StyleRunProperties(new Caps());
+                    EnsureParagraphStyle(styles, smallCapsStyleId).StyleRunProperties = new StyleRunProperties(new SmallCaps());
+                    EnsureParagraphStyle(styles, superscriptStyleId).StyleRunProperties = new StyleRunProperties(new VerticalTextAlignment { Val = VerticalPositionValues.Superscript });
+                    EnsureParagraphStyle(styles, subscriptStyleId).StyleRunProperties = new StyleRunProperties(new VerticalTextAlignment { Val = VerticalPositionValues.Subscript });
+
+                    document.AddParagraph("Built-in caps paragraph").SetStyle(WordParagraphStyles.Heading1);
+                    document.AddParagraph("Built-in small caps paragraph").SetStyle(WordParagraphStyles.Heading2);
+                    document.AddParagraph("Built-in superscript paragraph").SetStyle(WordParagraphStyles.Heading3);
+                    document.AddParagraph("Built-in subscript paragraph").SetStyle(WordParagraphStyles.Heading4);
+
+                    document.Save(docPath);
+                }
+
+                byte[] tableStream = ReadCompoundStream(File.ReadAllBytes(docPath), "1Table");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3B, 0x08, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmCFCaps for built-in paragraph style all-caps.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x3A, 0x08, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmCFSmallCaps for built-in paragraph style small-caps.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x48, 0x2A, 0x01),
+                    "Expected the native DOC stylesheet stream to contain sprmCIss superscript for built-in paragraph style vertical position.");
+                Assert.True(
+                    ContainsBytePattern(tableStream, 0x48, 0x2A, 0x02),
+                    "Expected the native DOC stylesheet stream to contain sprmCIss subscript for built-in paragraph style vertical position.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(
+                    new[] {
+                        "Built-in caps paragraph",
+                        "Built-in small caps paragraph",
+                        "Built-in superscript paragraph",
+                        "Built-in subscript paragraph"
+                    },
+                    reloaded.Paragraphs.Select(paragraph => paragraph.Text).ToArray());
+
+                Styles stylesAfterReload = reloaded._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                Assert.NotNull(AssertBuiltInStyleRunProperties(stylesAfterReload, capsStyleId).GetFirstChild<Caps>());
+                Assert.NotNull(AssertBuiltInStyleRunProperties(stylesAfterReload, smallCapsStyleId).GetFirstChild<SmallCaps>());
+                VerticalTextAlignment superscriptPosition = Assert.IsType<VerticalTextAlignment>(AssertBuiltInStyleRunProperties(stylesAfterReload, superscriptStyleId).GetFirstChild<VerticalTextAlignment>());
+                Assert.Equal(VerticalPositionValues.Superscript, superscriptPosition.Val!.Value);
+                VerticalTextAlignment subscriptPosition = Assert.IsType<VerticalTextAlignment>(AssertBuiltInStyleRunProperties(stylesAfterReload, subscriptStyleId).GetFirstChild<VerticalTextAlignment>());
+                Assert.Equal(VerticalPositionValues.Subscript, subscriptPosition.Val!.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocBuiltInStyleShadingAndBordersAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
@@ -177,6 +239,21 @@ namespace OfficeIMO.Tests {
             } finally {
                 DeleteIfExists(docPath);
             }
+        }
+
+        private static Style EnsureParagraphStyle(Styles styles, string styleId) {
+            Style style = styles.Elements<Style>().FirstOrDefault(item => item.StyleId == styleId)
+                ?? new Style { Type = StyleValues.Paragraph, StyleId = styleId };
+            if (style.Parent == null) {
+                styles.Append(style);
+            }
+
+            return style;
+        }
+
+        private static StyleRunProperties AssertBuiltInStyleRunProperties(Styles styles, string styleId) {
+            Style style = Assert.Single(styles.Elements<Style>(), item => item.StyleId == styleId);
+            return Assert.IsType<StyleRunProperties>(style.StyleRunProperties);
         }
     }
 }

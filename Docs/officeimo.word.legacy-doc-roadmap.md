@@ -651,6 +651,9 @@ just to reserve names.
     shading and borders through native DOC save/reload.
   - [x] Preserve supported built-in Heading paragraph style tab stops through
     native DOC save/reload.
+  - [x] Preserve supported built-in Heading paragraph style all-caps,
+    small-caps, superscript, and subscript run formatting through native DOC
+    save/reload.
   - [x] Preserve native DOC custom paragraph styles that inherit from formatted
     built-in Heading styles by emitting the required built-in base style records
     even when the Heading style is not used directly.
