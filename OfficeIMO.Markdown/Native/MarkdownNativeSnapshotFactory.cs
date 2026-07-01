@@ -121,6 +121,7 @@ internal static class MarkdownNativeSnapshotFactory {
                     ("calloutOpeningMarker", callout.OpeningMarkerSourceSpan),
                     ("calloutKind", callout.KindSourceSpan),
                     ("calloutClosingMarker", callout.ClosingMarkerSourceSpan),
+                    ("calloutTitle", callout.TitleSourceSpan),
                     ("title", callout.TitleSourceSpan),
                     ("calloutBody", callout.BodySourceSpan));
                 break;

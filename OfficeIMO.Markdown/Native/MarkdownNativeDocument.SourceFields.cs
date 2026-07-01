@@ -160,6 +160,7 @@ public sealed partial class MarkdownNativeDocument {
                 }
 
                 if (callout.TitleSourceSpan.HasValue) {
+                    yield return new MarkdownNativeBlockSourceField("calloutTitle", callout.Title, callout.TitleSourceSpan.Value, callout);
                     yield return new MarkdownNativeBlockSourceField("title", callout.Title, callout.TitleSourceSpan.Value, callout);
                 }
 
