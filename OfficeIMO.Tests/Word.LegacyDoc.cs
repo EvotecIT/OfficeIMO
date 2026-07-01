@@ -7325,6 +7325,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocTextParagraphSectionBreakAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph firstSectionParagraph = document.AddParagraph("Text paragraph section");
+                    ParagraphProperties paragraphProperties = firstSectionParagraph._paragraph.GetFirstChild<ParagraphProperties>()
+                        ?? firstSectionParagraph._paragraph.PrependChild(new ParagraphProperties());
+                    paragraphProperties.Append(new SectionProperties(
+                        new PageSize {
+                            Width = 15840U,
+                            Height = 12240U,
+                            Orient = PageOrientationValues.Landscape
+                        },
+                        new PageMargin {
+                            Top = 720,
+                            Right = 720U,
+                            Bottom = 720,
+                            Left = 720U
+                        }));
+                    document.AddParagraph("Default section");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("Text paragraph section", Assert.Single(reloaded.Sections[0].Paragraphs).Text);
+                Assert.Equal("Default section", Assert.Single(reloaded.Sections[1].Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocSectionBreakAfterTableAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

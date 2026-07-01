@@ -7,13 +7,16 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) =>
             ReadSupportedParagraphFormattingCore(paragraphProperties, styleIndexes, allowParagraphStyleId: true);
 
+        private static LegacyDocWritableParagraphFormatting ReadSupportedBodyParagraphFormatting(ParagraphProperties? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes) =>
+            ReadSupportedParagraphFormattingCore(paragraphProperties, styleIndexes, allowParagraphStyleId: true, allowSectionProperties: true);
+
         private static LegacyDocWritableParagraphFormatting ReadSupportedStyleParagraphFormatting(StyleParagraphProperties? paragraphProperties) =>
             ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false);
 
         private static LegacyDocWritableParagraphFormatting ReadSupportedBuiltInStyleParagraphFormatting(ushort styleIndex, StyleParagraphProperties? paragraphProperties) =>
             ReadSupportedParagraphFormattingCore(paragraphProperties, EmptyStyleIndexes, allowParagraphStyleId: false, builtInStyleIndex: styleIndex);
 
-        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId, ushort? builtInStyleIndex = null) {
+        private static LegacyDocWritableParagraphFormatting ReadSupportedParagraphFormattingCore(OpenXmlCompositeElement? paragraphProperties, IReadOnlyDictionary<string, ushort> styleIndexes, bool allowParagraphStyleId, ushort? builtInStyleIndex = null, bool allowSectionProperties = false) {
             if (paragraphProperties == null || !paragraphProperties.HasChildren) {
                 return LegacyDocWritableParagraphFormatting.Plain;
             }
@@ -127,6 +130,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         break;
                     case OutlineLevel outlineLevel:
                         ReadSupportedBuiltInOutlineLevel(outlineLevel, builtInStyleIndex);
+                        break;
+                    case SectionProperties when allowSectionProperties:
                         break;
                     default:
                         throw new NotSupportedException($"Native DOC saving currently supports only built-in paragraph styles, simple numbering, alignment, vertical character alignment, East Asian typography flags, bidirectional layout, mirror indents, contextual spacing, suppressing automatic hyphenation, spacing, indentation, pagination flags, tab stops, palette-backed paragraph shading, and palette-backed paragraph borders. Unsupported paragraph property: {property.LocalName}.");

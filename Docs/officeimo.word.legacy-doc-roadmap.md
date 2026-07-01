@@ -778,6 +778,9 @@ just to reserve names.
     dropped.
   - [x] Write paragraph-boundary next-page section breaks with simple
     per-section page setup, then reload them through the legacy reader.
+  - [x] Write text-bearing body paragraphs that carry their own section
+    properties, then reload the paragraph text and section boundary through the
+    legacy reader.
   - [x] Write paragraph-boundary section break kinds, including continuous
     breaks, then reload them through the legacy reader.
   - [x] Write paragraph-boundary section breaks after simple table body blocks,
