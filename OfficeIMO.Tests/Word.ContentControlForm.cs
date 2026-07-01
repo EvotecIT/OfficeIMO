@@ -159,6 +159,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ContentControlFormValidationAcceptsListItemValues() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithContentControlFormListItemValues.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordDropDownList country = document.AddParagraph("Country:").AddDropDownList(new[] { "United States" }, "Country Alias", "Country");
+                ListItem countryItem = country._sdtRun.SdtProperties!.GetFirstChild<SdtContentDropDownList>()!.Elements<ListItem>().Single();
+                countryItem.Value = "US";
+                countryItem.DisplayText = "United States";
+
+                WordComboBox status = document.AddParagraph("Status:").AddComboBox(new[] { "In progress" }, "Status Alias", "Status", defaultValue: "In progress");
+                ListItem statusItem = status._sdtRun.SdtProperties!.GetFirstChild<SdtContentComboBox>()!.Elements<ListItem>().Single();
+                statusItem.Value = "IP";
+                statusItem.DisplayText = "In progress";
+
+                WordContentControlFormValidationResult validation = document.ValidateContentControlValues(new Dictionary<string, object?> {
+                    ["Country"] = "US",
+                    ["Status"] = "IP"
+                });
+
+                Assert.True(validation.IsValid, validation.ToJson());
+                int updated = document.FillContentControlValues(new Dictionary<string, object?> {
+                    ["Country"] = "US",
+                    ["Status"] = "IP"
+                });
+
+                Assert.Equal(2, updated);
+                Assert.Equal("US", country.SelectedValue);
+                Assert.Equal("IP", status.SelectedValue);
+            }
+        }
+
+        [Fact]
         public void Test_ContentControlFormValidationReportsMissingInvalidAndUnusedValues() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithContentControlFormValidation.docx");
             string imagePath = Path.Combine(_directoryWithImages, "Kulek.jpg");
