@@ -110,6 +110,7 @@ public static partial class MarkdownReader {
 
         CopyBlockParserExtensions(source, clone);
         CopyInlineParserExtensions(source, clone);
+        CopyInlineTransformExtensions(source, clone);
         CopyFencedBlockExtensions(source, clone);
         CopyDocumentTransforms(source, clone);
         return clone;
@@ -258,6 +259,25 @@ public static partial class MarkdownReader {
             var extension = extensions[i];
             if (extension != null) {
                 target.InlineParserExtensions.Add(extension);
+            }
+        }
+    }
+
+    private static void CopyInlineTransformExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+        if (source == null || target == null) {
+            return;
+        }
+
+        var extensions = source.InlineTransformExtensions;
+        target.InlineTransformExtensions.Clear();
+        if (extensions.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < extensions.Count; i++) {
+            var extension = extensions[i];
+            if (extension != null) {
+                target.InlineTransformExtensions.Add(extension);
             }
         }
     }

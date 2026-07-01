@@ -145,6 +145,27 @@ public sealed class Markdown_Inline_Extension_Tests {
     }
 
     [Fact]
+    public void InlineTransformExtensions_Are_Copied_To_Nested_Reader_Options() {
+        var options = new MarkdownReaderOptions();
+        options.InlineTransformExtensions.Add(new MarkdownInlineTransformExtension(
+            "nested-text",
+            static (sequence, _) => {
+                sequence.ReplaceItems(sequence.Nodes.Select(node =>
+                    node is TextRun text && string.Equals(text.Text, "core", StringComparison.Ordinal)
+                        ? new TextRun("nested")
+                        : node));
+                return sequence;
+            }));
+
+        var document = MarkdownReader.Parse("> core", options);
+
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
+        Assert.Equal("nested", text.Text);
+    }
+
+    [Fact]
     public void InlineTransformContext_Can_Create_SourceSlices_For_Parsed_Inlines() {
         MarkdownSourceSpan? strongSpan = null;
         MarkdownSourceSlice strongSlice = default;

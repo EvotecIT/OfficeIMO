@@ -72,6 +72,28 @@ First paragraph
         }
 
         [Fact]
+        public void Structured_Table_Cells_Preserve_GenericAttribute_Options_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| {#cell}<br># Cell |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.GenericAttributes = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+            var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
+            var heading = Assert.IsType<HeadingBlock>(Assert.Single(cell.Blocks));
+            var html = doc.ToHtmlFragment();
+
+            Assert.Equal("cell", heading.Attributes.ElementId);
+            Assert.Contains("<h1 id=\"cell\">Cell</h1>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("{#cell}", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Parsing_Does_Not_Treat_Unmatched_Multi_Backticks_As_Code_Spans() {
             string md = """
 | Col1 | Col2 |

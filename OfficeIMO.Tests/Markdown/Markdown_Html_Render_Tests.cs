@@ -465,6 +465,21 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Link_Html_Preserves_Ipv6_Authority_Brackets() {
+            const string markdown = "[loopback](http://[::1]/)";
+
+            string html = MarkdownReader.Parse(markdown)
+                .ToHtmlFragment(new HtmlOptions {
+                    Style = HtmlStyle.Plain,
+                    CssDelivery = CssDelivery.None,
+                    BodyClass = null
+                });
+
+            Assert.Contains("href=\"http://[::1]/\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"http://%5B::1%5D/\"", html, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void GitHubFlavoredMarkdown_Html_Profile_Uses_GitHub_Heading_Identifiers() {
             const string markdown = """
 # Hello World!

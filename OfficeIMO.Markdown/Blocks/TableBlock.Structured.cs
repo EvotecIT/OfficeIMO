@@ -21,6 +21,8 @@ public sealed partial class TableBlock {
         var state = InlineRenderState == null
             ? new MarkdownReaderState()
             : CloneState(InlineRenderState);
+        state.SuppressBlockGenericAttributes = false;
+        state.SuppressHeadingGenericAttributes = false;
         var blocks = MarkdownReader.ParseBlockFragment(normalized, options, state);
         if (blocks.Count == 0) {
             return null;
@@ -187,8 +189,10 @@ public sealed partial class TableBlock {
         clone.Footnotes = source.Footnotes;
         clone.SingleTildeStrikethrough = source.SingleTildeStrikethrough;
         clone.Subscript = source.Subscript;
+        clone.CjkFriendlyEmphasis = source.CjkFriendlyEmphasis;
         clone.PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions;
         clone.HtmlBlocks = source.HtmlBlocks;
+        clone.PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent;
         clone.Paragraphs = source.Paragraphs;
         clone.AutolinkUrls = source.AutolinkUrls;
         clone.AutolinkAllowDomainWithoutPeriod = source.AutolinkAllowDomainWithoutPeriod;
@@ -211,6 +215,9 @@ public sealed partial class TableBlock {
         clone.BackslashHardBreaks = source.BackslashHardBreaks;
         clone.SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks;
         clone.InlineHtml = source.InlineHtml;
+        clone.Abbreviations = source.Abbreviations;
+        clone.GenericAttributes = source.GenericAttributes;
+        clone.CustomContainers = source.CustomContainers;
         clone.BaseUri = source.BaseUri;
         clone.DisallowScriptUrls = source.DisallowScriptUrls;
         clone.DisallowFileUrls = source.DisallowFileUrls;
@@ -241,6 +248,13 @@ public sealed partial class TableBlock {
         for (int i = 0; i < source.InlineParserExtensions.Count; i++) {
             if (source.InlineParserExtensions[i] != null) {
                 clone.InlineParserExtensions.Add(source.InlineParserExtensions[i]);
+            }
+        }
+
+        clone.InlineTransformExtensions.Clear();
+        for (int i = 0; i < source.InlineTransformExtensions.Count; i++) {
+            if (source.InlineTransformExtensions[i] != null) {
+                clone.InlineTransformExtensions.Add(source.InlineTransformExtensions[i]);
             }
         }
 

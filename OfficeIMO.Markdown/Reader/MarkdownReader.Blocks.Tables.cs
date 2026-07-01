@@ -372,6 +372,8 @@ public static partial class MarkdownReader {
         var fragmentOptions = CloneOptionsWithoutFrontMatter(options);
         fragmentOptions.Tables = false;
         var fragmentState = CloneState(state);
+        fragmentState.SuppressBlockGenericAttributes = false;
+        fragmentState.SuppressHeadingGenericAttributes = false;
         var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(normalized, fragmentOptions, fragmentState);
         if (blocks.Count == 0) {
             return null;

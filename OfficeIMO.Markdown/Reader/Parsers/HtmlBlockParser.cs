@@ -369,7 +369,8 @@ public static partial class MarkdownReader {
             allowsBlankLines = false;
             tagName = null;
 
-            if (!TryReadHtmlTagNamePrefix(trimmedLine, out var parsedName, out var isClosing, out _)) return false;
+            if (!TryParseTag(trimmedLine, out var parsedName, out var isClosing, out var endIndex)) return false;
+            if (endIndex < 0) return false;
             if (!s_BlockTags.Contains(parsedName!)) return false;
 
             if (!isClosing) {
@@ -546,6 +547,11 @@ public static partial class MarkdownReader {
             if (quote == '"' || quote == '\'') {
                 index++;
                 while (index < line.Length && line[index] != quote) {
+                    if (line[index] == '\\' && index + 1 < line.Length) {
+                        index += 2;
+                        continue;
+                    }
+
                     index++;
                 }
 

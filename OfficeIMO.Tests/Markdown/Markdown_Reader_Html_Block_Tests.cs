@@ -314,6 +314,18 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void CommonMark_Profile_Rejects_Malformed_Type6_Block_Html_Starts() {
+            string md = "<div class\n# Heading";
+
+            var doc = MarkdownReader.Parse(md, MarkdownReaderOptions.CreateCommonMarkProfile());
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            Assert.Equal("<div class", paragraph.Inlines.RenderMarkdown());
+            Assert.IsType<HeadingBlock>(doc.Blocks[1]);
+            Assert.DoesNotContain(doc.Blocks, block => block is HtmlRawBlock);
+        }
+
+        [Fact]
         public void CommonMark_Profile_Treats_Comment_Shorthand_As_Raw_Html_Then_Text() {
             string md = "foo <!--> foo -->\n\nfoo <!---> foo -->";
 

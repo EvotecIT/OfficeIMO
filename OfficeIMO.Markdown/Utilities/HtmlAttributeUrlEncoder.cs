@@ -41,19 +41,15 @@ internal static class HtmlAttributeUrlEncoder {
             return string.Empty;
         }
 
-        if (normalizeHostsToIdn && TryNormalizeAbsoluteUrlWithIdn(value, percentEncodeTilde, out var normalized)) {
+        if (TryNormalizeAbsoluteUrl(value, normalizeHostsToIdn, percentEncodeTilde, out var normalized)) {
             return normalized;
         }
 
         return PercentEncodeRelativeUrl(value, percentEncodeTilde);
     }
 
-    private static bool TryNormalizeAbsoluteUrlWithIdn(string value, bool percentEncodeTilde, out string normalized) {
+    private static bool TryNormalizeAbsoluteUrl(string value, bool normalizeHostsToIdn, bool percentEncodeTilde, out string normalized) {
         normalized = string.Empty;
-        if (!ContainsNonAscii(value)) {
-            return false;
-        }
-
         var schemeSeparator = value.IndexOf("://", System.StringComparison.Ordinal);
         if (schemeSeparator <= 0) {
             return false;
@@ -76,10 +72,23 @@ internal static class HtmlAttributeUrlEncoder {
             return false;
         }
 
-        builder.Append(scheme).Append("://").Append(NormalizeAuthorityHost(authority));
+        bool hasBracketedHost = HasBracketedAuthorityHost(authority);
+        if (!hasBracketedHost && (!normalizeHostsToIdn || !ContainsNonAscii(authority))) {
+            return false;
+        }
+
+        builder.Append(scheme).Append("://").Append(normalizeHostsToIdn ? NormalizeAuthorityHost(authority) : authority);
         builder.Append(PercentEncodeRelativeUrl(value.Substring(authorityEnd), percentEncodeTilde));
         normalized = builder.ToString();
         return true;
+    }
+
+    private static bool HasBracketedAuthorityHost(string authority) {
+        var userInfoEnd = authority.LastIndexOf('@');
+        var hostStart = userInfoEnd >= 0 ? userInfoEnd + 1 : 0;
+        return hostStart < authority.Length
+            && authority[hostStart] == '['
+            && authority.IndexOf(']', hostStart + 1) > hostStart;
     }
 
     private static string NormalizeAuthorityHost(string authority) {
