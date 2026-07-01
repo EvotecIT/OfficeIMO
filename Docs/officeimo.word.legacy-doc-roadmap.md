@@ -438,8 +438,9 @@ just to reserve names.
     DOC section records into normal OfficeIMO section properties, and preserve
     them through native DOC save/reload.
   - [x] Project simple section page numbering start and decimal/roman/letter
-    formats from DOC section records into normal OfficeIMO section properties,
-    and preserve them through native DOC save/reload.
+    plus ordinal/cardinal-text formats from DOC section records into normal
+    OfficeIMO section properties, and preserve them through native DOC
+    save/reload.
   - [x] Project the native right-to-left gutter flag from DOC section records
     into normal OfficeIMO section properties, and preserve it through native
     DOC save/reload.
@@ -881,9 +882,9 @@ just to reserve names.
     settings, then reload them through the legacy reader while blocking
     unequal section columns before native `.doc` bytes are committed.
   - [x] Write simple section page numbering restart/start and
-    decimal/roman/letter formats, then reload them through the legacy reader
-    while blocking unsupported page-number formats before native `.doc` bytes
-    are committed.
+    decimal/roman/letter plus ordinal/cardinal-text formats, then reload them
+    through the legacy reader while blocking unsupported page-number formats
+    before native `.doc` bytes are committed.
   - [x] Write the native right-to-left gutter section flag, then reload it
     through the legacy reader.
   - [x] Write simple section vertical page alignment, then reload it through

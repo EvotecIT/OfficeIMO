@@ -889,6 +889,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return 4;
             }
 
+            if (format == NumberFormatValues.Ordinal) {
+                return 5;
+            }
+
+            if (format == NumberFormatValues.CardinalText) {
+                return 6;
+            }
+
+            if (format == NumberFormatValues.OrdinalText) {
+                return 7;
+            }
+
             return null;
         }
 

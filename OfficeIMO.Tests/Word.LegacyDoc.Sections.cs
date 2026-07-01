@@ -1,5 +1,6 @@
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
+using OfficeIMO.Word.LegacyDoc;
 using Xunit;
 
 namespace OfficeIMO.Tests {
@@ -106,6 +107,50 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(PageBorderOffsetValues.Page, pageBorders.OffsetFrom!.Value);
                 Assert.Equal(PageBorderZOrderValues.Back, pageBorders.ZOrder!.Value);
                 AssertPageBorder(pageBorders.TopBorder, BorderValues.Single, "000000", 4U, 24U);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSectionOrdinalPageNumberFormat() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithSectionOrdinalPageNumbering();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+
+            PageNumberType pageNumberType = result.Document.Sections[0].PageNumberType;
+            Assert.Equal(5, pageNumberType.Start?.Value);
+            Assert.Equal(NumberFormatValues.Ordinal, pageNumberType.Format?.Value);
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSectionOrdinalTextPageNumberingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Section ordinal text page numbering");
+                    document.Sections[0].AddPageNumbering(7, NumberFormatValues.OrdinalText);
+
+                    document.Save(docPath);
+                }
+
+                byte[] wordDocumentStream = ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument");
+                Assert.True(
+                    ContainsBytePattern(wordDocumentStream, 0x0E, 0x30, 0x07),
+                    "Expected the native DOC section property block to contain sprmSNfcPgn with ordinal-text numbering.");
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal("Section ordinal text page numbering", Assert.Single(reloaded.Paragraphs).Text);
+
+                PageNumberType pageNumberType = reloaded.Sections[0].PageNumberType;
+                Assert.Equal(7, pageNumberType.Start?.Value);
+                Assert.Equal(NumberFormatValues.OrdinalText, pageNumberType.Format?.Value);
             } finally {
                 DeleteIfExists(docPath);
             }

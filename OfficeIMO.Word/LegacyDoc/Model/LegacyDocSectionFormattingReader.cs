@@ -523,6 +523,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     return NumberFormatValues.UpperLetter;
                 case 4:
                     return NumberFormatValues.LowerLetter;
+                case 5:
+                    return NumberFormatValues.Ordinal;
+                case 6:
+                    return NumberFormatValues.CardinalText;
+                case 7:
+                    return NumberFormatValues.OrdinalText;
                 default:
                     return null;
             }
