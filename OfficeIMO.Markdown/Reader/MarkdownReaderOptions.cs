@@ -57,6 +57,96 @@ public sealed class MarkdownReaderOptions {
     public static MarkdownReaderOptions CreateOfficeIMOProfile() => new MarkdownReaderOptions();
 
     /// <summary>
+    /// Creates an independent copy of the current reader configuration, including profile toggles and extension registrations.
+    /// </summary>
+    public MarkdownReaderOptions Clone() {
+        var clone = new MarkdownReaderOptions(seedBuiltInBlockParserExtensions: false) {
+            FrontMatter = FrontMatter,
+            Callouts = Callouts,
+            CalloutTitleMode = CalloutTitleMode,
+            Headings = Headings,
+            FencedCode = FencedCode,
+            IndentedCodeBlocks = IndentedCodeBlocks,
+            Images = Images,
+            StandaloneImageBlocks = StandaloneImageBlocks,
+            UnorderedLists = UnorderedLists,
+            TaskLists = TaskLists,
+            OrderedLists = OrderedLists,
+            ListExtras = ListExtras,
+            StrictListIndentation = StrictListIndentation,
+            Tables = Tables,
+            AllowHeaderlessTables = AllowHeaderlessTables,
+            RequireTableBodyRowPipes = RequireTableBodyRowPipes,
+            ParseTableCellBlocks = ParseTableCellBlocks,
+            DefinitionLists = DefinitionLists,
+            TocPlaceholders = TocPlaceholders,
+            Footnotes = Footnotes,
+            Abbreviations = Abbreviations,
+            GenericAttributes = GenericAttributes,
+            CustomContainers = CustomContainers,
+            SingleTildeStrikethrough = SingleTildeStrikethrough,
+            Highlight = Highlight,
+            Inserted = Inserted,
+            Superscript = Superscript,
+            Subscript = Subscript,
+            CjkFriendlyEmphasis = CjkFriendlyEmphasis,
+            PreferNarrativeSingleLineDefinitions = PreferNarrativeSingleLineDefinitions,
+            HtmlBlocks = HtmlBlocks,
+            AllowLooseHtmlBlockStartTags = AllowLooseHtmlBlockStartTags,
+            PreserveHtmlBlockBlankLineContent = PreserveHtmlBlockBlankLineContent,
+            Paragraphs = Paragraphs,
+            AutolinkUrls = AutolinkUrls,
+            AutolinkAllowDomainWithoutPeriod = AutolinkAllowDomainWithoutPeriod,
+            AutolinkAllowQueryAndFragmentSpecialCharacters = AutolinkAllowQueryAndFragmentSpecialCharacters,
+            AutolinkAllowBalancedParenthesesWithTrailingPunctuation = AutolinkAllowBalancedParenthesesWithTrailingPunctuation,
+            AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = AutolinkAllowTrailingPunctuationBeforeClosingParenthesis,
+            AutolinkTrimSingleTrailingPunctuationOrUnderscore = AutolinkTrimSingleTrailingPunctuationOrUnderscore,
+            AutolinkKeepTrailingSemicolonPunctuation = AutolinkKeepTrailingSemicolonPunctuation,
+            AutolinkRequireLowercaseWwwPrefix = AutolinkRequireLowercaseWwwPrefix,
+            AutolinkRejectUnderscoreInWwwHost = AutolinkRejectUnderscoreInWwwHost,
+            AutolinkRejectUnderscoreInWwwSubdomainLabels = AutolinkRejectUnderscoreInWwwSubdomainLabels,
+            AutolinkRejectUnderscoreInUrlHost = AutolinkRejectUnderscoreInUrlHost,
+            AutolinkRejectUserInfoAuthority = AutolinkRejectUserInfoAuthority,
+            AutolinkAllowClosingBracketInUrl = AutolinkAllowClosingBracketInUrl,
+            AutolinkKeepTrailingQuotePunctuation = AutolinkKeepTrailingQuotePunctuation,
+            AutolinkRequireLowercaseBareSchemePrefix = AutolinkRequireLowercaseBareSchemePrefix,
+            AutolinkBareMailtoDisplayAddressOnly = AutolinkBareMailtoDisplayAddressOnly,
+            AutolinkBareMailtoMarkdigSemicolonHandling = AutolinkBareMailtoMarkdigSemicolonHandling,
+            AutolinkValidPreviousCharacters = AutolinkValidPreviousCharacters,
+            AutolinkBareSchemeUrls = AutolinkBareSchemeUrls,
+            AutolinkBareSchemePrefixes = AutolinkBareSchemePrefixes == null
+                ? null
+                : (string[])AutolinkBareSchemePrefixes.Clone(),
+            AutolinkWwwUrls = AutolinkWwwUrls,
+            AutolinkWwwScheme = AutolinkWwwScheme,
+            AutolinkEmails = AutolinkEmails,
+            BackslashHardBreaks = BackslashHardBreaks,
+            SoftLineBreaksAsHardLineBreaks = SoftLineBreaksAsHardLineBreaks,
+            InlineHtml = InlineHtml,
+            BaseUri = BaseUri,
+            DisallowScriptUrls = DisallowScriptUrls,
+            DisallowFileUrls = DisallowFileUrls,
+            AllowMailtoUrls = AllowMailtoUrls,
+            AllowDataUrls = AllowDataUrls,
+            AllowProtocolRelativeUrls = AllowProtocolRelativeUrls,
+            RestrictUrlSchemes = RestrictUrlSchemes,
+            AllowedUrlSchemes = AllowedUrlSchemes == null
+                ? Array.Empty<string>()
+                : (string[])AllowedUrlSchemes.Clone(),
+            InputNormalization = CloneInputNormalizationOptions(InputNormalization),
+            PreserveTrivia = PreserveTrivia,
+            MaxInputCharacters = MaxInputCharacters
+        };
+
+        CopyList(FencedBlockExtensions, clone.FencedBlockExtensions);
+        CopyList(BlockParserExtensions, clone.BlockParserExtensions);
+        CopyList(InlineParserExtensions, clone.InlineParserExtensions);
+        CopyList(InlineTransformExtensions, clone.InlineTransformExtensions);
+        CopyList(DocumentTransforms, clone.DocumentTransforms);
+        return clone;
+    }
+
+    /// <summary>
     /// Creates a CommonMark-style core profile. This disables OfficeIMO-only and GFM-style extensions such as
     /// front matter, task lists, tables, definition lists, TOC placeholders, and footnotes.
     /// </summary>
@@ -591,4 +681,57 @@ public sealed class MarkdownReaderOptions {
     /// </code>
     /// </example>
     public List<IMarkdownDocumentTransform> DocumentTransforms { get; } = new();
+
+    private static void CopyList<T>(IEnumerable<T>? source, ICollection<T> target) {
+        if (source == null || target == null) {
+            return;
+        }
+
+        foreach (var item in source) {
+            if (item != null) {
+                target.Add(item);
+            }
+        }
+    }
+
+    private static MarkdownInputNormalizationOptions CloneInputNormalizationOptions(MarkdownInputNormalizationOptions? source) {
+        if (source == null) {
+            return new MarkdownInputNormalizationOptions();
+        }
+
+        return new MarkdownInputNormalizationOptions {
+            NormalizeZeroWidthSpacingArtifacts = source.NormalizeZeroWidthSpacingArtifacts,
+            NormalizeEmojiWordJoins = source.NormalizeEmojiWordJoins,
+            NormalizeCompactNumberedChoiceBoundaries = source.NormalizeCompactNumberedChoiceBoundaries,
+            NormalizeSentenceCollapsedBullets = source.NormalizeSentenceCollapsedBullets,
+            NormalizeSoftWrappedStrongSpans = source.NormalizeSoftWrappedStrongSpans,
+            NormalizeInlineCodeSpanLineBreaks = source.NormalizeInlineCodeSpanLineBreaks,
+            NormalizeEscapedInlineCodeSpans = source.NormalizeEscapedInlineCodeSpans,
+            NormalizeTightStrongBoundaries = source.NormalizeTightStrongBoundaries,
+            NormalizeTightArrowStrongBoundaries = source.NormalizeTightArrowStrongBoundaries,
+            NormalizeBrokenStrongArrowLabels = source.NormalizeBrokenStrongArrowLabels,
+            NormalizeWrappedSignalFlowStrongRuns = source.NormalizeWrappedSignalFlowStrongRuns,
+            NormalizeSignalFlowLabelSpacing = source.NormalizeSignalFlowLabelSpacing,
+            NormalizeCollapsedMetricChains = source.NormalizeCollapsedMetricChains,
+            NormalizeHostLabelBulletArtifacts = source.NormalizeHostLabelBulletArtifacts,
+            NormalizeTightColonSpacing = source.NormalizeTightColonSpacing,
+            NormalizeHeadingListBoundaries = source.NormalizeHeadingListBoundaries,
+            NormalizeCompactStrongLabelListBoundaries = source.NormalizeCompactStrongLabelListBoundaries,
+            NormalizeCompactHeadingBoundaries = source.NormalizeCompactHeadingBoundaries,
+            NormalizeStandaloneHashHeadingSeparators = source.NormalizeStandaloneHashHeadingSeparators,
+            NormalizeBrokenTwoLineStrongLeadIns = source.NormalizeBrokenTwoLineStrongLeadIns,
+            NormalizeColonListBoundaries = source.NormalizeColonListBoundaries,
+            NormalizeCompactFenceBodyBoundaries = source.NormalizeCompactFenceBodyBoundaries,
+            NormalizeLooseStrongDelimiters = source.NormalizeLooseStrongDelimiters,
+            NormalizeOrderedListMarkerSpacing = source.NormalizeOrderedListMarkerSpacing,
+            NormalizeOrderedListParenMarkers = source.NormalizeOrderedListParenMarkers,
+            NormalizeOrderedListCaretArtifacts = source.NormalizeOrderedListCaretArtifacts,
+            NormalizeCollapsedOrderedListBoundaries = source.NormalizeCollapsedOrderedListBoundaries,
+            NormalizeOrderedListStrongDetailClosures = source.NormalizeOrderedListStrongDetailClosures,
+            NormalizeTightParentheticalSpacing = source.NormalizeTightParentheticalSpacing,
+            NormalizeNestedStrongDelimiters = source.NormalizeNestedStrongDelimiters,
+            NormalizeDanglingTrailingStrongListClosers = source.NormalizeDanglingTrailingStrongListClosers,
+            NormalizeMetricValueStrongRuns = source.NormalizeMetricValueStrongRuns
+        };
+    }
 }

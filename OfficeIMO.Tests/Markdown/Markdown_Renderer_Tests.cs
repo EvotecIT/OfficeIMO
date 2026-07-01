@@ -130,6 +130,24 @@ public class Markdown_Renderer_Tests {
         Assert.DoesNotContain("&lt;span&gt;hello&lt;/span&gt;", html, StringComparison.OrdinalIgnoreCase);
     }
 
+    [Fact]
+    public void MarkdownRenderer_Copies_Full_Profile_ReaderOptions() {
+        var options = new MarkdownRendererOptions {
+            ReaderOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile(),
+            HtmlOptions = new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }
+        };
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("~gone~", options);
+
+        Assert.Contains("<del>gone</del>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<sub>gone</sub>", html, StringComparison.Ordinal);
+    }
+
     [Theory]
     [InlineData("chart")]
     public void MarkdownRenderer_Converts_Chart_Code_Fences_When_Enabled(string language) {

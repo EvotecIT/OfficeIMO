@@ -158,6 +158,26 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Footnote_Definition_FirstParagraph_GenericAttributes_Render_In_Section() {
+            const string markdown = "See [^a].\n\n[^a]: note {#fn .wide}\n";
+            var options = new MarkdownReaderOptions {
+                GenericAttributes = true
+            };
+
+            var document = MarkdownReader.Parse(markdown, options);
+            var html = document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+
+            Assert.Contains("<li id=\"fn:a\"><p id=\"fn\" class=\"wide\">note ", html, StringComparison.Ordinal);
+            Assert.Contains("href=\"#fnref:a\"", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("{#fn .wide}", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Footnote_RenderMarkdown_Roundtrips_Structured_Body_With_Gfm_Profile() {
             var quote = new QuoteBlock();
             quote.Children.Add(new ParagraphBlock(MarkdownReader.ParseInlineText("Quoted *note*")));

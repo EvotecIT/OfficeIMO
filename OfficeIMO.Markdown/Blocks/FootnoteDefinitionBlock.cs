@@ -129,12 +129,14 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
             var sb = new System.Text.StringBuilder();
             for (int i = 0; i < paragraphs.Count; i++) {
                 var paragraph = paragraphs[i] ?? new ParagraphBlock(new InlineSequence());
-                sb.Append("<p id=\"fn:").Append(encLabel).Append("\"><sup>").Append(encLabel).Append("</sup> ")
-                    .Append(paragraph.Inlines.RenderHtml());
-                if (i == paragraphs.Count - 1) {
-                    sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(encLabel).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
-                }
-                sb.Append("</p>");
+                AppendFootnoteParagraphHtml(
+                    sb,
+                    paragraph,
+                    "fn:" + Label,
+                    "<sup>" + encLabel + "</sup> ",
+                    i == paragraphs.Count - 1
+                        ? " <a class=\"footnote-backref\" href=\"#fnref:" + encLabel + "\" aria-label=\"Back to reference\">&#8617;</a>"
+                        : null);
             }
 
             return sb.ToString();
@@ -171,11 +173,14 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
             var paragraphs = CreateParagraphBlocks(blocks);
             for (int i = 0; i < paragraphs.Count; i++) {
                 var paragraph = paragraphs[i] ?? new ParagraphBlock(new InlineSequence());
-                sb.Append("<p>").Append(paragraph.Inlines.RenderHtml());
-                if (i == paragraphs.Count - 1) {
-                    sb.Append(" <a class=\"footnote-backref\" href=\"#fnref:").Append(encLabel).Append("\" aria-label=\"Back to reference\">&#8617;</a>");
-                }
-                sb.Append("</p>");
+                AppendFootnoteParagraphHtml(
+                    sb,
+                    paragraph,
+                    fallbackElementId: null,
+                    prefixHtml: null,
+                    suffixHtml: i == paragraphs.Count - 1
+                        ? " <a class=\"footnote-backref\" href=\"#fnref:" + encLabel + "\" aria-label=\"Back to reference\">&#8617;</a>"
+                        : null);
             }
         } else {
             for (int i = 0; i < blocks.Count; i++) {
@@ -392,6 +397,31 @@ public sealed class FootnoteDefinitionBlock : MarkdownBlock, IMarkdownBlock, ICh
         }
 
         return paragraphs;
+    }
+
+    private static void AppendFootnoteParagraphHtml(
+        System.Text.StringBuilder sb,
+        ParagraphBlock paragraph,
+        string? fallbackElementId,
+        string? prefixHtml,
+        string? suffixHtml) {
+        sb.Append("<p");
+        sb.Append(MarkdownHtmlAttributes.Render(paragraph.Attributes, HtmlRenderContext.Options, fallbackElementId));
+        sb.Append(">");
+        if (!string.IsNullOrEmpty(prefixHtml)) {
+            sb.Append(prefixHtml);
+        }
+
+        sb.Append(paragraph.Inlines.RenderHtml());
+        if (!paragraph.Attributes.IsEmpty && !string.IsNullOrEmpty(paragraph.GenericAttributeConsumedWhitespace)) {
+            sb.Append(HtmlTextEncoder.Encode(paragraph.GenericAttributeConsumedWhitespace, HtmlRenderContext.Options));
+        }
+
+        if (!string.IsNullOrEmpty(suffixHtml)) {
+            sb.Append(suffixHtml);
+        }
+
+        sb.Append("</p>");
     }
 
     private static IReadOnlyList<IMarkdownBlock> CopyBlocks(IReadOnlyList<IMarkdownBlock>? blocks) {
