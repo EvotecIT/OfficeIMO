@@ -8185,6 +8185,53 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData("header")]
+        [InlineData("footer")]
+        [InlineData("footnote")]
+        [InlineData("endnote")]
+        public void LegacyDoc_SaveDocPath_BlocksSectionPropertiesInNonBodyStoriesBeforeCreatingFile(string storyKind) {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Body");
+                WordParagraph paragraph = storyKind switch {
+                    "header" => document.Sections[0]
+                        .GetOrCreateHeader(HeaderFooterValues.Default)
+                        .AddParagraph("Header section break"),
+                    "footer" => document.Sections[0]
+                        .GetOrCreateFooter(HeaderFooterValues.Default)
+                        .AddParagraph("Footer section break"),
+                    "footnote" => document.AddParagraph("Footnote reference")
+                        .AddFootNote("Footnote section break")
+                        .FootNote!.Paragraphs!
+                        .Single(noteParagraph => noteParagraph.Text == "Footnote section break"),
+                    "endnote" => document.AddParagraph("Endnote reference")
+                        .AddEndNote("Endnote section break")
+                        .EndNote!.Paragraphs!
+                        .Single(noteParagraph => noteParagraph.Text == "Endnote section break"),
+                    _ => throw new ArgumentOutOfRangeException(nameof(storyKind), storyKind, null)
+                };
+
+                ParagraphProperties paragraphProperties = paragraph._paragraph.GetFirstChild<ParagraphProperties>()
+                    ?? paragraph._paragraph.PrependChild(new ParagraphProperties());
+                paragraphProperties.Append(new SectionProperties(
+                    new PageSize {
+                        Width = 15840U,
+                        Height = 12240U,
+                        Orient = PageOrientationValues.Landscape
+                    }));
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("Unsupported paragraph property: sectPr", exception.Message);
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
         [Fact]
         public void LegacyDoc_SaveDocPath_BlocksConflictingComplexScriptFontSizeBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");

@@ -933,6 +933,9 @@ just to reserve names.
       flattening supported child paragraphs and nested simple block content
       controls into native DOC note story text, while still blocking
       unsupported note content-control children before bytes are committed.
+    - [x] Block section properties inside header/footer, footnote, and endnote
+      paragraphs before native DOC bytes are committed, keeping section breaks
+      scoped to supported body paragraph boundaries.
     - [x] Write simple inline run content controls by flattening supported runs,
       fields, hyperlinks, bookmarks, and nested inline content controls in body,
       table-cell, header/footer, footnote, and endnote paragraphs through native
