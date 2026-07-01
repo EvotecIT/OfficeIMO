@@ -987,6 +987,9 @@ just to reserve names.
     - [x] Write header/footer-level bookmark start/end markers that sit between
       header or footer paragraphs into native DOC bookmark PLCs, then reload
       them as paragraph-boundary bookmark ranges through the legacy reader.
+    - [x] Write zero-length bookmark markers in otherwise empty header/footer
+      stories, then reload them as empty header/footer paragraphs with the
+      bookmark markers scoped to the correct story.
     - [x] Write footnote/endnote-level bookmark start/end markers that sit
       between note paragraphs into native DOC bookmark PLCs, then reload them
       as paragraph-boundary bookmark ranges through the legacy reader.

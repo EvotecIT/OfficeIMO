@@ -52,6 +52,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             private readonly HashSet<string> _names = new(StringComparer.Ordinal);
             private readonly HashSet<string> _ids = new(StringComparer.Ordinal);
 
+            internal bool HasBookmarkMarkers => _starts.Count > 0 || _bookmarks.Count > 0;
+
             internal void AddStart(BookmarkStart bookmarkStart, int startCharacter) {
                 string id = ReadBookmarkId(bookmarkStart.Id?.Value, "start");
                 string name = ReadBookmarkName(bookmarkStart.Name?.Value);

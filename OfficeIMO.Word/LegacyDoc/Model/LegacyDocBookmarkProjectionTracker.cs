@@ -17,10 +17,18 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             var result = new List<LegacyDocBookmark>();
             foreach (LegacyDocBookmark bookmark in _bookmarks) {
-                bool containsStart = bookmark.StartCharacter >= paragraphStartCharacter
-                    && bookmark.StartCharacter <= paragraphEndCharacter;
-                bool containsEnd = bookmark.EndCharacter >= paragraphStartCharacter
-                    && bookmark.EndCharacter <= paragraphEndCharacter;
+                bool containsStart;
+                bool containsEnd;
+                if (bookmark.IsZeroLength) {
+                    containsStart = IsZeroLengthBookmarkWithinParagraph(bookmark.StartCharacter, paragraphStartCharacter, paragraphEndCharacter);
+                    containsEnd = containsStart;
+                } else {
+                    containsStart = bookmark.StartCharacter >= paragraphStartCharacter
+                        && bookmark.StartCharacter <= paragraphEndCharacter;
+                    containsEnd = bookmark.EndCharacter >= paragraphStartCharacter
+                        && bookmark.EndCharacter <= paragraphEndCharacter;
+                }
+
                 if (!containsStart && !containsEnd) {
                     continue;
                 }
@@ -95,6 +103,14 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         private static bool IsBookmarkEndAtBlockBoundary(LegacyDocBookmark bookmark, int blockStartCharacter, int blockEndCharacter) =>
             bookmark.EndCharacter == blockEndCharacter
             || (bookmark.IsZeroLength && bookmark.EndCharacter == blockStartCharacter);
+
+        private static bool IsZeroLengthBookmarkWithinParagraph(int characterPosition, int paragraphStartCharacter, int paragraphEndCharacter) {
+            if (paragraphStartCharacter == paragraphEndCharacter) {
+                return characterPosition == paragraphStartCharacter;
+            }
+
+            return characterPosition >= paragraphStartCharacter && characterPosition < paragraphEndCharacter;
+        }
 
         internal IEnumerable<LegacyDocBookmark> GetUnprojectedBookmarks() {
             foreach (LegacyDocBookmark bookmark in _bookmarks) {

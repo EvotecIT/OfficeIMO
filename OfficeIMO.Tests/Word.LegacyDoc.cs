@@ -1740,6 +1740,18 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(secondContent, element => element is BookmarkStart);
         }
 
+        private static void AssertZeroLengthBookmarkContent(WordParagraph paragraph, string bookmarkName) {
+            OpenXmlElement[] content = paragraph._paragraph.ChildElements
+                .Where(element => element is not ParagraphProperties && !ContainsNoteReferenceMark(element))
+                .ToArray();
+
+            Assert.Equal(2, content.Length);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(content[0]);
+            Assert.Equal(bookmarkName, bookmarkStart.Name?.Value);
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(content[1]);
+            Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+        }
+
         private static WordParagraph AssertSingleParagraphWithBookmarkStart(IEnumerable<WordParagraph> paragraphs, string bookmarkName) {
             return Assert.Single(
                 DistinctParagraphNodes(paragraphs),
@@ -3449,6 +3461,52 @@ namespace OfficeIMO.Tests {
                     reloadedSection.Footer.Default!.Paragraphs,
                     AssertBookmarkStartId(firstReloadedFooterParagraph, "FooterLevelBookmark"));
                 AssertParagraphBoundaryBookmarkContent(firstReloadedFooterParagraph, secondReloadedFooterParagraph, "FooterLevelBookmark", "FooterFirst", "FooterSecond");
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocEmptyHeaderFooterBookmarkStoriesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Body with empty header footer bookmarks");
+                    document.AddHeadersAndFooters();
+                    WordSection section = document.Sections[0];
+
+                    WordParagraph headerParagraph = section.Header.Default!.AddParagraph();
+                    headerParagraph._paragraph.RemoveAllChildren<Run>();
+                    headerParagraph._paragraph.Append(
+                        new BookmarkStart { Id = "66", Name = "EmptyHeaderBookmark" },
+                        new BookmarkEnd { Id = "66" });
+
+                    WordParagraph footerParagraph = section.Footer.Default!.AddParagraph();
+                    footerParagraph._paragraph.RemoveAllChildren<Run>();
+                    footerParagraph._paragraph.Append(
+                        new BookmarkStart { Id = "67", Name = "EmptyFooterBookmark" },
+                        new BookmarkEnd { Id = "67" });
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EmptyHeaderBookmark");
+                Assert.Contains(reloaded.Bookmarks, bookmark => bookmark.Name == "EmptyFooterBookmark");
+
+                WordSection reloadedSection = Assert.Single(reloaded.Sections);
+                WordParagraph reloadedHeaderParagraph = AssertSingleParagraphWithBookmarkStart(reloadedSection.Header.Default!.Paragraphs, "EmptyHeaderBookmark");
+                WordParagraph reloadedFooterParagraph = AssertSingleParagraphWithBookmarkStart(reloadedSection.Footer.Default!.Paragraphs, "EmptyFooterBookmark");
+
+                Assert.Equal(string.Empty, reloadedHeaderParagraph.Text);
+                Assert.Equal(string.Empty, reloadedFooterParagraph.Text);
+
+                AssertZeroLengthBookmarkContent(reloadedHeaderParagraph, "EmptyHeaderBookmark");
+                AssertZeroLengthBookmarkContent(reloadedFooterParagraph, "EmptyFooterBookmark");
             } finally {
                 DeleteIfExists(docPath);
             }

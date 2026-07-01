@@ -210,7 +210,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             bool hasVisibleText = paragraphs.Any(paragraph => paragraph.Length > 0);
-            if (!hasVisibleText) {
+            if (!hasVisibleText && !bookmarks.HasBookmarkMarkers) {
                 return null;
             }
 
