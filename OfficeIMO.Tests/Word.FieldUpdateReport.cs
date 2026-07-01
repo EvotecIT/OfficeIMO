@@ -1497,6 +1497,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesReferenceListClosingParentheses() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ReferenceListNumbers.Parentheses.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                int numberingId = AddReferenceNumberingDefinition(document, "(%1)");
+                WordParagraph target = document.AddParagraph("Parenthesized target");
+                target._paragraph.ParagraphProperties = new ParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = numberingId }));
+                target.AddBookmark("ParenthesizedTarget");
+                document.AddParagraph("Full reference: ")._paragraph.Append(BuildSimpleField(" REF ParenthesizedTarget \\w ", "stale-w"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                WordFieldUpdateResult result = Assert.Single(report.Results);
+                Assert.Equal(WordFieldType.Ref, result.FieldType);
+                Assert.Equal(WordFieldUpdateStatus.Updated, result.Status);
+                Assert.Equal("(1)", result.ResultText);
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesRefListNumberSwitchesFromParagraphStyles() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ReferenceListNumbers.ParagraphStyles.docx");
 
@@ -1761,6 +1787,7 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Create(filePath)) {
                 document.AddParagraph("Formula: ")._paragraph.Append(BuildSimpleField(" = 2 + 3 * (4 + 1) ", "stale"));
                 document.AddParagraph("Formula with trailing switch: ")._paragraph.Append(BuildSimpleField(" = 2 + 3 \\* MERGEFORMAT ", "stale-mergeformat"));
+                document.AddParagraph("Formula with Roman switch: ")._paragraph.Append(BuildSimpleField(" = 12 \\* Roman ", "stale-roman"));
                 document.AddParagraph("Decimal formula: ")._paragraph.Append(BuildSimpleField(" = 7 / 2 ", "stale"));
                 document.AddParagraph("Sum formula: ")._paragraph.Append(BuildSimpleField(" = SUM(1, 2, 3 + 4) ", "stale"));
                 document.AddParagraph("Average formula: ")._paragraph.Append(BuildSimpleField(" = AVERAGE(2, 4, 6) ", "stale"));
@@ -1783,12 +1810,12 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
-                Assert.Equal(18, report.TotalCount);
-                Assert.Equal(17, report.UpdatedCount);
+                Assert.Equal(19, report.TotalCount);
+                Assert.Equal(18, report.UpdatedCount);
                 Assert.Equal(1, report.UnsupportedCount);
                 Assert.Equal(0, report.ParseErrorCount);
 
-                Assert.Equal(new[] { "17", "5", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0" }, report.Results
+                Assert.Equal(new[] { "17", "5", "XII", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0" }, report.Results
                     .Where(result => result.FieldType == WordFieldType.Formula && result.Status == WordFieldUpdateStatus.Updated)
                     .Select(result => result.ResultText)
                     .ToArray());
@@ -1806,7 +1833,7 @@ namespace OfficeIMO.Tests {
                     .Where(field => field.FieldType == WordFieldType.Formula)
                     .ToArray();
 
-                Assert.Equal(new[] { "17", "5", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0", "stale" }, fields.Select(field => field.ResultText).ToArray());
+                Assert.Equal(new[] { "17", "5", "XII", "3.5", "10", "4", "3", "7", "24", "3", "0.25", "0.25", "2.35", "1300", "3", "-4", "1", "0", "stale" }, fields.Select(field => field.ResultText).ToArray());
             }
         }
 

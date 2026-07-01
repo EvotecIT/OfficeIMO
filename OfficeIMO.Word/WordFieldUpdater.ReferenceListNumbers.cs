@@ -452,7 +452,7 @@ namespace OfficeIMO.Word {
         }
 
         private static string TrimTrailingReferenceDelimiters(string value) {
-            return value.TrimEnd('.', ')', ' ', '\t');
+            return value.TrimEnd('.', ' ', '\t');
         }
 
         private static string ReferenceListSwitchToFieldCode(ReferenceListSwitch listSwitch) {

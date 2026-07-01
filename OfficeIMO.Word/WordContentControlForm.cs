@@ -248,16 +248,14 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            var specializedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (WordCheckBox checkBox in CheckBoxes) AddFormKeys(specializedKeys, keyMode, checkBox.Tag, checkBox.Alias);
-            foreach (WordDatePicker datePicker in DatePickers) AddFormKeys(specializedKeys, keyMode, datePicker.Tag, datePicker.Alias);
-            foreach (WordDropDownList dropDownList in DropDownLists) AddFormKeys(specializedKeys, keyMode, dropDownList.Tag, dropDownList.Alias);
-            foreach (WordComboBox comboBox in ComboBoxes) AddFormKeys(specializedKeys, keyMode, comboBox.Tag, comboBox.Alias);
-            foreach (WordPictureControl pictureControl in PictureControls) AddFormKeys(specializedKeys, keyMode, pictureControl.Tag, pictureControl.Alias);
-            foreach (WordRepeatingSection repeatingSection in RepeatingSections) AddFormKeys(specializedKeys, keyMode, repeatingSection.Tag, repeatingSection.Alias);
+            HashSet<SdtElement> specializedElements = GetSpecializedStructuredDocumentTagElements();
 
             foreach (WordStructuredDocumentTag structuredDocumentTag in StructuredDocumentTags) {
-                if (TryGetFormValue(values, keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias, out object? value, specializedKeys)) {
+                if (IsSpecializedStructuredDocumentTag(structuredDocumentTag, specializedElements)) {
+                    continue;
+                }
+
+                if (TryGetFormValue(values, keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias, out object? value)) {
                     structuredDocumentTag.Text = ConvertFormValueToString(value) ?? string.Empty;
                     updated++;
                 }
@@ -388,17 +386,14 @@ namespace OfficeIMO.Word {
                     "cannot be converted to repeating-section item values.");
             }
 
-            var specializedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (WordCheckBox checkBox in CheckBoxes) AddFormKeys(specializedKeys, keyMode, checkBox.Tag, checkBox.Alias);
-            foreach (WordDatePicker datePicker in DatePickers) AddFormKeys(specializedKeys, keyMode, datePicker.Tag, datePicker.Alias);
-            foreach (WordDropDownList dropDownList in DropDownLists) AddFormKeys(specializedKeys, keyMode, dropDownList.Tag, dropDownList.Alias);
-            foreach (WordComboBox comboBox in ComboBoxes) AddFormKeys(specializedKeys, keyMode, comboBox.Tag, comboBox.Alias);
-            foreach (WordPictureControl pictureControl in PictureControls) AddFormKeys(specializedKeys, keyMode, pictureControl.Tag, pictureControl.Alias);
-            foreach (WordRepeatingSection repeatingSection in RepeatingSections) AddFormKeys(specializedKeys, keyMode, repeatingSection.Tag, repeatingSection.Alias);
+            HashSet<SdtElement> specializedElements = GetSpecializedStructuredDocumentTagElements();
 
             foreach (WordStructuredDocumentTag structuredDocumentTag in StructuredDocumentTags) {
+                if (IsSpecializedStructuredDocumentTag(structuredDocumentTag, specializedElements)) {
+                    continue;
+                }
+
                 var keys = GetFormKeys(keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias)
-                    .Where(key => !specializedKeys.Contains(key))
                     .ToList();
                 if (keys.Count == 0) {
                     continue;
@@ -442,20 +437,31 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddFormKeys(ISet<string> values, WordContentControlFormKey keyMode, string? tag, string? alias) {
-            foreach (string key in GetFormKeys(keyMode, tag, alias)) {
-                values.Add(key);
-            }
+        private bool IsSpecializedStructuredDocumentTag(WordStructuredDocumentTag structuredDocumentTag) {
+            return IsSpecializedStructuredDocumentTag(structuredDocumentTag, GetSpecializedStructuredDocumentTagElements());
         }
 
-        private static bool IsSpecializedStructuredDocumentTag(WordStructuredDocumentTag structuredDocumentTag) {
-            SdtProperties? properties = structuredDocumentTag.SdtElement?.SdtProperties;
-            return properties?.Elements<W14.SdtContentCheckBox>().Any() == true ||
+        private HashSet<SdtElement> GetSpecializedStructuredDocumentTagElements() {
+            var elements = new HashSet<SdtElement>();
+            foreach (WordCheckBox checkBox in CheckBoxes) elements.Add(checkBox._sdtRun);
+            foreach (WordDatePicker datePicker in DatePickers) elements.Add(datePicker._sdtRun);
+            foreach (WordDropDownList dropDownList in DropDownLists) elements.Add(dropDownList._sdtRun);
+            foreach (WordComboBox comboBox in ComboBoxes) elements.Add(comboBox._sdtRun);
+            foreach (WordPictureControl pictureControl in PictureControls) elements.Add(pictureControl._sdtRun);
+            foreach (WordRepeatingSection repeatingSection in RepeatingSections) elements.Add(repeatingSection._sdtRun);
+            return elements;
+        }
+
+        private static bool IsSpecializedStructuredDocumentTag(WordStructuredDocumentTag structuredDocumentTag, ISet<SdtElement> specializedElements) {
+            SdtElement? element = structuredDocumentTag.SdtElement;
+            SdtProperties? properties = element?.SdtProperties;
+            return element != null && (specializedElements.Contains(element) ||
+                   properties?.Elements<W14.SdtContentCheckBox>().Any() == true ||
                    properties?.Elements<SdtContentDate>().Any() == true ||
                    properties?.Elements<SdtContentDropDownList>().Any() == true ||
                    properties?.Elements<SdtContentComboBox>().Any() == true ||
                    properties?.Elements<SdtContentPicture>().Any() == true ||
-                   properties?.Elements<W15.SdtRepeatedSection>().Any() == true;
+                   properties?.Elements<W15.SdtRepeatedSection>().Any() == true);
         }
 
         private static bool TryGetFormValue(

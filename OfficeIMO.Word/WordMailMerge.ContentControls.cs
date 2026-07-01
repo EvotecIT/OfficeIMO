@@ -306,7 +306,7 @@ namespace OfficeIMO.Word {
                     return true;
                 case SdtRow row:
                     row.SdtContentRow ??= new SdtContentRow();
-                    SetTextInComposite(row.SdtContentRow, value, () => {
+                    SetFirstTextInComposite(row.SdtContentRow, value, () => {
                         var tableRow = new TableRow(new TableCell(new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }))));
                         row.SdtContentRow.Append(tableRow);
                         return tableRow.Descendants<Text>().First();
@@ -315,6 +315,12 @@ namespace OfficeIMO.Word {
                 default:
                     return false;
             }
+        }
+
+        private static void SetFirstTextInComposite(OpenXmlCompositeElement container, string value, Func<Text> createText) {
+            Text firstText = container.Descendants<Text>().FirstOrDefault() ?? createText();
+            firstText.Text = value;
+            firstText.Space = SpaceProcessingModeValues.Preserve;
         }
 
         private static void SetTextInComposite(OpenXmlCompositeElement container, string value, Func<Text> createText) {

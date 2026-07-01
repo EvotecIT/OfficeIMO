@@ -315,6 +315,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ContentControlFormPlainControlsRemainBindableWhenKeysOverlapSpecializedControls() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithOverlappingSpecializedAndPlainContentControlKeys.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Accepted:").AddCheckBox(false, "Shared", "Accepted");
+                WordStructuredDocumentTag plain = document.AddParagraph("Plain:").AddStructuredDocumentTag("Original", "Shared", "PlainShared");
+
+                WordContentControlFormValidationResult validation = document.ValidateContentControlValues(
+                    new Dictionary<string, object?> {
+                        ["Shared"] = true
+                    },
+                    WordContentControlFormKey.Alias);
+
+                Assert.Contains(validation.Issues, issue =>
+                    issue.Kind == WordContentControlFormIssueKind.DuplicateKey &&
+                    issue.Key == "Shared");
+
+                int updated = document.FillContentControlValues(
+                    new Dictionary<string, object?> {
+                        ["Shared"] = "Plain value"
+                    },
+                    WordContentControlFormKey.Alias);
+
+                Assert.Equal(1, updated);
+                Assert.False(document.GetCheckBoxByTag("Accepted")!.IsChecked);
+                Assert.Equal("Plain value", plain.Text);
+            }
+        }
+
+        [Fact]
         public void Test_ContentControlFormValidationJsonEscapesControlCharacters() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithControlCharacterFormKeys.docx");
 
