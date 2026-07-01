@@ -58,8 +58,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             ThrowIfUnsupportedTableStyle(styleId!, style, tableStyleDefinitions);
+            LegacyDocTableCellShading inheritedShading = ReadSupportedTableStyleBaseShading(style, tableStyleDefinitions);
             Shading? customShading = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
-            return customShading == null ? default : ReadSupportedTableCellShading(customShading, "table style shading");
+            LegacyDocTableCellShading ownShading = customShading == null ? default : ReadSupportedTableCellShading(customShading, "table style shading");
+            return ownShading.HasAny ? ownShading : inheritedShading;
         }
 
         private static LegacyDocTableCellMargins? ReadSupportedTableStyleDefaultCellMargins(TableStyle? tableStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
@@ -223,6 +225,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return ReadSupportedTableStyleBaseBorders(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
         }
 
+        private static LegacyDocTableCellShading ReadSupportedTableStyleBaseShading(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions) {
+            return ReadSupportedTableStyleBaseShading(style, tableStyleDefinitions, new HashSet<string>(StringComparer.OrdinalIgnoreCase));
+        }
+
         private static LegacyDocTableBorders ReadSupportedTableStyleBaseBorders(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
             string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
             if (IsNoOpTableStyle(baseStyleId)) {
@@ -247,6 +253,32 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocTableBorders inheritedBorders = ReadSupportedTableStyleBaseBorders(baseStyle, tableStyleDefinitions, visitedStyleIds);
             LegacyDocTableBorders baseBorders = ReadSupportedTableStyleOwnBorders(baseStyle);
             return MergeSupportedTableBorders(baseBorders, inheritedBorders);
+        }
+
+        private static LegacyDocTableCellShading ReadSupportedTableStyleBaseShading(Style style, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
+            string? baseStyleId = style.GetFirstChild<BasedOn>()?.Val?.Value;
+            if (IsNoOpTableStyle(baseStyleId)) {
+                return default;
+            }
+
+            if (IsTableGridStyle(baseStyleId)) {
+                return ReadSupportedTableGridShading();
+            }
+
+            if (string.IsNullOrWhiteSpace(baseStyleId)
+                || !tableStyleDefinitions.TryGetValue(baseStyleId!, out Style? baseStyle)) {
+                return default;
+            }
+
+            string currentStyleId = style.StyleId?.Value ?? string.Empty;
+            if (!string.IsNullOrWhiteSpace(currentStyleId) && !visitedStyleIds.Add(currentStyleId)) {
+                throw new NotSupportedException($"Native DOC saving cannot write table style '{currentStyleId}' because its basedOn chain contains a cycle.");
+            }
+
+            ThrowIfUnsupportedInheritedTableStyleBase(currentStyleId, baseStyleId!, baseStyle, tableStyleDefinitions, visitedStyleIds);
+            LegacyDocTableCellShading inheritedShading = ReadSupportedTableStyleBaseShading(baseStyle, tableStyleDefinitions, visitedStyleIds);
+            LegacyDocTableCellShading baseShading = ReadSupportedTableStyleOwnShading(baseStyle);
+            return baseShading.HasAny ? baseShading : inheritedShading;
         }
 
         private static void ThrowIfUnsupportedInheritedTableStyleBase(string styleId, string baseStyleId, Style baseStyle, IReadOnlyDictionary<string, Style> tableStyleDefinitions, ISet<string> visitedStyleIds) {
@@ -276,7 +308,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                         ThrowIfUnsupportedInheritedStyleTableProperties(styleId, baseStyleId, styleTableProperties);
                         break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom formatting is supported table borders. Unsupported base style element: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom formatting is supported table borders and shading. Unsupported base style element: {child.LocalName}.");
                 }
             }
 
@@ -289,8 +321,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case TableBorders tableBorders:
                         ReadSupportedTableBorders(tableBorders);
                         break;
+                    case Shading shading:
+                        ReadSupportedTableCellShading(shading, "inherited table style shading");
+                        break;
                     default:
-                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom table-level formatting is supported borders. Unsupported inherited table style property: {child.LocalName}.");
+                        throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' base style '{baseStyleId}' only when inherited custom table-level formatting is supported borders and shading. Unsupported inherited table style property: {child.LocalName}.");
                 }
             }
         }
@@ -300,10 +335,21 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             return borders == null ? default : ReadSupportedTableBorders(borders);
         }
 
+        private static LegacyDocTableCellShading ReadSupportedTableStyleOwnShading(Style style) {
+            Shading? shading = style.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
+            return shading == null ? default : ReadSupportedTableCellShading(shading, "table style shading");
+        }
+
         private static LegacyDocTableBorders ReadSupportedTableGridBorders() {
             Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
             TableBorders? borders = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<TableBorders>();
             return borders == null ? default : ReadSupportedTableBorders(borders);
+        }
+
+        private static LegacyDocTableCellShading ReadSupportedTableGridShading() {
+            Style styleDefinition = WordTableStyles.GetStyleDefinition(WordTableStyle.TableGrid);
+            Shading? shading = styleDefinition.GetFirstChild<StyleTableProperties>()?.GetFirstChild<Shading>();
+            return shading == null ? default : ReadSupportedTableCellShading(shading, "table style shading");
         }
 
         private static LegacyDocTableBorders MergeSupportedTableBorders(LegacyDocTableBorders ownBorders, LegacyDocTableBorders inheritedBorders) {

@@ -8118,24 +8118,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedInheritedCustomTableStyleShadingBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocCustomTableStyleBasedOnCustomShadingStyleAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string baseStyleId = "NativeDocBaseShadingTable";
-            const string childStyleId = "NativeDocInheritedUnsupportedShadingTable";
+            const string childStyleId = "NativeDocInheritedShadingTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
+                    baseStyle.Append(new StyleName { Val = "Native DOC Base Shading Table" });
+                    baseStyle.Append(new BasedOn { Val = "TableNormal" });
+                    baseStyle.Append(new StyleTableProperties(
+                        new Shading {
+                            Val = ShadingPatternValues.Clear,
+                            Fill = "ff0000"
+                        }));
+
+                    var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
+                    childStyle.Append(new StyleName { Val = "Native DOC Inherited Shading Table" });
+                    childStyle.Append(new BasedOn { Val = baseStyleId });
+
+                    Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+                    styles.Append(baseStyle);
+                    styles.Append(childStyle);
+
+                    WordTable table = document.AddTable(1, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("A1", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[0].ShadingFillColorHex);
+                Assert.Equal("B1", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
+                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].ShadingFillColorHex);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksUnsupportedInheritedCustomTableStyleCellSpacingBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string baseStyleId = "NativeDocBaseSpacingTable";
+            const string childStyleId = "NativeDocInheritedUnsupportedSpacingTable";
 
             try {
                 using WordDocument document = WordDocument.Create();
                 var baseStyle = new Style { Type = StyleValues.Table, StyleId = baseStyleId, CustomStyle = true };
-                baseStyle.Append(new StyleName { Val = "Native DOC Base Shading Table" });
+                baseStyle.Append(new StyleName { Val = "Native DOC Base Spacing Table" });
                 baseStyle.Append(new BasedOn { Val = "TableNormal" });
                 baseStyle.Append(new StyleTableProperties(
-                    new Shading {
-                        Val = ShadingPatternValues.Clear,
-                        Fill = "ff0000"
-                    }));
+                    new TableCellSpacing { Width = "500", Type = TableWidthUnitValues.Pct }));
 
                 var childStyle = new Style { Type = StyleValues.Table, StyleId = childStyleId, CustomStyle = true };
-                childStyle.Append(new StyleName { Val = "Native DOC Inherited Unsupported Shading Table" });
+                childStyle.Append(new StyleName { Val = "Native DOC Inherited Unsupported Spacing Table" });
                 childStyle.Append(new BasedOn { Val = baseStyleId });
 
                 Styles styles = document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
@@ -8144,11 +8187,11 @@ namespace OfficeIMO.Tests {
 
                 WordTable table = document.AddTable(1, 1, WordTableStyle.TableNormal);
                 table._tableProperties!.TableStyle = new TableStyle { Val = childStyleId };
-                table.Rows[0].Cells[0].AddParagraph("Inherited shading", removeExistingParagraphs: true);
+                table.Rows[0].Cells[0].AddParagraph("Inherited spacing", removeExistingParagraphs: true);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("inherited custom table-level formatting is supported borders", exception.Message);
+                Assert.Contains("inherited custom table-level formatting is supported borders and shading", exception.Message);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
