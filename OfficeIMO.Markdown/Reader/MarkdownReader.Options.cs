@@ -197,6 +197,7 @@ public static partial class MarkdownReader {
         foreach (var kvp in state.Abbreviations) clone.Abbreviations[kvp.Key] = kvp.Value;
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;
+        clone.SourceLineAbsoluteNumbers = state.SourceLineAbsoluteNumbers;
         clone.ListMarkerIndentOffset = state.ListMarkerIndentOffset;
         clone.SuppressBlockGenericAttributes = state.SuppressBlockGenericAttributes;
         clone.SuppressHeadingGenericAttributes = state.SuppressHeadingGenericAttributes;

@@ -22,7 +22,7 @@ public static partial class MarkdownReader {
                 firstContent = codeLeadContent;
                 firstStartColumn = codeLeadStartColumn;
             } else {
-                firstStartColumn = GetListLeadContentStartColumn(lines[i], isTask);
+                firstStartColumn = GetListLeadContentStartColumn(lines[i], options, isTask);
             }
 
             int j = i + 1;
@@ -85,7 +85,7 @@ public static partial class MarkdownReader {
                     content2 = itemCodeLeadContent;
                     startColumn = itemCodeLeadStartColumn;
                 } else {
-                    startColumn = GetListLeadContentStartColumn(lines[itemStart], isTask2);
+                    startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask2);
                 }
                 int next = itemStart + 1;
                 var itemSourceLines = new List<MarkdownSourceLineSlice>();

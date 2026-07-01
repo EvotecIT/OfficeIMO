@@ -38,7 +38,7 @@ public static partial class MarkdownReader {
                 strippedFirst = codeLeadContent;
                 firstStartColumn = codeLeadStartColumn;
             } else {
-                firstStartColumn = GetListLeadContentStartColumn(lines[i], firstIsTask);
+                firstStartColumn = GetListLeadContentStartColumn(lines[i], options, firstIsTask);
             }
             var firstSourceLines = new List<MarkdownSourceLineSlice>();
             var firstLines = ConsumeListContinuationLines(
@@ -95,7 +95,7 @@ public static partial class MarkdownReader {
                     stripped = itemCodeLeadContent;
                     startColumn = itemCodeLeadStartColumn;
                 } else {
-                    startColumn = GetListLeadContentStartColumn(lines[itemStart], isTask);
+                    startColumn = GetListLeadContentStartColumn(lines[itemStart], options, isTask);
                 }
                 var itemSourceLines = new List<MarkdownSourceLineSlice>();
                 var itemLines = ConsumeListContinuationLines(

@@ -171,7 +171,7 @@ public static partial class MarkdownReader {
         if (IsCodeFenceOpen(t, out _, out _, out _)) return false;
         if (LooksLikeTableRow(t)) return false;
         if (IsUnorderedListLine(t, out _, out _, out _)) return false;
-        if (IsParagraphInterruptingOrderedListLine(t)) return false;
+        if (IsParagraphInterruptingOrderedListLine(t, options)) return false;
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + t, options, out _, out _)) return false; // callout marker is quote-prefixed in source
 
@@ -235,7 +235,7 @@ public static partial class MarkdownReader {
         if (ShouldTreatAsDefinitionLine(lines, index, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
 
-        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) {
+        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed, options)) {
             normalized = "\\" + trimmed;
             return true;
         }
@@ -251,11 +251,11 @@ public static partial class MarkdownReader {
 
         var previous = previousLine!;
         if (!IsUnorderedListLine(previous, out _, out _, out _) &&
-            !IsOrderedListLine(previous, out _, out _, out _)) {
+            !IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
             return false;
         }
 
-        int continuationIndent = GetListContinuationIndent(previous);
+        int continuationIndent = GetListContinuationIndent(previous, options);
         normalized = new string(' ', Math.Max(continuationIndent, 1)) + normalizedLazyLine;
         return true;
     }
@@ -266,7 +266,7 @@ public static partial class MarkdownReader {
 
         var previous = previousLine!;
         if (!IsUnorderedListLine(previous, out _, out _, out _) &&
-            !IsOrderedListLine(previous, out _, out _, out _)) {
+            !IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
             return false;
         }
 
@@ -280,9 +280,9 @@ public static partial class MarkdownReader {
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
-        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) return false;
+        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed, options)) return false;
 
-        int continuationIndent = GetListContinuationIndent(previous);
+        int continuationIndent = GetListContinuationIndent(previous, options);
         if (currentIndent == 0 &&
             TryGetRawListItemContentAfterMarker(previous, out var previousListContent) &&
             GetLeadingQuoteMarkerDepth(previousListContent) > 0) {
@@ -303,6 +303,11 @@ public static partial class MarkdownReader {
         if (string.IsNullOrWhiteSpace(previousLine) || string.IsNullOrWhiteSpace(currentLine)) return false;
 
         var previous = previousLine!;
+        if (IsUnorderedListLine(previous, out _, out _, out _) ||
+            IsOrderedListLine(previous, options, out _, out _, out _, out _)) {
+            return false;
+        }
+
         if (!LooksLikeParagraphLine(new[] { previous }, 0, options)) return false;
 
         int currentIndent = CountLeadingIndentColumns(currentLine!);
@@ -317,7 +322,7 @@ public static partial class MarkdownReader {
         if (LooksLikeTableRow(trimmed)) return false;
         if (ShouldTreatAsDefinitionLine(new[] { currentLine }, 0, options)) return false;
         if (options.Callouts && IsCalloutHeader("> " + trimmed, options, out _, out _)) return false;
-        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed)) return false;
+        if (IsUnorderedListLine(trimmed, out _, out _, out _) || IsParagraphInterruptingOrderedListLine(trimmed, options)) return false;
 
         normalized = trimmed;
         return true;

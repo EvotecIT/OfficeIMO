@@ -899,8 +899,8 @@ public static partial class MarkdownReader {
         return spaces >= 5;
     }
 
-    private static int GetListLeadContentStartColumn(string line, bool stripTaskMarker = false) {
-        int startColumn = GetListContinuationIndent(line) + 1;
+    private static int GetListLeadContentStartColumn(string line, MarkdownReaderOptions? options = null, bool stripTaskMarker = false) {
+        int startColumn = GetListContinuationIndent(line, options) + 1;
         if (!stripTaskMarker) return startColumn;
 
         return TryGetRawListItemContentAfterMarker(line, out string content)

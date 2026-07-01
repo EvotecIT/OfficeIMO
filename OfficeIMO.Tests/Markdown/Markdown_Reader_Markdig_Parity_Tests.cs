@@ -476,6 +476,11 @@ public class Markdown_Reader_Markdig_Parity_Tests {
         yield return new object[] { "nested-lower-alpha", "- outer\n\n  a. alpha\n  b. beta\n" };
         yield return new object[] { "nested-lower-roman-after-blank", "- outer\n\n  iv. four\n  v. five\n" };
         yield return new object[] { "nested-lower-roman-after-text", "- outer\n  iv. four\n  v. five\n" };
+        yield return new object[] { "nested-upper-roman-after-text", "- outer\n  IV. four\n  V. five\n" };
+        yield return new object[] { "nested-lower-roman-parenthesis-after-text", "- outer\n  iv) four\n  v) five\n" };
+        yield return new object[] { "ordered-parent-nested-lower-roman-after-text", "1. outer\n   iv. four\n   v. five\n" };
+        yield return new object[] { "blockquote-lower-roman", "> iv. four\n> v. five\n" };
+        yield return new object[] { "blockquote-nested-lower-roman-after-text", "> - outer\n>   iv. four\n>   v. five\n" };
     }
 
     public static IEnumerable<object[]> AlertBlocksExtensionCases() {

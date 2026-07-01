@@ -1059,6 +1059,48 @@ Lazy body
     }
 
     [Fact]
+    public void ListExtras_SourceFields_Roundtrip_Blockquote_Nested_Marker_Edits() {
+        const string markdown = "> - parent\r\n>   iv. child four\r\n>   v. child five\r\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.ListExtras = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var listMarkers = native.EnumerateBlockSourceFields("listMarker").ToArray();
+
+        Assert.Collection(
+            listMarkers,
+            field => {
+                Assert.Equal("-", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 3), field.SourceSpan);
+            },
+            field => {
+                Assert.Equal("iv.", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 7), field.SourceSpan);
+            },
+            field => {
+                Assert.Equal("v.", field.Value);
+                Assert.Equal(new MarkdownSourceSpan(3, 5, 3, 6), field.SourceSpan);
+            });
+
+        var roundtrip = native.WriteWithSourceEdits(new[] {
+            native.CreateReplaceEdit(listMarkers[2], "vi.")
+        });
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("> - parent\r\n>   iv. child four\r\n>   vi. child five\r\n", roundtrip.Markdown);
+
+        var reparsed = MarkdownReader.Parse(roundtrip.Markdown, options);
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(reparsed.Blocks));
+        var parentList = Assert.IsType<UnorderedListBlock>(Assert.Single(quote.ChildBlocks));
+        var nestedRoman = Assert.IsType<OrderedListBlock>(Assert.Single(parentList.Items[0].Children));
+        Assert.Equal(2, nestedRoman.Items.Count);
+        Assert.Equal("iv.", nestedRoman.Items[0].MarkerText);
+        Assert.Equal("vi.", nestedRoman.Items[1].MarkerText);
+    }
+
+    [Fact]
     public void ThematicBreak_SourceFields_Use_Exact_Marker_Token_Spans() {
         const string markdown = "  * * *  \n\nAfter";
 

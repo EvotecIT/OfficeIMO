@@ -31,6 +31,7 @@ public static partial class MarkdownReader {
         var markdown = string.Join("\n", sourceLines.Select(line => line.Text ?? string.Empty));
         var nestedOptions = CloneOptionsWithoutFrontMatter(options);
         var nestedState = CloneState(state);
+        nestedState.SourceLineAbsoluteNumbers = sourceLines.Select(line => line.AbsoluteLine).ToArray();
         nestedState.LazyQuoteContinuationLines.Clear();
         nestedState.QuoteContainerLines.Clear();
         nestedState.SuppressedSetextHeadingUnderlineLines.Clear();

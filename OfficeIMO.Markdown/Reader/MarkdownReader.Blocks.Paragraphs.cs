@@ -422,21 +422,21 @@ public static partial class MarkdownReader {
 
         var count = Math.Max(0, Math.Min(endExclusiveLineIndex, sourceLines.Length) - Math.Max(0, startLineIndex));
         var slices = new List<MarkdownSourceLineSlice>(count);
-        var lineOffset = state?.SourceLineOffset ?? 0;
         var start = Math.Max(0, startLineIndex);
         var end = Math.Min(endExclusiveLineIndex, sourceLines.Length);
 
         for (var i = start; i < end; i++) {
             var line = sourceLines[i] ?? string.Empty;
+            var absoluteLine = GetSourceLineAbsoluteNumber(state, i);
             if (string.IsNullOrWhiteSpace(line)) {
-                slices.Add(new MarkdownSourceLineSlice(string.Empty, lineOffset + i + 1, 1));
+                slices.Add(new MarkdownSourceLineSlice(string.Empty, absoluteLine, 1));
                 continue;
             }
 
             if (CountLeadingIndentColumns(line) >= continuationIndent) {
                 slices.Add(new MarkdownSourceLineSlice(
                     StripLeadingIndentColumns(line, continuationIndent),
-                    lineOffset + i + 1,
+                    absoluteLine,
                     continuationIndent + 1));
                 continue;
             }
@@ -444,11 +444,21 @@ public static partial class MarkdownReader {
             var leadingColumns = CountLeadingIndentColumns(line);
             slices.Add(new MarkdownSourceLineSlice(
                 line.TrimStart(),
-                lineOffset + i + 1,
+                absoluteLine,
                 leadingColumns + 1));
         }
 
         return slices;
+    }
+
+    private static int GetSourceLineAbsoluteNumber(MarkdownReaderState? state, int lineIndex) {
+        if (state?.SourceLineAbsoluteNumbers != null &&
+            lineIndex >= 0 &&
+            lineIndex < state.SourceLineAbsoluteNumbers.Count) {
+            return state.SourceLineAbsoluteNumbers[lineIndex];
+        }
+
+        return (state?.SourceLineOffset ?? 0) + lineIndex + 1;
     }
 
     private static ListItem CreateListItemFromLeadLines(List<string> lines, bool isTask, bool done, MarkdownReaderOptions options, MarkdownReaderState? state, int lineOffset, List<MarkdownSourceLineSlice>? sourceLines = null) {
