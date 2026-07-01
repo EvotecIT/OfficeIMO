@@ -282,10 +282,16 @@ public sealed partial class MarkdownNativeDocument {
             fields.Add(new MarkdownNativeBlockSourceField("alignmentCell", cell.Markdown, cell.SourceSpan, table, i));
         }
 
+        var rowIndex = 0;
+        AddTableRowField(fields, table, table.HeaderRow, ref rowIndex);
+        for (var bodyRowIndex = 0; bodyRowIndex < table.BodyRows.Count; bodyRowIndex++) {
+            AddTableRowField(fields, table, table.BodyRows[bodyRowIndex], ref rowIndex);
+        }
+
         var cellIndex = 0;
         AddTableCellFields(fields, table, table.HeaderCells, ref cellIndex);
-        for (var rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
-            AddTableCellFields(fields, table, table.Rows[rowIndex], ref cellIndex);
+        for (var bodyCellRowIndex = 0; bodyCellRowIndex < table.Rows.Count; bodyCellRowIndex++) {
+            AddTableCellFields(fields, table, table.Rows[bodyCellRowIndex], ref cellIndex);
         }
 
         for (var i = 0; i < table.Pipes.Count; i++) {
@@ -300,6 +306,22 @@ public sealed partial class MarkdownNativeDocument {
             .ThenBy(field => GetTableSourceFieldSortWeight(field.Name))) {
             yield return field;
         }
+    }
+
+    private static void AddTableRowField(
+        ICollection<MarkdownNativeBlockSourceField> fields,
+        MarkdownNativeTableBlock table,
+        MarkdownNativeTableRow? row,
+        ref int rowIndex) {
+        if (row == null) {
+            return;
+        }
+
+        if (row.SourceSpan.HasValue) {
+            fields.Add(new MarkdownNativeBlockSourceField("tableRow", row.Markdown, row.SourceSpan.Value, table, rowIndex));
+        }
+
+        rowIndex++;
     }
 
     private static void AddTableCellFields(
