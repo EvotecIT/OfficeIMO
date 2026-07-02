@@ -184,22 +184,22 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                Table table = targetTables[tableIndex].Table;
-                List<TableRow> rows = table.Elements<TableRow>().ToList();
-                if (rowIndex >= rows.Count) {
-                    continue;
-                }
-
-                TableRow row = rows[rowIndex];
-                List<TableCell> cells = row.Elements<TableCell>().ToList();
-                string cellKey = CreateTableCellKey(tableIndex, rowIndex, cellIndex);
-                if (rewrittenCells.Contains(cellKey) || nestedTableParentCellKeys.Contains(cellKey)) {
-                    continue;
-                }
-
                 switch (finding.ChangeKind) {
                     case WordComparisonChangeKind.Modified:
                     case WordComparisonChangeKind.Inserted:
+                        Table table = targetTables[tableIndex].Table;
+                        List<TableRow> rows = table.Elements<TableRow>().ToList();
+                        if (rowIndex >= rows.Count) {
+                            continue;
+                        }
+
+                        TableRow row = rows[rowIndex];
+                        List<TableCell> cells = row.Elements<TableCell>().ToList();
+                        string cellKey = CreateTableCellKey(tableIndex, rowIndex, cellIndex);
+                        if (rewrittenCells.Contains(cellKey) || nestedTableParentCellKeys.Contains(cellKey)) {
+                            continue;
+                        }
+
                         if (cellIndex >= 0 && cellIndex < cells.Count) {
                             RewriteCellWithTrackedText(cells[cellIndex], finding.SourceText, finding.TargetText, options);
                             RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
@@ -209,22 +209,94 @@ namespace OfficeIMO.Word {
                         break;
                     case WordComparisonChangeKind.Deleted:
                         if (!string.IsNullOrEmpty(finding.SourceText)) {
-                            int targetCellIndex = cellIndex;
-                            RedlineTableEntry? sourceTable = tableIndex < sourceTables.Count ? sourceTables[tableIndex] : null;
-                            List<TableRow> sourceRows = sourceTable?.Table.Elements<TableRow>().ToList() ?? new List<TableRow>();
-                            if (rowIndex >= 0 && rowIndex < sourceRows.Count) {
-                                List<TableCell> sourceCells = sourceRows[rowIndex].Elements<TableCell>().ToList();
-                                targetCellIndex = FindTargetGapByNeighborIdentity(sourceCells, cells, cellIndex, GetOpenXmlCellText, GetOpenXmlCellText);
+                            RedlineTableEntry targetTable = targetTables[tableIndex];
+                            RedlineTableEntry? sourceTable = FindSourceTableForDeletedCell(sourceTables, targetTable, rowIndex, cellIndex, finding.SourceText);
+                            if (sourceTable == null) {
+                                break;
                             }
 
-                            InsertDeletedCell(row, cells, targetCellIndex, finding.SourceText!, options);
+                            List<TableRow> sourceRows = sourceTable.Table.Elements<TableRow>().ToList();
+                            if (rowIndex < 0 || rowIndex >= sourceRows.Count) {
+                                break;
+                            }
+
+                            List<TableRow> targetRows = targetTable.Table.Elements<TableRow>().ToList();
+                            int targetRowIndex = FindTargetRowIndexForDeletedCell(sourceRows[rowIndex], targetRows, rowIndex);
+                            if (targetRowIndex < 0 || targetRowIndex >= targetRows.Count) {
+                                break;
+                            }
+
+                            TableRow targetRow = targetRows[targetRowIndex];
+                            List<TableCell> targetCells = targetRow.Elements<TableCell>().ToList();
+                            int targetCellIndex = cellIndex;
+                            List<TableCell> sourceCells = sourceRows[rowIndex].Elements<TableCell>().ToList();
+                            if (cellIndex >= 0 && cellIndex < sourceCells.Count) {
+                                targetCellIndex = FindTargetGapByNeighborIdentity(sourceCells, targetCells, cellIndex, GetOpenXmlCellText, GetOpenXmlCellText);
+                            }
+
+                            string deletedCellKey = CreateTableCellKey(tableIndex, targetRowIndex, targetCellIndex) + "/deleted/" + rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" + cellIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            if (rewrittenCells.Contains(deletedCellKey) || nestedTableParentCellKeys.Contains(CreateTableCellKey(tableIndex, targetRowIndex, targetCellIndex))) {
+                                break;
+                            }
+
+                            InsertDeletedCell(targetRow, targetCells, targetCellIndex, finding.SourceText!, options);
                             RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
-                            rewrittenCells.Add(cellKey);
+                            rewrittenCells.Add(deletedCellKey);
                         }
 
                         break;
                 }
             }
+        }
+
+        private static RedlineTableEntry? FindSourceTableForDeletedCell(
+            IReadOnlyList<RedlineTableEntry> sourceTables,
+            RedlineTableEntry targetTable,
+            int rowIndex,
+            int cellIndex,
+            string? sourceCellText) {
+            RedlineTableEntry? ordinalMatch = sourceTables.FirstOrDefault(table =>
+                string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal) &&
+                table.LocalIndex == targetTable.LocalIndex);
+
+            RedlineTableEntry? textMatch = sourceTables
+                .Where(table => string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal))
+                .Where(table => {
+                    List<TableRow> rows = table.Table.Elements<TableRow>().ToList();
+                    if (rowIndex < 0 || rowIndex >= rows.Count) {
+                        return false;
+                    }
+
+                    List<TableCell> cells = rows[rowIndex].Elements<TableCell>().ToList();
+                    return cellIndex >= 0 &&
+                        cellIndex < cells.Count &&
+                        string.Equals(GetOpenXmlCellText(cells[cellIndex]), sourceCellText ?? string.Empty, StringComparison.Ordinal);
+                })
+                .OrderByDescending(table => GetRedlineTableSimilarity(table.Table, targetTable.Table))
+                .FirstOrDefault();
+
+            return textMatch ?? ordinalMatch;
+        }
+
+        private static int FindTargetRowIndexForDeletedCell(TableRow sourceRow, IReadOnlyList<TableRow> targetRows, int sourceRowIndex) {
+            if (targetRows.Count == 0) {
+                return -1;
+            }
+
+            string sourceText = GetOpenXmlRowText(sourceRow);
+            int bestIndex = -1;
+            double bestSimilarity = double.MinValue;
+            for (int index = 0; index < targetRows.Count; index++) {
+                double similarity = GetTextSimilarity(sourceText, GetOpenXmlRowText(targetRows[index]));
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestIndex = index;
+                }
+            }
+
+            return bestIndex >= 0
+                ? bestIndex
+                : Math.Max(0, Math.Min(sourceRowIndex, targetRows.Count - 1));
         }
 
         private static HashSet<string> GetNestedTableParentCellKeys(IReadOnlyList<RedlineTableEntry> sourceTables, IReadOnlyList<RedlineTableEntry> targetTables, WordComparisonResult result, WordComparisonRedlineOptions options) {

@@ -123,7 +123,7 @@ namespace OfficeIMO.Word {
                 current.HasSeparator = true;
             }
 
-            string runText = string.Concat(run.Elements<Text>().Select(text => text.Text));
+            string runText = GetComplexFieldResultRunText(run, fieldCharType);
             if (runText.Length > 0) {
                 foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
                     builder.ResultParts.Add(runText);
@@ -138,6 +138,25 @@ namespace OfficeIMO.Word {
 
                 findings.Add(completed.ToCandidate(root));
             }
+        }
+
+        private static string GetComplexFieldResultRunText(Run run, FieldCharValues? fieldCharType) {
+            if (fieldCharType != FieldCharValues.End) {
+                return string.Concat(run.Elements<Text>().Select(text => text.Text));
+            }
+
+            var text = new System.Text.StringBuilder();
+            foreach (OpenXmlElement child in run.ChildElements) {
+                if (child is FieldChar fieldChar && fieldChar.FieldCharType?.Value == FieldCharValues.End) {
+                    break;
+                }
+
+                if (child is Text runText) {
+                    text.Append(runText.Text);
+                }
+            }
+
+            return text.ToString();
         }
 
         internal static IEnumerable<FieldRoot> EnumerateFieldRoots(MainDocumentPart mainPart) {

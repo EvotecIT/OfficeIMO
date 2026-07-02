@@ -1132,6 +1132,10 @@ namespace OfficeIMO.Tests {
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldInfo inspectedField = Assert.Single(document.InspectFields(), field => field.FieldType == WordFieldType.Quote);
+                Assert.Equal("stale", inspectedField.ResultText);
+                Assert.DoesNotContain(" trailing", inspectedField.ResultText, StringComparison.Ordinal);
+
                 WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
 
                 Assert.Contains(report.Results, field =>

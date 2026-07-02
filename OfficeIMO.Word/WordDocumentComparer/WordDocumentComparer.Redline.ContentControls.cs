@@ -12,7 +12,7 @@ namespace OfficeIMO.Word {
             var rewrittenControls = new HashSet<int>();
 
             foreach (WordComparisonFinding finding in result.Findings) {
-                if (TryApplyDeletedContentControlFinding(finding, options, sourceControls, deletedSourceIndexes, targetDocument)) {
+                if (TryApplyDeletedContentControlFinding(finding, options, sourceControls, targetControls, deletedSourceIndexes, targetDocument)) {
                     continue;
                 }
 
@@ -58,6 +58,7 @@ namespace OfficeIMO.Word {
             WordComparisonFinding finding,
             WordComparisonRedlineOptions options,
             IReadOnlyList<RedlineContentControlEntry> sourceControls,
+            IReadOnlyList<RedlineContentControlEntry> targetControls,
             ISet<int> deletedSourceIndexes,
             WordprocessingDocument targetDocument) {
             if (!ShouldTrackFinding(finding, options) ||
@@ -85,7 +86,7 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            InsertDeletedContentControl(targetDocument, sourceControls[sourceIndex], deletedControl);
+            InsertDeletedContentControl(targetDocument, sourceControls, targetControls, sourceIndex, deletedControl);
             return true;
         }
 
@@ -368,7 +369,17 @@ namespace OfficeIMO.Word {
             return ExtractContentControlFindingText(fallbackDisplayText);
         }
 
-        private static void InsertDeletedContentControl(WordprocessingDocument targetDocument, RedlineContentControlEntry entry, SdtElement deletedControl) {
+        private static void InsertDeletedContentControl(
+            WordprocessingDocument targetDocument,
+            IReadOnlyList<RedlineContentControlEntry> sourceControls,
+            IReadOnlyList<RedlineContentControlEntry> targetControls,
+            int sourceIndex,
+            SdtElement deletedControl) {
+            RedlineContentControlEntry entry = sourceControls[sourceIndex];
+            if (TryInsertDeletedContentControlAtTargetGap(sourceControls, targetControls, sourceIndex, deletedControl)) {
+                return;
+            }
+
             OpenXmlCompositeElement? targetContainer = GetRedlineContentControlContainer(targetDocument, entry);
             if (targetContainer == null) {
                 return;
@@ -383,6 +394,69 @@ namespace OfficeIMO.Word {
             };
 
             InsertContentControlRedlineElement(targetContainer, block);
+        }
+
+        private static bool TryInsertDeletedContentControlAtTargetGap(
+            IReadOnlyList<RedlineContentControlEntry> sourceControls,
+            IReadOnlyList<RedlineContentControlEntry> targetControls,
+            int sourceIndex,
+            SdtElement deletedControl) {
+            if (sourceIndex < 0 || sourceIndex >= sourceControls.Count || targetControls.Count == 0) {
+                return false;
+            }
+
+            RedlineContentControlEntry sourceEntry = sourceControls[sourceIndex];
+            for (int index = sourceIndex + 1; index < sourceControls.Count; index++) {
+                RedlineContentControlEntry? targetEntry = FindMatchingTargetContentControl(sourceControls[index], targetControls, sourceEntry);
+                if (targetEntry?.ContentControl.Parent != null) {
+                    targetEntry.ContentControl.InsertBeforeSelf(deletedControl);
+                    return true;
+                }
+            }
+
+            for (int index = sourceIndex - 1; index >= 0; index--) {
+                RedlineContentControlEntry? targetEntry = FindMatchingTargetContentControl(sourceControls[index], targetControls, sourceEntry);
+                if (targetEntry?.ContentControl.Parent != null) {
+                    targetEntry.ContentControl.InsertAfterSelf(deletedControl);
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static RedlineContentControlEntry? FindMatchingTargetContentControl(
+            RedlineContentControlEntry sourceCandidate,
+            IReadOnlyList<RedlineContentControlEntry> targetControls,
+            RedlineContentControlEntry deletedSourceEntry) {
+            string sourceKey = GetContentControlPlacementKey(sourceCandidate.ContentControl);
+            if (string.IsNullOrEmpty(sourceKey)) {
+                return null;
+            }
+
+            return targetControls.FirstOrDefault(target =>
+                string.Equals(target.PartUri, deletedSourceEntry.PartUri, StringComparison.Ordinal) &&
+                target.LocationKind == deletedSourceEntry.LocationKind &&
+                string.Equals(target.NoteId, deletedSourceEntry.NoteId, StringComparison.Ordinal) &&
+                string.Equals(GetContentControlPlacementKey(target.ContentControl), sourceKey, StringComparison.Ordinal));
+        }
+
+        private static string GetContentControlPlacementKey(SdtElement contentControl) {
+            SdtProperties? properties = contentControl.GetFirstChild<SdtProperties>();
+            string alias = properties?.GetFirstChild<SdtAlias>()?.Val?.Value ?? string.Empty;
+            string tag = properties?.GetFirstChild<Tag>()?.Val?.Value ?? string.Empty;
+            DataBinding? dataBinding = properties?.GetFirstChild<DataBinding>();
+            string binding = dataBinding == null
+                ? string.Empty
+                : string.Join("|", dataBinding.StoreItemId?.Value ?? string.Empty, dataBinding.XPath?.Value ?? string.Empty, dataBinding.PrefixMappings?.Value ?? string.Empty);
+
+            if (!string.IsNullOrWhiteSpace(alias) ||
+                !string.IsNullOrWhiteSpace(tag) ||
+                !string.IsNullOrWhiteSpace(binding)) {
+                return string.Join("|", contentControl.GetType().Name, alias, tag, binding);
+            }
+
+            return contentControl.GetType().Name + "|" + NormalizeFeatureText(contentControl.InnerText ?? string.Empty);
         }
 
         private static OpenXmlCompositeElement? GetRedlineContentControlContainer(WordprocessingDocument targetDocument, RedlineContentControlEntry entry) {

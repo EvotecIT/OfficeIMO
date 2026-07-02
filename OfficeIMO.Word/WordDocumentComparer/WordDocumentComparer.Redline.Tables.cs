@@ -7,7 +7,8 @@ namespace OfficeIMO.Word {
         private static void ApplyTableFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
             List<RedlineTableEntry> sourceTables = GetRedlineTableEntries(sourceDocument);
             List<RedlineTableEntry> targetTables = GetRedlineTableEntries(targetDocument);
-            var rewrittenTables = new HashSet<int>();
+            var rewrittenSourceTables = new HashSet<string>(StringComparer.Ordinal);
+            var rewrittenTargetTables = new HashSet<string>(StringComparer.Ordinal);
             var insertedBeforeTableAnchors = new Dictionary<Table, OpenXmlElement>();
             var insertedAfterTableAnchors = new Dictionary<Table, OpenXmlElement>();
             var appendedDeletedTables = new Dictionary<string, OpenXmlElement>(StringComparer.Ordinal);
@@ -21,28 +22,38 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                if (rewrittenTables.Contains(tableIndex)) {
-                    continue;
-                }
-
                 switch (finding.ChangeKind) {
                     case WordComparisonChangeKind.Inserted:
                         if (tableIndex < targetTables.Count) {
+                            string targetKey = CreateRedlineTableRewriteKey(targetTables[tableIndex]);
+                            if (rewrittenTargetTables.Contains(targetKey)) {
+                                break;
+                            }
+
                             RewriteTableWithTrackedText(targetTables[tableIndex].Table, trackInserted: true, options);
                             RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
-                            rewrittenTables.Add(tableIndex);
+                            rewrittenTargetTables.Add(targetKey);
                         }
 
                         break;
                     case WordComparisonChangeKind.Deleted:
                         if (tableIndex < sourceTables.Count) {
+                            string sourceKey = CreateRedlineTableRewriteKey(sourceTables[tableIndex]);
+                            if (rewrittenSourceTables.Contains(sourceKey)) {
+                                break;
+                            }
+
                             InsertDeletedTable(targetDocument, sourceTables, targetTables, sourceTables[tableIndex], options, insertedBeforeTableAnchors, insertedAfterTableAnchors, appendedDeletedTables);
-                            rewrittenTables.Add(tableIndex);
+                            rewrittenSourceTables.Add(sourceKey);
                         }
 
                         break;
                 }
             }
+        }
+
+        private static string CreateRedlineTableRewriteKey(RedlineTableEntry entry) {
+            return entry.PartKey + "/" + entry.LocalIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
         }
 
         private static void RewriteTableWithTrackedText(Table table, bool trackInserted, WordComparisonRedlineOptions options) {

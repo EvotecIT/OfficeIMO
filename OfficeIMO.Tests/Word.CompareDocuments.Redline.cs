@@ -268,6 +268,110 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForDeletedCellsWhenEarlierTableWasDeleted() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_cell_shifted_table_source.docx");
+            CreateDocumentWithTables(
+                sourcePath,
+                CreateComparisonTable(new[] { "Legacy table", "Remove whole table" }),
+                CreateComparisonTable(new[] { "Stable row", "Deleted stable cell", "Keep stable cell" }));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_cell_shifted_table_target.docx");
+            CreateDocumentWithTables(
+                targetPath,
+                CreateComparisonTable(new[] { "Stable row", "Keep stable cell" }));
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_cell_shifted_table_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Table stableTable = Assert.Single(redline._document.Body!.Elements<Table>(), table => table.InnerText.Contains("Stable row", StringComparison.Ordinal));
+            Assert.Contains(stableTable.Descendants<DeletedRun>(), run => run.InnerText == "Deleted stable cell");
+            Assert.DoesNotContain(stableTable.Descendants<DeletedRun>(), run => run.InnerText.Contains("Legacy table", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForInsertedAndDeletedTablesAtSameOrdinalAcrossParts() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_same_ordinal_table_replace_source.docx");
+            CreateDocumentWithTables(sourcePath, CreateComparisonTable(new[] { "Old table", "Source only" }));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_same_ordinal_table_replace_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document._document.Body!.RemoveAllChildren<Paragraph>();
+                document.AddParagraph("Target body without tables");
+                WordTable headerTable = document.HeaderDefaultOrCreate.AddTable(1, 2);
+                headerTable.Rows[0].Cells[0].Paragraphs[0].Text = "New table";
+                headerTable.Rows[0].Cells[1].Paragraphs[0].Text = "Target only";
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_same_ordinal_table_replace_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.Table && finding.ChangeKind == WordComparisonChangeKind.Deleted);
+            Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.Table && finding.ChangeKind == WordComparisonChangeKind.Inserted);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            MainDocumentPart mainPart = redline._wordprocessingDocument.MainDocumentPart!;
+            Body body = mainPart.Document!.Body!;
+            Header header = Assert.Single(mainPart.HeaderParts.Select(part => part.Header));
+            Assert.Contains(body.Descendants<DeletedRun>(), run => run.InnerText.Contains("Old table", StringComparison.Ordinal));
+            Assert.Contains(header.Descendants<InsertedRun>(), run => run.InnerText.Contains("New table", StringComparison.Ordinal));
+        }
+
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForDeletedInlineContentControlsAtTargetGap() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_inline_sdt_gap_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                Paragraph paragraph = document.AddParagraph()._paragraph;
+                paragraph.Append(
+                    CreateRunContentControl("Alpha", "A", "Alpha"),
+                    CreateRunContentControl("Beta", "B", "Deleted beta"),
+                    CreateRunContentControl("Gamma", "C", "Gamma"));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_inline_sdt_gap_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                Paragraph paragraph = document.AddParagraph()._paragraph;
+                paragraph.Append(
+                    CreateRunContentControl("Alpha", "A", "Alpha"),
+                    CreateRunContentControl("Gamma", "C", "Gamma"));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_deleted_inline_sdt_gap_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph paragraphWithControls = Assert.Single(redline._document.Body!.Elements<Paragraph>(), paragraph => paragraph.Descendants<SdtRun>().Any());
+            SdtRun[] controls = paragraphWithControls.Elements<SdtRun>().ToArray();
+
+            Assert.Equal(new[] { "Alpha", "Deleted beta", "Gamma" }, controls.Select(control => control.InnerText).ToArray());
+            Assert.Contains(controls[1].Descendants<DeletedRun>(), run => run.InnerText == "Deleted beta");
+        }
+
+        [Fact]
         public void CompareStructureRedlineTracksFeatureFindingsWhenTextFindingsAreDisabled() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_feature_without_text_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -2386,6 +2490,15 @@ namespace OfficeIMO.Tests {
                 new Paragraph(
                     new Run(
                         new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+        }
+
+        private static SdtRun CreateRunContentControl(string alias, string tag, string text) {
+            return new SdtRun(
+                new SdtProperties(
+                    new SdtAlias { Val = alias },
+                    new Tag { Val = tag }),
+                new SdtContentRun(
+                    new Run(new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
         }
 
         private static void AppendImageToFootnote(string path, long footnoteId, string imagePath) {
