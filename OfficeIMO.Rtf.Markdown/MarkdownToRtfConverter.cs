@@ -588,11 +588,23 @@ internal static class MarkdownToRtfConverter {
             case HighlightSequenceInline highlightSequence:
                 AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
+            case InsertedSequenceInline insertedSequence:
+                AppendInlineSequence(paragraph, insertedSequence.Inlines, document, options, style.WithUnderline(), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
+                break;
             case SuperscriptSequenceInline superscriptSequence:
                 AppendInlineSequence(paragraph, superscriptSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case SubscriptSequenceInline subscriptSequence:
                 AppendInlineSequence(paragraph, subscriptSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
+                break;
+            case InsertedInline inserted:
+                AddStyledText(paragraph, inserted.Text, style.WithUnderline(), allowTextRunMerging);
+                break;
+            case SuperscriptInline superscript:
+                AddStyledText(paragraph, superscript.Text, style.WithVerticalPosition(RtfVerticalPosition.Superscript), allowTextRunMerging);
+                break;
+            case SubscriptInline subscript:
+                AddStyledText(paragraph, subscript.Text, style.WithVerticalPosition(RtfVerticalPosition.Subscript), allowTextRunMerging);
                 break;
             case HtmlTagSequenceInline htmlTagSequence:
                 AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style, footnoteDefinitions, activeFootnotes, allowTextRunMerging);

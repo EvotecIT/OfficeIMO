@@ -1,9 +1,11 @@
 using System;
 using System.Linq;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Markdown;
 using OfficeIMO.MarkdownRenderer;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
+using OfficeIMO.Word.Markdown;
 using Xunit;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
@@ -45,6 +47,69 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         Assert.Contains(paragraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Superscript);
         Assert.Contains(paragraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Subscript);
+    }
+
+    [Fact]
+    public void MarkdownToRtf_Applies_Inserted_Sequence_Style() {
+        var options = new MarkdownToRtfOptions {
+            ReaderOptions = MarkdownReaderOptions.CreateOfficeIMOProfile()
+        };
+
+        var document = "Before ++new++ after".ToRtfDocumentFromMarkdown(options);
+        var paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Contains(paragraph.Runs, run => run.Text == "new" && run.UnderlineStyle != RtfUnderlineStyle.None);
+    }
+
+    [Fact]
+    public void MarkdownDoc_ToRtfDocument_Applies_Scalar_Inserted_Superscript_And_Subscript_Styles() {
+        var markdown = MarkdownDoc.Create();
+        markdown.Add(new ParagraphBlock(new InlineSequence()
+            .Text("Before ")
+            .Inserted("new")
+            .Text(" H")
+            .Superscript("2")
+            .Subscript("n")));
+
+        var document = markdown.ToRtfDocument();
+        var paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Contains(paragraph.Runs, run => run.Text == "new" && run.UnderlineStyle != RtfUnderlineStyle.None);
+        Assert.Contains(paragraph.Runs, run => run.Text == "2" && run.VerticalPosition == RtfVerticalPosition.Superscript);
+        Assert.Contains(paragraph.Runs, run => run.Text == "n" && run.VerticalPosition == RtfVerticalPosition.Subscript);
+    }
+
+    [Fact]
+    public void LoadFromMarkdown_Honors_Custom_ReaderOptions_For_Inserted_Superscript_And_Subscript() {
+        var readerOptions = MarkdownReaderOptions.CreatePortableProfile();
+        readerOptions.Inserted = true;
+        readerOptions.Superscript = true;
+        readerOptions.Subscript = true;
+
+        using var document = "Before ++new++ and ^up^ plus H~down~O".LoadFromMarkdown(new MarkdownToWordOptions {
+            ReaderOptions = readerOptions
+        });
+
+        Assert.Contains(document.Paragraphs, run => run.Text == "new" && run.Underline == UnderlineValues.Single);
+        Assert.Contains(document.Paragraphs, run => run.Text == "up" && run.VerticalTextAlignment == VerticalPositionValues.Superscript);
+        Assert.Contains(document.Paragraphs, run => run.Text == "down" && run.VerticalTextAlignment == VerticalPositionValues.Subscript);
+    }
+
+    [Fact]
+    public void MarkdownDoc_ToWordDocument_Applies_Scalar_Inserted_Superscript_And_Subscript_Styles() {
+        var markdown = MarkdownDoc.Create();
+        markdown.Add(new ParagraphBlock(new InlineSequence()
+            .Text("Before ")
+            .Inserted("new")
+            .Text(" H")
+            .Superscript("2")
+            .Subscript("n")));
+
+        using var document = markdown.ToWordDocument();
+
+        Assert.Contains(document.Paragraphs, run => run.Text == "new" && run.Underline == UnderlineValues.Single);
+        Assert.Contains(document.Paragraphs, run => run.Text == "2" && run.VerticalTextAlignment == VerticalPositionValues.Superscript);
+        Assert.Contains(document.Paragraphs, run => run.Text == "n" && run.VerticalTextAlignment == VerticalPositionValues.Subscript);
     }
 
     [Fact]

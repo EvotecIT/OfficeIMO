@@ -151,6 +151,15 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitUnderlineInline(Omd.UnderlineInline inline) =>
                 _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont));
 
+            protected override void VisitInsertedInline(Omd.InsertedInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont));
+
+            protected override void VisitSuperscriptInline(Omd.SuperscriptInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), _defaultFont));
+
+            protected override void VisitSubscriptInline(Omd.SubscriptInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), _defaultFont));
+
             protected override void VisitBoldSequenceInline(Omd.BoldSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithBold());
 
@@ -165,6 +174,15 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitHighlightSequenceInline(Omd.HighlightSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithHighlight(HighlightColorValues.Yellow));
+
+            protected override void VisitInsertedSequenceInline(Omd.InsertedSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+
+            protected override void VisitSuperscriptSequenceInline(Omd.SuperscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+
+            protected override void VisitSubscriptSequenceInline(Omd.SubscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
 
             protected override void VisitHtmlTagSequenceInline(Omd.HtmlTagSequenceInline inline) {
                 switch (inline.TagName) {
@@ -373,6 +391,15 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitUnderlineInline(Omd.UnderlineInline inline) =>
                 AddRun(_paragraph, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont, _defaultTextColorHex);
 
+            protected override void VisitInsertedInline(Omd.InsertedInline inline) =>
+                AddRun(_paragraph, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont, _defaultTextColorHex);
+
+            protected override void VisitSuperscriptInline(Omd.SuperscriptInline inline) =>
+                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), _defaultFont, _defaultTextColorHex);
+
+            protected override void VisitSubscriptInline(Omd.SubscriptInline inline) =>
+                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), _defaultFont, _defaultTextColorHex);
+
             protected override void VisitBoldSequenceInline(Omd.BoldSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithBold());
 
@@ -387,6 +414,15 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitHighlightSequenceInline(Omd.HighlightSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithHighlight(HighlightColorValues.Yellow));
+
+            protected override void VisitInsertedSequenceInline(Omd.InsertedSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+
+            protected override void VisitSuperscriptSequenceInline(Omd.SuperscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+
+            protected override void VisitSubscriptSequenceInline(Omd.SubscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
 
             protected override void VisitHtmlTagSequenceInline(Omd.HtmlTagSequenceInline inline) {
                 switch (inline.TagName) {
