@@ -368,6 +368,7 @@ namespace OfficeIMO.Word {
 
             OpenXmlElement instanceClone = instance.CloneNode(true);
             OpenXmlElement? abstractClone = abstractNum?.CloneNode(true);
+            NormalizeNumberingVolatileIds(abstractClone);
             if (!options.CompareGeneratedIds) {
                 NormalizeNumberingGeneratedIds(instanceClone, abstractClone);
             }
@@ -404,6 +405,18 @@ namespace OfficeIMO.Word {
 
             if (abstractClone is AbstractNum abstractNum) {
                 abstractNum.AbstractNumberId = 0;
+            }
+        }
+
+        private static void NormalizeNumberingVolatileIds(OpenXmlElement? abstractClone) {
+            if (abstractClone is not AbstractNum abstractNum) {
+                return;
+            }
+
+            abstractNum.RemoveAllChildren<Nsid>();
+            abstractNum.RemoveAllChildren<TemplateCode>();
+            foreach (Level level in abstractNum.Descendants<Level>()) {
+                level.TemplateCode = null;
             }
         }
 
