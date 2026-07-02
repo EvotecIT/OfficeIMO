@@ -462,7 +462,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             bool reportedNestedTable = false;
             for (int index = 0; index < paragraphFormattingRanges.Count; index++) {
                 LegacyDocParagraphFormat format = paragraphFormattingRanges[index].Format;
-                if (!reportedNestedTable && format.HasNestedTable) {
+                if (!reportedNestedTable && format.MaximumTableDepth > 2) {
                     AddUnsupportedFeature(new LegacyDocUnsupportedFeature(
                         LegacyDocUnsupportedFeatureKind.NestedTable,
                         "DOC-NESTED-TABLES-PRESENT",

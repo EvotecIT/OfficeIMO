@@ -340,8 +340,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_LoadLegacyDocWithReport_ReportsNestedTableDescriptors() {
-            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithNestedTableDescriptors();
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleNestedTableDescriptors() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithSimpleNestedTable();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.NestedTable);
+            Assert.False(result.ImportReport.UnsupportedFeaturesByKind.ContainsKey(LegacyDocUnsupportedFeatureKind.NestedTable));
+
+            Assert.Equal(2, result.Document.TablesIncludingNestedTables.Count);
+            WordTable outerTable = Assert.Single(result.Document.Tables);
+            WordTableRow row = Assert.Single(outerTable.Rows);
+            Assert.Equal(2, row.Cells.Count);
+            Assert.Contains(row.Cells[0].Paragraphs, paragraph => paragraph.Text == "Outer A");
+            WordTable nestedTable = Assert.Single(row.Cells[0].NestedTables);
+            Assert.True(nestedTable.IsNestedTable);
+            Assert.Equal("Inner A", Assert.Single(nestedTable.Rows[0].Cells[0].Paragraphs).Text);
+            Assert.Contains(row.Cells[1].Paragraphs, paragraph => paragraph.Text == "Outer B");
+            Assert.Empty(row.Cells[1].NestedTables);
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ReportsDeepNestedTableDescriptors() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithDeepNestedTableDescriptors();
 
             using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
 
@@ -351,7 +374,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyDocUnsupportedFeatureKind.NestedTable, feature.Kind);
             Assert.Equal("DOC-NESTED-TABLES-PRESENT", feature.Code);
             Assert.Equal("PAPX:sprmPItap", feature.DetailCode);
-            Assert.Contains("maximum table depth 2", feature.Description, StringComparison.Ordinal);
+            Assert.Contains("maximum table depth 3", feature.Description, StringComparison.Ordinal);
             Assert.Contains("inner table", feature.Description, StringComparison.Ordinal);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyDocUnsupportedFeatureKind.NestedTable]);
             Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-NESTED-TABLES-PRESENT"]);
@@ -11080,23 +11103,35 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
-            internal static byte[] CreateUnicodeDocWithNestedTableDescriptors() {
-                const string text = "A1\aB1\a\a\r";
+            internal static byte[] CreateUnicodeDocWithSimpleNestedTable() {
+                const string text = "Outer A\rInner A\r\r\aOuter B\a\a\r";
                 const int textOffset = 0x200;
                 const int papxFkpOffset = 0x400;
-                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithExplicitTableMarkers(
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithSimpleNestedTable(
                     text,
                     textOffset,
                     papxFkpOffset,
-                    new[] { 1440, 2880 },
-                    extraRowSprms: new[] {
-                        CreateInt32ParagraphSprm(0x6649, 2),
-                        CreateParagraphSprm(0x244C, 1)
-                    },
-                    extraCellSprms: new[] {
-                        CreateInt32ParagraphSprm(0x6649, 2),
-                        CreateParagraphSprm(0x244B, 1)
-                    });
+                    nestedDepth: 2);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithDeepNestedTableDescriptors() {
+                const string text = "Outer A\rInner A\r\r\aOuter B\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithSimpleNestedTable(
+                    text,
+                    textOffset,
+                    papxFkpOffset,
+                    nestedDepth: 3);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
 
                 using var package = new MemoryStream();
@@ -13054,6 +13089,70 @@ namespace OfficeIMO.Tests {
                 return stream;
             }
 
+            private static byte[] CreateUnicodeWordDocumentStreamWithSimpleNestedTable(
+                string text,
+                int textOffset,
+                int papxFkpOffset,
+                int nestedDepth) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int[] paragraphEnds = GetFirstTableParagraphEnds(text, textOffset, 7);
+                int end = textOffset + (text.Length * 2);
+                byte[] outerCellPapx = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x2416, 1));
+                byte[] innerCellPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateInt32ParagraphSprm(0x6649, nestedDepth),
+                    CreateParagraphSprm(0x244B, 1));
+                byte[] innerTerminatingPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateInt32ParagraphSprm(0x6649, nestedDepth),
+                    CreateParagraphSprm(0x244B, 1),
+                    CreateParagraphSprm(0x244C, 1));
+                byte[] outerRowPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateParagraphSprm(0x2417, 1),
+                    CreateTableDefinitionSprm(new[] { 1440, 2880 }));
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] {
+                        textOffset,
+                        paragraphEnds[0],
+                        paragraphEnds[1],
+                        paragraphEnds[2],
+                        paragraphEnds[3],
+                        paragraphEnds[4],
+                        paragraphEnds[5],
+                        paragraphEnds[6],
+                        end
+                    },
+                    new Dictionary<int, byte[]> {
+                        [0] = outerCellPapx,
+                        [1] = innerCellPapx,
+                        [2] = innerTerminatingPapx,
+                        [3] = outerCellPapx,
+                        [4] = outerCellPapx,
+                        [5] = outerRowPapx
+                    });
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
             private static byte[] CreateTableCellPaddingSprm(ushort sprm, byte itcFirst, byte itcLim, byte sideMask, ushort widthTwips) {
                 return new[] {
                     (byte)(sprm & 0xFF),
@@ -14274,6 +14373,21 @@ namespace OfficeIMO.Tests {
 
                 if (markerEnds.Count != markerCount) {
                     throw new InvalidOperationException("The synthetic DOC table fixture does not contain the expected table markers.");
+                }
+
+                return markerEnds.ToArray();
+            }
+
+            private static int[] GetFirstTableParagraphEnds(string text, int textOffset, int markerCount) {
+                var markerEnds = new List<int>(markerCount);
+                for (int index = 0; index < text.Length && markerEnds.Count < markerCount; index++) {
+                    if (text[index] == '\r' || text[index] == '\a') {
+                        markerEnds.Add(textOffset + ((index + 1) * 2));
+                    }
+                }
+
+                if (markerEnds.Count != markerCount) {
+                    throw new InvalidOperationException("The synthetic DOC nested table fixture does not contain the expected paragraph and table markers.");
                 }
 
                 return markerEnds.ToArray();

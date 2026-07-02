@@ -725,7 +725,7 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes) {
+        private static void AddLegacyDocTableCell(WordTableCell cell, LegacyDocTableCell sourceCell, LegacyDocStyleSheet styleSheet, LegacyDocNoteProjection notes, bool projectNestedTables = true) {
             var pendingBookmarks = new List<LegacyDocBookmark>();
             int pendingBookmarkStartCharacter = int.MaxValue;
             int pendingBookmarkEndCharacter = int.MinValue;
@@ -736,6 +736,20 @@ namespace OfficeIMO.Word {
                     && sourceParagraph.Bookmarks.Count > 0
                     && index + 1 < sourceCell.Paragraphs.Count) {
                     AddPendingTableCellBookmarks(sourceParagraph.Bookmarks, ref pendingBookmarkStartCharacter, ref pendingBookmarkEndCharacter, pendingBookmarks);
+                    continue;
+                }
+
+                if (projectNestedTables && IsLegacyDocNestedTableParagraph(sourceParagraph)) {
+                    index = AddLegacyDocNestedTable(
+                        cell,
+                        sourceCell.Paragraphs,
+                        index,
+                        styleSheet,
+                        notes);
+                    emittedParagraph = true;
+                    pendingBookmarks.Clear();
+                    pendingBookmarkStartCharacter = int.MaxValue;
+                    pendingBookmarkEndCharacter = int.MinValue;
                     continue;
                 }
 

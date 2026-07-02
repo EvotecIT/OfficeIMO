@@ -458,8 +458,10 @@ just to reserve names.
   - [x] Report maximum nested table depth and inner nested row/cell marker
     descriptors from DOC paragraph properties as unsupported/preserve-only
     before nested table projection exists.
-  - [ ] Add nested table projection only after TAP-backed nested table read/write
-    coverage exists.
+  - [x] Project simple depth-2 nested table descriptors into
+    `WordTableCell.NestedTables` during DOC import.
+  - [ ] Add native DOC nested table save/reload coverage before calling nested
+    table support complete.
 - [x] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.
   - [x] Project single-section page size, orientation, margins, header/footer
