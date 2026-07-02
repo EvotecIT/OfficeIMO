@@ -783,6 +783,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsStyleLevelParagraphNumbering() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithStyleLevelParagraphNumbering();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(result.Document.Paragraphs);
+            Assert.Equal("style numbered", paragraph.Text);
+            Assert.Equal("LegacyDocStyleNumbered", paragraph.StyleId);
+
+            Styles styles = result.Document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            Style style = Assert.Single(styles.Elements<Style>(), styleDefinition => styleDefinition.StyleId == "LegacyDocStyleNumbered");
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(style.StyleParagraphProperties);
+            NumberingProperties numberingProperties = Assert.IsType<NumberingProperties>(paragraphProperties.GetFirstChild<NumberingProperties>());
+            Assert.Equal(2, numberingProperties.NumberingLevelReference!.Val!.Value);
+            Assert.Equal(4, numberingProperties.NumberingId!.Val!.Value);
+
+            Numbering numbering = result.Document._wordprocessingDocument!.MainDocumentPart!.NumberingDefinitionsPart!.Numbering!;
+            Assert.Contains(numbering.Elements<NumberingInstance>(), instance => instance.NumberID?.Value == 4);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsParagraphVerticalCharacterAlignment() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithParagraphVerticalCharacterAlignment();
 
@@ -12102,6 +12124,31 @@ namespace OfficeIMO.Tests {
                 const int papxFkpOffset = 0x400;
                 byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithSimpleNumberedParagraphs(text, textOffset, papxFkpOffset);
                 byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateUnicodeDocWithStyleLevelParagraphNumbering() {
+                const string text = "style numbered\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] styleSheet = CreateStyleSheet(
+                    CreateParagraphStyleRecord(0, 0x0FFF, "Normal"),
+                    CreateParagraphStyleRecord(
+                        0x0FFF,
+                        0,
+                        "Style Numbered",
+                        CreateStyleParagraphFormatting(
+                            CreateParagraphSprm(0x260A, 2),
+                            CreateParagraphSprm(0x460B, 4, 0))));
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithStyleIndex(text, textOffset, papxFkpOffset, styleSheet.Length, 1);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTableAndStyleSheet(text.Length, textOffset, papxFkpOffset / 512, styleSheet);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
