@@ -617,6 +617,8 @@ just to reserve names.
     `sprmCDxaSpace`, then reload it through the dependency-free legacy reader.
   - [x] Write direct run language formatting through `sprmCRgLid0` and
     `sprmCRgLid1`, then reload it as OpenXML `w:lang`.
+  - [x] Write custom paragraph-style language formatting through `sprmCRgLid0`
+    and `sprmCRgLid1`, then reload it as OpenXML style `w:lang`.
   - [x] Write direct paragraph alignment PAPX records and reload them through
     the legacy reader.
   - [x] Write direct paragraph spacing and indentation PAPX records and reload
