@@ -291,6 +291,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStyleFontFamilyFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStyleFontFamily();
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Heading Font Family");
+            Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == headingStyleId);
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.GetFirstChild<StyleRunProperties>());
+            RunFonts runFonts = Assert.IsType<RunFonts>(runProperties.GetFirstChild<RunFonts>());
+            Assert.Equal("Courier New", runFonts.Ascii?.Value);
+            Assert.Equal("Courier New", runFonts.HighAnsi?.Value);
+            Assert.Equal("Courier New", runFonts.ComplexScript?.Value);
+            Assert.Equal("Courier New", runFonts.EastAsia?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleLanguageFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleLanguage();
 
@@ -766,6 +791,35 @@ namespace OfficeIMO.Tests {
                     text,
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length,
+                    FontTableOffset,
+                    fontTable.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet, fontTable);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithBuiltInParagraphStyleFontFamily() {
+                const string text = "Heading Font Family\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [1] = new LegacyDocStyleDefinition(
+                        "heading 1",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: null,
+                        characterUpx: CreateStyleCharacterUpx(CreateCharacterSprm(SprmCRgFtc0, 0, 0)))
+                });
+                byte[] fontTable = CreateFontTable("Courier New");
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(1)
                     },
                     styleSheet.Length,
                     FontTableOffset,

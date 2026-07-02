@@ -372,6 +372,9 @@ just to reserve names.
   - [x] Merge built-in stylesheet-level DOC language identifiers from
     `sprmCRgLid0` and `sprmCRgLid1` into built-in DOCX style `w:lang` values
     with synthetic legacy DOC fixture proof.
+  - [x] Merge built-in stylesheet-level DOC font-table references from
+    `sprmCRgFtc0` into built-in DOCX style `w:rFonts` values with synthetic
+    legacy DOC fixture proof.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
