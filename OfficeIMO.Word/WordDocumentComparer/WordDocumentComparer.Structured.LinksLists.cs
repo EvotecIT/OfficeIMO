@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
                         NormalizeComparisonText(text, options),
                         root.LocationKind.ToString(),
                         root.PartUri,
-                        GetStableElementPath(bookmarkStart),
+                        GetBookmarkLocationSignature(bookmarkStart, options),
                         IsInTableFeature(bookmarkStart) ? "table" : string.Empty,
                         IsInTextBoxFeature(bookmarkStart) ? "text-box" : string.Empty);
 
@@ -235,6 +235,41 @@ namespace OfficeIMO.Word {
             }
 
             return string.Concat(text);
+        }
+
+        private static string GetBookmarkLocationSignature(BookmarkStart bookmarkStart, WordComparisonOptions options) {
+            Paragraph? paragraph = bookmarkStart.Ancestors<Paragraph>().FirstOrDefault();
+            if (paragraph == null) {
+                return GetStableElementPath(bookmarkStart);
+            }
+
+            string paragraphText = NormalizeComparisonText(NormalizeFeatureText(paragraph.InnerText ?? string.Empty), options);
+            int occurrence = GetParagraphTextOccurrence(paragraph, paragraphText, options);
+            return string.Join(
+                "|",
+                "paragraph",
+                paragraphText,
+                occurrence.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                IsInTableFeature(paragraph) ? "table" : string.Empty,
+                IsInContentControlFeature(paragraph) ? "content-control" : string.Empty,
+                IsInTextBoxFeature(paragraph) ? "text-box" : string.Empty);
+        }
+
+        private static int GetParagraphTextOccurrence(Paragraph paragraph, string normalizedText, WordComparisonOptions options) {
+            OpenXmlElement root = paragraph.Ancestors().LastOrDefault() ?? paragraph;
+            int occurrence = 0;
+            foreach (Paragraph candidate in root.Descendants<Paragraph>()) {
+                if (ReferenceEquals(candidate, paragraph)) {
+                    return occurrence;
+                }
+
+                string candidateText = NormalizeComparisonText(NormalizeFeatureText(candidate.InnerText ?? string.Empty), options);
+                if (string.Equals(candidateText, normalizedText, StringComparison.Ordinal)) {
+                    occurrence++;
+                }
+            }
+
+            return occurrence;
         }
 
         private static string GetHyperlinkTarget(OpenXmlPart? part, string relationshipId) {
