@@ -243,7 +243,7 @@ namespace OfficeIMO.Word {
             content.Append(CreateTocFieldParagraph(instruction, entries.Count == 0 ? "No " + sequenceIdentifier + " entries found." : string.Empty));
 
             foreach (CaptionListEntry entry in entries) {
-                content.Append(CreateEntryParagraph(new TocHeadingEntry(entry.Text, 1, entry.PageNumber, entry.BookmarkName), !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator));
+                content.Append(CreateEntryParagraph(new TocHeadingEntry(entry.Text, 1, entry.PageNumber, entry.BookmarkName, applyLevelRange: false), !pageNumberSuppressedLevels.Contains(1), pageNumberSeparator));
             }
         }
 

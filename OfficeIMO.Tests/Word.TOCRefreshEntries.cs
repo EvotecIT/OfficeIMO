@@ -641,14 +641,14 @@ namespace OfficeIMO.Tests {
 
                 WordTableOfContentRefreshReport report = toc.RefreshEntries();
 
-                Assert.Equal(2, report.EntryCount);
-                Assert.Equal(1, report.SkippedHeadingCount);
-                Assert.Equal(new[] { "Word-generated TC root", "Word-generated TC child" }, report.Entries.Select(entry => entry.Text).ToArray());
-                Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
-                AssertGeneratedEntries(toc, "Word-generated TC root", "Word-generated TC child");
+                Assert.Equal(3, report.EntryCount);
+                Assert.Equal(0, report.SkippedHeadingCount);
+                Assert.Equal(new[] { "Word-generated TC root", "Word-generated TC child", "Word-generated TC appendix" }, report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.Equal(new[] { 1, 2, 4 }, report.Entries.Select(entry => entry.Level).ToArray());
+                Assert.Equal(new[] { 1, 2, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
+                AssertGeneratedEntries(toc, "Word-generated TC root", "Word-generated TC child", "Word-generated TC appendix");
                 Assert.DoesNotContain("Word-generated TC other type", TocText(toc));
-                Assert.DoesNotContain("Word-generated TC appendix", TocText(toc));
-                Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
+                Assert.Equal(3, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
                 Assert.True(toc.SdtBlock.Descendants<SimpleField>().Single().Dirty?.Value);
                 Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\f \"A\"", StringComparison.Ordinal));
@@ -661,10 +661,9 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
-                AssertGeneratedEntries(toc, "Word-generated TC root", "Word-generated TC child");
+                AssertGeneratedEntries(toc, "Word-generated TC root", "Word-generated TC child", "Word-generated TC appendix");
                 Assert.DoesNotContain("Word-generated TC other type", TocText(toc));
-                Assert.DoesNotContain("Word-generated TC appendix", TocText(toc));
-                Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
+                Assert.Equal(3, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
             }
         }
 
@@ -678,12 +677,13 @@ namespace OfficeIMO.Tests {
 
                 document.AddParagraph("Heading should stay out").SetStyle(WordParagraphStyles.Heading1);
                 AppendBodyParagraph(document, new Paragraph(
-                    new SimpleField { Instruction = " TC \"TC only entry\" \\f \"A\" \\l \"1\" " }));
+                    new SimpleField { Instruction = " TC \"TC only entry\" \\f \"A\" \\l \"4\" " }));
 
                 WordTableOfContentRefreshReport report = toc.RefreshEntries();
 
                 Assert.Single(report.Entries);
                 Assert.Equal("TC only entry", report.Entries[0].Text);
+                Assert.Equal(4, report.Entries[0].Level);
                 AssertGeneratedEntries(toc, "TC only entry");
                 Assert.DoesNotContain("Heading should stay out", TocText(toc));
                 Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
@@ -697,7 +697,7 @@ namespace OfficeIMO.Tests {
 
             using (WordDocument document = WordDocument.Create(filePath)) {
                 WordTableOfContent toc = document.AddTableOfContent(minLevel: 1, maxLevel: 3);
-                SetTocInstruction(toc, " TOC \\t \"CustomOnly,1\" \\h \\z ");
+                SetTocInstruction(toc, " TOC \\t \"CustomOnly,4\" \\h \\z ");
 
                 document.AddParagraph("Heading should stay out").SetStyle(WordParagraphStyles.Heading1);
                 AppendBodyParagraph(document, new Paragraph(
@@ -708,10 +708,11 @@ namespace OfficeIMO.Tests {
 
                 Assert.Single(report.Entries);
                 Assert.Equal("Custom style entry", report.Entries[0].Text);
+                Assert.Equal(4, report.Entries[0].Level);
                 AssertGeneratedEntries(toc, "Custom style entry");
                 Assert.DoesNotContain("Heading should stay out", TocText(toc));
                 Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
-                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"CustomOnly,1\"", StringComparison.Ordinal));
+                    (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"CustomOnly,4\"", StringComparison.Ordinal));
             }
         }
 
@@ -764,14 +765,14 @@ namespace OfficeIMO.Tests {
 
                 WordTableOfContentRefreshReport report = toc.RefreshEntries();
 
-                Assert.Equal(2, report.EntryCount);
-                Assert.Equal(1, report.SkippedHeadingCount);
-                Assert.Equal(new[] { "Word-generated custom style root", "Word-generated custom style child" }, report.Entries.Select(entry => entry.Text).ToArray());
-                Assert.Equal(new[] { 1, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
-                AssertGeneratedEntries(toc, "Word-generated custom style root", "Word-generated custom style child");
+                Assert.Equal(3, report.EntryCount);
+                Assert.Equal(0, report.SkippedHeadingCount);
+                Assert.Equal(new[] { "Word-generated custom style root", "Word-generated custom style child", "Word-generated custom style appendix" }, report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.Equal(new[] { 1, 2, 4 }, report.Entries.Select(entry => entry.Level).ToArray());
+                Assert.Equal(new[] { 1, 2, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
+                AssertGeneratedEntries(toc, "Word-generated custom style root", "Word-generated custom style child", "Word-generated custom style appendix");
                 Assert.DoesNotContain("Word-generated custom style excluded body", TocText(toc));
-                Assert.DoesNotContain("Word-generated custom style appendix", TocText(toc));
-                Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
+                Assert.Equal(3, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
                 Assert.Contains(toc.SdtBlock.Descendants<SimpleField>(), field =>
                     (field.Instruction?.Value ?? field.Instruction ?? string.Empty).Contains("\\t \"Custom TOC Root,1,Custom TOC Detail,2,Custom TOC Appendix,4\"", StringComparison.Ordinal));
                 Assert.True(document.Settings.UpdateFieldsOnOpen);
@@ -783,10 +784,9 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
                 WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
 
-                AssertGeneratedEntries(toc, "Word-generated custom style root", "Word-generated custom style child");
+                AssertGeneratedEntries(toc, "Word-generated custom style root", "Word-generated custom style child", "Word-generated custom style appendix");
                 Assert.DoesNotContain("Word-generated custom style excluded body", TocText(toc));
-                Assert.DoesNotContain("Word-generated custom style appendix", TocText(toc));
-                Assert.Equal(2, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
+                Assert.Equal(3, toc.SdtBlock.Descendants<Hyperlink>().Count(hyperlink => !string.IsNullOrWhiteSpace(hyperlink.Anchor)));
             }
         }
 

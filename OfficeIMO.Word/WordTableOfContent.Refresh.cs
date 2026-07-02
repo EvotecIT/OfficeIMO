@@ -31,7 +31,7 @@ namespace OfficeIMO.Word {
             TocSourceOptions sourceOptions = GetTocSourceOptions(instruction, customStyleLevels);
             var headings = CollectHeadingEntries(tcEntryTypeFilter, customStyleLevels, bookmarkScope, sourceOptions).ToArray();
             var included = headings
-                .Where(heading => heading.Level >= MinLevel && heading.Level <= MaxLevel)
+                .Where(heading => !heading.ApplyLevelRange || (heading.Level >= MinLevel && heading.Level <= MaxLevel))
                 .ToArray();
             int skipped = headings.Length - included.Length;
 
@@ -171,13 +171,13 @@ namespace OfficeIMO.Word {
 
             bool isInsideScope = bookmarkScope == null || (bookmarkRange.HasValue && IsParagraphInsideBookmarkRange(paragraph, bookmarkRange.Value));
             if (isInsideScope) {
-                int? headingLevel = GetHeadingLevel(paragraph, customStyleLevels, sourceOptions);
+                (int Level, bool ApplyLevelRange)? headingLevel = GetHeadingLevel(paragraph, customStyleLevels, sourceOptions);
                 if (headingLevel != null) {
                     string headingText = GetParagraphText(paragraph);
                     if (!string.IsNullOrWhiteSpace(headingText)) {
                         RemoveImportedTableTocBookmarks(paragraph, existingBookmarkNames);
                         string bookmarkName = EnsureBookmark(paragraph, existingBookmarkNames, headingIndex);
-                        entries.Add(new TocHeadingEntry(headingText, headingLevel.Value, pageNumber, bookmarkName));
+                        entries.Add(new TocHeadingEntry(headingText, headingLevel.Value.Level, pageNumber, bookmarkName, headingLevel.Value.ApplyLevelRange));
                         headingIndex++;
                     }
                 }
@@ -290,7 +290,7 @@ namespace OfficeIMO.Word {
             }
 
             string bookmarkName = EnsureBookmark(paragraph, existingBookmarkNames, entryIndex);
-            entry = new TocHeadingEntry(text, level, pageNumber, bookmarkName);
+            entry = new TocHeadingEntry(text, level, pageNumber, bookmarkName, applyLevelRange: false);
             return true;
         }
 
@@ -524,17 +524,17 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static int? GetHeadingLevel(Paragraph paragraph, IReadOnlyDictionary<string, int> customStyleLevels, TocSourceOptions sourceOptions) {
+        private static (int Level, bool ApplyLevelRange)? GetHeadingLevel(Paragraph paragraph, IReadOnlyDictionary<string, int> customStyleLevels, TocSourceOptions sourceOptions) {
             int? outlineLevel = paragraph.ParagraphProperties?.OutlineLevel?.Val?.Value;
             if (sourceOptions.IncludeOutlineLevels && outlineLevel >= 0 && outlineLevel <= 8) {
-                return outlineLevel.Value + 1;
+                return (outlineLevel.Value + 1, true);
             }
 
             string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
             if (!string.IsNullOrWhiteSpace(styleId) &&
                 sourceOptions.IncludeCustomStyles &&
                 customStyleLevels.TryGetValue(styleId!, out int customLevel)) {
-                return customLevel;
+                return (customLevel, false);
             }
 
             if (string.IsNullOrWhiteSpace(styleId) || !sourceOptions.IncludeHeadingStyles) {
@@ -546,7 +546,7 @@ namespace OfficeIMO.Word {
                 return null;
             }
 
-            return level;
+            return (level, true);
         }
 
         private static TocSourceOptions GetTocSourceOptions(string instruction, IReadOnlyDictionary<string, int> customStyleLevels) {
@@ -788,11 +788,12 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class TocHeadingEntry {
-            internal TocHeadingEntry(string text, int level, int pageNumber, string bookmarkName) {
+            internal TocHeadingEntry(string text, int level, int pageNumber, string bookmarkName, bool applyLevelRange) {
                 Text = text;
                 Level = level;
                 PageNumber = pageNumber;
                 BookmarkName = bookmarkName;
+                ApplyLevelRange = applyLevelRange;
             }
 
             internal string Text { get; }
@@ -802,6 +803,8 @@ namespace OfficeIMO.Word {
             internal int PageNumber { get; }
 
             internal string BookmarkName { get; }
+
+            internal bool ApplyLevelRange { get; }
 
             internal WordTableOfContentEntry ToPublicEntry() {
                 return new WordTableOfContentEntry(Text, Level, PageNumber, BookmarkName);
