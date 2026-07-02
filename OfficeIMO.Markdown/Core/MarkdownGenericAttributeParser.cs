@@ -313,11 +313,31 @@ internal static class MarkdownGenericAttributeParser {
             var first = value[0];
             var last = value[value.Length - 1];
             if ((first == '"' && last == '"') || (first == '\'' && last == '\'')) {
-                return value.Substring(1, value.Length - 2);
+                return UnescapeQuotedValue(value.Substring(1, value.Length - 2), first);
             }
         }
 
         return value;
+    }
+
+    private static string UnescapeQuotedValue(string value, char quote) {
+        if (value.IndexOf('\\') < 0) {
+            return value;
+        }
+
+        var builder = new StringBuilder(value.Length);
+        for (int i = 0; i < value.Length; i++) {
+            var ch = value[i];
+            if (ch == '\\' && i + 1 < value.Length && (value[i + 1] == quote || value[i + 1] == '\\')) {
+                builder.Append(value[i + 1]);
+                i++;
+                continue;
+            }
+
+            builder.Append(ch);
+        }
+
+        return builder.ToString();
     }
 
     private static void AddClass(IList<string> classes, string? className) {

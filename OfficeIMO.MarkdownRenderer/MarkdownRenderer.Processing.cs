@@ -102,6 +102,27 @@ public static partial class MarkdownRenderer {
                 preservesOriginalMarkdown));
     }
 
+    private static MarkdownParseResult AttachRendererParseResult(
+        MarkdownDoc document,
+        MarkdownSyntaxNode syntaxTree,
+        MarkdownSyntaxNode finalSyntaxTree,
+        string sourceMarkdown,
+        string originalMarkdown,
+        bool preservesOriginalMarkdown,
+        IReadOnlyList<MarkdownDocumentTransformDiagnostic> transformDiagnostics,
+        IReadOnlyList<MarkdownReferenceLinkDefinition> referenceLinkDefinitions,
+        IReadOnlyList<MarkdownAbbreviationDefinition> abbreviationDefinitions) =>
+        new MarkdownParseResult(
+            document,
+            syntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            originalMarkdown,
+            preservesOriginalMarkdown,
+            transformDiagnostics,
+            referenceLinkDefinitions,
+            abbreviationDefinitions);
+
     private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownParseResult parseResult) {
         var children = parseResult.SyntaxTree.Children;
         var spans = new List<MarkdownSourceSpan?>(parseResult.Document.Blocks.Count);

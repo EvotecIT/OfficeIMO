@@ -57,17 +57,46 @@ internal sealed class MarkdownHeadingCatalog {
                 continue;
             }
 
-            var slug = heading is HeadingBlock { SuppressAutoIdentifier: true }
-                ? string.Empty
-                : slugRegistry == null
-                    ? MarkdownSlug.Generate(heading.Text, style)
-                    : MarkdownSlug.Generate(heading.Text, style, slugRegistry);
+            var slug = ResolveHeadingAnchor(heading, slugRegistry, style);
 
             slugs[heading] = slug;
             headings.Add(new HeadingEntry(idx, heading, slug));
         }
 
         return new MarkdownHeadingCatalog(headings, slugs, style);
+    }
+
+    private static string ResolveHeadingAnchor(
+        IHeadingMarkdownBlock heading,
+        Dictionary<string, int>? slugRegistry,
+        MarkdownHeadingIdentifierStyle style) {
+        if (heading is HeadingBlock { SuppressAutoIdentifier: true }) {
+            return string.Empty;
+        }
+
+        if (heading is MarkdownObject { Attributes.ElementId: { } explicitId }
+            && !string.IsNullOrWhiteSpace(explicitId)) {
+            var anchor = explicitId.Trim();
+            ReserveSlug(anchor, slugRegistry);
+            return anchor;
+        }
+
+        return slugRegistry == null
+            ? MarkdownSlug.Generate(heading.Text, style)
+            : MarkdownSlug.Generate(heading.Text, style, slugRegistry);
+    }
+
+    private static void ReserveSlug(string anchor, Dictionary<string, int>? slugRegistry) {
+        if (slugRegistry == null || string.IsNullOrEmpty(anchor)) {
+            return;
+        }
+
+        if (slugRegistry.TryGetValue(anchor, out var count)) {
+            slugRegistry[anchor] = count + 1;
+            return;
+        }
+
+        slugRegistry[anchor] = 0;
     }
 
     internal string? GetPrecedingHeadingAnchor(IReadOnlyList<IMarkdownBlock> blocks, int blockIndex, TocOptions options) {

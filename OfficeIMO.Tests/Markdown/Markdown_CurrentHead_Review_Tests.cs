@@ -123,6 +123,43 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_RenderBodyHtml_Provides_Syntax_Context_To_Transforms() {
+        var sourceSliceCreated = false;
+        var sourceText = string.Empty;
+        var options = new MarkdownRendererOptions();
+        options.DocumentTransforms.Add(new RendererInspectTransform((document, context) => {
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+            Assert.NotNull(context.SyntaxTree);
+            Assert.NotNull(context.TopLevelBlockSourceSpans);
+            sourceSliceCreated = context.TryCreateSourceSlice(paragraph, out var slice);
+            sourceText = slice.Text;
+            return document;
+        }));
+
+        OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("Alpha\n", options);
+
+        Assert.True(sourceSliceCreated);
+        Assert.Equal("Alpha", sourceText);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocumentResult_Attaches_Final_ParseResult_To_Transformed_Document() {
+        var options = new MarkdownRendererOptions();
+        options.DocumentTransforms.Add(new RendererInspectTransform((document, context) => {
+            var replacement = MarkdownDoc.Create();
+            replacement.Add(new ParagraphBlock(new InlineSequence().Text("Beta")));
+            return replacement;
+        }));
+
+        var result = OfficeIMO.MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("Alpha\n", options);
+
+        Assert.NotNull(result.Document.ParseResult);
+        Assert.Same(result.FinalSyntaxTree, result.Document.ParseResult!.FinalSyntaxTree);
+        Assert.Same(result.Document, result.Document.ParseResult.Document);
+    }
+
+    [Fact]
     public void GenericAttributes_RenderMarkdown_Uses_KeyForm_For_OneCharacter_Id() {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.GenericAttributes = true;
@@ -139,6 +176,25 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void GenericAttributes_Unescapes_Quoted_Attribute_Values() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("Alpha {title=\"a\\\"b\" data-path=\"c\\\\d\"}", options);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("a\"b", paragraph.Attributes.Attributes["title"]);
+        Assert.Equal("c\\d", paragraph.Attributes.Attributes["data-path"]);
+
+        var rendered = ((IMarkdownBlock)paragraph).RenderMarkdown();
+        var reparsed = MarkdownReader.Parse(rendered, options);
+        var reparsedParagraph = Assert.IsType<ParagraphBlock>(Assert.Single(reparsed.Blocks));
+
+        Assert.Equal("a\"b", reparsedParagraph.Attributes.Attributes["title"]);
+        Assert.Equal("c\\d", reparsedParagraph.Attributes.Attributes["data-path"]);
+    }
+
+    [Fact]
     public void Native_ParagraphText_SourceField_Excludes_Trailing_GenericAttributes() {
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.GenericAttributes = true;
@@ -150,6 +206,30 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Equal("Alpha", field.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), field.SourceSpan);
         Assert.Equal("Beta {#id}\n", native.CreateReplaceEdit(field, "Beta").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
+    public void Toc_Uses_Explicit_Heading_Id_And_Reserves_It_For_Generated_Anchors() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+        var document = MarkdownReader.Parse("""
+            [TOC]
+
+            # Install {#setup}
+
+            # Setup
+            """, options);
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Contains("href=\"#setup\"", html);
+        Assert.Contains("id=\"setup\"", html);
+        Assert.Contains("id=\"setup-1\"", html);
+        Assert.DoesNotContain("href=\"#install\"", html);
     }
 
     [Fact]
