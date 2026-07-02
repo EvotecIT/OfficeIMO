@@ -1,6 +1,8 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
@@ -176,6 +178,66 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("| Merge fields | 2 |", markdown);
                 Assert.Contains("| Conditional blocks | 1 |", markdown);
                 Assert.Contains("| Repeating blocks | 1 |", markdown);
+            }
+        }
+
+        [Fact]
+        public void Test_MailMerge_PreflightTemplateSeesNotePartMergeFieldsAfterSaveLoad() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergePreflightNotePartFields.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Body")._paragraph.Append(new Run(new FootnoteReference { Id = 2 }));
+                MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+                FootnotesPart footnotesPart = mainPart.FootnotesPart ?? mainPart.AddNewPart<FootnotesPart>();
+                footnotesPart.Footnotes = new Footnotes(
+                    new Footnote(
+                        new Paragraph(
+                            new Run(new Text("Customer: ") { Space = SpaceProcessingModeValues.Preserve }),
+                            CreatePreflightMergeField("NoteCustomer"))) {
+                                Id = 2
+                            });
+                footnotesPart.Footnotes.Save();
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTemplatePreflightReport report = WordMailMerge.PreflightTemplate(
+                    document,
+                    mergeFieldNames: new[] { "NoteCustomer" });
+
+                Assert.True(report.CanBindTemplate);
+                Assert.Equal(1, report.MergeFieldCount);
+                Assert.Equal(0, report.IssueCount);
+
+                WordMailMerge.Execute(document, new Dictionary<string, string> {
+                    ["notecustomer"] = "Contoso"
+                });
+
+                Footnote footnote = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().Single(item => item.Id?.Value == 2);
+                Assert.Contains("Contoso", footnote.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain("MERGEFIELD", footnote.InnerXml, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
+        public void Test_MailMerge_ExecuteUsesPreflightCaseInsensitiveFieldMatching() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergePreflightCaseInsensitiveExecution.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Customer: ")
+                    .AddField(WordFieldType.MergeField, parameters: new List<string> { "\"CustomerName\"" });
+
+                WordTemplatePreflightReport report = WordMailMerge.PreflightTemplate(
+                    document,
+                    mergeFieldNames: new[] { "customername" });
+
+                Assert.True(report.CanBindTemplate);
+
+                WordMailMerge.Execute(document, new Dictionary<string, string> {
+                    ["customername"] = "Alice"
+                });
+
+                string xml = document._document.MainDocumentPart!.Document.InnerXml;
+                Assert.Contains("Alice", document._document.Body!.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain("MERGEFIELD", xml, StringComparison.Ordinal);
             }
         }
 

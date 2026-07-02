@@ -105,8 +105,9 @@ namespace OfficeIMO.Word {
                     string relationshipId = hyperlink.Id?.Value ?? string.Empty;
                     string anchor = hyperlink.Anchor?.Value ?? string.Empty;
                     string target = GetHyperlinkTarget(part, relationshipId);
+                    string metadataSignature = GetHyperlinkMetadataSignature(hyperlink, options);
                     string text = NormalizeFeatureText(hyperlink.InnerText ?? string.Empty);
-                    string displayText = "text=" + text + "; anchor=" + anchor + "; target=" + target + "; relationshipId=" + relationshipId;
+                    string displayText = "text=" + text + "; anchor=" + anchor + "; target=" + target + "; relationshipId=" + relationshipId + "; metadata=" + metadataSignature;
                     string matchSignature = string.Join(
                         "|",
                         NormalizeComparisonText(text, options),
@@ -119,6 +120,7 @@ namespace OfficeIMO.Word {
                         NormalizeComparisonText(text, options),
                         NormalizeComparisonText(anchor, options),
                         NormalizeComparisonText(target, options),
+                        metadataSignature,
                         options.CompareGeneratedIds ? NormalizeComparisonText(relationshipId, options) : string.Empty,
                         IsInTableFeature(hyperlink) ? "table" : string.Empty,
                         IsInTextBoxFeature(hyperlink) ? "text-box" : string.Empty);
@@ -149,6 +151,7 @@ namespace OfficeIMO.Word {
             }
 
             var snapshots = new List<ListSnapshot>();
+            Numbering? numberingDefinitions = mainPart.NumberingDefinitionsPart?.Numbering;
             foreach (WordFieldInventory.FieldRoot root in WordFieldInventory.EnumerateFieldRoots(mainPart)) {
                 foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(root.Root, GetFeatureOrderBase(root.LocationKind))) {
                     if (ordered.Element is not Paragraph paragraph) {
@@ -162,8 +165,9 @@ namespace OfficeIMO.Word {
 
                     string numberId = numbering.NumberingId?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
                     string level = numbering.NumberingLevelReference?.Val?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty;
+                    string numberingSignature = GetListNumberingDefinitionSignature(numberingDefinitions, numberId, level, options);
                     string text = NormalizeFeatureText(paragraph.InnerText ?? string.Empty);
-                    string displayText = "numId=" + numberId + "; level=" + level + "; text=" + text;
+                    string displayText = "numId=" + numberId + "; level=" + level + "; text=" + text + "; numbering=" + numberingSignature;
                     string matchSignature = string.Join(
                         "|",
                         NormalizeComparisonText(level, options),
@@ -175,6 +179,7 @@ namespace OfficeIMO.Word {
                         "|",
                         options.CompareGeneratedIds ? NormalizeComparisonText(numberId, options) : string.Empty,
                         NormalizeComparisonText(level, options),
+                        numberingSignature,
                         NormalizeComparisonText(text, options),
                         IsInTableFeature(paragraph) ? "table" : string.Empty,
                         IsInContentControlFeature(paragraph) ? "content-control" : string.Empty,
@@ -331,6 +336,75 @@ namespace OfficeIMO.Word {
             HyperlinkRelationship? relationship = part.HyperlinkRelationships
                 .FirstOrDefault(item => string.Equals(item.Id, relationshipId, StringComparison.Ordinal));
             return relationship?.Uri.ToString() ?? string.Empty;
+        }
+
+        private static string GetHyperlinkMetadataSignature(Hyperlink hyperlink, WordComparisonOptions options) {
+            return string.Join(
+                "|",
+                NormalizeComparisonText(hyperlink.DocLocation?.Value ?? string.Empty, options),
+                hyperlink.History?.Value == null ? string.Empty : (hyperlink.History.Value ? "history=true" : "history=false"),
+                NormalizeComparisonText(hyperlink.Tooltip?.Value ?? string.Empty, options),
+                NormalizeComparisonText(hyperlink.TargetFrame?.Value ?? string.Empty, options));
+        }
+
+        private static string GetListNumberingDefinitionSignature(Numbering? numbering, string numberId, string level, WordComparisonOptions options) {
+            if (numbering == null || string.IsNullOrWhiteSpace(numberId)) {
+                return string.Empty;
+            }
+
+            NumberingInstance? instance = numbering.Elements<NumberingInstance>()
+                .FirstOrDefault(item => string.Equals(
+                    item.NumberID?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    numberId,
+                    StringComparison.Ordinal));
+            if (instance == null) {
+                return string.Empty;
+            }
+
+            int? abstractNumberId = instance.AbstractNumId?.Val?.Value;
+            AbstractNum? abstractNum = abstractNumberId.HasValue
+                ? numbering.Elements<AbstractNum>().FirstOrDefault(item => item.AbstractNumberId?.Value == abstractNumberId.Value)
+                : null;
+
+            OpenXmlElement instanceClone = instance.CloneNode(true);
+            OpenXmlElement? abstractClone = abstractNum?.CloneNode(true);
+            if (!options.CompareGeneratedIds) {
+                NormalizeNumberingGeneratedIds(instanceClone, abstractClone);
+            }
+
+            Level? resolvedLevel = abstractClone?
+                .Elements<Level>()
+                .FirstOrDefault(item => string.Equals(
+                    item.LevelIndex?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    level,
+                    StringComparison.Ordinal));
+            LevelOverride? resolvedOverride = instanceClone
+                .Elements<LevelOverride>()
+                .FirstOrDefault(item => string.Equals(
+                    item.LevelIndex?.Value.ToString(System.Globalization.CultureInfo.InvariantCulture),
+                    level,
+                    StringComparison.Ordinal));
+
+            return NormalizeComparisonText(string.Join(
+                "|",
+                instanceClone.OuterXml,
+                abstractClone?.OuterXml ?? string.Empty,
+                resolvedLevel?.OuterXml ?? string.Empty,
+                resolvedOverride?.OuterXml ?? string.Empty), options);
+        }
+
+        private static void NormalizeNumberingGeneratedIds(OpenXmlElement instanceClone, OpenXmlElement? abstractClone) {
+            if (instanceClone is NumberingInstance numberingInstance) {
+                numberingInstance.NumberID = 0;
+                AbstractNumId? abstractNumId = numberingInstance.GetFirstChild<AbstractNumId>();
+                if (abstractNumId != null) {
+                    abstractNumId.Val = 0;
+                }
+            }
+
+            if (abstractClone is AbstractNum abstractNum) {
+                abstractNum.AbstractNumberId = 0;
+            }
         }
 
         private static Dictionary<string, OpenXmlPart> GetMainPartDescendantsByUri(MainDocumentPart mainPart) {

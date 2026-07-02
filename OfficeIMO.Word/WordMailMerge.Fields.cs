@@ -21,7 +21,7 @@ namespace OfficeIMO.Word {
         private static void ReplaceSimpleMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields) {
             foreach (var simpleField in root.Descendants<SimpleField>().ToList()) {
                 string? name = GetMergeFieldName(simpleField.Instruction?.Value);
-                if (name == null || !values.TryGetValue(name, out string? value)) {
+                if (name == null || !TryGetMergeValue(values, name, out string? value)) {
                     continue;
                 }
 
@@ -93,6 +93,14 @@ namespace OfficeIMO.Word {
                     yield return footerPart.Footer;
                 }
             }
+
+            if (mainPart.FootnotesPart?.Footnotes != null) {
+                yield return mainPart.FootnotesPart.Footnotes;
+            }
+
+            if (mainPart.EndnotesPart?.Endnotes != null) {
+                yield return mainPart.EndnotesPart.Endnotes;
+            }
         }
 
         private static void ReplaceComplexFieldRuns(IReadOnlyList<Run> fieldRuns, IDictionary<string, string> values, bool removeFields) {
@@ -100,7 +108,7 @@ namespace OfficeIMO.Word {
                 .SelectMany(run => run.Elements<FieldCode>())
                 .Select(code => code.Text));
             string? name = GetMergeFieldName(instruction);
-            if (name == null || !values.TryGetValue(name, out string? value)) {
+            if (name == null || !TryGetMergeValue(values, name, out string? value)) {
                 return;
             }
 
@@ -166,6 +174,22 @@ namespace OfficeIMO.Word {
 
             run.Append(new Text(value) { Space = SpaceProcessingModeValues.Preserve });
             return run;
+        }
+
+        private static bool TryGetMergeValue(IDictionary<string, string> values, string name, out string value) {
+            if (values.TryGetValue(name, out value!)) {
+                return true;
+            }
+
+            foreach (KeyValuePair<string, string> entry in values) {
+                if (string.Equals(entry.Key, name, StringComparison.OrdinalIgnoreCase)) {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            value = string.Empty;
+            return false;
         }
 
         private static string? GetMergeFieldName(string? fieldInstruction) {
