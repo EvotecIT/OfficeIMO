@@ -17,21 +17,26 @@ public static partial class MarkdownReader {
             var bodyStart = i + 1;
             var closingIndex = -1;
             var closingFenceLength = opening.FenceLength;
-            var nestedDepth = 0;
+            var nestedFenceLengths = new Stack<int>();
             for (var candidate = bodyStart; candidate < lines.Length; candidate++) {
+                if (nestedFenceLengths.Count > 0 &&
+                    TryParseClosingFence(lines[candidate], nestedFenceLengths.Peek(), out _)) {
+                    nestedFenceLengths.Pop();
+                    continue;
+                }
+
                 if (TryParseClosingFence(lines[candidate], opening.FenceLength, out closingFenceLength)) {
-                    if (nestedDepth == 0) {
+                    if (nestedFenceLengths.Count == 0) {
                         closingIndex = candidate;
                         break;
                     }
 
-                    nestedDepth--;
                     continue;
                 }
 
                 if (TryParseOpeningFence(lines[candidate], out var nestedOpening) &&
                     nestedOpening.FenceLength >= opening.FenceLength) {
-                    nestedDepth++;
+                    nestedFenceLengths.Push(nestedOpening.FenceLength);
                 }
             }
 
@@ -103,21 +108,26 @@ public static partial class MarkdownReader {
             }
 
             var bodyStart = startIndex + 1;
-            var nestedDepth = 0;
+            var nestedFenceLengths = new Stack<int>();
             for (var candidate = bodyStart; candidate < lines.Count; candidate++) {
+                if (nestedFenceLengths.Count > 0 &&
+                    TryParseClosingFence(lines[candidate], nestedFenceLengths.Peek(), out _)) {
+                    nestedFenceLengths.Pop();
+                    continue;
+                }
+
                 if (TryParseClosingFence(lines[candidate], opening.FenceLength, out _)) {
-                    if (nestedDepth == 0) {
+                    if (nestedFenceLengths.Count == 0) {
                         lineCount = candidate - startIndex + 1;
                         return true;
                     }
 
-                    nestedDepth--;
                     continue;
                 }
 
                 if (TryParseOpeningFence(lines[candidate], out var nestedOpening) &&
                     nestedOpening.FenceLength >= opening.FenceLength) {
-                    nestedDepth++;
+                    nestedFenceLengths.Push(nestedOpening.FenceLength);
                 }
             }
 

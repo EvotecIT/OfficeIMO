@@ -1136,6 +1136,23 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     [Fact]
+    public void MarkdownReader_CustomContainers_Track_Nested_Longer_Fence_Lengths() {
+        const string markdown = "::: outer\n:::: inner\n:::\n::::\n:::";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.CustomContainers = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        var outer = Assert.IsType<CustomContainerBlock>(Assert.Single(result.Document.Blocks));
+        var inner = Assert.IsType<CustomContainerBlock>(Assert.Single(outer.ChildBlocks));
+
+        Assert.Equal("outer", outer.Name);
+        Assert.Equal("inner", inner.Name);
+        Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 3), outer.ClosingFenceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 4), inner.ClosingFenceSourceSpan);
+    }
+
+    [Fact]
     public void MarkdownReader_CustomContainers_Writer_Reparse_Matches_Markdig_Extension() {
         const string markdown = "::: note\nhello\n:::";
         var htmlOptions = new HtmlOptions {

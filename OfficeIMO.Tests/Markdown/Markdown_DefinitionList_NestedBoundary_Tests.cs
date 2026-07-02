@@ -452,6 +452,36 @@ Term
     }
 
     [Fact]
+    public void DefinitionList_NestedBlockquoteBody_StopsBefore_ListExtras_OrderedList() {
+        const string markdown = """
+Term
+:   First
+    > quote
+a. sibling
+""";
+
+        var readerOptions = CreateMarkdigDefinitionListReaderOptions();
+        readerOptions.ListExtras = true;
+        var builder = new Markdig.MarkdownPipelineBuilder();
+        Markdig.MarkdownExtensions.UseDefinitionLists(builder);
+        Markdig.MarkdownExtensions.UseListExtras(builder);
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, readerOptions);
+        Assert.Equal(2, result.Document.Blocks.Count);
+        var definitionList = Assert.IsType<DefinitionListBlock>(result.Document.Blocks[0]);
+        var trailingList = Assert.IsType<OrderedListBlock>(result.Document.Blocks[1]);
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var quote = Assert.IsType<QuoteBlock>(definition.Blocks[1]);
+        var office = result.Document.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
+        var markdig = MarkdigMarkdown.ToHtml(markdown, builder.Build());
+
+        Assert.Equal("quote", Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks)).Inlines.RenderMarkdown());
+        Assert.Equal("sibling", Assert.Single(trailingList.Items).Content.RenderMarkdown());
+        Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+    }
+
+    [Fact]
     public void DefinitionList_NestedBlockquoteBody_Merges_UnindentedBlockquoteContinuation() {
         const string markdown = """
 Term

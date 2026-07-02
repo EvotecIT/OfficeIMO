@@ -665,7 +665,7 @@ public static partial class MarkdownReader {
             }
 
             if (PreviousDefinitionLinesEndActiveNestedBlockquote(definitionSourceLines) &&
-                CurrentLineStartsListBlock(line)) {
+                CurrentLineStartsListBlock(line, options)) {
                 return false;
             }
 
@@ -775,14 +775,14 @@ public static partial class MarkdownReader {
             trimmed.StartsWith(">", StringComparison.Ordinal);
     }
 
-    private static bool CurrentLineStartsListBlock(string line) {
+    private static bool CurrentLineStartsListBlock(string line, MarkdownReaderOptions options) {
         if (string.IsNullOrWhiteSpace(line)) {
             return false;
         }
 
         var trimmed = line.TrimStart();
         return IsUnorderedListLine(trimmed, out _, out _, out _) ||
-            IsOrderedListLine(trimmed, out _, out _);
+            IsOrderedListLine(trimmed, options, out _, out _);
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {
