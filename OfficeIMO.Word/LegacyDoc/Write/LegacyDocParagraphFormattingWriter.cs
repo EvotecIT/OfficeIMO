@@ -720,6 +720,14 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return;
             }
 
+            if (border.Style == LegacyDocTableCellBorderStyle.ExplicitNone) {
+                bytes.Add(0);
+                bytes.Add(0);
+                bytes.Add(0);
+                bytes.Add(0);
+                return;
+            }
+
             if (border.SizeEighthPoints <= 0 || border.SizeEighthPoints > byte.MaxValue || border.SpacePoints < 0 || border.SpacePoints > byte.MaxValue) {
                 throw new NotSupportedException("Native DOC saving supports table cell border size and spacing only within Word 97-2003 BRC80 byte ranges.");
             }

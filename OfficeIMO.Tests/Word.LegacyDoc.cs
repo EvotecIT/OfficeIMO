@@ -37,6 +37,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_UsesUnsupportedFieldDisplayTextWithoutLeakingInstructions() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc(
+                "Prefix \u0013 MERGEFIELD CustomerName \u0014Visible Result\u0015 suffix",
+                "Empty \u0013 MERGEFIELD CustomerName \u0014\u0015 suffix",
+                "Instruction only \u0013 MERGEFIELD CustomerName \u0015 suffix");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Equal("Prefix Visible Result suffix", result.Document.Paragraphs[0].Text);
+            Assert.Equal("Empty  suffix", result.Document.Paragraphs[1].Text);
+            Assert.Equal("Instruction only  suffix", result.Document.Paragraphs[2].Text);
+            Assert.DoesNotContain("MERGEFIELD", string.Concat(result.Document.Paragraphs.Select(paragraph => paragraph.Text)));
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsSimpleTable() {
             byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithTable();
 
@@ -8131,6 +8148,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_TreatsOmittedVerticalMergeValueAsContinuation() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(2, 1);
+                    table.Rows[0].Cells[0].AddParagraph("Merged", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[0].AddParagraph(string.Empty, removeExistingParagraphs: true);
+                    table.Rows[0].Cells[0].MergeVertically(1);
+                    table.Rows[1].Cells[0]._tableCellProperties!.VerticalMerge!.Val = null;
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal(MergedCellValues.Restart, reloadedTable.Rows[0].Cells[0].VerticalMerge);
+                Assert.Equal(MergedCellValues.Continue, reloadedTable.Rows[1].Cells[0].VerticalMerge);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocTableCellVerticalAlignmentAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -8624,6 +8667,37 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(BorderValues.Dotted, reloadedTable.Rows[1].Cells[0].Borders.BottomStyle);
                 Assert.Equal("000000", reloadedTable.Rows[1].Cells[0].Borders.BottomColorHex);
                 Assert.Equal(5U, reloadedTable.Rows[1].Cells[0].Borders.BottomSize?.Value);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_PreservesExplicitNilTableCellBorderOverInheritedTableBorder() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("NoTop", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Inherited", removeExistingParagraphs: true);
+                    table.StyleDetails!.TableBorders = new TableBorders(
+                        new TopBorder { Val = BorderValues.Single, Color = "ff0000", Size = 4U },
+                        new BottomBorder { Val = BorderValues.Single, Color = "0000ff", Size = 4U });
+                    table.Rows[0].Cells[0].Borders.TopStyle = BorderValues.Nil;
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                Assert.Equal("NoTop", reloadedTable.Rows[0].Cells[0].Paragraphs[0].Text);
+                Assert.Null(reloadedTable.Rows[0].Cells[0].Borders.TopStyle);
+                Assert.Equal("Inherited", reloadedTable.Rows[0].Cells[1].Paragraphs[0].Text);
+                Assert.Equal(BorderValues.Single, reloadedTable.Rows[0].Cells[1].Borders.TopStyle);
+                Assert.Equal("ff0000", reloadedTable.Rows[0].Cells[1].Borders.TopColorHex);
             } finally {
                 DeleteIfExists(docPath);
             }

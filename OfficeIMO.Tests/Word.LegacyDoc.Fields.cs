@@ -55,6 +55,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocSimpleFieldInteriorBookmarksAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordParagraph bodyParagraph = document.AddParagraph("Body ");
+                    AppendInteriorBookmarkedSimpleField(bodyParagraph._paragraph, "87", "InteriorSimpleFieldBookmark", " DATE ", "Al", "pha");
+
+                    WordParagraph noteReferences = document.AddParagraph("Notes ");
+                    WordParagraph footnoteReference = noteReferences.AddFootNote("footnote placeholder");
+                    WordParagraph footnoteBody = footnoteReference.FootNote!.Paragraphs![1];
+                    AppendInteriorBookmarkedSimpleField(footnoteBody._paragraph, "88", "InteriorFootnoteSimpleFieldBookmark", " DATE ", "Be", "ta");
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                AssertBookmarkRoundTrip(reloaded, "InteriorSimpleFieldBookmark");
+                AssertBookmarkRoundTrip(reloaded, "InteriorFootnoteSimpleFieldBookmark");
+                SimpleField[] dateFields = GetReloadedDateTimeFields(reloaded._wordprocessingDocument!.MainDocumentPart!).ToArray();
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "Alpha"));
+                Assert.Contains(dateFields, field => IsFieldWithText(field, "DATE", "Beta"));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocComplexFieldBookmarksAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -391,6 +422,16 @@ namespace OfficeIMO.Tests {
             simpleField.Append(
                 new BookmarkStart { Id = id, Name = name },
                 new Run(new Text("1") { Space = SpaceProcessingModeValues.Preserve }),
+                new BookmarkEnd { Id = id });
+            paragraph.Append(simpleField);
+        }
+
+        private static void AppendInteriorBookmarkedSimpleField(Paragraph paragraph, string id, string name, string instruction, string prefix, string suffix) {
+            var simpleField = new SimpleField { Instruction = instruction };
+            simpleField.Append(
+                new Run(new Text(prefix) { Space = SpaceProcessingModeValues.Preserve }),
+                new BookmarkStart { Id = id, Name = name },
+                new Run(new Text(suffix) { Space = SpaceProcessingModeValues.Preserve }),
                 new BookmarkEnd { Id = id });
             paragraph.Append(simpleField);
         }

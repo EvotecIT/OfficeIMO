@@ -625,6 +625,17 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     continue;
                 }
 
+                if (LegacyDocField.TryReadDisplayField(
+                    characters,
+                    characterIndex,
+                    out int fallbackFieldResultStartIndex,
+                    out int fallbackFieldResultEndIndex,
+                    out int fallbackFieldEndIndex)) {
+                    AppendFieldDisplayResult(fallbackFieldResultStartIndex, fallbackFieldResultEndIndex);
+                    characterIndex = fallbackFieldEndIndex;
+                    continue;
+                }
+
                 if (textCharacter.Character == '\a') {
                     LegacyDocParagraphFormat paragraphFormat = GetParagraphFormatForFileOffset(paragraphFormattingRanges, textCharacter.FileOffset);
                     LegacyDocCharacterFormat paragraphMarkFormat = GetFormatForFileOffset(formattingRanges, textCharacter.FileOffset);
@@ -748,6 +759,20 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
             void AppendPageNumberResult(int resultStartIndex, int resultEndIndex) {
                 AppendFieldResult(LegacyDocFieldKind.Page, fieldInstruction: null, resultStartIndex, resultEndIndex);
+            }
+
+            void AppendFieldDisplayResult(int resultStartIndex, int resultEndIndex) {
+                for (int resultIndex = resultStartIndex; resultIndex < resultEndIndex; resultIndex++) {
+                    LegacyDocTextCharacter resultCharacter = characters[resultIndex];
+                    char? normalized = NormalizeBodyCharacter(resultCharacter.Character);
+                    if (normalized == null) {
+                        continue;
+                    }
+
+                    LegacyDocCharacterFormat format = GetFormatForFileOffset(formattingRanges, resultCharacter.FileOffset);
+                    AppendRunCharacter(normalized.Value, format, resultCharacter.CharacterPosition);
+                    bodyText.Append(normalized.Value);
+                }
             }
 
             void AppendFieldResult(LegacyDocFieldKind fieldKind, string? fieldInstruction, int resultStartIndex, int resultEndIndex) {

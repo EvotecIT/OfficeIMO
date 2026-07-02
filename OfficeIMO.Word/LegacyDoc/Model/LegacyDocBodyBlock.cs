@@ -89,6 +89,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
     internal enum LegacyDocTableCellBorderStyle {
         None,
+        ExplicitNone,
         Single,
         Double,
         Dotted,

@@ -170,6 +170,69 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return IsDocumentPropertyInstruction(instruction);
         }
 
+        internal static bool TryReadDisplayField(
+            IReadOnlyList<LegacyDocTextCharacter> characters,
+            int startIndex,
+            out int resultStartIndex,
+            out int resultEndIndex,
+            out int fieldEndIndex) {
+            resultStartIndex = -1;
+            resultEndIndex = -1;
+            fieldEndIndex = -1;
+
+            if (startIndex < 0
+                || startIndex >= characters.Count
+                || characters[startIndex].Character != Begin) {
+                return false;
+            }
+
+            int separatorIndex = -1;
+            int endIndex = -1;
+            for (int index = startIndex + 1; index < characters.Count; index++) {
+                char character = characters[index].Character;
+                if (character == Separator) {
+                    separatorIndex = index;
+                    break;
+                }
+
+                if (character == End) {
+                    endIndex = index;
+                    break;
+                }
+
+                if (character == Begin || IsBodyBoundary(character)) {
+                    return false;
+                }
+            }
+
+            if (endIndex >= 0) {
+                resultStartIndex = endIndex;
+                resultEndIndex = endIndex;
+                fieldEndIndex = endIndex;
+                return true;
+            }
+
+            if (separatorIndex < 0) {
+                return false;
+            }
+
+            for (int index = separatorIndex + 1; index < characters.Count; index++) {
+                char character = characters[index].Character;
+                if (character == End) {
+                    resultStartIndex = separatorIndex + 1;
+                    resultEndIndex = index;
+                    fieldEndIndex = index;
+                    return true;
+                }
+
+                if (character == Begin || character == Separator || IsBodyBoundary(character) || !IsSupportedResultCharacter(character)) {
+                    return false;
+                }
+            }
+
+            return false;
+        }
+
         internal static bool IsDocumentPropertyInstruction(string instruction) {
             string trimmed = instruction.Trim();
             if (IsInstruction(trimmed, "DOCPROPERTY")) {

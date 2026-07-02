@@ -802,7 +802,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 return LegacyDocTableCellVerticalMerge.Restart;
             }
 
-            if (value == MergedCellValues.Continue) {
+            if (value == null || value == MergedCellValues.Continue) {
                 return LegacyDocTableCellVerticalMerge.Continue;
             }
 
@@ -1092,8 +1092,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             BorderValues? value = border.Val?.Value;
-            if (value == null || value == BorderValues.None || value == BorderValues.Nil) {
+            if (value == null) {
                 return default;
+            }
+
+            if (value == BorderValues.None || value == BorderValues.Nil) {
+                return new LegacyDocTableCellBorder(LegacyDocTableCellBorderStyle.ExplicitNone, null, 0, 0);
             }
 
             LegacyDocTableCellBorderStyle style = MapSupportedTableCellBorderStyle(value.Value);

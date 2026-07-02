@@ -39,11 +39,39 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedText(text, runs, instruction, LegacyDocWritableFormatting.Plain);
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
             int resultStartCharacter = characterOffset + text.Length;
-            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: 0);
             string safeResultText = resultText;
-            AppendFormattedText(text, runs, safeResultText, formatting);
-            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: safeResultText.Length);
+            AppendFieldResultTextWithBookmarkMarkers(text, runs, bookmarks, safeResultText, formatting, bookmarkMarkers, resultStartCharacter);
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
+        }
+
+        private static void AppendFieldResultTextWithBookmarkMarkers(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            string resultText,
+            LegacyDocWritableFormatting formatting,
+            IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers,
+            int resultStartCharacter) {
+            int currentOffset = 0;
+            int[] markerOffsets = bookmarkMarkers
+                .Select(marker => marker.ResultOffset)
+                .Where(offset => offset >= 0 && offset <= resultText.Length)
+                .Distinct()
+                .OrderBy(offset => offset)
+                .ToArray();
+
+            foreach (int markerOffset in markerOffsets) {
+                if (markerOffset > currentOffset) {
+                    AppendFormattedText(text, runs, resultText.Substring(currentOffset, markerOffset - currentOffset), formatting);
+                    currentOffset = markerOffset;
+                }
+
+                AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, markerOffset);
+            }
+
+            if (currentOffset < resultText.Length) {
+                AppendFormattedText(text, runs, resultText.Substring(currentOffset), formatting);
+            }
         }
 
         private static void AppendSupportedPageNumberFieldFromSimpleField(StringBuilder text, List<LegacyDocWritableRun> runs, LegacyDocWritableBookmarksBuilder bookmarks, SimpleField field, LegacyDocWritableFormatting inheritedFormatting) {

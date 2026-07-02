@@ -446,11 +446,40 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedNoteText(text, runs, instruction, LegacyDocWritableFormatting.Plain, storyStart);
             AppendFormattedNoteText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
             int resultStartCharacter = storyStart + text.Length;
-            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: 0);
             string safeResultText = resultText.Length == 0 ? "1" : resultText;
-            AppendFormattedNoteText(text, runs, safeResultText, formatting, storyStart);
-            AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: safeResultText.Length);
+            AppendNoteFieldResultTextWithBookmarkMarkers(text, runs, bookmarks, safeResultText, formatting, bookmarkMarkers, resultStartCharacter, storyStart);
             AppendFormattedNoteText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter, storyStart);
+        }
+
+        private static void AppendNoteFieldResultTextWithBookmarkMarkers(
+            StringBuilder text,
+            List<LegacyDocWritableRun> runs,
+            LegacyDocWritableBookmarksBuilder bookmarks,
+            string resultText,
+            LegacyDocWritableFormatting formatting,
+            IReadOnlyList<LegacyDocSimpleFieldBookmarkMarker> bookmarkMarkers,
+            int resultStartCharacter,
+            int storyStart) {
+            int currentOffset = 0;
+            int[] markerOffsets = bookmarkMarkers
+                .Select(marker => marker.ResultOffset)
+                .Where(offset => offset >= 0 && offset <= resultText.Length)
+                .Distinct()
+                .OrderBy(offset => offset)
+                .ToArray();
+
+            foreach (int markerOffset in markerOffsets) {
+                if (markerOffset > currentOffset) {
+                    AppendFormattedNoteText(text, runs, resultText.Substring(currentOffset, markerOffset - currentOffset), formatting, storyStart);
+                    currentOffset = markerOffset;
+                }
+
+                AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, markerOffset);
+            }
+
+            if (currentOffset < resultText.Length) {
+                AppendFormattedNoteText(text, runs, resultText.Substring(currentOffset), formatting, storyStart);
+            }
         }
 
         private static void AppendSupportedNoteHyperlinkText(
