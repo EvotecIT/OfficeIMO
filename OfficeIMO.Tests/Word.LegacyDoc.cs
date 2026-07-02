@@ -9546,18 +9546,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyDoc_SaveDocPath_BlocksUnsupportedNestedTablesBeforeCreatingFile() {
+        public void LegacyDoc_SaveDocPath_WritesNativeDocNestedTablesAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    WordTable table = document.AddTable(1, 2);
+                    table.Rows[0].Cells[0].AddParagraph("Outer A", removeExistingParagraphs: true);
+                    WordTable nestedTable = table.Rows[0].Cells[0].AddTable(1, 1);
+                    nestedTable.Rows[0].Cells[0].AddParagraph("Inner A", removeExistingParagraphs: true);
+                    table.Rows[0].Cells[1].AddParagraph("Outer B", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
+                Assert.Equal(2, reloaded.TablesIncludingNestedTables.Count);
+                WordTable outerTable = Assert.Single(reloaded.Tables);
+                WordTableRow row = Assert.Single(outerTable.Rows);
+                Assert.Equal(2, row.Cells.Count);
+                Assert.Contains(row.Cells[0].Paragraphs, paragraph => paragraph.Text == "Outer A");
+                WordTable reloadedNestedTable = Assert.Single(row.Cells[0].NestedTables);
+                Assert.True(reloadedNestedTable.IsNestedTable);
+                Assert.Equal("Inner A", Assert.Single(reloadedNestedTable.Rows[0].Cells[0].Paragraphs).Text);
+                Assert.Contains(row.Cells[1].Paragraphs, paragraph => paragraph.Text == "Outer B");
+                Assert.Empty(row.Cells[1].NestedTables);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksDeepNestedTablesBeforeCreatingFile() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
             try {
                 using WordDocument document = WordDocument.Create();
                 WordTable table = document.AddTable(1, 1);
                 WordTable nestedTable = table.Rows[0].Cells[0].AddTable(1, 1);
-                nestedTable.Rows[0].Cells[0].AddParagraph("Nested", removeExistingParagraphs: true);
+                WordTable deepNestedTable = nestedTable.Rows[0].Cells[0].AddTable(1, 1);
+                deepNestedTable.Rows[0].Cells[0].AddParagraph("Deep", removeExistingParagraphs: true);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
-                Assert.Contains("nested tables", exception.Message.ToLowerInvariant());
+                Assert.Contains("depth 2", exception.Message, StringComparison.Ordinal);
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);

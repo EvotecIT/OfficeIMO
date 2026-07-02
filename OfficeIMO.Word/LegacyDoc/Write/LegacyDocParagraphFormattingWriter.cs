@@ -18,6 +18,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         private const ushort SprmPFMirrorIndents = 0x2470;
         private const ushort SprmPFInTable = 0x2416;
         private const ushort SprmPFTtp = 0x2417;
+        private const ushort SprmPItap = 0x6649;
+        private const ushort SprmPFInnerTableCell = 0x244B;
+        private const ushort SprmPFInnerTtp = 0x244C;
         private const ushort SprmPJc = 0x2461;
         private const ushort SprmPFBiDi = 0x2441;
         private const ushort SprmPDxaRight = 0x840E;
@@ -193,6 +196,18 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 AddSingleByteSprm(grpprl, SprmPFTtp, 1);
             }
 
+            if (formatting.TableDepth > 1) {
+                AddInt32Sprm(grpprl, SprmPItap, formatting.TableDepth);
+            }
+
+            if (formatting.HasInnerTableCellMarker) {
+                AddSingleByteSprm(grpprl, SprmPFInnerTableCell, 1);
+            }
+
+            if (formatting.HasInnerTableTerminatingParagraphMarker) {
+                AddSingleByteSprm(grpprl, SprmPFInnerTtp, 1);
+            }
+
             if (formatting.TableAlignment != null) {
                 AddInt16Sprm(grpprl, SprmTJc, MapTableAlignment(formatting.TableAlignment.Value));
             }
@@ -334,6 +349,15 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             grpprl.Add((byte)(sprm >> 8));
             grpprl.Add((byte)(operand & 0xFF));
             grpprl.Add((byte)(operand >> 8));
+        }
+
+        private static void AddInt32Sprm(List<byte> grpprl, ushort sprm, int operand) {
+            grpprl.Add((byte)(sprm & 0xFF));
+            grpprl.Add((byte)(sprm >> 8));
+            grpprl.Add((byte)(operand & 0xFF));
+            grpprl.Add((byte)((operand >> 8) & 0xFF));
+            grpprl.Add((byte)((operand >> 16) & 0xFF));
+            grpprl.Add((byte)((operand >> 24) & 0xFF));
         }
 
         private static void AddLineSpacingSprm(List<byte> grpprl, int lineSpacingTwips) {
@@ -950,7 +974,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             LegacyDocParagraphBorders? paragraphBorders = null,
             LegacyDocTableCellMargins? defaultTableCellMargins = null,
             int? defaultTableCellSpacingTwips = null,
-            byte? outlineLevel = null) {
+            byte? outlineLevel = null,
+            int tableDepth = 0,
+            bool hasInnerTableCellMarker = false,
+            bool hasInnerTableTerminatingParagraphMarker = false) {
             Alignment = alignment;
             StyleIndex = styleIndex;
             SpacingBeforeTwips = spacingBeforeTwips;
@@ -988,6 +1015,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 : null;
             IsInTable = isInTable;
             IsTableTerminatingParagraph = isTableTerminatingParagraph;
+            TableDepth = tableDepth > 1 ? tableDepth : 0;
+            HasInnerTableCellMarker = hasInnerTableCellMarker;
+            HasInnerTableTerminatingParagraphMarker = hasInnerTableTerminatingParagraphMarker;
             TabStops = tabStops == null || tabStops.Count == 0
                 ? Array.Empty<LegacyDocTabStop>()
                 : tabStops.ToArray();
@@ -1106,6 +1136,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         internal bool? IsTableTerminatingParagraph { get; }
 
+        internal int TableDepth { get; }
+
+        internal bool HasInnerTableCellMarker { get; }
+
+        internal bool HasInnerTableTerminatingParagraphMarker { get; }
+
         internal IReadOnlyList<LegacyDocTabStop> TabStops { get; }
 
         internal IReadOnlyList<int> TableCellWidthsTwips { get; }
@@ -1183,6 +1219,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             || OutlineLevel != null
             || IsInTable != null
             || IsTableTerminatingParagraph != null
+            || TableDepth > 1
+            || HasInnerTableCellMarker
+            || HasInnerTableTerminatingParagraphMarker
             || TabStops.Count > 0
             || TableCellWidthsTwips.Count > 0
             || TableLeftIndentTwips != null
@@ -1261,7 +1300,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ParagraphBorders,
                 DefaultTableCellMargins,
                 DefaultTableCellSpacingTwips,
-                OutlineLevel);
+                OutlineLevel,
+                TableDepth,
+                HasInnerTableCellMarker,
+                HasInnerTableTerminatingParagraphMarker);
         }
 
         internal LegacyDocWritableParagraphFormatting WithInheritedParagraphFormatting(LegacyDocWritableParagraphFormatting inherited) {
@@ -1322,7 +1364,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ParagraphBorders ?? inherited.ParagraphBorders,
                 DefaultTableCellMargins ?? inherited.DefaultTableCellMargins,
                 DefaultTableCellSpacingTwips ?? inherited.DefaultTableCellSpacingTwips,
-                OutlineLevel ?? inherited.OutlineLevel);
+                OutlineLevel ?? inherited.OutlineLevel,
+                TableDepth > 1 ? TableDepth : inherited.TableDepth,
+                HasInnerTableCellMarker || inherited.HasInnerTableCellMarker,
+                HasInnerTableTerminatingParagraphMarker || inherited.HasInnerTableTerminatingParagraphMarker);
         }
 
         internal LegacyDocWritableParagraphFormatting WithTableMarkers(
@@ -1404,6 +1449,70 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 outlineLevel: OutlineLevel);
         }
 
+        internal LegacyDocWritableParagraphFormatting WithNestedTableMarkers(int tableDepth, bool isInnerTableTerminatingParagraph = false) {
+            if (tableDepth <= 1) {
+                throw new ArgumentOutOfRangeException(nameof(tableDepth), "Nested DOC table markers require a table depth greater than 1.");
+            }
+
+            return new LegacyDocWritableParagraphFormatting(
+                Alignment,
+                StyleIndex,
+                SpacingBeforeTwips,
+                SpacingAfterTwips,
+                LineSpacingTwips,
+                LeftIndentTwips,
+                RightIndentTwips,
+                FirstLineIndentTwips,
+                KeepLinesTogether,
+                KeepWithNext,
+                PageBreakBefore,
+                AvoidWidowAndOrphan,
+                SuppressLineNumbers,
+                SuppressAutoHyphens,
+                ContextualSpacing,
+                MirrorIndents,
+                Kinsoku,
+                WordWrap,
+                OverflowPunctuation,
+                TopLinePunctuation,
+                AutoSpaceDE,
+                AutoSpaceDN,
+                Bidirectional,
+                NumberingListIndex,
+                NumberingLevel,
+                VerticalCharacterAlignment,
+                true,
+                null,
+                TabStops,
+                null,
+                null,
+                null,
+                false,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                ParagraphShading,
+                ParagraphBorders,
+                null,
+                null,
+                outlineLevel: OutlineLevel,
+                tableDepth: tableDepth,
+                hasInnerTableCellMarker: true,
+                hasInnerTableTerminatingParagraphMarker: isInnerTableTerminatingParagraph);
+        }
+
         public bool Equals(LegacyDocWritableParagraphFormatting other) {
             return Alignment == other.Alignment
                 && StyleIndex == other.StyleIndex
@@ -1434,6 +1543,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 && OutlineLevel == other.OutlineLevel
                 && IsInTable == other.IsInTable
                 && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
+                && TableDepth == other.TableDepth
+                && HasInnerTableCellMarker == other.HasInnerTableCellMarker
+                && HasInnerTableTerminatingParagraphMarker == other.HasInnerTableTerminatingParagraphMarker
                 && TabStopsEqual(TabStops, other.TabStops)
                 && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips)
                 && TableLeftIndentTwips == other.TableLeftIndentTwips
@@ -1495,6 +1607,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             hash = (hash * 31) + OutlineLevel.GetHashCode();
             hash = (hash * 31) + IsInTable.GetHashCode();
             hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
+            hash = (hash * 31) + TableDepth.GetHashCode();
+            hash = (hash * 31) + HasInnerTableCellMarker.GetHashCode();
+            hash = (hash * 31) + HasInnerTableTerminatingParagraphMarker.GetHashCode();
             hash = (hash * 31) + TableLeftIndentTwips.GetHashCode();
             hash = (hash * 31) + TableRowHeightTwips.GetHashCode();
             hash = (hash * 31) + TableRowHeightIsExact.GetHashCode();
