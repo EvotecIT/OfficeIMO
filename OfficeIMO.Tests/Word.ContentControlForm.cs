@@ -345,6 +345,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ContentControlForm_TableScopedSpecializedControlsRemainBindableAsGenericTags() {
+            string filePath = Path.Combine(_directoryWithFiles, "DocumentWithTableScopedSpecializedContentControl.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var table = new Table(
+                    new TableRow(
+                        new TableCell(
+                            new Paragraph(
+                                new SdtRun(
+                                    new SdtProperties(
+                                        new SdtAlias { Val = "Table Accepted" },
+                                        new Tag { Val = "TableAccepted" },
+                                        new DocumentFormat.OpenXml.Office2010.Word.SdtContentCheckBox()),
+                                    new SdtContentRun(
+                                        new Run(new Text("Unchecked") { Space = SpaceProcessingModeValues.Preserve })))))));
+                document._document.Body!.Append(table);
+
+                WordContentControlFormValidationResult validation = document.ValidateContentControlValues(new Dictionary<string, object?> {
+                    ["TableAccepted"] = "Approved"
+                });
+                Assert.True(validation.IsValid);
+
+                int updated = document.FillContentControlValues(new Dictionary<string, object?> {
+                    ["TableAccepted"] = "Approved"
+                });
+
+                Assert.Equal(1, updated);
+                Dictionary<string, object?> values = document.ExtractContentControlValues();
+                Assert.Equal("Approved", Assert.IsType<string>(values["TableAccepted"]));
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == "Approved");
+            }
+        }
+
+        [Fact]
         public void Test_ContentControlFormValidationReportsUnmappedPlainControls() {
             string filePath = Path.Combine(_directoryWithFiles, "DocumentWithUnmappedPlainContentControl.docx");
 

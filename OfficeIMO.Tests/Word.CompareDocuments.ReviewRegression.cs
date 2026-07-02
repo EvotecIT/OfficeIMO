@@ -1070,6 +1070,38 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ImportedRawComplexTocLeavesSameRunSuffixOutsideGeneratedSdt() {
+            string filePath = Path.Combine(_directoryWithFiles, "ImportedRawComplexTocSameRunSuffix.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.RemoveAllChildren<Paragraph>();
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Before complex TOC") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" TOC \\o \"1-3\" \\h \\z \\u ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("No entries") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(
+                        new FieldChar { FieldCharType = FieldCharValues.End },
+                        new Text("After complex TOC") { Space = SpaceProcessingModeValues.Preserve })));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+                OpenXmlElement[] bodyChildren = document._document.Body!.ChildElements.ToArray();
+
+                Assert.IsType<Paragraph>(bodyChildren[0]);
+                Assert.Equal("Before complex TOC", bodyChildren[0].InnerText);
+                Assert.IsType<SdtBlock>(bodyChildren[1]);
+                Assert.IsType<Paragraph>(bodyChildren[2]);
+                Assert.Equal("After complex TOC", bodyChildren[2].InnerText);
+                Assert.DoesNotContain("Before complex TOC", toc.SdtBlock.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain("After complex TOC", toc.SdtBlock.InnerText, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
         public void CompareStructureInPlaceRedlinesReviewFindings() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_review_in_place_source.docx");
             CreateRevisionRegressionDocument(sourcePath);

@@ -462,14 +462,7 @@ namespace OfficeIMO.Word {
 
         private static bool IsSpecializedStructuredDocumentTag(WordStructuredDocumentTag structuredDocumentTag, ISet<SdtElement> specializedElements) {
             SdtElement? element = structuredDocumentTag.SdtElement;
-            SdtProperties? properties = element?.SdtProperties;
-            return element != null && (specializedElements.Contains(element) ||
-                   properties?.Elements<W14.SdtContentCheckBox>().Any() == true ||
-                   properties?.Elements<SdtContentDate>().Any() == true ||
-                   properties?.Elements<SdtContentDropDownList>().Any() == true ||
-                   properties?.Elements<SdtContentComboBox>().Any() == true ||
-                   properties?.Elements<SdtContentPicture>().Any() == true ||
-                   properties?.Elements<W15.SdtRepeatedSection>().Any() == true);
+            return element != null && specializedElements.Contains(element);
         }
 
         private static bool TryGetFormValue(

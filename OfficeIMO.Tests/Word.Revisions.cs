@@ -163,6 +163,23 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Theory]
+        [InlineData(null)]
+        [InlineData("")]
+        [InlineData("   ")]
+        public void Test_AcceptRejectRevisions_ByAuthor_RejectsBlankAuthor(string? authorName) {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesBlankAuthor.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph().AddInsertedText("AddedByAlice", "Alice");
+
+                Assert.Throws<ArgumentException>(() => document.AcceptRevisions(authorName!));
+                Assert.Throws<ArgumentException>(() => document.RejectRevisions(authorName!));
+                Assert.Contains(document._document.Body!.Descendants<InsertedRun>(), run => run.Author?.Value == "Alice");
+            }
+        }
+
         [Fact]
         public void Test_AcceptRevisions_ByAuthor_PreservesUnmatchedNestedRevisions() {
             string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesAcceptNestedByAuthor.docx");

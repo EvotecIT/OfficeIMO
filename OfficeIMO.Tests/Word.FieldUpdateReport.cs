@@ -1152,6 +1152,34 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesEndRunSuffixWhenResultSharesEndRun() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ComplexResultSharesEndRun.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Paragraph paragraph = document.AddParagraph("Value: ")._paragraph;
+                paragraph.Append(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" QUOTE \"fresh\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(
+                        new Text("stale") { Space = SpaceProcessingModeValues.Preserve },
+                        new FieldChar { FieldCharType = FieldCharValues.End },
+                        new Text(" suffix") { Space = SpaceProcessingModeValues.Preserve }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                WordFieldUpdateResult result = Assert.Single(report.Results, field => field.FieldType == WordFieldType.Quote);
+                Assert.Equal("fresh", result.ResultText);
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == "fresh");
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == " suffix");
+                Assert.DoesNotContain(document._document.Body!.Descendants<Text>(), text => text.Text == "stale");
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_PreservesSwitchLookingTextInsideQuoteLiteral() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.QuoteLiteralWithSwitchText.docx");
 

@@ -314,7 +314,7 @@ namespace OfficeIMO.Word {
 
         private static Paragraph? SplitFieldEndPrefix(Paragraph paragraph, int endChildIndex) {
             List<OpenXmlElement> children = paragraph.ChildElements.ToList();
-            if (endChildIndex < 0 || !children.Skip(endChildIndex + 1).Any(HasMeaningfulContent)) {
+            if (endChildIndex < 0 || !HasMeaningfulContentAfterFieldEnd(children, endChildIndex)) {
                 return null;
             }
 
@@ -329,7 +329,9 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                prefix.Append(children[index].CloneNode(true));
+                prefix.Append(index == endChildIndex
+                    ? CloneThroughFieldEnd(children[index])
+                    : children[index].CloneNode(true));
             }
 
             for (int index = endChildIndex; index >= 0; index--) {
@@ -337,10 +339,88 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                if (index == endChildIndex && RemoveThroughFieldEnd(children[index])) {
+                    continue;
+                }
+
                 children[index].Remove();
             }
 
             return prefix;
+        }
+
+        private static bool HasMeaningfulContentAfterFieldEnd(IReadOnlyList<OpenXmlElement> children, int endChildIndex) {
+            return children.Skip(endChildIndex + 1).Any(HasMeaningfulContent) ||
+                   HasMeaningfulContentAfterFieldEnd(children[endChildIndex]);
+        }
+
+        private static bool HasMeaningfulContentAfterFieldEnd(OpenXmlElement element) {
+            FieldChar? end = element.Descendants<FieldChar>().FirstOrDefault(IsFieldEnd);
+            if (end == null) {
+                return false;
+            }
+
+            bool afterEnd = false;
+            foreach (OpenXmlElement descendant in element.Descendants<OpenXmlElement>()) {
+                if (ReferenceEquals(descendant, end)) {
+                    afterEnd = true;
+                    continue;
+                }
+
+                if (!afterEnd) {
+                    continue;
+                }
+
+                if (descendant is Text text && !string.IsNullOrWhiteSpace(text.Text)) {
+                    return true;
+                }
+
+                if (descendant is SimpleField ||
+                    descendant is FieldCode ||
+                    descendant is DocumentFormat.OpenXml.Wordprocessing.Drawing ||
+                    descendant is Picture) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static OpenXmlElement CloneThroughFieldEnd(OpenXmlElement element) {
+            if (element is not Run run) {
+                return element.CloneNode(true);
+            }
+
+            var clone = new Run();
+            foreach (OpenXmlElement child in run.ChildElements) {
+                clone.Append(child.CloneNode(true));
+                if (child is FieldChar fieldChar && IsFieldEnd(fieldChar)) {
+                    break;
+                }
+            }
+
+            return clone;
+        }
+
+        private static bool RemoveThroughFieldEnd(OpenXmlElement element) {
+            if (element is not Run run) {
+                return false;
+            }
+
+            bool removedEnd = false;
+            foreach (OpenXmlElement child in run.ChildElements.ToList()) {
+                child.Remove();
+                if (child is FieldChar fieldChar && IsFieldEnd(fieldChar)) {
+                    removedEnd = true;
+                    break;
+                }
+            }
+
+            if (!removedEnd || !HasMeaningfulContent(run)) {
+                return false;
+            }
+
+            return true;
         }
 
         private static Paragraph? SplitFieldStartPrefix(Paragraph paragraph, int startChildIndex) {

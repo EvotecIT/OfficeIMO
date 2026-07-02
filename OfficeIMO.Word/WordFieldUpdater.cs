@@ -947,7 +947,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            var texts = candidate.ResultRuns.SelectMany(run => run.Elements<Text>()).ToList();
+            var texts = GetResultTexts(candidate).ToList();
             if (texts.Count > 0) {
                 SetText(texts, value);
                 return;
@@ -965,6 +965,32 @@ namespace OfficeIMO.Word {
             }
 
             candidate.ResultRuns.Add(run);
+        }
+
+        private static IEnumerable<Text> GetResultTexts(MutableFieldCandidate candidate) {
+            foreach (Run run in candidate.ResultRuns) {
+                if (!ReferenceEquals(run, candidate.EndRun)) {
+                    foreach (Text text in run.Elements<Text>()) {
+                        yield return text;
+                    }
+
+                    continue;
+                }
+
+                FieldChar? end = run.Elements<FieldChar>()
+                    .FirstOrDefault(fieldChar => fieldChar.FieldCharType?.Value == FieldCharValues.End);
+                if (end == null) {
+                    foreach (Text text in run.Elements<Text>()) {
+                        yield return text;
+                    }
+
+                    continue;
+                }
+
+                foreach (Text text in run.ChildElements.TakeWhile(child => !ReferenceEquals(child, end)).OfType<Text>()) {
+                    yield return text;
+                }
+            }
         }
 
         private static Text CreateResultText(string value) {
