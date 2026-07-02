@@ -140,7 +140,7 @@ internal static class MarkdownToRtfConverter {
             }
 
             for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-                if (childIndex == 0 && IsDuplicateListItemContentBlock(item, item.ChildBlocks[childIndex])) {
+                if (IsRenderedListItemParagraphBlock(item, item.ChildBlocks[childIndex])) {
                     continue;
                 }
 
@@ -149,15 +149,15 @@ internal static class MarkdownToRtfConverter {
         }
     }
 
-    private static bool IsDuplicateListItemContentBlock(ListItem item, IMarkdownBlock block) {
-        return block is ParagraphBlock paragraph &&
-            string.Equals(PlainText(item.Content), PlainText(paragraph.Inlines), StringComparison.Ordinal);
-    }
+    private static bool IsRenderedListItemParagraphBlock(ListItem item, IMarkdownBlock block) {
+        var paragraphBlocks = item.ParagraphBlocks;
+        for (int i = 0; i < paragraphBlocks.Count; i++) {
+            if (ReferenceEquals(paragraphBlocks[i], block)) {
+                return true;
+            }
+        }
 
-    private static string PlainText(InlineSequence sequence) {
-        var builder = new System.Text.StringBuilder();
-        ((IPlainTextMarkdownInline)sequence).AppendPlainText(builder);
-        return builder.ToString();
+        return false;
     }
 
     private static int CreateListDefinition(RtfDocument document, RtfListKind kind, int start) {
@@ -587,6 +587,12 @@ internal static class MarkdownToRtfConverter {
                 break;
             case HighlightSequenceInline highlightSequence:
                 AppendInlineSequence(paragraph, highlightSequence.Inlines, document, options, style.WithHighlight(EnsureHighlightColor(document)), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
+                break;
+            case SuperscriptSequenceInline superscriptSequence:
+                AppendInlineSequence(paragraph, superscriptSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Superscript), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
+                break;
+            case SubscriptSequenceInline subscriptSequence:
+                AppendInlineSequence(paragraph, subscriptSequence.Inlines, document, options, style.WithVerticalPosition(RtfVerticalPosition.Subscript), footnoteDefinitions, activeFootnotes, allowTextRunMerging);
                 break;
             case HtmlTagSequenceInline htmlTagSequence:
                 AppendHtmlTagSequence(paragraph, htmlTagSequence, document, options, style, footnoteDefinitions, activeFootnotes, allowTextRunMerging);

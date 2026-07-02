@@ -432,13 +432,13 @@ public static partial class MarkdownReader {
 
     private static bool IsTableTerminatingBlockStart(string[] lines, int index, MarkdownReaderOptions options) {
         var line = lines[index] ?? string.Empty;
-        if (CountLeadingIndentColumns(line) >= 4) return true;
-        if (IsAtxHeading(line, out _, out _)) return true;
-        if (IsCodeFenceOpen(line, out _, out _, out _)) return true;
-        if (IsParagraphInterruptingThematicBreakLine(line)) return true;
-        if (IsParagraphInterruptingUnorderedListLine(line)) return true;
-        if (IsParagraphInterruptingOrderedListLine(line, options)) return true;
-        if (IsQuoteStarter(line)) return true;
+        if (options.IndentedCodeBlocks && CountLeadingIndentColumns(line) >= 4) return true;
+        if (options.Headings && IsAtxHeading(line, out _, out _)) return true;
+        if (options.FencedCode && IsCodeFenceOpen(line, out _, out _, out _)) return true;
+        if (options.Paragraphs && IsParagraphInterruptingThematicBreakLine(line)) return true;
+        if (options.UnorderedLists && IsParagraphInterruptingUnorderedListLine(line)) return true;
+        if (options.OrderedLists && IsParagraphInterruptingOrderedListLine(line, options)) return true;
+        if (options.Paragraphs && IsQuoteStarter(line)) return true;
         if (HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(line, options)) return true;
         if (IsCustomContainerOpeningLine(line, options)) return true;
         if (TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _)) return true;

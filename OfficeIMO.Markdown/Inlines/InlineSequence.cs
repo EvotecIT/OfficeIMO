@@ -95,6 +95,30 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
         return sb.ToString();
     }
 
+    internal string RenderMarkdownWithTextEscaper(Func<string?, string> textEscaper) {
+        if (textEscaper == null) {
+            return RenderMarkdown();
+        }
+
+        StringBuilder sb = new StringBuilder();
+        var options = MarkdownRenderContext.Options;
+        MarkdownInlineMarkdownRenderContext? context = options == null
+            ? null
+            : new MarkdownInlineMarkdownRenderContext(options, MarkdownRenderContext.WriteContext);
+        for (int i = 0; i < _inlines.Count; i++) {
+            if (AutoSpacing && i > 0) {
+                var prev = _inlines[i - 1];
+                var cur = _inlines[i];
+                if (prev is not HardBreakInline && cur is not HardBreakInline &&
+                    prev is not SoftBreakInline && cur is not SoftBreakInline) sb.Append(' ');
+            }
+
+            sb.Append(RenderMarkdown(_inlines[i], context, textEscaper));
+        }
+
+        return sb.ToString();
+    }
+
     internal string RenderHtml() {
         StringBuilder sb = new StringBuilder();
         var options = HtmlRenderContext.Options;
@@ -122,7 +146,7 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             ?? throw new InvalidOperationException($"Inline node of type '{node.GetType().FullName}' does not implement {nameof(IRenderableMarkdownInline)}.");
     }
 
-    private static string RenderMarkdown(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {
+    private static string RenderMarkdown(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context, Func<string?, string>? textEscaper = null) {
         var overridden = TryRenderInlineSyntaxMarkdownOverride(node, context);
         if (overridden != null) {
             return overridden;
@@ -133,7 +157,30 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             return overridden;
         }
 
+        if (textEscaper != null) {
+            var rendered = RenderMarkdownWithEscapedTextRuns(node, textEscaper);
+            if (rendered != null) {
+                return MarkdownInlineAttributeRenderer.RenderMarkdown(node, rendered);
+            }
+        }
+
         return MarkdownInlineAttributeRenderer.RenderMarkdown(node, GetRenderable(node).RenderMarkdown());
+    }
+
+    private static string? RenderMarkdownWithEscapedTextRuns(IMarkdownInline node, Func<string?, string> textEscaper) {
+        return node switch {
+            TextRun text => textEscaper(text.Text),
+            BoldSequenceInline bold => "**" + bold.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "**",
+            ItalicSequenceInline italic => "_" + italic.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "_",
+            BoldItalicSequenceInline boldItalic => "***" + boldItalic.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "***",
+            StrikethroughSequenceInline strike => "~~" + strike.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "~~",
+            HighlightSequenceInline highlight => "==" + highlight.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "==",
+            InsertedSequenceInline inserted => "++" + inserted.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "++",
+            SuperscriptSequenceInline superscript => "^" + superscript.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "^",
+            SubscriptSequenceInline subscript => "~" + subscript.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "~",
+            HtmlTagSequenceInline htmlTag => "<" + htmlTag.TagName + ">" + htmlTag.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "</" + htmlTag.TagName + ">",
+            _ => null
+        };
     }
 
     private static string? TryRenderInlineSyntaxMarkdownOverride(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {

@@ -13,7 +13,7 @@ public sealed class SuperscriptSequenceInline : MarkdownInline, IRenderableMarkd
         Inlines = inlines ?? new InlineSequence();
     }
 
-    internal string RenderMarkdown() => "^" + Inlines.RenderMarkdown() + "^";
+    internal string RenderMarkdown() => "^" + Inlines.RenderMarkdownWithTextEscaper(MarkdownEscaper.EscapeSuperscriptText) + "^";
     internal string RenderHtml() => "<sup>" + Inlines.RenderHtml() + "</sup>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

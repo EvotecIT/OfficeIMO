@@ -13,7 +13,7 @@ public sealed class InsertedSequenceInline : MarkdownInline, IRenderableMarkdown
         Inlines = inlines ?? new InlineSequence();
     }
 
-    internal string RenderMarkdown() => "++" + Inlines.RenderMarkdown() + "++";
+    internal string RenderMarkdown() => "++" + Inlines.RenderMarkdownWithTextEscaper(MarkdownEscaper.EscapeInsertedText) + "++";
     internal string RenderHtml() => "<ins>" + Inlines.RenderHtml() + "</ins>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

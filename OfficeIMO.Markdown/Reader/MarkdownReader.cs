@@ -45,6 +45,7 @@ public static partial class MarkdownReader {
             sourceMarkdown,
             options.PreserveTrivia ? markdown : null,
             options.PreserveTrivia,
+            diagnostics,
             referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
             abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
     }

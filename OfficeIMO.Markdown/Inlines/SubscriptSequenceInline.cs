@@ -13,7 +13,7 @@ public sealed class SubscriptSequenceInline : MarkdownInline, IRenderableMarkdow
         Inlines = inlines ?? new InlineSequence();
     }
 
-    internal string RenderMarkdown() => "~" + Inlines.RenderMarkdown() + "~";
+    internal string RenderMarkdown() => "~" + Inlines.RenderMarkdownWithTextEscaper(MarkdownEscaper.EscapeSubscriptText) + "~";
     internal string RenderHtml() => "<sub>" + Inlines.RenderHtml() + "</sub>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
