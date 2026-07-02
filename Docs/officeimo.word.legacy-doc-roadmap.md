@@ -221,7 +221,7 @@ just to reserve names.
   fixtures, then keep expanding only where the fixture proves the contract.
 - [x] Project OLE SummaryInformation and DocumentSummaryInformation metadata
   into normal Word built-in, application, and scalar custom properties.
-- [ ] Add formatting projection for run/paragraph styles only when each mapping
+- [x] Add formatting projection for run/paragraph styles only when each mapping
   has a fixture and observable OfficeIMO contract.
   - [x] Project direct CHPX bold/italic character runs into OfficeIMO runs.
   - [x] Project direct CHPX bold/italic into OpenXML complex-script
@@ -386,7 +386,7 @@ just to reserve names.
   - [x] Merge built-in stylesheet-level DOC underline, highlight, strike, and
     vertical-position run properties into built-in DOCX style run properties
     with synthetic legacy DOC fixture proof.
-  - [ ] Expand stylesheet projection to style inheritance and style-level
+  - [x] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
 - [x] Add common table projection after paragraph/run projection is stable.
