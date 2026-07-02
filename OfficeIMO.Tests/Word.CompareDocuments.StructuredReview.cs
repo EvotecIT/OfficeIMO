@@ -172,6 +172,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureHonorsCommentTargetSuppressionWhenMatchingMovedComments() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_comment_target_suppressed_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Stable body target").AddComment("Alice Reviewer", "AR", "Keep this note.");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_comment_target_suppressed_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("New target").AddComment("Bob Reviewer", "BR", "Inserted note.");
+                document.AddHeadersAndFooters();
+                document.Header.Default!.AddParagraph("Stable header target").AddComment("Alice Reviewer", "AR", "Keep this note.");
+                document.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false,
+                CompareVolatileMetadata = false,
+                CompareCommentTargets = false,
+                IncludedScopes = new HashSet<WordComparisonScope> {
+                    WordComparisonScope.Comment
+                }
+            });
+
+            WordComparisonFinding inserted = Assert.Single(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Comment &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted);
+            Assert.Contains("Inserted note.", inserted.TargetText, StringComparison.Ordinal);
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Comment &&
+                (finding.SourceText ?? string.Empty).Contains("Keep this note.", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void CompareStructureReportsWordAuthoredReviewFixture() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_word_authored_review_empty_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {

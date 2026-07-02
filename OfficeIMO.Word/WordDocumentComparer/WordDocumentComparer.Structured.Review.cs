@@ -36,8 +36,8 @@ namespace OfficeIMO.Word {
         private static string GetCommentMatchKey(WordCommentInfo comment, WordComparisonOptions options) {
             return string.Join(
                 "|",
-                comment.TargetLocationKind?.ToString() ?? string.Empty,
-                comment.TargetPartUri ?? string.Empty,
+                options.CompareCommentTargets ? (comment.TargetLocationKind?.ToString() ?? string.Empty) : string.Empty,
+                options.CompareCommentTargets ? (comment.TargetPartUri ?? string.Empty) : string.Empty,
                 comment.IsReply ? "reply" : "comment",
                 options.CompareCommentAuthors ? NormalizeComparisonText(comment.Author ?? string.Empty, options) : string.Empty,
                 options.CompareCommentAuthors ? NormalizeComparisonText(comment.Initials ?? string.Empty, options) : string.Empty,

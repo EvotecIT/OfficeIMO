@@ -119,7 +119,7 @@ namespace OfficeIMO.Word {
                 case WordFieldType.DocVariable:
                     return TryEvaluateDocumentVariable(document, parsed, out value, out status, out message);
                 case WordFieldType.Quote:
-                    return TryEvaluateQuote(parsed, out value, out status, out message);
+                    return TryEvaluateQuote(candidate.InstructionText, parsed, out value, out status, out message);
                 case WordFieldType.Ref:
                     return TryEvaluateRef(document, candidate, parsed, out value, out status, out message);
                 case WordFieldType.PageRef:
@@ -254,6 +254,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool TryEvaluateQuote(
+            string instructionText,
             WordFieldInventory.ParsedFieldInstruction parsed,
             out string? value,
             out WordFieldUpdateStatus status,
@@ -262,24 +263,44 @@ namespace OfficeIMO.Word {
             status = WordFieldUpdateStatus.Unsupported;
             message = "QUOTE fields need exactly one quoted literal instruction to be evaluated by OfficeIMO.";
 
-            if (parsed.Instructions.Count != 1) {
+            if (!TryGetQuoteLiteralAndTail(instructionText, out string? literal, out string tail)) {
+                if (parsed.Instructions.Count == 1) {
+                    literal = parsed.Instructions[0].Trim();
+                    tail = string.Empty;
+                } else {
+                    return false;
+                }
+            }
+
+            WordFieldInventory.ParsedFieldInstruction switchParsed = parsed;
+            if (!string.IsNullOrWhiteSpace(tail)) {
+                switchParsed = WordFieldInventory.ParseInstruction("QUOTE \"OfficeIMO\" " + tail);
+                if (switchParsed.Diagnostics.Count > 0 || switchParsed.FieldType != WordFieldType.Quote) {
+                    message = string.Join(" ", switchParsed.Diagnostics.DefaultIfEmpty("QUOTE field switches could not be parsed."));
+                    return false;
+                }
+            } else {
+                switchParsed = WordFieldInventory.ParseInstruction("QUOTE \"OfficeIMO\"");
+            }
+
+            if (string.IsNullOrWhiteSpace(literal)) {
                 return false;
             }
 
-            if (parsed.Switches.Count > 0) {
+            string quoteLiteral = literal!;
+            if (switchParsed.Switches.Count > 0) {
                 message = "QUOTE fields with general switches are not evaluated by OfficeIMO.";
                 return false;
             }
 
-            string literal = parsed.Instructions[0].Trim();
-            if (literal.Length < 2 || literal[0] != '"' || literal[literal.Length - 1] != '"') {
+            if (quoteLiteral.Length < 2 || quoteLiteral[0] != '"' || quoteLiteral[quoteLiteral.Length - 1] != '"') {
                 message = "QUOTE fields need a quoted literal instruction to be evaluated by OfficeIMO.";
                 return false;
             }
 
-            string literalValue = TrimQuotes(literal);
-            if (!string.IsNullOrWhiteSpace(parsed.NumericPictureSwitch)) {
-                if (GetLastMeaningfulFormat(parsed.FormatSwitches) != null) {
+            string literalValue = TrimQuotes(quoteLiteral);
+            if (!string.IsNullOrWhiteSpace(switchParsed.NumericPictureSwitch)) {
+                if (GetLastMeaningfulFormat(switchParsed.FormatSwitches) != null) {
                     message = @"QUOTE fields cannot combine \# numeric picture and \* format switches for deterministic literal refresh.";
                     return false;
                 }
@@ -289,7 +310,7 @@ namespace OfficeIMO.Word {
                     return false;
                 }
 
-                if (!TryFormatFormulaValue(numericLiteral, parsed.NumericPictureSwitch, out string numericPictureValue, out string? numericPictureDiagnostic)) {
+                if (!TryFormatFormulaValue(numericLiteral, switchParsed.NumericPictureSwitch, out string numericPictureValue, out string? numericPictureDiagnostic)) {
                     message = numericPictureDiagnostic == null
                         ? "QUOTE field numeric picture switch could not be applied."
                         : numericPictureDiagnostic.Replace("Formula numeric picture", "Field numeric picture");
@@ -302,7 +323,7 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
-            if (!TryApplyQuoteFormat(parsed.FormatSwitches, literalValue, out string formattedValue, out string? unsupportedFormat, out bool usedNumericFormat)) {
+            if (!TryApplyQuoteFormat(switchParsed.FormatSwitches, literalValue, out string formattedValue, out string? unsupportedFormat, out bool usedNumericFormat)) {
                 message = $"QUOTE field format switch {unsupportedFormat} is not supported for literal refresh.";
                 return false;
             }
@@ -474,6 +495,42 @@ namespace OfficeIMO.Word {
             }
 
             return true;
+        }
+
+        private static bool TryGetQuoteLiteralAndTail(string instructionText, out string? literal, out string tail) {
+            literal = null;
+            tail = string.Empty;
+            if (string.IsNullOrWhiteSpace(instructionText)) {
+                return false;
+            }
+
+            string text = instructionText.Trim();
+            if (!text.StartsWith("QUOTE", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            int index = 5;
+            while (index < text.Length && char.IsWhiteSpace(text[index])) {
+                index++;
+            }
+
+            if (index >= text.Length || text[index] != '"') {
+                return false;
+            }
+
+            int start = index;
+            index++;
+            while (index < text.Length) {
+                if (text[index] == '"') {
+                    literal = text.Substring(start, index - start + 1);
+                    tail = index + 1 < text.Length ? text.Substring(index + 1).Trim() : string.Empty;
+                    return true;
+                }
+
+                index++;
+            }
+
+            return false;
         }
 
         private static bool TryEvaluateFileSize(

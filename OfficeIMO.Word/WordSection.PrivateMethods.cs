@@ -235,22 +235,21 @@ namespace OfficeIMO.Word {
 
         private static int? FindTocOrIndexComplexFieldStart(Paragraph paragraph) {
             List<OpenXmlElement> children = paragraph.ChildElements.ToList();
-            var fieldStarts = new Stack<int>();
+            var fieldStarts = new Stack<(int StartIndex, System.Text.StringBuilder Instruction)>();
             for (int childIndex = 0; childIndex < children.Count; childIndex++) {
                 OpenXmlElement child = children[childIndex];
-                foreach (FieldChar fieldChar in child.Descendants<FieldChar>()) {
-                    if (IsFieldBegin(fieldChar)) {
-                        fieldStarts.Push(childIndex);
-                    } else if (IsFieldEnd(fieldChar) && fieldStarts.Count > 0) {
+                foreach (OpenXmlElement descendant in child.Descendants<OpenXmlElement>()) {
+                    if (descendant is FieldChar fieldChar && IsFieldBegin(fieldChar)) {
+                        fieldStarts.Push((childIndex, new System.Text.StringBuilder()));
+                    } else if (descendant is FieldChar endFieldChar && IsFieldEnd(endFieldChar) && fieldStarts.Count > 0) {
                         fieldStarts.Pop();
-                    }
-                }
-
-                foreach (FieldCode fieldCode in child.Descendants<FieldCode>()) {
-                    if (!string.IsNullOrWhiteSpace(fieldCode.Text) &&
-                        IsTocOrIndexInstruction(fieldCode.Text) &&
-                        fieldStarts.Count > 0) {
-                        return fieldStarts.Peek();
+                    } else if (descendant is FieldCode fieldCode && fieldStarts.Count > 0) {
+                        var current = fieldStarts.Peek();
+                        current.Instruction.Append(fieldCode.Text);
+                        if (!string.IsNullOrWhiteSpace(current.Instruction.ToString()) &&
+                            IsTocOrIndexInstruction(current.Instruction.ToString())) {
+                            return current.StartIndex;
+                        }
                     }
                 }
             }

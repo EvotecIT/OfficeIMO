@@ -222,6 +222,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshEntriesSupportsSplitComplexTocInstruction() {
+            string filePath = Path.Combine(_directoryWithFiles, "TocRefreshSplitComplexInstruction.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                AppendBodyParagraph(document, new Paragraph(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" TO") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldCode("C \\o \"1-1\" \\h") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("No table of contents entries found.") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
+                document.AddParagraph("Split Instruction Heading").SetStyle(WordParagraphStyles.Heading1);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordTableOfContent toc = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+                WordTableOfContentRefreshReport report = toc.RefreshEntries();
+
+                Assert.Equal(1, report.EntryCount);
+                Assert.Contains("Split Instruction Heading", TocText(toc));
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshEntriesSupportsWordGeneratedTableCellHeadings() {
             string sourcePath = GetFixtureDoc(Path.Combine("Word", "PremiumGaps", "FieldEvaluation", "word-generated-toc-table-cell.docx"));
             Assert.True(File.Exists(sourcePath), $"Missing Word-generated table-cell TOC fixture: {sourcePath}");

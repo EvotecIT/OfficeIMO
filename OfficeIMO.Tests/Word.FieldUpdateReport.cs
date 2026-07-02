@@ -1152,6 +1152,25 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesSwitchLookingTextInsideQuoteLiteral() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.QuoteLiteralWithSwitchText.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph()._paragraph.Append(BuildSimpleField("QUOTE \"Use \\* Upper here\"", "stale"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                WordFieldUpdateResult result = Assert.Single(report.Results, field => field.FieldType == WordFieldType.Quote);
+                Assert.Equal(WordFieldUpdateStatus.Updated, result.Status);
+                Assert.Equal("Use \\* Upper here", result.ResultText);
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == "Use \\* Upper here");
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesNestedInstructionComplexFieldsBeforeContainingFormula() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.NestedInstructionFormula.docx");
 
