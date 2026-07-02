@@ -291,6 +291,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleLanguageFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleLanguage();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Styled Language");
+            Assert.Equal(WordParagraphStyles.Custom, paragraph.Style);
+            Assert.Equal("LegacyDocCustomLanguageBody", paragraph.StyleId);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style customStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == "LegacyDocCustomLanguageBody");
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(customStyle.GetFirstChild<StyleRunProperties>());
+            Languages languages = Assert.IsType<Languages>(runProperties.GetFirstChild<Languages>());
+            Assert.Equal("pl-PL", languages.Val?.Value);
+            Assert.Equal("ja-JP", languages.EastAsia?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlightFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlight();
 
@@ -687,6 +710,8 @@ namespace OfficeIMO.Tests {
             private const ushort SprmCIco = 0x2A42;
             private const ushort SprmCHps = 0x4A43;
             private const ushort SprmCRgFtc0 = 0x4A4F;
+            private const ushort SprmCRgLid0 = 0x486D;
+            private const ushort SprmCRgLid1 = 0x486E;
             private const ushort CustomStyleIndex = 10;
             private const ushort ChildStyleIndex = 11;
 
@@ -723,6 +748,34 @@ namespace OfficeIMO.Tests {
                     FontTableOffset,
                     fontTable.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet, fontTable);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithCustomParagraphStyleLanguage() {
+                const string text = "Styled Language\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [CustomStyleIndex] = new LegacyDocStyleDefinition(
+                        "Custom Language Body",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: null,
+                        characterUpx: CreateStyleCharacterUpx(
+                            CreateCharacterSprm(SprmCRgLid0, 0x15, 0x04),
+                            CreateCharacterSprm(SprmCRgLid1, 0x11, 0x04)))
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
 
                 using var package = new MemoryStream();
                 using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
