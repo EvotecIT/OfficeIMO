@@ -424,7 +424,7 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
         Body = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
         ClosingMarker = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingMarker);
         ClosingTag = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingTag);
-        OpeningTagSourceSpan = html.OpeningTagSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag);
+        OpeningTagSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningTag) ?? html.OpeningTagSourceSpan;
         RawOpeningMarkerSourceSpan = html.OpeningMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawOpeningMarker);
         RawBodySourceSpan = html.BodySourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawBody);
         RawClosingMarkerSourceSpan = html.ClosingMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlRawClosingMarker);

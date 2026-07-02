@@ -321,6 +321,31 @@ public static partial class MarkdownReader {
         if (IsListNestedBlockStart(line, continuationIndent, itemLevelAbs, allowNestedOrdered: true, allowNestedUnordered: true, options)) return false;
         if (IsUnorderedListLine(line, out _, out _, out _, out _) || IsOrderedListLine(line, options, out _, out _, out _, out _)) return false;
 
+        var attributeSourceText = string.Empty;
+        MarkdownAttributeSet attributeSet = MarkdownAttributeSet.Empty;
+        MarkdownSourceSpan? attributeSourceSpan = null;
+        if (TryConsumeNestedStandaloneGenericAttributeLine(
+                lines,
+                index,
+                continuationIndent,
+                options,
+                state,
+                NestedStandaloneGenericAttributeTarget.Paragraph,
+                out attributeSet,
+                out attributeSourceText,
+                out attributeSourceSpan)) {
+            index++;
+            if (index >= lines.Length) {
+                return false;
+            }
+
+            line = lines[index] ?? string.Empty;
+            if (string.IsNullOrWhiteSpace(line)) return false;
+            if (CountLeadingIndentColumns(line) < continuationIndent) return false;
+            if (IsListNestedBlockStart(line, continuationIndent, itemLevelAbs, allowNestedOrdered: true, allowNestedUnordered: true, options)) return false;
+            if (IsUnorderedListLine(line, out _, out _, out _, out _) || IsOrderedListLine(line, options, out _, out _, out _, out _)) return false;
+        }
+
         string firstContent = StripLeadingIndentColumns(line, continuationIndent);
         firstContent = firstContent.TrimStart();
         int firstStartColumn = continuationIndent + CountLeadingIndentColumns(StripLeadingIndentColumns(line, continuationIndent)) + 1;
@@ -339,6 +364,11 @@ public static partial class MarkdownReader {
             initialStartColumn: firstStartColumn,
             state: state);
         paragraphs.AddRange(ParseParagraphBlocksFromSourceLines(paragraphSourceLines, options, state));
+        if (!attributeSet.IsEmpty && paragraphs.Count > 0) {
+            paragraphs[0].SetAttributes(attributeSet);
+            MarkdownGenericAttributeSourceSpans.Set(paragraphs[0], attributeSourceText, attributeSourceSpan);
+        }
+
         AddParagraphSyntaxNodes(syntaxNodes, paragraphSourceLines, options, state);
 
         index = next;

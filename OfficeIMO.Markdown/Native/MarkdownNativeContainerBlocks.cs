@@ -189,8 +189,8 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         Open = details.Open;
         OpeningTag = details.OpeningTag;
         ClosingTag = details.ClosingTag;
-        OpeningTagSourceSpan = details.OpeningTagSourceSpan;
-        ClosingTagSourceSpan = details.ClosingTagSourceSpan;
+        OpeningTagSourceSpan = FindDetailsChildSourceSpan(syntaxNode, MarkdownSyntaxKind.DetailsOpeningTag) ?? details.OpeningTagSourceSpan;
+        ClosingTagSourceSpan = FindDetailsChildSourceSpan(syntaxNode, MarkdownSyntaxKind.DetailsClosingTag) ?? details.ClosingTagSourceSpan;
         SummaryInlines = details.Summary?.Inlines;
         Summary = SummaryInlines == null ? null : InlinePlainText.Extract(SummaryInlines);
         SummarySourceSpan = details.Summary?.SourceSpan ?? FindSummarySourceSpan(syntaxNode);
@@ -261,6 +261,20 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
 
     /// <summary>Nested native body blocks.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Children { get; }
+
+    private static MarkdownSourceSpan? FindDetailsChildSourceSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) {
+        if (syntaxNode?.Children == null) {
+            return null;
+        }
+
+        for (int i = 0; i < syntaxNode.Children.Count; i++) {
+            if (syntaxNode.Children[i].Kind == kind) {
+                return syntaxNode.Children[i].SourceSpan;
+            }
+        }
+
+        return null;
+    }
 
     private static MarkdownSourceSpan? FindSummarySourceSpan(MarkdownSyntaxNode syntaxNode) {
         for (int i = 0; i < syntaxNode.Children.Count; i++) {

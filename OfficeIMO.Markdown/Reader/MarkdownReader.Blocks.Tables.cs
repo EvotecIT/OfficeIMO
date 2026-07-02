@@ -443,6 +443,7 @@ public static partial class MarkdownReader {
         if (IsCustomContainerOpeningLine(line, options)) return true;
         if (TryParseReferenceLinkDefinition(lines, index, options, out _, out _, out _, out _)) return true;
         if (options?.Footnotes == true && IsTableTerminatingFootnoteDefinitionStart(line)) return true;
+        if (options?.Abbreviations == true && IsAbbreviationDefinitionLine(line)) return true;
         return false;
     }
 

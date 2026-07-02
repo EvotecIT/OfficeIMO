@@ -367,6 +367,7 @@ public static partial class MarkdownReader {
         Any,
         FencedCode,
         List,
+        Paragraph,
         Table
     }
 
@@ -457,6 +458,12 @@ public static partial class MarkdownReader {
         if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.List)
             && ((options.OrderedLists && IsOrderedListLine(nextSlice, options, out _, out _))
                 || (options.UnorderedLists && IsUnorderedListLine(nextSlice, out _, out _, out _, out _)))) {
+            return true;
+        }
+
+        if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.Paragraph)
+            && options.Paragraphs
+            && LooksLikeParagraphLine(lines, index, options)) {
             return true;
         }
 

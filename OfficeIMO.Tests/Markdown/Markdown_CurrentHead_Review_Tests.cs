@@ -436,6 +436,102 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Equal("<custom>\nok\n</custom>", html);
     }
 
+    [Fact]
+    public void NoPipe_Table_Body_Terminates_Before_Abbreviation_Definition() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.Abbreviations = true;
+        options.RequireTableBodyRowPipes = false;
+
+        var document = MarkdownReader.Parse("""
+            | Name |
+            | ---- |
+            HTML
+            *[HTML]: Hyper Text Markup Language
+
+            HTML
+            """, options);
+
+        var table = Assert.IsType<TableBlock>(document.Blocks[0]);
+        Assert.Single(table.Rows);
+        Assert.Equal("HTML", Assert.Single(table.Rows[0]));
+        Assert.IsType<ParagraphBlock>(document.Blocks[1]);
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.DoesNotContain("*[HTML]", html);
+        Assert.Contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>", html);
+    }
+
+    [Fact]
+    public void Native_RawHtml_Opening_SourceField_Uses_Remapped_Nested_SourceSpan() {
+        const string markdown = "> <script>\n> alert(1)\n> </script>\n";
+        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {
+            PreserveTrivia = true,
+            HtmlBlocks = true
+        });
+
+        var field = Assert.Single(native.EnumerateBlockSourceFields("htmlOpeningTag"));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 10), field.SourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(field, out var slice));
+        Assert.Equal("<script>", slice.Text);
+        Assert.Equal("> <section>\n> alert(1)\n> </script>\n", native.CreateReplaceEdit(field, "<section>").Apply(markdown));
+    }
+
+    [Fact]
+    public void Native_Details_Tag_SourceFields_Use_Remapped_Nested_SourceSpans() {
+        const string markdown = "> <details open>\n> <summary>More</summary>\n> body\n> </details>\n";
+        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {
+            PreserveTrivia = true,
+            HtmlBlocks = true
+        });
+
+        var opening = Assert.Single(native.EnumerateBlockSourceFields("detailsOpeningTag"));
+        var closing = Assert.Single(native.EnumerateBlockSourceFields("detailsClosingTag"));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 16), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 3, 4, 12), closing.SourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(opening, out var openingSlice));
+        Assert.True(native.TryCreateOriginalSourceSlice(closing, out var closingSlice));
+        Assert.Equal("<details open>", openingSlice.Text);
+        Assert.Equal("</details>", closingSlice.Text);
+    }
+
+    [Fact]
+    public void Nested_Standalone_GenericAttributes_Attach_To_Following_Paragraph() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("""
+            - a
+              {#para .lead}
+              b
+            """, options);
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+        var paragraph = Assert.Single(item.Children.OfType<ParagraphBlock>(), block => block.Attributes.ElementId == "para");
+
+        Assert.Equal("para", paragraph.Attributes.ElementId);
+        Assert.Equal("lead", Assert.Single(paragraph.Attributes.Classes));
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.DoesNotContain("{#para", html);
+        Assert.Contains("id=\"para\"", html);
+        Assert.Contains("class=\"lead\"", html);
+    }
+
     private sealed class RendererInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
