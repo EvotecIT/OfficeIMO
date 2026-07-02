@@ -193,13 +193,13 @@ public sealed class MarkdownNativeDetailsBlock : MarkdownNativeBlock {
         ClosingTagSourceSpan = FindDetailsChildSourceSpan(syntaxNode, MarkdownSyntaxKind.DetailsClosingTag) ?? details.ClosingTagSourceSpan;
         SummaryInlines = details.Summary?.Inlines;
         Summary = SummaryInlines == null ? null : InlinePlainText.Extract(SummaryInlines);
-        SummarySourceSpan = details.Summary?.SourceSpan ?? FindSummarySourceSpan(syntaxNode);
+        SummarySourceSpan = FindSummarySourceSpan(syntaxNode) ?? details.Summary?.SourceSpan;
         SummaryOpeningTag = details.Summary?.OpeningTag;
         SummaryText = details.Summary?.SourceText;
         SummaryClosingTag = details.Summary?.ClosingTag;
-        SummaryOpeningTagSourceSpan = details.Summary?.OpeningTagSourceSpan ?? FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryOpeningTag);
-        SummaryTextSourceSpan = details.Summary?.TextSourceSpan ?? FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryText);
-        SummaryClosingTagSourceSpan = details.Summary?.ClosingTagSourceSpan ?? FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryClosingTag);
+        SummaryOpeningTagSourceSpan = FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryOpeningTag) ?? details.Summary?.OpeningTagSourceSpan;
+        SummaryTextSourceSpan = FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryText) ?? details.Summary?.TextSourceSpan;
+        SummaryClosingTagSourceSpan = FindSummaryChildSourceSpan(syntaxNode, MarkdownSyntaxKind.SummaryClosingTag) ?? details.Summary?.ClosingTagSourceSpan;
         SummaryInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerDescendant(syntaxNode, MarkdownSyntaxKind.SummaryText)
             is { Count: > 0 } summaryTextRuns
             ? summaryTextRuns

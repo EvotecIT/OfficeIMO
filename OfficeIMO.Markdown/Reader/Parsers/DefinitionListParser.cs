@@ -325,12 +325,14 @@ public static partial class MarkdownReader {
 
             attributeSourceText = sourceLiteral.Substring(attributeStart, attributeEnd - attributeStart + 1);
             var absoluteAttributeLine = state.SourceLineOffset + zeroBasedLineIndex + 1;
+            var attributeStartColumn = AdvanceSourceColumn(1, line, termStartIndex + attributeStart);
+            var attributeEndColumn = AdvanceSourceColumn(1, line, termStartIndex + attributeEnd + 1) - 1;
             attributeSpan = CreateSpan(
                 state,
                 absoluteAttributeLine,
-                termStartIndex + attributeStart + 1,
+                attributeStartColumn,
                 absoluteAttributeLine,
-                termStartIndex + attributeEnd + 1);
+                attributeEndColumn);
         }
 
         return new ParsedDefinitionTermLine(

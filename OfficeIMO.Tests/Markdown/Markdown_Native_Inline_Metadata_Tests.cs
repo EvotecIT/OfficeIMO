@@ -64,6 +64,24 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void FormattingMarker_Metadata_Prefers_Remapped_Nested_Syntax_Spans() {
+        const string markdown = "> **x**\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(quote.Children));
+        var strong = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Strong);
+        var opening = Assert.Single(strong.Metadata, metadata => metadata.Name == "openingMarker");
+        var closing = Assert.Single(strong.Metadata, metadata => metadata.Name == "closingMarker");
+
+        Assert.Equal("**", opening.Value);
+        Assert.Equal("**", closing.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), opening.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), closing.SourceSpan);
+        Assert.Equal("> __x**\n", native.CreateReplaceEdit(opening, "__").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
     public void Subscript_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Water H~2~O and ~nested *em*~\n";
 

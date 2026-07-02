@@ -149,6 +149,10 @@ public static partial class MarkdownReader {
             RemapTableTokenSourceSpans(sourceLines, tableBlock);
         }
 
+        if (node.AssociatedObject is DefinitionListDefinition definition) {
+            RemapDefinitionListSidecarSourceSpans(sourceLines, definition);
+        }
+
         if (node.AssociatedObject is HorizontalRuleBlock horizontalRuleBlock &&
             horizontalRuleBlock.MarkerSourceSpan.HasValue) {
             horizontalRuleBlock.MarkerSourceSpan = RemapNestedSourceSpan(sourceLines, horizontalRuleBlock.MarkerSourceSpan)
@@ -275,6 +279,29 @@ public static partial class MarkdownReader {
         IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
         MarkdownSourceSpan sourceSpan) =>
         RemapNestedSourceSpan(sourceLines, sourceSpan) ?? sourceSpan;
+
+    private static void RemapDefinitionListSidecarSourceSpans(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        DefinitionListDefinition definition) {
+        if (definition.BlankLineSourceSpans.Count > 0) {
+            definition.ReplaceBlankLineSourceSpans(definition.BlankLineSourceSpans
+                .Select(span => RemapNestedSidecarSourceSpan(sourceLines, span))
+                .ToArray());
+        }
+
+        if (definition.ContinuationIndentSourceSpans.Count > 0) {
+            definition.ReplaceContinuationIndentSourceSpans(definition.ContinuationIndentSourceSpans
+                .Select(span => RemapNestedSidecarSourceSpan(sourceLines, span))
+                .ToArray());
+        }
+    }
+
+    private static MarkdownSourceSpan RemapNestedSidecarSourceSpan(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownSourceSpan sourceSpan) =>
+        IsSourceSpanAlreadyMappedToSourceLines(sourceLines, sourceSpan)
+            ? sourceSpan
+            : RemapNestedSourceSpan(sourceLines, sourceSpan) ?? sourceSpan;
 
     private static bool ShouldParseBlockGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
         options?.GenericAttributes == true && state?.SuppressBlockGenericAttributes != true;

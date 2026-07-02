@@ -1391,6 +1391,49 @@ Lazy body
     }
 
     [Fact]
+    public void Details_Summary_SourceFields_Prefer_Remapped_Nested_Syntax_Spans() {
+        const string markdown = """
+> <details>
+> <summary>More</summary>
+> Body
+> </details>
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var details = Assert.IsType<MarkdownNativeDetailsBlock>(Assert.Single(quote.Children));
+        var summaryOpeningTag = Assert.Single(native.EnumerateBlockSourceFields("summaryOpeningTag"));
+        var summaryText = Assert.Single(native.EnumerateBlockSourceFields("summaryText"));
+        var summaryClosingTag = Assert.Single(native.EnumerateBlockSourceFields("summaryClosingTag"));
+
+        Assert.Same(details, summaryOpeningTag.Block);
+        Assert.Equal(new MarkdownSourceSpan(2, 3, 2, 11), summaryOpeningTag.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 12, 2, 15), summaryText.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 16, 2, 25), summaryClosingTag.SourceSpan);
+        Assert.Equal("> <summary>Less</summary>", native.CreateReplaceEdit(summaryText, "Less").Apply(native.SourceMarkdown).Split('\n')[1]);
+    }
+
+    [Fact]
+    public void DefinitionTerm_GenericAttributes_SourceField_Uses_TabExpanded_Columns() {
+        const string markdown = "Term\t{#id}\n:   definition\n";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.DefinitionLists = true;
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(native.Blocks));
+        var term = Assert.Single(Assert.Single(definitionList.Groups).Terms);
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Same(definitionList, attributes.Block);
+        Assert.Equal("id", term.TermObject.Attributes.ElementId);
+        Assert.Equal("{#id}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 13), attributes.SourceSpan);
+        Assert.Equal("Term\t{#term}\n:   definition\n", native.CreateReplaceEdit(attributes, "{#term}").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
     public void Linked_Image_SourceFields_Use_Image_And_Link_Token_Spans() {
         var markdown = """
 [![Alt text](https://example.com/image.png "Image title")](https://example.com/docs "Link title")

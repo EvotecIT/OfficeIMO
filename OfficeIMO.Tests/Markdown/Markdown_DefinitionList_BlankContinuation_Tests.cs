@@ -222,6 +222,29 @@ lazy continuation
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
 
+    [Fact]
+    public void DefinitionList_NestedTriviaSourceFields_Use_Remapped_SourceSpans() {
+        const string markdown = """
+> Term
+> :   First
+>
+>     Second
+""";
+
+        var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var definitionList = Assert.IsType<MarkdownNativeDefinitionListBlock>(Assert.Single(quote.Children));
+        var definition = Assert.Single(Assert.Single(definitionList.Groups).Definitions);
+        var blankLine = Assert.Single(native.EnumerateBlockSourceFields("definitionBlankLine"));
+        var continuationIndent = Assert.Single(native.EnumerateBlockSourceFields("definitionContinuationIndent"));
+
+        Assert.Equal(new[] { new MarkdownSourceSpan(3, 2, 3, 2) }, definition.BlankLineSourceSpans);
+        Assert.Equal(new[] { new MarkdownSourceSpan(4, 3, 4, 6) }, definition.ContinuationIndentSourceSpans);
+        Assert.Equal(new MarkdownSourceSpan(3, 2, 3, 2), blankLine.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 3, 4, 6), continuationIndent.SourceSpan);
+        Assert.Equal(">   Second", native.CreateReplaceEdit(continuationIndent, "  ").Apply(native.SourceMarkdown).Split('\n')[3]);
+    }
+
     private static Markdig.MarkdownPipeline CreateMarkdigDefinitionListPipeline() {
         var builder = new Markdig.MarkdownPipelineBuilder();
         Markdig.MarkdownExtensions.UseDefinitionLists(builder);

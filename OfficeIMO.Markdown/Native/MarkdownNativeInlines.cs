@@ -284,32 +284,45 @@ internal static class MarkdownNativeInlineProjection {
             return;
         }
 
-        var openingMarkerSpan = MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(inline);
+        var openingMarkerNode = FindDirectChild(node, MarkdownSyntaxKind.InlineOpeningMarker);
+        var openingMarkerSpan = openingMarkerNode?.SourceSpan ?? MarkdownInlineMetadataSourceSpans.GetOpeningMarkerSpan(inline);
         if (openingMarkerSpan.HasValue) {
             metadata.Add(new MarkdownNativeInlineMetadata(
                 "openingMarker",
-                MarkdownInlineMetadataSourceSpans.GetOpeningMarker(inline) ?? string.Empty,
+                openingMarkerNode?.Literal ?? MarkdownInlineMetadataSourceSpans.GetOpeningMarker(inline) ?? string.Empty,
                 node,
                 openingMarkerSpan));
         }
 
-        var separatorMarkerSpan = MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(inline);
+        var separatorMarkerNode = FindDirectChild(node, MarkdownSyntaxKind.InlineSeparatorMarker);
+        var separatorMarkerSpan = separatorMarkerNode?.SourceSpan ?? MarkdownInlineMetadataSourceSpans.GetSeparatorMarkerSpan(inline);
         if (separatorMarkerSpan.HasValue) {
             metadata.Add(new MarkdownNativeInlineMetadata(
                 "separatorMarker",
-                MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(inline) ?? string.Empty,
+                separatorMarkerNode?.Literal ?? MarkdownInlineMetadataSourceSpans.GetSeparatorMarker(inline) ?? string.Empty,
                 node,
                 separatorMarkerSpan));
         }
 
-        var closingMarkerSpan = MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(inline);
+        var closingMarkerNode = FindDirectChild(node, MarkdownSyntaxKind.InlineClosingMarker);
+        var closingMarkerSpan = closingMarkerNode?.SourceSpan ?? MarkdownInlineMetadataSourceSpans.GetClosingMarkerSpan(inline);
         if (closingMarkerSpan.HasValue) {
             metadata.Add(new MarkdownNativeInlineMetadata(
                 "closingMarker",
-                MarkdownInlineMetadataSourceSpans.GetClosingMarker(inline) ?? string.Empty,
+                closingMarkerNode?.Literal ?? MarkdownInlineMetadataSourceSpans.GetClosingMarker(inline) ?? string.Empty,
                 node,
                 closingMarkerSpan));
         }
+    }
+
+    private static MarkdownSyntaxNode? FindDirectChild(MarkdownSyntaxNode node, MarkdownSyntaxKind kind) {
+        for (var i = 0; i < node.Children.Count; i++) {
+            if (node.Children[i].Kind == kind) {
+                return node.Children[i];
+            }
+        }
+
+        return null;
     }
 
     private static void AddCodeSpanContentMetadata(MarkdownSyntaxNode node, List<MarkdownNativeInlineMetadata> metadata) {
