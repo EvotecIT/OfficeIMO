@@ -550,7 +550,7 @@ namespace OfficeIMO.Word {
         private static DeletedRun CreateDeletedRun(string text, WordComparisonRedlineOptions options) {
             var run = new Run();
             run.RsidRunDeletion = WordHeadersAndFooters.GenerateRsid();
-            run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            run.Append(new DeletedText(text) { Space = SpaceProcessingModeValues.Preserve });
             var deleted = new DeletedRun {
                 Author = options.Author,
                 Date = options.DateTime ?? DateTime.Now,

@@ -47,6 +47,8 @@ namespace OfficeIMO.Tests {
             Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
             Assert.Contains(body.Descendants<InsertedRun>(), run => run.InnerText == "Status: Approved" && run.Author?.Value == "OfficeIMO Tests");
             Assert.Contains(body.Descendants<DeletedRun>(), run => run.InnerText == "Status: Draft" && run.Author?.Value == "OfficeIMO Tests");
+            Assert.Contains(body.Descendants<DeletedRun>(), run => run.Descendants<DeletedText>().Any(text => text.Text == "Status: Draft"));
+            Assert.DoesNotContain(body.Descendants<DeletedRun>(), run => run.Descendants<Text>().Any(text => text.Text == "Status: Draft"));
             Assert.Contains(redline.Paragraphs, paragraph => paragraph.Text.Contains("Word Comparison Redline"));
             Assert.Contains(redline.Paragraphs, paragraph => paragraph.Text.Contains("Tracked Changes"));
 

@@ -1076,6 +1076,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_KeepsEndRunTrailingTextOutOfComplexResult() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.ComplexEndRunTrailingText.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Paragraph paragraph = document.AddParagraph("Value: ")._paragraph;
+                paragraph.Append(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" QUOTE \"updated\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("stale") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(
+                        new FieldChar { FieldCharType = FieldCharValues.End },
+                        new Text(" trailing") { Space = SpaceProcessingModeValues.Preserve }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Contains(report.Results, field =>
+                    field.FieldType == WordFieldType.Quote &&
+                    field.Status == WordFieldUpdateStatus.Updated &&
+                    field.ResultText == "updated");
+                Assert.DoesNotContain(report.Results, field =>
+                    field.FieldType == WordFieldType.Quote &&
+                    field.ResultText.Contains(" trailing", StringComparison.Ordinal));
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == "updated");
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == " trailing");
+                Assert.DoesNotContain(document._document.Body!.Descendants<Text>(), text => text.Text == "stale");
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesNestedInstructionComplexFieldsBeforeContainingFormula() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.NestedInstructionFormula.docx");
 

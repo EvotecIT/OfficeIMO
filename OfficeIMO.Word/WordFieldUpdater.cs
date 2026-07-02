@@ -1018,7 +1018,7 @@ namespace OfficeIMO.Word {
                 current.HasSeparator = true;
             }
 
-            if (run.Elements<Text>().Any()) {
+            if (HasFieldResultText(run, fieldCharType)) {
                 foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
                     builder.ResultRuns.Add(run);
                 }
@@ -1035,6 +1035,23 @@ namespace OfficeIMO.Word {
 
                 candidates.Add(completed.ToCandidate(root));
             }
+        }
+
+        private static bool HasFieldResultText(Run run, FieldCharValues? fieldCharType) {
+            if (fieldCharType != FieldCharValues.End) {
+                return run.Elements<Text>().Any();
+            }
+
+            FieldChar? end = run.Elements<FieldChar>()
+                .FirstOrDefault(fieldChar => fieldChar.FieldCharType?.Value == FieldCharValues.End);
+            if (end == null) {
+                return run.Elements<Text>().Any();
+            }
+
+            return run.ChildElements
+                .TakeWhile(child => !ReferenceEquals(child, end))
+                .OfType<Text>()
+                .Any();
         }
 
         private sealed class MutableFieldCandidate {

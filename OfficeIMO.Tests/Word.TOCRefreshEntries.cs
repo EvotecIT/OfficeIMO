@@ -402,6 +402,10 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Parent TOC heading", TocText(toc));
                 Assert.Contains("Anchored child heading", TocText(toc));
                 Assert.DoesNotContain("Parent TOC headingAnchored child heading", TocText(toc));
+                WordTableOfContentEntry parentEntry = report.Entries.Single(entry => entry.Text == "Parent TOC heading");
+                BookmarkStart parentBookmark = Assert.Single(document._document.Body!.Descendants<BookmarkStart>(), bookmark => bookmark.Name == parentEntry.BookmarkName);
+                Assert.False(parentBookmark.Ancestors<TextBoxContent>().Any());
+                Assert.Equal(2, report.Entries.Select(entry => entry.BookmarkName).Distinct(StringComparer.Ordinal).Count());
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
             }
         }

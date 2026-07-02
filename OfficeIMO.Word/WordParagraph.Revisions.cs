@@ -36,7 +36,7 @@ namespace OfficeIMO.Word {
             date ??= DateTime.Now;
             var run = new Run();
             run.RsidRunDeletion = WordHeadersAndFooters.GenerateRsid();
-            run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            run.Append(new DeletedText(text) { Space = SpaceProcessingModeValues.Preserve });
             var del = new DeletedRun() { Author = author, Date = date.Value, Id = WordHeadersAndFooters.GenerateRevisionId() };
             del.Append(run);
             _paragraph.Append(del);

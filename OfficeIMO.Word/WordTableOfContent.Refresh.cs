@@ -610,7 +610,9 @@ namespace OfficeIMO.Word {
         }
 
         private string EnsureBookmark(Paragraph paragraph, HashSet<string> existingBookmarkNames, int headingIndex) {
+            bool paragraphInTextBox = paragraph.Ancestors<TextBoxContent>().Any();
             BookmarkStart? existing = paragraph.Descendants<BookmarkStart>()
+                .Where(bookmark => paragraphInTextBox || !bookmark.Ancestors<TextBoxContent>().Any())
                 .FirstOrDefault(bookmark => !string.IsNullOrWhiteSpace(bookmark.Name?.Value));
 
             string? existingName = existing?.Name?.Value;
