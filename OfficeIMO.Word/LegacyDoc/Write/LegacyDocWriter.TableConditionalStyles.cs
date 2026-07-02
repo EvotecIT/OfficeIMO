@@ -92,7 +92,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 LegacyDocTableCellShading cellShading = ReadSupportedConditionalTableStyleShading(cellProperties?.GetFirstChild<Shading>());
                 LegacyDocTableCellBorders cellBorders = ReadSupportedConditionalTableStyleBorders(cellProperties);
                 LegacyDocWritableParagraphFormatting paragraphFormatting = ReadSupportedStyleParagraphFormatting(properties.GetFirstChild<StyleParagraphProperties>());
-                LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(properties.GetFirstChild<StyleRunProperties>());
+                LegacyDocWritableFormatting runFormatting = ReadSupportedRunFormatting(GetSupportedTableStyleRunProperties(properties));
                 if (tableShading.HasAny
                     || tableBorders.HasAny
                     || rowFormatting.HasFormatting
@@ -138,6 +138,11 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
 
             return 3;
+        }
+
+        private static OpenXmlCompositeElement? GetSupportedTableStyleRunProperties(TableStyleProperties properties) {
+            OpenXmlCompositeElement? runProperties = properties.GetFirstChild<StyleRunProperties>();
+            return runProperties ?? properties.GetFirstChild<RunPropertiesBaseStyle>();
         }
 
         private static int ReadSupportedTableStyleBandSize(Int32Value? value, string axisName) {

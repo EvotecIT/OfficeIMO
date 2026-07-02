@@ -8513,6 +8513,67 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_WritesNativeDocConditionalTableStyleBaseRunFormattingAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            const string styleId = "NativeDocFirstRowBaseRunFormattingTable";
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    var style = new Style { Type = StyleValues.Table, StyleId = styleId, CustomStyle = true };
+                    style.Append(new StyleName { Val = "Native DOC First Row Base Run Formatting Table" });
+                    style.Append(new BasedOn { Val = "TableNormal" });
+                    var firstRowRunProperties = new RunPropertiesBaseStyle(
+                        new Bold(),
+                        new Color { Val = "ff0000" },
+                        new FontSize { Val = "28" });
+                    style.Append(new TableStyleProperties(firstRowRunProperties) { Type = TableStyleOverrideValues.FirstRow });
+                    document._wordprocessingDocument!.MainDocumentPart!.StyleDefinitionsPart!.Styles!.Append(style);
+
+                    WordTable table = document.AddTable(2, 2, WordTableStyle.TableNormal);
+                    table._tableProperties!.TableStyle = new TableStyle { Val = styleId };
+                    table._tableProperties.TableLook = new TableLook { FirstRow = true, LastRow = false, FirstColumn = false, LastColumn = false, NoHorizontalBand = true, NoVerticalBand = true };
+                    table.Rows[0].Cells[0].AddParagraph("A1", removeExistingParagraphs: true);
+                    WordParagraph directOverride = table.Rows[0].Cells[1].AddParagraph("B1", removeExistingParagraphs: true);
+                    directOverride._run!.RunProperties ??= new RunProperties();
+                    directOverride._run.RunProperties.Bold = new Bold { Val = false };
+                    directOverride._run.RunProperties.Italic = new Italic();
+                    directOverride._run.RunProperties.Color = new Color { Val = "0000ff" };
+                    table.Rows[1].Cells[0].AddParagraph("A2", removeExistingParagraphs: true);
+                    table.Rows[1].Cells[1].AddParagraph("B2", removeExistingParagraphs: true);
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                WordTable reloadedTable = Assert.Single(reloaded.Tables);
+                WordParagraph firstStyled = reloadedTable.Rows[0].Cells[0].Paragraphs[0];
+                Assert.Equal("A1", firstStyled.Text);
+                Assert.True(firstStyled.Bold);
+                Assert.False(firstStyled.Italic);
+                Assert.Equal("ff0000", firstStyled.ColorHex);
+                Assert.Equal(14, firstStyled.FontSize);
+
+                WordParagraph directStyled = reloadedTable.Rows[0].Cells[1].Paragraphs[0];
+                Assert.Equal("B1", directStyled.Text);
+                Assert.False(directStyled.Bold);
+                Assert.True(directStyled.Italic);
+                Assert.Equal("0000ff", directStyled.ColorHex);
+                Assert.Equal(14, directStyled.FontSize);
+
+                WordParagraph unstyled = reloadedTable.Rows[1].Cells[0].Paragraphs[0];
+                Assert.Equal("A2", unstyled.Text);
+                Assert.False(unstyled.Bold);
+                Assert.False(unstyled.Italic);
+                Assert.Equal(string.Empty, unstyled.ColorHex);
+                Assert.Null(unstyled.FontSize);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocConditionalTableStyleParagraphFormattingAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
             const string styleId = "NativeDocFirstRowParagraphFormattingTable";

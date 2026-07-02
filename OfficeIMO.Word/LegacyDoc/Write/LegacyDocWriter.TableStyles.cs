@@ -209,6 +209,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StyleRunProperties styleRunProperties:
                         ThrowIfUnsupportedTableStyleRunProperties(styleId, styleRunProperties);
                         break;
+                    case RunPropertiesBaseStyle runProperties:
+                        ThrowIfUnsupportedTableStyleRunProperties(styleId, runProperties);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving does not support table style '{styleId}' element '{child.LocalName}'.");
                 }
@@ -223,7 +226,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleRunProperties(string styleId, StyleRunProperties runProperties) {
+        private static void ThrowIfUnsupportedTableStyleRunProperties(string styleId, OpenXmlCompositeElement runProperties) {
             try {
                 _ = ReadSupportedRunFormatting(runProperties);
             } catch (NotSupportedException exception) {
@@ -490,6 +493,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StyleRunProperties styleRunProperties:
                         ThrowIfUnsupportedTableStyleRunProperties(baseStyleId, styleRunProperties);
                         break;
+                    case RunPropertiesBaseStyle runProperties:
+                        ThrowIfUnsupportedTableStyleRunProperties(baseStyleId, runProperties);
+                        break;
                     case TableStyleProperties tableStyleProperties:
                         ThrowIfUnsupportedTableStyleConditionalProperties(baseStyleId, tableStyleProperties);
                         break;
@@ -595,7 +601,12 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static LegacyDocWritableFormatting ReadSupportedTableStyleOwnRunFormatting(Style style) {
-            return ReadSupportedRunFormatting(style.StyleRunProperties);
+            return ReadSupportedRunFormatting(GetSupportedTableStyleRunProperties(style));
+        }
+
+        private static OpenXmlCompositeElement? GetSupportedTableStyleRunProperties(Style style) {
+            OpenXmlCompositeElement? runProperties = style.StyleRunProperties;
+            return runProperties ?? style.GetFirstChild<RunPropertiesBaseStyle>();
         }
 
         private static LegacyDocTableBorders ReadSupportedTableGridBorders() {
@@ -685,6 +696,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                     case StyleRunProperties styleRunProperties:
                         ThrowIfUnsupportedTableStyleConditionalRunProperties(styleId, styleRunProperties);
                         break;
+                    case RunPropertiesBaseStyle runProperties:
+                        ThrowIfUnsupportedTableStyleConditionalRunProperties(styleId, runProperties);
+                        break;
                     default:
                         throw new NotSupportedException($"Native DOC saving supports table style '{styleId}' conditional formatting only with supported table, cell, paragraph, and run effects. Unsupported conditional style element: {child.LocalName}.");
                 }
@@ -707,7 +721,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             }
         }
 
-        private static void ThrowIfUnsupportedTableStyleConditionalRunProperties(string styleId, StyleRunProperties runProperties) {
+        private static void ThrowIfUnsupportedTableStyleConditionalRunProperties(string styleId, OpenXmlCompositeElement runProperties) {
             try {
                 _ = ReadSupportedRunFormatting(runProperties);
             } catch (NotSupportedException exception) {
