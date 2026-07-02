@@ -1878,6 +1878,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshListOfFiguresUsesNoteAnchorPageEstimates() {
+            string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresNoteAnchorPages.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent list = document.AddTableOfContent();
+                AddGeneratedCaptionParagraph(document, "_BodyCaption", "Figure", "1", "Body deployment view");
+                document.AddPageBreak();
+                document.AddParagraph("Footnote caption anchor").AddFootNote("Footnote body");
+                document.AddParagraph("Endnote caption anchor").AddEndNote("Endnote body");
+
+                Footnote footnote = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().First(note => note.Type == null);
+                Endnote endnote = document._wordprocessingDocument.MainDocumentPart!.EndnotesPart!.Endnotes!.Elements<Endnote>().First(note => note.Type == null);
+                AppendCaptionParagraph(footnote, "Figure", "2", "Footnote architecture map");
+                AppendCaptionParagraph(endnote, "Figure", "3", "Endnote recovery map");
+
+                WordCaptionListRefreshReport report = list.RefreshListOfFigures();
+
+                Assert.Equal(
+                    new[] {
+                        "Figure 1 Body deployment view",
+                        "Figure 2 Footnote architecture map",
+                        "Figure 3 Endnote recovery map"
+                    },
+                    report.Entries.Select(entry => entry.Text).ToArray());
+                Assert.Equal(new[] { 1, 2, 2 }, report.Entries.Select(entry => entry.PageNumber).ToArray());
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshListOfFiguresIncludesParentAndAnchoredTextBoxCaptions() {
             string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresParentAndTextBox.docx");
 
@@ -1896,6 +1925,29 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Figure 1 Parent deployment map", TocText(list));
                 Assert.Contains("Figure 2 Text-box fallback map", TocText(list));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
+            }
+        }
+
+        [Fact]
+        public void Test_TableOfContent_RefreshListOfFiguresKeepsParentBookmarkOutsideTextBox() {
+            string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresParentTextBoxBookmark.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent list = document.AddTableOfContent();
+                Paragraph host = CreateParentAndTextBoxCaptionParagraph("Figure", "Parent deployment map", "Text-box fallback map");
+                Paragraph textBoxCaption = host.Descendants<TextBoxContent>().Single().Descendants<Paragraph>().Single();
+                textBoxCaption.PrependChild(new BookmarkStart { Name = "_NestedTextBoxCaption", Id = "77" });
+                textBoxCaption.Append(new BookmarkEnd { Id = "77" });
+                AppendBodyParagraph(document, host);
+
+                WordCaptionListRefreshReport report = list.RefreshListOfFigures();
+
+                Assert.Equal(2, report.EntryCount);
+                Assert.Equal("Figure 1 Parent deployment map", report.Entries[0].Text);
+                Assert.Equal("Figure 2 Text-box fallback map", report.Entries[1].Text);
+                Assert.NotEqual("_NestedTextBoxCaption", report.Entries[0].BookmarkName);
+                Assert.Equal("_NestedTextBoxCaption", report.Entries[1].BookmarkName);
+                Assert.Contains(host.Elements<BookmarkStart>(), bookmark => bookmark.Name?.Value == report.Entries[0].BookmarkName);
             }
         }
 
@@ -2878,6 +2930,31 @@ namespace OfficeIMO.Tests {
                 Assert.Contains("Generated Index", TocText(index));
                 Assert.Contains("No index entries found.", TocText(index));
                 Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
+            }
+        }
+
+        [Fact]
+        public void Test_TableOfContent_RefreshIndexUsesNoteAnchorPageEstimates() {
+            string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshEntriesNoteAnchorPages.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent index = document.AddTableOfContent();
+
+                AddIndexEntryParagraph(document, "Body topic", " XE \"BodyTopic\" ");
+                document.AddPageBreak();
+                document.AddParagraph("Footnote index anchor").AddFootNote("Footnote body");
+                document.AddParagraph("Endnote index anchor").AddEndNote("Endnote body");
+                Footnote footnote = document._wordprocessingDocument.MainDocumentPart!.FootnotesPart!.Footnotes!.Elements<Footnote>().First(note => note.Type == null);
+                Endnote endnote = document._wordprocessingDocument.MainDocumentPart!.EndnotesPart!.Endnotes!.Elements<Endnote>().First(note => note.Type == null);
+                AppendIndexEntryParagraph(footnote, "Footnote topic", " XE \"FootnoteTopic\" ");
+                AppendIndexEntryParagraph(endnote, "Endnote topic", " XE \"EndnoteTopic\" ");
+
+                WordIndexRefreshReport report = index.RefreshIndex("Related-Part Index");
+
+                Assert.Equal(new[] { "BodyTopic", "EndnoteTopic", "FootnoteTopic" }, report.Entries.Select(entry => entry.Term).ToArray());
+                Assert.Equal(new[] { 1 }, report.Entries.Single(entry => entry.Term == "BodyTopic").PageNumbers);
+                Assert.Equal(new[] { 2 }, report.Entries.Single(entry => entry.Term == "FootnoteTopic").PageNumbers);
+                Assert.Equal(new[] { 2 }, report.Entries.Single(entry => entry.Term == "EndnoteTopic").PageNumbers);
             }
         }
 

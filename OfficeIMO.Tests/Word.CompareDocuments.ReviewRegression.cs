@@ -1382,6 +1382,50 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void AddReplyAssignsParentParagraphIdWhenImportedParentHasNoMetadata() {
+            string filePath = Path.Combine(_directoryWithFiles, "CommentReplyImportedParentWithoutParaId.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Comment target");
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, true)) {
+                var comment = new Comment(
+                    new Paragraph(
+                        new Run(new Text("Imported comment without paragraph id")))) {
+                    Id = "0",
+                    Author = "Imported",
+                    Initials = "IM",
+                    Date = new DateTime(2026, 7, 2, 8, 0, 0, DateTimeKind.Utc)
+                };
+
+                WordprocessingCommentsPart commentsPart = package.MainDocumentPart!.AddNewPart<WordprocessingCommentsPart>();
+                commentsPart.Comments = new Comments(comment);
+                commentsPart.Comments.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordComment parent = Assert.Single(WordComment.GetAllComments(document));
+                parent.AddReply("OfficeIMO Tests", "OT", "Imported reply");
+
+                string parentParaId = Assert.Single(
+                    document._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsPart!.Comments!.Elements<Comment>(),
+                    comment => comment.Id?.Value == "0")
+                    .Elements<Paragraph>()
+                    .Single()
+                    .ParagraphId!;
+                Assert.False(string.IsNullOrWhiteSpace(parentParaId));
+
+                var commentsEx = document._wordprocessingDocument.MainDocumentPart!.WordprocessingCommentsExPart!.CommentsEx!;
+                Assert.Contains(commentsEx.Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>(), commentEx =>
+                    commentEx.ParaId?.Value == parentParaId);
+                Assert.Contains(commentsEx.Elements<DocumentFormat.OpenXml.Office2013.Word.CommentEx>(), commentEx =>
+                    commentEx.ParaIdParent?.Value == parentParaId);
+            }
+        }
+
         private static void CreateFieldRegressionDocument(string path, params (string Instruction, string Result)[] fields) {
             using WordDocument document = WordDocument.Create(path);
             foreach ((string instruction, string result) in fields) {

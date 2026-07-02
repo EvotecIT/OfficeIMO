@@ -36,7 +36,7 @@ namespace OfficeIMO.Word {
 
             CommentEx cmtEx = new CommentEx() { ParaId = paraId };
             if (parent != null) {
-                cmtEx.ParaIdParent = parent.ParaId;
+                cmtEx.ParaIdParent = EnsureCommentParaId(parent, comments, commentsEx);
             }
             commentsEx.AppendChild(cmtEx);
             commentsEx.Save();

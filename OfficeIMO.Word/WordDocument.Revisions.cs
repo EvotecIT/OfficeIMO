@@ -265,9 +265,9 @@ namespace OfficeIMO.Word {
                     }
                 }
 
-                FinalizeMatchingNestedRevisions(promoted, operation, parentCandidate, filter);
                 next.InsertAfterSelf(promoted);
-                next = next.NextSibling() ?? throw new InvalidOperationException("Revision has no next sibling.");
+                FinalizeMatchingNestedRevisions(promoted, operation, parentCandidate, filter);
+                next = FinalizeMatchingPromotedRevision(promoted, operation, parentCandidate, filter, next);
             }
 
             revisionElement.RemoveAttribute(revisionAttributeName, WordprocessingNamespace);
@@ -306,27 +306,49 @@ namespace OfficeIMO.Word {
             }
         }
 
+        private static OpenXmlElement FinalizeMatchingPromotedRevision(
+            OpenXmlElement element,
+            WordRevisionOperationKind operation,
+            RevisionCandidate parentCandidate,
+            WordRevisionFilter filter,
+            OpenXmlElement fallbackAnchor) {
+            if (!TryGetRevisionType(element, out WordReviewRevisionType revisionType)) {
+                return element;
+            }
+
+            var candidate = new RevisionCandidate(element, revisionType, parentCandidate.LocationKind, parentCandidate.PartUri);
+            if (!MatchesFilter(candidate, filter)) {
+                return element;
+            }
+
+            return FinalizeNestedRevisionAndReturnAnchor(element, revisionType, operation, fallbackAnchor);
+        }
+
         private static void FinalizeNestedRevision(OpenXmlElement revision, WordReviewRevisionType revisionType, WordRevisionOperationKind operation) {
+            FinalizeNestedRevisionAndReturnAnchor(revision, revisionType, operation, revision);
+        }
+
+        private static OpenXmlElement FinalizeNestedRevisionAndReturnAnchor(OpenXmlElement revision, WordReviewRevisionType revisionType, WordRevisionOperationKind operation, OpenXmlElement fallbackAnchor) {
             bool accept = operation == WordRevisionOperationKind.Accept;
             switch (revisionType) {
                 case WordReviewRevisionType.Insertion:
                 case WordReviewRevisionType.MoveTo:
                     if (accept) {
-                        ReplaceRevisionWithChildren(revision, restoreDeletedText: false);
+                        return ReplaceRevisionWithChildren(revision, restoreDeletedText: false, fallbackAnchor);
                     } else {
                         revision.Remove();
+                        return fallbackAnchor;
                     }
 
-                    break;
                 case WordReviewRevisionType.Deletion:
                 case WordReviewRevisionType.MoveFrom:
                     if (accept) {
                         revision.Remove();
+                        return fallbackAnchor;
                     } else {
-                        ReplaceRevisionWithChildren(revision, restoreDeletedText: true);
+                        return ReplaceRevisionWithChildren(revision, restoreDeletedText: true, fallbackAnchor);
                     }
 
-                    break;
                 case WordReviewRevisionType.RunFormatting:
                 case WordReviewRevisionType.ParagraphFormatting:
                 case WordReviewRevisionType.TableFormatting:
@@ -335,19 +357,25 @@ namespace OfficeIMO.Word {
                 case WordReviewRevisionType.SectionFormatting:
                     if (accept) {
                         revision.Remove();
+                        return fallbackAnchor;
                     } else {
                         RestorePreviousProperties(revision);
+                        return revision.Parent == null ? fallbackAnchor : revision;
                     }
 
-                    break;
                 default:
                     revision.Remove();
-                    break;
+                    return fallbackAnchor;
             }
         }
 
         private static void ReplaceRevisionWithChildren(OpenXmlElement revision, bool restoreDeletedText) {
+            ReplaceRevisionWithChildren(revision, restoreDeletedText, revision);
+        }
+
+        private static OpenXmlElement ReplaceRevisionWithChildren(OpenXmlElement revision, bool restoreDeletedText, OpenXmlElement fallbackAnchor) {
             OpenXmlElement next = revision;
+            OpenXmlElement anchor = fallbackAnchor;
             foreach (OpenXmlElement child in revision.ChildElements.ToList()) {
                 OpenXmlElement promoted = child.CloneNode(true);
                 if (restoreDeletedText) {
@@ -361,10 +389,12 @@ namespace OfficeIMO.Word {
                 }
 
                 next.InsertAfterSelf(promoted);
-                next = next.NextSibling() ?? throw new InvalidOperationException("Revision has no next sibling.");
+                next = promoted;
+                anchor = promoted;
             }
 
             revision.Remove();
+            return anchor;
         }
 
         private static void RestorePreviousProperties(OpenXmlElement revisionElement) {

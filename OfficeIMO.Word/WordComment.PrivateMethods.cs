@@ -125,6 +125,34 @@ namespace OfficeIMO.Word {
             return candidate.ToString("X8", CultureInfo.InvariantCulture);
         }
 
+        private static string EnsureCommentParaId(WordComment comment, Comments comments, CommentsEx commentsEx) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            if (comments == null) throw new ArgumentNullException(nameof(comments));
+            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+
+            string? paraId = comment.ParaId;
+            if (string.IsNullOrWhiteSpace(paraId)) {
+                paraId = GetNewParaId(commentsEx, comments);
+                Paragraph paragraph = comment._comment.Elements<Paragraph>().First();
+                paragraph.ParagraphId = paraId;
+                comments.Save();
+            }
+
+            CommentEx? commentEx = comment.FindCommentEx();
+            if (commentEx == null || commentEx.Parent == null) {
+                commentEx = new CommentEx();
+                commentsEx.AppendChild(commentEx);
+            }
+
+            if (!string.Equals(commentEx.ParaId?.Value, paraId, StringComparison.Ordinal)) {
+                commentEx.ParaId = paraId;
+            }
+
+            comment._commentEx = commentEx;
+            commentsEx.Save();
+            return paraId!;
+        }
+
         private static MainDocumentPart GetMainDocumentPart(WordDocument document) {
             return document._wordprocessingDocument?.MainDocumentPart ?? throw new InvalidOperationException("The Word document is not associated with a main document part.");
         }

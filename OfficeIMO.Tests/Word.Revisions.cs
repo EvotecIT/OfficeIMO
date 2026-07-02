@@ -1,6 +1,7 @@
 using System;
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using DocumentFormat.OpenXml.Wordprocessing;
@@ -338,6 +339,49 @@ namespace OfficeIMO.Tests {
                 Assert.Contains(body.Descendants<InsertedRun>(), run => run.InnerText == "ParagraphTwo");
                 Assert.DoesNotContain(body.Descendants<InsertedRun>(), run => run.InnerText == "TableInsertion");
                 Assert.DoesNotContain(body.Descendants<Run>(), run => run.InnerText == "TableInsertion");
+            }
+        }
+
+        [Fact]
+        public void Test_Revisions_TableScopedAcceptFinalizesNestedPromotedRevisions() {
+            string filePath = Path.Combine(_directoryWithFiles, "TrackedChangesNestedTableScope.docx");
+            File.Delete(filePath);
+            DateTime revisionDate = new DateTime(2026, 7, 2, 8, 0, 0, DateTimeKind.Utc);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                Paragraph paragraph = table.FirstRow.FirstCell.Paragraphs[0]._paragraph;
+                paragraph.RemoveAllChildren<Run>();
+                paragraph.Append(new InsertedRun(
+                    new Run(new Text("Outer ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new InsertedRun(new Run(new Text("Inner"))) {
+                        Id = "9102",
+                        Author = "Alice",
+                        Date = revisionDate
+                    }) {
+                    Id = "9101",
+                    Author = "Alice",
+                    Date = revisionDate
+                });
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordRevisionOperationReport report = document.AcceptRevisions(new WordRevisionFilter {
+                    RevisionType = WordReviewRevisionType.Insertion,
+                    IsInTable = true
+                });
+
+                Assert.Equal(2, report.MatchedCount);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                Body body = document._document.Body!;
+
+                Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "Outer ");
+                Assert.Contains(body.Descendants<Run>(), run => run.InnerText == "Inner");
+                Assert.DoesNotContain(body.Descendants<InsertedRun>(), run => run.InnerText.Contains("Inner", StringComparison.Ordinal));
             }
         }
 

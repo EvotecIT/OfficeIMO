@@ -84,6 +84,8 @@ namespace OfficeIMO.Word {
                 ? null
                 : FindBookmarkRange(body, options.BookmarkName);
             Dictionary<Paragraph, int> paragraphPages = BuildParagraphPageMap(body, _sdtBlock);
+            Dictionary<string, int> footnotePages = BuildFootnoteAnchorPageMap(body, paragraphPages);
+            Dictionary<string, int> endnotePages = BuildEndnoteAnchorPageMap(body, paragraphPages);
             skippedEntryCount = 0;
 
             foreach (WordFieldInventory.FieldRoot root in roots) {
@@ -91,7 +93,7 @@ namespace OfficeIMO.Word {
                 foreach (Paragraph paragraph in EnumerateIndexSourceParagraphs(root.Root, excludedBlock)) {
                     if (options.BookmarkName == null || (bookmarkRange.HasValue && IsParagraphInsideBookmarkRange(paragraph, bookmarkRange.Value))) {
                         foreach (string instruction in EnumerateIndexInstructions(paragraph)) {
-                            int pageNumber = paragraphPages.TryGetValue(paragraph, out int mappedPage) ? mappedPage : 1;
+                            int pageNumber = GetParagraphPageNumber(paragraph, paragraphPages, footnotePages, endnotePages);
                             if (TryCreateIndexCandidate(instruction, pageNumber, bookmarkName => TryGetBookmarkPageRange(body, paragraphPages, bookmarkName, out IndexPageReference range) ? range : null, out IndexEntryCandidate? candidate)) {
                                 if (options.EntryTypeFilter != null &&
                                     !string.Equals(candidate!.EntryType, options.EntryTypeFilter, StringComparison.OrdinalIgnoreCase)) {
@@ -204,6 +206,60 @@ namespace OfficeIMO.Word {
             }
 
             return paragraphPages;
+        }
+
+        private static Dictionary<string, int> BuildFootnoteAnchorPageMap(Body body, IReadOnlyDictionary<Paragraph, int> paragraphPages) {
+            var pages = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
+                int pageNumber = paragraphPages.TryGetValue(paragraph, out int mappedPage) ? mappedPage : 1;
+                foreach (FootnoteReference reference in paragraph.Descendants<FootnoteReference>()) {
+                    string? id = reference.Id?.Value.ToString(CultureInfo.InvariantCulture);
+                    if (!string.IsNullOrWhiteSpace(id)) {
+                        pages[id!] = pageNumber;
+                    }
+                }
+            }
+
+            return pages;
+        }
+
+        private static Dictionary<string, int> BuildEndnoteAnchorPageMap(Body body, IReadOnlyDictionary<Paragraph, int> paragraphPages) {
+            var pages = new Dictionary<string, int>(StringComparer.Ordinal);
+            foreach (Paragraph paragraph in body.Descendants<Paragraph>()) {
+                int pageNumber = paragraphPages.TryGetValue(paragraph, out int mappedPage) ? mappedPage : 1;
+                foreach (EndnoteReference reference in paragraph.Descendants<EndnoteReference>()) {
+                    string? id = reference.Id?.Value.ToString(CultureInfo.InvariantCulture);
+                    if (!string.IsNullOrWhiteSpace(id)) {
+                        pages[id!] = pageNumber;
+                    }
+                }
+            }
+
+            return pages;
+        }
+
+        private static int GetParagraphPageNumber(
+            Paragraph paragraph,
+            IReadOnlyDictionary<Paragraph, int> paragraphPages,
+            IReadOnlyDictionary<string, int> footnotePages,
+            IReadOnlyDictionary<string, int> endnotePages) {
+            if (paragraphPages.TryGetValue(paragraph, out int pageNumber)) {
+                return pageNumber;
+            }
+
+            Footnote? footnote = paragraph.Ancestors<Footnote>().FirstOrDefault();
+            string? footnoteId = footnote?.Id?.Value.ToString(CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(footnoteId) && footnotePages.TryGetValue(footnoteId!, out pageNumber)) {
+                return pageNumber;
+            }
+
+            Endnote? endnote = paragraph.Ancestors<Endnote>().FirstOrDefault();
+            string? endnoteId = endnote?.Id?.Value.ToString(CultureInfo.InvariantCulture);
+            if (!string.IsNullOrWhiteSpace(endnoteId) && endnotePages.TryGetValue(endnoteId!, out pageNumber)) {
+                return pageNumber;
+            }
+
+            return 1;
         }
 
         private static IEnumerable<Paragraph> EnumerateIndexSourceParagraphs(OpenXmlElement container, SdtBlock? excludedBlock) {

@@ -54,9 +54,14 @@ namespace OfficeIMO.Word {
         private IReadOnlyList<CaptionListEntry> CollectCaptionEntries(string sequenceIdentifier, out int skippedCaptionCount) {
             MainDocumentPart mainPart = _document._wordprocessingDocument.MainDocumentPart
                 ?? throw new InvalidOperationException("Main document part is missing.");
+            Body body = mainPart.Document?.Body
+                ?? throw new InvalidOperationException("Document body is missing.");
 
             var entries = new List<CaptionListEntry>();
             var roots = WordFieldInventory.EnumerateFieldRoots(mainPart).ToArray();
+            Dictionary<Paragraph, int> paragraphPages = BuildParagraphPageMap(body, _sdtBlock);
+            Dictionary<string, int> footnotePages = BuildFootnoteAnchorPageMap(body, paragraphPages);
+            Dictionary<string, int> endnotePages = BuildEndnoteAnchorPageMap(body, paragraphPages);
             var existingBookmarkNames = new HashSet<string>(
                 roots
                     .SelectMany(root => root.Root.Descendants<BookmarkStart>())
@@ -76,22 +81,22 @@ namespace OfficeIMO.Word {
                     }
 
                     if (child is Paragraph paragraph) {
-                        ProcessCaptionParagraph(paragraph, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessCaptionParagraph(paragraph, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                         continue;
                     }
 
                     if (child is Table || child is SdtBlock) {
-                        ProcessNestedCaptionParagraphs(child, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessNestedCaptionParagraphs(child, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                         continue;
                     }
 
                     if (child is Footnote footnote && IsVisibleNote(footnote)) {
-                        ProcessNestedCaptionParagraphs(footnote, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessNestedCaptionParagraphs(footnote, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                         continue;
                     }
 
                     if (child is Endnote endnote && IsVisibleNote(endnote)) {
-                        ProcessNestedCaptionParagraphs(endnote, sequenceIdentifier, entries, existingBookmarkNames, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
+                        ProcessNestedCaptionParagraphs(endnote, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref rootPageNumber, ref captionIndex, ref skippedCaptionCount);
                     }
                 }
             }
@@ -104,6 +109,9 @@ namespace OfficeIMO.Word {
             string sequenceIdentifier,
             List<CaptionListEntry> entries,
             HashSet<string> existingBookmarkNames,
+            IReadOnlyDictionary<Paragraph, int> paragraphPages,
+            IReadOnlyDictionary<string, int> footnotePages,
+            IReadOnlyDictionary<string, int> endnotePages,
             ref int pageNumber,
             ref int captionIndex,
             ref int skippedCaptionCount) {
@@ -112,7 +120,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                ProcessCaptionParagraph(nestedParagraph, sequenceIdentifier, entries, existingBookmarkNames, ref pageNumber, ref captionIndex, ref skippedCaptionCount);
+                ProcessCaptionParagraph(nestedParagraph, sequenceIdentifier, entries, existingBookmarkNames, paragraphPages, footnotePages, endnotePages, ref pageNumber, ref captionIndex, ref skippedCaptionCount);
             }
         }
 
@@ -121,6 +129,9 @@ namespace OfficeIMO.Word {
             string sequenceIdentifier,
             List<CaptionListEntry> entries,
             HashSet<string> existingBookmarkNames,
+            IReadOnlyDictionary<Paragraph, int> paragraphPages,
+            IReadOnlyDictionary<string, int> footnotePages,
+            IReadOnlyDictionary<string, int> endnotePages,
             ref int pageNumber,
             ref int captionIndex,
             ref int skippedCaptionCount) {
@@ -128,6 +139,9 @@ namespace OfficeIMO.Word {
                 pageNumber++;
             }
 
+            int entryPageNumber = paragraphPages.TryGetValue(paragraph, out int mappedPage)
+                ? mappedPage
+                : GetParagraphPageNumber(paragraph, paragraphPages, footnotePages, endnotePages);
             bool containsOwnCaption = ContainsSequenceField(paragraph, sequenceIdentifier, includeTextBoxContent: false);
             if (containsOwnCaption) {
                 AddCaptionEntry(
@@ -135,10 +149,11 @@ namespace OfficeIMO.Word {
                     sequenceIdentifier,
                     entries,
                     existingBookmarkNames,
-                    pageNumber,
+                    entryPageNumber,
                     ref captionIndex,
                     ref skippedCaptionCount,
-                    captionTextOverride: GetParagraphTextOutsideTextBoxes(paragraph));
+                    captionTextOverride: GetParagraphTextOutsideTextBoxes(paragraph),
+                    includeTextBoxBookmarks: false);
             }
 
             IReadOnlyList<Paragraph> textBoxCaptionParagraphs = GetTextBoxCaptionParagraphs(paragraph, sequenceIdentifier);
@@ -150,7 +165,7 @@ namespace OfficeIMO.Word {
                         sequenceIdentifier,
                         entries,
                         existingBookmarkNames,
-                        pageNumber,
+                        entryPageNumber,
                         ref captionIndex,
                         ref skippedCaptionCount,
                         seenCaptionText);
@@ -161,7 +176,7 @@ namespace OfficeIMO.Word {
                     sequenceIdentifier,
                     entries,
                     existingBookmarkNames,
-                    pageNumber,
+                    entryPageNumber,
                     ref captionIndex,
                     ref skippedCaptionCount);
             }
@@ -182,7 +197,8 @@ namespace OfficeIMO.Word {
             ref int captionIndex,
             ref int skippedCaptionCount,
             HashSet<string>? seenCaptionText = null,
-            string? captionTextOverride = null) {
+            string? captionTextOverride = null,
+            bool includeTextBoxBookmarks = true) {
             string captionText = (captionTextOverride ?? GetParagraphText(paragraph)).Trim();
             if (captionText.Length == 0) {
                 skippedCaptionCount++;
@@ -193,7 +209,7 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            string bookmarkName = EnsureCaptionBookmark(paragraph, existingBookmarkNames, sequenceIdentifier, captionIndex);
+            string bookmarkName = EnsureCaptionBookmark(paragraph, existingBookmarkNames, sequenceIdentifier, captionIndex, includeTextBoxBookmarks);
             entries.Add(new CaptionListEntry(captionText, pageNumber, bookmarkName));
             captionIndex++;
         }
@@ -276,8 +292,9 @@ namespace OfficeIMO.Word {
                 string.Equals(TrimCaptionIdentifier(parsed.Instructions[0]), sequenceIdentifier, StringComparison.OrdinalIgnoreCase);
         }
 
-        private string EnsureCaptionBookmark(Paragraph paragraph, HashSet<string> existingBookmarkNames, string sequenceIdentifier, int captionIndex) {
+        private string EnsureCaptionBookmark(Paragraph paragraph, HashSet<string> existingBookmarkNames, string sequenceIdentifier, int captionIndex, bool includeTextBoxBookmarks = true) {
             BookmarkStart? existing = paragraph.Descendants<BookmarkStart>()
+                .Where(bookmark => includeTextBoxBookmarks || !bookmark.Ancestors<TextBoxContent>().Any())
                 .FirstOrDefault(bookmark => !string.IsNullOrWhiteSpace(bookmark.Name?.Value));
 
             string? existingName = existing?.Name?.Value;
