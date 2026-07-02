@@ -607,6 +607,109 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Contains("class=\"lead\"", html);
     }
 
+    [Fact]
+    public void DefinitionLists_Allow_Heading_Looking_Terms_When_Headings_Disabled() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DefinitionLists = true;
+        options.Headings = false;
+
+        var document = MarkdownReader.Parse("""
+            # term
+            :   definition
+            """, options);
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+        var html = ((IMarkdownBlock)definitionList).RenderHtml();
+
+        Assert.Contains("<dt># term</dt>", html, StringComparison.Ordinal);
+        Assert.Contains("<dd>definition</dd>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DefinitionLists_Keep_Fence_Looking_Lazy_Continuation_When_FencedCode_Disabled() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DefinitionLists = true;
+        options.FencedCode = false;
+
+        var document = MarkdownReader.Parse("""
+            Term
+            :   ```
+                code
+                ```
+            after
+            """, options);
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+        var html = ((IMarkdownBlock)definitionList).RenderHtml();
+
+        Assert.Contains("after", html, StringComparison.Ordinal);
+        Assert.Single(document.Blocks);
+    }
+
+    [Fact]
+    public void Native_Footnote_Token_SourceFields_Use_Remapped_Nested_SourceSpans() {
+        const string markdown = "> [^n]: note\n";
+        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {
+            PreserveTrivia = true,
+            Footnotes = true
+        });
+
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var footnote = Assert.IsType<MarkdownNativeFootnoteDefinitionBlock>(Assert.Single(quote.Children));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), footnote.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), footnote.LabelSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 6, 1, 7), footnote.SeparatorMarkerSourceSpan);
+        Assert.True(native.TryCreateOriginalSourceSlice(footnote.OpeningMarkerSourceSpan!.Value, out var openingSlice));
+        Assert.Equal("[^", openingSlice.Text);
+    }
+
+    [Fact]
+    public void CustomContainer_RenderMarkdown_Preserves_GenericAttributes_For_Reparse() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.CustomContainers = true;
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("""
+            {#box .wide}
+            ::: note
+            hello
+            :::
+            """, options);
+
+        var container = Assert.IsType<CustomContainerBlock>(Assert.Single(document.Blocks));
+        var rendered = ((IMarkdownBlock)container).RenderMarkdown();
+        var reparsed = MarkdownReader.Parse(rendered, options);
+        var reparsedContainer = Assert.IsType<CustomContainerBlock>(Assert.Single(reparsed.Blocks));
+
+        Assert.StartsWith("{#box .wide}", rendered, StringComparison.Ordinal);
+        Assert.Equal("box", reparsedContainer.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(reparsedContainer.Attributes.Classes));
+    }
+
+    [Fact]
+    public void Nested_Standalone_GenericAttributes_Attach_To_Following_CustomContainer() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.CustomContainers = true;
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("""
+            - item
+              {#box .wide}
+              ::: note
+              body
+              :::
+            """, options);
+
+        var list = Assert.IsType<UnorderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+        var container = Assert.Single(item.Children.OfType<CustomContainerBlock>());
+
+        Assert.Equal("box", container.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(container.Attributes.Classes));
+        Assert.Contains("body", ((IMarkdownBlock)container).RenderHtml(), StringComparison.Ordinal);
+    }
+
     private sealed class RendererInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);

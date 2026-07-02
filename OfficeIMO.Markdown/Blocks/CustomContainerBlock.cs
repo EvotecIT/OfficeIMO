@@ -56,6 +56,11 @@ public sealed class CustomContainerBlock : MarkdownBlock, IMarkdownBlock, IChild
         var fenceLength = GetRenderOpeningFenceLength();
         var fence = new string(':', fenceLength);
         var sb = new StringBuilder();
+        var standaloneAttributes = MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes);
+        if (!string.IsNullOrEmpty(standaloneAttributes)) {
+            sb.AppendLine(standaloneAttributes);
+        }
+
         sb.Append(fence);
         if (!string.IsNullOrWhiteSpace(Info)) {
             sb.Append(' ').Append(Info);

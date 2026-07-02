@@ -368,6 +368,7 @@ public static partial class MarkdownReader {
         FencedCode,
         List,
         Paragraph,
+        CustomContainer,
         Table
     }
 
@@ -464,6 +465,12 @@ public static partial class MarkdownReader {
         if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.Paragraph)
             && options.Paragraphs
             && LooksLikeParagraphLine(lines, index, options)) {
+            return true;
+        }
+
+        if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.CustomContainer)
+            && options.CustomContainers
+            && IsCustomContainerOpeningLine(nextSlice, options)) {
             return true;
         }
 
@@ -691,6 +698,25 @@ public static partial class MarkdownReader {
         syntaxNode = null;
         if (lines == null || index < 0 || index >= lines.Length || !options.CustomContainers) return false;
 
+        var attributeSourceText = string.Empty;
+        MarkdownAttributeSet attributeSet = MarkdownAttributeSet.Empty;
+        MarkdownSourceSpan? attributeSourceSpan = null;
+        if (TryConsumeNestedStandaloneGenericAttributeLine(
+                lines,
+                index,
+                continuationIndent,
+                options,
+                state,
+                NestedStandaloneGenericAttributeTarget.CustomContainer,
+                out attributeSet,
+                out attributeSourceText,
+                out attributeSourceSpan)) {
+            index++;
+            if (index >= lines.Length) {
+                return false;
+            }
+        }
+
         string line = lines[index] ?? string.Empty;
         if (CountLeadingIndentColumns(line) < continuationIndent) return false;
 
@@ -723,6 +749,11 @@ public static partial class MarkdownReader {
         }
 
         container = parsedContainer;
+        if (!attributeSet.IsEmpty && container.Attributes.IsEmpty) {
+            container.SetAttributes(attributeSet);
+            MarkdownGenericAttributeSourceSpans.Set(container, attributeSourceText, attributeSourceSpan);
+        }
+
         if (syntaxChildren.Count > 0 && syntaxChildren[0].Kind == MarkdownSyntaxKind.CustomContainer) {
             syntaxNode = syntaxChildren[0];
         }

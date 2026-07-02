@@ -315,9 +315,9 @@ public sealed class MarkdownNativeFootnoteDefinitionBlock : MarkdownNativeBlock 
         : base(MarkdownNativeBlockKind.FootnoteDefinition, footnote, syntaxNode) {
         Footnote = footnote;
         Label = footnote.Label;
-        OpeningMarkerSourceSpan = footnote.OpeningMarkerSourceSpan ?? FindFootnoteChildSourceSpan(syntaxNode, MarkdownSyntaxKind.FootnoteOpeningMarker);
-        LabelSourceSpan = footnote.LabelSourceSpan ?? FindFootnoteLabelSourceSpan(syntaxNode);
-        SeparatorMarkerSourceSpan = footnote.SeparatorMarkerSourceSpan ?? FindFootnoteChildSourceSpan(syntaxNode, MarkdownSyntaxKind.FootnoteSeparatorMarker);
+        OpeningMarkerSourceSpan = FindFootnoteChildSourceSpan(syntaxNode, MarkdownSyntaxKind.FootnoteOpeningMarker) ?? footnote.OpeningMarkerSourceSpan;
+        LabelSourceSpan = FindFootnoteLabelSourceSpan(syntaxNode) ?? footnote.LabelSourceSpan;
+        SeparatorMarkerSourceSpan = FindFootnoteChildSourceSpan(syntaxNode, MarkdownSyntaxKind.FootnoteSeparatorMarker) ?? footnote.SeparatorMarkerSourceSpan;
         Text = footnote.Text;
         Children = children ?? Array.Empty<MarkdownNativeBlock>();
         BodySourceSpan = MarkdownNativeContainerSourceSpans.GetAggregateChildSourceSpan(Children);

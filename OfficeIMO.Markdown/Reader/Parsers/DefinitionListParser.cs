@@ -350,7 +350,7 @@ public static partial class MarkdownReader {
         if (string.IsNullOrWhiteSpace(line)) return false;
         if (CountLeadingIndentColumns(line) >= 4) return false;
         var trimmed = line.TrimStart();
-        if (IsAtxHeading(trimmed, out _, out _)) return false;
+        if (options.Headings && IsAtxHeading(trimmed, out _, out _)) return false;
         if (options.FencedCode && IsCodeFenceOpen(trimmed, out _, out _, out _)) return false;
         if (IsParagraphInterruptingThematicBreakLine(trimmed)) return false;
         if (IsQuoteStarter(trimmed)) return false;
@@ -654,7 +654,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (PreviousDefinitionLineStopsLazyContinuation(definitionSourceLines)) {
+        if (PreviousDefinitionLineStopsLazyContinuation(definitionSourceLines, options)) {
             return false;
         }
 
@@ -677,7 +677,7 @@ public static partial class MarkdownReader {
         return true;
     }
 
-    private static bool PreviousDefinitionLineStopsLazyContinuation(List<MarkdownSourceLineSlice> definitionSourceLines) {
+    private static bool PreviousDefinitionLineStopsLazyContinuation(List<MarkdownSourceLineSlice> definitionSourceLines, MarkdownReaderOptions options) {
         if (definitionSourceLines == null || definitionSourceLines.Count == 0) {
             return false;
         }
@@ -688,7 +688,7 @@ public static partial class MarkdownReader {
         }
 
         return IsParagraphInterruptingThematicBreakLine(previous) ||
-            PreviousDefinitionLinesEndClosedFencedCodeBlock(definitionSourceLines);
+            (options.FencedCode && PreviousDefinitionLinesEndClosedFencedCodeBlock(definitionSourceLines));
     }
 
     private static bool PreviousDefinitionLinesEndClosedFencedCodeBlock(List<MarkdownSourceLineSlice> definitionSourceLines) {
@@ -768,9 +768,9 @@ public static partial class MarkdownReader {
         }
 
         var trimmed = line.TrimStart();
-        return IsAtxHeading(line, out _, out _) ||
+        return (options.Headings && IsAtxHeading(trimmed, out _, out _)) ||
             LooksLikeHr(line) ||
-            IsCodeFenceOpen(trimmed, out _, out _, out _) ||
+            (options.FencedCode && IsCodeFenceOpen(trimmed, out _, out _, out _)) ||
             HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(trimmed, options) ||
             trimmed.StartsWith(">", StringComparison.Ordinal);
     }
