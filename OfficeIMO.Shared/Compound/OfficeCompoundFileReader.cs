@@ -68,11 +68,18 @@ namespace OfficeIMO.Shared {
                     ? Array.Empty<uint>()
                     : BytesToUInt32Array(ReadRegularStream(bytes, sectorSize, fat, miniFatStart, (long)miniFatSectorCount * sectorSize));
 
+                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries);
                 foreach (DirectoryEntry entry in entries.Where(entry => entry.ObjectType == 2)) {
                     byte[] data = entry.Size < miniCutoff
                         ? ReadMiniStream(miniStream, miniFat, entry.StartSector, entry.Size)
                         : ReadRegularStream(bytes, sectorSize, fat, entry.StartSector, entry.Size);
-                    streams[entry.Name] = data;
+                    string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
+                        ? entryPath
+                        : entry.Name;
+                    streams[path] = data;
+                    if (string.Equals(path, entry.Name, StringComparison.OrdinalIgnoreCase)) {
+                        streams[entry.Name] = data;
+                    }
                 }
 
                 compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries));
@@ -232,6 +239,26 @@ namespace OfficeIMO.Shared {
                 .ToArray();
         }
 
+        private static IReadOnlyDictionary<int, string> BuildCompoundEntryPaths(IReadOnlyList<DirectoryEntry> entries) {
+            var result = new Dictionary<int, string>();
+            DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
+            if (root != null) {
+                TraverseDirectoryTree(entries, root.ChildId, string.Empty, result, new HashSet<int>());
+            }
+
+            foreach (DirectoryEntry entry in entries) {
+                if (entry.ObjectType == 0 || string.IsNullOrEmpty(entry.Name)) {
+                    continue;
+                }
+
+                if (!result.ContainsKey(entry.Index)) {
+                    result[entry.Index] = entry.Name;
+                }
+            }
+
+            return result;
+        }
+
         private static void TraverseDirectoryTree(
             IReadOnlyList<DirectoryEntry> entries,
             uint entryId,
@@ -251,6 +278,33 @@ namespace OfficeIMO.Shared {
             if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
                 string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
                 result.Add(new OfficeCompoundFileEntry(entry.Name, path, entry.ObjectType, entry.Size));
+                if (entry.ObjectType == 1 || entry.ObjectType == 5) {
+                    TraverseDirectoryTree(entries, entry.ChildId, path, result, visited);
+                }
+            }
+
+            TraverseDirectoryTree(entries, entry.RightSiblingId, parentPath, result, visited);
+        }
+
+        private static void TraverseDirectoryTree(
+            IReadOnlyList<DirectoryEntry> entries,
+            uint entryId,
+            string parentPath,
+            Dictionary<int, string> result,
+            HashSet<int> visited) {
+            if (entryId == FreeSect || entryId == EndOfChain || entryId >= entries.Count) {
+                return;
+            }
+
+            DirectoryEntry entry = entries[(int)entryId];
+            if (!visited.Add(entry.Index)) {
+                return;
+            }
+
+            TraverseDirectoryTree(entries, entry.LeftSiblingId, parentPath, result, visited);
+            if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
+                string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
+                result[entry.Index] = path;
                 if (entry.ObjectType == 1 || entry.ObjectType == 5) {
                     TraverseDirectoryTree(entries, entry.ChildId, path, result, visited);
                 }

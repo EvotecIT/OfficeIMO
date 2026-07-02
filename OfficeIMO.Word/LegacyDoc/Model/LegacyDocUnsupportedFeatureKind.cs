@@ -86,6 +86,11 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         /// <summary>
         /// Nested table descriptors were found before nested table projection is supported.
         /// </summary>
-        NestedTable
+        NestedTable,
+
+        /// <summary>
+        /// A legacy OLE document property exists but is not projected into Open XML properties.
+        /// </summary>
+        DocumentProperty
     }
 }

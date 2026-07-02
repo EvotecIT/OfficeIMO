@@ -487,6 +487,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_BlocksResaveForUnsupportedCustomDocumentProperty() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedCustomDocumentProperty("Unsupported metadata");
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.True(result.HasDocument);
+                LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures);
+                Assert.Equal(LegacyDocUnsupportedFeatureKind.DocumentProperty, feature.Kind);
+                Assert.Equal("DOC-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED", feature.Code);
+                Assert.Equal("OleProperty:VT=0x0041", feature.DetailCode);
+                Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "DOC-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED");
+                Assert.False(result.Document.CustomDocumentProperties.ContainsKey("BinaryPayload"));
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => result.Document.Save(docPath));
+
+                Assert.Contains("native doc saving is blocked", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsDirectBoldItalicRuns() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithDirectCharacterFormatting();
 
@@ -1352,6 +1378,18 @@ namespace OfficeIMO.Tests {
             Assert.Contains("| Unsupported features | 2 |", markdown);
             Assert.Contains("| VbaProject | DOC-MACROS-PRESENT | Compound:VbaProjectStorage | _VBA_PROJECT_CUR |", markdown);
             Assert.Contains("| OleObject | DOC-OLE-OBJECTS-PRESENT | Compound:OleObjectStorage | ObjectPool |", markdown);
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_UsesRootDocumentStreamsWhenNestedStreamsHaveSameNames() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithNestedCollidingStreams("Root document body");
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+            Assert.Empty(result.UnsupportedFeatures);
+            Assert.Equal("Root document body", Assert.Single(result.Document.Paragraphs).Text);
         }
 
         [Fact]
@@ -2391,6 +2429,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDoc_QuietUnsupportedFeatureReportingStillBlocksNativeDocResave() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithUnsupportedFeatureStorage("Quiet unsupported features");
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using WordDocument document = WordDocument.LoadLegacyDoc(
+                    new MemoryStream(docBytes),
+                    new LegacyDocImportOptions { ReportUnsupportedFeatures = false });
+
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, document.LegacyDocUnsupportedFeatures.Count);
+                Assert.Contains(document.LegacyDocUnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.VbaProject);
+                Assert.Contains(document.LegacyDocUnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.OleObject);
+                Assert.DoesNotContain(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "DOC-MACROS-PRESENT");
+                Assert.DoesNotContain(document.LegacyDocImportDiagnostics, diagnostic => diagnostic.Code == "DOC-OLE-OBJECTS-PRESENT");
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("native doc saving is blocked", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_BlocksAutoSaveForLegacyDocProjection() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -3078,6 +3142,27 @@ namespace OfficeIMO.Tests {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
 
                 Assert.Contains("footnote and endnote references", exception.Message.ToLowerInvariant());
+                Assert.False(File.Exists(docPath));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_BlocksMacroProjectsBeforeCreatingFile() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+            string macroPath = Path.Combine(_directoryDocuments, "vbaProject.bin");
+
+            try {
+                using WordDocument document = WordDocument.Create();
+                document.AddParagraph("Macro project");
+                document.AddMacro(macroPath);
+
+                Assert.True(document.HasMacros);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(docPath));
+
+                Assert.Contains("macro", exception.Message.ToLowerInvariant());
                 Assert.False(File.Exists(docPath));
             } finally {
                 DeleteIfExists(docPath);
@@ -11605,6 +11690,22 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateSimpleDocWithUnsupportedCustomDocumentProperty(params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+                byte[] documentSummaryInformation = CreateDocumentSummaryInformationPropertySetWithUnsupportedCustomProperty();
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    WriteStream(root, "\u0005DocumentSummaryInformation", documentSummaryInformation);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateSimpleDocWithUnsupportedFeatureStorage(params string[] paragraphs) {
                 string text = string.Join("\r", paragraphs) + "\r";
                 byte[] wordDocumentStream = CreateWordDocumentStream(text);
@@ -11616,6 +11717,30 @@ namespace OfficeIMO.Tests {
                     WriteStream(root, "1Table", tableStream);
                     root.CreateStorage("_VBA_PROJECT_CUR");
                     root.CreateStorage("ObjectPool");
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithNestedCollidingStreams(params string[] paragraphs) {
+                string text = string.Join("\r", paragraphs) + "\r";
+                byte[] wordDocumentStream = CreateWordDocumentStream(text);
+                byte[] tableStream = CreateTableStream(text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                    var nestedStorage = root.CreateStorage("EmbeddedWordObject");
+                    using (CfbStream nestedWordDocument = nestedStorage.CreateStream("WordDocument")) {
+                        byte[] nestedBytes = { 0x00, 0x01, 0x02, 0x03 };
+                        nestedWordDocument.Write(nestedBytes, 0, nestedBytes.Length);
+                    }
+
+                    using (CfbStream nestedTable = nestedStorage.CreateStream("1Table")) {
+                        byte[] nestedBytes = { 0x04, 0x05, 0x06, 0x07 };
+                        nestedTable.Write(nestedBytes, 0, nestedBytes.Length);
+                    }
                 }
 
                 return package.ToArray();
@@ -14733,6 +14858,22 @@ namespace OfficeIMO.Tests {
                 return CreateOlePropertySet(CreateOlePropertySection(documentProperties), CreateOlePropertySection(customProperties));
             }
 
+            private static byte[] CreateDocumentSummaryInformationPropertySetWithUnsupportedCustomProperty() {
+                var documentProperties = new List<OleTestProperty> {
+                    OleTestProperty.Int16(1, 1200),
+                    OleTestProperty.String(2, "Legacy Category")
+                };
+                var customProperties = new List<OleTestProperty> {
+                    OleTestProperty.Int16(1, 1200),
+                    OleTestProperty.Dictionary(0, new Dictionary<uint, string> {
+                        [2] = "BinaryPayload"
+                    }),
+                    OleTestProperty.Blob(2, new byte[] { 1, 2, 3, 4 })
+                };
+
+                return CreateOlePropertySet(CreateOlePropertySection(documentProperties), CreateOlePropertySection(customProperties));
+            }
+
             private static byte[] CreateOlePropertySet(params byte[][] sections) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0xfffe);
@@ -14887,6 +15028,16 @@ namespace OfficeIMO.Tests {
                     WriteUInt32(stream, checked((uint)(value.Length + 1)));
                     byte[] bytes = System.Text.Encoding.Unicode.GetBytes(value + '\0');
                     stream.Write(bytes, 0, bytes.Length);
+                    PadToInt32(stream);
+                    return new OleTestProperty(id, stream.ToArray());
+                }
+
+                internal static OleTestProperty Blob(uint id, byte[] value) {
+                    using var stream = new MemoryStream();
+                    WriteUInt16(stream, 0x0041);
+                    WriteUInt16(stream, 0);
+                    WriteUInt32(stream, checked((uint)value.Length));
+                    stream.Write(value, 0, value.Length);
                     PadToInt32(stream);
                     return new OleTestProperty(id, stream.ToArray());
                 }

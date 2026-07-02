@@ -248,6 +248,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 || HasRelatedPart<EmbeddedPackagePart>(mainPart)) {
                 throw new NotSupportedException("Native DOC saving currently supports text only. Embedded objects and packages are not supported yet.");
             }
+
+            if (mainPart.VbaProjectPart != null) {
+                throw new NotSupportedException("Native DOC saving currently does not support macro or VBA projects. Remove macros or save as DOCM/DOCX before saving as DOC.");
+            }
         }
 
         private static bool HasRelatedPart<TPart>(OpenXmlPartContainer container)

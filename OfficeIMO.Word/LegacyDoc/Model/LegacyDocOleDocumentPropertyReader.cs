@@ -99,10 +99,15 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
 
                         if (TryCreateCustomPropertyValue(value, out LegacyDocDocumentPropertyValue? customValue)) {
                             document.DocumentProperties.SetCustomProperty(name.Value, customValue!);
-                        } else if (options.ReportUnsupportedFeatures) {
-                            document.AddInfo(
-                                "DOC-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED",
-                                $"The OLE custom document property '{name.Value}' uses unsupported VARTYPE 0x{value.Type:X4}; the property was not projected.");
+                        } else {
+                            document.AddUnsupportedFeature(
+                                new LegacyDocUnsupportedFeature(
+                                    LegacyDocUnsupportedFeatureKind.DocumentProperty,
+                                    "DOC-OLE-CUSTOM-DOCUMENT-PROPERTY-UNSUPPORTED",
+                                    $"The OLE custom document property '{name.Value}' uses unsupported VARTYPE 0x{value.Type:X4}; the property is preserved in the source file but is not projected into the OfficeIMO document.",
+                                    entryPath: DocumentSummaryInformationStreamName,
+                                    detailCode: $"OleProperty:VT=0x{value.Type:X4}"),
+                                options.ReportUnsupportedFeatures);
                         }
                     }
                 }
