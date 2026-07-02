@@ -270,6 +270,20 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 return LegacyXlsCompoundFeatureEntryContentKind.Storage;
             }
 
+            if (role == LegacyXlsCompoundFeatureEntryRole.VbaProjectStream) {
+                return LegacyXlsCompoundFeatureEntryContentKind.VbaProjectMetadataStream;
+            }
+
+            if (role == LegacyXlsCompoundFeatureEntryRole.OleNativeStream
+                || role == LegacyXlsCompoundFeatureEntryRole.OleStream) {
+                return LegacyXlsCompoundFeatureEntryContentKind.OlePayloadStream;
+            }
+
+            if (role == LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStream
+                || role == LegacyXlsCompoundFeatureEntryRole.XmlDigitalSignatureStream) {
+                return LegacyXlsCompoundFeatureEntryContentKind.DigitalSignatureStream;
+            }
+
             if (!entry.IsStream || !TryGetStreamBytes(compoundFile, entry, out byte[] bytes)) {
                 return LegacyXlsCompoundFeatureEntryContentKind.Unknown;
             }
@@ -283,20 +297,6 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 return bytes[0] == 0x01
                     ? LegacyXlsCompoundFeatureEntryContentKind.VbaCompressedContainer
                     : LegacyXlsCompoundFeatureEntryContentKind.BinaryStream;
-            }
-
-            if (role == LegacyXlsCompoundFeatureEntryRole.VbaProjectStream) {
-                return LegacyXlsCompoundFeatureEntryContentKind.VbaProjectMetadataStream;
-            }
-
-            if (role == LegacyXlsCompoundFeatureEntryRole.OleNativeStream
-                || role == LegacyXlsCompoundFeatureEntryRole.OleStream) {
-                return LegacyXlsCompoundFeatureEntryContentKind.OlePayloadStream;
-            }
-
-            if (role == LegacyXlsCompoundFeatureEntryRole.DigitalSignatureStream
-                || role == LegacyXlsCompoundFeatureEntryRole.XmlDigitalSignatureStream) {
-                return LegacyXlsCompoundFeatureEntryContentKind.DigitalSignatureStream;
             }
 
             return LegacyXlsCompoundFeatureEntryContentKind.BinaryStream;
