@@ -383,6 +383,9 @@ just to reserve names.
     fixture proof.
   - [x] Merge built-in stylesheet-level DOC pagination flags into built-in
     DOCX style paragraph properties with synthetic legacy DOC fixture proof.
+  - [x] Merge built-in stylesheet-level DOC underline, highlight, strike, and
+    vertical-position run properties into built-in DOCX style run properties
+    with synthetic legacy DOC fixture proof.
   - [ ] Expand stylesheet projection to style inheritance and style-level
     paragraph/run formatting beyond the first supported mapping set once each
     additional mapping has a fixture and observable OfficeIMO contract.
