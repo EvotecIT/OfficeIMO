@@ -42,7 +42,7 @@ namespace OfficeIMO.Word {
             return CreateLegacyDocLoadResult(document, sourcePath: null);
         }
 
-        private static WordDocument LoadLegacyDocFromNormalFlow(byte[] bytes, string? sourcePath, bool autoSave) {
+        private static WordDocument LoadLegacyDocFromNormalFlow(byte[] bytes, string? sourcePath, bool autoSave, bool readOnly) {
             if (autoSave) {
                 throw new NotSupportedException("Auto-save is not supported when loading legacy binary .doc files. Load the document, then save explicitly to a .docx path.");
             }
@@ -55,7 +55,29 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("Legacy DOC import failed: " + FormatLegacyDocDiagnostics(errors));
             }
 
-            return ProjectLoadedLegacyDocDocument(document, sourcePath);
+            WordDocument projectedDocument = ProjectLoadedLegacyDocDocument(document, sourcePath);
+            return readOnly
+                ? ReopenProjectedLegacyDocReadOnly(projectedDocument, sourcePath, document)
+                : projectedDocument;
+        }
+
+        private static WordDocument ReopenProjectedLegacyDocReadOnly(WordDocument projectedDocument, string? sourcePath, LegacyDocDocument legacyDocument) {
+            var packageStream = new MemoryStream();
+            try {
+                projectedDocument.Save(packageStream);
+                packageStream.Seek(0, SeekOrigin.Begin);
+                projectedDocument.Dispose();
+
+                WordDocument readOnlyDocument = Load(packageStream, readOnly: true);
+                readOnlyDocument.OriginalStream = null!;
+                readOnlyDocument._ownedPackageStream = packageStream;
+                readOnlyDocument.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
+                return readOnlyDocument;
+            } catch {
+                packageStream.Dispose();
+                projectedDocument.Dispose();
+                throw;
+            }
         }
 
         private static LegacyDocLoadResult CreateLegacyDocLoadResult(LegacyDocDocument legacyDocument, string? sourcePath) {

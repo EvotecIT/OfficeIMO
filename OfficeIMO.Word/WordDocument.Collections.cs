@@ -16,14 +16,7 @@ namespace OfficeIMO.Word {
 
         internal int BookmarkId {
             get {
-                List<int> bookmarksList = new List<int>() { 0 };
-                foreach (var paragraph in this.ParagraphsBookmarks) {
-                    if (paragraph.Bookmark != null) {
-                        bookmarksList.Add(paragraph.Bookmark.Id);
-                    }
-                }
-
-                return bookmarksList.Max() + 1;
+                return Bookmarks.Select(bookmark => bookmark.Id).DefaultIfEmpty(0).Max() + 1;
             }
         }
 

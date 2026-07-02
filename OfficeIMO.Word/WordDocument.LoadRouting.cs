@@ -2,6 +2,7 @@ namespace OfficeIMO.Word {
     internal static class WordDocumentLoadRouting {
         private static readonly byte[] ZipSignature = { 0x50, 0x4B };
         private static readonly byte[] OleCompoundSignature = { 0xD0, 0xCF, 0x11, 0xE0, 0xA1, 0xB1, 0x1A, 0xE1 };
+        internal const int SignatureLength = 8;
 
         internal static bool IsLegacyDoc(byte[] bytes, string? filePath) {
             if (HasZipSignature(bytes)) {
@@ -38,6 +39,14 @@ namespace OfficeIMO.Word {
             }
 
             return true;
+        }
+
+        internal static bool HasLegacyDocSignature(byte[] bytes) {
+            if (HasZipSignature(bytes)) {
+                return false;
+            }
+
+            return HasOleCompoundSignature(bytes);
         }
     }
 }

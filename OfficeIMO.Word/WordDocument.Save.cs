@@ -491,7 +491,6 @@ namespace OfficeIMO.Word {
             PrepareDestinationStreamForWrite(destination);
             destination.Write(legacyDocBytes, 0, legacyDocBytes.Length);
             try { destination.Flush(); } catch (NotSupportedException) { }
-            OriginalStream = destination;
 
             if (destination.CanSeek) {
                 destination.Seek(0, SeekOrigin.Begin);

@@ -34,15 +34,29 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 stories[4] = LegacyDocWritableHeaderFooterStory.Plain(HeaderFooterContinuationSeparatorStory);
             }
 
+            LegacyDocWritableHeaderFooterStory? currentEvenHeader = null;
+            LegacyDocWritableHeaderFooterStory? currentDefaultHeader = null;
+            LegacyDocWritableHeaderFooterStory? currentFirstHeader = null;
+            LegacyDocWritableHeaderFooterStory? currentEvenFooter = null;
+            LegacyDocWritableHeaderFooterStory? currentDefaultFooter = null;
+            LegacyDocWritableHeaderFooterStory? currentFirstFooter = null;
+
             for (int sectionIndex = 0; sectionIndex < document.Sections.Count; sectionIndex++) {
                 SectionProperties sectionProperties = document.Sections[sectionIndex]._sectionProperties;
                 int sectionStoryOffset = HeaderFooterSeparatorStoryCount + (sectionIndex * HeaderFooterStoriesPerSection);
-                stories[sectionStoryOffset] = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Even, styleIndexes) ?? LegacyDocWritableHeaderFooterStory.Empty;
-                stories[sectionStoryOffset + 1] = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Default, styleIndexes) ?? LegacyDocWritableHeaderFooterStory.Empty;
-                stories[sectionStoryOffset + 2] = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Even, styleIndexes) ?? LegacyDocWritableHeaderFooterStory.Empty;
-                stories[sectionStoryOffset + 3] = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Default, styleIndexes) ?? LegacyDocWritableHeaderFooterStory.Empty;
-                stories[sectionStoryOffset + 4] = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.First, styleIndexes) ?? LegacyDocWritableHeaderFooterStory.Empty;
-                stories[sectionStoryOffset + 5] = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.First, styleIndexes) ?? LegacyDocWritableHeaderFooterStory.Empty;
+                currentEvenHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Even, styleIndexes) ?? currentEvenHeader;
+                currentDefaultHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.Default, styleIndexes) ?? currentDefaultHeader;
+                currentEvenFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Even, styleIndexes) ?? currentEvenFooter;
+                currentDefaultFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.Default, styleIndexes) ?? currentDefaultFooter;
+                currentFirstHeader = ReadHeaderStory(mainPart, sectionProperties, HeaderFooterValues.First, styleIndexes) ?? currentFirstHeader;
+                currentFirstFooter = ReadFooterStory(mainPart, sectionProperties, HeaderFooterValues.First, styleIndexes) ?? currentFirstFooter;
+
+                stories[sectionStoryOffset] = currentEvenHeader ?? LegacyDocWritableHeaderFooterStory.Empty;
+                stories[sectionStoryOffset + 1] = currentDefaultHeader ?? LegacyDocWritableHeaderFooterStory.Empty;
+                stories[sectionStoryOffset + 2] = currentEvenFooter ?? LegacyDocWritableHeaderFooterStory.Empty;
+                stories[sectionStoryOffset + 3] = currentDefaultFooter ?? LegacyDocWritableHeaderFooterStory.Empty;
+                stories[sectionStoryOffset + 4] = currentFirstHeader ?? LegacyDocWritableHeaderFooterStory.Empty;
+                stories[sectionStoryOffset + 5] = currentFirstFooter ?? LegacyDocWritableHeaderFooterStory.Empty;
             }
 
             ThrowIfUnreferencedHeaderFooterContent(mainPart, document.Sections.Select(section => section._sectionProperties));

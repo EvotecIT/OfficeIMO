@@ -315,7 +315,12 @@ namespace OfficeIMO.Word {
                 return;
             }
 
+            var visitedParagraphs = new HashSet<Paragraph>();
             foreach (var paragraph in paragraphs) {
+                if (!visitedParagraphs.Add(paragraph._paragraph)) {
+                    continue;
+                }
+
                 foreach (BookmarkStart bookmarkStart in paragraph._paragraph.Descendants<BookmarkStart>()) {
                     list.Add(new WordBookmark(paragraph._document, paragraph._paragraph, bookmarkStart));
                 }

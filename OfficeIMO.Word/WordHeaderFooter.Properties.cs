@@ -253,7 +253,12 @@ namespace OfficeIMO.Word {
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
+                var visitedParagraphs = new HashSet<Paragraph>();
                 foreach (var paragraph in Paragraphs) {
+                    if (!visitedParagraphs.Add(paragraph._paragraph)) {
+                        continue;
+                    }
+
                     foreach (BookmarkStart bookmarkStart in paragraph._paragraph.Descendants<BookmarkStart>()) {
                         list.Add(new WordBookmark(paragraph._document, paragraph._paragraph, bookmarkStart));
                     }

@@ -2406,6 +2406,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_NormalLoad_BlocksOpenSettingsAutoSaveForLegacyDocProjection() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("No open settings autosave"));
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() =>
+                    WordDocument.Load(docPath, openSettings: new OpenSettings { AutoSave = true }));
+
+                Assert.Contains("Auto-save is not supported", exception.Message);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_NormalLoad_HonorsReadOnlyForLegacyDocProjection() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("Read only legacy doc"));
+
+                using WordDocument document = WordDocument.Load(docPath, readOnly: true);
+
+                Assert.True(document.WasLoadedFromLegacyDoc);
+                Assert.Equal(FileAccess.Read, document.FileOpenAccess);
+                Assert.Throws<InvalidOperationException>(() => document.Save());
+                using var output = new MemoryStream();
+                Assert.Throws<InvalidOperationException>(() => document.Save(output));
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_NormalLoad_RoutesNonSeekableDocStreamThroughLegacyReader() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Non-seekable legacy doc");
+
+            using var stream = new NonSeekableReadStream(docBytes);
+            using WordDocument document = WordDocument.Load(stream);
+
+            Assert.True(document.WasLoadedFromLegacyDoc);
+            WordParagraph paragraph = Assert.Single(document.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
+            Assert.Equal("Non-seekable legacy doc", paragraph.Text);
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4817,6 +4864,43 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_PreservesInheritedMultiSectionHeaderFooterAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("First inherited body");
+                    WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+                    secondSection.AddParagraph("Second inherited body");
+
+                    document.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Inherited header");
+                    document.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Inherited footer");
+
+                    foreach (HeaderReference headerReference in secondSection._sectionProperties.Elements<HeaderReference>().ToList()) {
+                        headerReference.Remove();
+                    }
+
+                    foreach (FooterReference footerReference in secondSection._sectionProperties.Elements<FooterReference>().ToList()) {
+                        footerReference.Remove();
+                    }
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("Inherited header", Assert.Single(reloaded.Sections[0].Header.Default!.Paragraphs).Text);
+                Assert.Equal("Inherited footer", Assert.Single(reloaded.Sections[0].Footer.Default!.Paragraphs).Text);
+                Assert.Equal("Inherited header", Assert.Single(reloaded.Sections[1].Header.Default!.Paragraphs).Text);
+                Assert.Equal("Inherited footer", Assert.Single(reloaded.Sections[1].Footer.Default!.Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveStreamWithLegacyDocFormat_WritesNativeDocAndReloadsThroughLegacyReader() {
             using var stream = new MemoryStream();
             using (WordDocument document = WordDocument.Create()) {
@@ -4839,6 +4923,24 @@ namespace OfficeIMO.Tests {
             Assert.True(reloaded.WasLoadedFromLegacyDoc);
             WordParagraph paragraph = Assert.Single(reloaded.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
             Assert.Equal("Native DOC stream", paragraph.Text);
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveStreamWithLegacyDocFormat_DoesNotOverwriteStreamOnDispose() {
+            using var stream = new MemoryStream();
+            using (WordDocument document = WordDocument.Create(autoSave: true)) {
+                document.AddParagraph("Native DOC stream remains native");
+                document.Save(stream, new WordSaveOptions {
+                    StreamFormat = WordStreamSaveFormat.LegacyDoc
+                });
+            }
+
+            byte[] bytes = stream.ToArray();
+            Assert.True(bytes.Length > 512);
+            Assert.Equal(0xD0, bytes[0]);
+            Assert.Equal(0xCF, bytes[1]);
+            Assert.Equal(0x11, bytes[2]);
+            Assert.Equal(0xE0, bytes[3]);
         }
 
         [Fact]
