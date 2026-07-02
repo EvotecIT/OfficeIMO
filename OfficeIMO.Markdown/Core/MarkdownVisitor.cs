@@ -109,6 +109,9 @@ public abstract class MarkdownVisitor {
             case ImageInline imageInline:
                 VisitImageInline(imageInline);
                 break;
+            case AbbreviationInline abbreviation:
+                VisitAbbreviationInline(abbreviation);
+                break;
             case HtmlTagSequenceInline htmlTag:
                 VisitHtmlTagSequenceInline(htmlTag);
                 break;
@@ -248,6 +251,7 @@ public abstract class MarkdownVisitor {
     protected virtual void VisitLinkInline(LinkInline inline) => VisitInline(inline);
     protected virtual void VisitImageLinkInline(ImageLinkInline inline) => VisitInline(inline);
     protected virtual void VisitImageInline(ImageInline inline) => VisitInline(inline);
+    protected virtual void VisitAbbreviationInline(AbbreviationInline inline) => VisitInline(inline);
     protected virtual void VisitHtmlTagSequenceInline(HtmlTagSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitBoldSequenceInline(BoldSequenceInline inline) => VisitInline(inline);
     protected virtual void VisitItalicSequenceInline(ItalicSequenceInline inline) => VisitInline(inline);

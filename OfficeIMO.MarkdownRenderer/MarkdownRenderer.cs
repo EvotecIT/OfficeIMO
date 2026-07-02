@@ -18,11 +18,11 @@ public static partial class MarkdownRenderer {
         ICollection<MarkdownRendererPreProcessorDiagnostic>? preProcessorDiagnostics = null) {
         if (diagnostics == null && preProcessorDiagnostics == null) {
             options ??= new MarkdownRendererOptions();
-            if (options.DocumentTransforms.Count > 0) {
+            var readerOptions = CreateEffectiveReaderOptions(options);
+            if (RequiresSyntaxBackedParse(options, readerOptions)) {
                 return ParseDocumentResult(markdown, options).Document;
             }
 
-            var readerOptions = CreateEffectiveReaderOptions(options);
             markdown = PrepareMarkdown(markdown, options, renderErrorAsException: true);
             var doc = MarkdownReader.Parse(markdown, readerOptions);
             return ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null, sourceMarkdown: markdown);
@@ -129,7 +129,7 @@ public static partial class MarkdownRenderer {
             return ex.OverflowHtml;
         }
         MarkdownDoc doc;
-        if (options.DocumentTransforms.Count > 0) {
+        if (RequiresSyntaxBackedParse(options, readerOptions)) {
             var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, readerOptions);
             var transformDiagnostics = new List<MarkdownDocumentTransformDiagnostic>(parseResult.TransformDiagnostics);
             var topLevelBlockSourceSpans = BuildTopLevelBlockSourceSpans(parseResult);
@@ -221,5 +221,8 @@ public static partial class MarkdownRenderer {
 
         return html ?? string.Empty;
     }
+
+    private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownReaderOptions readerOptions) =>
+        options.DocumentTransforms.Count > 0 || readerOptions.DocumentTransforms.Count > 0;
 
 }

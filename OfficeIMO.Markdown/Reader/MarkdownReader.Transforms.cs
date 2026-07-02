@@ -15,6 +15,9 @@ public static partial class MarkdownReader {
         string? originalMarkdown = null,
         bool preservesOriginalMarkdown = false) {
         var transforms = BuildEffectiveDocumentTransforms(options);
+        var topLevelBlockSourceSpans = syntaxTree == null
+            ? null
+            : BuildTopLevelBlockSourceSpans(document, syntaxTree);
         return MarkdownDocumentTransformPipeline.Apply(
             document,
             transforms,
@@ -24,10 +27,36 @@ public static partial class MarkdownReader {
                 sourceOptions: null,
                 diagnostics,
                 syntaxTree,
-                topLevelBlockSourceSpans: null,
+                topLevelBlockSourceSpans,
                 sourceMarkdown,
                 originalMarkdown,
                 preservesOriginalMarkdown));
+    }
+
+    private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownDoc document, MarkdownSyntaxNode syntaxTree) {
+        var spans = new List<MarkdownSourceSpan?>(document.Blocks.Count);
+        var blockChildren = syntaxTree.Children
+            .Where(static child => child.AssociatedObject is IMarkdownBlock)
+            .ToList();
+        var topLevelBlocks = document.TopLevelBlocks;
+        var childCount = Math.Min(blockChildren.Count, topLevelBlocks.Count);
+        for (var i = 0; i < childCount; i++) {
+            if (topLevelBlocks[i] is FrontMatterBlock) {
+                continue;
+            }
+
+            spans.Add(blockChildren[i].SourceSpan);
+        }
+
+        while (spans.Count < document.Blocks.Count) {
+            spans.Add(null);
+        }
+
+        if (spans.Count > document.Blocks.Count) {
+            spans.RemoveRange(document.Blocks.Count, spans.Count - document.Blocks.Count);
+        }
+
+        return spans;
     }
 
     private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(MarkdownReaderOptions options) {

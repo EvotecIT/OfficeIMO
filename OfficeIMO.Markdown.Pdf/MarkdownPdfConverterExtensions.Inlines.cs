@@ -34,6 +34,15 @@ public static partial class MarkdownPdfConverterExtensions {
             case UnderlineInline underline:
                 ApplyStyle(builder, style.With(underline: true)).Text(underline.Text);
                 break;
+            case InsertedInline inserted:
+                ApplyStyle(builder, style.With(underline: true)).Text(inserted.Text);
+                break;
+            case SuperscriptInline superscript:
+                ApplyStyle(builder, style.With(baseline: PdfCore.PdfTextBaseline.Superscript)).Text(superscript.Text);
+                break;
+            case SubscriptInline subscript:
+                ApplyStyle(builder, style.With(baseline: PdfCore.PdfTextBaseline.Subscript)).Text(subscript.Text);
+                break;
             case StrikethroughInline strike:
                 ApplyStyle(builder, style.With(strike: true)).Text(strike.Text);
                 break;
@@ -60,6 +69,15 @@ public static partial class MarkdownPdfConverterExtensions {
                 break;
             case HighlightSequenceInline highlightSequence:
                 AppendInlines(builder, highlightSequence.Inlines, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)));
+                break;
+            case InsertedSequenceInline insertedSequence:
+                AppendInlines(builder, insertedSequence.Inlines, style.With(underline: true));
+                break;
+            case SuperscriptSequenceInline superscriptSequence:
+                AppendInlines(builder, superscriptSequence.Inlines, style.With(baseline: PdfCore.PdfTextBaseline.Superscript));
+                break;
+            case SubscriptSequenceInline subscriptSequence:
+                AppendInlines(builder, subscriptSequence.Inlines, style.With(baseline: PdfCore.PdfTextBaseline.Subscript));
                 break;
             case ImageInline image:
                 ApplyStyle(builder, style.With(italic: true)).Text("[Image: " + (image.PlainAlt.Length == 0 ? image.Src : image.PlainAlt) + "]");
@@ -142,6 +160,15 @@ public static partial class MarkdownPdfConverterExtensions {
             case UnderlineInline underline:
                 runs.Add(CreateRun(underline.Text, style.With(underline: true)));
                 break;
+            case InsertedInline inserted:
+                runs.Add(CreateRun(inserted.Text, style.With(underline: true)));
+                break;
+            case SuperscriptInline superscript:
+                runs.Add(CreateRun(superscript.Text, style.With(baseline: PdfCore.PdfTextBaseline.Superscript)));
+                break;
+            case SubscriptInline subscript:
+                runs.Add(CreateRun(subscript.Text, style.With(baseline: PdfCore.PdfTextBaseline.Subscript)));
+                break;
             case StrikethroughInline strike:
                 runs.Add(CreateRun(strike.Text, style.With(strike: true)));
                 break;
@@ -177,6 +204,21 @@ public static partial class MarkdownPdfConverterExtensions {
             case HighlightSequenceInline highlightSequence:
                 foreach (IMarkdownInline nested in highlightSequence.Inlines.Nodes) {
                     AddTextRuns(runs, nested, style.With(background: PdfCore.PdfColor.FromRgb(254, 243, 199)));
+                }
+                break;
+            case InsertedSequenceInline insertedSequence:
+                foreach (IMarkdownInline nested in insertedSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(underline: true));
+                }
+                break;
+            case SuperscriptSequenceInline superscriptSequence:
+                foreach (IMarkdownInline nested in superscriptSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(baseline: PdfCore.PdfTextBaseline.Superscript));
+                }
+                break;
+            case SubscriptSequenceInline subscriptSequence:
+                foreach (IMarkdownInline nested in subscriptSequence.Inlines.Nodes) {
+                    AddTextRuns(runs, nested, style.With(baseline: PdfCore.PdfTextBaseline.Subscript));
                 }
                 break;
             case HardBreakInline:

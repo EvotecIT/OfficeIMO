@@ -1,12 +1,15 @@
 using System;
 using System.Linq;
+using System.Reflection;
 using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Markdown;
+using OfficeIMO.Markdown.Pdf;
 using OfficeIMO.MarkdownRenderer;
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Markdown;
 using OfficeIMO.Word.Markdown;
 using Xunit;
+using PdfTextRun = OfficeIMO.Pdf.TextRun;
 
 namespace OfficeIMO.Tests.MarkdownSuite;
 
@@ -113,6 +116,47 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void LoadFromMarkdown_Preserves_Abbreviation_Decoded_Entity_And_SoftBreak_Text_In_Word() {
+        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.Abbreviations = true;
+
+        using var parsed = "*[HTML]: Hyper Text Markup Language\n\nHTML and A &amp; B".LoadFromMarkdown(new MarkdownToWordOptions {
+            ReaderOptions = readerOptions
+        });
+
+        var parsedText = string.Concat(parsed.Paragraphs.Select(run => run.Text));
+        Assert.Contains("HTML", parsedText);
+        Assert.Contains("A & B", parsedText);
+
+        var typed = MarkdownDoc.Create();
+        typed.Add(new ParagraphBlock(new InlineSequence()
+            .Text("Alpha")
+            .SoftBreak()
+            .Text("Beta")));
+
+        using var typedDocument = typed.ToWordDocument();
+        Assert.Contains("Alpha Beta", string.Concat(typedDocument.Paragraphs.Select(run => run.Text)));
+    }
+
+    [Fact]
+    public void MarkdownPdf_Preserves_Inserted_Superscript_And_Subscript_Run_Styles() {
+        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.Inserted = true;
+        readerOptions.Superscript = true;
+        readerOptions.Subscript = true;
+
+        var pdf = "Before ++new++ ^up^ H~down~O".ToPdfDocument(new MarkdownPdfSaveOptions {
+            ReaderOptions = readerOptions
+        });
+
+        var runs = GetTopLevelPdfTextRuns(pdf);
+
+        Assert.Contains(runs, run => run.Text == "new" && run.Underline);
+        Assert.Contains(runs, run => run.Text == "up" && run.Baseline == OfficeIMO.Pdf.PdfTextBaseline.Superscript);
+        Assert.Contains(runs, run => run.Text == "down" && run.Baseline == OfficeIMO.Pdf.PdfTextBaseline.Subscript);
+    }
+
+    [Fact]
     public void Sequence_RenderMarkdown_Escapes_Own_Delimiters_In_Nested_Text() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
 
@@ -209,6 +253,28 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_RenderBodyHtml_ReaderTransforms_Receive_Syntax_Context() {
+        var sourceSliceCreated = false;
+        var sourceText = string.Empty;
+        var options = new MarkdownRendererOptions();
+        options.ReaderOptions.DocumentTransforms.Add(new ReaderInspectTransform((document, context) => {
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownReader, context.Source);
+            Assert.NotNull(context.SyntaxTree);
+            Assert.NotNull(context.TopLevelBlockSourceSpans);
+            sourceSliceCreated = context.TryCreateSourceSlice(paragraph, out var slice);
+            sourceText = slice.Text;
+            return document;
+        }));
+
+        OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("Alpha\n", options);
+
+        Assert.True(sourceSliceCreated);
+        Assert.Equal("Alpha", sourceText);
+    }
+
+    [Fact]
     public void MarkdownRenderer_ParseDocumentResult_Attaches_Final_ParseResult_To_Transformed_Document() {
         var options = new MarkdownRendererOptions();
         options.DocumentTransforms.Add(new RendererInspectTransform((document, context) => {
@@ -257,6 +323,29 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         Assert.Equal("a\"b", reparsedParagraph.Attributes.Attributes["title"]);
         Assert.Equal("c\\d", reparsedParagraph.Attributes.Attributes["data-path"]);
+    }
+
+    [Fact]
+    public void GenericAttributes_Attach_To_Inserted_Inlines() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+        options.Inserted = true;
+
+        var document = MarkdownReader.Parse("++new++{#added .fresh}", options);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var inserted = Assert.IsType<InsertedSequenceInline>(Assert.Single(paragraph.Inlines.Nodes));
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("<ins", html);
+        Assert.Contains("id=\"added\"", html);
+        Assert.Contains("class=\"fresh\"", html);
+        Assert.Equal("added", inserted.Attributes.ElementId);
+        Assert.Equal("fresh", Assert.Single(inserted.Attributes.Classes));
     }
 
     [Fact]
@@ -352,5 +441,21 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
             return inspect(document, context);
         }
+    }
+
+    private sealed class ReaderInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) => inspect(document, context);
+    }
+
+    private static PdfTextRun[] GetTopLevelPdfTextRuns(OfficeIMO.Pdf.PdfDocument document) {
+        var blocksProperty = typeof(OfficeIMO.Pdf.PdfDocument).GetProperty("Blocks", BindingFlags.Instance | BindingFlags.NonPublic);
+        Assert.NotNull(blocksProperty);
+
+        var blocks = ((System.Collections.IEnumerable)blocksProperty.GetValue(document)!).Cast<object>().ToArray();
+        var block = Assert.Single(blocks);
+        var runsProperty = block.GetType().GetProperty("Runs", BindingFlags.Instance | BindingFlags.Public);
+        Assert.NotNull(runsProperty);
+
+        return ((System.Collections.IEnumerable)runsProperty.GetValue(block)!).Cast<PdfTextRun>().ToArray();
     }
 }
