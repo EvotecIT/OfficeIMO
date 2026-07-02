@@ -73,6 +73,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureKeepsUnrelatedBookmarkChangesAcrossPartsSeparate() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_bookmark_cross_part_delete_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!.AddParagraph("Header bookmark").AddBookmark("HeaderOnly");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_bookmark_cross_part_insert_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Body bookmark").AddBookmark("BodyOnly");
+                document.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false,
+                IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Bookmark }
+            });
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Bookmark &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Bookmark &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.SourceText?.Contains("HeaderOnly", StringComparison.Ordinal) == true);
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Bookmark &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.TargetText?.Contains("BodyOnly", StringComparison.Ordinal) == true);
+        }
+
+        [Fact]
         public void CompareStructureMatchesRevisionsAcrossInsertedEarlierRevision() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_revision_insert_before_source.docx");
             CreateRevisionRegressionDocument(sourcePath, "Keep");

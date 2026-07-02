@@ -239,7 +239,8 @@ namespace OfficeIMO.Word {
                                 break;
                             }
 
-                            InsertDeletedCell(targetRow, targetCells, targetCellIndex, finding.SourceText!, options);
+                            TableCell? sourceCell = cellIndex >= 0 && cellIndex < sourceCells.Count ? sourceCells[cellIndex] : null;
+                            InsertDeletedCell(targetRow, targetCells, targetCellIndex, sourceCell, finding.SourceText!, options);
                             RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
                             rewrittenCells.Add(deletedCellKey);
                         }
@@ -527,8 +528,13 @@ namespace OfficeIMO.Word {
             RemoveEmptyWordColorAttributes(cell);
         }
 
-        private static void InsertDeletedCell(TableRow row, IReadOnlyList<TableCell> existingCells, int cellIndex, string sourceText, WordComparisonRedlineOptions options) {
+        private static void InsertDeletedCell(TableRow row, IReadOnlyList<TableCell> existingCells, int cellIndex, TableCell? sourceCell, string sourceText, WordComparisonRedlineOptions options) {
             var deletedCell = new TableCell();
+            TableCellProperties? properties = sourceCell?.GetFirstChild<TableCellProperties>()?.CloneNode(true) as TableCellProperties;
+            if (properties != null) {
+                deletedCell.Append(properties);
+            }
+
             AppendCellTrackedParagraphs(deletedCell, sourceText, null, options);
             EnsureCellHasParagraph(deletedCell);
 

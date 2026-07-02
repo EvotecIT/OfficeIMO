@@ -1919,6 +1919,7 @@ namespace OfficeIMO.Tests {
                 WordTable table = document.AddTable(1, 3);
                 table.Rows[0].Cells[0].Paragraphs[0].Text = "Name";
                 table.Rows[0].Cells[1].Paragraphs[0].Text = "Deprecated";
+                table.Rows[0].Cells[1]._tableCell.GetFirstChild<TableCellProperties>()!.GridSpan = new GridSpan { Val = 2 };
                 table.Rows[0].Cells[2].Paragraphs[0].Text = "Owner";
                 document.Save(false);
             }
@@ -1950,7 +1951,9 @@ namespace OfficeIMO.Tests {
             Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
             TableRow row = body.Descendants<Table>().First().Elements<TableRow>().First();
             Assert.Equal(3, row.Elements<TableCell>().Count());
-            Assert.Contains(row.Elements<TableCell>().ElementAt(1).Descendants<DeletedRun>(), run => run.InnerText == "Deprecated" && run.Author?.Value == "OfficeIMO Tests");
+            TableCell deletedCell = row.Elements<TableCell>().ElementAt(1);
+            Assert.Equal(2, deletedCell.GetFirstChild<TableCellProperties>()?.GridSpan?.Val?.Value);
+            Assert.Contains(deletedCell.Descendants<DeletedRun>(), run => run.InnerText == "Deprecated" && run.Author?.Value == "OfficeIMO Tests");
             Assert.Contains(row.Elements<TableCell>().ElementAt(2).InnerText, "Owner", StringComparison.Ordinal);
 
             var errors = redline.ValidateDocument();

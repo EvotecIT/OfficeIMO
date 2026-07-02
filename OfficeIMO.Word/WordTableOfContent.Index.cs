@@ -808,6 +808,11 @@ namespace OfficeIMO.Word {
                 if (sibling is Paragraph nextParagraph) {
                     return nextParagraph;
                 }
+
+                Paragraph? descendantParagraph = sibling.Descendants<Paragraph>().FirstOrDefault();
+                if (descendantParagraph != null) {
+                    return descendantParagraph;
+                }
             }
 
             return null;
@@ -822,6 +827,11 @@ namespace OfficeIMO.Word {
             for (OpenXmlElement? sibling = end.PreviousSibling(); sibling != null; sibling = sibling.PreviousSibling()) {
                 if (sibling is Paragraph previousParagraph) {
                     return previousParagraph;
+                }
+
+                Paragraph? descendantParagraph = sibling.Descendants<Paragraph>().LastOrDefault();
+                if (descendantParagraph != null) {
+                    return descendantParagraph;
                 }
             }
 

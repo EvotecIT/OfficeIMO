@@ -159,7 +159,9 @@ namespace OfficeIMO.Word {
             int runIndex,
             WordComparisonFinding finding,
             WordComparisonRedlineOptions options) {
-            int sourceParagraphIndex = FindSourceParagraphIndex(sourceParagraphs, targetParagraph, paragraphIndex);
+            int sourceParagraphIndex = TryGetDetailedSourceParagraphIndex(finding, out int detailedSourceParagraphIndex)
+                ? detailedSourceParagraphIndex
+                : FindSourceParagraphIndex(sourceParagraphs, targetParagraph, paragraphIndex);
             if (!string.Equals(finding.Message, "Run formatting changed.", StringComparison.Ordinal) ||
                 finding.ChangeKind != WordComparisonChangeKind.Modified ||
                 sourceParagraphIndex < 0 ||
@@ -184,6 +186,19 @@ namespace OfficeIMO.Word {
             }
 
             targetRun.RunProperties.RunPropertiesChange = CreateRunPropertiesChange(sourceRuns[sourceRunIndex].RunProperties, options);
+        }
+
+        private static bool TryGetDetailedSourceParagraphIndex(WordComparisonFinding finding, out int sourceParagraphIndex) {
+            sourceParagraphIndex = -1;
+            const string token = "/sourceParagraph[";
+            int tokenIndex = finding.DetailedLocation.IndexOf(token, StringComparison.Ordinal);
+            if (tokenIndex < 0 || !finding.DetailedLocation.EndsWith("]", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            int valueStart = tokenIndex + token.Length;
+            string value = finding.DetailedLocation.Substring(valueStart, finding.DetailedLocation.Length - valueStart - 1);
+            return int.TryParse(value, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out sourceParagraphIndex);
         }
 
         private static int FindSourceParagraphIndex(IReadOnlyList<RedlineParagraphEntry> sourceParagraphs, Paragraph targetParagraph, int fallbackIndex) {

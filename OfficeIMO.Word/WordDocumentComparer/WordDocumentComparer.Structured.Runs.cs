@@ -15,7 +15,7 @@ namespace OfficeIMO.Word {
             List<RunSnapshot> targetRuns = GetRunSnapshots(targetParagraph, options);
             if (string.Equals(sourceParagraph.ComparisonText, targetParagraph.ComparisonText, StringComparison.Ordinal) &&
                 !sourceRuns.Select(run => run.ComparisonText).SequenceEqual(targetRuns.Select(run => run.ComparisonText), StringComparer.Ordinal)) {
-                AnalyzeResegmentedRunFormatting(sourceRuns, targetRuns, targetParagraphIndex, result, options);
+                AnalyzeResegmentedRunFormatting(sourceRuns, targetRuns, sourceParagraphIndex, targetParagraphIndex, result, options);
                 return;
             }
 
@@ -46,6 +46,7 @@ namespace OfficeIMO.Word {
         private static void AnalyzeResegmentedRunFormatting(
             IReadOnlyList<RunSnapshot> sourceRuns,
             IReadOnlyList<RunSnapshot> targetRuns,
+            int sourceParagraphIndex,
             int targetParagraphIndex,
             WordComparisonResult result,
             WordComparisonOptions options) {
@@ -86,7 +87,8 @@ namespace OfficeIMO.Word {
                     targetSegment.Run.Index,
                     targetSegment.Run.Text,
                     targetSegment.Run.Text,
-                    "Run formatting changed."),
+                    "Run formatting changed.",
+                    RunLocation(targetParagraphIndex, targetSegment.Run.Index) + "/sourceParagraph[" + sourceParagraphIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]"),
                     targetSegment.Run.DocumentOrder);
             }
         }

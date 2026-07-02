@@ -108,7 +108,18 @@ namespace OfficeIMO.Word {
                 return string.Equals(sourceControl.LocationKey, targetControl.LocationKey, StringComparison.Ordinal);
             }
 
-            return true;
+            return string.Equals(GetFeatureLocationScope(sourceItem.DetailedLocation), GetFeatureLocationScope(targetItem.DetailedLocation), StringComparison.Ordinal);
+        }
+
+        private static string GetFeatureLocationScope(string detailedLocation) {
+            if (string.IsNullOrWhiteSpace(detailedLocation)) {
+                return string.Empty;
+            }
+
+            string[] parts = detailedLocation.Split('/');
+            return parts.Length >= 2
+                ? parts[0] + "/" + parts[1]
+                : detailedLocation;
         }
 
         private static void AddFeatureInsertedFinding<TSnapshot>(

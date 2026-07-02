@@ -2617,6 +2617,47 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshIndexSupportsBookmarkPageRangesAroundTables() {
+            string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshBookmarkTablePageRange.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent index = document.AddTableOfContent();
+
+                string bookmarkId = document.BookmarkId.ToString();
+                Table table = new Table(
+                    new TableProperties(),
+                    new TableGrid(new GridColumn()),
+                    new BookmarkStart { Name = "TableRangeBookmark", Id = bookmarkId },
+                    new TableRow(
+                        new TableCell(
+                            new Paragraph(
+                                new Run(new Text("Table range starts") { Space = SpaceProcessingModeValues.Preserve }),
+                                CreateIndexEntryField(" XE \"Table Range\" \\r \"TableRangeBookmark\" ")))),
+                    new BookmarkEnd { Id = bookmarkId });
+                document._document.Body!.InsertBefore(table, document._document.Body.Elements<SectionProperties>().FirstOrDefault());
+
+                WordIndexRefreshReport report = index.RefreshIndex("Table Range Index");
+
+                WordIndexEntry entry = Assert.Single(report.Entries);
+                Assert.Equal("Table Range", entry.Term);
+                Assert.Equal(new[] { "1" }, entry.PageReferences);
+                Assert.Equal("1", entry.PageNumbersText);
+                Assert.Contains("Table Range", TocText(index));
+                Assert.True(document.DocumentIsValid, FormatValidationErrors(document.DocumentValidationErrors));
+
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                WordTableOfContent index = Assert.IsType<WordTableOfContent>(document.TableOfContent);
+                WordIndexRefreshReport report = index.RefreshIndex();
+
+                WordIndexEntry entry = Assert.Single(report.Entries);
+                Assert.Equal(new[] { "1" }, entry.PageReferences);
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshIndexHonorsImportedCustomSeparators() {
             string filePath = Path.Combine(_directoryWithFiles, "IndexRefreshCustomSeparators.docx");
 
