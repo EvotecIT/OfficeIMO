@@ -48,6 +48,29 @@ namespace OfficeIMO.Word {
             return new WordFieldUpdateReport(results.OrderBy(result => result.Index).ToArray());
         }
 
+        internal static void UpdatePageCounters(WordDocument document) {
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart
+                ?? throw new InvalidOperationException("MainDocumentPart is missing.");
+
+            int totalPages = EstimateTotalPages(document);
+            var state = new FieldEvaluationState();
+            foreach (MutableFieldCandidate candidate in EnumerateFields(mainPart).OrderBy(field => field.Sequence)) {
+                WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
+                if (parsed.Diagnostics.Count > 0 ||
+                    parsed.FieldType is not (WordFieldType.Page or WordFieldType.NumPages) ||
+                    candidate.IsLocked) {
+                    continue;
+                }
+
+                if (TryEvaluate(document, candidate, parsed, totalPages, state, DateTime.Now, out string? value, out WordFieldUpdateStatus status, out _) &&
+                    status == WordFieldUpdateStatus.Updated) {
+                    SetResultText(candidate, value!);
+                }
+            }
+
+            document.TableOfContent?.Update();
+        }
+
         private static WordFieldUpdateResult UpdateField(WordDocument document, MutableFieldCandidate candidate, int totalPages, FieldEvaluationState state, DateTime updateDateTime) {
             WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(candidate.InstructionText);
 

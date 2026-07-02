@@ -408,7 +408,7 @@ namespace OfficeIMO.Word {
         /// fields on open so Word can update the TOC.
         /// </summary>
         public void UpdateFields() {
-            UpdateFieldsAndGetReport();
+            WordFieldUpdater.UpdatePageCounters(this);
         }
 
         /// <summary>

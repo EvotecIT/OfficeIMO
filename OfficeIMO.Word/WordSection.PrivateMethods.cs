@@ -425,7 +425,11 @@ namespace OfficeIMO.Word {
 
         private static Paragraph? SplitFieldStartPrefix(Paragraph paragraph, int startChildIndex) {
             List<OpenXmlElement> children = paragraph.ChildElements.ToList();
-            if (startChildIndex <= 0 || !children.Take(startChildIndex).Any(HasMeaningfulContent)) {
+            Run? sameRunPrefix = startChildIndex >= 0 && startChildIndex < children.Count
+                ? CloneBeforeFieldBegin(children[startChildIndex])
+                : null;
+            bool hasPreviousContent = startChildIndex > 0 && children.Take(startChildIndex).Any(HasMeaningfulContent);
+            if (!hasPreviousContent && sameRunPrefix == null) {
                 return null;
             }
 
@@ -443,6 +447,10 @@ namespace OfficeIMO.Word {
                 prefix.Append(children[index].CloneNode(true));
             }
 
+            if (sameRunPrefix != null) {
+                prefix.Append(sameRunPrefix);
+            }
+
             for (int index = startChildIndex - 1; index >= 0; index--) {
                 if (children[index] is ParagraphProperties) {
                     continue;
@@ -451,7 +459,42 @@ namespace OfficeIMO.Word {
                 children[index].Remove();
             }
 
+            if (startChildIndex >= 0 && startChildIndex < children.Count) {
+                RemoveBeforeFieldBegin(children[startChildIndex]);
+            }
+
             return prefix;
+        }
+
+        private static Run? CloneBeforeFieldBegin(OpenXmlElement element) {
+            if (element is not Run run) {
+                return null;
+            }
+
+            var clone = new Run();
+            foreach (OpenXmlElement child in run.ChildElements) {
+                if (child is FieldChar fieldChar && IsFieldBegin(fieldChar)) {
+                    break;
+                }
+
+                clone.Append(child.CloneNode(true));
+            }
+
+            return HasMeaningfulContent(clone) ? clone : null;
+        }
+
+        private static void RemoveBeforeFieldBegin(OpenXmlElement element) {
+            if (element is not Run run) {
+                return;
+            }
+
+            foreach (OpenXmlElement child in run.ChildElements.ToList()) {
+                if (child is FieldChar fieldChar && IsFieldBegin(fieldChar)) {
+                    break;
+                }
+
+                child.Remove();
+            }
         }
 
         private static Paragraph? SplitSimpleFieldPrefix(Paragraph paragraph, int fieldChildIndex) {
