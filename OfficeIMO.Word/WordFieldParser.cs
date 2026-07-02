@@ -122,7 +122,7 @@ namespace OfficeIMO.Word {
             }
 
             // get instructions
-            string instructions = " +([A-Za-z0-9_-]+|\"[^\"]+\")";
+            string instructions = " +([A-Za-z0-9_.-]+|\"[^\"]+\")";
 
             rgx = new Regex(instructions);
             matches = rgx.Matches(fieldCodeDeclaration);

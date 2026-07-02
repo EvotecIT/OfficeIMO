@@ -205,9 +205,16 @@ namespace OfficeIMO.Word {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (conditions == null) throw new ArgumentNullException(nameof(conditions));
 
+            var conditionLookup = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, bool> condition in conditions) {
+                if (!string.IsNullOrWhiteSpace(condition.Key)) {
+                    conditionLookup[condition.Key] = condition.Value;
+                }
+            }
+
             int processed = 0;
             foreach (var root in EnumerateTemplateRoots(document)) {
-                processed += ExecuteConditionalBlocks(root, conditions, removeMarkers);
+                processed += ExecuteConditionalBlocks(root, conditionLookup, removeMarkers);
             }
 
             return processed;

@@ -804,7 +804,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "ShowPanel" }, inspection.ConditionalBlockNames);
 
                 int processed = WordMailMerge.ExecuteConditionalBlocks(document, new Dictionary<string, bool> {
-                    ["ShowPanel"] = false
+                    ["showpanel"] = false
                 });
 
                 Assert.Equal(1, processed);
@@ -1003,7 +1003,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void Test_MailMerge_ContentControlBindingRefreshesRowControlWithoutClearingSiblingCells() {
+        public void Test_MailMerge_ContentControlBindingRefreshesRowControlByClearingStaleSiblingCells() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlRowBindingSiblingCells.docx");
             const string storeItemId = "{77777777-8888-9999-0000-111111111111}";
             const string schemaUri = "urn:officeimo:test:client";
@@ -1026,8 +1026,10 @@ namespace OfficeIMO.Tests {
             using (WordDocument document = WordDocument.Load(filePath)) {
                 SdtRow row = Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SdtRow>());
                 TableCell[] cells = row.Descendants<TableCell>().ToArray();
+                Assert.Single(cells);
                 Assert.Equal("Alice", cells[0].InnerText);
-                Assert.Equal("Keep me", cells[1].InnerText);
+                Assert.DoesNotContain("Keep me", row.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain("stale", row.InnerText, StringComparison.Ordinal);
             }
         }
 

@@ -314,21 +314,8 @@ namespace OfficeIMO.Word {
         }
 
         private static void SetTextInRowContent(SdtContentRow rowContent, string value) {
-            TableCell? firstCell = rowContent.Descendants<TableCell>().FirstOrDefault();
-            if (firstCell != null) {
-                SetTextInComposite(firstCell, value, () => {
-                    var paragraph = new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }));
-                    firstCell.Append(paragraph);
-                    return paragraph.Descendants<Text>().First();
-                });
-                return;
-            }
-
-            SetTextInComposite(rowContent, value, () => {
-                var tableRow = new TableRow(new TableCell(new Paragraph(new Run(new Text { Space = SpaceProcessingModeValues.Preserve }))));
-                rowContent.Append(tableRow);
-                return tableRow.Descendants<Text>().First();
-            });
+            rowContent.RemoveAllChildren();
+            rowContent.Append(new TableRow(new TableCell(new Paragraph(new Run(new Text(value) { Space = SpaceProcessingModeValues.Preserve })))));
         }
 
         private static void SetTextInComposite(OpenXmlCompositeElement container, string value, Func<Text> createText) {

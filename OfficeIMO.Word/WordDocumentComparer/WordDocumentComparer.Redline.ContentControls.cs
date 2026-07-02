@@ -385,15 +385,18 @@ namespace OfficeIMO.Word {
                 return;
             }
 
-            OpenXmlElement block = deletedControl switch {
+            OpenXmlElement block = CreateDeletedContentControlRedlineBlock(deletedControl);
+            InsertContentControlRedlineElement(targetContainer, block);
+        }
+
+        private static OpenXmlElement CreateDeletedContentControlRedlineBlock(SdtElement deletedControl) {
+            return deletedControl switch {
                 SdtBlock => deletedControl,
                 SdtRun => new Paragraph(deletedControl),
                 SdtCell => new Table(new TableRow(deletedControl)),
                 SdtRow => new Table(deletedControl),
                 _ => new Paragraph()
             };
-
-            InsertContentControlRedlineElement(targetContainer, block);
         }
 
         private static bool TryInsertDeletedContentControlAtTargetGap(
@@ -408,21 +411,75 @@ namespace OfficeIMO.Word {
             RedlineContentControlEntry sourceEntry = sourceControls[sourceIndex];
             for (int index = sourceIndex + 1; index < sourceControls.Count; index++) {
                 RedlineContentControlEntry? targetEntry = FindMatchingTargetContentControl(sourceControls[index], targetControls, sourceEntry);
-                if (targetEntry?.ContentControl.Parent != null) {
-                    targetEntry.ContentControl.InsertBeforeSelf(deletedControl);
+                if (TryInsertDeletedContentControlNearTarget(targetEntry, deletedControl, beforeTarget: true)) {
                     return true;
                 }
             }
 
             for (int index = sourceIndex - 1; index >= 0; index--) {
                 RedlineContentControlEntry? targetEntry = FindMatchingTargetContentControl(sourceControls[index], targetControls, sourceEntry);
-                if (targetEntry?.ContentControl.Parent != null) {
-                    targetEntry.ContentControl.InsertAfterSelf(deletedControl);
+                if (TryInsertDeletedContentControlNearTarget(targetEntry, deletedControl, beforeTarget: false)) {
                     return true;
                 }
             }
 
             return false;
+        }
+
+        private static bool TryInsertDeletedContentControlNearTarget(RedlineContentControlEntry? targetEntry, SdtElement deletedControl, bool beforeTarget) {
+            if (targetEntry?.ContentControl.Parent == null) {
+                return false;
+            }
+
+            if (CanInsertContentControlGapBlockBeside(targetEntry.ContentControl, deletedControl)) {
+                if (beforeTarget) {
+                    targetEntry.ContentControl.InsertBeforeSelf(deletedControl);
+                } else {
+                    targetEntry.ContentControl.InsertAfterSelf(deletedControl);
+                }
+
+                return true;
+            }
+
+            OpenXmlElement block = CreateDeletedContentControlRedlineBlock(deletedControl);
+            OpenXmlElement? anchor = GetContentControlGapAnchor(targetEntry.ContentControl, block);
+            if (anchor?.Parent == null) {
+                return false;
+            }
+
+            if (beforeTarget) {
+                anchor.InsertBeforeSelf(block);
+            } else {
+                anchor.InsertAfterSelf(block);
+            }
+
+            return true;
+        }
+
+        private static OpenXmlElement? GetContentControlGapAnchor(SdtElement targetControl, OpenXmlElement block) {
+            if (CanInsertContentControlGapBlockBeside(targetControl, block)) {
+                return targetControl;
+            }
+
+            Paragraph? paragraph = targetControl.Ancestors<Paragraph>().FirstOrDefault();
+            if (paragraph != null && CanInsertContentControlGapBlockBeside(paragraph, block)) {
+                return paragraph;
+            }
+
+            Table? table = targetControl.Ancestors<Table>().FirstOrDefault();
+            if (table != null && CanInsertContentControlGapBlockBeside(table, block)) {
+                return table;
+            }
+
+            return null;
+        }
+
+        private static bool CanInsertContentControlGapBlockBeside(OpenXmlElement anchor, OpenXmlElement block) {
+            return anchor.Parent switch {
+                Body or Header or Footer or Footnote or Endnote or SdtContentBlock or TableCell => block is Paragraph or Table or SdtBlock,
+                Paragraph or SdtContentRun => block is SdtRun,
+                _ => false
+            };
         }
 
         private static RedlineContentControlEntry? FindMatchingTargetContentControl(

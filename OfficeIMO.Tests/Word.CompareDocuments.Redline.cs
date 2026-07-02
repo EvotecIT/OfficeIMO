@@ -1420,6 +1420,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureCreatesValidInPlaceTargetRedlineForDeletedBlockControlBeforeRunControl() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_deleted_block_before_run_control_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document._document.Body!.Append(new SdtBlock(
+                    new SdtProperties(new SdtAlias { Val = "Deleted block" }, new Tag { Val = "DeletedBlock" }),
+                    new SdtContentBlock(new Paragraph(new Run(new Text("Deleted block value"))))));
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Stable prefix ") { Space = SpaceProcessingModeValues.Preserve }),
+                    CreateRunContentControl("Stable run", "StableRun", "Stable value")));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_deleted_block_before_run_control_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document._document.Body!.Append(new Paragraph(
+                    new Run(new Text("Stable prefix ") { Space = SpaceProcessingModeValues.Preserve }),
+                    CreateRunContentControl("Stable run", "StableRun", "Stable value")));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_deleted_block_before_run_control_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new HashSet<WordComparisonScope> {
+                            WordComparisonScope.ContentControl
+                        }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            SdtBlock deletedBlock = Assert.Single(body.Elements<SdtBlock>());
+            Assert.Contains(deletedBlock.Descendants<DeletedRun>(), run => run.InnerText == "Deleted block value");
+            Paragraph stableParagraph = Assert.Single(body.Elements<Paragraph>());
+            Assert.Contains(stableParagraph.Descendants<SdtRun>(), control => control.InnerText == "Stable value");
+
+            var errors = redline.ValidateDocument();
+            Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+        }
+
+        [Fact]
         public void CompareStructureInPlaceParagraphRedlinePreservesNonTextRuns() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_mixed_paragraph_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {

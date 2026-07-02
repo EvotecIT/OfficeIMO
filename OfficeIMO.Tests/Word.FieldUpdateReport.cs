@@ -94,6 +94,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_UpdatesDottedMetadataAndVariableNames() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.DottedMetadata.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.CustomDocumentProperties["Client.Name"] = new WordCustomProperty("Evotec");
+                document.SetDocumentVariable("Case.Id", "INC-42");
+                document.AddParagraph("Client: ")._paragraph.Append(BuildSimpleField(" DOCPROPERTY Client.Name ", "stale-client"));
+                document.AddParagraph("Case: ")._paragraph.Append(BuildSimpleField(" DOCVARIABLE Case.Id ", "stale-case"));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Equal(2, report.TotalCount);
+                Assert.Equal(2, report.UpdatedCount);
+                Assert.Equal(0, report.ParseErrorCount);
+                AssertDocPropertyUpdated(report, "Client.Name", "Evotec");
+                AssertDocVariableUpdated(report, "Case.Id", "INC-42");
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesDocumentVariableFields() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.DocumentVariables.docx");
 
