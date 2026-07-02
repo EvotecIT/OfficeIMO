@@ -34,6 +34,13 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var commentParts = GetCommentParts();
+        if (!commentParts.IsValid) {
+            OpeningMarkerSourceSpan = null;
+            BodySourceSpan = null;
+            ClosingMarkerSourceSpan = null;
+            return new MarkdownSyntaxNode(MarkdownSyntaxKind.HtmlComment, span, Comment, associatedObject: this);
+        }
+
         var children = new List<MarkdownSyntaxNode>();
 
         if (!OpeningMarkerSourceSpan.HasValue || (span.HasValue && !span.Value.Contains(OpeningMarkerSourceSpan.Value))) {
@@ -117,6 +124,7 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
             BodyEndIndex = bodyEndIndex;
             ClosingStartIndex = closingStartIndex;
             ClosingEndIndex = closingEndIndex;
+            IsValid = true;
         }
 
         internal int OpeningStartIndex { get; }
@@ -125,6 +133,7 @@ public sealed class HtmlCommentBlock : MarkdownBlock, IMarkdownBlock, ISyntaxMar
         internal int BodyEndIndex { get; }
         internal int ClosingStartIndex { get; }
         internal int ClosingEndIndex { get; }
+        internal bool IsValid { get; }
         internal bool HasBody => BodyStartIndex >= 0 && BodyEndIndex >= BodyStartIndex;
     }
 }

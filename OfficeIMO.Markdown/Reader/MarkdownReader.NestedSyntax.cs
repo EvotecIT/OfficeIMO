@@ -162,7 +162,8 @@ public static partial class MarkdownReader {
             children,
             node.AssociatedObject,
             node.CustomKind,
-            node.Attributes);
+            node.Attributes,
+            node.IsGenerated);
     }
 
     private static void SynchronizeOwnedSyntaxCaches(MarkdownSyntaxNode node) {

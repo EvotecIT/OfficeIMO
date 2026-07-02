@@ -106,7 +106,7 @@ public sealed class MarkdownNativeInline {
         }
 
         var contentChildren = syntaxNode.Children
-            .Where(child => !IsInlineMarkerKind(child.Kind))
+            .Where(child => !IsInlineMarkerOrMetadataKind(child.Kind))
             .ToArray();
         return MarkdownBlockSyntaxBuilder.GetAggregateSpan(contentChildren) ?? syntaxNode.SourceSpan;
     }
@@ -125,6 +125,9 @@ public sealed class MarkdownNativeInline {
         kind == MarkdownSyntaxKind.InlineOpeningMarker
         || kind == MarkdownSyntaxKind.InlineSeparatorMarker
         || kind == MarkdownSyntaxKind.InlineClosingMarker;
+
+    private static bool IsInlineMarkerOrMetadataKind(MarkdownSyntaxKind kind) =>
+        IsInlineMarkerKind(kind) || kind == MarkdownSyntaxKind.GenericAttributeBlock;
 }
 
 internal static class MarkdownNativeInlineProjection {

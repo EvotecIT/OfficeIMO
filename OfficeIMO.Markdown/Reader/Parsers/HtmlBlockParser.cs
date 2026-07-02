@@ -282,16 +282,29 @@ public static partial class MarkdownReader {
                 int summaryClose = inner.IndexOf("</summary>", summaryTagEnd + 1, StringComparison.OrdinalIgnoreCase);
                 if (summaryClose < 0) return false;
 
-                string summarySourceText = inner.Substring(summaryTagEnd + 1, summaryClose - summaryTagEnd - 1);
-                string summaryInner = summarySourceText.Trim();
-                var decoded = System.Net.WebUtility.HtmlDecode(summaryInner);
-                var inlines = ParseInlines(decoded, options, state);
                 int summaryStartInHtml = tagEnd + 1 + summaryStart;
                 int summaryTagEndInHtml = tagEnd + 1 + summaryTagEnd;
                 int summaryCloseInHtml = tagEnd + 1 + summaryClose;
                 int summaryCloseEndInHtml = summaryCloseInHtml + "</summary>".Length - 1;
                 int summaryTextStartInHtml = tagEnd + 1 + summaryTagEnd + 1;
                 int summaryTextEndInHtml = summaryCloseInHtml - 1;
+                string summarySourceText = inner.Substring(summaryTagEnd + 1, summaryClose - summaryTagEnd - 1);
+                int summaryTrimStart = GetTrimStartLength(summarySourceText);
+                int summaryTrimEndExclusive = GetTrimEndExclusive(summarySourceText);
+                string summaryInner = summaryTrimStart < summaryTrimEndExclusive
+                    ? summarySourceText.Substring(summaryTrimStart, summaryTrimEndExclusive - summaryTrimStart)
+                    : string.Empty;
+                var decoded = System.Net.WebUtility.HtmlDecode(summaryInner);
+                var summarySourceMap = BuildDetailsSummaryInlineSourceMap(
+                    summarySourceText,
+                    summaryTrimStart,
+                    summaryTrimEndExclusive,
+                    decoded,
+                    htmlContent,
+                    summaryTextStartInHtml,
+                    startLineIndex,
+                    state);
+                var inlines = ParseInlines(decoded, options, state, summarySourceMap);
                 summary = new SummaryBlock(inlines) {
                     SyntaxSpan = CreateDetailsSourceSpan(state, htmlContent, startLineIndex, summaryStartInHtml, summaryCloseEndInHtml),
                     OpeningTag = inner.Substring(summaryStart, summaryTagEnd - summaryStart + 1),
@@ -322,6 +335,104 @@ public static partial class MarkdownReader {
             };
             block.SyntaxChildren = syntaxChildren;
             return true;
+        }
+
+        private static int GetTrimStartLength(string text) {
+            if (string.IsNullOrEmpty(text)) {
+                return 0;
+            }
+
+            var index = 0;
+            while (index < text.Length && char.IsWhiteSpace(text[index])) {
+                index++;
+            }
+
+            return index;
+        }
+
+        private static int GetTrimEndExclusive(string text) {
+            if (string.IsNullOrEmpty(text)) {
+                return 0;
+            }
+
+            var index = text.Length;
+            while (index > 0 && char.IsWhiteSpace(text[index - 1])) {
+                index--;
+            }
+
+            return index;
+        }
+
+        private static MarkdownInlineSourceMap? BuildDetailsSummaryInlineSourceMap(
+            string summarySourceText,
+            int trimStart,
+            int trimEndExclusive,
+            string decodedText,
+            string htmlContent,
+            int summaryTextStartInHtml,
+            int startLineIndex,
+            MarkdownReaderState state) {
+            if (state.SourceTextMap == null || string.IsNullOrEmpty(decodedText)) {
+                return null;
+            }
+
+            var points = new List<MarkdownSourcePoint?>(decodedText.Length);
+            var tokenSpans = new List<MarkdownSourceSpan?>(decodedText.Length);
+            var tokenLiterals = new List<string?>(decodedText.Length);
+            for (var sourceIndex = trimStart; sourceIndex < trimEndExclusive;) {
+                var ch = summarySourceText[sourceIndex];
+                if (ch == '&') {
+                    var semicolon = summarySourceText.IndexOf(';', sourceIndex + 1);
+                    if (semicolon >= 0 && semicolon < trimEndExclusive) {
+                        var entityLiteral = summarySourceText.Substring(sourceIndex, semicolon - sourceIndex + 1);
+                        var decodedEntity = System.Net.WebUtility.HtmlDecode(entityLiteral);
+                        if (!string.Equals(decodedEntity, entityLiteral, StringComparison.Ordinal) && !string.IsNullOrEmpty(decodedEntity)) {
+                            var span = CreateDetailsSourceSpan(
+                                state,
+                                htmlContent,
+                                startLineIndex,
+                                summaryTextStartInHtml + sourceIndex,
+                                summaryTextStartInHtml + semicolon);
+                            for (var i = 0; i < decodedEntity.Length; i++) {
+                                points.Add(CreateDetailsSourcePoint(
+                                    state,
+                                    htmlContent,
+                                    startLineIndex,
+                                    summaryTextStartInHtml + sourceIndex));
+                                tokenSpans.Add(i == 0 ? span : null);
+                                tokenLiterals.Add(i == 0 ? entityLiteral : null);
+                            }
+
+                            sourceIndex = semicolon + 1;
+                            continue;
+                        }
+                    }
+                }
+
+                points.Add(CreateDetailsSourcePoint(
+                    state,
+                    htmlContent,
+                    startLineIndex,
+                    summaryTextStartInHtml + sourceIndex));
+                tokenSpans.Add(null);
+                tokenLiterals.Add(null);
+                sourceIndex++;
+            }
+
+            return points.Count == decodedText.Length
+                ? new MarkdownInlineSourceMap(points.ToArray(), tokenSpans.ToArray(), tokenLiterals.ToArray())
+                : null;
+        }
+
+        private static MarkdownSourcePoint CreateDetailsSourcePoint(
+            MarkdownReaderState state,
+            string htmlContent,
+            int startLineIndex,
+            int index) {
+            GetDetailsSourcePosition(htmlContent, index, out int lineOffset, out int columnOffset);
+            int absoluteLine = state.SourceLineOffset + startLineIndex + lineOffset + 1;
+            return state.SourceTextMap?.CreatePoint(absoluteLine, columnOffset + 1)
+                ?? new MarkdownSourcePoint(absoluteLine, columnOffset + 1, 0);
         }
 
         private static IReadOnlyList<MarkdownSourceLineSlice> CreateDetailsBodySourceLines(
