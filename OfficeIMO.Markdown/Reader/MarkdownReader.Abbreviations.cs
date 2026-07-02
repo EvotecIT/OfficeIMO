@@ -62,12 +62,12 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            if (!inFence) {
+            if (options.FencedCode && !inFence) {
                 if (IsCodeFenceOpen(line, out _, out fenceChar, out fenceLen)) {
                     inFence = true;
                     continue;
                 }
-            } else {
+            } else if (options.FencedCode) {
                 if (IsCodeFenceClose(line, fenceChar, fenceLen)) {
                     inFence = false;
                 }

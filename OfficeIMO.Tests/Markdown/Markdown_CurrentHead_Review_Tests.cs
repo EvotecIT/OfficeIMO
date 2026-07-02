@@ -275,6 +275,29 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void MarkdownRenderer_RenderBodyHtml_SyntaxExtensions_Force_Syntax_Context() {
+        var options = new MarkdownRendererOptions();
+        options.ReaderOptions.PreserveTrivia = true;
+        options.HtmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+        options.HtmlOptions.SyntaxInlineRenderExtensions.Add(MarkdownSyntaxInlineHtmlRenderExtension.CreateContextual(
+            "current-head-code-syntax",
+            MarkdownSyntaxKind.InlineCodeSpan,
+            (inline, syntaxNode, context) => {
+                Assert.True(context.TryCreateSourceSlice(syntaxNode, out var slice));
+                return $"<kbd data-source=\"{System.Net.WebUtility.HtmlEncode(slice.Text)}\">syntax</kbd>";
+            }));
+
+        var html = OfficeIMO.MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("Use `code` now.\n", options);
+
+        Assert.Contains("<kbd data-source=\"`code`\">syntax</kbd>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownRenderer_ParseDocumentResult_Attaches_Final_ParseResult_To_Transformed_Document() {
         var options = new MarkdownRendererOptions();
         options.DocumentTransforms.Add(new RendererInspectTransform((document, context) => {
@@ -465,6 +488,58 @@ public sealed class Markdown_CurrentHead_Review_Tests {
 
         Assert.DoesNotContain("*[HTML]", html);
         Assert.Contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>", html);
+    }
+
+    [Fact]
+    public void Inline_Autolinks_Win_Before_Abbreviation_Prefixes() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.Abbreviations = true;
+        options.AutolinkBareSchemeUrls = true;
+        options.AutolinkEmails = true;
+
+        var document = MarkdownReader.Parse("""
+            *[https]: protocol
+            *[user]: account
+
+            https://example.com user@example.com
+            """, options);
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("<a href=\"https://example.com\">https://example.com</a>", html);
+        Assert.Contains("<a href=\"mailto:user@example.com\">user@example.com</a>", html);
+        Assert.DoesNotContain("<abbr title=\"protocol\">https</abbr>://example.com", html);
+        Assert.DoesNotContain("<abbr title=\"account\">user</abbr>@example.com", html);
+    }
+
+    [Fact]
+    public void Abbreviation_PreScan_Honors_Disabled_FencedCode() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.Abbreviations = true;
+        options.FencedCode = false;
+
+        var document = MarkdownReader.Parse("""
+            HTML
+
+            ```
+            *[HTML]: Hyper Text Markup Language
+            ```
+            """, options);
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>", html);
+        Assert.DoesNotContain("*[HTML]", html);
     }
 
     [Fact]

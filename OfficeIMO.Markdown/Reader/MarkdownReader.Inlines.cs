@@ -129,6 +129,65 @@ public static partial class MarkdownReader {
                     sourceMap?.GetSpan(start + length - 1, 1));
             }
         }
+        bool TryConsumeBareAutolinkNode(int start, out int nextPosition) {
+            nextPosition = start;
+
+            if (options.AutolinkUrls && StartsWithHttp(text, start, options, out int urlEnd)) {
+                var url = text.Substring(start, urlEnd - start);
+                var resolved = ResolveUrl(url, options);
+                if (resolved is null) {
+                    AddTextNode(url, start, urlEnd - start);
+                } else {
+                    AddAutolinkNode(url, resolved!, start, urlEnd - start, start, urlEnd - start, angleWrapped: false);
+                }
+
+                nextPosition = urlEnd;
+                return true;
+            }
+
+            if (options.AutolinkWwwUrls && StartsWithWww(text, start, options, out int wwwEnd)) {
+                var label = text.Substring(start, wwwEnd - start);
+                var scheme = string.IsNullOrWhiteSpace(options.AutolinkWwwScheme) ? "https://" : options.AutolinkWwwScheme.Trim();
+                if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme = scheme.TrimEnd('/') + "://";
+                var href = scheme + label;
+                var resolved = ResolveUrl(href, options);
+                if (resolved is null) {
+                    AddTextNode(label, start, wwwEnd - start);
+                } else {
+                    AddAutolinkNode(label, resolved!, start, wwwEnd - start, start, wwwEnd - start, angleWrapped: false);
+                }
+
+                nextPosition = wwwEnd;
+                return true;
+            }
+
+            if (options.AutolinkBareSchemeUrls && TryConsumeBareSchemeAutolink(text, start, options, out int schemeEnd, out string schemeLabel, out string schemeHref)) {
+                var resolved = ResolveUrl(schemeHref, options);
+                if (resolved is null) {
+                    AddTextNode(schemeLabel, start, schemeEnd - start);
+                } else {
+                    AddAutolinkNode(schemeLabel, resolved!, start, schemeEnd - start, start, schemeEnd - start, angleWrapped: false);
+                }
+
+                nextPosition = schemeEnd;
+                return true;
+            }
+
+            if (options.AutolinkEmails && TryConsumePlainEmail(text, start, options, out int emailEnd, out string email)) {
+                var href = "mailto:" + email;
+                var resolved = ResolveUrl(href, options);
+                if (resolved is null) {
+                    AddTextNode(email, start, emailEnd - start);
+                } else {
+                    AddAutolinkNode(email, resolved!, start, emailEnd - start, start, emailEnd - start, angleWrapped: false);
+                }
+
+                nextPosition = emailEnd;
+                return true;
+            }
+
+            return false;
+        }
         void AddInlineLinkNode(
             InlineSequence label,
             string resolvedHref,
@@ -309,6 +368,11 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (TryConsumeBareAutolinkNode(pos, out int autolinkEnd)) {
+                pos = autolinkEnd;
+                continue;
+            }
+
             if (options.Abbreviations
                 && TryConsumeAbbreviation(text, pos, state, out var abbreviation)) {
                 AddAbbreviationNode(abbreviation, pos);
@@ -338,55 +402,6 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            // Autolink: http(s)://... until whitespace or closing punct
-            if (options.AutolinkUrls && StartsWithHttp(text, pos, options, out int urlEnd)) {
-                var url = text.Substring(pos, urlEnd - pos);
-                var resolved = ResolveUrl(url, options);
-                if (resolved is null) {
-                    AddTextNode(url, pos, urlEnd - pos);
-                } else {
-                    AddAutolinkNode(url, resolved!, pos, urlEnd - pos, pos, urlEnd - pos, angleWrapped: false);
-                }
-                pos = urlEnd; continue;
-            }
-
-            // Autolink: www.example.com
-            if (options.AutolinkWwwUrls && StartsWithWww(text, pos, options, out int wwwEnd)) {
-                var label = text.Substring(pos, wwwEnd - pos);
-                var scheme = string.IsNullOrWhiteSpace(options.AutolinkWwwScheme) ? "https://" : options.AutolinkWwwScheme.Trim();
-                if (!scheme.EndsWith("://", StringComparison.Ordinal)) scheme = scheme.TrimEnd('/') + "://";
-                var href = scheme + label;
-                var resolved = ResolveUrl(href, options);
-                if (resolved is null) {
-                    AddTextNode(label, pos, wwwEnd - pos);
-                } else {
-                    AddAutolinkNode(label, resolved!, pos, wwwEnd - pos, pos, wwwEnd - pos, angleWrapped: false);
-                }
-                pos = wwwEnd; continue;
-            }
-
-            // Autolink: GFM URI-like bare schemes such as mailto: and xmpp:
-            if (options.AutolinkBareSchemeUrls && TryConsumeBareSchemeAutolink(text, pos, options, out int schemeEnd, out string schemeLabel, out string schemeHref)) {
-                var resolved = ResolveUrl(schemeHref, options);
-                if (resolved is null) {
-                    AddTextNode(schemeLabel, pos, schemeEnd - pos);
-                } else {
-                    AddAutolinkNode(schemeLabel, resolved!, pos, schemeEnd - pos, pos, schemeEnd - pos, angleWrapped: false);
-                }
-                pos = schemeEnd; continue;
-            }
-
-            // Autolink: plain email
-            if (options.AutolinkEmails && TryConsumePlainEmail(text, pos, options, out int emailEnd, out string email)) {
-                var href = "mailto:" + email;
-                var resolved = ResolveUrl(href, options);
-                if (resolved is null) {
-                    AddTextNode(email, pos, emailEnd - pos);
-                } else {
-                    AddAutolinkNode(email, resolved!, pos, emailEnd - pos, pos, emailEnd - pos, angleWrapped: false);
-                }
-                pos = emailEnd; continue;
-            }
             if (text[pos] == '`') {
                 // Support multi-backtick code spans: count fence length and find a matching run
                 int fenceLen = 0; int k = pos; while (k < text.Length && text[k] == '`') { fenceLen++; k++; }

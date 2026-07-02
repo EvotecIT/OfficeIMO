@@ -222,7 +222,12 @@ public static partial class MarkdownRenderer {
         return html ?? string.Empty;
     }
 
-    private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownReaderOptions readerOptions) =>
-        options.DocumentTransforms.Count > 0 || readerOptions.DocumentTransforms.Count > 0;
+    private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownReaderOptions readerOptions) {
+        var htmlOptions = options.HtmlOptions;
+        return options.DocumentTransforms.Count > 0
+               || readerOptions.DocumentTransforms.Count > 0
+               || htmlOptions?.SyntaxBlockRenderExtensions.Count > 0
+               || htmlOptions?.SyntaxInlineRenderExtensions.Count > 0;
+    }
 
 }
