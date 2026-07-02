@@ -1118,6 +1118,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceTargetRedlineInsertsDeletedParagraphsAtAlignedTargetGap() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_gap_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("A");
+                document.AddParagraph("B");
+                document.AddParagraph("C");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_gap_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("X");
+                document.AddParagraph("A");
+                document.AddParagraph("C");
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_deleted_paragraph_gap_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            string[] paragraphTexts = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!.Elements<Paragraph>()
+                .Select(paragraph => paragraph.InnerText)
+                .Where(text => text is "X" or "A" or "B" or "C")
+                .ToArray();
+
+            Assert.Equal(new[] { "X", "A", "B", "C" }, paragraphTexts);
+            Assert.Contains(redline._document.Body!.Descendants<DeletedRun>(), run => run.InnerText == "B");
+        }
+
+        [Fact]
         public void CompareStructureInPlaceRedlinesDeletedContentControlWithDelimiterText() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_deleted_control_delimiter_source.docx");
             CreateContentControlRegressionDocument(sourcePath, ("Legacy", "Legacy.Tag", "before; text=after"));

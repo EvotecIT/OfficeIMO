@@ -339,6 +339,8 @@ namespace OfficeIMO.Word {
             OpenXmlElement root = bookmarkStart.Ancestors().LastOrDefault() ?? bookmarkStart;
             var text = new List<string>();
             bool inRange = false;
+            Paragraph? lastParagraph = null;
+            TableCell? lastCell = null;
 
             foreach (OpenXmlElement element in root.Descendants()) {
                 if (ReferenceEquals(element, bookmarkStart)) {
@@ -351,7 +353,19 @@ namespace OfficeIMO.Word {
                 }
 
                 if (inRange && element is Text textElement) {
+                    Paragraph? paragraph = textElement.Ancestors<Paragraph>().FirstOrDefault();
+                    TableCell? cell = textElement.Ancestors<TableCell>().FirstOrDefault();
+                    if (text.Count > 0) {
+                        if (lastCell != null && cell != null && !ReferenceEquals(lastCell, cell)) {
+                            text.Add("\t");
+                        } else if (lastParagraph != null && paragraph != null && !ReferenceEquals(lastParagraph, paragraph)) {
+                            text.Add("\n");
+                        }
+                    }
+
                     text.Add(textElement.Text);
+                    lastParagraph = paragraph;
+                    lastCell = cell;
                 }
             }
 

@@ -14,7 +14,6 @@ namespace OfficeIMO.Word {
             sourceParagraphs = GetRedlineParagraphEntries(sourceDocument);
             targetParagraphs = GetRedlineParagraphEntries(targetDocument);
             var rewrittenParagraphs = new HashSet<int>();
-            var deletedParagraphOffsets = new Dictionary<string, int>(StringComparer.Ordinal);
 
             foreach (WordComparisonFinding finding in result.Findings) {
                 if (!ShouldTrackFinding(finding, options) ||
@@ -60,10 +59,19 @@ namespace OfficeIMO.Word {
                             !string.IsNullOrEmpty(finding.SourceText) &&
                             !IsContentControlParagraph(sourceParagraphs[sourceIndex].Paragraph)) {
                             RedlineParagraphEntry sourceEntry = sourceParagraphs[sourceIndex];
-                            deletedParagraphOffsets.TryGetValue(sourceEntry.PartKey, out int deletedOffset);
-                            int targetLocalIndex = Math.Max(0, sourceEntry.LocalIndex - deletedOffset);
+                            List<RedlineParagraphEntry> sourcePartEntries = sourceParagraphs
+                                .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal))
+                                .ToList();
+                            List<RedlineParagraphEntry> targetPartEntries = targetParagraphs
+                                .Where(entry => string.Equals(entry.PartKey, sourceEntry.PartKey, StringComparison.Ordinal))
+                                .ToList();
+                            int targetLocalIndex = FindTargetGapByNeighborIdentity(
+                                sourcePartEntries,
+                                targetPartEntries,
+                                sourceEntry.LocalIndex,
+                                entry => GetParagraphText(entry.Paragraph),
+                                entry => GetParagraphText(entry.Paragraph));
                             InsertDeletedParagraph(targetDocument, targetParagraphs, sourceEntry, targetLocalIndex, finding.SourceText!, options);
-                            deletedParagraphOffsets[sourceEntry.PartKey] = deletedOffset + 1;
                         }
 
                         break;

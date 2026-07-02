@@ -209,7 +209,15 @@ namespace OfficeIMO.Word {
                         break;
                     case WordComparisonChangeKind.Deleted:
                         if (!string.IsNullOrEmpty(finding.SourceText)) {
-                            InsertDeletedCell(row, cells, cellIndex, finding.SourceText!, options);
+                            int targetCellIndex = cellIndex;
+                            RedlineTableEntry? sourceTable = tableIndex < sourceTables.Count ? sourceTables[tableIndex] : null;
+                            List<TableRow> sourceRows = sourceTable?.Table.Elements<TableRow>().ToList() ?? new List<TableRow>();
+                            if (rowIndex >= 0 && rowIndex < sourceRows.Count) {
+                                List<TableCell> sourceCells = sourceRows[rowIndex].Elements<TableCell>().ToList();
+                                targetCellIndex = FindTargetGapByNeighborIdentity(sourceCells, cells, cellIndex, GetOpenXmlCellText, GetOpenXmlCellText);
+                            }
+
+                            InsertDeletedCell(row, cells, targetCellIndex, finding.SourceText!, options);
                             RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
                             rewrittenCells.Add(cellKey);
                         }
@@ -281,7 +289,9 @@ namespace OfficeIMO.Word {
 
                             List<TableRow> sourceRows = sourceTable.Table.Elements<TableRow>().ToList();
                             if (rowIndex >= 0 && rowIndex < sourceRows.Count) {
-                                InsertDeletedRow(targetTables[tableIndex].Table, sourceRows[rowIndex], rowIndex, options);
+                                List<TableRow> targetRows = targetTables[tableIndex].Table.Elements<TableRow>().ToList();
+                                int targetRowIndex = FindTargetGapByNeighborIdentity(sourceRows, targetRows, rowIndex, GetOpenXmlRowText, GetOpenXmlRowText);
+                                InsertDeletedRow(targetTables[tableIndex].Table, sourceRows[rowIndex], targetRowIndex, options);
                                 rewrittenRows.Add(rowKey);
                             }
                         }
@@ -316,6 +326,63 @@ namespace OfficeIMO.Word {
 
         private static double GetRedlineTableSimilarity(Table sourceTable, Table targetTable) {
             return GetTextSimilarity(GetOpenXmlTableText(sourceTable), GetOpenXmlTableText(targetTable));
+        }
+
+        private static int FindTargetGapByNeighborIdentity<TSource, TTarget>(
+            IReadOnlyList<TSource> sourceItems,
+            IReadOnlyList<TTarget> targetItems,
+            int sourceIndex,
+            Func<TSource, string> sourceIdentity,
+            Func<TTarget, string> targetIdentity) {
+            if (sourceIndex < 0 || sourceIndex >= sourceItems.Count || targetItems.Count == 0) {
+                return Math.Max(0, Math.Min(sourceIndex, targetItems.Count));
+            }
+
+            for (int index = sourceIndex + 1; index < sourceItems.Count; index++) {
+                string identity = sourceIdentity(sourceItems[index]);
+                if (string.IsNullOrEmpty(identity)) {
+                    continue;
+                }
+
+                int targetIndex = FindFirstTargetIdentity(targetItems, targetIdentity, identity);
+                if (targetIndex >= 0) {
+                    return targetIndex;
+                }
+            }
+
+            for (int index = sourceIndex - 1; index >= 0; index--) {
+                string identity = sourceIdentity(sourceItems[index]);
+                if (string.IsNullOrEmpty(identity)) {
+                    continue;
+                }
+
+                int targetIndex = FindLastTargetIdentity(targetItems, targetIdentity, identity);
+                if (targetIndex >= 0) {
+                    return targetIndex + 1;
+                }
+            }
+
+            return Math.Max(0, Math.Min(sourceIndex, targetItems.Count));
+        }
+
+        private static int FindFirstTargetIdentity<TTarget>(IReadOnlyList<TTarget> targetItems, Func<TTarget, string> targetIdentity, string identity) {
+            for (int index = 0; index < targetItems.Count; index++) {
+                if (string.Equals(targetIdentity(targetItems[index]), identity, StringComparison.Ordinal)) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static int FindLastTargetIdentity<TTarget>(IReadOnlyList<TTarget> targetItems, Func<TTarget, string> targetIdentity, string identity) {
+            for (int index = targetItems.Count - 1; index >= 0; index--) {
+                if (string.Equals(targetIdentity(targetItems[index]), identity, StringComparison.Ordinal)) {
+                    return index;
+                }
+            }
+
+            return -1;
         }
 
         private static string GetOpenXmlTableText(Table table) {

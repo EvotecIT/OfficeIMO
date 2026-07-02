@@ -62,7 +62,7 @@ namespace OfficeIMO.Word {
                 if (deletedSourceIndex >= 0 &&
                     deletedSourceIndex < sourceImages.Count &&
                     !insertedSourceImages.Contains(deletedSourceIndex) &&
-                    InsertDeletedImageRun(sourceImages[deletedSourceIndex], targetContainers, targetImages, targetDocument, options, insertedBeforeImageAnchors, insertedAfterImageAnchors)) {
+                    InsertDeletedImageRun(sourceImages, sourceImages[deletedSourceIndex], targetContainers, targetImages, targetDocument, options, insertedBeforeImageAnchors, insertedAfterImageAnchors)) {
                     insertedSourceImages.Add(deletedSourceIndex);
                 }
             }
@@ -185,6 +185,7 @@ namespace OfficeIMO.Word {
         }
 
         private static bool InsertDeletedImageRun(
+            IReadOnlyList<RedlineImageEntry> sourceImages,
             RedlineImageEntry sourceEntry,
             IReadOnlyList<RedlineImageContainer> targetContainers,
             IReadOnlyList<RedlineImageEntry> targetImages,
@@ -199,8 +200,20 @@ namespace OfficeIMO.Word {
             }
 
             DeletedRun deleted = WrapRunAsDeleted(deletedRun, options);
+            List<RedlineImageEntry> sourcePartImages = sourceImages
+                .Where(image => string.Equals(image.PartKey, sourceEntry.PartKey, StringComparison.Ordinal))
+                .ToList();
+            List<RedlineImageEntry> targetPartImages = targetImages
+                .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal))
+                .ToList();
+            int targetImageIndex = FindTargetGapByNeighborIdentity(
+                sourcePartImages,
+                targetPartImages,
+                sourceEntry.ContainerImageIndex,
+                GetRedlineImageIdentity,
+                GetRedlineImageIdentity);
             RedlineImageEntry? nextImage = targetImages
-                .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex >= sourceEntry.ContainerImageIndex)
+                .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex >= targetImageIndex)
                 .OrderBy(image => image.ContainerImageIndex)
                 .FirstOrDefault();
             if (nextImage?.Run.Parent != null) {
@@ -209,7 +222,7 @@ namespace OfficeIMO.Word {
             }
 
             RedlineImageEntry? previousImage = targetImages
-                .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex < sourceEntry.ContainerImageIndex)
+                .Where(image => string.Equals(image.PartKey, targetContainer.PartKey, StringComparison.Ordinal) && image.ContainerImageIndex < targetImageIndex)
                 .OrderByDescending(image => image.ContainerImageIndex)
                 .FirstOrDefault();
             if (previousImage?.Run.Parent != null) {
@@ -308,6 +321,43 @@ namespace OfficeIMO.Word {
             RefreshClonedDrawingIds(targetDocument, clonedRun);
             RefreshClonedVmlIds(targetDocument, clonedRun);
             return clonedRun;
+        }
+
+        private static string GetRedlineImageIdentity(RedlineImageEntry entry) {
+            DocumentFormat.OpenXml.Wordprocessing.Drawing? drawing = entry.Run.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().FirstOrDefault();
+            if (drawing != null) {
+                A.Blip? blip = drawing.Descendants<A.Blip>().FirstOrDefault();
+                if (blip?.Embed?.Value is string embeddedRelationshipId) {
+                    return entry.PartKey + "|embedded|" + GetImageFingerprintText(entry.Part, embeddedRelationshipId) + "|" + GetDrawingVisualSignature(entry.Part, drawing);
+                }
+
+                if (blip?.Link?.Value is string externalRelationshipId) {
+                    return entry.PartKey + "|external|" + GetRelationshipTarget(entry.Part, externalRelationshipId) + "|" + GetDrawingVisualSignature(entry.Part, drawing);
+                }
+            }
+
+            V.ImageData? imageData = entry.Run.Descendants<V.ImageData>().FirstOrDefault();
+            if (imageData?.RelationshipId?.Value is string relationshipId) {
+                string relationshipIdentity = entry.Part.ExternalRelationships.Any(relationship => relationship.Id == relationshipId)
+                    ? "external|" + GetRelationshipTarget(entry.Part, relationshipId)
+                    : "embedded|" + GetImageFingerprintText(entry.Part, relationshipId);
+                return entry.PartKey + "|" + relationshipIdentity + "|" + GetVmlVisualSignature(entry.Part, imageData);
+            }
+
+            return entry.PartKey + "|run|" + entry.Run.OuterXml;
+        }
+
+        private static string GetImageFingerprintText(OpenXmlPart part, string relationshipId) {
+            try {
+                if (part.GetPartById(relationshipId) is ImagePart imagePart) {
+                    using Stream stream = imagePart.GetStream(FileMode.Open, FileAccess.Read);
+                    ImageFingerprint fingerprint = CreateImageFingerprint(stream);
+                    return fingerprint.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + ":" + fingerprint.Sha256;
+                }
+            } catch (ArgumentOutOfRangeException) {
+            }
+
+            return relationshipId;
         }
 
         private static bool CopyAdditionalRunRelationships(OpenXmlPart sourcePart, OpenXmlPart targetPart, Run clonedRun) {

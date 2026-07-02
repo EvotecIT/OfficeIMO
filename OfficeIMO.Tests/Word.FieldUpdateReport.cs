@@ -751,6 +751,45 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_PreservesRefBookmarkRangeSeparators() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.RefBookmarkRangeSeparators.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document._document.Body!.Append(
+                    new Paragraph(
+                        new BookmarkStart { Name = "ParagraphSpan", Id = "310" },
+                        new Run(new Text("First paragraph") { Space = SpaceProcessingModeValues.Preserve })),
+                    new Paragraph(
+                        new Run(new Text("Second paragraph") { Space = SpaceProcessingModeValues.Preserve }),
+                        new BookmarkEnd { Id = "310" }),
+                    new Table(
+                        new TableRow(
+                            new TableCell(
+                                new Paragraph(
+                                    new BookmarkStart { Name = "CellSpan", Id = "311" },
+                                    new Run(new Text("First cell") { Space = SpaceProcessingModeValues.Preserve }))),
+                            new TableCell(
+                                new Paragraph(
+                                    new Run(new Text("Second cell") { Space = SpaceProcessingModeValues.Preserve }),
+                                    new BookmarkEnd { Id = "311" })))),
+                    new Paragraph(new Run(new Text("Paragraph REF: ") { Space = SpaceProcessingModeValues.Preserve }), BuildSimpleField(" REF ParagraphSpan ", "stale-paragraph")),
+                    new Paragraph(new Run(new Text("Cell REF: ") { Space = SpaceProcessingModeValues.Preserve }), BuildSimpleField(" REF CellSpan ", "stale-cell")));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Ref &&
+                    result.ResultText == "First paragraph\nSecond paragraph");
+                Assert.Contains(report.Results, result =>
+                    result.FieldType == WordFieldType.Ref &&
+                    result.ResultText == "First cell\tSecond cell");
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_UpdatesLiteralQuoteFields() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.QuoteLiterals.docx");
 

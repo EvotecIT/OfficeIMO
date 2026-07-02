@@ -1489,6 +1489,72 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceTargetRedlineInsertsDeletedImagesAtAlignedTargetGap() {
+            string stableFirstImage = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string deletedImage = Path.Combine(_directoryWithImages, "Kulek.jpg");
+            string stableLastImage = Path.Combine(_directoryWithImages, "BackgroundImage.png");
+            string insertedImage = Path.Combine(_directoryWithImages, "PrzemyslawKlysAndKulkozaurr.jpg");
+
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_gap_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("A");
+                document.AddParagraph().AddImage(stableFirstImage, 40, 40);
+                document.AddParagraph("B");
+                document.AddParagraph().AddImage(deletedImage, 40, 40);
+                document.AddParagraph("C");
+                document.AddParagraph().AddImage(stableLastImage, 40, 40);
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_gap_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("X");
+                document.AddParagraph().AddImage(insertedImage, 40, 40);
+                document.AddParagraph("A");
+                document.AddParagraph().AddImage(stableFirstImage, 40, 40);
+                document.AddParagraph("C");
+                document.AddParagraph().AddImage(stableLastImage, 40, 40);
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_gap_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new HashSet<WordComparisonScope> {
+                            WordComparisonScope.Image
+                        }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph[] paragraphs = redline._document.Body!.Elements<Paragraph>().ToArray();
+            int deletedImageIndex = Array.FindIndex(paragraphs, paragraph => paragraph.Descendants<DeletedRun>().Any(run => run.Descendants<A.Blip>().Any()));
+            int firstStableImageIndex = Array.FindIndex(paragraphs, paragraph =>
+                paragraph.Descendants<A.Blip>().Any() &&
+                !paragraph.Descendants<DeletedRun>().Any() &&
+                !paragraph.Descendants<InsertedRun>().Any());
+            Paragraph deletedImageParagraph = paragraphs[deletedImageIndex];
+            List<OpenXmlElement> descendants = deletedImageParagraph.Descendants<OpenXmlElement>().ToList();
+            int deletedRunOrdinal = descendants.FindIndex(element => element is DeletedRun run && run.Descendants<A.Blip>().Any());
+            int survivingRunOrdinal = descendants.FindIndex(element =>
+                element is Run run &&
+                run.Descendants<A.Blip>().Any() &&
+                !run.Ancestors<DeletedRun>().Any() &&
+                !run.Ancestors<InsertedRun>().Any());
+
+            Assert.True(firstStableImageIndex >= 0);
+            Assert.True(deletedImageIndex > firstStableImageIndex);
+            Assert.InRange(deletedRunOrdinal, 0, survivingRunOrdinal - 1);
+            Assert.DoesNotContain(paragraphs.Take(firstStableImageIndex + 1), paragraph => paragraph.Descendants<DeletedRun>().Any(run => run.Descendants<A.Blip>().Any()));
+        }
+
+        [Fact]
         public void CompareStructureCreatesInPlaceTargetRedlineForChangedImagePayloads() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_changed_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -1788,6 +1854,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceTargetRedlineInsertsDeletedCellsAtAlignedTargetGap() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_cell_deleted_gap_source.docx");
+            CreateDocumentWithTables(sourcePath, CreateComparisonTable(new[] { "A", "B", "C" }));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_cell_deleted_gap_target.docx");
+            CreateDocumentWithTables(targetPath, CreateComparisonTable(new[] { "X", "A", "C" }));
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_cell_deleted_gap_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            TableRow row = Assert.Single(redline._document.Body!.Elements<Table>()).Elements<TableRow>().Single();
+            string[] cellTexts = row.Elements<TableCell>().Select(cell => cell.InnerText).ToArray();
+
+            Assert.Equal(new[] { "X", "A", "B", "C" }, cellTexts);
+            Assert.Contains(row.Elements<TableCell>().ElementAt(2).Descendants<DeletedRun>(), run => run.InnerText == "B");
+        }
+
+        [Fact]
         public void CompareStructureCreatesInPlaceTargetRedlineForInsertedTableCells() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_table_inserted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -1930,6 +2022,32 @@ namespace OfficeIMO.Tests {
 
             var errors = redline.ValidateDocument();
             Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+        }
+
+        [Fact]
+        public void CompareStructureInPlaceTargetRedlineInsertsDeletedRowsAtAlignedTargetGap() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_row_deleted_gap_source.docx");
+            CreateDocumentWithTables(sourcePath, CreateComparisonTable(new[] { "A" }, new[] { "B" }, new[] { "C" }));
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_row_deleted_gap_target.docx");
+            CreateDocumentWithTables(targetPath, CreateComparisonTable(new[] { "X" }, new[] { "A" }, new[] { "C" }));
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_row_deleted_gap_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Table table = Assert.Single(redline._document.Body!.Elements<Table>());
+            string[] rowTexts = table.Elements<TableRow>().Select(row => row.InnerText).ToArray();
+
+            Assert.Equal(new[] { "X", "A", "B", "C" }, rowTexts);
+            Assert.Contains(table.Elements<TableRow>().ElementAt(2).Descendants<DeletedRun>(), run => run.InnerText == "B");
         }
 
         [Fact]
