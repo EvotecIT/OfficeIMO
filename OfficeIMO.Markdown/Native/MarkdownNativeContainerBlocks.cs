@@ -43,11 +43,11 @@ public sealed class MarkdownNativeCalloutBlock : MarkdownNativeBlock {
         : base(MarkdownNativeBlockKind.Callout, callout, syntaxNode) {
         Callout = callout;
         CalloutKind = callout.Kind;
-        OpeningMarkerSourceSpan = callout.OpeningMarkerSourceSpan ?? FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutOpeningMarker);
-        KindSourceSpan = callout.KindSourceSpan ?? FindCalloutKindSourceSpan(syntaxNode);
-        ClosingMarkerSourceSpan = callout.ClosingMarkerSourceSpan ?? FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutClosingMarker);
+        OpeningMarkerSourceSpan = FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutOpeningMarker) ?? callout.OpeningMarkerSourceSpan;
+        KindSourceSpan = FindCalloutKindSourceSpan(syntaxNode) ?? callout.KindSourceSpan;
+        ClosingMarkerSourceSpan = FindCalloutChildSourceSpan(syntaxNode, MarkdownSyntaxKind.CalloutClosingMarker) ?? callout.ClosingMarkerSourceSpan;
         Title = callout.Title;
-        TitleSourceSpan = callout.TitleSourceSpan ?? FindCalloutTitleSourceSpan(syntaxNode);
+        TitleSourceSpan = FindCalloutTitleSourceSpan(syntaxNode) ?? callout.TitleSourceSpan;
         TitleInlines = callout.TitleInlines;
         TitleInlineRuns = MarkdownNativeInlineProjection.FromInlineContainerChild(syntaxNode, MarkdownSyntaxKind.CalloutTitle);
         Body = callout.Body;

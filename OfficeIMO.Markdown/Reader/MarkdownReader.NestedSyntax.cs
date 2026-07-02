@@ -145,6 +145,16 @@ public static partial class MarkdownReader {
             }
         }
 
+        if (node.AssociatedObject is TableBlock tableBlock) {
+            RemapTableTokenSourceSpans(sourceLines, tableBlock);
+        }
+
+        if (node.AssociatedObject is HorizontalRuleBlock horizontalRuleBlock &&
+            horizontalRuleBlock.MarkerSourceSpan.HasValue) {
+            horizontalRuleBlock.MarkerSourceSpan = RemapNestedSourceSpan(sourceLines, horizontalRuleBlock.MarkerSourceSpan)
+                ?? horizontalRuleBlock.MarkerSourceSpan;
+        }
+
         IReadOnlyList<MarkdownSyntaxNode> children = node.Children;
         if (node.Children.Count > 0) {
             var remappedChildren = new List<MarkdownSyntaxNode>(node.Children.Count);
@@ -241,6 +251,30 @@ public static partial class MarkdownReader {
             listItem.SyntaxChildren.Add(syntaxChildren[i]);
         }
     }
+
+    private static void RemapTableTokenSourceSpans(IReadOnlyList<MarkdownSourceLineSlice> sourceLines, TableBlock tableBlock) {
+        if (tableBlock.AlignmentCellSources.Count > 0) {
+            tableBlock.SetAlignmentCellSources(tableBlock.AlignmentCellSources
+                .Select(source => new TableAlignmentCellSource(
+                    source.Markdown,
+                    RemapTableSidecarSourceSpan(sourceLines, source.SourceSpan)))
+                .ToArray());
+        }
+
+        if (tableBlock.PipeSources.Count > 0) {
+            tableBlock.SetPipeSources(tableBlock.PipeSources
+                .Select(source => new TablePipeSource(
+                    source.RowIndex,
+                    source.ColumnIndex,
+                    RemapTableSidecarSourceSpan(sourceLines, source.SourceSpan)))
+                .ToArray());
+        }
+    }
+
+    private static MarkdownSourceSpan RemapTableSidecarSourceSpan(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines,
+        MarkdownSourceSpan sourceSpan) =>
+        RemapNestedSourceSpan(sourceLines, sourceSpan) ?? sourceSpan;
 
     private static bool ShouldParseBlockGenericAttributes(MarkdownReaderOptions options, MarkdownReaderState? state) =>
         options?.GenericAttributes == true && state?.SuppressBlockGenericAttributes != true;

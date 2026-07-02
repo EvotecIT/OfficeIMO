@@ -772,6 +772,99 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Equal("|", pipeSlice.Text);
     }
 
+    [Fact]
+    public void Native_Nested_Image_SourceFields_Prefer_Remapped_Syntax_Spans() {
+        const string markdown = "> ![Alt](img.png \"Title\")\n";
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var image = Assert.IsType<MarkdownNativeImageBlock>(Assert.Single(quote.Children));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 7), image.AltSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 16), image.SourceSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 19, 1, 23), image.TitleSourceSpan);
+    }
+
+    [Fact]
+    public void Native_Nested_ThematicBreak_SourceField_Prefers_Remapped_Syntax_Span() {
+        const string markdown = "> ---\n";
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var thematicBreak = Assert.IsType<MarkdownNativeThematicBreakBlock>(Assert.Single(quote.Children));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), thematicBreak.MarkerSourceSpan);
+    }
+
+    [Fact]
+    public void Native_Callout_SourceFields_Prefer_Remapped_Syntax_Spans() {
+        const string markdown = "> [!NOTE] Title\n> Body\n";
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var callout = Assert.IsType<MarkdownNativeCalloutBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 4), callout.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), callout.KindSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 9), callout.ClosingMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 15), callout.TitleSourceSpan);
+    }
+
+    [Fact]
+    public void Native_Nested_Table_Sidecar_SourceFields_Are_Remapped_To_Original_Columns() {
+        const string markdown = """
+            > | A | B |
+            > | --- | --- |
+            > | C | D |
+            """;
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(quote.Children));
+
+        var firstLinePipes = table.EnumerateSourceFields("tablePipe")
+            .Where(pipe => pipe.SourceSpan.StartLine == 1)
+            .ToArray();
+        var alignmentCells = table.AlignmentCells.ToArray();
+
+        Assert.Equal(new[] { 3, 7, 11 }, firstLinePipes.Select(pipe => pipe.SourceSpan.StartColumn!.Value).ToArray());
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 7), alignmentCells[0].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 11, 2, 13), alignmentCells[1].SourceSpan);
+    }
+
+    [Fact]
+    public void ImageParser_Rehydrates_Rendered_GenericAttributes_And_SizeHints() {
+        const string markdown = "![Alt](img.png \"Title\"){#hero .wide}{width=20 height=10}\n";
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var image = Assert.IsType<ImageBlock>(Assert.Single(MarkdownReader.Parse(markdown, options).Blocks));
+
+        Assert.Equal("hero", image.Attributes.ElementId);
+        Assert.Contains("wide", image.Attributes.Classes);
+        Assert.Equal(20, image.Width);
+        Assert.Equal(10, image.Height);
+    }
+
+    [Fact]
+    public void Parse_ToMarkdown_Preserves_Abbreviation_Definitions() {
+        const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML\n";
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.Abbreviations = true;
+
+        var roundTripped = MarkdownReader.Parse(markdown, options).ToMarkdown();
+
+        Assert.Contains("*[HTML]: Hyper Text Markup Language", roundTripped, StringComparison.Ordinal);
+        Assert.Contains("HTML", roundTripped, StringComparison.Ordinal);
+    }
+
     private sealed class RendererInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);

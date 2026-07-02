@@ -76,28 +76,7 @@ public static partial class MarkdownReader {
             linkTargetLength: null,
             linkTitleStart: null,
             linkTitleLength: null);
-        // Optional attribute list: {width=.. height=..}
-        if (parenClose + 1 < t.Length) {
-            var rest = t.Substring(parenClose + 1).Trim();
-            if (rest.StartsWith("{")) {
-                int close = rest.IndexOf('}');
-                if (close > 0) {
-                    sizeSpec = rest.Substring(1, close - 1).Trim();
-                    var attrs = sizeSpec;
-                    foreach (var part in attrs.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                        int eq = part.IndexOf('=');
-                        if (eq > 0) {
-                            var key = part.Substring(0, eq).Trim();
-                            var val = part.Substring(eq + 1).Trim();
-                            if (double.TryParse(val, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var num)) {
-                                if (string.Equals(key, "width", StringComparison.OrdinalIgnoreCase)) image.Width = num;
-                                else if (string.Equals(key, "height", StringComparison.OrdinalIgnoreCase)) image.Height = num;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        ConsumeImageTrailingBlocks(t.Substring(parenClose + 1), image, options, ref sizeSpec);
         return true;
     }
 
@@ -159,16 +138,55 @@ public static partial class MarkdownReader {
             hrefTitleStart,
             hrefTitleLength);
 
-        if (consumed < t.Length) {
-            var rest = t.Substring(consumed).Trim();
-            if (rest.StartsWith("{", StringComparison.Ordinal)) {
-                int close = rest.IndexOf('}');
-                if (close > 0) {
-                    sizeSpec = rest.Substring(1, close - 1).Trim();
-                }
+        ConsumeImageTrailingBlocks(t.Substring(consumed), image, options, ref sizeSpec);
+
+        return true;
+    }
+
+    private static void ConsumeImageTrailingBlocks(string? suffix, ImageBlock image, MarkdownReaderOptions options, ref string? sizeSpec) {
+        var rest = suffix?.Trim();
+        while (!string.IsNullOrEmpty(rest) && rest![0] == '{') {
+            int close = rest.IndexOf('}');
+            if (close <= 0) {
+                break;
+            }
+
+            var block = rest.Substring(1, close - 1).Trim();
+            if (TryApplyImageSizeSpec(block, image)) {
+                sizeSpec = block;
+            } else if (options.GenericAttributes && MarkdownGenericAttributeParser.TryParseAttributeBlock(block, out var attributes)) {
+                image.SetAttributes(attributes);
+            } else {
+                break;
+            }
+
+            rest = rest.Substring(close + 1).TrimStart();
+        }
+    }
+
+    private static bool TryApplyImageSizeSpec(string? block, ImageBlock image) {
+        bool applied = false;
+        foreach (var part in (block ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+            int eq = part.IndexOf('=');
+            if (eq <= 0) {
+                continue;
+            }
+
+            var key = part.Substring(0, eq).Trim();
+            var val = part.Substring(eq + 1).Trim();
+            if (!double.TryParse(val, NumberStyles.Number, CultureInfo.InvariantCulture, out var num)) {
+                continue;
+            }
+
+            if (string.Equals(key, "width", StringComparison.OrdinalIgnoreCase)) {
+                image.Width = num;
+                applied = true;
+            } else if (string.Equals(key, "height", StringComparison.OrdinalIgnoreCase)) {
+                image.Height = num;
+                applied = true;
             }
         }
 
-        return true;
+        return applied;
     }
 }

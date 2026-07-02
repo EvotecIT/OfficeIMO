@@ -303,11 +303,11 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
         LinkRel = image.LinkRel;
         PictureFallbackPath = image.PictureFallbackPath;
         PictureSources = image.PictureSources.ToArray();
-        AltSourceSpan = image.AltSourceSpan;
-        SourceSourceSpan = image.PathSourceSpan;
-        TitleSourceSpan = image.TitleSourceSpan;
-        LinkUrlSourceSpan = image.LinkUrlSourceSpan;
-        LinkTitleSourceSpan = image.LinkTitleSourceSpan;
+        AltSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.ImageAlt) ?? image.AltSourceSpan;
+        SourceSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.ImageSource) ?? image.PathSourceSpan;
+        TitleSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.ImageTitle) ?? image.TitleSourceSpan;
+        LinkUrlSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.ImageLinkTarget) ?? image.LinkUrlSourceSpan;
+        LinkTitleSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.ImageLinkTitle) ?? image.LinkTitleSourceSpan;
     }
 
     /// <summary>Source image block.</summary>
@@ -366,6 +366,9 @@ public sealed class MarkdownNativeImageBlock : MarkdownNativeBlock {
 
     /// <summary>Source span for the wrapping link title token when parsed from markdown.</summary>
     public MarkdownSourceSpan? LinkTitleSourceSpan { get; }
+
+    private static MarkdownSourceSpan? GetChildSpan(MarkdownSyntaxNode syntaxNode, MarkdownSyntaxKind kind) =>
+        syntaxNode?.Children.FirstOrDefault(child => child.Kind == kind)?.SourceSpan;
 }
 
 /// <summary>

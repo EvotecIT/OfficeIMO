@@ -197,7 +197,9 @@ internal static class MarkdownObjectTreeBinder {
     private static void MapSourceSpans(MarkdownSyntaxNode syntaxNode) {
         if (syntaxNode.AssociatedObject is MarkdownObject markdownObject) {
             markdownObject.SourceSpan = syntaxNode.SourceSpan;
-            markdownObject.SetAttributes(syntaxNode.Attributes);
+            if (!syntaxNode.Attributes.IsEmpty) {
+                markdownObject.SetAttributes(syntaxNode.Attributes);
+            }
         }
 
         for (int i = 0; i < syntaxNode.Children.Count; i++) {

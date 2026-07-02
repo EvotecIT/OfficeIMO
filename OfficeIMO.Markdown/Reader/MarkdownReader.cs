@@ -19,7 +19,36 @@ public static partial class MarkdownReader {
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
-        return ParseInternal(markdown, options, state, allowFrontMatter: true, out _, out _);
+        var syntaxNodes = new List<MarkdownSyntaxNode>();
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var document = ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out var syntaxTree,
+            out var sourceMarkdown,
+            syntaxNodes,
+            lineOffset: 0,
+            transformDiagnostics: diagnostics);
+        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
+        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
+            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
+        }
+
+        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
+        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
+        _ = new MarkdownParseResult(
+            document,
+            originalSyntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            options.PreserveTrivia ? markdown : null,
+            options.PreserveTrivia,
+            diagnostics,
+            SnapshotReferenceLinkDefinitions(state),
+            SnapshotAbbreviationDefinitions(state));
+        return document;
     }
 
     /// <summary>
