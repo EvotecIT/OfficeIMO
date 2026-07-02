@@ -207,6 +207,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStylePaginationFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStylePaginationFlags();
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Heading Pagination");
+            Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == headingStyleId);
+
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyle.GetFirstChild<StyleParagraphProperties>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<KeepLines>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<KeepNext>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<PageBreakBefore>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<WidowControl>());
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleShadingFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleShading();
 
@@ -1062,6 +1087,36 @@ namespace OfficeIMO.Tests {
                     text,
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithBuiltInParagraphStylePaginationFlags() {
+                const string text = "Heading Pagination\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [1] = new LegacyDocStyleDefinition(
+                        "heading 1",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: CreateStyleParagraphUpx(
+                            CreateParagraphSprm(SprmPFKeep, 1),
+                            CreateParagraphSprm(SprmPFKeepFollow, 1),
+                            CreateParagraphSprm(SprmPFPageBreakBefore, 1),
+                            CreateParagraphSprm(SprmPFWidowControl, 1)),
+                        characterUpx: null)
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(1)
                     },
                     styleSheet.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet);
