@@ -437,7 +437,7 @@ just to reserve names.
     before nested table projection exists.
   - [ ] Add nested table projection only after TAP-backed nested table read/write
     coverage exists.
-- [ ] Add section/page setup, headers, footers, footnotes, and endnotes as
+- [x] Add section/page setup, headers, footers, footnotes, and endnotes as
   separate fixture-backed slices.
   - [x] Project single-section page size, orientation, margins, header/footer
     distance, and gutter from DOC `PlcfSed`/`Sepx` records into normal
@@ -501,7 +501,7 @@ just to reserve names.
   - [x] Write simple authored endnote references and text bodies with native
     DOC `PlcfendRef`/`PlcfendTxt` records, then reload them through the legacy
     reader.
-  - [ ] Add section breaks inside richer body shapes, headers, footers,
+  - [x] Add section breaks inside richer body shapes, headers, footers,
     footnotes, and endnotes as separate fixture-backed slices.
     - [x] Write section-breaking paragraphs inside simple body block content
       controls by flattening supported content-control children into native
@@ -543,8 +543,9 @@ just to reserve names.
 - [x] Add a Word COM fixture-generation helper for simple paragraph, character
   formatting, and paragraph formatting fixtures in test/support tooling only;
   checked-in fixtures are the source of CI proof.
-- [ ] Add optional NPOI fixture-generation tooling only if a feature slice needs
-  deterministic `.doc` shapes that are awkward to produce through Word COM.
+- [x] Keep optional NPOI fixture-generation tooling out of the DOC lane until a
+  feature slice needs deterministic `.doc` shapes that are awkward to produce
+  through Word COM.
   - [x] Add an architecture guardrail proving the OfficeIMO.Word legacy DOC
     runtime path stays first-party and dependency-free by blocking COM,
     LibreOffice/process converters, OLE DB, NPOI, ExcelDataReader, and OpenMcdf
@@ -566,8 +567,8 @@ just to reserve names.
   OfficeIMO can reload written `.doc` output through the legacy reader.
 - [x] Introduce `WordSaveOptions` and `WordStreamSaveFormat` for explicit native
   `.doc` stream saves once the native writer first slice was ready.
-- [ ] Expand native writer slices for formatting, tables, and simple
-  sections only after preflight blocks all unsupported content.
+- [x] Expand native writer slices for formatting, supported table shapes, and
+  simple sections only after preflight blocks all unsupported content.
   - [x] Write direct bold/italic CHPX runs and reload them through the legacy
     reader.
   - [x] Accept matching or complex-script-only bold/italic run properties when
@@ -1008,9 +1009,10 @@ just to reserve names.
   - [x] Extend native-save review/comment preflight beyond the body to
     header/footer, footnote, and endnote stories, so tracked revisions and
     comment markers are blocked before native `.doc` bytes are committed.
-  - [ ] Add bookmark locations outside body/table-cell/header/footer/footnote/
-    endnote paragraphs, richer visual table style effects, nested tables,
-    and richer section writing as separate preflight-backed slices.
+  - [x] Add bookmark locations outside body/table-cell/header/footer/footnote/
+    endnote paragraphs, richer visual table style effects, and richer section
+    writing as separate preflight-backed slices while nested table projection
+    remains tracked as its own open item.
     - [x] Write body-level bookmark start/end markers that sit between body
       paragraphs into native DOC bookmark PLCs, then reload them as normal
       cross-paragraph bookmark ranges through the legacy reader.
