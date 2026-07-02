@@ -65,39 +65,6 @@ namespace OfficeIMO.Tests {
                 || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string GetCurrentTargetFrameworkLabel() {
-#if NET472
-            return "net472";
-#elif NET10_0_OR_GREATER
-            return "net10";
-#elif NET8_0_OR_GREATER
-            return "net8";
-#else
-            string frameworkName = typeof(Word).Assembly
-                .GetCustomAttribute<System.Runtime.Versioning.TargetFrameworkAttribute>()?
-                .FrameworkName ?? "unknown";
-
-            var builder = new System.Text.StringBuilder(frameworkName.Length);
-            foreach (char character in frameworkName) {
-                builder.Append(char.IsLetterOrDigit(character) ? character : '_');
-            }
-
-            return builder.ToString();
-#endif
-        }
-
-#if NET5_0_OR_GREATER
-        [SupportedOSPlatformGuard("windows")]
-#endif
-        private static bool IsWindowsPlatform() =>
-            RuntimeInformation.IsOSPlatform(OSPlatform.Windows);
-
-#if NET5_0_OR_GREATER
-        [SupportedOSPlatform("windows")]
-#endif
-        private static bool IsWordComAvailable() =>
-            Type.GetTypeFromProgID("Word.Application") != null;
-
 #if NET5_0_OR_GREATER
         [SupportedOSPlatform("windows")]
 #endif
@@ -183,17 +150,5 @@ namespace OfficeIMO.Tests {
             }
         }
 
-        private static void ReleaseComObject(object? value) {
-            if (value != null && Marshal.IsComObject(value)) {
-                Marshal.FinalReleaseComObject(value);
-            }
-        }
-
-        private static string DescribeWordComFailure(Exception ex) {
-            Exception actual = ex is TargetInvocationException { InnerException: not null } target
-                ? target.InnerException!
-                : ex;
-            return actual.GetType().Name + ": " + actual.Message;
-        }
     }
 }
