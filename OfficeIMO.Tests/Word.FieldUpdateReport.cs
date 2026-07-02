@@ -1203,6 +1203,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_UpdateFieldsAndGetReport_UpdatesSameRunComplexFieldMarkers() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.SameRunComplexFieldMarkers.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Paragraph paragraph = document.AddParagraph("Value: ")._paragraph;
+                paragraph.Append(new Run(
+                    new FieldChar { FieldCharType = FieldCharValues.Begin },
+                    new FieldCode(" QUOTE \"fresh\" ") { Space = SpaceProcessingModeValues.Preserve },
+                    new FieldChar { FieldCharType = FieldCharValues.Separate },
+                    new Text("stale") { Space = SpaceProcessingModeValues.Preserve },
+                    new FieldChar { FieldCharType = FieldCharValues.End }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldUpdateReport report = document.UpdateFieldsAndGetReport();
+
+                WordFieldUpdateResult result = Assert.Single(report.Results, field => field.FieldType == WordFieldType.Quote);
+                Assert.Equal(WordFieldUpdateStatus.Updated, result.Status);
+                Assert.Equal("fresh", result.ResultText);
+                Assert.Equal("Value: fresh", string.Concat(document._document.Body!.Descendants<Text>().Select(text => text.Text)));
+                Assert.DoesNotContain(document._document.Body!.Descendants<Text>(), text => text.Text == "stale");
+            }
+        }
+
+        [Fact]
         public void Test_UpdateFieldsAndGetReport_PreservesSwitchLookingTextInsideQuoteLiteral() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldUpdate.QuoteLiteralWithSwitchText.docx");
 

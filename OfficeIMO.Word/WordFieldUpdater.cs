@@ -1101,63 +1101,58 @@ namespace OfficeIMO.Word {
             Stack<ComplexFieldBuilder> stack,
             List<MutableFieldCandidate> candidates,
             ref int sequence) {
-            FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
-            FieldCharValues? fieldCharType = fieldChar?.FieldCharType?.Value;
+            bool resultRunRecorded = false;
+            foreach (OpenXmlElement child in run.ChildElements) {
+                if (child is FieldChar fieldChar) {
+                    FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                    if (fieldCharType == FieldCharValues.Begin) {
+                        stack.Push(new ComplexFieldBuilder(sequence++, stack.Count, run) {
+                            IsLocked = fieldChar.FieldLock?.Value ?? false
+                        });
+                        continue;
+                    }
 
-            if (fieldCharType == FieldCharValues.Begin) {
-                stack.Push(new ComplexFieldBuilder(sequence++, stack.Count, run) {
-                    IsLocked = fieldChar?.FieldLock?.Value ?? false
-                });
-            }
+                    if (stack.Count == 0) {
+                        continue;
+                    }
 
-            if (stack.Count == 0) {
-                return;
-            }
+                    if (fieldCharType == FieldCharValues.Separate) {
+                        stack.Peek().HasSeparator = true;
+                        continue;
+                    }
 
-            ComplexFieldBuilder current = stack.Peek();
+                    if (fieldCharType == FieldCharValues.End) {
+                        ComplexFieldBuilder completed = stack.Pop();
+                        completed.EndRun = run;
+                        if (stack.Count > 0 && !stack.Peek().HasSeparator) {
+                            ComplexFieldBuilder parent = stack.Peek();
+                            completed.InstructionParentSequence = parent.Sequence;
+                            parent.InstructionParts.Add(InstructionPart.ForResultRuns(completed.ResultRuns));
+                        }
 
-            foreach (FieldCode fieldCode in run.Elements<FieldCode>()) {
-                current.InstructionParts.Add(InstructionPart.ForLiteral(fieldCode.Text ?? string.Empty));
-            }
+                        candidates.Add(completed.ToCandidate(root));
+                    }
 
-            if (fieldCharType == FieldCharValues.Separate) {
-                current.HasSeparator = true;
-            }
-
-            if (HasFieldResultText(run, fieldCharType)) {
-                foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
-                    builder.ResultRuns.Add(run);
-                }
-            }
-
-            if (fieldCharType == FieldCharValues.End) {
-                ComplexFieldBuilder completed = stack.Pop();
-                completed.EndRun = run;
-                if (stack.Count > 0 && !stack.Peek().HasSeparator) {
-                    ComplexFieldBuilder parent = stack.Peek();
-                    completed.InstructionParentSequence = parent.Sequence;
-                    parent.InstructionParts.Add(InstructionPart.ForResultRuns(completed.ResultRuns));
+                    continue;
                 }
 
-                candidates.Add(completed.ToCandidate(root));
-            }
-        }
+                if (stack.Count == 0) {
+                    continue;
+                }
 
-        private static bool HasFieldResultText(Run run, FieldCharValues? fieldCharType) {
-            if (fieldCharType != FieldCharValues.End) {
-                return run.Elements<Text>().Any();
-            }
+                if (child is FieldCode fieldCode) {
+                    stack.Peek().InstructionParts.Add(InstructionPart.ForLiteral(fieldCode.Text ?? string.Empty));
+                    continue;
+                }
 
-            FieldChar? end = run.Elements<FieldChar>()
-                .FirstOrDefault(fieldChar => fieldChar.FieldCharType?.Value == FieldCharValues.End);
-            if (end == null) {
-                return run.Elements<Text>().Any();
-            }
+                if (!resultRunRecorded && child is Text) {
+                    foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
+                        builder.ResultRuns.Add(run);
+                    }
 
-            return run.ChildElements
-                .TakeWhile(child => !ReferenceEquals(child, end))
-                .OfType<Text>()
-                .Any();
+                    resultRunRecorded = true;
+                }
+            }
         }
 
         private sealed class MutableFieldCandidate {
