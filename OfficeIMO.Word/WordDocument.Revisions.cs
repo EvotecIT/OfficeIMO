@@ -73,6 +73,7 @@ namespace OfficeIMO.Word {
                 var parent = deletion.Parent ?? throw new InvalidOperationException("Deletion has no parent.");
                 OpenXmlElement last = deletion;
                 foreach (var run in deletion.Elements<Run>().Select(r => (Run)r.CloneNode(true))) {
+                    RestoreDeletedText(run);
                     var rPr = run.RunProperties ?? new RunProperties();
                     rPr.Color = new Color() { Val = "FF0000" };
                     rPr.Strike = new Strike();

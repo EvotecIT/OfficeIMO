@@ -407,6 +407,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureInPlaceTargetRedlineReportsMetadataOnlyFeatureFindings() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_feature_fallback_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/source"));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_feature_fallback_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("Portal: ").AddHyperLink("Open portal", new Uri("https://example.com/target"));
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_feature_fallback_output.docx");
+            WordComparisonResult result = WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    TrackFeatureFindings = true
+                });
+
+            Assert.Contains(result.Findings, finding => finding.Scope == WordComparisonScope.Hyperlink);
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            string redlineText = string.Concat(redline._document.Body!.Descendants<Text>().Select(text => text.Text));
+            Assert.Contains("Tracked Review Changes", redlineText, StringComparison.Ordinal);
+            Assert.Contains("Hyperlink", redlineText, StringComparison.Ordinal);
+            Assert.Contains("https://example.com/target", redlineText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void CompareStructureRedlineCanKeepReviewAndFormattingFindingsReportOnly() {
             string reviewSourcePath = Path.Combine(_directoryWithFiles, "compare_redline_review_policy_source.docx");
             using (WordDocument document = WordDocument.Create(reviewSourcePath)) {

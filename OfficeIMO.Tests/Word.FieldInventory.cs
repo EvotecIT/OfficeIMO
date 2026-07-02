@@ -77,6 +77,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InspectFields_ReadsSameRunComplexFieldMarkers() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldInventory.SameRunComplexMarkers.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                Paragraph paragraph = document.AddParagraph("Value: ")._paragraph;
+                paragraph.Append(new Run(
+                    new FieldChar { FieldCharType = FieldCharValues.Begin },
+                    new FieldCode(" QUOTE \"fresh\" ") { Space = SpaceProcessingModeValues.Preserve },
+                    new FieldChar { FieldCharType = FieldCharValues.Separate },
+                    new Text("cached") { Space = SpaceProcessingModeValues.Preserve },
+                    new FieldChar { FieldCharType = FieldCharValues.End }));
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordFieldInfo field = Assert.Single(document.InspectFields(), item => item.FieldType == WordFieldType.Quote);
+
+                Assert.Equal(WordFieldRepresentation.Complex, field.Representation);
+                Assert.Equal(" QUOTE \"fresh\" ", field.InstructionText);
+                Assert.Equal("cached", field.ResultText);
+                Assert.Empty(field.UnsupportedParseDetails);
+            }
+        }
+
+        [Fact]
         public void Test_InspectFields_ReadsFieldsAcrossPartsAndContainers() {
             string filePath = Path.Combine(_directoryWithFiles, "FieldInventory.PartsAndContainers.docx");
 

@@ -94,69 +94,58 @@ namespace OfficeIMO.Word {
             Stack<ComplexFieldBuilder> stack,
             List<FieldInfoCandidate> findings,
             ref int sequence) {
-            FieldChar? fieldChar = run.Elements<FieldChar>().FirstOrDefault();
-            FieldCharValues? fieldCharType = fieldChar?.FieldCharType?.Value;
-
-            if (fieldCharType == FieldCharValues.Begin) {
-                var builder = new ComplexFieldBuilder(sequence++, stack.Count, run) {
-                    IsDirty = fieldChar?.Dirty?.Value ?? false,
-                    IsLocked = fieldChar?.FieldLock?.Value ?? false,
-                    IsInTable = IsInTable(run),
-                    IsInContentControl = IsInContentControl(run),
-                    IsInTextBox = IsInTextBox(run)
-                };
-
-                stack.Push(builder);
-            }
-
-            if (stack.Count == 0) {
-                return;
-            }
-
-            ComplexFieldBuilder current = stack.Peek();
-
-            foreach (FieldCode fieldCode in run.Elements<FieldCode>()) {
-                current.InstructionParts.Add(fieldCode.Text ?? string.Empty);
-            }
-
-            if (fieldCharType == FieldCharValues.Separate) {
-                current.HasSeparator = true;
-            }
-
-            string runText = GetComplexFieldResultRunText(run, fieldCharType);
-            if (runText.Length > 0) {
-                foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
-                    builder.ResultParts.Add(runText);
-                }
-            }
-
-            if (fieldCharType == FieldCharValues.End) {
-                ComplexFieldBuilder completed = stack.Pop();
-                if (stack.Count > 0 && !stack.Peek().HasSeparator) {
-                    stack.Peek().InstructionParts.Add(completed.ResultText);
-                }
-
-                findings.Add(completed.ToCandidate(root));
-            }
-        }
-
-        private static string GetComplexFieldResultRunText(Run run, FieldCharValues? fieldCharType) {
-            if (fieldCharType != FieldCharValues.End) {
-                return string.Concat(run.Elements<Text>().Select(text => text.Text));
-            }
-
-            var text = new System.Text.StringBuilder();
             foreach (OpenXmlElement child in run.ChildElements) {
-                if (child is FieldChar fieldChar && fieldChar.FieldCharType?.Value == FieldCharValues.End) {
-                    break;
+                if (child is FieldChar fieldChar) {
+                    FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                    if (fieldCharType == FieldCharValues.Begin) {
+                        var builder = new ComplexFieldBuilder(sequence++, stack.Count, run) {
+                            IsDirty = fieldChar.Dirty?.Value ?? false,
+                            IsLocked = fieldChar.FieldLock?.Value ?? false,
+                            IsInTable = IsInTable(run),
+                            IsInContentControl = IsInContentControl(run),
+                            IsInTextBox = IsInTextBox(run)
+                        };
+
+                        stack.Push(builder);
+                        continue;
+                    }
+
+                    if (stack.Count == 0) {
+                        continue;
+                    }
+
+                    if (fieldCharType == FieldCharValues.Separate) {
+                        stack.Peek().HasSeparator = true;
+                        continue;
+                    }
+
+                    if (fieldCharType == FieldCharValues.End) {
+                        ComplexFieldBuilder completed = stack.Pop();
+                        if (stack.Count > 0 && !stack.Peek().HasSeparator) {
+                            stack.Peek().InstructionParts.Add(completed.ResultText);
+                        }
+
+                        findings.Add(completed.ToCandidate(root));
+                    }
+
+                    continue;
+                }
+
+                if (stack.Count == 0) {
+                    continue;
+                }
+
+                if (child is FieldCode fieldCode) {
+                    stack.Peek().InstructionParts.Add(fieldCode.Text ?? string.Empty);
+                    continue;
                 }
 
                 if (child is Text runText) {
-                    text.Append(runText.Text);
+                    foreach (ComplexFieldBuilder builder in stack.Where(builder => builder.HasSeparator)) {
+                        builder.ResultParts.Add(runText.Text);
+                    }
                 }
             }
-
-            return text.ToString();
         }
 
         internal static IEnumerable<FieldRoot> EnumerateFieldRoots(MainDocumentPart mainPart) {

@@ -108,6 +108,8 @@ namespace OfficeIMO.Tests {
 
                 var deletedRun = body.Descendants<Run>().FirstOrDefault(r => r.InnerText == "Removed");
                 Assert.NotNull(deletedRun);
+                Assert.Contains(deletedRun!.Descendants<Text>(), text => text.Text == "Removed");
+                Assert.Empty(deletedRun.Descendants<DeletedText>());
                 Assert.NotNull(deletedRun!.RunProperties);
                 Assert.NotNull(deletedRun.RunProperties!.Strike);
                 Assert.Equal("FF0000", deletedRun.RunProperties.Color?.Val);

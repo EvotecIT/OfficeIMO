@@ -91,7 +91,7 @@ namespace OfficeIMO.Word {
             ApplyTableCellFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyTableRowFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
             ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
-            AppendInPlaceReviewFindings(document, result, options);
+            AppendInPlaceFeatureAndReviewFindings(document, result, options);
 
             document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
         }
@@ -775,16 +775,16 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AppendInPlaceReviewFindings(WordDocument document, WordComparisonResult result, WordComparisonRedlineOptions options) {
-            WordComparisonFinding[] reviewFindings = result.Findings
-                .Where(finding => IsReviewFinding(finding) && ShouldTrackFinding(finding, options))
+        private static void AppendInPlaceFeatureAndReviewFindings(WordDocument document, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            WordComparisonFinding[] fallbackFindings = result.Findings
+                .Where(finding => (IsInPlaceFallbackFeatureFinding(finding) || IsReviewFinding(finding)) && ShouldTrackFinding(finding, options))
                 .ToArray();
-            if (reviewFindings.Length == 0) {
+            if (fallbackFindings.Length == 0) {
                 return;
             }
 
             document.AddParagraph("Tracked Review Changes").SetStyle(WordParagraphStyles.Heading2);
-            foreach (WordComparisonFinding finding in reviewFindings) {
+            foreach (WordComparisonFinding finding in fallbackFindings) {
                 document.AddParagraph(finding.Location + " - " + finding.Scope + " " + finding.ChangeKind);
                 WordParagraph paragraph = document.AddParagraph();
                 bool wroteRevision = false;
@@ -839,6 +839,13 @@ namespace OfficeIMO.Word {
                 or WordComparisonScope.Hyperlink
                 or WordComparisonScope.List
                 or WordComparisonScope.Image;
+        }
+
+        private static bool IsInPlaceFallbackFeatureFinding(WordComparisonFinding finding) {
+            return finding.Scope is WordComparisonScope.Field
+                or WordComparisonScope.Bookmark
+                or WordComparisonScope.Hyperlink
+                or WordComparisonScope.List;
         }
 
         private static bool IsReviewFinding(WordComparisonFinding finding) {
