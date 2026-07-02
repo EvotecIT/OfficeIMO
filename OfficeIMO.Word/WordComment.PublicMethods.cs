@@ -168,7 +168,11 @@ namespace OfficeIMO.Word {
                 foreach (var reference in root.Root.Descendants<CommentReference>()
                     .Where(c => string.Equals(c.Id?.Value, commentId, StringComparison.Ordinal))
                     .ToList()) {
-                    reference.Parent?.Remove();
+                    DocumentFormat.OpenXml.OpenXmlElement? parent = reference.Parent;
+                    reference.Remove();
+                    if (parent is Run run && !run.ChildElements.Any(child => child is not RunProperties)) {
+                        run.Remove();
+                    }
                 }
             }
         }
@@ -226,6 +230,13 @@ namespace OfficeIMO.Word {
             commentEx = commentsEx.Elements<CommentEx>().ElementAt(index);
             if (string.IsNullOrWhiteSpace(commentEx.ParaId?.Value)) {
                 commentEx.ParaId = _commentEx?.ParaId ?? GetNewParaId(commentsEx, commentsPart.Comments);
+            }
+
+            string? ensuredParagraphId = commentEx.ParaId?.Value;
+            if (!string.IsNullOrWhiteSpace(ensuredParagraphId) && string.IsNullOrWhiteSpace(GetCommentParagraphId(_comment))) {
+                Paragraph paragraph = _comment.Elements<Paragraph>().First();
+                paragraph.ParagraphId = ensuredParagraphId;
+                commentsPart.Comments.Save();
             }
 
             _commentEx = commentEx;

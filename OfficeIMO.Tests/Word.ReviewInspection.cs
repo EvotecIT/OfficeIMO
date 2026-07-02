@@ -658,6 +658,90 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_WordComment_MarkResolvedAssignsGeneratedParaIdToLegacyCommentParagraph() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReviewOperations.ResolveLegacyComment.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Legacy target").AddComment("Alice Reviewer", "AR", "Legacy comment.");
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
+                MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+                Comment comment = Assert.Single(mainPart.WordprocessingCommentsPart!.Comments!.Elements<Comment>());
+                comment.Elements<Paragraph>().Single().ParagraphId = null;
+                mainPart.WordprocessingCommentsPart.Comments.Save();
+
+                W15.CommentsEx commentsEx = mainPart.WordprocessingCommentsExPart!.CommentsEx!;
+                commentsEx.RemoveAllChildren<W15.CommentEx>();
+                commentsEx.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordComment comment = Assert.Single(document.Comments);
+                comment.MarkResolved();
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
+                MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+                Comment comment = Assert.Single(mainPart.WordprocessingCommentsPart!.Comments!.Elements<Comment>());
+                string? paragraphId = comment.Elements<Paragraph>().Single().ParagraphId?.Value;
+                Assert.NotNull(paragraphId);
+                W15.CommentEx commentEx = Assert.Single(mainPart.WordprocessingCommentsExPart!.CommentsEx!.Elements<W15.CommentEx>());
+
+                Assert.Equal(paragraphId, commentEx.ParaId?.Value);
+                Assert.True(commentEx.Done?.Value);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                WordCommentInfo comment = Assert.Single(document.InspectReview().Comments);
+                Assert.True(comment.IsResolved);
+                Assert.False(string.IsNullOrWhiteSpace(comment.ParaId));
+            }
+        }
+
+        [Fact]
+        public void Test_WordComment_DeleteRemovesOnlyCommentReferenceFromSharedHeaderRun() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReviewOperations.DeleteHeaderCommentSharedRun.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!.AddParagraph("Header target").AddComment("Alice Reviewer", "AR", "Header note.");
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
+                Header header = Assert.Single(wordDocument.MainDocumentPart!.HeaderParts).Header;
+                CommentReference reference = Assert.Single(header.Descendants<CommentReference>());
+                Run run = Assert.IsType<Run>(reference.Parent);
+                reference.Remove();
+                run.RemoveAllChildren();
+                run.Append(
+                    new Text("Before ") { Space = SpaceProcessingModeValues.Preserve },
+                    reference,
+                    new Text(" after") { Space = SpaceProcessingModeValues.Preserve });
+                header.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordComment comment = Assert.Single(document.Comments);
+                comment.Delete();
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, false)) {
+                Header header = Assert.Single(wordDocument.MainDocumentPart!.HeaderParts).Header;
+
+                Assert.Empty(header.Descendants<CommentReference>());
+                Assert.Contains(header.Descendants<Text>(), text => text.Text == "Before ");
+                Assert.Contains(header.Descendants<Text>(), text => text.Text == " after");
+            }
+        }
+
+        [Fact]
         public void Test_WordComment_DeleteThreadRemovesRepliesAndPreservesUnrelatedComments() {
             string filePath = Path.Combine(_directoryWithFiles, "ReviewOperations.DeleteThread.docx");
             File.Delete(filePath);
