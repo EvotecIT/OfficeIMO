@@ -1155,7 +1155,7 @@ just to reserve names.
       conditional effects are not silently dropped.
 - [x] Update `OfficeIMO.Word\COMPATIBILITY.md` and README wording only after tests
   prove the support statement.
-- [ ] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
+- [x] Before PR handoff or merge, rerun the focused DOC lane, the shared compound
   lane, full `LegacyXls` sweeps, `OfficeIMO.Word` builds across supported target
   frameworks, and `git diff --check`.
 

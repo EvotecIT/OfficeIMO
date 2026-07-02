@@ -182,7 +182,8 @@ formatting including proofing exclusion,
 bidirectional paragraph layout, mirror indents, contextual spacing, East Asian
 typography and punctuation spacing flags, and automatic hyphenation suppression,
 tabs, soft/no-break hyphen runs, line/carriage-return/page/column breaks, simple
-body tables, supported table-style border, shading, layout, paragraph
+body tables with common formatting, including simple depth-2 nested tables,
+supported table-style border, shading, layout, paragraph
 formatting, run formatting, default-cell expansion, conditional table/cell
 border, shading, paragraph formatting, run formatting, cell-layout expansion,
 and conditional row height/header/no-split formatting, paragraph-boundary
@@ -194,7 +195,8 @@ formatting and soft/no-break hyphen runs, supported section note settings, and
 scalar document properties. Unsupported features such as macros, embedded OLE
 objects, comments, text boxes, images, bookmark ranges outside supported
 body/table-cell/header/footer/footnote/endnote paragraphs, richer
-content-control children, richer visual table style effects, nested tables,
+content-control children, richer visual table style effects, deeper or richer
+nested table shapes,
 richer note body structures, and richer header/footer or section shapes are
 diagnosed or blocked rather than silently flattened.
 
