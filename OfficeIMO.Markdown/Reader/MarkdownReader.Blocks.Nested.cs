@@ -327,6 +327,7 @@ public static partial class MarkdownReader {
             j++;
         }
 
+        var contentLineCount = Math.Max(0, j - index - (hasClosingFence ? 2 : 1));
         var content = RemoveSingleTrailingLineEnding(code.ToString());
         string? caption = null;
         // Optional caption line (indented like other nested content)
@@ -351,7 +352,8 @@ public static partial class MarkdownReader {
             fenceChar,
             hasClosingFence,
             openingFenceIndent + closingFenceIndentColumns,
-            closingFenceLength);
+            closingFenceLength,
+            contentLineCount);
         if (!attributeSet.IsEmpty && block is MarkdownObject markdownObject && markdownObject.Attributes.IsEmpty) {
             markdownObject.SetAttributes(attributeSet);
             MarkdownGenericAttributeSourceSpans.Set(markdownObject, attributeSourceText, attributeSourceSpan);

@@ -64,13 +64,14 @@ internal static class MarkdownFencedBlockSourceSpans {
         string? content,
         bool hasClosingFence,
         int closingFenceIndentColumns,
-        int closingFenceLength) {
+        int closingFenceLength,
+        int? contentLineCount = null) {
         if (!isFenced || !hasClosingFence || !span.HasValue) {
             return null;
         }
 
         var value = span.Value;
-        var line = value.StartLine + CountContentLines(content) + 1;
+        var line = value.StartLine + GetContentLineCount(content, contentLineCount) + 1;
         if (line > value.EndLine) {
             return null;
         }
@@ -84,7 +85,7 @@ internal static class MarkdownFencedBlockSourceSpans {
         return new MarkdownSourceSpan(line, startColumn, line, endColumn);
     }
 
-    internal static MarkdownSourceSpan? GetContentSpan(MarkdownSourceSpan? span, bool isFenced, string? content) {
+    internal static MarkdownSourceSpan? GetContentSpan(MarkdownSourceSpan? span, bool isFenced, string? content, int? contentLineCount = null) {
         if (!span.HasValue) {
             return null;
         }
@@ -95,7 +96,7 @@ internal static class MarkdownFencedBlockSourceSpans {
         }
 
         var startLine = value.StartLine + 1;
-        var endLine = value.StartLine + CountContentLines(content);
+        var endLine = value.StartLine + GetContentLineCount(content, contentLineCount);
         if (endLine < startLine || endLine > value.EndLine) {
             return null;
         }
@@ -106,6 +107,11 @@ internal static class MarkdownFencedBlockSourceSpans {
 
         return new MarkdownSourceSpan(startLine, 1, endLine, GetLastContentLineColumn(content));
     }
+
+    private static int GetContentLineCount(string? content, int? contentLineCount) =>
+        contentLineCount.HasValue && contentLineCount.Value >= 0
+            ? contentLineCount.Value
+            : CountContentLines(content);
 
     private static int CountContentLines(string? content) {
         if (string.IsNullOrEmpty(content)) {

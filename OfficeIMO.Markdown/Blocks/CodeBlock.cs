@@ -23,6 +23,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
     internal bool HasClosingFence { get; private set; } = true;
     internal int ClosingFenceIndentColumns { get; private set; }
     internal int ClosingFenceLength { get; private set; } = 3;
+    internal int? FencedContentLineCount { get; private set; }
     /// <summary>Source span for the opening fence token when parsed from a fenced source block.</summary>
     public MarkdownSourceSpan? OpeningFenceSourceSpan { get; internal set; }
     /// <summary>Source span for the fenced-code info string when parsed from a fenced source block.</summary>
@@ -55,7 +56,8 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         char fenceChar = '`',
         bool hasClosingFence = true,
         int closingFenceIndentColumns = 0,
-        int closingFenceLength = 3) {
+        int closingFenceLength = 3,
+        int? fencedContentLineCount = null) {
         FenceIndentColumns = Math.Max(0, fenceIndentColumns);
         FenceChar = fenceChar == '~' ? '~' : '`';
         FenceLength = Math.Max(3, fenceLength);
@@ -64,6 +66,9 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         HasClosingFence = hasClosingFence;
         ClosingFenceIndentColumns = Math.Max(0, closingFenceIndentColumns);
         ClosingFenceLength = Math.Max(3, closingFenceLength);
+        FencedContentLineCount = fencedContentLineCount.HasValue && fencedContentLineCount.Value >= 0
+            ? fencedContentLineCount.Value
+            : null;
     }
 
     internal void SetFenceTokenSourceSpans(
@@ -164,7 +169,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         var nodes = new List<MarkdownSyntaxNode>();
         var fenceSpan = GetFenceSourceSpan(span);
         OpeningFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetOpeningFenceSpan(fenceSpan, IsFenced, FenceIndentColumns, FenceLength);
-        ClosingFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetClosingFenceSpan(fenceSpan, IsFenced, Content, HasClosingFence, ClosingFenceIndentColumns, ClosingFenceLength);
+        ClosingFenceSourceSpan = MarkdownFencedBlockSourceSpans.GetClosingFenceSpan(fenceSpan, IsFenced, Content, HasClosingFence, ClosingFenceIndentColumns, ClosingFenceLength, FencedContentLineCount);
 
         if (OpeningFenceSourceSpan.HasValue) {
             nodes.Add(new MarkdownSyntaxNode(
@@ -181,7 +186,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
                 InfoString));
         }
 
-        ContentSourceSpan = MarkdownFencedBlockSourceSpans.GetContentSpan(fenceSpan, IsFenced, Content);
+        ContentSourceSpan = MarkdownFencedBlockSourceSpans.GetContentSpan(fenceSpan, IsFenced, Content, FencedContentLineCount);
         nodes.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CodeContent,
             ContentSourceSpan,

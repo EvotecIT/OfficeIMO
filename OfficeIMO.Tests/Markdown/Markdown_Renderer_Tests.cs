@@ -2011,6 +2011,25 @@ Lead[^1]
         Assert.Contains("<p>[^1]: Footnote text</p>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("footnotes", html, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void MarkdownRenderer_DocumentTransform_BlockSpans_Skip_Consumed_Abbreviation_Definitions() {
+        var seenSpan = default(MarkdownSourceSpan?);
+        var options = new MarkdownRendererOptions {
+            ReaderOptions = new MarkdownReaderOptions {
+                Abbreviations = true
+            }
+        };
+        options.DocumentTransforms.Add(new RendererInspectFirstParagraphSourceTransform((document, context) => {
+            seenSpan = Assert.Single(context.TopLevelBlockSourceSpans);
+            return document;
+        }));
+
+        MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("*[HTML]: Hyper Text\nHTML", options);
+
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 4), seenSpan);
+    }
+
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
 

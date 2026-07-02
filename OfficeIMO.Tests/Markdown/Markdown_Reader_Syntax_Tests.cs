@@ -5073,6 +5073,25 @@ Console.WriteLine("hi");
     }
 
     [Fact]
+    public void ParseWithSyntaxTree_Maps_Closing_Fence_After_BlankOnly_Fenced_Content() {
+        var markdown = "```csharp\n\n```\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+
+        var code = Assert.Single(result.SyntaxTree.Children);
+        var codeBlock = Assert.IsType<CodeBlock>(code.AssociatedObject);
+        var content = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeContent);
+        var closing = Assert.Single(code.Children, child => child.Kind == MarkdownSyntaxKind.CodeFenceClosing);
+
+        Assert.Equal(string.Empty, codeBlock.Content);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), content.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), codeBlock.ContentSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), closing.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 3), codeBlock.ClosingFenceSourceSpan);
+        Assert.Equal(MarkdownSyntaxKind.CodeFenceClosing, result.FindDeepestNodeAtPosition(3, 2)!.Kind);
+    }
+
+    [Fact]
     public void ParseWithSyntaxTree_Maps_CustomContainer_Fences_Info_And_Children() {
         var markdown = """
 ::: note

@@ -8,6 +8,7 @@ public static partial class MarkdownReader {
             int j = i + 1;
             var code = new System.Text.StringBuilder();
             while (j < lines.Length && !IsCodeFenceClose(lines[j], fenceChar, fenceLength)) { code.AppendLine(lines[j]); j++; }
+            var contentLineCount = j - i - 1;
             bool hasClosingFence = false;
             int closingFenceIndentColumns = 0;
             int closingFenceLength = fenceLength;
@@ -30,7 +31,8 @@ public static partial class MarkdownReader {
                 fenceChar,
                 hasClosingFence,
                 closingFenceIndentColumns,
-                closingFenceLength);
+                closingFenceLength,
+                contentLineCount);
             doc.Add(block);
             i = j; return true;
         }

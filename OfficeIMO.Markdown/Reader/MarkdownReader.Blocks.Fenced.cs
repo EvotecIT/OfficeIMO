@@ -91,17 +91,18 @@ public static partial class MarkdownReader {
         char fenceChar = '`',
         bool hasClosingFence = true,
         int closingFenceIndentColumns = 0,
-        int closingFenceLength = 3) {
+        int closingFenceLength = 3,
+        int? fencedContentLineCount = null) {
         var extendedBlock = TryCreateExtendedFencedBlock(options?.FencedBlockExtensions, infoString, content, isFenced, caption);
         if (extendedBlock != null) {
-            ApplyFenceSourceInfo(extendedBlock, fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+            ApplyFenceSourceInfo(extendedBlock, fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength, fencedContentLineCount);
             return extendedBlock;
         }
 
         var codeBlock = new CodeBlock(infoString, content, isFenced) {
             Caption = caption
         };
-        codeBlock.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+        codeBlock.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength, fencedContentLineCount);
         return codeBlock;
     }
 
@@ -114,13 +115,14 @@ public static partial class MarkdownReader {
         char fenceChar,
         bool hasClosingFence,
         int closingFenceIndentColumns,
-        int closingFenceLength) {
+        int closingFenceLength,
+        int? fencedContentLineCount) {
         switch (block) {
             case CodeBlock code:
-                code.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+                code.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength, fencedContentLineCount);
                 break;
             case SemanticFencedBlock semantic:
-                semantic.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength);
+                semantic.SetFenceSourceInfo(fenceIndentColumns, fenceLength, infoPaddingColumns, infoPaddingCharacters, fenceChar, hasClosingFence, closingFenceIndentColumns, closingFenceLength, fencedContentLineCount);
                 break;
         }
     }
