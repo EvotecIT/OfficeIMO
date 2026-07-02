@@ -1112,7 +1112,7 @@ public static partial class MarkdownReader {
             var segmentLength = textRun.Text.Length - startInRun;
             var segmentSpan = startInRun == 0 && segmentLength == textRun.Text.Length
                 ? textRunSpan
-                : SliceSourceSpan(textRunSpan, startInRun, segmentLength);
+                : SliceSourceSpan(textRunSpan, textRun.Text, startInRun, segmentLength);
             if (!segmentSpan.HasValue) {
                 return null;
             }
@@ -1159,7 +1159,7 @@ public static partial class MarkdownReader {
 
             firstSpan ??= textRunSpan;
             var consumedFromRun = Math.Min(remaining, textRun.Text.Length);
-            lastSpan = TrimSourceSpanToConsumedPrefix(textRunSpan.Value, consumedFromRun);
+            lastSpan = TrimSourceSpanToConsumedPrefix(textRunSpan.Value, textRun.Text, consumedFromRun);
             remaining -= consumedFromRun;
         }
 
@@ -1176,13 +1176,13 @@ public static partial class MarkdownReader {
             lastSpan.Value.EndOffset);
     }
 
-    private static MarkdownSourceSpan TrimSourceSpanToConsumedPrefix(MarkdownSourceSpan span, int consumedLength) {
+    private static MarkdownSourceSpan TrimSourceSpanToConsumedPrefix(MarkdownSourceSpan span, string? text, int consumedLength) {
         if (consumedLength <= 0) {
             return span;
         }
 
         if (span.StartLine == span.EndLine && span.StartColumn.HasValue) {
-            var endColumn = span.StartColumn.Value + consumedLength - 1;
+            var endColumn = AdvanceSourceColumn(span.StartColumn.Value, text, consumedLength) - 1;
             if (span.EndColumn.HasValue) {
                 endColumn = Math.Min(endColumn, span.EndColumn.Value);
             }
@@ -1198,6 +1198,16 @@ public static partial class MarkdownReader {
         }
 
         return span;
+    }
+
+    private static int AdvanceSourceColumn(int startColumn, string? text, int endExclusive) {
+        var column = Math.Max(1, startColumn);
+        var boundedEnd = Math.Max(0, Math.Min(endExclusive, text?.Length ?? 0));
+        for (var i = 0; i < boundedEnd; i++) {
+            column = MarkdownSourceColumns.AdvanceColumn(column, text![i]);
+        }
+
+        return column;
     }
 
     private static void ApplyGenericAttributesToNestedInlines(IMarkdownInline? inline, MarkdownReaderOptions options) {

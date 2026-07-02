@@ -15,7 +15,9 @@ public static partial class MarkdownReader {
         int? linkTargetStart,
         int? linkTargetLength,
         int? linkTitleStart,
-        int? linkTitleLength) {
+        int? linkTitleLength,
+        int? genericAttributeStart = null,
+        int? genericAttributeLength = null) {
         public int? AltStart { get; } = altStart;
         public int? AltLength { get; } = altLength;
         public int? SourceStart { get; } = sourceStart;
@@ -26,6 +28,8 @@ public static partial class MarkdownReader {
         public int? LinkTargetLength { get; } = linkTargetLength;
         public int? LinkTitleStart { get; } = linkTitleStart;
         public int? LinkTitleLength { get; } = linkTitleLength;
+        public int? GenericAttributeStart { get; } = genericAttributeStart;
+        public int? GenericAttributeLength { get; } = genericAttributeLength;
     }
 
     private static bool IsImageLine(string line) {
@@ -65,6 +69,8 @@ public static partial class MarkdownReader {
         }
         string plainAlt = ExtractImageAltPlainText(alt, options, state);
         image = new ImageBlock(src, alt, title, plainAlt: plainAlt);
+        int? attributeStart = null;
+        int? attributeLength = null;
         ranges = new MarkdownImageSyntaxRanges(
             altStart: 2,
             altLength: altEnd - 2,
@@ -76,7 +82,20 @@ public static partial class MarkdownReader {
             linkTargetLength: null,
             linkTitleStart: null,
             linkTitleLength: null);
-        ConsumeImageTrailingBlocks(t.Substring(parenClose + 1), image, options, ref sizeSpec);
+        ConsumeImageTrailingBlocks(t.Substring(parenClose + 1), parenClose + 1, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
+        ranges = new MarkdownImageSyntaxRanges(
+            ranges.AltStart,
+            ranges.AltLength,
+            ranges.SourceStart,
+            ranges.SourceLength,
+            ranges.TitleStart,
+            ranges.TitleLength,
+            ranges.LinkTargetStart,
+            ranges.LinkTargetLength,
+            ranges.LinkTitleStart,
+            ranges.LinkTitleLength,
+            attributeStart,
+            attributeLength);
         return true;
     }
 
@@ -126,6 +145,8 @@ public static partial class MarkdownReader {
             LinkUrl = href,
             LinkTitle = hrefTitle
         };
+        int? attributeStart = null;
+        int? attributeLength = null;
         ranges = new MarkdownImageSyntaxRanges(
             altStart,
             altLength,
@@ -138,14 +159,40 @@ public static partial class MarkdownReader {
             hrefTitleStart,
             hrefTitleLength);
 
-        ConsumeImageTrailingBlocks(t.Substring(consumed), image, options, ref sizeSpec);
+        ConsumeImageTrailingBlocks(t.Substring(consumed), consumed, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
+        ranges = new MarkdownImageSyntaxRanges(
+            ranges.AltStart,
+            ranges.AltLength,
+            ranges.SourceStart,
+            ranges.SourceLength,
+            ranges.TitleStart,
+            ranges.TitleLength,
+            ranges.LinkTargetStart,
+            ranges.LinkTargetLength,
+            ranges.LinkTitleStart,
+            ranges.LinkTitleLength,
+            attributeStart,
+            attributeLength);
 
         return true;
     }
 
-    private static void ConsumeImageTrailingBlocks(string? suffix, ImageBlock image, MarkdownReaderOptions options, ref string? sizeSpec) {
-        var rest = suffix?.Trim();
-        while (!string.IsNullOrEmpty(rest) && rest![0] == '{') {
+    private static void ConsumeImageTrailingBlocks(
+        string? suffix,
+        int suffixStart,
+        ImageBlock image,
+        MarkdownReaderOptions options,
+        ref string? sizeSpec,
+        ref int? genericAttributeStart,
+        ref int? genericAttributeLength) {
+        suffix ??= string.Empty;
+        var restStart = 0;
+        while (restStart < suffix.Length && char.IsWhiteSpace(suffix[restStart])) {
+            restStart++;
+        }
+
+        while (restStart < suffix.Length && suffix[restStart] == '{') {
+            var rest = suffix.Substring(restStart);
             int close = MarkdownGenericAttributeParser.FindMatchingClosingBrace(rest, 0);
             if (close <= 0) {
                 break;
@@ -156,11 +203,16 @@ public static partial class MarkdownReader {
                 sizeSpec = block;
             } else if (options.GenericAttributes && MarkdownGenericAttributeParser.TryParseAttributeBlock(block, out var attributes)) {
                 image.SetAttributes(attributes);
+                genericAttributeStart = suffixStart + restStart;
+                genericAttributeLength = close + 1;
             } else {
                 break;
             }
 
-            rest = rest.Substring(close + 1).TrimStart();
+            restStart += close + 1;
+            while (restStart < suffix.Length && char.IsWhiteSpace(suffix[restStart])) {
+                restStart++;
+            }
         }
     }
 

@@ -200,6 +200,16 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocument_Renders_SoftBreak_As_Space() {
+        RtfDocument document = "Alpha\nBeta".ToRtfDocumentFromMarkdown();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Equal("Alpha Beta", paragraph.ToPlainText());
+        Assert.DoesNotContain(paragraph.Inlines, inline => inline is RtfBreak);
+    }
+
+    [Fact]
     public void MarkdownRtfMarkdownRoundTripKeepsFencedCodeBlocks() {
         string markdown = """
             ```csharp

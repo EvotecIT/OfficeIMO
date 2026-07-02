@@ -237,12 +237,14 @@ public static partial class MarkdownReader {
 
         var sourceText = cell.Markdown.Substring(attributeStart, attributeEnd - attributeStart + 1);
         var startColumn = cell.SourceSpan.StartColumn ?? 1;
+        var attributeStartColumn = AdvanceSourceColumn(startColumn, cell.Markdown, attributeStart);
+        var attributeEndColumn = AdvanceSourceColumn(startColumn, cell.Markdown, attributeEnd + 1) - 1;
         var attributeSpan = CreateSpan(
             state,
             cell.SourceSpan.StartLine,
-            startColumn + attributeStart,
+            attributeStartColumn,
             cell.SourceSpan.StartLine,
-            startColumn + attributeEnd);
+            attributeEndColumn);
 
         table.SetAttributes(attributes);
         MarkdownGenericAttributeSourceSpans.Set(table, sourceText, attributeSpan);

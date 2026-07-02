@@ -439,9 +439,9 @@ public sealed class MarkdownNativeHtmlBlock : MarkdownNativeBlock {
         Html = comment.Comment;
         IsComment = true;
         CommentBody = GetChildLiteral(syntaxNode, MarkdownSyntaxKind.HtmlCommentBody);
-        OpeningMarkerSourceSpan = comment.OpeningMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentOpeningMarker);
-        BodySourceSpan = comment.BodySourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentBody);
-        ClosingMarkerSourceSpan = comment.ClosingMarkerSourceSpan ?? GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentClosingMarker);
+        OpeningMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentOpeningMarker) ?? comment.OpeningMarkerSourceSpan;
+        BodySourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentBody) ?? comment.BodySourceSpan;
+        ClosingMarkerSourceSpan = GetChildSpan(syntaxNode, MarkdownSyntaxKind.HtmlCommentClosingMarker) ?? comment.ClosingMarkerSourceSpan;
     }
 
     /// <summary>Raw HTML or comment text.</summary>

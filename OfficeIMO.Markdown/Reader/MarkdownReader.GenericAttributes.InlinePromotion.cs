@@ -228,8 +228,8 @@ public static partial class MarkdownReader {
         }
 
         attributeSourceText = value.Substring(attributeStart, attributeEnd - attributeStart + 1);
-        attributeSpan = SliceSourceSpan(valueSourceSpan, attributeStart, attributeSourceText.Length);
-        remainingTextSpan = TrimSourceSpanToConsumedPrefix(valueSourceSpan, textWithoutAttributeBlock.Length);
+        attributeSpan = SliceSourceSpan(valueSourceSpan, value, attributeStart, attributeSourceText.Length);
+        remainingTextSpan = TrimSourceSpanToConsumedPrefix(valueSourceSpan, value, textWithoutAttributeBlock.Length);
         return !attributes.IsEmpty;
     }
 
@@ -248,7 +248,7 @@ public static partial class MarkdownReader {
         return false;
     }
 
-    private static MarkdownSourceSpan? SliceSourceSpan(MarkdownSourceSpan? span, int startIndex, int length) {
+    private static MarkdownSourceSpan? SliceSourceSpan(MarkdownSourceSpan? span, string? text, int startIndex, int length) {
         if (!span.HasValue || length <= 0) {
             return null;
         }
@@ -258,8 +258,8 @@ public static partial class MarkdownReader {
             return null;
         }
 
-        var startColumn = value.StartColumn.Value + startIndex;
-        var endColumn = startColumn + length - 1;
+        var startColumn = AdvanceSourceColumn(value.StartColumn.Value, text, startIndex);
+        var endColumn = AdvanceSourceColumn(value.StartColumn.Value, text, startIndex + length) - 1;
         int? startOffset = value.StartOffset.HasValue ? value.StartOffset.Value + startIndex : null;
         int? endOffset = startOffset.HasValue ? startOffset.Value + length - 1 : value.EndOffset;
         return new MarkdownSourceSpan(
@@ -271,8 +271,8 @@ public static partial class MarkdownReader {
             endOffset);
     }
 
-    private static MarkdownSourceSpan? TrimSourceSpanToConsumedPrefix(MarkdownSourceSpan? span, int consumedLength) =>
-        span.HasValue ? TrimSourceSpanToConsumedPrefix(span.Value, consumedLength) : null;
+    private static MarkdownSourceSpan? TrimSourceSpanToConsumedPrefix(MarkdownSourceSpan? span, string? text, int consumedLength) =>
+        span.HasValue ? TrimSourceSpanToConsumedPrefix(span.Value, text, consumedLength) : null;
 
     private static void CopyImageInlineSourceMetadata(ImageInline source, ImageInline target) {
         MarkdownInlineSourceSpans.Set(target, MarkdownInlineSourceSpans.Get(source));

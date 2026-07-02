@@ -41,6 +41,29 @@ public class Markdown_Native_Inline_Metadata_Tests {
     }
 
     [Fact]
+    public void GenericAttributes_Inline_Metadata_Uses_TabExpanded_Columns() {
+        const string markdown = "See [x](u){#id\t.wide} now\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var paragraph = Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(native.Blocks));
+        var link = Assert.Single(paragraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Link);
+        var attributes = Assert.Single(link.Metadata, metadata => metadata.Name == "attributes");
+
+        Assert.Equal("{#id\t.wide}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 11, 1, 22), attributes.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#id .wide}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("See [x](u){#id .wide} now\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void Subscript_Marker_Metadata_Is_Source_Addressable_In_Native_Projection_And_Snapshots() {
         const string markdown = "Water H~2~O and ~nested *em*~\n";
 

@@ -570,6 +570,9 @@ internal static class MarkdownToRtfConverter {
             case HardBreakInline:
                 paragraph.AddLineBreak();
                 break;
+            case SoftBreakInline:
+                AddStyledText(paragraph, " ", style, allowTextRunMerging);
+                break;
             case HtmlRawInline html:
                 AppendInlineRawHtml(paragraph, html.Html, options, style);
                 break;

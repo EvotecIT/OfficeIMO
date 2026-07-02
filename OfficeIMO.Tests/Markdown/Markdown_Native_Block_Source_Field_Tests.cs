@@ -170,6 +170,28 @@ public class Markdown_Native_Block_Source_Field_Tests {
     }
 
     [Fact]
+    public void GenericAttributes_Table_SourceField_Uses_TabExpanded_Columns() {
+        const string markdown = "| AB\t{#tbl} |\n|---|\n| B |\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            Tables = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+
+        Assert.Equal("{#tbl}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 14), attributes.SourceSpan);
+
+        var roundtrip = native.WriteWithSourceEdit(native.CreateReplaceEdit(attributes, "{#grid}"));
+
+        Assert.True(roundtrip.IsLossless);
+        Assert.Empty(roundtrip.Diagnostics);
+        Assert.Equal("| AB\t{#grid} |\n|---|\n| B |\n", roundtrip.Markdown);
+    }
+
+    [Fact]
     public void GenericAttributes_ListItem_SourceField_Is_Source_Addressable() {
         const string markdown = "- item {#li .selected}\n";
         var options = new MarkdownReaderOptions {
@@ -533,6 +555,24 @@ this comment
 
         var closingEdited = native.CreateReplaceEdit(closingMarker, "--!>").Apply(native.SourceMarkdown);
         Assert.Equal("<!-- keep\nthis comment\n--!>", closingEdited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
+    public void Nested_Html_Comment_SourceFields_Prefer_Remapped_Syntax_Spans() {
+        const string markdown = "> <!--x-->\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var quote = Assert.IsType<MarkdownNativeQuoteBlock>(Assert.Single(native.Blocks));
+        var comment = Assert.IsType<MarkdownNativeHtmlBlock>(Assert.Single(quote.Children));
+
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 6), comment.OpeningMarkerSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 7, 1, 7), comment.BodySourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 8, 1, 10), comment.ClosingMarkerSourceSpan);
+
+        var body = Assert.Single(comment.EnumerateSourceFields(), field => field.Name == "htmlCommentBody");
+        var edited = native.CreateReplaceEdit(body, "updated").Apply(native.SourceMarkdown);
+
+        Assert.Equal("> <!--updated-->\n", edited);
     }
 
     [Fact]
@@ -1323,6 +1363,31 @@ Lazy body
 
         var edited = native.CreateReplaceEdit(source, "/media/new.png").Apply(native.SourceMarkdown);
         Assert.Equal("![Alt text](/media/new.png \"Image title\")", edited.TrimEnd('\r', '\n'));
+    }
+
+    [Fact]
+    public void Image_GenericAttributes_SourceField_Is_Source_Addressable_After_RenderedMarkdown_Reparse() {
+        const string markdown = "![Alt](img.png){#hero\t.wide}\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            StandaloneImageBlocks = true
+        };
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var image = Assert.IsType<MarkdownNativeImageBlock>(Assert.Single(native.Blocks));
+
+        Assert.Equal("hero", image.Image.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, image.Image.Attributes.Classes.ToArray());
+
+        var attributes = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Same(image, attributes.Block);
+        Assert.Equal("{#hero\t.wide}", attributes.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 16, 1, 30), attributes.SourceSpan);
+
+        var edited = native.CreateReplaceEdit(attributes, "{#hero .narrow}").Apply(native.SourceMarkdown);
+
+        Assert.Equal("![Alt](img.png){#hero .narrow}\n", edited);
     }
 
     [Fact]
