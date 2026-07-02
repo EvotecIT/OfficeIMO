@@ -380,6 +380,23 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBookmarkOnlyParagraphBeforeNestedTable() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithBookmarkBeforeSimpleNestedTable();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            Assert.True(result.HasDocument);
+
+            WordTable outerTable = Assert.Single(result.Document.Tables);
+            WordTable nestedTable = Assert.Single(outerTable.Rows[0].Cells[0].NestedTables);
+            BookmarkStart bookmarkStart = Assert.IsType<BookmarkStart>(nestedTable._table.PreviousSibling());
+            BookmarkEnd bookmarkEnd = Assert.IsType<BookmarkEnd>(nestedTable._table.NextSibling());
+            Assert.Equal("NestedTableBookmark", bookmarkStart.Name?.Value);
+            Assert.Equal(bookmarkStart.Id?.Value, bookmarkEnd.Id?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ReportsDeepNestedTableDescriptors() {
             byte[] docBytes = LegacyDocTestBuilder.CreateUnicodeDocWithDeepNestedTableDescriptors();
 
@@ -1275,9 +1292,30 @@ namespace OfficeIMO.Tests {
                 using WordDocument document = WordDocument.Load(docPath);
 
                 Assert.True(document.WasLoadedFromLegacyDoc);
-                Assert.Equal(string.Empty, document.FilePath);
+                Assert.Equal(docPath, document.FilePath);
                 WordParagraph paragraph = Assert.Single(document.Paragraphs);
                 Assert.Equal("Normal load", paragraph.Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_NormalLoad_ParameterlessSaveWritesBackToSourceDocPath() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDoc("Normal save"));
+
+                using (WordDocument document = WordDocument.Load(docPath)) {
+                    document.AddParagraph("Saved back");
+                    document.Save();
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Normal save");
+                Assert.Contains(reloaded.Paragraphs, paragraph => paragraph.Text == "Saved back");
             } finally {
                 DeleteIfExists(docPath);
             }
@@ -2534,6 +2572,20 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_NormalLoad_RoutesSeekableDocStreamFromBeginningAndRestoresPosition() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDoc("Seekable legacy doc");
+            using var stream = new MemoryStream(docBytes);
+            stream.Position = stream.Length;
+
+            using WordDocument document = WordDocument.Load(stream);
+
+            Assert.True(document.WasLoadedFromLegacyDoc);
+            Assert.Equal(docBytes.Length, stream.Position);
+            WordParagraph paragraph = Assert.Single(document.Paragraphs, paragraph => !string.IsNullOrEmpty(paragraph.Text));
+            Assert.Equal("Seekable legacy doc", paragraph.Text);
+        }
+
+        [Fact]
         public void LegacyDoc_NormalLoad_BlocksAutoSaveForBufferedNonSeekableOpenXmlStream() {
             byte[] docxBytes;
             using (WordDocument document = WordDocument.Create()) {
@@ -2563,7 +2615,7 @@ namespace OfficeIMO.Tests {
                 using WordDocument reloaded = WordDocument.Load(docPath);
 
                 Assert.True(reloaded.WasLoadedFromLegacyDoc);
-                Assert.Equal(string.Empty, reloaded.FilePath);
+                Assert.Equal(docPath, reloaded.FilePath);
                 Assert.Empty(reloaded.LegacyDocUnsupportedFeatures);
                 string[] paragraphs = reloaded.Paragraphs
                     .Select(paragraph => paragraph.Text)
@@ -11499,6 +11551,32 @@ namespace OfficeIMO.Tests {
                 return package.ToArray();
             }
 
+            internal static byte[] CreateUnicodeDocWithBookmarkBeforeSimpleNestedTable() {
+                const string text = "Outer A\r\rInner A\r\r\aOuter B\a\a\r";
+                const int textOffset = 0x200;
+                const int papxFkpOffset = 0x400;
+                byte[] wordDocumentStream = CreateUnicodeWordDocumentStreamWithBookmarkedSimpleNestedTable(
+                    text,
+                    textOffset,
+                    papxFkpOffset);
+                byte[] tableStream = CreateUnicodeTableStreamWithParagraphBinTable(text.Length, textOffset, papxFkpOffset / 512);
+                AppendBookmarkTables(
+                    ref tableStream,
+                    wordDocumentStream,
+                    name: "NestedTableBookmark",
+                    startCharacter: "Outer A\r".Length,
+                    endCharacter: "Outer A\r".Length,
+                    terminalCharacter: text.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
             internal static byte[] CreateUnicodeDocWithDeepNestedTableDescriptors() {
                 const string text = "Outer A\rInner A\r\r\aOuter B\a\a\r";
                 const int textOffset = 0x200;
@@ -13567,6 +13645,126 @@ namespace OfficeIMO.Tests {
                 }
 
                 return stream;
+            }
+
+            private static byte[] CreateUnicodeWordDocumentStreamWithBookmarkedSimpleNestedTable(
+                string text,
+                int textOffset,
+                int papxFkpOffset) {
+                const int fibLength = 0x1AA;
+                byte[] textBytes = Encoding.Unicode.GetBytes(text);
+                var stream = new byte[Math.Max(papxFkpOffset + 512, textOffset + textBytes.Length)];
+                WriteUInt16(stream, 0x00, 0xA5EC);
+                WriteUInt16(stream, 0x02, 0x00D9);
+                WriteUInt16(stream, 0x0A, 0x0200);
+                WriteInt32(stream, 0x4C, text.Length);
+                WriteInt32(stream, 0x102, 21);
+                WriteInt32(stream, 0x106, 12);
+                WriteInt32(stream, 0x1A2, 0);
+                WriteInt32(stream, 0x1A6, 21);
+                Buffer.BlockCopy(textBytes, 0, stream, textOffset, textBytes.Length);
+
+                int[] paragraphEnds = GetFirstTableParagraphEnds(text, textOffset, 8);
+                int end = textOffset + (text.Length * 2);
+                byte[] outerCellPapx = CreateParagraphPropertiesPapx(CreateParagraphSprm(0x2416, 1));
+                byte[] innerCellPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateInt32ParagraphSprm(0x6649, 2),
+                    CreateParagraphSprm(0x244B, 1));
+                byte[] innerTerminatingPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateInt32ParagraphSprm(0x6649, 2),
+                    CreateParagraphSprm(0x244B, 1),
+                    CreateParagraphSprm(0x244C, 1));
+                byte[] outerRowPapx = CreateParagraphPropertiesPapx(
+                    CreateParagraphSprm(0x2416, 1),
+                    CreateParagraphSprm(0x2417, 1),
+                    CreateTableDefinitionSprm(new[] { 1440, 2880 }));
+                WritePapxFkp(
+                    stream,
+                    papxFkpOffset,
+                    new[] {
+                        textOffset,
+                        paragraphEnds[0],
+                        paragraphEnds[1],
+                        paragraphEnds[2],
+                        paragraphEnds[3],
+                        paragraphEnds[4],
+                        paragraphEnds[5],
+                        paragraphEnds[6],
+                        paragraphEnds[7],
+                        end
+                    },
+                    new Dictionary<int, byte[]> {
+                        [0] = outerCellPapx,
+                        [1] = outerCellPapx,
+                        [2] = innerCellPapx,
+                        [3] = innerTerminatingPapx,
+                        [4] = outerCellPapx,
+                        [5] = outerCellPapx,
+                        [6] = outerRowPapx
+                    },
+                    initialPapxOffset: 0x120);
+
+                if (stream.Length < fibLength) {
+                    Array.Resize(ref stream, fibLength);
+                }
+
+                return stream;
+            }
+
+            private static void AppendBookmarkTables(
+                ref byte[] tableStream,
+                byte[] wordDocumentStream,
+                string name,
+                int startCharacter,
+                int endCharacter,
+                int terminalCharacter) {
+                byte[] nameTable = CreateBookmarkNameTable(name);
+                byte[] startPlc = CreateBookmarkStartPlc(startCharacter, terminalCharacter);
+                byte[] endPlc = CreateBookmarkEndPlc(endCharacter, terminalCharacter);
+
+                int nameTableOffset = tableStream.Length;
+                int startPlcOffset = nameTableOffset + nameTable.Length;
+                int endPlcOffset = startPlcOffset + startPlc.Length;
+                Array.Resize(ref tableStream, endPlcOffset + endPlc.Length);
+                Buffer.BlockCopy(nameTable, 0, tableStream, nameTableOffset, nameTable.Length);
+                Buffer.BlockCopy(startPlc, 0, tableStream, startPlcOffset, startPlc.Length);
+                Buffer.BlockCopy(endPlc, 0, tableStream, endPlcOffset, endPlc.Length);
+
+                WriteInt32(wordDocumentStream, 0x142, nameTableOffset);
+                WriteInt32(wordDocumentStream, 0x146, nameTable.Length);
+                WriteInt32(wordDocumentStream, 0x14A, startPlcOffset);
+                WriteInt32(wordDocumentStream, 0x14E, startPlc.Length);
+                WriteInt32(wordDocumentStream, 0x152, endPlcOffset);
+                WriteInt32(wordDocumentStream, 0x156, endPlc.Length);
+            }
+
+            private static byte[] CreateBookmarkNameTable(string name) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0xFFFF);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, checked((ushort)name.Length));
+                byte[] nameBytes = Encoding.Unicode.GetBytes(name);
+                stream.Write(nameBytes, 0, nameBytes.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] CreateBookmarkStartPlc(int startCharacter, int terminalCharacter) {
+                var plc = new byte[12];
+                WriteInt32(plc, 0, startCharacter);
+                WriteInt32(plc, 4, terminalCharacter);
+                WriteUInt16(plc, 8, 0);
+                WriteUInt16(plc, 10, 0);
+                return plc;
+            }
+
+            private static byte[] CreateBookmarkEndPlc(int endCharacter, int terminalCharacter) {
+                var plc = new byte[8];
+                WriteInt32(plc, 0, endCharacter);
+                WriteInt32(plc, 4, terminalCharacter);
+                return plc;
             }
 
             private static byte[] CreateTableCellPaddingSprm(ushort sprm, byte itcFirst, byte itcLim, byte sideMask, ushort widthTwips) {

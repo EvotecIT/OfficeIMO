@@ -55,7 +55,7 @@ namespace OfficeIMO.Word {
                 throw new InvalidDataException("Legacy DOC import failed: " + FormatLegacyDocDiagnostics(errors));
             }
 
-            WordDocument projectedDocument = ProjectLoadedLegacyDocDocument(document, sourcePath);
+            WordDocument projectedDocument = ProjectLoadedLegacyDocDocument(document, sourcePath, attachSourcePathForSave: sourcePath != null);
             return readOnly
                 ? ReopenProjectedLegacyDocReadOnly(projectedDocument, sourcePath, document)
                 : projectedDocument;
@@ -71,7 +71,7 @@ namespace OfficeIMO.Word {
                 WordDocument readOnlyDocument = Load(packageStream, readOnly: true);
                 readOnlyDocument.OriginalStream = null!;
                 readOnlyDocument._ownedPackageStream = packageStream;
-                readOnlyDocument.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
+                readOnlyDocument.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave: sourcePath != null);
                 return readOnlyDocument;
             } catch {
                 packageStream.Dispose();
@@ -82,13 +82,16 @@ namespace OfficeIMO.Word {
 
         private static LegacyDocLoadResult CreateLegacyDocLoadResult(LegacyDocDocument legacyDocument, string? sourcePath) {
             try {
-                return new LegacyDocLoadResult(ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath), legacyDocument);
+                return new LegacyDocLoadResult(ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath, attachSourcePathForSave: false), legacyDocument);
             } catch (InvalidDataException exception) {
                 return new LegacyDocLoadResult(document: null, legacyDocument, exception);
             }
         }
 
-        private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath) {
+        private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath) =>
+            ProjectLoadedLegacyDocDocument(legacyDocument, sourcePath, attachSourcePathForSave: false);
+
+        private static WordDocument ProjectLoadedLegacyDocDocument(LegacyDocDocument legacyDocument, string? sourcePath, bool attachSourcePathForSave) {
             LegacyDocImportDiagnostic[] errors = legacyDocument.Diagnostics
                 .Where(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error)
                 .ToArray();
@@ -128,7 +131,7 @@ namespace OfficeIMO.Word {
 
             ApplyLegacyDocDocumentOptions(document, legacyDocument);
             AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories, legacyDocument.StyleSheet);
-            document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument);
+            document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
             return document;
         }
 
@@ -767,7 +770,8 @@ namespace OfficeIMO.Word {
                         sourceCell.Paragraphs,
                         index,
                         styleSheet,
-                        notes);
+                        notes,
+                        pendingBookmarks);
                     emittedParagraph = true;
                     pendingBookmarks.Clear();
                     pendingBookmarkStartCharacter = int.MaxValue;

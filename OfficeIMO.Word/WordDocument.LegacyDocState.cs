@@ -27,12 +27,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<LegacyDocUnsupportedFeature> LegacyDocUnsupportedFeatures => _legacyDocUnsupportedFeatures;
 
-        internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document) {
+        internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document, bool attachSourcePathForSave = false) {
             WasLoadedFromLegacyDoc = true;
             _legacyDocSourcePath = sourcePath;
             _legacyDocImportDiagnostics = document.Diagnostics.ToArray();
             _legacyDocUnsupportedFeatures = document.UnsupportedFeatures.ToArray();
-            FilePath = string.Empty;
+            FilePath = attachSourcePathForSave && sourcePath != null
+                ? sourcePath
+                : string.Empty;
         }
     }
 }

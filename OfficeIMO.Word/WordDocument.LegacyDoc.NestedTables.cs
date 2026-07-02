@@ -1,4 +1,5 @@
 using OfficeIMO.Word.LegacyDoc.Model;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -13,7 +14,8 @@ namespace OfficeIMO.Word {
             IReadOnlyList<LegacyDocTableCellParagraph> paragraphs,
             int startIndex,
             LegacyDocStyleSheet styleSheet,
-            LegacyDocNoteProjection notes) {
+            LegacyDocNoteProjection notes,
+            IReadOnlyList<LegacyDocBookmark>? pendingBookmarks = null) {
             var rows = new List<List<List<LegacyDocTableCellParagraph>>>();
             var currentRow = new List<List<LegacyDocTableCellParagraph>>();
             var currentCell = new List<LegacyDocTableCellParagraph>();
@@ -59,6 +61,7 @@ namespace OfficeIMO.Word {
 
             int columnCount = rows.Max(row => row.Count);
             WordTable nestedTable = hostCell.AddTable(rows.Count, columnCount, WordTableStyle.TableNormal);
+            AddPendingBookmarksAroundNestedTable(nestedTable, pendingBookmarks);
             for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
                 List<List<LegacyDocTableCellParagraph>> row = rows[rowIndex];
                 for (int columnIndex = 0; columnIndex < row.Count; columnIndex++) {
@@ -76,6 +79,26 @@ namespace OfficeIMO.Word {
             void CloseNestedCell() {
                 currentRow.Add(currentCell);
                 currentCell = new List<LegacyDocTableCellParagraph>();
+            }
+        }
+
+        private static void AddPendingBookmarksAroundNestedTable(WordTable nestedTable, IReadOnlyList<LegacyDocBookmark>? pendingBookmarks) {
+            if (pendingBookmarks == null || pendingBookmarks.Count == 0 || nestedTable._table.Parent is not OpenXmlCompositeElement parent) {
+                return;
+            }
+
+            foreach (LegacyDocBookmark bookmark in pendingBookmarks
+                .OrderByDescending(bookmark => bookmark.EndCharacter)
+                .ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
+                parent.InsertBefore(new BookmarkStart { Id = bookmark.ProjectionId, Name = bookmark.Name }, nestedTable._table);
+            }
+
+            OpenXmlElement afterAnchor = nestedTable._table;
+            foreach (LegacyDocBookmark bookmark in pendingBookmarks
+                .OrderBy(bookmark => bookmark.StartCharacter)
+                .ThenByDescending(bookmark => bookmark.EndCharacter)
+                .ThenBy(bookmark => bookmark.Name, StringComparer.Ordinal)) {
+                afterAnchor = parent.InsertAfter(new BookmarkEnd { Id = bookmark.ProjectionId }, afterAnchor)!;
             }
         }
     }

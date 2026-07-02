@@ -519,13 +519,16 @@ namespace OfficeIMO.Word {
 
             if (stream.CanSeek) {
                 long originalPosition = stream.Position;
+                stream.Seek(0, SeekOrigin.Begin);
                 byte[] signature = ReadSignaturePrefix(stream);
-                stream.Position = originalPosition;
                 if (WordDocumentLoadRouting.HasLegacyDocSignature(signature)) {
+                    stream.Seek(0, SeekOrigin.Begin);
                     byte[] sourceBytes = ReadRemainingBytes(stream);
-                    stream.Position = originalPosition;
+                    stream.Seek(originalPosition, SeekOrigin.Begin);
                     return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
                 }
+
+                stream.Seek(originalPosition, SeekOrigin.Begin);
             } else {
                 bufferedOpenXmlStream = new MemoryStream();
                 stream.CopyTo(bufferedOpenXmlStream);
