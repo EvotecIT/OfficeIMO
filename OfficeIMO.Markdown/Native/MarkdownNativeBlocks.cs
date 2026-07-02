@@ -85,7 +85,7 @@ public sealed class MarkdownNativeParagraphBlock : MarkdownNativeBlock {
         Inlines = paragraph.Inlines;
         InlineRuns = MarkdownNativeInlineProjection.FromInlineContainer(syntaxNode);
         Text = InlinePlainText.Extract(paragraph.Inlines);
-        TextSourceSpan = syntaxNode.SourceSpan ?? paragraph.SourceSpan;
+        TextSourceSpan = GetParagraphTextSourceSpan(syntaxNode) ?? paragraph.SourceSpan;
     }
 
     /// <summary>Source paragraph block.</summary>
@@ -102,6 +102,17 @@ public sealed class MarkdownNativeParagraphBlock : MarkdownNativeBlock {
 
     /// <summary>AST-backed native inline projection with source spans.</summary>
     public IReadOnlyList<MarkdownNativeInline> InlineRuns { get; }
+
+    private static MarkdownSourceSpan? GetParagraphTextSourceSpan(MarkdownSyntaxNode syntaxNode) {
+        if (syntaxNode.Children.Count == 0) {
+            return syntaxNode.SourceSpan;
+        }
+
+        var contentChildren = syntaxNode.Children
+            .Where(static child => child.Kind != MarkdownSyntaxKind.GenericAttributeBlock)
+            .ToArray();
+        return MarkdownBlockSyntaxBuilder.GetAggregateSpan(contentChildren) ?? syntaxNode.SourceSpan;
+    }
 }
 
 /// <summary>

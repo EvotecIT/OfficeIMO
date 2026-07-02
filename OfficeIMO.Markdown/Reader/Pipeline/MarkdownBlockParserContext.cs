@@ -146,8 +146,8 @@ public sealed class MarkdownBlockParserContext {
             throw new ArgumentOutOfRangeException(nameof(lineCount), lineCount, "Line count must be greater than zero.");
         }
 
-        var startLine = State.SourceLineOffset + LineIndex + relativeStartLine + 1;
-        var endLine = startLine + lineCount - 1;
+        var startLine = ResolveAbsoluteLine(relativeStartLine);
+        var endLine = ResolveAbsoluteLine(relativeStartLine + lineCount - 1);
         return State.SourceTextMap?.CreateLineSpan(startLine, endLine) ?? new MarkdownSourceSpan(startLine, endLine);
     }
 
@@ -164,8 +164,8 @@ public sealed class MarkdownBlockParserContext {
         int startColumn,
         int relativeEndLine,
         int endColumn) {
-        var startLine = State.SourceLineOffset + LineIndex + relativeStartLine + 1;
-        var endLine = State.SourceLineOffset + LineIndex + relativeEndLine + 1;
+        var startLine = ResolveAbsoluteLine(relativeStartLine);
+        var endLine = ResolveAbsoluteLine(relativeEndLine);
         return State.SourceTextMap?.CreateSpan(startLine, startColumn, endLine, endColumn)
                ?? new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
     }
@@ -220,10 +220,12 @@ public sealed class MarkdownBlockParserContext {
         var text = line.Substring(startIndex, safeLength);
         MarkdownInlineSourceMap? sourceMap = null;
         if (State.SourceTextMap != null) {
-            var absoluteLine = State.SourceLineOffset + LineIndex + relativeLine + 1;
+            var absoluteLine = ResolveAbsoluteLine(relativeLine);
             var points = new MarkdownSourcePoint?[text.Length];
+            var sourceColumn = startColumn;
             for (var i = 0; i < text.Length; i++) {
-                points[i] = State.SourceTextMap.CreatePoint(absoluteLine, startColumn + i);
+                points[i] = State.SourceTextMap.CreatePoint(absoluteLine, sourceColumn);
+                sourceColumn = MarkdownSourceColumns.AdvanceColumn(sourceColumn, text[i]);
             }
 
             sourceMap = new MarkdownInlineSourceMap(points);
@@ -238,6 +240,19 @@ public sealed class MarkdownBlockParserContext {
     /// </summary>
     public IReadOnlyList<IMarkdownBlock> ParseNestedBlocks(int relativeStartLine, int lineCount) =>
         MarkdownReader.ParseNestedBlocksFromLineRange(_lines, LineIndex + relativeStartLine, lineCount, Options, State);
+
+    private int ResolveAbsoluteLine(int relativeLine) {
+        var localLineIndex = LineIndex + relativeLine;
+        var absoluteLines = State.SourceLineAbsoluteNumbers;
+        if (absoluteLines != null
+            && localLineIndex >= 0
+            && localLineIndex < absoluteLines.Count
+            && absoluteLines[localLineIndex] > 0) {
+            return absoluteLines[localLineIndex];
+        }
+
+        return State.SourceLineOffset + localLineIndex + 1;
+    }
 }
 
 /// <summary>

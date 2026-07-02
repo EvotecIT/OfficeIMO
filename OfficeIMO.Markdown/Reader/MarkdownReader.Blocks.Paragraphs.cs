@@ -1038,14 +1038,16 @@ public static partial class MarkdownReader {
                 hasFollowingLine: i + 1 < lines.Count,
                 preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
             textBuilder.Append(joinInfo.Text);
+            var sourceColumn = lineStartColumn;
             for (var charIndex = 0; charIndex < joinInfo.Text.Length; charIndex++) {
-                pointList.Add(state.SourceTextMap.CreatePoint(absoluteLine, lineStartColumn + charIndex));
+                pointList.Add(state.SourceTextMap.CreatePoint(absoluteLine, sourceColumn));
                 tokenSpanList.Add(null);
                 tokenLiteralList.Add(null);
+                sourceColumn = MarkdownSourceColumns.AdvanceColumn(sourceColumn, joinInfo.Text[charIndex]);
             }
 
             previousAbsoluteLine = absoluteLine;
-            previousJoinColumn = Math.Max(lineStartColumn, lineStartColumn + joinInfo.Text.Length - 1);
+            previousJoinColumn = Math.Max(lineStartColumn, sourceColumn - 1);
             previousJoinInfo = joinInfo;
         }
 
@@ -1100,7 +1102,7 @@ public static partial class MarkdownReader {
                 var softLazyQuoteBreak = IsLazyQuoteSoftBreak(previousLine.Value, slice) &&
                     !previousJoinInfo.Value.HardBreak;
                 textBuilder.Append(previousJoinInfo.Value.UsesLineBreakSeparator || softLazyQuoteBreak ? '\n' : ' ');
-                var previousJoinColumn = previousLine.Value.StartColumn + Math.Max(0, previousJoinInfo.Value.Text.Length - 1);
+                var previousJoinColumn = GetEndColumn(previousLine.Value.StartColumn, previousJoinInfo.Value.Text);
                 points.Add(state.SourceTextMap.CreatePoint(previousLine.Value.AbsoluteLine, previousJoinColumn));
                 tokenSpans.Add(previousJoinInfo.Value.HardBreak
                     ? previousJoinInfo.Value.HardBreakMarkerSpan
@@ -1128,10 +1130,12 @@ public static partial class MarkdownReader {
                 hasFollowingLine: i + 1 < lines.Count,
                 preserveLineEndingInsideInlineSpan: i < preservedInlineLineBreaks.Length && preservedInlineLineBreaks[i]);
             textBuilder.Append(joinInfo.Text);
+            var sourceColumn = slice.StartColumn;
             for (var charIndex = 0; charIndex < joinInfo.Text.Length; charIndex++) {
-                points.Add(state.SourceTextMap.CreatePoint(slice.AbsoluteLine, slice.StartColumn + charIndex));
+                points.Add(state.SourceTextMap.CreatePoint(slice.AbsoluteLine, sourceColumn));
                 tokenSpans.Add(null);
                 tokenLiterals.Add(null);
+                sourceColumn = MarkdownSourceColumns.AdvanceColumn(sourceColumn, joinInfo.Text[charIndex]);
             }
 
             previousLine = slice;
@@ -1201,11 +1205,26 @@ public static partial class MarkdownReader {
         }
 
         var points = new MarkdownSourcePoint?[text.Length];
+        var sourceColumn = startColumn;
         for (var i = 0; i < text.Length; i++) {
-            points[i] = state.SourceTextMap.CreatePoint(absoluteLine, startColumn + i);
+            points[i] = state.SourceTextMap.CreatePoint(absoluteLine, sourceColumn);
+            sourceColumn = MarkdownSourceColumns.AdvanceColumn(sourceColumn, text[i]);
         }
 
         return new MarkdownInlineSourceMap(points);
+    }
+
+    private static int GetEndColumn(int startColumn, string? text) {
+        if (string.IsNullOrEmpty(text)) {
+            return startColumn;
+        }
+
+        var sourceColumn = startColumn;
+        for (var i = 0; i < text!.Length; i++) {
+            sourceColumn = MarkdownSourceColumns.AdvanceColumn(sourceColumn, text[i]);
+        }
+
+        return Math.Max(startColumn, sourceColumn - 1);
     }
 
     private static string ConsumeTrailingBackslashHardBreak(string trimmed, MarkdownReaderOptions options, out bool hardBreak) {

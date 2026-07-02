@@ -24,7 +24,12 @@ internal static class MarkdownAttributeBlockRenderer {
         var hasToken = false;
         if (!string.IsNullOrWhiteSpace(attributes.ElementId)) {
             AppendSeparator(builder, ref hasToken);
-            builder.Append('#').Append(attributes.ElementId!.Trim());
+            var elementId = attributes.ElementId!.Trim();
+            if (CanRenderAsShorthandId(elementId)) {
+                builder.Append('#').Append(elementId);
+            } else {
+                builder.Append("id=").Append(Quote(elementId));
+            }
         }
 
         for (int i = 0; i < attributes.Classes.Count; i++) {
@@ -64,6 +69,21 @@ internal static class MarkdownAttributeBlockRenderer {
         }
 
         hasToken = true;
+    }
+
+    private static bool CanRenderAsShorthandId(string value) {
+        if (value.Length <= 1) {
+            return false;
+        }
+
+        for (var i = 0; i < value.Length; i++) {
+            var ch = value[i];
+            if (char.IsWhiteSpace(ch) || ch is '{' or '}' or '"' or '\'') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static string Quote(string? value) {

@@ -77,6 +77,18 @@ Paragraph line
     }
 
     [Fact]
+    public void Block_Parser_Context_SourceSpans_Use_Absolute_Lines_In_Nested_Parses() {
+        const string markdown = "> :::panel Ops\r\n> Body\r\n> :::\r\n";
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, CreateOptions());
+
+        var panel = Assert.Single(result.Document.DescendantsOfType<PanelBlock>());
+        Assert.NotNull(panel.ParserSourceSpan);
+        Assert.Equal(1, panel.ParserSourceSpan.Value.StartLine);
+        Assert.Equal(3, panel.ParserSourceSpan.Value.EndLine);
+    }
+
+    [Fact]
     public void Block_Parser_Context_Can_Create_Normalized_SourceSlices_For_Custom_Parsers() {
         const string markdown = "::claim alpha\r\ncontinued\r\n\r\n";
         MarkdownSourceSlice sourceSlice = default;

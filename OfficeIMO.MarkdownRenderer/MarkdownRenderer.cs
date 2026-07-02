@@ -18,6 +18,10 @@ public static partial class MarkdownRenderer {
         ICollection<MarkdownRendererPreProcessorDiagnostic>? preProcessorDiagnostics = null) {
         if (diagnostics == null && preProcessorDiagnostics == null) {
             options ??= new MarkdownRendererOptions();
+            if (options.DocumentTransforms.Count > 0) {
+                return ParseDocumentResult(markdown, options).Document;
+            }
+
             var readerOptions = CreateEffectiveReaderOptions(options);
             markdown = PrepareMarkdown(markdown, options, renderErrorAsException: true);
             var doc = MarkdownReader.Parse(markdown, readerOptions);
