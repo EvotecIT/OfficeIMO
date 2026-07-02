@@ -146,7 +146,7 @@ public static partial class MarkdownReader {
     private static void ConsumeImageTrailingBlocks(string? suffix, ImageBlock image, MarkdownReaderOptions options, ref string? sizeSpec) {
         var rest = suffix?.Trim();
         while (!string.IsNullOrEmpty(rest) && rest![0] == '{') {
-            int close = rest.IndexOf('}');
+            int close = MarkdownGenericAttributeParser.FindMatchingClosingBrace(rest, 0);
             if (close <= 0) {
                 break;
             }

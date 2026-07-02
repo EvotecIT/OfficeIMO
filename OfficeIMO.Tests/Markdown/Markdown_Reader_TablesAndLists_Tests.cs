@@ -94,6 +94,43 @@ First paragraph
         }
 
         [Fact]
+        public void Standalone_Image_Trailing_GenericAttributes_Parse_Quoted_Braces() {
+            const string md = "![alt](img.png){title=\"a}b\"}{width=320}";
+            var options = MarkdownReaderOptions.CreatePortableProfile();
+            options.GenericAttributes = true;
+            options.StandaloneImageBlocks = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var image = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Equal("a}b", image.Attributes.Attributes["title"]);
+            Assert.Equal(320, image.Width);
+            Assert.Contains("{title=\"a}b\"}", doc.ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_RenderMarkdown_Escapes_Pipes_In_GenericAttribute_Suffix() {
+            const string md = """
+{title="a|b"}
+| A |
+| --- |
+| B |
+""";
+            var options = MarkdownReaderOptions.CreatePortableProfile();
+            options.GenericAttributes = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var written = doc.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" });
+
+            Assert.Contains("{title=\"a\\|b\"}", written, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(written, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
+            Assert.Single(table.Headers);
+            Assert.Equal("a|b", table.Attributes.Attributes["title"]);
+        }
+
+        [Fact]
         public void Structured_Table_Cells_Preserve_Autolink_Rejection_Options_When_Reparsed() {
             const string md = """
 | Col |

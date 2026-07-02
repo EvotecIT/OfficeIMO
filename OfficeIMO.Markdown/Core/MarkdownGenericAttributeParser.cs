@@ -234,7 +234,7 @@ internal static class MarkdownGenericAttributeParser {
         return -1;
     }
 
-    private static int FindMatchingClosingBrace(string value, int openingBraceIndex) {
+    internal static int FindMatchingClosingBrace(string value, int openingBraceIndex) {
         char quote = '\0';
         int depth = 0;
 
@@ -328,7 +328,7 @@ internal static class MarkdownGenericAttributeParser {
         var builder = new StringBuilder(value.Length);
         for (int i = 0; i < value.Length; i++) {
             var ch = value[i];
-            if (ch == '\\' && i + 1 < value.Length && (value[i + 1] == quote || value[i + 1] == '\\')) {
+            if (ch == '\\' && i + 1 < value.Length && (value[i + 1] == quote || value[i + 1] == '\\' || value[i + 1] == '|')) {
                 builder.Append(value[i + 1]);
                 i++;
                 continue;

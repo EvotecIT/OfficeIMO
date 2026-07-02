@@ -292,7 +292,7 @@ public sealed partial class TableBlock : MarkdownBlock, IMarkdownBlock, ISyntaxM
             return;
         }
 
-        cells[0] = (cells[0] ?? string.Empty) + MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
+        cells[0] = (cells[0] ?? string.Empty) + EscapeRenderedMarkdownCell(MarkdownAttributeBlockRenderer.RenderTrailing(Attributes));
     }
 
     private IReadOnlyList<TableCell>? GetCurrentStructuredHeaders() {

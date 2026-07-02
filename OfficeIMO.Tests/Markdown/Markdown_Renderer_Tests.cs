@@ -741,6 +741,26 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void InlineNormalization_Preserves_Heading_GenericAttributes() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        }));
+
+        var document = MarkdownReader.Parse("# Key:value {#heading}", options);
+
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("heading", heading.Attributes.ElementId);
+        Assert.Equal("# Key: value {#heading}", document.ToMarkdown().Trim());
+        Assert.Contains("<h1 id=\"heading\">Key: value</h1>", document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void InlineSequence_Inserted_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Ins() {
         var document = new MarkdownDoc()
             .Add(new ParagraphBlock(new InlineSequence()

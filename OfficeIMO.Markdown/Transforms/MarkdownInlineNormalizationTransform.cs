@@ -73,9 +73,17 @@ public sealed class MarkdownInlineNormalizationTransform : IMarkdownDocumentTran
                 MarkdownReader.NormalizeInlineSequenceInPlace(paragraph.Inlines, Options);
                 return paragraph;
             case HeadingBlock heading:
-                return MarkdownReader.NormalizeInlineSequenceInPlace(heading.Inlines, Options)
-                    ? new HeadingBlock(heading.Level, heading.Inlines)
-                    : heading;
+                if (!MarkdownReader.NormalizeInlineSequenceInPlace(heading.Inlines, Options)) {
+                    return heading;
+                }
+
+                var normalizedHeading = new HeadingBlock(heading.Level, heading.Inlines);
+                normalizedHeading.SetAttributes(heading.Attributes);
+                if (heading.SuppressAutoIdentifier) {
+                    normalizedHeading.SuppressAutomaticIdentifier();
+                }
+
+                return normalizedHeading;
             case SummaryBlock summary:
                 MarkdownReader.NormalizeInlineSequenceInPlace(summary.Inlines, Options);
                 return summary;
