@@ -226,7 +226,9 @@ namespace OfficeIMO.Word {
                         Open(filePath, true);
                     }
 
-                    return WordDocument.Load(filePath);
+                    WordDocument savedDocument = WordDocument.Load(filePath);
+                    savedDocument.FilePath = filePath;
+                    return savedDocument;
                 }
 
                 _wordprocessingDocument.Save();

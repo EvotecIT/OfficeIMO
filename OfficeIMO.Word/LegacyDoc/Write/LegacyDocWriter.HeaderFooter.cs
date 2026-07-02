@@ -211,7 +211,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
         private static LegacyDocWritableHeaderFooterStory? ReadSimpleHeaderFooterStory(OpenXmlCompositeElement? container, OpenXmlPartContainer relationshipOwner, string kind, IReadOnlyDictionary<string, ushort> styleIndexes) {
             if (container == null || !container.HasChildren) {
-                return null;
+                return LegacyDocWritableHeaderFooterStory.Empty;
             }
 
             var paragraphs = new List<string>();
@@ -225,7 +225,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             bool hasVisibleText = paragraphs.Any(paragraph => paragraph.Length > 0);
             if (!hasVisibleText && !bookmarks.HasBookmarkMarkers) {
-                return null;
+                return LegacyDocWritableHeaderFooterStory.Empty;
             }
 
             storyText.Append('\r');

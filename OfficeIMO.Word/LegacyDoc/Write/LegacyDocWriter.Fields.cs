@@ -22,7 +22,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedText(text, runs, LegacyDocField.Begin.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
             AppendFormattedText(text, runs, instruction, LegacyDocWritableFormatting.Plain);
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
-            AppendFormattedText(text, runs, resultText.Length == 0 ? "1" : resultText, formatting);
+            AppendFormattedText(text, runs, resultText, formatting);
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
         }
 
@@ -40,7 +40,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
             AppendFormattedText(text, runs, LegacyDocField.Separator.ToString(), LegacyDocWritableFormatting.SpecialCharacter);
             int resultStartCharacter = characterOffset + text.Length;
             AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: 0);
-            string safeResultText = resultText.Length == 0 ? "1" : resultText;
+            string safeResultText = resultText;
             AppendFormattedText(text, runs, safeResultText, formatting);
             AddSimpleFieldBookmarkMarkers(bookmarks, bookmarkMarkers, resultStartCharacter, resultOffset: safeResultText.Length);
             AppendFormattedText(text, runs, LegacyDocField.End.ToString(), LegacyDocWritableFormatting.SpecialCharacter);

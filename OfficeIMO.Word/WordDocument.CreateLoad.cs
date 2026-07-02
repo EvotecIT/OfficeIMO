@@ -534,6 +534,10 @@ namespace OfficeIMO.Word {
                     return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
                 }
 
+                if (effectiveOpenSettings.AutoSave) {
+                    throw new NotSupportedException("Auto-save is not supported when loading non-seekable streams. Load the document with auto-save disabled, then save explicitly to a file path or writable stream.");
+                }
+
                 bufferedOpenXmlStream.Seek(0, SeekOrigin.Begin);
                 packageStream = bufferedOpenXmlStream;
             }

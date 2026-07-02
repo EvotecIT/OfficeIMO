@@ -297,6 +297,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_SaveDocPath_PreservesEmptyNonPageFieldResultsInNativeDoc() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    AppendSimpleField(document.AddParagraph("Empty date ")._paragraph, " DATE \\@ \"yyyy-MM-dd\" ", string.Empty);
+                    AppendComplexField(document.AddParagraph("Empty property ")._paragraph, " DOCPROPERTY \"ClientName\" ", string.Empty);
+
+                    document.Save(docPath);
+                }
+
+                string wordDocumentAscii = Encoding.ASCII.GetString(ReadCompoundStream(File.ReadAllBytes(docPath), "WordDocument"));
+                Assert.Contains("DATE", wordDocumentAscii);
+                Assert.Contains("DOCPROPERTY", wordDocumentAscii);
+                Assert.Contains("\u0014\u0015", wordDocumentAscii);
+                Assert.DoesNotContain("\u00141\u0015", wordDocumentAscii);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocInlineContentControlStaticDateTimeFieldsAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 

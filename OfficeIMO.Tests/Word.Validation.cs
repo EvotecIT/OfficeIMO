@@ -50,6 +50,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_RemoveBookmarkAcrossTableParagraphs_RemovesStartAndEnd() {
+            string filePath = Path.Combine(_directoryWithFiles, "RemoveBookmarkAcrossTableParagraphs.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTable table = document.AddTable(1, 1);
+                WordParagraph firstParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+                firstParagraph._paragraph.Append(
+                    new BookmarkStart { Id = "900", Name = "TableSpanBookmark" },
+                    new Run(new Text("Start")));
+                WordParagraph secondParagraph = table.Rows[0].Cells[0].AddParagraph("End");
+                secondParagraph._paragraph.Append(new BookmarkEnd { Id = "900" });
+
+                WordBookmark bookmark = Assert.Single(document.Sections[0].Bookmarks, item => item.Name == "TableSpanBookmark");
+                bookmark.Remove();
+
+                Assert.DoesNotContain(document._document.Body!.Descendants<BookmarkStart>(), bookmarkStart => bookmarkStart.Id == "900");
+                Assert.DoesNotContain(document._document.Body!.Descendants<BookmarkEnd>(), bookmarkEnd => bookmarkEnd.Id == "900");
+            }
+        }
+
+        [Fact]
         public void Test_ListRestartNumberingAddsNamespace() {
             string filePath = Path.Combine(_directoryWithFiles, "RestartNumberingNamespace.docx");
             using (WordDocument document = WordDocument.Create(filePath)) {

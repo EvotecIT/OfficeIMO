@@ -2453,6 +2453,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_NormalLoad_BlocksAutoSaveForBufferedNonSeekableOpenXmlStream() {
+            byte[] docxBytes;
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("Non-seekable Open XML package");
+                docxBytes = document.SaveAsByteArray();
+            }
+
+            using var stream = new NonSeekableReadStream(docxBytes);
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Load(stream, autoSave: true));
+
+            Assert.Contains("Auto-save is not supported", exception.Message);
+        }
+
+        [Fact]
         public void LegacyDoc_SaveDocPath_WritesNativeDocAndReloadsThroughLegacyReader() {
             string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
 
@@ -4895,6 +4910,71 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Inherited footer", Assert.Single(reloaded.Sections[0].Footer.Default!.Paragraphs).Text);
                 Assert.Equal("Inherited header", Assert.Single(reloaded.Sections[1].Header.Default!.Paragraphs).Text);
                 Assert.Equal("Inherited footer", Assert.Single(reloaded.Sections[1].Footer.Default!.Paragraphs).Text);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveDocPath_PreservesExplicitEmptyMultiSectionHeaderFooterAndReloadsThroughLegacyReader() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("First clear body");
+                    WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+                    secondSection.AddParagraph("Second clear body");
+
+                    document.Sections[0].GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Inherited header");
+                    document.Sections[0].GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Inherited footer");
+
+                    WordHeader emptyHeader = secondSection.GetOrCreateHeader(HeaderFooterValues.Default);
+                    emptyHeader._header!.RemoveAllChildren<Paragraph>();
+                    WordFooter emptyFooter = secondSection.GetOrCreateFooter(HeaderFooterValues.Default);
+                    emptyFooter._footer!.RemoveAllChildren<Paragraph>();
+
+                    document.Save(docPath);
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+
+                Assert.True(reloaded.WasLoadedFromLegacyDoc);
+                Assert.Equal(2, reloaded.Sections.Count);
+                Assert.Equal("Inherited header", Assert.Single(reloaded.Sections[0].Header.Default!.Paragraphs).Text);
+                Assert.Equal("Inherited footer", Assert.Single(reloaded.Sections[0].Footer.Default!.Paragraphs).Text);
+
+                IEnumerable<string> secondHeaderText = reloaded.Sections[1].Header.Default?.Paragraphs.Select(paragraph => paragraph.Text) ?? Enumerable.Empty<string>();
+                IEnumerable<string> secondFooterText = reloaded.Sections[1].Footer.Default?.Paragraphs.Select(paragraph => paragraph.Text) ?? Enumerable.Empty<string>();
+                Assert.DoesNotContain("Inherited header", secondHeaderText);
+                Assert.DoesNotContain("Inherited footer", secondFooterText);
+            } finally {
+                DeleteIfExists(docPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_SaveAsDocPath_ReturnsDocumentAttachedToSavedPath() {
+            string docPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".doc");
+
+            try {
+                using (WordDocument document = WordDocument.Create()) {
+                    document.AddParagraph("Initial SaveAs DOC paragraph");
+
+                    using WordDocument savedDocument = document.SaveAs(docPath);
+                    Assert.True(savedDocument.WasLoadedFromLegacyDoc);
+                    Assert.Equal(docPath, savedDocument.FilePath);
+
+                    savedDocument.AddParagraph("Saved again through returned document");
+                    savedDocument.Save();
+                }
+
+                using WordDocument reloaded = WordDocument.Load(docPath);
+                string[] paragraphs = reloaded.Paragraphs
+                    .Select(paragraph => paragraph.Text)
+                    .Where(text => !string.IsNullOrEmpty(text))
+                    .ToArray();
+                Assert.Contains("Initial SaveAs DOC paragraph", paragraphs);
+                Assert.Contains("Saved again through returned document", paragraphs);
             } finally {
                 DeleteIfExists(docPath);
             }
