@@ -191,7 +191,7 @@ internal static class MarkdownGenericAttributeParser {
 
         foreach (var token in Tokenize(value!)) {
             var trimmed = token.Trim();
-            if (trimmed.Length > 0 && trimmed[0] == '#' && trimmed.Length <= 2) {
+            if (trimmed.Length > 0 && trimmed[0] == '#' && trimmed.Length == 1) {
                 return true;
             }
         }

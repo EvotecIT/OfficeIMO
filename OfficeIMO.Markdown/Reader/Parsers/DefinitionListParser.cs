@@ -356,8 +356,8 @@ public static partial class MarkdownReader {
         if (IsQuoteStarter(trimmed)) return false;
         if (HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(trimmed, options)) return false;
         if (StartsTable(lines, index, options, state)) return false;
-        if (IsUnorderedListLine(trimmed, out _, out _, out _)) return false;
-        if (IsOrderedListLine(trimmed, options, out _, out _)) return false;
+        if (options.UnorderedLists && IsUnorderedListLine(trimmed, out _, out _, out _)) return false;
+        if (options.OrderedLists && IsOrderedListLine(trimmed, options, out _, out _)) return false;
         if (StartsWithReferenceDefinitionLikeLabel(trimmed)) return false;
         return true;
     }
@@ -781,8 +781,8 @@ public static partial class MarkdownReader {
         }
 
         var trimmed = line.TrimStart();
-        return IsUnorderedListLine(trimmed, out _, out _, out _) ||
-            IsOrderedListLine(trimmed, options, out _, out _);
+        return (options.UnorderedLists && IsUnorderedListLine(trimmed, out _, out _, out _)) ||
+            (options.OrderedLists && IsOrderedListLine(trimmed, options, out _, out _));
     }
 
     private static int GetFirstNonWhitespaceIndex(string line) {

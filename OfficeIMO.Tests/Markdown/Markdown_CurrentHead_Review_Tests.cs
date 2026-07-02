@@ -710,6 +710,68 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Contains("body", ((IMarkdownBlock)container).RenderHtml(), StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void GenericAttributes_Allow_One_Character_Ids() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("""
+            # Title {#x}
+            Text {#p}
+            """, options);
+
+        var heading = Assert.IsType<HeadingBlock>(document.Blocks[0]);
+        var paragraph = Assert.IsType<ParagraphBlock>(document.Blocks[1]);
+        var headingHtml = ((IMarkdownBlock)heading).RenderHtml();
+        var paragraphHtml = ((IMarkdownBlock)paragraph).RenderHtml();
+
+        Assert.Equal("x", heading.Attributes.ElementId);
+        Assert.Equal("p", paragraph.Attributes.ElementId);
+        Assert.Contains("id=\"x\"", headingHtml, StringComparison.Ordinal);
+        Assert.Contains("id=\"p\"", paragraphHtml, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DefinitionLists_Allow_List_Looking_Terms_When_List_Parser_Disabled() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.DefinitionLists = true;
+        options.UnorderedLists = false;
+        options.OrderedLists = false;
+
+        var unordered = Assert.Single(MarkdownReader.Parse("""
+            - term
+            :   unordered definition
+            """, options).Blocks.OfType<DefinitionListBlock>());
+        var ordered = Assert.Single(MarkdownReader.Parse("""
+            1. term
+            :   ordered definition
+            """, options).Blocks.OfType<DefinitionListBlock>());
+
+        Assert.Contains("<dt>- term</dt>", ((IMarkdownBlock)unordered).RenderHtml(), StringComparison.Ordinal);
+        Assert.Contains("<dd>unordered definition</dd>", ((IMarkdownBlock)unordered).RenderHtml(), StringComparison.Ordinal);
+        Assert.Contains("<dt>1. term</dt>", ((IMarkdownBlock)ordered).RenderHtml(), StringComparison.Ordinal);
+        Assert.Contains("<dd>ordered definition</dd>", ((IMarkdownBlock)ordered).RenderHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Native_TablePipe_SourceFields_Use_Visual_Columns_After_Tabs() {
+        const string markdown = "| \t| B |\n| --- | --- |\n| C | D |\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown, new MarkdownReaderOptions {
+            Tables = true,
+            PreserveTrivia = true
+        });
+
+        var table = Assert.IsType<MarkdownNativeTableBlock>(Assert.Single(native.Blocks));
+        var firstLinePipes = table.EnumerateSourceFields("tablePipe")
+            .Where(pipe => pipe.SourceSpan.StartLine == 1)
+            .ToArray();
+
+        Assert.Equal(new[] { 1, 5, 9 }, firstLinePipes.Select(pipe => pipe.SourceSpan.StartColumn!.Value).ToArray());
+        Assert.True(native.TryCreateOriginalSourceSlice(firstLinePipes[1].SourceSpan, out var pipeSlice));
+        Assert.Equal("|", pipeSlice.Text);
+    }
+
     private sealed class RendererInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);

@@ -245,7 +245,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
-    public void SingleCharacterId_GenericAttributes_Remain_Literal_Without_Metadata() {
+    public void SingleCharacterId_GenericAttributes_Attach_Metadata() {
         const string markdown = "# Heading {#h .wide}\n\nParagraph {#p .lead}\n";
         var options = new MarkdownReaderOptions {
             GenericAttributes = true,
@@ -256,12 +256,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         var headingBlock = Assert.IsType<HeadingBlock>(document.Blocks[0]);
         var paragraphBlock = Assert.IsType<ParagraphBlock>(document.Blocks[1]);
 
-        Assert.True(headingBlock.Attributes.IsEmpty);
-        Assert.True(paragraphBlock.Attributes.IsEmpty);
-        Assert.Equal("Heading {#h .wide}", headingBlock.Text);
-        Assert.Equal("Paragraph {#p .lead}", paragraphBlock.Inlines.RenderMarkdown());
+        Assert.Equal("h", headingBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, headingBlock.Attributes.Classes);
+        Assert.Equal("p", paragraphBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "lead" }, paragraphBlock.Attributes.Classes);
+        Assert.Equal("Heading", headingBlock.Text);
+        Assert.Equal("Paragraph", paragraphBlock.Inlines.RenderMarkdown());
         Assert.Equal(
-            "<h1>Heading {#h .wide}</h1><p>Paragraph {#p .lead}</p>",
+            "<h1 id=\"h\" class=\"wide\">Heading</h1><p id=\"p\" class=\"lead\">Paragraph </p>",
             document.ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,
@@ -273,19 +275,15 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
-        Assert.DoesNotContain(
-            result.FinalSyntaxTree.Descendants(),
-            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
-
         var heading = Assert.IsType<HeadingBlock>(result.Document.Blocks[0]);
         var paragraph = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
 
-        Assert.True(heading.Attributes.IsEmpty);
-        Assert.True(paragraph.Attributes.IsEmpty);
+        Assert.Equal("h", heading.Attributes.ElementId);
+        Assert.Equal("p", paragraph.Attributes.ElementId);
 
         var native = MarkdownNativeDocument.Parse(markdown, options);
 
-        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Equal(2, native.EnumerateBlockSourceFields("attributes").Count());
     }
 
     [Fact]
@@ -967,7 +965,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
-    public void FencedCode_InfoString_SingleCharacterId_Remains_Language_Without_Metadata() {
+    public void FencedCode_InfoString_SingleCharacterId_Attaches_Metadata() {
         const string markdown = "```{#h .wide}\nvar x = 1;\n```\n";
         var options = new MarkdownReaderOptions {
             GenericAttributes = true,
@@ -977,12 +975,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         var document = MarkdownReader.Parse(markdown, options);
         var codeBlock = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
 
-        Assert.Equal("{#h", codeBlock.Language);
+        Assert.Equal(string.Empty, codeBlock.Language);
         Assert.Equal("{#h .wide}", codeBlock.InfoString);
-        Assert.True(codeBlock.Attributes.IsEmpty);
-        Assert.True(codeBlock.FenceInfo.GenericAttributes.IsEmpty);
+        Assert.Equal("h", codeBlock.Attributes.ElementId);
+        Assert.Equal(new[] { "wide" }, codeBlock.Attributes.Classes);
+        Assert.Equal("h", codeBlock.FenceInfo.GenericAttributes.ElementId);
+        Assert.Equal(new[] { "wide" }, codeBlock.FenceInfo.GenericAttributes.Classes);
         Assert.Equal(
-            "<pre><code class=\"language-{#h\">var x = 1;\n</code></pre>",
+            "<pre><code id=\"h\" class=\"wide\">var x = 1;\n</code></pre>",
             document.ToHtmlFragment(new HtmlOptions {
                 Style = HtmlStyle.Plain,
                 CssDelivery = CssDelivery.None,
@@ -1015,14 +1015,14 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         var infoField = Assert.Single(native.EnumerateBlockSourceFields("infoString"));
         var selectedField = native.FindBlockSourceFieldAtPosition(1, 4);
 
-        Assert.Equal("{#h", nativeCode.Language);
-        Assert.Null(nativeCode.ElementId);
-        Assert.Empty(nativeCode.Classes);
+        Assert.Equal(string.Empty, nativeCode.Language);
+        Assert.Equal("h", nativeCode.ElementId);
+        Assert.Equal(new[] { "wide" }, nativeCode.Classes);
         Assert.Same(nativeCode, infoField.Block);
         Assert.Equal("{#h .wide}", infoField.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 4, 1, 13), infoField.SourceSpan);
-        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
-        Assert.Equal("infoString", selectedField?.Name);
+        Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Equal("attributes", selectedField?.Name);
         Assert.Equal(infoField.SourceSpan, selectedField?.SourceSpan);
     }
 
@@ -1387,10 +1387,10 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Theory]
-    [InlineData("&copy;{#e .wide}\n", "\u00A9{#e .wide}")]
-    [InlineData("&#42;{#e .wide}\n", "*{#e .wide}")]
-    [InlineData("&#x2A;{#e .wide}\n", "*{#e .wide}")]
-    public void SingleCharacterId_CharacterReference_Paragraph_GenericAttributes_Stay_Literal_Without_Metadata(
+    [InlineData("&copy;{#e .wide}\n", "\u00A9")]
+    [InlineData("&#42;{#e .wide}\n", "*")]
+    [InlineData("&#x2A;{#e .wide}\n", "*")]
+    public void SingleCharacterId_CharacterReference_Paragraph_GenericAttributes_Are_Consumed_Without_Metadata(
         string markdown,
         string expectedText) {
         var options = new MarkdownReaderOptions {
@@ -1744,7 +1744,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
-    public void ParseWithSyntaxTree_Keeps_Strike_Highlight_And_Inserted_GenericAttributes_Literal() {
+    public void ParseWithSyntaxTree_Keeps_Strike_And_Highlight_Literal_And_Attaches_Inserted_GenericAttributes() {
         const string markdown = "~~gone~~{#s .strike} ==mark=={#m .mark} ++ins++{#i .insert}\n";
         var options = new MarkdownReaderOptions {
             GenericAttributes = true,
@@ -1756,18 +1756,17 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
-        Assert.DoesNotContain(
-            result.FinalSyntaxTree.Descendants(),
-            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
         Assert.All(
             result.FinalSyntaxTree.Descendants().Where(node =>
                 node.Kind == MarkdownSyntaxKind.InlineStrikethrough ||
-                node.Kind == MarkdownSyntaxKind.InlineHighlight ||
-                node.Kind == MarkdownSyntaxKind.InlineInserted),
+                node.Kind == MarkdownSyntaxKind.InlineHighlight),
             node => Assert.True(node.Attributes.IsEmpty));
+        var inserted = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineInserted);
+        Assert.Equal("i", inserted.Attributes.ElementId);
+        Assert.Equal(new[] { "insert" }, inserted.Attributes.Classes);
 
         var native = MarkdownNativeDocument.Parse(markdown, options);
-        Assert.Empty(native.EnumerateInlineMetadata("attributes"));
+        Assert.Single(native.EnumerateInlineMetadata("attributes"));
     }
 
     [Fact]

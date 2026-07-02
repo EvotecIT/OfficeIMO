@@ -596,7 +596,8 @@ public static partial class MarkdownReader {
 
             if (ch == '|' && codeFenceLen == 0) {
                 pipes ??= new List<TablePipeSource>();
-                var span = CreateSpan(state, absoluteLine, index + 1, absoluteLine, index + 1);
+                var pipeColumn = GetVisualColumnForRawIndex(line, index);
+                var span = CreateSpan(state, absoluteLine, pipeColumn, absoluteLine, pipeColumn);
                 pipes.Add(new TablePipeSource(rowIndex, pipes.Count, span));
             }
 
@@ -606,6 +607,16 @@ public static partial class MarkdownReader {
         return pipes == null || pipes.Count == 0
             ? Array.Empty<TablePipeSource>()
             : pipes;
+    }
+
+    private static int GetVisualColumnForRawIndex(string line, int rawIndex) {
+        var column = 1;
+        var endExclusive = Math.Max(0, Math.Min(rawIndex, line?.Length ?? 0));
+        for (var i = 0; i < endExclusive; i++) {
+            column = MarkdownSourceColumns.AdvanceColumn(column, line![i]);
+        }
+
+        return column;
     }
 
     private static TableCellSourceFragment CreateTableCellSourceFragment(
