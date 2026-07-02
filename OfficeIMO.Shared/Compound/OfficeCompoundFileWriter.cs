@@ -1,26 +1,25 @@
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
 using System.Text;
 
-namespace OfficeIMO.Excel.LegacyXls.Write {
-    internal static class LegacyXlsCompoundFileWriter {
+namespace OfficeIMO.Shared {
+    /// <summary>
+    /// Writes simple OLE compound document containers used by legacy Office binary formats.
+    /// </summary>
+    internal static class OfficeCompoundFileWriter {
         private const int SectorSize = 512;
         private const int MiniSectorSize = 64;
         private const int MiniStreamCutoffSize = 4096;
         private const uint FreeSect = 0xffffffff;
         private const uint EndOfChain = 0xfffffffe;
         private const uint FatSect = 0xfffffffd;
+        private const uint NoStream = 0xffffffff;
 
-        internal static byte[] Write(byte[] workbookStream) {
-            return Write(workbookStream, Array.Empty<LegacyXlsCompoundStream>());
-        }
-
-        internal static byte[] Write(byte[] workbookStream, IReadOnlyList<LegacyXlsCompoundStream> additionalStreams) {
-            if (workbookStream == null) throw new ArgumentNullException(nameof(workbookStream));
-            if (additionalStreams == null) throw new ArgumentNullException(nameof(additionalStreams));
-
-            var streams = new List<LegacyXlsCompoundStream>(additionalStreams.Count + 1) {
-                new LegacyXlsCompoundStream("Workbook", workbookStream)
-            };
-            streams.AddRange(additionalStreams);
+        internal static byte[] Write(IReadOnlyList<OfficeCompoundStream> streams) {
+            if (streams == null) throw new ArgumentNullException(nameof(streams));
+            if (streams.Count == 0) throw new ArgumentException("At least one compound stream is required.", nameof(streams));
 
             PaddedStream[] paddedStreams = streams
                 .Select(PadStream)
@@ -138,7 +137,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
         private static byte[] BuildDirectory(IReadOnlyList<PaddedStream> streams, int directorySectorCount, uint miniStreamStartSector, int miniStreamLength) {
             byte[] directory = new byte[checked(directorySectorCount * SectorSize)];
             DirectoryTreeLinks directoryLinks = DirectoryTreeLinks.Create(streams.Count);
-            WriteDirectoryEntry(directory, 0, "Root Entry", 5, EndOfChain, EndOfChain, directoryLinks.RootChild, miniStreamStartSector, unchecked((ulong)miniStreamLength));
+            WriteDirectoryEntry(directory, 0, "Root Entry", 5, NoStream, NoStream, directoryLinks.RootChild, miniStreamStartSector, unchecked((ulong)miniStreamLength));
 
             for (int i = 0; i < streams.Count; i++) {
                 PaddedStream stream = streams[i];
@@ -149,7 +148,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
                     2,
                     directoryLinks.GetLeftSibling(i),
                     directoryLinks.GetRightSibling(i),
-                    EndOfChain,
+                    NoStream,
                     stream.StartSector,
                     unchecked((ulong)stream.OriginalLength));
             }
@@ -262,7 +261,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             WriteUInt32(fat, checked(sector * 4), value);
         }
 
-        private static PaddedStream PadStream(LegacyXlsCompoundStream stream) {
+        private static PaddedStream PadStream(OfficeCompoundStream stream) {
             if (string.IsNullOrEmpty(stream.Name)) {
                 throw new ArgumentException("Compound stream name is required.", nameof(stream));
             }
@@ -381,7 +380,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             }
 
             private static uint ToDirectoryEntryId(int streamIndex) {
-                return streamIndex < 0 ? EndOfChain : unchecked((uint)(streamIndex + 1));
+                return streamIndex < 0 ? NoStream : unchecked((uint)(streamIndex + 1));
             }
         }
 
@@ -389,14 +388,22 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             internal static DirectoryNameComparer Instance { get; } = new DirectoryNameComparer();
 
             public int Compare(string? left, string? right) {
+                int length = (left?.Length ?? 0).CompareTo(right?.Length ?? 0);
+                if (length != 0) {
+                    return length;
+                }
+
                 int ignoreCase = StringComparer.OrdinalIgnoreCase.Compare(left, right);
                 return ignoreCase != 0 ? ignoreCase : StringComparer.Ordinal.Compare(left, right);
             }
         }
     }
 
-    internal readonly struct LegacyXlsCompoundStream {
-        internal LegacyXlsCompoundStream(string name, byte[] bytes) {
+    /// <summary>
+    /// Named stream payload to write into an OLE compound document.
+    /// </summary>
+    internal readonly struct OfficeCompoundStream {
+        internal OfficeCompoundStream(string name, byte[] bytes) {
             Name = name ?? throw new ArgumentNullException(nameof(name));
             Bytes = bytes ?? throw new ArgumentNullException(nameof(bytes));
         }

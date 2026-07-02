@@ -18,6 +18,7 @@ using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Compound;
 using OfficeIMO.Excel.LegacyXls.Model;
 using OfficeIMO.Excel.LegacyXls.Write;
+using OfficeIMO.Shared;
 using System.Globalization;
 using System.Threading.Tasks;
 using Xunit;
@@ -86,12 +87,9 @@ namespace OfficeIMO.Tests {
                 result.EnsureNoImportErrors();
                 Assert.True(result.Workbook.Worksheets.Count > 0);
 
-                Assert.True(
-                    LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
-                    string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-                Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
+                byte[] workbookStream = ReadCompoundStream(fileBytes, "Workbook");
                 Assert.Equal(
-                    checked((ulong)GetBiffContentLength(workbookStream!, expectedEndOfFileRecords: result.Workbook.Worksheets.Count + 1)),
+                    checked((ulong)GetBiffContentLength(workbookStream, expectedEndOfFileRecords: result.Workbook.Worksheets.Count + 1)),
                     workbookEntry.StreamSize);
             } finally {
                 TryDelete(openXmlPath);
@@ -4091,14 +4089,11 @@ namespace OfficeIMO.Tests {
 
         private static IReadOnlyList<byte[]> GetBiffRecordPayloads(string xlsPath, ushort recordType) {
             byte[] fileBytes = File.ReadAllBytes(xlsPath);
-            Assert.True(
-                LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
-                string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-            Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
+            byte[] workbookStream = ReadCompoundStream(fileBytes, "Workbook");
 
             var payloads = new List<byte[]>();
             int offset = 0;
-            while (offset + 4 <= workbookStream!.Length) {
+            while (offset + 4 <= workbookStream.Length) {
                 ushort type = ReadUInt16(workbookStream, offset);
                 ushort length = ReadUInt16(workbookStream, offset + 2);
                 int payloadOffset = offset + 4;
@@ -4120,15 +4115,12 @@ namespace OfficeIMO.Tests {
 
         private static void AssertBiffRecordOccursBefore(string xlsPath, ushort beforeRecordType, ushort afterRecordType) {
             byte[] fileBytes = File.ReadAllBytes(xlsPath);
-            Assert.True(
-                LegacyCompoundFileReader.TryRead(fileBytes, out LegacyCompoundFile? compoundFile, out var diagnostics),
-                string.Join(Environment.NewLine, diagnostics.Select(diagnostic => $"{diagnostic.Code}: {diagnostic.Message}")));
-            Assert.True(compoundFile!.Streams.TryGetValue("Workbook", out byte[]? workbookStream));
+            byte[] workbookStream = ReadCompoundStream(fileBytes, "Workbook");
 
             int beforeOffset = -1;
             int afterOffset = -1;
             int offset = 0;
-            while (offset + 4 <= workbookStream!.Length) {
+            while (offset + 4 <= workbookStream.Length) {
                 ushort type = ReadUInt16(workbookStream, offset);
                 ushort length = ReadUInt16(workbookStream, offset + 2);
                 int payloadOffset = offset + 4;
@@ -4280,6 +4272,14 @@ namespace OfficeIMO.Tests {
             internal uint ChildId { get; }
 
             internal ulong StreamSize { get; }
+        }
+
+        private static byte[] ReadCompoundStream(byte[] compoundBytes, string streamName) {
+            Assert.True(
+                OfficeCompoundFileReader.TryRead(compoundBytes, out OfficeCompoundFile? compoundFile, out string? error),
+                error);
+            Assert.True(compoundFile!.Streams.TryGetValue(streamName, out byte[]? stream), $"Compound stream '{streamName}' was not found.");
+            return stream!;
         }
 
         private static void SetOpenXmlErrorCell(ExcelSheet sheet, string reference, string errorText) {

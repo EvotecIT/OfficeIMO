@@ -1,0 +1,772 @@
+namespace OfficeIMO.Word.LegacyDoc.Model {
+    internal readonly struct LegacyDocParagraphFormat : IEquatable<LegacyDocParagraphFormat> {
+        internal LegacyDocParagraphFormat(
+            LegacyDocParagraphAlignment? alignment,
+            ushort? styleIndex = null,
+            int? spacingBeforeTwips = null,
+            int? spacingAfterTwips = null,
+            int? lineSpacingTwips = null,
+            int? leftIndentTwips = null,
+            int? rightIndentTwips = null,
+            int? firstLineIndentTwips = null,
+            bool? keepLinesTogether = null,
+            bool? keepWithNext = null,
+            bool? pageBreakBefore = null,
+            bool? avoidWidowAndOrphan = null,
+            bool? suppressLineNumbers = null,
+            bool? suppressAutoHyphens = null,
+            bool? contextualSpacing = null,
+            bool? mirrorIndents = null,
+            bool? kinsoku = null,
+            bool? wordWrap = null,
+            bool? overflowPunctuation = null,
+            bool? topLinePunctuation = null,
+            bool? autoSpaceDE = null,
+            bool? autoSpaceDN = null,
+            bool? bidirectional = null,
+            ushort? numberingListIndex = null,
+            byte? numberingLevel = null,
+            byte? verticalCharacterAlignment = null,
+            bool? isInTable = null,
+            bool? isTableTerminatingParagraph = null,
+            IReadOnlyList<LegacyDocTabStop>? tabStops = null,
+            IReadOnlyList<int>? tableCellWidthsTwips = null,
+            int? tableLeftIndentTwips = null,
+            int? tableRowHeightTwips = null,
+            bool tableRowHeightIsExact = false,
+            bool? tableRowCantSplit = null,
+            bool? tableRowIsHeader = null,
+            LegacyDocTableAlignment? tableAlignment = null,
+            LegacyDocTablePreferredWidth? tablePreferredWidth = null,
+            bool? tableAutofit = null,
+            IReadOnlyList<LegacyDocTableCellHorizontalMerge>? tableCellHorizontalMerges = null,
+            IReadOnlyList<LegacyDocTableCellVerticalMerge>? tableCellVerticalMerges = null,
+            IReadOnlyList<LegacyDocTableCellVerticalAlignment>? tableCellVerticalAlignments = null,
+            IReadOnlyList<LegacyDocTableCellTextDirection>? tableCellTextDirections = null,
+            IReadOnlyList<bool>? tableCellFitTexts = null,
+            IReadOnlyList<bool>? tableCellNoWraps = null,
+            IReadOnlyList<bool>? tableCellHideMarks = null,
+            IReadOnlyList<LegacyDocTableCellMargins>? tableCellMargins = null,
+            IReadOnlyList<LegacyDocTableCellShading>? tableCellShadings = null,
+            IReadOnlyList<LegacyDocTableCellBorders>? tableCellBorders = null,
+            LegacyDocTableCellMargins? defaultTableCellMargins = null,
+            int? defaultTableCellSpacingTwips = null,
+            bool hasMergedTableCells = false,
+            bool hasNestedTable = false,
+            int maximumTableDepth = 0,
+            bool hasInnerTableCellMarker = false,
+            bool hasInnerTableTerminatingParagraphMarker = false,
+            LegacyDocParagraphShading? paragraphShading = null,
+            LegacyDocParagraphBorders? paragraphBorders = null,
+            byte? outlineLevel = null,
+            LegacyDocCharacterFormat? paragraphMarkFormat = null) {
+            Alignment = alignment;
+            StyleIndex = styleIndex;
+            SpacingBeforeTwips = spacingBeforeTwips;
+            SpacingAfterTwips = spacingAfterTwips;
+            LineSpacingTwips = lineSpacingTwips;
+            LeftIndentTwips = leftIndentTwips;
+            RightIndentTwips = rightIndentTwips;
+            FirstLineIndentTwips = firstLineIndentTwips;
+            KeepLinesTogether = keepLinesTogether;
+            KeepWithNext = keepWithNext;
+            PageBreakBefore = pageBreakBefore;
+            AvoidWidowAndOrphan = avoidWidowAndOrphan;
+            SuppressLineNumbers = suppressLineNumbers;
+            SuppressAutoHyphens = suppressAutoHyphens;
+            ContextualSpacing = contextualSpacing;
+            MirrorIndents = mirrorIndents;
+            Kinsoku = kinsoku;
+            WordWrap = wordWrap;
+            OverflowPunctuation = overflowPunctuation;
+            TopLinePunctuation = topLinePunctuation;
+            AutoSpaceDE = autoSpaceDE;
+            AutoSpaceDN = autoSpaceDN;
+            Bidirectional = bidirectional;
+            NumberingListIndex = numberingListIndex.HasValue && numberingListIndex.Value > 0
+                ? numberingListIndex
+                : null;
+            NumberingLevel = numberingLevel.HasValue && numberingLevel.Value <= 8
+                ? numberingLevel
+                : null;
+            VerticalCharacterAlignment = verticalCharacterAlignment.HasValue && verticalCharacterAlignment.Value <= 4
+                ? verticalCharacterAlignment
+                : null;
+            OutlineLevel = outlineLevel.HasValue && outlineLevel.Value <= 8
+                ? outlineLevel
+                : null;
+            IsInTable = isInTable;
+            IsTableTerminatingParagraph = isTableTerminatingParagraph;
+            TabStops = tabStops == null || tabStops.Count == 0
+                ? Array.Empty<LegacyDocTabStop>()
+                : tabStops.ToArray();
+            TableCellWidthsTwips = tableCellWidthsTwips == null || tableCellWidthsTwips.Count == 0
+                ? Array.Empty<int>()
+                : tableCellWidthsTwips.ToArray();
+            TableLeftIndentTwips = tableLeftIndentTwips.HasValue && tableLeftIndentTwips.Value > 0 && tableLeftIndentTwips.Value <= short.MaxValue
+                ? tableLeftIndentTwips
+                : null;
+            TableRowHeightTwips = tableRowHeightTwips;
+            TableRowHeightIsExact = tableRowHeightIsExact;
+            TableRowCantSplit = tableRowCantSplit;
+            TableRowIsHeader = tableRowIsHeader;
+            TableAlignment = tableAlignment;
+            TablePreferredWidth = tablePreferredWidth;
+            TableAutofit = tableAutofit;
+            TableCellHorizontalMerges = tableCellHorizontalMerges == null || tableCellHorizontalMerges.Count == 0
+                ? Array.Empty<LegacyDocTableCellHorizontalMerge>()
+                : tableCellHorizontalMerges.ToArray();
+            TableCellVerticalMerges = tableCellVerticalMerges == null || tableCellVerticalMerges.Count == 0
+                ? Array.Empty<LegacyDocTableCellVerticalMerge>()
+                : tableCellVerticalMerges.ToArray();
+            TableCellVerticalAlignments = tableCellVerticalAlignments == null || tableCellVerticalAlignments.Count == 0
+                ? Array.Empty<LegacyDocTableCellVerticalAlignment>()
+                : tableCellVerticalAlignments.ToArray();
+            TableCellTextDirections = tableCellTextDirections == null || tableCellTextDirections.Count == 0
+                ? Array.Empty<LegacyDocTableCellTextDirection>()
+                : tableCellTextDirections.ToArray();
+            TableCellFitTexts = tableCellFitTexts == null || tableCellFitTexts.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellFitTexts.ToArray();
+            TableCellNoWraps = tableCellNoWraps == null || tableCellNoWraps.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellNoWraps.ToArray();
+            TableCellHideMarks = tableCellHideMarks == null || tableCellHideMarks.Count == 0
+                ? Array.Empty<bool>()
+                : tableCellHideMarks.ToArray();
+            TableCellMargins = tableCellMargins == null || tableCellMargins.Count == 0
+                ? Array.Empty<LegacyDocTableCellMargins>()
+                : tableCellMargins.ToArray();
+            TableCellShadings = tableCellShadings == null || tableCellShadings.Count == 0
+                ? Array.Empty<LegacyDocTableCellShading>()
+                : tableCellShadings.ToArray();
+            TableCellBorders = tableCellBorders == null || tableCellBorders.Count == 0
+                ? Array.Empty<LegacyDocTableCellBorders>()
+                : tableCellBorders.ToArray();
+            DefaultTableCellMargins = defaultTableCellMargins.HasValue && defaultTableCellMargins.Value.HasAny
+                ? defaultTableCellMargins
+                : null;
+            DefaultTableCellSpacingTwips = defaultTableCellSpacingTwips.HasValue && defaultTableCellSpacingTwips.Value >= 0 && defaultTableCellSpacingTwips.Value <= 31680
+                ? defaultTableCellSpacingTwips
+                : null;
+            HasMergedTableCells = hasMergedTableCells;
+            HasNestedTable = hasNestedTable;
+            MaximumTableDepth = maximumTableDepth > 0
+                ? maximumTableDepth
+                : 0;
+            HasInnerTableCellMarker = hasInnerTableCellMarker;
+            HasInnerTableTerminatingParagraphMarker = hasInnerTableTerminatingParagraphMarker;
+            ParagraphShading = paragraphShading.HasValue && paragraphShading.Value.HasAny
+                ? paragraphShading
+                : null;
+            ParagraphBorders = paragraphBorders.HasValue && paragraphBorders.Value.HasAny
+                ? paragraphBorders
+                : null;
+            ParagraphMarkFormat = paragraphMarkFormat.HasValue && paragraphMarkFormat.Value.HasFormatting
+                ? paragraphMarkFormat
+                : null;
+        }
+
+        internal LegacyDocParagraphAlignment? Alignment { get; }
+
+        internal ushort? StyleIndex { get; }
+
+        internal int? SpacingBeforeTwips { get; }
+
+        internal int? SpacingAfterTwips { get; }
+
+        internal int? LineSpacingTwips { get; }
+
+        internal int? LeftIndentTwips { get; }
+
+        internal int? RightIndentTwips { get; }
+
+        internal int? FirstLineIndentTwips { get; }
+
+        internal bool? KeepLinesTogether { get; }
+
+        internal bool? KeepWithNext { get; }
+
+        internal bool? PageBreakBefore { get; }
+
+        internal bool? AvoidWidowAndOrphan { get; }
+
+        internal bool? SuppressLineNumbers { get; }
+
+        internal bool? SuppressAutoHyphens { get; }
+
+        internal bool? ContextualSpacing { get; }
+
+        internal bool? MirrorIndents { get; }
+
+        internal bool? Kinsoku { get; }
+
+        internal bool? WordWrap { get; }
+
+        internal bool? OverflowPunctuation { get; }
+
+        internal bool? TopLinePunctuation { get; }
+
+        internal bool? AutoSpaceDE { get; }
+
+        internal bool? AutoSpaceDN { get; }
+
+        internal bool? Bidirectional { get; }
+
+        internal ushort? NumberingListIndex { get; }
+
+        internal byte? NumberingLevel { get; }
+
+        internal byte? VerticalCharacterAlignment { get; }
+
+        internal byte? OutlineLevel { get; }
+
+        internal bool? IsInTable { get; }
+
+        internal bool? IsTableTerminatingParagraph { get; }
+
+        internal IReadOnlyList<LegacyDocTabStop> TabStops { get; }
+
+        internal IReadOnlyList<int> TableCellWidthsTwips { get; }
+
+        internal int? TableLeftIndentTwips { get; }
+
+        internal int? TableRowHeightTwips { get; }
+
+        internal bool TableRowHeightIsExact { get; }
+
+        internal bool? TableRowCantSplit { get; }
+
+        internal bool? TableRowIsHeader { get; }
+
+        internal LegacyDocTableAlignment? TableAlignment { get; }
+
+        internal LegacyDocTablePreferredWidth? TablePreferredWidth { get; }
+
+        internal bool? TableAutofit { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellHorizontalMerge> TableCellHorizontalMerges { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellVerticalMerge> TableCellVerticalMerges { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellVerticalAlignment> TableCellVerticalAlignments { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellTextDirection> TableCellTextDirections { get; }
+
+        internal IReadOnlyList<bool> TableCellFitTexts { get; }
+
+        internal IReadOnlyList<bool> TableCellNoWraps { get; }
+
+        internal IReadOnlyList<bool> TableCellHideMarks { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellMargins> TableCellMargins { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellShading> TableCellShadings { get; }
+
+        internal IReadOnlyList<LegacyDocTableCellBorders> TableCellBorders { get; }
+
+        internal LegacyDocTableCellMargins? DefaultTableCellMargins { get; }
+
+        internal int? DefaultTableCellSpacingTwips { get; }
+
+        internal bool HasMergedTableCells { get; }
+
+        internal bool HasNestedTable { get; }
+
+        internal int MaximumTableDepth { get; }
+
+        internal bool HasInnerTableCellMarker { get; }
+
+        internal bool HasInnerTableTerminatingParagraphMarker { get; }
+
+        internal LegacyDocParagraphShading? ParagraphShading { get; }
+
+        internal LegacyDocParagraphBorders? ParagraphBorders { get; }
+
+        internal LegacyDocCharacterFormat? ParagraphMarkFormat { get; }
+
+        internal bool HasFormatting => Alignment != null
+            || StyleIndex != null
+            || SpacingBeforeTwips != null
+            || SpacingAfterTwips != null
+            || LineSpacingTwips != null
+            || LeftIndentTwips != null
+            || RightIndentTwips != null
+            || FirstLineIndentTwips != null
+            || KeepLinesTogether != null
+            || KeepWithNext != null
+            || PageBreakBefore != null
+            || AvoidWidowAndOrphan != null
+            || SuppressLineNumbers != null
+            || SuppressAutoHyphens != null
+            || ContextualSpacing != null
+            || MirrorIndents != null
+            || Kinsoku != null
+            || WordWrap != null
+            || OverflowPunctuation != null
+            || TopLinePunctuation != null
+            || AutoSpaceDE != null
+            || AutoSpaceDN != null
+            || Bidirectional != null
+            || NumberingListIndex != null
+            || NumberingLevel != null
+            || VerticalCharacterAlignment != null
+            || OutlineLevel != null
+            || IsInTable != null
+            || IsTableTerminatingParagraph != null
+            || TabStops.Count > 0
+            || TableCellWidthsTwips.Count > 0
+            || TableLeftIndentTwips != null
+            || TableRowHeightTwips != null
+            || TableRowCantSplit != null
+            || TableRowIsHeader != null
+            || TableAlignment != null
+            || TablePreferredWidth != null
+            || TableAutofit != null
+            || TableCellHorizontalMerges.Count > 0
+            || TableCellVerticalMerges.Count > 0
+            || TableCellVerticalAlignments.Count > 0
+            || TableCellTextDirections.Count > 0
+            || TableCellFitTexts.Count > 0
+            || TableCellNoWraps.Count > 0
+            || TableCellHideMarks.Count > 0
+            || TableCellMargins.Count > 0
+            || TableCellShadings.Count > 0
+            || TableCellBorders.Count > 0
+            || DefaultTableCellMargins != null
+            || DefaultTableCellSpacingTwips != null
+            || HasMergedTableCells
+            || HasNestedTable
+            || MaximumTableDepth > 0
+            || HasInnerTableCellMarker
+            || HasInnerTableTerminatingParagraphMarker
+            || ParagraphShading != null
+            || ParagraphBorders != null
+            || ParagraphMarkFormat != null;
+
+        internal static LegacyDocParagraphFormat Default { get; } = new LegacyDocParagraphFormat(null);
+
+        public bool Equals(LegacyDocParagraphFormat other) {
+            return Alignment == other.Alignment
+                && StyleIndex == other.StyleIndex
+                && SpacingBeforeTwips == other.SpacingBeforeTwips
+                && SpacingAfterTwips == other.SpacingAfterTwips
+                && LineSpacingTwips == other.LineSpacingTwips
+                && LeftIndentTwips == other.LeftIndentTwips
+                && RightIndentTwips == other.RightIndentTwips
+                && FirstLineIndentTwips == other.FirstLineIndentTwips
+                && KeepLinesTogether == other.KeepLinesTogether
+                && KeepWithNext == other.KeepWithNext
+                && PageBreakBefore == other.PageBreakBefore
+                && AvoidWidowAndOrphan == other.AvoidWidowAndOrphan
+                && SuppressLineNumbers == other.SuppressLineNumbers
+                && SuppressAutoHyphens == other.SuppressAutoHyphens
+                && ContextualSpacing == other.ContextualSpacing
+                && MirrorIndents == other.MirrorIndents
+                && Kinsoku == other.Kinsoku
+                && WordWrap == other.WordWrap
+                && OverflowPunctuation == other.OverflowPunctuation
+                && TopLinePunctuation == other.TopLinePunctuation
+                && AutoSpaceDE == other.AutoSpaceDE
+                && AutoSpaceDN == other.AutoSpaceDN
+                && Bidirectional == other.Bidirectional
+                && NumberingListIndex == other.NumberingListIndex
+                && NumberingLevel == other.NumberingLevel
+                && VerticalCharacterAlignment == other.VerticalCharacterAlignment
+                && OutlineLevel == other.OutlineLevel
+                && IsInTable == other.IsInTable
+                && IsTableTerminatingParagraph == other.IsTableTerminatingParagraph
+                && TabStopsEqual(TabStops, other.TabStops)
+                && TableCellWidthsEqual(TableCellWidthsTwips, other.TableCellWidthsTwips)
+                && TableLeftIndentTwips == other.TableLeftIndentTwips
+                && TableRowHeightTwips == other.TableRowHeightTwips
+                && TableRowHeightIsExact == other.TableRowHeightIsExact
+                && TableRowCantSplit == other.TableRowCantSplit
+                && TableRowIsHeader == other.TableRowIsHeader
+                && TableAlignment == other.TableAlignment
+                && TablePreferredWidth.Equals(other.TablePreferredWidth)
+                && TableAutofit == other.TableAutofit
+                && TableCellHorizontalMergesEqual(TableCellHorizontalMerges, other.TableCellHorizontalMerges)
+                && TableCellVerticalMergesEqual(TableCellVerticalMerges, other.TableCellVerticalMerges)
+                && TableCellVerticalAlignmentsEqual(TableCellVerticalAlignments, other.TableCellVerticalAlignments)
+                && TableCellTextDirectionsEqual(TableCellTextDirections, other.TableCellTextDirections)
+                && TableCellBooleansEqual(TableCellFitTexts, other.TableCellFitTexts)
+                && TableCellBooleansEqual(TableCellNoWraps, other.TableCellNoWraps)
+                && TableCellBooleansEqual(TableCellHideMarks, other.TableCellHideMarks)
+                && TableCellMarginsEqual(TableCellMargins, other.TableCellMargins)
+                && TableCellShadingsEqual(TableCellShadings, other.TableCellShadings)
+                && TableCellBordersEqual(TableCellBorders, other.TableCellBorders)
+                && DefaultTableCellMargins.Equals(other.DefaultTableCellMargins)
+                && DefaultTableCellSpacingTwips == other.DefaultTableCellSpacingTwips
+                && HasMergedTableCells == other.HasMergedTableCells
+                && HasNestedTable == other.HasNestedTable
+                && MaximumTableDepth == other.MaximumTableDepth
+                && HasInnerTableCellMarker == other.HasInnerTableCellMarker
+                && HasInnerTableTerminatingParagraphMarker == other.HasInnerTableTerminatingParagraphMarker
+                && ParagraphShading.Equals(other.ParagraphShading)
+                && ParagraphBorders.Equals(other.ParagraphBorders)
+                && ParagraphMarkFormat.Equals(other.ParagraphMarkFormat);
+        }
+
+        public override bool Equals(object? obj) {
+            return obj is LegacyDocParagraphFormat other && Equals(other);
+        }
+
+        public override int GetHashCode() {
+            int hash = 17;
+            hash = (hash * 31) + Alignment.GetHashCode();
+            hash = (hash * 31) + StyleIndex.GetHashCode();
+            hash = (hash * 31) + SpacingBeforeTwips.GetHashCode();
+            hash = (hash * 31) + SpacingAfterTwips.GetHashCode();
+            hash = (hash * 31) + LineSpacingTwips.GetHashCode();
+            hash = (hash * 31) + LeftIndentTwips.GetHashCode();
+            hash = (hash * 31) + RightIndentTwips.GetHashCode();
+            hash = (hash * 31) + FirstLineIndentTwips.GetHashCode();
+            hash = (hash * 31) + KeepLinesTogether.GetHashCode();
+            hash = (hash * 31) + KeepWithNext.GetHashCode();
+            hash = (hash * 31) + PageBreakBefore.GetHashCode();
+            hash = (hash * 31) + AvoidWidowAndOrphan.GetHashCode();
+            hash = (hash * 31) + SuppressLineNumbers.GetHashCode();
+            hash = (hash * 31) + SuppressAutoHyphens.GetHashCode();
+            hash = (hash * 31) + ContextualSpacing.GetHashCode();
+            hash = (hash * 31) + MirrorIndents.GetHashCode();
+            hash = (hash * 31) + Kinsoku.GetHashCode();
+            hash = (hash * 31) + WordWrap.GetHashCode();
+            hash = (hash * 31) + OverflowPunctuation.GetHashCode();
+            hash = (hash * 31) + TopLinePunctuation.GetHashCode();
+            hash = (hash * 31) + AutoSpaceDE.GetHashCode();
+            hash = (hash * 31) + AutoSpaceDN.GetHashCode();
+            hash = (hash * 31) + Bidirectional.GetHashCode();
+            hash = (hash * 31) + NumberingListIndex.GetHashCode();
+            hash = (hash * 31) + NumberingLevel.GetHashCode();
+            hash = (hash * 31) + VerticalCharacterAlignment.GetHashCode();
+            hash = (hash * 31) + OutlineLevel.GetHashCode();
+            hash = (hash * 31) + IsInTable.GetHashCode();
+            hash = (hash * 31) + IsTableTerminatingParagraph.GetHashCode();
+            hash = (hash * 31) + TableLeftIndentTwips.GetHashCode();
+            hash = (hash * 31) + TableRowHeightTwips.GetHashCode();
+            hash = (hash * 31) + TableRowHeightIsExact.GetHashCode();
+            hash = (hash * 31) + TableRowCantSplit.GetHashCode();
+            hash = (hash * 31) + TableRowIsHeader.GetHashCode();
+            hash = (hash * 31) + TableAlignment.GetHashCode();
+            hash = (hash * 31) + TablePreferredWidth.GetHashCode();
+            hash = (hash * 31) + TableAutofit.GetHashCode();
+            hash = (hash * 31) + DefaultTableCellSpacingTwips.GetHashCode();
+            hash = (hash * 31) + HasMergedTableCells.GetHashCode();
+            hash = (hash * 31) + HasNestedTable.GetHashCode();
+            hash = (hash * 31) + MaximumTableDepth.GetHashCode();
+            hash = (hash * 31) + HasInnerTableCellMarker.GetHashCode();
+            hash = (hash * 31) + HasInnerTableTerminatingParagraphMarker.GetHashCode();
+            hash = (hash * 31) + ParagraphShading.GetHashCode();
+            hash = (hash * 31) + ParagraphBorders.GetHashCode();
+            hash = (hash * 31) + ParagraphMarkFormat.GetHashCode();
+            foreach (LegacyDocTableCellHorizontalMerge merge in TableCellHorizontalMerges) {
+                hash = (hash * 31) + merge.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellVerticalMerge merge in TableCellVerticalMerges) {
+                hash = (hash * 31) + merge.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellVerticalAlignment alignment in TableCellVerticalAlignments) {
+                hash = (hash * 31) + alignment.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellTextDirection textDirection in TableCellTextDirections) {
+                hash = (hash * 31) + textDirection.GetHashCode();
+            }
+
+            foreach (bool fitText in TableCellFitTexts) {
+                hash = (hash * 31) + fitText.GetHashCode();
+            }
+
+            foreach (bool noWrap in TableCellNoWraps) {
+                hash = (hash * 31) + noWrap.GetHashCode();
+            }
+
+            foreach (bool hideMark in TableCellHideMarks) {
+                hash = (hash * 31) + hideMark.GetHashCode();
+            }
+
+            hash = (hash * 31) + DefaultTableCellMargins.GetHashCode();
+            foreach (LegacyDocTableCellMargins margins in TableCellMargins) {
+                hash = (hash * 31) + margins.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellShading shading in TableCellShadings) {
+                hash = (hash * 31) + shading.GetHashCode();
+            }
+
+            foreach (LegacyDocTableCellBorders borders in TableCellBorders) {
+                hash = (hash * 31) + borders.GetHashCode();
+            }
+
+            foreach (LegacyDocTabStop tabStop in TabStops) {
+                hash = (hash * 31) + tabStop.GetHashCode();
+            }
+
+            foreach (int width in TableCellWidthsTwips) {
+                hash = (hash * 31) + width.GetHashCode();
+            }
+
+            return hash;
+        }
+
+        internal LegacyDocParagraphFormat WithParagraphMarkFormat(LegacyDocCharacterFormat paragraphMarkFormat) {
+            return new LegacyDocParagraphFormat(
+                Alignment,
+                StyleIndex,
+                SpacingBeforeTwips,
+                SpacingAfterTwips,
+                LineSpacingTwips,
+                LeftIndentTwips,
+                RightIndentTwips,
+                FirstLineIndentTwips,
+                KeepLinesTogether,
+                KeepWithNext,
+                PageBreakBefore,
+                AvoidWidowAndOrphan,
+                SuppressLineNumbers,
+                SuppressAutoHyphens,
+                ContextualSpacing,
+                MirrorIndents,
+                Kinsoku,
+                WordWrap,
+                OverflowPunctuation,
+                TopLinePunctuation,
+                AutoSpaceDE,
+                AutoSpaceDN,
+                Bidirectional,
+                NumberingListIndex,
+                NumberingLevel,
+                VerticalCharacterAlignment,
+                IsInTable,
+                IsTableTerminatingParagraph,
+                TabStops,
+                TableCellWidthsTwips,
+                TableLeftIndentTwips,
+                TableRowHeightTwips,
+                TableRowHeightIsExact,
+                TableRowCantSplit,
+                TableRowIsHeader,
+                TableAlignment,
+                TablePreferredWidth,
+                TableAutofit,
+                TableCellHorizontalMerges,
+                TableCellVerticalMerges,
+                TableCellVerticalAlignments,
+                TableCellTextDirections,
+                TableCellFitTexts,
+                TableCellNoWraps,
+                TableCellHideMarks,
+                TableCellMargins,
+                TableCellShadings,
+                TableCellBorders,
+                DefaultTableCellMargins,
+                DefaultTableCellSpacingTwips,
+                HasMergedTableCells,
+                HasNestedTable,
+                MaximumTableDepth,
+                HasInnerTableCellMarker,
+                HasInnerTableTerminatingParagraphMarker,
+                ParagraphShading,
+                ParagraphBorders,
+                OutlineLevel,
+                paragraphMarkFormat);
+        }
+
+        private static bool TableCellWidthsEqual(IReadOnlyList<int> first, IReadOnlyList<int> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellHorizontalMergesEqual(IReadOnlyList<LegacyDocTableCellHorizontalMerge> first, IReadOnlyList<LegacyDocTableCellHorizontalMerge> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellVerticalMergesEqual(IReadOnlyList<LegacyDocTableCellVerticalMerge> first, IReadOnlyList<LegacyDocTableCellVerticalMerge> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellVerticalAlignmentsEqual(IReadOnlyList<LegacyDocTableCellVerticalAlignment> first, IReadOnlyList<LegacyDocTableCellVerticalAlignment> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellTextDirectionsEqual(IReadOnlyList<LegacyDocTableCellTextDirection> first, IReadOnlyList<LegacyDocTableCellTextDirection> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int i = 0; i < first.Count; i++) {
+                if (first[i] != second[i]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellBooleansEqual(IReadOnlyList<bool> first, IReadOnlyList<bool> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (first[index] != second[index]) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        internal IReadOnlyList<LegacyDocTableCellMargins> GetTableCellMarginsForCellCount(int cellCount) {
+            if (cellCount <= 0 || (TableCellMargins.Count == 0 && DefaultTableCellMargins == null)) {
+                return Array.Empty<LegacyDocTableCellMargins>();
+            }
+
+            int count = Math.Max(cellCount, TableCellMargins.Count);
+            var margins = new LegacyDocTableCellMargins[count];
+            if (DefaultTableCellMargins != null) {
+                for (int index = 0; index < count; index++) {
+                    margins[index] = DefaultTableCellMargins.Value;
+                }
+            }
+
+            for (int index = 0; index < TableCellMargins.Count; index++) {
+                margins[index] = margins[index].Merge(TableCellMargins[index]);
+            }
+
+            return margins.Any(margin => margin.HasAny)
+                ? margins
+                : Array.Empty<LegacyDocTableCellMargins>();
+        }
+
+        internal IReadOnlyList<LegacyDocTableCellShading> GetTableCellShadingsForCellCount(int cellCount) {
+            if (cellCount <= 0 || TableCellShadings.Count == 0) {
+                return Array.Empty<LegacyDocTableCellShading>();
+            }
+
+            int count = Math.Max(cellCount, TableCellShadings.Count);
+            var shadings = new LegacyDocTableCellShading[count];
+            for (int index = 0; index < TableCellShadings.Count; index++) {
+                shadings[index] = TableCellShadings[index];
+            }
+
+            return shadings.Any(shading => shading.HasAny)
+                ? shadings
+                : Array.Empty<LegacyDocTableCellShading>();
+        }
+
+        internal IReadOnlyList<LegacyDocTableCellBorders> GetTableCellBordersForCellCount(int cellCount) {
+            if (cellCount <= 0 || TableCellBorders.Count == 0) {
+                return Array.Empty<LegacyDocTableCellBorders>();
+            }
+
+            int count = Math.Max(cellCount, TableCellBorders.Count);
+            var borders = new LegacyDocTableCellBorders[count];
+            for (int index = 0; index < TableCellBorders.Count; index++) {
+                borders[index] = TableCellBorders[index];
+            }
+
+            return borders.Any(border => border.HasAny)
+                ? borders
+                : Array.Empty<LegacyDocTableCellBorders>();
+        }
+
+        private static bool TableCellMarginsEqual(IReadOnlyList<LegacyDocTableCellMargins> first, IReadOnlyList<LegacyDocTableCellMargins> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellShadingsEqual(IReadOnlyList<LegacyDocTableCellShading> first, IReadOnlyList<LegacyDocTableCellShading> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TabStopsEqual(IReadOnlyList<LegacyDocTabStop> first, IReadOnlyList<LegacyDocTabStop> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+
+        private static bool TableCellBordersEqual(IReadOnlyList<LegacyDocTableCellBorders> first, IReadOnlyList<LegacyDocTableCellBorders> second) {
+            if (first.Count != second.Count) {
+                return false;
+            }
+
+            for (int index = 0; index < first.Count; index++) {
+                if (!first[index].Equals(second[index])) {
+                    return false;
+                }
+            }
+
+            return true;
+        }
+    }
+}

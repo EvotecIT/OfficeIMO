@@ -2,6 +2,7 @@ using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Spreadsheet;
 using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Excel.LegacyXls.Model;
+using OfficeIMO.Shared;
 using System.Globalization;
 using System.Text;
 
@@ -15,8 +16,12 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             if (document == null) throw new ArgumentNullException(nameof(document));
 
             byte[] workbookStream = BuildWorkbookStream(document);
-            IReadOnlyList<LegacyXlsCompoundStream> propertyStreams = LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(document);
-            return LegacyXlsCompoundFileWriter.Write(workbookStream, propertyStreams);
+            IReadOnlyList<OfficeCompoundStream> propertyStreams = LegacyOlePropertySetWriter.CreateDocumentPropertyStreams(document);
+            var streams = new List<OfficeCompoundStream>(propertyStreams.Count + 1) {
+                new OfficeCompoundStream("Workbook", workbookStream)
+            };
+            streams.AddRange(propertyStreams);
+            return OfficeCompoundFileWriter.Write(streams);
         }
 
         private static byte[] BuildWorkbookStream(ExcelDocument document) {

@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
@@ -11,14 +12,20 @@ namespace OfficeIMO.Word {
 
         private BookmarkEnd? _bookmarkEnd {
             get {
-                var listElements = _document._wordprocessingDocument.MainDocumentPart?.Document?.Body?
-                    .ChildElements.OfType<Paragraph>() ?? Enumerable.Empty<Paragraph>();
-                foreach (Paragraph paragraph in listElements) {
-                    var listBookmarkEnds = paragraph.ChildElements.OfType<BookmarkEnd>();
-                    foreach (var bookmarkEnd in listBookmarkEnds) {
-                        if (bookmarkEnd.Id == _bookmarkStart.Id) {
-                            return bookmarkEnd;
-                        }
+                foreach (var bookmarkEnd in _paragraph.Descendants<BookmarkEnd>()) {
+                    if (bookmarkEnd.Id == _bookmarkStart.Id) {
+                        return bookmarkEnd;
+                    }
+                }
+
+                OpenXmlElement root = _bookmarkStart;
+                while (root.Parent != null) {
+                    root = root.Parent;
+                }
+
+                foreach (var bookmarkEnd in root.Descendants<BookmarkEnd>()) {
+                    if (bookmarkEnd.Id == _bookmarkStart.Id) {
+                        return bookmarkEnd;
                     }
                 }
 

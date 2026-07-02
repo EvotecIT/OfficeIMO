@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 
-`OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, and saves `.docx` files without COM automation and without Microsoft Office installed.
+`OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, and saves `.docx` files, and can import supported legacy `.doc` files, without COM automation and without Microsoft Office installed.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -37,6 +37,8 @@ document.Save();
 ## What it does
 
 - Creates, loads, edits, saves, and appends `.docx` documents.
+- Opens supported Word 97-2003 `.doc` files through the normal `WordDocument.Load(...)` path and projects them into the regular OfficeIMO Word model.
+- Writes native `.doc` files for the currently supported simple-document subset, with preflight checks that block unsupported content before saving.
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
@@ -133,6 +135,70 @@ document.FillContentControlValues(new Dictionary<string, object?> {
 Dictionary<string, object?> values = document.ExtractContentControlValues();
 document.ValidateContentControlValues(values).EnsureValid();
 ```
+
+### Legacy DOC files
+
+```csharp
+using OfficeIMO.Word;
+using OfficeIMO.Word.LegacyDoc;
+
+using WordDocument document = WordDocument.Load("legacy-input.doc");
+document.Save("converted-output.docx");
+
+using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport("legacy-input.doc");
+if (result.HasDocument) {
+    result.Document!.Save("converted-output.docx");
+    string report = result.ImportReport.ToMarkdown();
+}
+```
+
+Legacy `.doc` support is first-party and dependency-free at runtime. The current
+reader projects supported Word 97-2003 body paragraphs, simple zero-length,
+same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
+header/footer, and footnote/endnote paragraph bookmarks, simple external and
+internal bookmark hyperlink fields with supported text, tab, soft/no-break
+hyphen, and break display runs, simple static date/time and document-property
+field display results,
+common run and paragraph formatting including proofing exclusion, bidirectional
+paragraph layout, mirror indents, contextual spacing, East Asian typography and
+punctuation spacing flags, and automatic hyphenation suppression, built-in and
+custom paragraph styles, simple tables, paragraph-boundary sections, page setup,
+simple header/footer stories with tabs, text-wrapping and column breaks,
+supported direct run formatting, and supported paragraph formatting, simple
+footnote/endnote bodies with supported direct run and paragraph formatting and
+soft/no-break hyphen runs, section note numbering and placement settings, and
+document properties into the normal `WordDocument` model. Native `.doc` saving
+is available for the supported simple subset: paragraphs, simple zero-length,
+same-paragraph, and cross-paragraph body bookmarks plus simple table-cell,
+header/footer, and footnote/endnote paragraph bookmarks, simple external and
+internal bookmark hyperlinks with supported text, tab, soft/no-break hyphen,
+break display runs, simple static date/time and document-property fields with
+static display text and supported inline result characters including inside flattened inline content
+controls, simple inline content-control display text, and simple block content
+controls with nested
+simple block controls plus nested inline content controls in
+body/table/header/footer/footnote/endnote stories, common run and paragraph
+formatting including proofing exclusion,
+bidirectional paragraph layout, mirror indents, contextual spacing, East Asian
+typography and punctuation spacing flags, and automatic hyphenation suppression,
+tabs, soft/no-break hyphen runs, line/carriage-return/page/column breaks, simple
+body tables with common formatting, including simple depth-2 nested tables,
+supported table-style border, shading, layout, paragraph
+formatting, run formatting, default-cell expansion, conditional table/cell
+border, shading, paragraph formatting, run formatting, cell-layout expansion,
+and conditional row height/header/no-split formatting, paragraph-boundary
+sections, page setup, simple header/footer stories with tabs, soft/no-break
+hyphen runs, text-wrapping, carriage-return, and column breaks, supported
+direct run formatting, and supported paragraph formatting,
+simple footnote/endnote bodies with supported direct run and paragraph
+formatting and soft/no-break hyphen runs, supported section note settings, and
+scalar document properties. Unsupported features such as macros, embedded OLE
+objects, comments, text boxes, images, bookmark ranges outside supported
+body/table-cell/header/footer/footnote/endnote paragraphs, richer
+content-control children, richer visual table style effects, deeper or richer
+nested table shapes,
+richer note body structures, and richer header/footer or section shapes are
+diagnosed or blocked rather than silently flattened.
 
 ### Protection
 

@@ -1,7 +1,14 @@
-using OfficeIMO.Excel.LegacyXls.Diagnostics;
+using System;
+using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using System.Text;
 
-namespace OfficeIMO.Excel.LegacyXls.Compound {
-    internal static class LegacyCompoundFileReader {
+namespace OfficeIMO.Shared {
+    /// <summary>
+    /// Reads OLE compound document containers used by legacy Office binary formats.
+    /// </summary>
+    internal static class OfficeCompoundFileReader {
         private const int HeaderSize = 512;
         private const int MiniSectorSize = 64;
         private const int DirectoryEntrySize = 128;
@@ -9,11 +16,8 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
         private const uint EndOfChain = 0xfffffffe;
         private static readonly byte[] Signature = { 0xd0, 0xcf, 0x11, 0xe0, 0xa1, 0xb1, 0x1a, 0xe1 };
 
-        internal static bool TryRead(
-            byte[] bytes,
-            out Dictionary<string, byte[]> streams,
-            out List<LegacyXlsImportDiagnostic> diagnostics) {
-            bool result = TryRead(bytes, out LegacyCompoundFile? compoundFile, out diagnostics);
+        internal static bool TryRead(byte[] bytes, out Dictionary<string, byte[]> streams, out string? error) {
+            bool result = TryRead(bytes, out OfficeCompoundFile? compoundFile, out error);
             streams = new Dictionary<string, byte[]>(StringComparer.OrdinalIgnoreCase);
             if (result && compoundFile != null) {
                 foreach (KeyValuePair<string, byte[]> stream in compoundFile.Streams) {
@@ -24,19 +28,13 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return result;
         }
 
-        internal static bool TryRead(
-            byte[] bytes,
-            out LegacyCompoundFile? compoundFile,
-            out List<LegacyXlsImportDiagnostic> diagnostics) {
+        internal static bool TryRead(byte[] bytes, out OfficeCompoundFile? compoundFile, out string? error) {
             compoundFile = null;
-            diagnostics = new List<LegacyXlsImportDiagnostic>();
+            error = null;
 
             try {
                 if (bytes.Length < HeaderSize || !HasSignature(bytes)) {
-                    diagnostics.Add(new LegacyXlsImportDiagnostic(
-                        LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-COMPOUND-SIGNATURE",
-                        "The file does not start with the OLE compound document signature."));
+                    error = "The file does not start with the OLE compound document signature.";
                     return false;
                 }
 
@@ -46,10 +44,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 int sectorSize = 1 << sectorShift;
                 int miniSectorSize = 1 << miniSectorShift;
                 if (sectorSize < 512 || sectorSize > 4096 || miniSectorSize != MiniSectorSize) {
-                    diagnostics.Add(new LegacyXlsImportDiagnostic(
-                        LegacyXlsDiagnosticSeverity.Error,
-                        "XLS-COMPOUND-SECTOR-SIZE",
-                        $"Unsupported compound file sector sizes. Sector={sectorSize}, MiniSector={miniSectorSize}."));
+                    error = $"Unsupported compound file sector sizes. Sector={sectorSize}, MiniSector={miniSectorSize}.";
                     return false;
                 }
 
@@ -73,21 +68,25 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                     ? Array.Empty<uint>()
                     : BytesToUInt32Array(ReadRegularStream(bytes, sectorSize, fat, miniFatStart, (long)miniFatSectorCount * sectorSize));
 
+                IReadOnlyDictionary<int, string> streamPaths = BuildCompoundEntryPaths(entries);
                 foreach (DirectoryEntry entry in entries.Where(entry => entry.ObjectType == 2)) {
                     byte[] data = entry.Size < miniCutoff
                         ? ReadMiniStream(miniStream, miniFat, entry.StartSector, entry.Size)
                         : ReadRegularStream(bytes, sectorSize, fat, entry.StartSector, entry.Size);
-                    streams[entry.Name] = data;
+                    string path = streamPaths.TryGetValue(entry.Index, out string? entryPath)
+                        ? entryPath
+                        : entry.Name;
+                    streams[path] = data;
+                    if (string.Equals(path, entry.Name, StringComparison.OrdinalIgnoreCase)) {
+                        streams[entry.Name] = data;
+                    }
                 }
 
-                compoundFile = new LegacyCompoundFile(streams, BuildCompoundEntries(entries));
+                compoundFile = new OfficeCompoundFile(streams, BuildCompoundEntries(entries));
                 return true;
             } catch (Exception ex) when (ex is IOException || ex is ArgumentException || ex is InvalidDataException || ex is OverflowException || ex is IndexOutOfRangeException) {
                 compoundFile = null;
-                diagnostics.Add(new LegacyXlsImportDiagnostic(
-                    LegacyXlsDiagnosticSeverity.Error,
-                    "XLS-COMPOUND-CORRUPT",
-                    $"The OLE compound file could not be read. {ex.Message}"));
+                error = $"The OLE compound file could not be read. {ex.Message}";
                 return false;
             }
         }
@@ -218,8 +217,8 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             return result;
         }
 
-        private static IReadOnlyList<LegacyCompoundFileEntry> BuildCompoundEntries(IReadOnlyList<DirectoryEntry> entries) {
-            var result = new List<LegacyCompoundFileEntry>();
+        private static IReadOnlyList<OfficeCompoundFileEntry> BuildCompoundEntries(IReadOnlyList<DirectoryEntry> entries) {
+            var result = new List<OfficeCompoundFileEntry>();
             DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
             if (root != null) {
                 TraverseDirectoryTree(entries, root.ChildId, string.Empty, result, new HashSet<int>());
@@ -231,7 +230,7 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 }
 
                 if (!result.Any(item => string.Equals(item.Path, entry.Name, StringComparison.OrdinalIgnoreCase))) {
-                    result.Add(new LegacyCompoundFileEntry(entry.Name, entry.Name, entry.ObjectType, entry.Size));
+                    result.Add(new OfficeCompoundFileEntry(entry.Name, entry.Name, entry.ObjectType, entry.Size));
                 }
             }
 
@@ -240,11 +239,31 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                 .ToArray();
         }
 
+        private static IReadOnlyDictionary<int, string> BuildCompoundEntryPaths(IReadOnlyList<DirectoryEntry> entries) {
+            var result = new Dictionary<int, string>();
+            DirectoryEntry? root = entries.FirstOrDefault(entry => entry.ObjectType == 5);
+            if (root != null) {
+                TraverseDirectoryTree(entries, root.ChildId, string.Empty, result, new HashSet<int>());
+            }
+
+            foreach (DirectoryEntry entry in entries) {
+                if (entry.ObjectType == 0 || string.IsNullOrEmpty(entry.Name)) {
+                    continue;
+                }
+
+                if (!result.ContainsKey(entry.Index)) {
+                    result[entry.Index] = entry.Name;
+                }
+            }
+
+            return result;
+        }
+
         private static void TraverseDirectoryTree(
             IReadOnlyList<DirectoryEntry> entries,
             uint entryId,
             string parentPath,
-            List<LegacyCompoundFileEntry> result,
+            List<OfficeCompoundFileEntry> result,
             HashSet<int> visited) {
             if (entryId == FreeSect || entryId == EndOfChain || entryId >= entries.Count) {
                 return;
@@ -258,7 +277,34 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
             TraverseDirectoryTree(entries, entry.LeftSiblingId, parentPath, result, visited);
             if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
                 string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
-                result.Add(new LegacyCompoundFileEntry(entry.Name, path, entry.ObjectType, entry.Size));
+                result.Add(new OfficeCompoundFileEntry(entry.Name, path, entry.ObjectType, entry.Size));
+                if (entry.ObjectType == 1 || entry.ObjectType == 5) {
+                    TraverseDirectoryTree(entries, entry.ChildId, path, result, visited);
+                }
+            }
+
+            TraverseDirectoryTree(entries, entry.RightSiblingId, parentPath, result, visited);
+        }
+
+        private static void TraverseDirectoryTree(
+            IReadOnlyList<DirectoryEntry> entries,
+            uint entryId,
+            string parentPath,
+            Dictionary<int, string> result,
+            HashSet<int> visited) {
+            if (entryId == FreeSect || entryId == EndOfChain || entryId >= entries.Count) {
+                return;
+            }
+
+            DirectoryEntry entry = entries[(int)entryId];
+            if (!visited.Add(entry.Index)) {
+                return;
+            }
+
+            TraverseDirectoryTree(entries, entry.LeftSiblingId, parentPath, result, visited);
+            if (entry.ObjectType != 0 && !string.IsNullOrEmpty(entry.Name)) {
+                string path = string.IsNullOrEmpty(parentPath) ? entry.Name : parentPath + "/" + entry.Name;
+                result[entry.Index] = path;
                 if (entry.ObjectType == 1 || entry.ObjectType == 5) {
                     TraverseDirectoryTree(entries, entry.ChildId, path, result, visited);
                 }

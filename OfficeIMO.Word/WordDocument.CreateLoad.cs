@@ -341,6 +341,13 @@ namespace OfficeIMO.Word {
                 var memoryStream = new MemoryStream();
                 fileStream.CopyTo(memoryStream);
                 memoryStream.Seek(0, SeekOrigin.Begin);
+                byte[] sourceBytes = memoryStream.ToArray();
+
+                if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
+                    return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, effectiveOpenSettings.AutoSave, readOnly);
+                }
+
+                memoryStream.Seek(0, SeekOrigin.Begin);
 
                 var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
@@ -457,8 +464,15 @@ namespace OfficeIMO.Word {
             var memoryStream = new MemoryStream();
             await fileStream.CopyToAsync(memoryStream, 81920, cancellationToken);
             memoryStream.Seek(0, SeekOrigin.Begin);
+            byte[] sourceBytes = memoryStream.ToArray();
 
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+
+            if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath)) {
+                return LoadLegacyDocFromNormalFlow(sourceBytes, filePath, effectiveOpenSettings.AutoSave, readOnly);
+            }
+
+            memoryStream.Seek(0, SeekOrigin.Begin);
 
             var wordDocument = WordprocessingDocument.Open(memoryStream, !readOnly, effectiveOpenSettings);
 
@@ -492,13 +506,51 @@ namespace OfficeIMO.Word {
         /// <param name="openSettings">Optional Open XML settings to control how the package is opened.</param>
         /// <returns></returns>
         public static WordDocument Load(Stream stream, bool readOnly = false, bool autoSave = false, bool overrideStyles = false, OpenSettings? openSettings = null) {
-            var document = new WordDocument() {
-                OriginalStream = stream,
-            };
+            if (stream == null) {
+                throw new ArgumentNullException(nameof(stream));
+            }
+            if (!stream.CanRead) {
+                throw new ArgumentException("Stream must be readable.", nameof(stream));
+            }
 
             var effectiveOpenSettings = CreateOpenSettings(openSettings, autoSave);
+            MemoryStream? bufferedOpenXmlStream = null;
+            Stream packageStream = stream;
 
-            var wordDocument = WordprocessingDocument.Open(stream, !readOnly, effectiveOpenSettings);
+            if (stream.CanSeek) {
+                long originalPosition = stream.Position;
+                stream.Seek(0, SeekOrigin.Begin);
+                byte[] signature = ReadSignaturePrefix(stream);
+                if (WordDocumentLoadRouting.HasLegacyDocSignature(signature)) {
+                    stream.Seek(0, SeekOrigin.Begin);
+                    byte[] sourceBytes = ReadRemainingBytes(stream);
+                    stream.Seek(originalPosition, SeekOrigin.Begin);
+                    return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
+                }
+
+                stream.Seek(originalPosition, SeekOrigin.Begin);
+            } else {
+                bufferedOpenXmlStream = new MemoryStream();
+                stream.CopyTo(bufferedOpenXmlStream);
+                byte[] sourceBytes = bufferedOpenXmlStream.ToArray();
+                if (WordDocumentLoadRouting.IsLegacyDoc(sourceBytes, filePath: null)) {
+                    return LoadLegacyDocFromNormalFlow(sourceBytes, sourcePath: null, effectiveOpenSettings.AutoSave, readOnly);
+                }
+
+                if (effectiveOpenSettings.AutoSave) {
+                    throw new NotSupportedException("Auto-save is not supported when loading non-seekable streams. Load the document with auto-save disabled, then save explicitly to a file path or writable stream.");
+                }
+
+                bufferedOpenXmlStream.Seek(0, SeekOrigin.Begin);
+                packageStream = bufferedOpenXmlStream;
+            }
+
+            var document = new WordDocument() {
+                OriginalStream = bufferedOpenXmlStream == null ? stream : null!,
+                _ownedPackageStream = bufferedOpenXmlStream
+            };
+
+            var wordDocument = WordprocessingDocument.Open(packageStream, !readOnly, effectiveOpenSettings);
             bool applyOverrideStyles = overrideStyles && !readOnly;
             InitialiseStyleDefinitions(wordDocument, readOnly, applyOverrideStyles);
 
@@ -517,6 +569,32 @@ namespace OfficeIMO.Word {
             // initialize abstract number id for lists to make sure those are unique
             WordListStyles.InitializeAbstractNumberId(document._wordprocessingDocument);
             return document;
+        }
+
+        private static byte[] ReadSignaturePrefix(Stream stream) {
+            byte[] signature = new byte[WordDocumentLoadRouting.SignatureLength];
+            int offset = 0;
+            while (offset < signature.Length) {
+                int read = stream.Read(signature, offset, signature.Length - offset);
+                if (read == 0) {
+                    break;
+                }
+
+                offset += read;
+            }
+
+            if (offset == signature.Length) {
+                return signature;
+            }
+
+            Array.Resize(ref signature, offset);
+            return signature;
+        }
+
+        private static byte[] ReadRemainingBytes(Stream stream) {
+            using var buffer = new MemoryStream();
+            stream.CopyTo(buffer);
+            return buffer.ToArray();
         }
 
     }

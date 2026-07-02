@@ -99,13 +99,13 @@ namespace OfficeIMO.Tests {
         public void LegacyXls_Load_ReportsCorruptCompoundSectorChainsAsDiagnostics() {
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateCompoundHeaderWithInvalidSectorChain();
 
-            bool result = LegacyCompoundFileReader.TryRead(compound, out LegacyCompoundFile? compoundFile, out List<LegacyXlsImportDiagnostic> diagnostics);
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions());
 
-            Assert.False(result);
-            Assert.Null(compoundFile);
-            LegacyXlsImportDiagnostic diagnostic = Assert.Single(diagnostics);
-            Assert.Equal("XLS-COMPOUND-CORRUPT", diagnostic.Code);
+            LegacyXlsImportDiagnostic diagnostic = Assert.Single(
+                legacy.Diagnostics,
+                item => item.Code == "XLS-COMPOUND-CORRUPT");
             Assert.Equal(LegacyXlsDiagnosticSeverity.Error, diagnostic.Severity);
+            Assert.Contains("could not be read", diagnostic.Message);
         }
 
         [Fact]

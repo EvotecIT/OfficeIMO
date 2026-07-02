@@ -1,0 +1,13 @@
+namespace OfficeIMO.Word.LegacyDoc.Model {
+    internal enum LegacyDocFieldKind {
+        None,
+        Page,
+        NumPages,
+        Date,
+        Time,
+        CreateDate,
+        SaveDate,
+        PrintDate,
+        DocumentProperty
+    }
+}

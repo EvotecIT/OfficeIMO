@@ -285,13 +285,65 @@ namespace OfficeIMO.Word {
         public List<WordBookmark> Bookmarks {
             get {
                 List<WordBookmark> list = new List<WordBookmark>();
-                var paragraphs = Paragraphs.Where(p => p.IsBookmark).ToList();
-                foreach (var paragraph in paragraphs) {
-                    if (paragraph.Bookmark != null) {
-                        list.Add(paragraph.Bookmark);
-                    }
+                AddBookmarksFromParagraphs(Paragraphs, list);
+
+                foreach (var table in Tables) {
+                    AddBookmarksFromTable(table, list);
                 }
+
+                AddBookmarksFromHeaderFooter(Header.Default, list);
+                AddBookmarksFromHeaderFooter(Header.First, list);
+                AddBookmarksFromHeaderFooter(Header.Even, list);
+                AddBookmarksFromHeaderFooter(Footer.Default, list);
+                AddBookmarksFromHeaderFooter(Footer.First, list);
+                AddBookmarksFromHeaderFooter(Footer.Even, list);
+
+                foreach (var footnote in FootNotes) {
+                    AddBookmarksFromParagraphs(footnote.Paragraphs, list);
+                }
+
+                foreach (var endnote in EndNotes) {
+                    AddBookmarksFromParagraphs(endnote.Paragraphs, list);
+                }
+
                 return list;
+            }
+        }
+
+        private static void AddBookmarksFromParagraphs(IEnumerable<WordParagraph>? paragraphs, List<WordBookmark> list) {
+            if (paragraphs == null) {
+                return;
+            }
+
+            var visitedParagraphs = new HashSet<Paragraph>();
+            foreach (var paragraph in paragraphs) {
+                if (!visitedParagraphs.Add(paragraph._paragraph)) {
+                    continue;
+                }
+
+                foreach (BookmarkStart bookmarkStart in paragraph._paragraph.Descendants<BookmarkStart>()) {
+                    list.Add(new WordBookmark(paragraph._document, paragraph._paragraph, bookmarkStart));
+                }
+            }
+        }
+
+        private static void AddBookmarksFromHeaderFooter(WordHeaderFooter? headerFooter, List<WordBookmark> list) {
+            if (headerFooter == null) {
+                return;
+            }
+
+            AddBookmarksFromParagraphs(headerFooter.Paragraphs, list);
+
+            foreach (var table in headerFooter.Tables) {
+                AddBookmarksFromTable(table, list);
+            }
+        }
+
+        private static void AddBookmarksFromTable(WordTable table, List<WordBookmark> list) {
+            AddBookmarksFromParagraphs(table.Paragraphs, list);
+
+            foreach (var nestedTable in table.NestedTables) {
+                AddBookmarksFromTable(nestedTable, list);
             }
         }
 
