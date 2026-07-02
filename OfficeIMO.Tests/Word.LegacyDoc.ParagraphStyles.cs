@@ -266,6 +266,40 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStyleLayoutFlagsFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStyleLayoutFlags();
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Heading Layout Flags");
+            Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == headingStyleId);
+
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyle.GetFirstChild<StyleParagraphProperties>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<SuppressLineNumbers>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<SuppressAutoHyphens>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<ContextualSpacing>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<MirrorIndents>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<Kinsoku>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<WordWrap>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<OverflowPunctuation>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<TopLinePunctuation>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<AutoSpaceDE>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<AutoSpaceDN>());
+            Assert.NotNull(paragraphProperties.GetFirstChild<BiDi>());
+            TextAlignment textAlignment = Assert.IsType<TextAlignment>(paragraphProperties.GetFirstChild<TextAlignment>());
+            Assert.Equal(VerticalTextAlignmentValues.Center, textAlignment.Val?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleFontFamilyFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleFontFamily();
 
@@ -1071,6 +1105,44 @@ namespace OfficeIMO.Tests {
                     text,
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithBuiltInParagraphStyleLayoutFlags() {
+                const string text = "Heading Layout Flags\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [1] = new LegacyDocStyleDefinition(
+                        "heading 1",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: CreateStyleParagraphUpx(
+                            CreateParagraphSprm(SprmPFNoLineNumb, 1),
+                            CreateParagraphSprm(SprmPFNoAutoHyph, 1),
+                            CreateParagraphSprm(SprmPFContextualSpacing, 1),
+                            CreateParagraphSprm(SprmPFMirrorIndents, 1),
+                            CreateParagraphSprm(SprmPFKinsoku, 1),
+                            CreateParagraphSprm(SprmPFWordWrap, 1),
+                            CreateParagraphSprm(SprmPFOverflowPunct, 1),
+                            CreateParagraphSprm(SprmPFTopLinePunct, 1),
+                            CreateParagraphSprm(SprmPFAutoSpaceDE, 1),
+                            CreateParagraphSprm(SprmPFAutoSpaceDN, 1),
+                            CreateParagraphSprm(SprmPFBiDi, 1),
+                            CreateParagraphSprm(SprmPWAlignFont, 3, 0)),
+                        characterUpx: null)
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(1)
                     },
                     styleSheet.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet);
