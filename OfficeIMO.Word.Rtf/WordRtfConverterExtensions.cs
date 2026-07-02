@@ -1,6 +1,7 @@
 using System.Linq;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Text;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 
@@ -368,7 +369,7 @@ public static partial class WordRtfConverterExtensions {
             return true;
         }
 
-        string? text = wordRun.Text;
+        string? text = GetWordRunText(wordRun, revisionKind);
         if (string.IsNullOrEmpty(text)) {
             return false;
         }
@@ -386,6 +387,32 @@ public static partial class WordRtfConverterExtensions {
 
         previousRun = run;
         return true;
+    }
+
+    private static string GetWordRunText(WordParagraph wordRun, RtfRevisionKind revisionKind) {
+        if (revisionKind != RtfRevisionKind.Deleted || wordRun._run == null) {
+            return wordRun.Text;
+        }
+
+        var builder = new StringBuilder();
+        foreach (OpenXmlElement child in wordRun._run.ChildElements) {
+            switch (child) {
+                case Text text:
+                    builder.Append(text.Text);
+                    break;
+                case DeletedText deletedText:
+                    builder.Append(deletedText.Text);
+                    break;
+                case TabChar:
+                    builder.Append('\t');
+                    break;
+                case Break breakNode:
+                    builder.Append(breakNode.Type is null || breakNode.Type.Value == BreakValues.TextWrapping ? '\n' : '\u2028');
+                    break;
+            }
+        }
+
+        return builder.ToString();
     }
 
     private static RtfBreakKind ToRtfBreakKind(BreakValues? breakType) {

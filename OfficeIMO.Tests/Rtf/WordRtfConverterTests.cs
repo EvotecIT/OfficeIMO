@@ -52,7 +52,9 @@ public partial class WordRtfConverterTests {
         Assert.Contains(rtfParagraph.Runs, run => run.Text == "Removed" && run.RevisionKind == RtfRevisionKind.Deleted && run.RevisionAuthorIndex == 1);
         Assert.Contains(@"{\*\revtbl{Alice;}{Bob;}}", rtf, StringComparison.Ordinal);
         Assert.Contains(roundTrip._document.Body!.Descendants<InsertedRun>(), run => run.Author?.Value == "Alice" && run.InnerText == "Added");
-        Assert.Contains(roundTrip._document.Body!.Descendants<DeletedRun>(), run => run.Author?.Value == "Bob" && run.InnerText == "Removed");
+        DeletedRun deletedRun = Assert.Single(roundTrip._document.Body!.Descendants<DeletedRun>(), run => run.Author?.Value == "Bob" && run.InnerText == "Removed");
+        Assert.Contains(deletedRun.Descendants<DeletedText>(), text => text.Text == "Removed");
+        Assert.DoesNotContain(deletedRun.Descendants<Text>(), text => text.Text == "Removed");
     }
 
     [Fact]
