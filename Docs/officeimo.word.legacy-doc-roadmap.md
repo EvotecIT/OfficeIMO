@@ -346,6 +346,9 @@ just to reserve names.
   - [x] Project stylesheet-level paragraph numbering from DOC `sprmPIlvl` and
     `sprmPIlfo` into custom DOCX style numbering properties with synthetic
     legacy DOC fixture proof.
+  - [x] Project built-in stylesheet-level paragraph numbering from DOC
+    `sprmPIlvl` and `sprmPIlfo` into merged DOCX built-in style numbering
+    properties with synthetic legacy DOC fixture proof.
   - [x] Merge supported DOC stylesheet paragraph/run formatting into built-in
     DOCX style definitions, starting with a Heading 1 fixture that proves
     alignment, spacing, bold, underline, highlight, color, and size projection.
