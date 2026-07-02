@@ -232,6 +232,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStyleShadingFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStyleShading();
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Heading Shading");
+            Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == headingStyleId);
+
+            StyleParagraphProperties paragraphProperties = Assert.IsType<StyleParagraphProperties>(headingStyle.GetFirstChild<StyleParagraphProperties>());
+            Shading shading = Assert.IsType<Shading>(paragraphProperties.GetFirstChild<Shading>());
+            Assert.Equal(ShadingPatternValues.Clear, shading.Val!.Value);
+            Assert.Equal("auto", shading.Color!.Value);
+            Assert.Equal("ff0000", shading.Fill!.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleLayoutFlagsFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleLayoutFlags();
 
@@ -1067,6 +1092,36 @@ namespace OfficeIMO.Tests {
                     text,
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithBuiltInParagraphStyleShading() {
+                const string text = "Heading Shading\rBody\r";
+                ushort redBackground = CreateShd80(backgroundIco: 6);
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [1] = new LegacyDocStyleDefinition(
+                        "heading 1",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: CreateStyleParagraphUpx(CreateParagraphSprm(
+                            SprmPShd80,
+                            (byte)(redBackground & 0xFF),
+                            (byte)(redBackground >> 8))),
+                        characterUpx: null)
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(1)
                     },
                     styleSheet.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet);
