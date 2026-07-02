@@ -61,6 +61,19 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void Sequence_RenderMarkdown_Escapes_Own_Delimiters_In_Nested_Link_And_Image_Text() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+
+        var document = MarkdownReader.Parse("++[a\\+\\+b](u)++\n\n^![a\\^b](i)^\n\n~[![a\\~b](i)](u)~", options);
+
+        Assert.Collection(
+            document.Blocks.Cast<ParagraphBlock>(),
+            paragraph => Assert.Equal("++[a\\+\\+b](u)++", paragraph.Inlines.RenderMarkdown()),
+            paragraph => Assert.Equal("^![a\\^b](i)^", paragraph.Inlines.RenderMarkdown()),
+            paragraph => Assert.Equal("~[![a\\~b](i)](u)~", paragraph.Inlines.RenderMarkdown()));
+    }
+
+    [Fact]
     public void NoPipe_Table_Body_Does_Not_Terminate_On_Disabled_Heading_Syntax() {
         var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
         options.Headings = false;
@@ -137,6 +150,56 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Equal("Alpha", field.Value);
         Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 5), field.SourceSpan);
         Assert.Equal("Beta {#id}\n", native.CreateReplaceEdit(field, "Beta").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
+    public void CodeBlock_Html_Renders_Bare_Fence_Id_And_Classes_Without_Opaque_Options() {
+        var document = MarkdownReader.Parse("""
+            ```cs linenums #code .wide
+            Console.WriteLine();
+            ```
+            """, MarkdownReaderOptions.CreatePortableProfile());
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Contains("id=\"code\"", html);
+        Assert.Contains("class=\"wide language-cs\"", html);
+        Assert.DoesNotContain("linenums", html);
+    }
+
+    [Fact]
+    public void Standalone_GenericAttributes_Before_Type7_HtmlBlock_Are_Consumed_Without_Metadata() {
+        const string markdown = "{#html .wide}\n<custom>\nok\n</custom>\n\n";
+        var options = new MarkdownReaderOptions {
+            GenericAttributes = true,
+            PreserveTrivia = true,
+            HtmlBlocks = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var htmlBlock = Assert.IsType<HtmlRawBlock>(Assert.Single(result.Document.Blocks));
+        Assert.True(htmlBlock.Attributes.IsEmpty);
+        Assert.DoesNotContain(
+            result.FinalSyntaxTree.Descendants(),
+            node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.Empty(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Equal("<custom>\nok\n</custom>", html);
     }
 
     private sealed class RendererInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {

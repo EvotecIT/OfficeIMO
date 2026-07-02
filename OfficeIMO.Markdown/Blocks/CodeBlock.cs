@@ -148,7 +148,7 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             classes.Add("language-" + Language);
         }
 
-        var sourceAttributes = renderFenceInfoAttributesFirst ? FenceInfo.GenericAttributes : Attributes;
+        var sourceAttributes = renderFenceInfoAttributesFirst ? GetFenceInfoCodeAttributes() : Attributes;
         for (int i = 0; i < sourceAttributes.Classes.Count; i++) {
             classes.Add(sourceAttributes.Classes[i]);
         }
@@ -163,6 +163,17 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
             sourceAttributes.Attributes);
 
         return MarkdownHtmlAttributes.Render(codeAttributes, options);
+    }
+
+    private MarkdownAttributeSet GetFenceInfoCodeAttributes() {
+        if (!FenceInfo.HasExplicitAttributes) {
+            return Attributes;
+        }
+
+        return MarkdownAttributeSet.Create(
+            FenceInfo.ElementId,
+            FenceInfo.Classes,
+            FenceInfo.GenericAttributes.Attributes);
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {

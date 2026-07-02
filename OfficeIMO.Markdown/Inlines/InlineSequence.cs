@@ -179,8 +179,38 @@ public sealed class InlineSequence : MarkdownInline, IRenderableMarkdownInline, 
             SuperscriptSequenceInline superscript => "^" + superscript.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "^",
             SubscriptSequenceInline subscript => "~" + subscript.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "~",
             HtmlTagSequenceInline htmlTag => "<" + htmlTag.TagName + ">" + htmlTag.Inlines.RenderMarkdownWithTextEscaper(textEscaper) + "</" + htmlTag.TagName + ">",
+            LinkInline link => RenderLinkMarkdownWithEscapedText(link, textEscaper),
+            ImageInline image => RenderImageMarkdownWithEscapedText(image, textEscaper),
+            ImageLinkInline imageLink => RenderImageLinkMarkdownWithEscapedText(imageLink, textEscaper),
             _ => null
         };
+    }
+
+    private static string RenderLinkMarkdownWithEscapedText(LinkInline link, Func<string?, string> textEscaper) {
+        var title = MarkdownEscaper.FormatOptionalTitle(link.Title);
+        var label = link.LabelInlines != null
+            ? link.LabelInlines.RenderMarkdownWithTextEscaper(textEscaper)
+            : textEscaper(link.Text);
+        return $"[{label}]({MarkdownEscaper.EscapeLinkUrl(link.Url)}{title})";
+    }
+
+    private static string RenderImageMarkdownWithEscapedText(ImageInline image, Func<string?, string> textEscaper) {
+        if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
+            return image.RenderHtml();
+        }
+
+        var title = MarkdownEscaper.FormatOptionalTitle(image.Title);
+        return $"![{textEscaper(image.PlainAlt)}]({MarkdownEscaper.EscapeImageSrc(image.Src)}{title})";
+    }
+
+    private static string RenderImageLinkMarkdownWithEscapedText(ImageLinkInline imageLink, Func<string?, string> textEscaper) {
+        if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
+            return imageLink.RenderHtml();
+        }
+
+        var title = MarkdownEscaper.FormatOptionalTitle(imageLink.Title);
+        var linkTitle = MarkdownEscaper.FormatOptionalTitle(imageLink.LinkTitle);
+        return $"[![{textEscaper(imageLink.PlainAlt)}]({MarkdownEscaper.EscapeImageSrc(imageLink.ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(imageLink.LinkUrl)}{linkTitle})";
     }
 
     private static string? TryRenderInlineSyntaxMarkdownOverride(IMarkdownInline node, MarkdownInlineMarkdownRenderContext? context) {

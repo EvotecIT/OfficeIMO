@@ -110,7 +110,7 @@ public static partial class MarkdownReader {
                 continue;
             }
 
-            return HtmlBlockParser.IsParagraphInterruptingHtmlBlockStart(lines[i], options)
+            return HtmlBlockParser.TryGetHtmlBlockLineCount(lines, i, options, out _)
                 || IsStandaloneAttributeFootnoteDefinitionTarget(lines[i], options);
         }
 
