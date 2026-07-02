@@ -314,6 +314,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsBuiltInParagraphStyleLanguageFromStyleSheet() {
+            byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithBuiltInParagraphStyleLanguage();
+            string headingStyleId = WordParagraphStyles.Heading1.ToStringStyle();
+
+            using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+            result.EnsureNoImportErrors();
+            WordParagraph paragraph = Assert.Single(
+                result.Document.Paragraphs,
+                item => item.Text == "Heading Language");
+            Assert.Equal(WordParagraphStyles.Heading1, paragraph.Style);
+
+            using WordDocument converted = WordDocument.Load(new MemoryStream(result.Document.SaveAsByteArray()));
+            Style headingStyle = converted._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .OfType<Style>()
+                .First(style => style.StyleId?.Value == headingStyleId);
+            StyleRunProperties runProperties = Assert.IsType<StyleRunProperties>(headingStyle.GetFirstChild<StyleRunProperties>());
+            Languages languages = Assert.IsType<Languages>(runProperties.GetFirstChild<Languages>());
+            Assert.Equal("pl-PL", languages.Val?.Value);
+            Assert.Equal("ja-JP", languages.EastAsia?.Value);
+        }
+
+        [Fact]
         public void LegacyDoc_LoadLegacyDocWithReport_ProjectsCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlightFromStyleSheet() {
             byte[] docBytes = LegacyDocParagraphStyleFixture.CreateDocWithCustomParagraphStyleItalicUnderlineStrikeVerticalAndHighlight();
 
@@ -773,6 +796,34 @@ namespace OfficeIMO.Tests {
                     text,
                     new Dictionary<int, byte[]> {
                         [0] = CreateParagraphStylePapx(CustomStyleIndex)
+                    },
+                    styleSheet.Length);
+                byte[] tableStream = CreateTableStream(text.Length, styleSheet);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateDocWithBuiltInParagraphStyleLanguage() {
+                const string text = "Heading Language\rBody\r";
+                byte[] styleSheet = CreateStyleSheet(new Dictionary<ushort, LegacyDocStyleDefinition> {
+                    [1] = new LegacyDocStyleDefinition(
+                        "heading 1",
+                        basedOnStyleIndex: 0,
+                        paragraphUpx: null,
+                        characterUpx: CreateStyleCharacterUpx(
+                            CreateCharacterSprm(SprmCRgLid0, 0x15, 0x04),
+                            CreateCharacterSprm(SprmCRgLid1, 0x11, 0x04)))
+                });
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    new Dictionary<int, byte[]> {
+                        [0] = CreateParagraphStylePapx(1)
                     },
                     styleSheet.Length);
                 byte[] tableStream = CreateTableStream(text.Length, styleSheet);
