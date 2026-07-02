@@ -65,6 +65,44 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureSplitsMatchingFieldsAcrossDistinctHeaderParts() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_default_header_field.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddHeadersAndFooters();
+                document.Header.Default!._header.Append(new Paragraph(
+                    new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
+                    CreateComparisonSimpleField(" AUTHOR ", "Alice")));
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_first_header_field.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddHeadersAndFooters();
+                document.DifferentFirstPage = true;
+                document.Header.First!._header.Append(new Paragraph(
+                    new Run(new Text("Header field: ") { Space = SpaceProcessingModeValues.Preserve }),
+                    CreateComparisonSimpleField(" AUTHOR ", "Alice")));
+                document.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                IncludedScopes = new HashSet<WordComparisonScope> { WordComparisonScope.Field }
+            });
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Field &&
+                finding.ChangeKind == WordComparisonChangeKind.Deleted &&
+                finding.DetailedLocation.Contains("Header//word/header", StringComparison.Ordinal));
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Field &&
+                finding.ChangeKind == WordComparisonChangeKind.Inserted &&
+                finding.DetailedLocation.Contains("Header//word/header", StringComparison.Ordinal));
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Field &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
         public void CompareStructureReportsContentControlAliasTagAndBindingChanges() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_content_control_diff.docx");
             CreateDocumentWithBoundContentControl(

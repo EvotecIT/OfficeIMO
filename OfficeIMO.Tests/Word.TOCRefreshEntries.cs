@@ -1157,6 +1157,36 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_TableOfContent_RefreshCaptionListReadsSplitComplexSeqFieldBesideOtherFields() {
+            string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresSplitComplexSeq.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordTableOfContent list = document.AddTableOfContent();
+                AppendBodyParagraph(document, new Paragraph(
+                    new ParagraphProperties(new ParagraphStyleId { Val = "Caption" }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" STYLEREF 1 ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("Architecture") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" Figure ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" SE") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldCode("Q Figure ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("1") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" split network map") { Space = SpaceProcessingModeValues.Preserve })));
+
+                WordCaptionListRefreshReport report = list.RefreshListOfFigures();
+
+                Assert.Equal(1, report.EntryCount);
+                Assert.Equal("Architecture Figure 1 split network map", report.Entries[0].Text);
+                Assert.Contains("Architecture Figure 1 split network map", TocText(list));
+            }
+        }
+
+        [Fact]
         public void Test_TableOfContent_RefreshCaptionListHonorsImportedPageNumberSeparator() {
             string filePath = Path.Combine(_directoryWithFiles, "CaptionListFiguresPageNumberSeparator.docx");
 

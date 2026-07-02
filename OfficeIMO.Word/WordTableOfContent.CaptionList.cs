@@ -272,13 +272,41 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            IEnumerable<FieldCode> fieldCodes = paragraph.Descendants<FieldCode>();
-            if (!includeTextBoxContent) {
-                fieldCodes = fieldCodes.Where(fieldCode => !fieldCode.Ancestors<TextBoxContent>().Any());
+            foreach (string instruction in EnumerateComplexFieldInstructions(paragraph, includeTextBoxContent)) {
+                if (IsSequenceInstruction(instruction, sequenceIdentifier)) {
+                    return true;
+                }
             }
 
-            string combinedInstruction = string.Concat(fieldCodes.Select(fieldCode => fieldCode.Text));
-            return IsSequenceInstruction(combinedInstruction, sequenceIdentifier);
+            return false;
+        }
+
+        private static IEnumerable<string> EnumerateComplexFieldInstructions(Paragraph paragraph, bool includeTextBoxContent) {
+            int depth = 0;
+            var instruction = new System.Text.StringBuilder();
+            foreach (OpenXmlElement element in paragraph.Descendants<OpenXmlElement>()) {
+                if (!includeTextBoxContent && element.Ancestors<TextBoxContent>().Any()) {
+                    continue;
+                }
+
+                if (element is FieldChar fieldChar) {
+                    if (fieldChar.FieldCharType?.Value == FieldCharValues.Begin) {
+                        if (depth == 0) {
+                            instruction.Clear();
+                        }
+
+                        depth++;
+                    } else if (fieldChar.FieldCharType?.Value == FieldCharValues.End && depth > 0) {
+                        depth--;
+                        if (depth == 0 && instruction.Length > 0) {
+                            yield return instruction.ToString();
+                            instruction.Clear();
+                        }
+                    }
+                } else if (element is FieldCode fieldCode && depth > 0) {
+                    instruction.Append(fieldCode.Text);
+                }
+            }
         }
 
         private static bool IsSequenceInstruction(string? instruction, string sequenceIdentifier) {

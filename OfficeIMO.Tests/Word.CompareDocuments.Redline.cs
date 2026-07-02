@@ -1544,6 +1544,37 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForInsertedImagesInsideTextRuns() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_shared_run_source.docx");
+            CreateInlineImageRunDocument(sourcePath, Path.Combine(_directoryWithImages, "EvotecLogo.png"), includeImage: false);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_shared_run_target.docx");
+            CreateInlineImageRunDocument(targetPath, Path.Combine(_directoryWithImages, "EvotecLogo.png"), includeImage: true);
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_inserted_shared_run_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new HashSet<WordComparisonScope> {
+                            WordComparisonScope.Image
+                        }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>());
+            InsertedRun insertedImage = Assert.Single(paragraph.Descendants<InsertedRun>(), run => run.Descendants<A.Blip>().Any());
+            Assert.Empty(insertedImage.Descendants<Text>());
+            Assert.Contains(paragraph.Elements<Run>(), run => run.InnerText == "Before  after");
+            Assert.DoesNotContain(paragraph.Descendants<InsertedRun>(), run => run.InnerText.Contains("Before", StringComparison.Ordinal) || run.InnerText.Contains("after", StringComparison.Ordinal));
+        }
+
+        [Fact]
         public void CompareStructureCreatesInPlaceTargetRedlineForDeletedImages() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_source.docx");
             using (WordDocument document = WordDocument.Create(sourcePath)) {
@@ -1590,6 +1621,37 @@ namespace OfficeIMO.Tests {
 
             var errors = redline.ValidateDocument();
             Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+        }
+
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForDeletedImagesInsideSurvivingTextParagraphs() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_shared_run_source.docx");
+            CreateInlineImageRunDocument(sourcePath, Path.Combine(_directoryWithImages, "EvotecLogo.png"), includeImage: true);
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_shared_run_target.docx");
+            CreateInlineImageRunDocument(targetPath, Path.Combine(_directoryWithImages, "EvotecLogo.png"), includeImage: false);
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_image_deleted_shared_run_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests",
+                    ComparisonOptions = new WordComparisonOptions {
+                        IncludedScopes = new HashSet<WordComparisonScope> {
+                            WordComparisonScope.Image
+                        }
+                    }
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Paragraph paragraph = Assert.Single(redline._document.Body!.Elements<Paragraph>());
+            Assert.Contains(paragraph.Elements<Run>(), run => run.InnerText == "Before  after");
+            DeletedRun deletedImage = Assert.Single(paragraph.Descendants<DeletedRun>(), run => run.Descendants<A.Blip>().Any());
+            Assert.Empty(deletedImage.Descendants<DeletedText>());
+            Assert.DoesNotContain(redline._document.Body!.Elements<Paragraph>().Skip(1), item => item.Descendants<DeletedRun>().Any(run => run.Descendants<A.Blip>().Any()));
         }
 
         [Fact]
@@ -2426,6 +2488,58 @@ namespace OfficeIMO.Tests {
             Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
         }
 
+        [Fact]
+        public void CompareStructureCreatesInPlaceTargetRedlineForDeletedNestedTablesAfterParentCellDrift() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_deleted_cell_drift_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                WordTable outer = document.AddTable(2, 3);
+                outer.Rows[0].Cells[0].Paragraphs[0].Text = "Opening";
+                outer.Rows[0].Cells[1].Paragraphs[0].Text = "Stable";
+                outer.Rows[0].Cells[2].Paragraphs[0].Text = "Route";
+                outer.Rows[1].Cells[0].Paragraphs[0].Text = "Before";
+                outer.Rows[1].Cells[1].Paragraphs[0].Text = "Nested owner";
+                outer.Rows[1].Cells[2].Paragraphs[0].Text = "After";
+                WordTable nested = outer.Rows[1].Cells[1].AddTable(1, 1);
+                nested.Rows[0].Cells[0].Paragraphs[0].Text = "Retired matrix";
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_deleted_cell_drift_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                WordTable outer = document.AddTable(3, 4);
+                outer.Rows[0].Cells[0].Paragraphs[0].Text = "Inserted row";
+                outer.Rows[1].Cells[0].Paragraphs[0].Text = "Opening";
+                outer.Rows[1].Cells[1].Paragraphs[0].Text = "Stable";
+                outer.Rows[1].Cells[2].Paragraphs[0].Text = "Inserted cell";
+                outer.Rows[1].Cells[3].Paragraphs[0].Text = "Route";
+                outer.Rows[2].Cells[0].Paragraphs[0].Text = "Before";
+                outer.Rows[2].Cells[1].Paragraphs[0].Text = "Inserted cell";
+                outer.Rows[2].Cells[2].Paragraphs[0].Text = "Nested owner";
+                outer.Rows[2].Cells[3].Paragraphs[0].Text = "After";
+                document.Save(false);
+            }
+
+            string outputPath = Path.Combine(_directoryWithFiles, "compare_redline_inplace_nested_table_deleted_cell_drift_output.docx");
+            WordDocumentComparer.CreateRedlineDocument(
+                sourcePath,
+                targetPath,
+                outputPath,
+                new WordComparisonRedlineOptions {
+                    Mode = WordComparisonRedlineMode.InPlaceTarget,
+                    Author = "OfficeIMO Tests"
+                });
+
+            using WordDocument redline = WordDocument.Load(outputPath, readOnly: true);
+            Body body = redline._wordprocessingDocument.MainDocumentPart!.Document!.Body!;
+            Table outerTable = Assert.Single(body.Elements<Table>());
+            TableRow mappedRow = outerTable.Elements<TableRow>().ElementAt(2);
+            TableCell mappedCell = mappedRow.Elements<TableCell>().ElementAt(2);
+            Table deletedNestedTable = Assert.Single(mappedCell.Elements<Table>());
+            Assert.Contains(deletedNestedTable.Descendants<DeletedRun>(), run => run.InnerText == "Retired matrix" && run.Author?.Value == "OfficeIMO Tests");
+            Assert.DoesNotContain(mappedRow.Elements<TableCell>().ElementAt(1).Elements<Table>(), table => table.InnerText.Contains("Retired matrix", StringComparison.Ordinal));
+            Assert.DoesNotContain(mappedRow.Elements<TableCell>().ElementAt(3).Elements<Table>(), table => table.InnerText.Contains("Retired matrix", StringComparison.Ordinal));
+        }
+
         private static void WrapCellInCellContentControl(WordTableCell cell, string alias) {
             TableCell wrappedCell = (TableCell)cell._tableCell.CloneNode(true);
             var contentControl = new SdtCell(
@@ -2493,6 +2607,33 @@ namespace OfficeIMO.Tests {
                 new Paragraph(
                     new Run(
                         new Text(text) { Space = SpaceProcessingModeValues.Preserve })));
+        }
+
+        private static void CreateInlineImageRunDocument(string path, string imagePath, bool includeImage) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph("Before  after");
+                if (includeImage) {
+                    document.AddParagraph().AddImage(imagePath, 80, 40);
+                }
+
+                document.Save(false);
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            Body body = wordDocument.MainDocumentPart!.Document.Body!;
+            DocumentFormat.OpenXml.Wordprocessing.Drawing? drawing = includeImage
+                ? body.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().FirstOrDefault()?.CloneNode(true) as DocumentFormat.OpenXml.Wordprocessing.Drawing
+                : null;
+            body.RemoveAllChildren<Paragraph>();
+            var run = new Run(
+                new Text("Before ") { Space = SpaceProcessingModeValues.Preserve });
+            if (drawing != null) {
+                run.Append(drawing);
+            }
+
+            run.Append(new Text(" after") { Space = SpaceProcessingModeValues.Preserve });
+            body.Append(new Paragraph(run));
+            wordDocument.MainDocumentPart.Document.Save();
         }
 
         private static SdtRun CreateRunContentControl(string alias, string tag, string text) {

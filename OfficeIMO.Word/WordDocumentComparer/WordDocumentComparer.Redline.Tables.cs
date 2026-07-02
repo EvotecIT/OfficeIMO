@@ -256,17 +256,46 @@ namespace OfficeIMO.Word {
 
             Table targetParentTable = targetParentEntry.Table;
             List<TableRow> targetRows = targetParentTable.Elements<TableRow>().ToList();
-            if (placement.RowIndex < 0 || placement.RowIndex >= targetRows.Count) {
+            RedlineTableEntry sourceParentEntry = sourceTables[placement.ParentTableIndex];
+            List<TableRow> sourceRows = sourceParentEntry.Table.Elements<TableRow>().ToList();
+            int targetRowIndex = FindBestTargetBySimilarity(sourceRows, targetRows, placement.RowIndex, GetOpenXmlRowText, GetOpenXmlRowText);
+            if (targetRowIndex < 0 || targetRowIndex >= targetRows.Count || placement.RowIndex < 0 || placement.RowIndex >= sourceRows.Count) {
                 return false;
             }
 
-            List<TableCell> targetCells = targetRows[placement.RowIndex].Elements<TableCell>().ToList();
-            if (placement.CellIndex < 0 || placement.CellIndex >= targetCells.Count) {
+            List<TableCell> sourceCells = sourceRows[placement.RowIndex].Elements<TableCell>().ToList();
+            List<TableCell> targetCells = targetRows[targetRowIndex].Elements<TableCell>().ToList();
+            int targetCellIndex = FindBestTargetBySimilarity(sourceCells, targetCells, placement.CellIndex, GetOpenXmlCellText, GetOpenXmlCellText);
+            if (targetCellIndex < 0 || targetCellIndex >= targetCells.Count) {
                 return false;
             }
 
-            InsertNestedTableIntoCell(targetCells[placement.CellIndex], deletedTable);
+            InsertNestedTableIntoCell(targetCells[targetCellIndex], deletedTable);
             return true;
+        }
+
+        private static int FindBestTargetBySimilarity<TSource, TTarget>(
+            IReadOnlyList<TSource> sourceItems,
+            IReadOnlyList<TTarget> targetItems,
+            int sourceIndex,
+            Func<TSource, string> sourceIdentity,
+            Func<TTarget, string> targetIdentity) {
+            if (sourceIndex < 0 || sourceIndex >= sourceItems.Count || targetItems.Count == 0) {
+                return -1;
+            }
+
+            string sourceText = sourceIdentity(sourceItems[sourceIndex]);
+            int bestIndex = -1;
+            double bestSimilarity = double.MinValue;
+            for (int index = 0; index < targetItems.Count; index++) {
+                double similarity = GetTextSimilarity(sourceText, targetIdentity(targetItems[index]));
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestIndex = index;
+                }
+            }
+
+            return bestIndex;
         }
 
         private static RedlineTableEntry? FindTargetParentTableForNestedDeletion(

@@ -137,9 +137,18 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                entries.Add(new RedlineImageEntry(entries.Count, container.Index, container.PartKey, containerImageIndex, container.Part, container.Container, run));
+                OpenXmlElement imageElement = GetImageRedlineElement(ordered.Element);
+                entries.Add(new RedlineImageEntry(entries.Count, container.Index, container.PartKey, containerImageIndex, container.Part, container.Container, run, imageElement));
                 containerImageIndex++;
             }
+        }
+
+        private static OpenXmlElement GetImageRedlineElement(OpenXmlElement element) {
+            if (element is V.ImageData) {
+                return element.Ancestors<Picture>().FirstOrDefault() ?? element;
+            }
+
+            return element;
         }
 
         private static bool IsRedlineImageElement(OpenXmlElement element) {
@@ -160,9 +169,10 @@ namespace OfficeIMO.Word {
                 Date = options.DateTime ?? DateTime.Now,
                 Id = WordHeadersAndFooters.GenerateRevisionId()
             };
-            inserted.Append((Run)imageRun.CloneNode(true));
+            Run insertedRun = CloneImageOnlyRun(entry);
+            inserted.Append(insertedRun);
             parent.InsertBefore(inserted, imageRun);
-            imageRun.Remove();
+            RemoveImageElementFromRun(entry);
             return true;
         }
 
@@ -179,8 +189,8 @@ namespace OfficeIMO.Word {
             }
 
             parent.InsertBefore(WrapRunAsDeleted(deletedRun, options), targetRun);
-            parent.InsertBefore(WrapRunAsInserted((Run)targetRun.CloneNode(true), options), targetRun);
-            targetRun.Remove();
+            parent.InsertBefore(WrapRunAsInserted(CloneImageOnlyRun(targetEntry), options), targetRun);
+            RemoveImageElementFromRun(targetEntry);
             return true;
         }
 
@@ -230,8 +240,36 @@ namespace OfficeIMO.Word {
                 return true;
             }
 
+            if (TryInsertDeletedImageAtSourceParagraphGap(sourceEntry, targetContainer, deleted)) {
+                return true;
+            }
+
             var paragraph = new Paragraph(deleted);
             AppendImageFallbackParagraph(targetContainer.Container, paragraph);
+            return true;
+        }
+
+        private static bool TryInsertDeletedImageAtSourceParagraphGap(RedlineImageEntry sourceEntry, RedlineImageContainer targetContainer, DeletedRun deleted) {
+            Paragraph? sourceParagraph = sourceEntry.Run.Ancestors<Paragraph>().FirstOrDefault();
+            if (sourceParagraph == null) {
+                return false;
+            }
+
+            List<Paragraph> sourceParagraphs = sourceEntry.Container.Descendants<Paragraph>().ToList();
+            List<Paragraph> targetParagraphs = targetContainer.Container.Descendants<Paragraph>().ToList();
+            int sourceParagraphIndex = sourceParagraphs.FindIndex(paragraph => ReferenceEquals(paragraph, sourceParagraph));
+            if (sourceParagraphIndex < 0 || targetParagraphs.Count == 0) {
+                return false;
+            }
+
+            int targetParagraphIndex = FindTargetGapByNeighborIdentity(
+                sourceParagraphs,
+                targetParagraphs,
+                sourceParagraphIndex,
+                paragraph => GetParagraphText(paragraph),
+                paragraph => GetParagraphText(paragraph));
+            targetParagraphIndex = Math.Max(0, Math.Min(targetParagraphIndex, targetParagraphs.Count - 1));
+            targetParagraphs[targetParagraphIndex].Append(deleted);
             return true;
         }
 
@@ -278,7 +316,7 @@ namespace OfficeIMO.Word {
         }
 
         private static Run? CloneImageRunForPart(RedlineImageEntry sourceEntry, OpenXmlPart targetPart, WordprocessingDocument targetDocument) {
-            var clonedRun = (Run)sourceEntry.Run.CloneNode(true);
+            var clonedRun = CloneImageOnlyRun(sourceEntry);
             foreach (A.Blip blip in clonedRun.Descendants<A.Blip>()) {
                 if (blip.Embed?.Value is string embeddedRelationshipId) {
                     string? copiedRelationshipId = CopyEmbeddedImageRelationship(sourceEntry.Part, targetPart, embeddedRelationshipId);
@@ -321,6 +359,24 @@ namespace OfficeIMO.Word {
             RefreshClonedDrawingIds(targetDocument, clonedRun);
             RefreshClonedVmlIds(targetDocument, clonedRun);
             return clonedRun;
+        }
+
+        private static Run CloneImageOnlyRun(RedlineImageEntry entry) {
+            var clonedRun = new Run();
+            RunProperties? properties = entry.Run.GetFirstChild<RunProperties>();
+            if (properties != null) {
+                clonedRun.Append((RunProperties)properties.CloneNode(true));
+            }
+
+            clonedRun.Append(entry.ImageElement.CloneNode(true));
+            return clonedRun;
+        }
+
+        private static void RemoveImageElementFromRun(RedlineImageEntry entry) {
+            entry.ImageElement.Remove();
+            if (!entry.Run.ChildElements.Any(child => child is not RunProperties)) {
+                entry.Run.Remove();
+            }
         }
 
         private static string GetRedlineImageIdentity(RedlineImageEntry entry) {
@@ -608,7 +664,7 @@ namespace OfficeIMO.Word {
         }
 
         private sealed class RedlineImageEntry {
-            internal RedlineImageEntry(int index, int containerIndex, string partKey, int containerImageIndex, OpenXmlPart part, OpenXmlElement container, Run run) {
+            internal RedlineImageEntry(int index, int containerIndex, string partKey, int containerImageIndex, OpenXmlPart part, OpenXmlElement container, Run run, OpenXmlElement imageElement) {
                 Index = index;
                 ContainerIndex = containerIndex;
                 PartKey = partKey;
@@ -616,6 +672,7 @@ namespace OfficeIMO.Word {
                 Part = part;
                 Container = container;
                 Run = run;
+                ImageElement = imageElement;
             }
 
             internal int Index { get; }
@@ -631,6 +688,8 @@ namespace OfficeIMO.Word {
             internal OpenXmlElement Container { get; }
 
             internal Run Run { get; }
+
+            internal OpenXmlElement ImageElement { get; }
         }
     }
 }

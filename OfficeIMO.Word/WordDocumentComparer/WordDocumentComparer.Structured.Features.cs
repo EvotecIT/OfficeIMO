@@ -116,7 +116,19 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
 
-            string[] parts = detailedLocation.Split('/');
+            int separatorIndex = detailedLocation.IndexOf("//", StringComparison.Ordinal);
+            if (separatorIndex >= 0) {
+                int nextSeparatorIndex = detailedLocation.IndexOf('/', separatorIndex + 2);
+                if (nextSeparatorIndex >= 0) {
+                    nextSeparatorIndex = detailedLocation.IndexOf('/', nextSeparatorIndex + 1);
+                }
+
+                return nextSeparatorIndex >= 0
+                    ? detailedLocation.Substring(0, nextSeparatorIndex)
+                    : detailedLocation;
+            }
+
+            string[] parts = detailedLocation.Split(new[] { '/' }, StringSplitOptions.RemoveEmptyEntries);
             return parts.Length >= 2
                 ? parts[0] + "/" + parts[1]
                 : detailedLocation;
