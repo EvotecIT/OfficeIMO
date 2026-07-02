@@ -906,6 +906,31 @@ x < y
     }
 
     [Fact]
+    public void CustomContainer_Info_SourceField_Uses_TabExpanded_Columns() {
+        const string markdown = ":::\tnote\twide\nbody\n:::\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.CustomContainers = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var container = Assert.IsType<MarkdownNativeCustomContainerBlock>(Assert.Single(native.Blocks));
+        var info = Assert.Single(native.EnumerateBlockSourceFields("customContainerInfo"));
+        var name = Assert.Single(native.EnumerateBlockSourceFields("customContainerName"));
+
+        Assert.Equal("note\twide", container.Info);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 16), container.InfoSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), container.NameSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 16), info.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 8), name.SourceSpan);
+        Assert.Equal("customContainerName", native.FindBlockSourceFieldAtPosition(1, 6)!.Name);
+        Assert.Equal("customContainerInfo", native.FindBlockSourceFieldAtPosition(1, 13)!.Name);
+
+        var edited = native.CreateReplaceEdit(info, "warning").Apply(native.SourceMarkdown);
+
+        Assert.Equal(":::\twarning\nbody\n:::\n", edited);
+    }
+
+    [Fact]
     public void Container_Body_SourceFields_Use_Structured_Child_Block_Spans() {
         var markdown = """
 > [!TIP] Title
@@ -1042,6 +1067,33 @@ Inside
         Assert.Equal("  More context  ", summaryText.Value);
         Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 25), summaryText.SourceSpan);
         Assert.Contains("<summary>Less</summary>", native.CreateReplaceEdit(summaryText, "Less").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Details_SourceFields_Use_TabExpanded_Columns() {
+        const string markdown = "<details>\n\t<summary>x</summary>\n\tBody\n\t</details>\n";
+
+        var native = MarkdownNativeDocument.Parse(markdown);
+        var details = Assert.IsType<MarkdownNativeDetailsBlock>(Assert.Single(native.Blocks));
+        var summaryOpeningTag = Assert.Single(native.EnumerateBlockSourceFields("summaryOpeningTag"));
+        var summaryText = Assert.Single(native.EnumerateBlockSourceFields("summaryText"));
+        var summaryClosingTag = Assert.Single(native.EnumerateBlockSourceFields("summaryClosingTag"));
+        var closingTag = Assert.Single(native.EnumerateBlockSourceFields("detailsClosingTag"));
+
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 13), details.SummaryOpeningTagSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 14, 2, 14), details.SummaryTextSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 15, 2, 24), details.SummaryClosingTagSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 14), details.ClosingTagSourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 5, 2, 13), summaryOpeningTag.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 14, 2, 14), summaryText.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(2, 15, 2, 24), summaryClosingTag.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 14), closingTag.SourceSpan);
+        Assert.Equal("summaryOpeningTag", native.FindBlockSourceFieldAtPosition(2, 6)!.Name);
+        Assert.Equal("summaryText", native.FindBlockSourceFieldAtPosition(2, 14)!.Name);
+        Assert.Equal("detailsClosingTag", native.FindBlockSourceFieldAtPosition(4, 6)!.Name);
+
+        Assert.Contains("\t<summary>Less</summary>", native.CreateReplaceEdit(summaryText, "Less").Apply(native.SourceMarkdown), StringComparison.Ordinal);
+        Assert.Contains("\t</section>", native.CreateReplaceEdit(closingTag, "</section>").Apply(native.SourceMarkdown), StringComparison.Ordinal);
     }
 
     [Fact]

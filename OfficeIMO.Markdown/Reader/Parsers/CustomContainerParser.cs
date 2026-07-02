@@ -70,12 +70,16 @@ public static partial class MarkdownReader {
             };
 
             if (opening.InfoStartColumn > 0 && opening.Info.Length > 0) {
+                var openingLine = lines[i] ?? string.Empty;
+                var infoStartIndex = opening.InfoStartColumn - 1;
+                var infoStartColumn = AdvanceSourceColumn(1, openingLine, infoStartIndex);
+                var infoEndColumn = AdvanceSourceColumn(1, openingLine, infoStartIndex + opening.Info.Length) - 1;
                 block.InfoSourceSpan = CreateSpan(
                     state,
                     state.SourceLineOffset + i + 1,
-                    opening.InfoStartColumn,
+                    infoStartColumn,
                     state.SourceLineOffset + i + 1,
-                    opening.InfoStartColumn + opening.Info.Length - 1);
+                    infoEndColumn);
             }
 
             if (closingIndex >= 0) {
@@ -201,6 +205,16 @@ public static partial class MarkdownReader {
             }
 
             return count;
+        }
+
+        private static int AdvanceSourceColumn(int startColumn, string? text, int endExclusive) {
+            var column = Math.Max(1, startColumn);
+            var boundedEnd = Math.Max(0, Math.Min(endExclusive, text?.Length ?? 0));
+            for (var i = 0; i < boundedEnd; i++) {
+                column = MarkdownSourceColumns.AdvanceColumn(column, text![i]);
+            }
+
+            return column;
         }
 
         private readonly struct CustomContainerFence {

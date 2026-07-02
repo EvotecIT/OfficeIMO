@@ -1744,7 +1744,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
-    public void ParseWithSyntaxTree_Keeps_Strike_And_Highlight_Literal_And_Attaches_Inserted_GenericAttributes() {
+    public void ParseWithSyntaxTree_Attaches_Extra_Emphasis_GenericAttributes() {
         const string markdown = "~~gone~~{#s .strike} ==mark=={#m .mark} ++ins++{#i .insert}\n";
         var options = new MarkdownReaderOptions {
             GenericAttributes = true,
@@ -1760,13 +1760,19 @@ public class Markdown_GenericAttributes_Syntax_Tests {
             result.FinalSyntaxTree.Descendants().Where(node =>
                 node.Kind == MarkdownSyntaxKind.InlineStrikethrough ||
                 node.Kind == MarkdownSyntaxKind.InlineHighlight),
-            node => Assert.True(node.Attributes.IsEmpty));
+            node => Assert.False(node.Attributes.IsEmpty));
+        var strikethrough = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineStrikethrough);
+        Assert.Equal("s", strikethrough.Attributes.ElementId);
+        Assert.Equal(new[] { "strike" }, strikethrough.Attributes.Classes);
+        var highlight = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineHighlight);
+        Assert.Equal("m", highlight.Attributes.ElementId);
+        Assert.Equal(new[] { "mark" }, highlight.Attributes.Classes);
         var inserted = Assert.Single(result.FinalSyntaxTree.Descendants(), node => node.Kind == MarkdownSyntaxKind.InlineInserted);
         Assert.Equal("i", inserted.Attributes.ElementId);
         Assert.Equal(new[] { "insert" }, inserted.Attributes.Classes);
 
         var native = MarkdownNativeDocument.Parse(markdown, options);
-        Assert.Single(native.EnumerateInlineMetadata("attributes"));
+        Assert.Equal(3, native.EnumerateInlineMetadata("attributes").Count());
     }
 
     [Fact]

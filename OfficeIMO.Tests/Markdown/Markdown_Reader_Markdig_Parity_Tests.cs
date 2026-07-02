@@ -417,8 +417,6 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     public static IEnumerable<object[]> GenericAttributesEmphasisExtrasExtensionCases() {
-        yield return new object[] { "strikethrough", "~~gone~~{#s .strike}" };
-        yield return new object[] { "highlight", "==mark=={#m .mark}" };
         yield return new object[] { "superscript", "^sup^{#sup .high}" };
         yield return new object[] { "subscript", "~sub~{#sub .low}" };
     }

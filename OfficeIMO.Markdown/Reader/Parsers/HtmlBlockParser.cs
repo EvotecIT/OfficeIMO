@@ -429,10 +429,11 @@ public static partial class MarkdownReader {
             string htmlContent,
             int startLineIndex,
             int index) {
-            GetDetailsSourcePosition(htmlContent, index, out int lineOffset, out int columnOffset);
+            GetDetailsSourcePosition(htmlContent, index, out int lineOffset, out int lineStart);
             int absoluteLine = state.SourceLineOffset + startLineIndex + lineOffset + 1;
-            return state.SourceTextMap?.CreatePoint(absoluteLine, columnOffset + 1)
-                ?? new MarkdownSourcePoint(absoluteLine, columnOffset + 1, 0);
+            int column = AdvanceDetailsSourceColumn(htmlContent, lineStart, index);
+            return state.SourceTextMap?.CreatePoint(absoluteLine, column)
+                ?? new MarkdownSourcePoint(absoluteLine, column, 0);
         }
 
         private static IReadOnlyList<MarkdownSourceLineSlice> CreateDetailsBodySourceLines(
@@ -455,9 +456,10 @@ public static partial class MarkdownReader {
 
                 string text = body.Substring(lineStart, lineEnd - lineStart);
                 int sourceIndex = Math.Min(bodyStartInHtml + lineStart, Math.Max(0, htmlContent.Length - 1));
-                GetDetailsSourcePosition(htmlContent, sourceIndex, out int lineOffset, out int columnOffset);
+                GetDetailsSourcePosition(htmlContent, sourceIndex, out int lineOffset, out int detailLineStart);
                 int absoluteLine = state.SourceLineOffset + startLineIndex + lineOffset + 1;
-                sourceLines.Add(new MarkdownSourceLineSlice(text, absoluteLine, columnOffset + 1));
+                int column = AdvanceDetailsSourceColumn(htmlContent, detailLineStart, sourceIndex);
+                sourceLines.Add(new MarkdownSourceLineSlice(text, absoluteLine, column));
 
                 if (lineEnd >= body.Length) {
                     break;
@@ -478,24 +480,26 @@ public static partial class MarkdownReader {
             int startLineIndex,
             int startIndexInclusive,
             int endIndexInclusive) {
-            GetDetailsSourcePosition(htmlContent, startIndexInclusive, out int startLineOffset, out int startColumnOffset);
-            GetDetailsSourcePosition(htmlContent, endIndexInclusive, out int endLineOffset, out int endColumnOffset);
+            GetDetailsSourcePosition(htmlContent, startIndexInclusive, out int startLineOffset, out int startLineStart);
+            GetDetailsSourcePosition(htmlContent, endIndexInclusive, out int endLineOffset, out int endLineStart);
 
             int absoluteStartLine = state.SourceLineOffset + startLineIndex + startLineOffset + 1;
             int absoluteEndLine = state.SourceLineOffset + startLineIndex + endLineOffset + 1;
+            int startColumn = AdvanceDetailsSourceColumn(htmlContent, startLineStart, startIndexInclusive);
+            int endColumn = AdvanceDetailsSourceColumn(htmlContent, endLineStart, endIndexInclusive + 1) - 1;
 
             return CreateSpan(
                 state,
                 absoluteStartLine,
-                startColumnOffset + 1,
+                startColumn,
                 absoluteEndLine,
-                endColumnOffset + 1);
+                endColumn);
         }
 
-        private static void GetDetailsSourcePosition(string htmlContent, int index, out int lineOffset, out int columnOffset) {
+        private static void GetDetailsSourcePosition(string htmlContent, int index, out int lineOffset, out int lineStart) {
             int clampedIndex = Math.Max(0, Math.Min(index, Math.Max(0, htmlContent.Length - 1)));
             lineOffset = 0;
-            int lineStart = 0;
+            lineStart = 0;
 
             for (int i = 0; i < clampedIndex; i++) {
                 if (htmlContent[i] == '\n') {
@@ -503,8 +507,17 @@ public static partial class MarkdownReader {
                     lineStart = i + 1;
                 }
             }
+        }
 
-            columnOffset = clampedIndex - lineStart;
+        private static int AdvanceDetailsSourceColumn(string htmlContent, int startIndex, int endExclusive) {
+            var column = 1;
+            var boundedStart = Math.Max(0, Math.Min(startIndex, htmlContent.Length));
+            var boundedEnd = Math.Max(boundedStart, Math.Min(endExclusive, htmlContent.Length));
+            for (var i = boundedStart; i < boundedEnd; i++) {
+                column = MarkdownSourceColumns.AdvanceColumn(column, htmlContent[i]);
+            }
+
+            return column;
         }
 
         private static int CountNewLines(string text, int start, int length) {
