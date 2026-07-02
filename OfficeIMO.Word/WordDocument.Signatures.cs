@@ -111,7 +111,11 @@ namespace OfficeIMO.Word {
             certificate = null;
             options ??= new WordPackageCertificateStoreOptions();
 
-            string normalizedThumbprint = NormalizeCertificateThumbprint(certificateThumbprint);
+            if (!TryNormalizeCertificateThumbprint(certificateThumbprint, out string normalizedThumbprint, out string validationDetail)) {
+                detail = validationDetail;
+                return false;
+            }
+
             if (string.IsNullOrWhiteSpace(normalizedThumbprint)) {
                 detail = "A certificate thumbprint is required.";
                 return false;
@@ -144,9 +148,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static string NormalizeCertificateThumbprint(string? thumbprint) {
+        private static bool TryNormalizeCertificateThumbprint(string? thumbprint, out string normalizedThumbprint, out string detail) {
+            normalizedThumbprint = string.Empty;
+            detail = string.Empty;
             if (string.IsNullOrWhiteSpace(thumbprint)) {
-                return string.Empty;
+                return true;
             }
 
             string value = thumbprint!;
@@ -154,10 +160,16 @@ namespace OfficeIMO.Word {
             foreach (char character in value) {
                 if (Uri.IsHexDigit(character)) {
                     chars.Add(char.ToUpperInvariant(character));
+                } else if (char.IsWhiteSpace(character) || character == ':' || character == '-') {
+                    continue;
+                } else {
+                    detail = "Certificate thumbprint contains invalid character '" + character + "'.";
+                    return false;
                 }
             }
 
-            return new string(chars.ToArray());
+            normalizedThumbprint = new string(chars.ToArray());
+            return true;
         }
     }
 }

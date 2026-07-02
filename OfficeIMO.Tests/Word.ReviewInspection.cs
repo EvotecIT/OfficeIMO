@@ -703,6 +703,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_InspectReview_PreservesParagraphSeparatorsInCommentTargets() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReviewInspection.CommentRangeParagraphSeparators.docx");
+            File.Delete(filePath);
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("First");
+                document.AddParagraph("Second");
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument wordDocument = WordprocessingDocument.Open(filePath, true)) {
+                MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+                WordprocessingCommentsPart commentsPart = mainPart.WordprocessingCommentsPart ?? mainPart.AddNewPart<WordprocessingCommentsPart>();
+                commentsPart.Comments = new Comments(
+                    new Comment(new Paragraph(new Run(new Text("Range note")))) {
+                        Id = "0",
+                        Author = "Alice Reviewer",
+                        Initials = "AR"
+                    });
+                commentsPart.Comments.Save();
+
+                Paragraph[] paragraphs = mainPart.Document.Body!.Elements<Paragraph>().Take(2).ToArray();
+                paragraphs[0].PrependChild(new CommentRangeStart { Id = "0" });
+                paragraphs[1].Append(new CommentRangeEnd { Id = "0" });
+                paragraphs[1].Append(new Run(new CommentReference { Id = "0" }));
+                mainPart.Document.Save();
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                WordCommentInfo comment = Assert.Single(document.InspectReview().Comments);
+
+                Assert.Equal("First Second", comment.TargetText);
+            }
+        }
+
+        [Fact]
         public void Test_WordComment_DeleteRemovesOnlyCommentReferenceFromSharedHeaderRun() {
             string filePath = Path.Combine(_directoryWithFiles, "ReviewOperations.DeleteHeaderCommentSharedRun.docx");
             File.Delete(filePath);

@@ -41,21 +41,35 @@ namespace OfficeIMO.Word {
             foreach (MatchedIndexPair match in matchedImages) {
                 ImageSnapshot sourceImage = sourceImages[match.SourceIndex];
                 ImageSnapshot targetImage = targetImages[match.TargetIndex];
-                if (!ImageSnapshotEqualityComparer.Instance.Equals(sourceImage, targetImage) ||
-                    string.Equals(sourceImage.PositionKey, targetImage.PositionKey, StringComparison.Ordinal)) {
+                if (!ImageSnapshotEqualityComparer.Instance.Equals(sourceImage, targetImage)) {
                     continue;
                 }
 
-                result.Add(new WordComparisonFinding(
-                    WordComparisonScope.Image,
-                    WordComparisonChangeKind.Modified,
-                    ImageLocation(match.TargetIndex),
-                    match.SourceIndex,
-                    match.TargetIndex,
-                    sourceImage.DisplayText,
-                    targetImage.DisplayText,
-                    "Image position changed."),
-                    targetImage.DocumentOrder);
+                if (!string.Equals(sourceImage.PositionKey, targetImage.PositionKey, StringComparison.Ordinal)) {
+                    result.Add(new WordComparisonFinding(
+                        WordComparisonScope.Image,
+                        WordComparisonChangeKind.Modified,
+                        ImageLocation(match.TargetIndex),
+                        match.SourceIndex,
+                        match.TargetIndex,
+                        sourceImage.DisplayText,
+                        targetImage.DisplayText,
+                        "Image position changed."),
+                        targetImage.DocumentOrder);
+                }
+
+                if (!string.Equals(sourceImage.VisualSignature, targetImage.VisualSignature, StringComparison.Ordinal)) {
+                    result.Add(new WordComparisonFinding(
+                        WordComparisonScope.Image,
+                        WordComparisonChangeKind.Modified,
+                        ImageLocation(match.TargetIndex),
+                        match.SourceIndex,
+                        match.TargetIndex,
+                        sourceImage.DisplayText,
+                        targetImage.DisplayText,
+                        "Image layout changed."),
+                        targetImage.DocumentOrder);
+                }
             }
         }
 
@@ -97,6 +111,7 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
+                bool samePayload = HasSameImagePayload(sourceImages[sourceIndex], targetImages[targetIndex]);
                 result.Add(new WordComparisonFinding(
                     WordComparisonScope.Image,
                     WordComparisonChangeKind.Modified,
@@ -105,7 +120,7 @@ namespace OfficeIMO.Word {
                     targetIndex,
                     sourceImages[sourceIndex].DisplayText,
                     targetImages[targetIndex].DisplayText,
-                    "Image payload changed."),
+                    samePayload ? "Image layout changed." : "Image payload changed."),
                     targetImages[targetIndex].DocumentOrder);
 
                 sourceIndex++;
@@ -414,6 +429,20 @@ namespace OfficeIMO.Word {
 
         private static string ImageLocation(int imageIndex) {
             return "image[" + imageIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "]";
+        }
+
+        private static bool HasSameImagePayload(ImageSnapshot sourceImage, ImageSnapshot targetImage) {
+            if (!string.Equals(sourceImage.PartKey, targetImage.PartKey, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            if (sourceImage.ExternalUri != null || targetImage.ExternalUri != null) {
+                return string.Equals(sourceImage.ExternalUri, targetImage.ExternalUri, StringComparison.Ordinal);
+            }
+
+            return sourceImage.EmbeddedFingerprint != null &&
+                   targetImage.EmbeddedFingerprint != null &&
+                   sourceImage.EmbeddedFingerprint.Equals(targetImage.EmbeddedFingerprint);
         }
 
         private static ImageFingerprint CreateImageFingerprint(Stream stream) {

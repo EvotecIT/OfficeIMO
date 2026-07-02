@@ -37,11 +37,17 @@ namespace OfficeIMO.Word {
 
             var wordProcessingDocument = this._wordprocessingDocument;
             if (wordProcessingDocument != null) {
-                try {
-                    if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                    try {
                         Save();
+                    } catch (WordSignatureSavePolicyException) {
+                        DisablePackageAutoSave(wordProcessingDocument);
+                    } catch {
+                        // ignored
                     }
+                }
 
+                try {
                     wordProcessingDocument.Dispose();
                 } catch {
                     // ignored
@@ -81,11 +87,17 @@ namespace OfficeIMO.Word {
 
             var wordProcessingDocument = this._wordprocessingDocument;
             if (wordProcessingDocument != null) {
-                try {
-                    if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                if (wordProcessingDocument.AutoSave && wordProcessingDocument.FileOpenAccess != FileAccess.Read) {
+                    try {
                         await SaveAsync().ConfigureAwait(false);
+                    } catch (WordSignatureSavePolicyException) {
+                        DisablePackageAutoSave(wordProcessingDocument);
+                    } catch {
+                        // ignored
                     }
+                }
 
+                try {
                     await Task.Run(() => wordProcessingDocument.Dispose()).ConfigureAwait(false);
                 } catch {
                     // ignored
@@ -113,6 +125,23 @@ namespace OfficeIMO.Word {
 
             this._disposed = true;
             GC.SuppressFinalize(this);
+        }
+
+        private static void DisablePackageAutoSave(WordprocessingDocument wordProcessingDocument) {
+            System.Reflection.PropertyInfo? property = typeof(WordprocessingDocument).BaseType?.GetProperty(
+                "OpenSettings",
+                System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic);
+            OpenSettings? settings = property?.GetValue(wordProcessingDocument) as OpenSettings;
+            if (settings == null || property == null) {
+                return;
+            }
+
+            property.SetValue(wordProcessingDocument, new OpenSettings {
+                AutoSave = false,
+                CompatibilityLevel = settings.CompatibilityLevel,
+                MarkupCompatibilityProcessSettings = settings.MarkupCompatibilityProcessSettings,
+                MaxCharactersInPart = settings.MaxCharactersInPart
+            });
         }
 
         private static void InitialiseStyleDefinitions(WordprocessingDocument wordDocument, bool readOnly, bool overrideStyles) {

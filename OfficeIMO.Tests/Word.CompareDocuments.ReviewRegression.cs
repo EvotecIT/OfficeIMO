@@ -106,6 +106,49 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructurePreservesBookmarkRangeParagraphSeparators() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_bookmark_range_separator_source.docx");
+            CreateBookmarkRangeParagraphDocument(sourcePath, "First", "Second");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_bookmark_range_separator_target.docx");
+            using (WordDocument document = WordDocument.Create(targetPath)) {
+                document.AddParagraph("FirstSecond").AddBookmark("RangeBookmark");
+                document.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false,
+                IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.Bookmark }
+            });
+
+            WordComparisonFinding bookmark = Assert.Single(result.Findings, finding => finding.Scope == WordComparisonScope.Bookmark);
+            Assert.Equal(WordComparisonChangeKind.Modified, bookmark.ChangeKind);
+            Assert.Contains("text=First Second", bookmark.SourceText, StringComparison.Ordinal);
+            Assert.Contains("text=FirstSecond", bookmark.TargetText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void CompareStructureIncludesStyleNumberedListParagraphs() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_style_numbered_list_source.docx");
+            using (WordDocument document = WordDocument.Create(sourcePath)) {
+                document.AddParagraph("Plain");
+                document.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_style_numbered_list_target.docx");
+            CreateStyleNumberedListDocument(targetPath, "Styled item");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath, new WordComparisonOptions {
+                CompareGeneratedIds = false,
+                IncludedScopes = new System.Collections.Generic.HashSet<WordComparisonScope> { WordComparisonScope.List }
+            });
+
+            WordComparisonFinding list = Assert.Single(result.Findings, finding => finding.Scope == WordComparisonScope.List);
+            Assert.Equal(WordComparisonChangeKind.Inserted, list.ChangeKind);
+            Assert.Contains("Styled item", list.TargetText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void CompareStructureMatchesRevisionsAcrossInsertedEarlierRevision() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_revision_insert_before_source.docx");
             CreateRevisionRegressionDocument(sourcePath, "Keep");
@@ -1690,6 +1733,58 @@ namespace OfficeIMO.Tests {
             }
 
             document.Save(false);
+        }
+
+        private static void CreateBookmarkRangeParagraphDocument(string path, string firstText, string secondText) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph(firstText);
+                document.AddParagraph(secondText);
+                document.Save(false);
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            Paragraph[] paragraphs = mainPart.Document.Body!.Elements<Paragraph>().Take(2).ToArray();
+            paragraphs[0].PrependChild(new BookmarkStart { Name = "RangeBookmark", Id = "42" });
+            paragraphs[1].Append(new BookmarkEnd { Id = "42" });
+            mainPart.Document.Save();
+        }
+
+        private static void CreateStyleNumberedListDocument(string path, string text) {
+            using (WordDocument document = WordDocument.Create(path)) {
+                document.AddParagraph(text);
+                document.Save(false);
+            }
+
+            using WordprocessingDocument wordDocument = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = wordDocument.MainDocumentPart!;
+            NumberingDefinitionsPart numberingPart = mainPart.NumberingDefinitionsPart ?? mainPart.AddNewPart<NumberingDefinitionsPart>();
+            numberingPart.Numbering = new Numbering(
+                new AbstractNum(
+                    new Level(
+                        new StartNumberingValue { Val = 1 },
+                        new NumberingFormat { Val = NumberFormatValues.Decimal },
+                        new LevelText { Val = "%1." }) { LevelIndex = 0 }) { AbstractNumberId = 1 },
+                new NumberingInstance(new AbstractNumId { Val = 1 }) { NumberID = 1 });
+            numberingPart.Numbering.Save();
+
+            StyleDefinitionsPart stylePart = mainPart.StyleDefinitionsPart ?? mainPart.AddNewPart<StyleDefinitionsPart>();
+            stylePart.Styles ??= new Styles();
+            stylePart.Styles.Append(new Style(
+                new StyleName { Val = "Styled List" },
+                new StyleParagraphProperties(
+                    new NumberingProperties(
+                        new NumberingLevelReference { Val = 0 },
+                        new NumberingId { Val = 1 }))) {
+                            Type = StyleValues.Paragraph,
+                            StyleId = "StyledList"
+                        });
+            stylePart.Styles.Save();
+
+            Paragraph paragraph = mainPart.Document.Body!.Elements<Paragraph>().First();
+            ParagraphProperties properties = paragraph.ParagraphProperties ?? paragraph.PrependChild(new ParagraphProperties());
+            properties.ParagraphStyleId = new ParagraphStyleId { Val = "StyledList" };
+            mainPart.Document.Save();
         }
 
         private static void ReplaceTocInstructionWithSplitComplexField(WordTableOfContent toc) {

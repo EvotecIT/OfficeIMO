@@ -155,7 +155,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    NumberingProperties? numbering = paragraph.ParagraphProperties?.NumberingProperties;
+                    NumberingProperties? numbering = ResolveParagraphNumberingProperties(paragraph, mainPart);
                     if (numbering == null) {
                         continue;
                     }
@@ -218,6 +218,8 @@ namespace OfficeIMO.Word {
             OpenXmlElement root = bookmarkStart.Ancestors().LastOrDefault() ?? bookmarkStart;
             var text = new List<string>();
             bool inRange = false;
+            Paragraph? previousParagraph = null;
+            TableCell? previousCell = null;
 
             foreach (OpenXmlElement element in root.Descendants()) {
                 if (ReferenceEquals(element, bookmarkStart)) {
@@ -230,11 +232,60 @@ namespace OfficeIMO.Word {
                 }
 
                 if (inRange && element is Text textElement) {
+                    AddRangeTextSeparatorIfNeeded(text, element, ref previousParagraph, ref previousCell);
                     text.Add(textElement.Text);
                 }
             }
 
             return string.Concat(text);
+        }
+
+        private static void AddRangeTextSeparatorIfNeeded(List<string> parts, OpenXmlElement current, ref Paragraph? previousParagraph, ref TableCell? previousCell) {
+            Paragraph? paragraph = current.Ancestors<Paragraph>().FirstOrDefault();
+            TableCell? cell = current.Ancestors<TableCell>().FirstOrDefault();
+            if (parts.Count > 0 &&
+                (!ReferenceEquals(paragraph, previousParagraph) || !ReferenceEquals(cell, previousCell))) {
+                parts.Add(" ");
+            }
+
+            previousParagraph = paragraph;
+            previousCell = cell;
+        }
+
+        private static NumberingProperties? ResolveParagraphNumberingProperties(Paragraph paragraph, MainDocumentPart mainPart) {
+            NumberingProperties? directNumbering = paragraph.ParagraphProperties?.NumberingProperties;
+            if (directNumbering != null) {
+                return directNumbering;
+            }
+
+            string? styleId = paragraph.ParagraphProperties?.ParagraphStyleId?.Val?.Value;
+            if (string.IsNullOrWhiteSpace(styleId)) {
+                return null;
+            }
+
+            Styles? styles = mainPart.StyleDefinitionsPart?.Styles;
+            if (styles == null) {
+                return null;
+            }
+
+            var visited = new HashSet<string>(StringComparer.Ordinal);
+            while (!string.IsNullOrWhiteSpace(styleId)) {
+                string currentStyleId = styleId!;
+                if (!visited.Add(currentStyleId)) {
+                    break;
+                }
+
+                Style? style = styles.Elements<Style>()
+                    .FirstOrDefault(item => string.Equals(item.StyleId?.Value, currentStyleId, StringComparison.Ordinal));
+                NumberingProperties? numbering = style?.StyleParagraphProperties?.NumberingProperties;
+                if (numbering != null) {
+                    return numbering;
+                }
+
+                styleId = style?.BasedOn?.Val?.Value;
+            }
+
+            return null;
         }
 
         private static string GetBookmarkLocationSignature(BookmarkStart bookmarkStart, WordComparisonOptions options) {

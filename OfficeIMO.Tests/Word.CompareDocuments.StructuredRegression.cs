@@ -166,7 +166,7 @@ namespace OfficeIMO.Tests {
             WordComparisonFinding image = Assert.Single(result.Findings, finding =>
                 finding.Scope == WordComparisonScope.Image &&
                 finding.ChangeKind == WordComparisonChangeKind.Modified);
-            Assert.Equal("Image payload changed.", image.Message);
+            Assert.Equal("Image layout changed.", image.Message);
         }
 
         [Fact]

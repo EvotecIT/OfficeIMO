@@ -466,6 +466,44 @@ namespace OfficeIMO.Tests {
             }
         }
 
+        [Fact]
+        public void Test_DigitalSignature_DisposeSignedAutoSaveReleasesPackageWithoutSaving() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureAutoSaveDispose.docx");
+            byte[] signatureBytes = CreateSignatureXml();
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Signed autosave source");
+                document.Save(false);
+            }
+
+            AddDigitalSignatureMetadata(filePath, signatureBytes);
+
+            WordDocument loaded = WordDocument.Load(filePath, autoSave: true);
+            loaded.AddParagraph("Mutation that should not autosave");
+            loaded.Dispose();
+
+            Assert.False(filePath.IsFileLocked());
+            using (WordDocument document = WordDocument.Load(filePath, readOnly: true)) {
+                Assert.DoesNotContain(document.Paragraphs, paragraph => paragraph.Text == "Mutation that should not autosave");
+                Assert.True(document.InspectSignatures().HasSignatures);
+            }
+        }
+
+        [Fact]
+        public void Test_DigitalSignature_TrySignPackageRejectsInvalidThumbprintCharacters() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordDigitalSignatureInvalidThumbprint.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Invalid thumbprint");
+                document.Save(false);
+            }
+
+            WordPackageSigningResult result = WordDocument.TrySignPackage(filePath, "ABCDZ123");
+
+            Assert.False(result.Succeeded);
+            Assert.Contains(result.Details, detail => detail.Contains("invalid character", System.StringComparison.OrdinalIgnoreCase));
+        }
+
 #if NET472
         [Fact]
         public void Test_DigitalSignature_SignPackageCreatesStructurallyReadableSignatureOnSupportedAdapter() {

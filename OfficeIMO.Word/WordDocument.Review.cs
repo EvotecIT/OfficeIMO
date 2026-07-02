@@ -134,6 +134,8 @@ namespace OfficeIMO.Word {
         private static string ReadCommentRangeText(CommentRangeStart start, string id) {
             var parts = new List<string>();
             OpenXmlElement? current = GetNextElementInDocumentOrder(start);
+            Paragraph? previousParagraph = null;
+            TableCell? previousCell = null;
 
             while (current != null) {
                 if (current is CommentRangeEnd end && string.Equals(end.Id?.Value, id, StringComparison.Ordinal)) {
@@ -141,8 +143,10 @@ namespace OfficeIMO.Word {
                 }
 
                 if (current is Text text) {
+                    AddRangeTextSeparatorIfNeeded(parts, current, ref previousParagraph, ref previousCell);
                     parts.Add(text.Text);
                 } else if (current is DeletedText deletedText) {
+                    AddRangeTextSeparatorIfNeeded(parts, current, ref previousParagraph, ref previousCell);
                     parts.Add(deletedText.Text);
                 }
 
@@ -150,6 +154,18 @@ namespace OfficeIMO.Word {
             }
 
             return NormalizeText(string.Concat(parts));
+        }
+
+        private static void AddRangeTextSeparatorIfNeeded(List<string> parts, OpenXmlElement current, ref Paragraph? previousParagraph, ref TableCell? previousCell) {
+            Paragraph? paragraph = current.Ancestors<Paragraph>().FirstOrDefault();
+            TableCell? cell = current.Ancestors<TableCell>().FirstOrDefault();
+            if (parts.Count > 0 &&
+                (!ReferenceEquals(paragraph, previousParagraph) || !ReferenceEquals(cell, previousCell))) {
+                parts.Add(" ");
+            }
+
+            previousParagraph = paragraph;
+            previousCell = cell;
         }
 
         private static OpenXmlElement? GetNextElementInDocumentOrder(OpenXmlElement element) {

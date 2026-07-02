@@ -320,6 +320,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsImageLayoutChangesWithoutPayloadChanges() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_layout_only.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_layout_only.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph().AddImage(imagePath, 120, 40);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.Message == "Image payload changed.");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.Message == "Image layout changed.");
+        }
+
+        [Fact]
         public void CompareStructureReportsTrackedDeletedTextInParagraphs() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_deleted_text.docx");
             CreateDocumentWithParagraphsForReviewWave(sourcePath, "Keep");
