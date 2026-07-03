@@ -2,10 +2,6 @@
 
 Date: 2026-06-26
 
-Baseline branch: `codex/excel-image-premium-drawing-consolidation`
-
-Worktree: `C:\Support\GitHub\_worktrees\OfficeIMO-format-roundtrip-audit-20260626`
-
 ## Short Answer
 
 OfficeIMO already has most of the right package boundaries for HTML, Word, Markdown, PDF, Excel, PowerPoint, Reader, and semantic authoring. The missing work is not another converter package by default. The missing work is a shared roundtrip/proof contract that makes every lane report the same feature inventory, visual theme vocabulary, diagnostics, asset manifest, and visual evidence story without forcing every format through one universal document model.

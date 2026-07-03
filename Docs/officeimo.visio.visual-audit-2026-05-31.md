@@ -1,7 +1,6 @@
 # OfficeIMO.Visio Visual Audit
 
 Date: 2026-05-31
-Branch/worktree: `codex/visio-premium-roadmap` at `C:\Support\GitHub\OfficeIMO-visio-premium-roadmap`
 
 ## Evidence Reviewed
 

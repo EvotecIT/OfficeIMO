@@ -149,4 +149,3 @@ Keep rendering scoped until the implementation path is proven.
 - Current feature status: `OfficeIMO.Excel/COMPATIBILITY.md`
 - Large workbook guidance: `Docs/officeimo.excel.large-workbook-guidance.md`
 - Unified Word/Excel capability assessment: `Docs/officeimo.word-excel-capability-assessment.md`
-- Release readiness checklist: `Docs/officeimo.excel.release-checklist.md`

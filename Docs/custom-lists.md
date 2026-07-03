@@ -27,5 +27,5 @@ numbered.Numbering.AddLevel(level);
 numbered.AddItem("Starts at three");
 ```
 
-See [`WordListLevelKind`](./officeimo.word.wordlistlevelkind.md) for the available bullet symbols.
+Use `WordListLevelKind` for the available bullet symbols.
 

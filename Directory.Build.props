@@ -3,18 +3,19 @@
   <PropertyGroup>
     <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
     <!-- Do not elevate informational messages (e.g., preview SDK notice). -->
+    <OfficeIMOSharedDir>$(MSBuildThisFileDirectory)OfficeIMO.Shared</OfficeIMOSharedDir>
+    <OfficeIMOTrimmingPolyfillsFile>$(OfficeIMOSharedDir)\Compatibility\TrimmingAttributes.cs</OfficeIMOTrimmingPolyfillsFile>
   </PropertyGroup>
+
   <ItemGroup Condition="'$(EnableTrimmingPolyfills)' == 'true'">
-    <Compile Include="$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs"
-             Condition="Exists('$(MSBuildThisFileDirectory)Build\Trimming\TrimmingAttributes.cs')" />
+    <Compile Include="$(OfficeIMOTrimmingPolyfillsFile)"
+             Link="Shared\Compatibility\TrimmingAttributes.cs"
+             Condition="Exists('$(OfficeIMOTrimmingPolyfillsFile)')" />
   </ItemGroup>
 
-  <PropertyGroup>
-    <OfficeIMOSharedDir>$(MSBuildThisFileDirectory)OfficeIMO.Shared</OfficeIMOSharedDir>
-  </PropertyGroup>
   <ItemGroup Condition="Exists('$(OfficeIMOSharedDir)')">
     <Compile Include="$(OfficeIMOSharedDir)\**\*.cs"
-             Exclude="$(OfficeIMOSharedDir)\OfficeEncryption*.cs;$(OfficeIMOSharedDir)\OfficePackageSignature*.cs;$(OfficeIMOSharedDir)\Compound\**\*.cs;$(OfficeIMOSharedDir)\Ole\**\*.cs"
+             Exclude="$(OfficeIMOTrimmingPolyfillsFile);$(OfficeIMOSharedDir)\OfficeEncryption*.cs;$(OfficeIMOSharedDir)\OfficePackageSignature*.cs;$(OfficeIMOSharedDir)\Compound\**\*.cs;$(OfficeIMOSharedDir)\Ole\**\*.cs"
              Link="Shared\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
