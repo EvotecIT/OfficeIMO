@@ -53,7 +53,7 @@
     <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetReader.cs" Link="Shared\Ole\OfficeOlePropertySetReader.cs" />
     <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetWriter.cs" Link="Shared\Ole\OfficeOlePropertySetWriter.cs" />
     <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertyValue.cs" Link="Shared\Ole\OfficeOlePropertyValue.cs" />
-    <Compile Include="..\OfficeIMO.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
+    <Compile Include="..\OfficeIMO.Pdf.Tests\Pdf\PdfPngTestImages.cs" Link="Pdf\PdfPngTestImages.cs" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
