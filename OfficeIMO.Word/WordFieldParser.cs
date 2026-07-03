@@ -1,7 +1,6 @@
 using System.Runtime.CompilerServices;
 using System.Text.RegularExpressions;
 
-[assembly: InternalsVisibleTo("OfficeIMo.Tests")]
 [assembly: InternalsVisibleTo("OfficeIMO.Word.Tests")]
 
 namespace OfficeIMO.Word {

@@ -244,12 +244,26 @@ public sealed class PackageDependencyGuardrailTests {
 
     [Fact]
     public void RetiredAggregateTestAssembly_IsNotGrantedFriendAccess() {
-        var offenders = EnumerateProjectFiles()
+        var projectOffenders = EnumerateProjectFiles()
             .SelectMany(projectPath => XDocument.Load(projectPath)
                 .Descendants()
                 .Where(static element => element.Name.LocalName == "InternalsVisibleTo")
-                .Where(static element => string.Equals((string?)element.Attribute("Include"), "OfficeIMO.Tests", StringComparison.Ordinal))
+                .Where(static element => string.Equals((string?)element.Attribute("Include"), "OfficeIMO.Tests", StringComparison.OrdinalIgnoreCase))
                 .Select(_ => GetRepositoryRelativePath(projectPath)))
+            .ToArray();
+
+        var sourceOffenders = Directory.EnumerateFiles(GetRepositoryRoot(), "*.cs", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .Where(SourceGrantsRetiredAggregateTestAccess)
+            .Select(GetRepositoryRelativePath)
+            .ToArray();
+
+        var offenders = projectOffenders
+            .Concat(sourceOffenders)
+            .OrderBy(static offender => offender, StringComparer.OrdinalIgnoreCase)
             .ToArray();
 
         Assert.Empty(offenders);
@@ -619,6 +633,14 @@ public sealed class PackageDependencyGuardrailTests {
 
     private static bool ProjectReferencesSixLaborsFonts(string projectPath) {
         return ProjectReferencesPackages(projectPath, ["SixLabors.Fonts"]).Any();
+    }
+
+    private static bool SourceGrantsRetiredAggregateTestAccess(string sourcePath) {
+        string source = File.ReadAllText(sourcePath);
+        return Regex.IsMatch(
+            source,
+            @"\[\s*assembly\s*:\s*InternalsVisibleTo\s*\(\s*""OfficeIMO\.Tests""\s*\)\s*\]",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static IEnumerable<string> ProjectReferencesPackages(string projectPath, IReadOnlyCollection<string> packageIds) {
