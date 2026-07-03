@@ -464,7 +464,7 @@ public static partial class MarkdownReader {
 
         if ((target == NestedStandaloneGenericAttributeTarget.Any || target == NestedStandaloneGenericAttributeTarget.Paragraph)
             && options.Paragraphs
-            && LooksLikeParagraphLine(lines, index, options)) {
+            && LooksLikeParagraphLine(new[] { nextSlice }, 0, options)) {
             return true;
         }
 

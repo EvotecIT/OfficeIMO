@@ -117,6 +117,7 @@ public static partial class MarkdownReader {
             ApplyPendingGenericAttributes(target, pending, blockStartLine);
         } else {
             target.SetAttributes(MergeGenericAttributes(pending.Attributes, target.Attributes));
+            MarkdownGenericAttributeSourceSpans.Set(target, pending.SourceText, pending.SourceSpan);
         }
 
         captureStartLine = pending.SourceSpan.StartLine - 1;

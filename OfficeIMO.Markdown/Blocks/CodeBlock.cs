@@ -97,8 +97,9 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
         string fence = MarkdownFence.BuildSafeFence(Content);
 
         StringBuilder sb = new StringBuilder();
-        if (ShouldRenderStandaloneGenericAttributes()) {
-            sb.AppendLine(MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes));
+        var standaloneAttributes = GetStandaloneRenderedAttributes();
+        if (!standaloneAttributes.IsEmpty) {
+            sb.AppendLine(MarkdownAttributeBlockRenderer.RenderInlineTrailing(standaloneAttributes));
         }
 
         sb.AppendLine($"{fence}{InfoString}");
@@ -133,6 +134,40 @@ public sealed class CodeBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, ISy
 
     private bool ShouldRenderStandaloneGenericAttributes() =>
         !Attributes.IsEmpty && MarkdownGenericAttributeSourceSpans.GetSourceSpan(this).HasValue;
+
+    private MarkdownAttributeSet GetStandaloneRenderedAttributes() {
+        if (!ShouldRenderStandaloneGenericAttributes()) {
+            return MarkdownAttributeSet.Empty;
+        }
+
+        if (!FenceInfo.HasExplicitAttributes) {
+            return Attributes;
+        }
+
+        var explicitAttributes = FenceInfo.GenericAttributes;
+        var elementId = string.Equals(Attributes.ElementId, explicitAttributes.ElementId, StringComparison.Ordinal)
+            ? null
+            : Attributes.ElementId;
+        var classes = new List<string>();
+        for (int i = 0; i < Attributes.Classes.Count; i++) {
+            var className = Attributes.Classes[i];
+            if (!explicitAttributes.HasClass(className)) {
+                classes.Add(className);
+            }
+        }
+
+        var attributes = new Dictionary<string, string?>(StringComparer.OrdinalIgnoreCase);
+        foreach (var attribute in Attributes.Attributes) {
+            if (explicitAttributes.TryGetAttribute(attribute.Key, out var explicitValue)
+                && string.Equals(attribute.Value, explicitValue, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            attributes[attribute.Key] = attribute.Value;
+        }
+
+        return MarkdownAttributeSet.Create(elementId, classes, attributes);
+    }
 
     private bool ShouldRenderGenericAttributesOnCode() =>
         !Attributes.IsEmpty && (FenceInfo.HasExplicitAttributes || ShouldRenderStandaloneGenericAttributes());

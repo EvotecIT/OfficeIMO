@@ -1019,6 +1019,69 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Contains("HTML", roundTripped, StringComparison.Ordinal);
     }
 
+    [Fact]
+    public void Inline_GenericAttributes_Parse_Escaped_Quoted_Values_From_Source_Text() {
+        const string markdown = "[x](u){title=\"a\\\"b\"}\n";
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(MarkdownReader.Parse(markdown, options).Blocks));
+        var link = Assert.IsType<LinkInline>(Assert.Single(paragraph.Inlines.Nodes));
+
+        Assert.Equal("a\"b", link.Attributes.GetAttribute("title"));
+        Assert.DoesNotContain("{title=", ((IMarkdownBlock)paragraph).RenderHtml(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Nested_Standalone_GenericAttributes_Attach_To_Deep_OrderedList_Paragraph() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("""
+            10. item
+                {#p .lead}
+                text
+            """, options);
+
+        var list = Assert.IsType<OrderedListBlock>(Assert.Single(document.Blocks));
+        var item = Assert.Single(list.Items);
+        var paragraph = Assert.Single(item.Children.OfType<ParagraphBlock>(), block => block.Attributes.ElementId == "p");
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Equal("lead", Assert.Single(paragraph.Attributes.Classes));
+        Assert.DoesNotContain("{#p", html, StringComparison.Ordinal);
+        Assert.Contains("<p id=\"p\" class=\"lead\">text</p>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FencedCode_ToMarkdown_Preserves_Merged_Standalone_GenericAttributes() {
+        const string markdown = """
+            {.outer}
+            ```csharp {#inner}
+            x
+            ```
+            """;
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var code = Assert.IsType<CodeBlock>(Assert.Single(document.Blocks));
+        var rendered = ((IMarkdownBlock)code).RenderMarkdown().Replace("\r\n", "\n");
+        var reparsed = MarkdownReader.Parse(rendered, options);
+        var reparsedCode = Assert.IsType<CodeBlock>(Assert.Single(reparsed.Blocks));
+
+        Assert.Equal("inner", code.Attributes.ElementId);
+        Assert.Contains("outer", code.Attributes.Classes);
+        Assert.StartsWith("{.outer}\n```csharp {#inner}", rendered, StringComparison.Ordinal);
+        Assert.Equal("inner", reparsedCode.Attributes.ElementId);
+        Assert.Contains("outer", reparsedCode.Attributes.Classes);
+    }
+
     private sealed class RendererInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
