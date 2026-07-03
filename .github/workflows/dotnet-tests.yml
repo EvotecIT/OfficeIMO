@@ -624,11 +624,13 @@ jobs:
       - name: Restore test dependencies
         run: |
           dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+          dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
           dotnet restore OfficeIMO.Tests/OfficeIMO.Tests.csproj
 
       - name: Build test project
         run: |
           dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+          dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
           dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
 
       - name: Run Excel image visual gate

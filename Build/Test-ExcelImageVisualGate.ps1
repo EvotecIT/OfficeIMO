@@ -13,14 +13,14 @@ $ErrorActionPreference = 'Stop'
 
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')
 $excelTestProject = Join-Path $repoRoot 'OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj'
-$architectureTestProject = Join-Path $repoRoot 'OfficeIMO.Tests/OfficeIMO.Tests.csproj'
+$architectureTestProject = Join-Path $repoRoot 'OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj'
 
 if (-not (Test-Path -LiteralPath $excelTestProject)) {
     throw "OfficeIMO Excel test project was not found: $excelTestProject"
 }
 
 if (-not (Test-Path -LiteralPath $architectureTestProject)) {
-    throw "OfficeIMO aggregate test project was not found: $architectureTestProject"
+    throw "OfficeIMO Drawing test project was not found: $architectureTestProject"
 }
 
 if ($Suite -eq "Architecture" -and $SkipArchitecture) {
