@@ -162,7 +162,7 @@ public class Markdown_Reader_Abbreviations_Tests {
     }
 
     [Fact]
-    public void Abbreviations_Use_Markdig_Boundaries_Around_Dashes_And_Opening_Punctuation() {
+    public void Abbreviations_Expand_After_Opening_Punctuation_While_Embedded_Words_Stay_Literal() {
         const string markdown = "*[HTML]: Hyper Text Markup Language\n\nHTML- HTML-like (HTML) 'HTML' \"HTML\" /HTML .HTML";
         var options = MarkdownReaderOptions.CreatePortableProfile();
         options.Abbreviations = true;
@@ -172,10 +172,17 @@ public class Markdown_Reader_Abbreviations_Tests {
         var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(result.Document.Blocks));
         var abbreviations = paragraph.Inlines.Nodes.OfType<AbbreviationInline>().ToArray();
 
-        var abbreviation = Assert.Single(abbreviations);
-        Assert.Equal("HTML", abbreviation.Text);
+        Assert.Equal(6, abbreviations.Length);
+        Assert.All(abbreviations, abbreviation => {
+            Assert.Equal("HTML", abbreviation.Text);
+            Assert.Equal("Hyper Text Markup Language", abbreviation.Title);
+        });
         Assert.Contains("<abbr title=\"Hyper Text Markup Language\">HTML</abbr>- HTML-like", html, StringComparison.Ordinal);
-        Assert.Contains("(HTML) &#39;HTML&#39; &quot;HTML&quot; /HTML .HTML", html, StringComparison.Ordinal);
+        Assert.Contains("(<abbr title=\"Hyper Text Markup Language\">HTML</abbr>)", html, StringComparison.Ordinal);
+        Assert.Contains("&#39;<abbr title=\"Hyper Text Markup Language\">HTML</abbr>&#39;", html, StringComparison.Ordinal);
+        Assert.Contains("&quot;<abbr title=\"Hyper Text Markup Language\">HTML</abbr>&quot;", html, StringComparison.Ordinal);
+        Assert.Contains("/<abbr title=\"Hyper Text Markup Language\">HTML</abbr>", html, StringComparison.Ordinal);
+        Assert.Contains(".<abbr title=\"Hyper Text Markup Language\">HTML</abbr>", html, StringComparison.Ordinal);
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.SemanticTreeIsWellFormed(result.Document);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
