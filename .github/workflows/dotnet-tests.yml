@@ -144,17 +144,35 @@ jobs:
   test-ubuntu-matrix:
     name: 'Ubuntu ${{ matrix.framework }} / ${{ matrix.partition }}'
     runs-on: ubuntu-latest
-    timeout-minutes: 35
+    timeout-minutes: 30
     strategy:
       fail-fast: false
       max-parallel: 6
       matrix:
         include:
           - framework: net8.0
-            partition: markdown-pdf
-            collectCoverage: true
+            partition: markdown-large
+            collectCoverage: false
           - framework: net10.0
-            partition: markdown-pdf
+            partition: markdown-large
+            collectCoverage: false
+          - framework: net8.0
+            partition: markdown-suite
+            collectCoverage: false
+          - framework: net10.0
+            partition: markdown-suite
+            collectCoverage: false
+          - framework: net8.0
+            partition: pdf-visual-inspector
+            collectCoverage: false
+          - framework: net10.0
+            partition: pdf-visual-inspector
+            collectCoverage: false
+          - framework: net8.0
+            partition: pdf-core
+            collectCoverage: false
+          - framework: net10.0
+            partition: pdf-core
             collectCoverage: false
           - framework: net8.0
             partition: excel-image-charts
@@ -233,9 +251,9 @@ jobs:
             local filter="$2"
             local collect_coverage="${3:-false}"
             local coverage_args=()
-            # Collect OfficeIMO.Tests coverage only once on the primary Linux net8.0 leg;
-            # repeated collection on every partition makes the hosted runner cancel long
-            # Excel slices before VSTest can flush a failure summary.
+            # Keep PR test partitions focused on contract proof. Coverage collection is
+            # intentionally disabled for the matrix because it turns data-heavy Markdown
+            # and PDF slices into long-running hosted-runner jobs.
             if [ "${{ matrix.collectCoverage }}" = "true" ] && [ "${collect_coverage}" = "true" ]; then
               coverage_args=(--collect "XPlat Code Coverage")
             fi
@@ -368,15 +386,21 @@ jobs:
             rm -f "${list_file}"
           }
 
-          if [ "${{ matrix.framework }}" = "net8.0" ] && [ "${{ matrix.partition }}" = "markdown-pdf" ]; then
+          if [ "${{ matrix.framework }}" = "net8.0" ] && [ "${{ matrix.partition }}" = "markdown-large" ]; then
             audit_officeimo_test_partitions
           fi
 
           case "${{ matrix.partition }}" in
-            markdown-pdf)
+            markdown-large)
               run_officeimo_tests "markdown-large" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownMoreCasesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownRoundTripTests' true
+              ;;
+            markdown-suite)
               run_officeimo_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
+              ;;
+            pdf-visual-inspector)
               run_officeimo_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
+              ;;
+            pdf-core)
               run_officeimo_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
               ;;
             excel-image-charts)

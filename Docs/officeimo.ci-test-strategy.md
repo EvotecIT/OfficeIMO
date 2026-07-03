@@ -29,7 +29,10 @@ The Ubuntu test lane runs named partitions in a bounded matrix. This keeps the e
 
 The current partitions are:
 
-- `markdown-pdf`
+- `markdown-large`
+- `markdown-suite`
+- `pdf-visual-inspector`
+- `pdf-core`
 - `excel-image-charts`
 - `excel-legacy-reader`
 - `excel-core-named`
@@ -37,6 +40,8 @@ The current partitions are:
 - `other-projects`
 
 Keep `max-parallel` bounded so the workflow improves wall-clock time without flooding the organization with too many simultaneous jobs.
+
+Coverage is not collected in the PR matrix. Data-heavy Markdown and PDF tests become much slower under coverage instrumentation, so coverage should move to a separate scheduled or manually dispatched lane if the project needs it.
 
 For test jobs, prefer building the test project for the target framework instead of rebuilding the whole solution. The cross-platform build job already proves the solution build. Test jobs should prove test contracts and keep their dependency graph as small as practical.
 
