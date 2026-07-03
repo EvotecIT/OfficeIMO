@@ -34,6 +34,7 @@
         <Compile Remove="Markdown*.cs" />
         <Compile Remove="Markdown\**\*.cs" />
         <Compile Remove="Drawing*.cs" />
+        <Compile Remove="Markup\**\*.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -92,10 +93,6 @@
         <ProjectReference Include="..\\OfficeIMO.Reader.Json\\OfficeIMO.Reader.Json.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader.Xml\\OfficeIMO.Reader.Xml.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader.Yaml\\OfficeIMO.Reader.Yaml.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Markup\\OfficeIMO.Markup.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Markup.Excel\\OfficeIMO.Markup.Excel.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Markup.PowerPoint\\OfficeIMO.Markup.PowerPoint.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Markup.Word\\OfficeIMO.Markup.Word.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Drawing\\OfficeIMO.Drawing.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Rtf\\OfficeIMO.Rtf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Rtf.Markdown\\OfficeIMO.Rtf.Markdown.csproj" />

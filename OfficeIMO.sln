@@ -254,6 +254,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Markdown.Tests", 
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Drawing.Tests", "OfficeIMO.Drawing.Tests\OfficeIMO.Drawing.Tests.csproj", "{E52BBCD9-2DE9-47AF-9BC9-3783CCF387DC}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Markup.Tests", "OfficeIMO.Markup.Tests\OfficeIMO.Markup.Tests.csproj", "{72DCAE71-C389-46F8-8351-2BED0CCFA369}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -1068,6 +1070,18 @@ Global
 		{E52BBCD9-2DE9-47AF-9BC9-3783CCF387DC}.Release|x64.Build.0 = Release|Any CPU
 		{E52BBCD9-2DE9-47AF-9BC9-3783CCF387DC}.Release|x86.ActiveCfg = Release|Any CPU
 		{E52BBCD9-2DE9-47AF-9BC9-3783CCF387DC}.Release|x86.Build.0 = Release|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Debug|x64.Build.0 = Debug|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Debug|x86.Build.0 = Debug|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Release|x64.ActiveCfg = Release|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Release|x64.Build.0 = Release|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Release|x86.ActiveCfg = Release|Any CPU
+		{72DCAE71-C389-46F8-8351-2BED0CCFA369}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
