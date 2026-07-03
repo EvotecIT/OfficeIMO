@@ -74,9 +74,11 @@ jobs:
           } | Sort-Object FullName
 
           dotnet restore OfficeIMO.sln
-          foreach ($project in $projects) {
-            dotnet build $project.FullName --configuration Release --no-restore
-          }
+
+          $codeqlSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.CodeQL.sln'
+          dotnet new sln --name OfficeIMO.CodeQL --output $env:RUNNER_TEMP --format sln
+          dotnet sln $codeqlSolution add @($projects.FullName)
+          dotnet build $codeqlSolution --configuration Release --no-restore
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
