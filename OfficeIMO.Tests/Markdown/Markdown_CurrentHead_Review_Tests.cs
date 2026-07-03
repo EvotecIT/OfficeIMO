@@ -1083,7 +1083,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
-    public void Table_CodeSpans_Preserve_Escaped_Pipes() {
+    public void Table_CodeSpans_Normalize_Escaped_Pipes_In_Rendered_Code_Text() {
         var document = MarkdownReader.Parse("""
             | Value |
             | --- |
@@ -1097,8 +1097,8 @@ public sealed class Markdown_CurrentHead_Review_Tests {
             EscapeNonAsciiText = false
         });
 
-        Assert.Contains("<code>a\\|b</code>", html, StringComparison.Ordinal);
-        Assert.DoesNotContain("<code>a|b</code>", html, StringComparison.Ordinal);
+        Assert.Contains("<code>a|b</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<code>a\\|b</code>", html, StringComparison.Ordinal);
     }
 
     [Fact]
