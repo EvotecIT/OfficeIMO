@@ -24,7 +24,7 @@ Template/mail-merge polish remains important, but it should follow the review/di
 Goal: avoid five separate feature implementations with five different report models.
 
 - [x] Define a shared Word proof fixture folder under `OfficeIMO.Tests/Documents/Word/PremiumGaps`.
-- [x] Add `OfficeIMO.Tests/Documents/Word/PremiumGaps/premium-gap-fixtures.xml` to record the source document, feature family, expected behavior, fixture status, evidence, and validation command for each priority gap.
+- [x] Add `OfficeIMO.TestAssets/Documents/Word/PremiumGaps/premium-gap-fixtures.xml` to record the source document, feature family, expected behavior, fixture status, evidence, and validation command for each priority gap.
 - [x] Add a contract test that keeps the manifest aligned with this plan and prevents future workstreams from drifting into separate proof models.
 - [x] Extend `WordFeatureReport` only where it improves preflight for these workstreams; do not turn it into a second document model.
 - [x] Keep reusable package-level behavior outside Word when the file-format feature is not Word-specific. Digital-signature package inspection and the bounded package-signing adapter now live in `OfficeIMO.Shared`, with `OfficeIMO.Word` mapping them to Word-facing public models. Cryptographic trust validation still remains future shared-owner or adapter work.

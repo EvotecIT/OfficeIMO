@@ -83,12 +83,14 @@ namespace OfficeIMO.Tests {
                         command.Contains("dotnet test", StringComparison.OrdinalIgnoreCase)
                         || command.Contains("dotnet run", StringComparison.OrdinalIgnoreCase),
                         "Validation command must be a concrete dotnet test or dotnet run command: " + command));
+                Assert.All(validationCommands, command =>
+                    Assert.DoesNotContain("OfficeIMO.Tests/OfficeIMO.Tests.csproj", command, StringComparison.OrdinalIgnoreCase));
             }
 
             string repositoryRoot = LocateRepositoryRootForPremiumGapTests();
             string planPath = Path.Combine(repositoryRoot, "Docs", "officeimo.word-premium-gap-plan.md");
             string plan = File.ReadAllText(planPath);
-            Assert.Contains("OfficeIMO.Tests/Documents/Word/PremiumGaps/premium-gap-fixtures.xml", plan, StringComparison.Ordinal);
+            Assert.Contains("OfficeIMO.TestAssets/Documents/Word/PremiumGaps/premium-gap-fixtures.xml", plan, StringComparison.Ordinal);
             Assert.Contains("officeimo.word-template-mail-merge-scenarios.md", plan, StringComparison.Ordinal);
             Assert.DoesNotContain("Docs/reviews/officeimo.word-review", plan, StringComparison.OrdinalIgnoreCase);
 
