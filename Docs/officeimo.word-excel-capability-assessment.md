@@ -95,7 +95,7 @@ This assessment tracks where `OfficeIMO.Word` and `OfficeIMO.Excel` stand today,
 | Excel roadmap | `Docs/officeimo.excel.roadmap.md` |
 | Excel large workbook guidance | `Docs/officeimo.excel.large-workbook-guidance.md` |
 | Excel source surface | `OfficeIMO.Excel/` |
-| Excel tests | `OfficeIMO.Tests/Excel.*.cs` |
+| Excel tests | `OfficeIMO.Excel.Tests/` |
 | Excel benchmarks | `OfficeIMO.Excel.Benchmarks/`, `Docs/benchmarks/` |
 | Word current capability matrix | `OfficeIMO.Word/COMPATIBILITY.md` |
 | Word premium gap implementation plan | `Docs/officeimo.word-premium-gap-plan.md` |

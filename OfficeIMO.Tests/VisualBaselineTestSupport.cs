@@ -149,8 +149,17 @@ namespace OfficeIMO.Tests {
         internal static string GetTestsProjectRoot() {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory != null) {
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Excel.Tests.csproj"))) {
+                    return directory.FullName;
+                }
+
                 if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
                     return directory.FullName;
+                }
+
+                string aggregateProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Tests");
+                if (File.Exists(Path.Combine(aggregateProjectRoot, "OfficeIMO.Tests.csproj"))) {
+                    return aggregateProjectRoot;
                 }
 
                 directory = directory.Parent;

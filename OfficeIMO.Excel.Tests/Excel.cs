@@ -21,7 +21,7 @@ namespace OfficeIMO.Tests {
             // Create a unique per-test directory to avoid parallel write collisions between Excel tests.
             string unique = Guid.NewGuid().ToString("N");
             _directoryWithFiles = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "TempDocuments1", unique);
-            Word.Setup(_directoryWithFiles);
+            Directory.CreateDirectory(_directoryWithFiles);
         }
 
         internal static string FormatValidationErrors(IEnumerable<ValidationErrorInfo> errors) {

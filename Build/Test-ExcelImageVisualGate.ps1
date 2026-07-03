@@ -12,10 +12,15 @@ param(
 $ErrorActionPreference = 'Stop'
 
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')
-$testProject = Join-Path $repoRoot 'OfficeIMO.Tests/OfficeIMO.Tests.csproj'
+$excelTestProject = Join-Path $repoRoot 'OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj'
+$architectureTestProject = Join-Path $repoRoot 'OfficeIMO.Tests/OfficeIMO.Tests.csproj'
 
-if (-not (Test-Path -LiteralPath $testProject)) {
-    throw "OfficeIMO test project was not found: $testProject"
+if (-not (Test-Path -LiteralPath $excelTestProject)) {
+    throw "OfficeIMO Excel test project was not found: $excelTestProject"
+}
+
+if (-not (Test-Path -LiteralPath $architectureTestProject)) {
+    throw "OfficeIMO aggregate test project was not found: $architectureTestProject"
 }
 
 if ($Suite -eq "Architecture" -and $SkipArchitecture) {
@@ -28,7 +33,10 @@ function Invoke-VisualGateStep {
         [string] $Name,
 
         [Parameter(Mandatory)]
-        [string] $Filter
+        [string] $Filter,
+
+        [Parameter(Mandatory)]
+        [string] $Project
     )
 
     Write-Host ""
@@ -37,7 +45,7 @@ function Invoke-VisualGateStep {
 
     $arguments = @(
         'test',
-        $testProject,
+        $Project,
         '--configuration', $Configuration,
         '--framework', $Framework,
         '--filter', $Filter,
@@ -128,33 +136,40 @@ try {
     if ($Suite -eq "Full") {
         Invoke-VisualGateStep `
             -Name 'Excel image generated output matches approved baselines' `
-            -Filter $fullGeneratedFilter
+            -Filter $fullGeneratedFilter `
+            -Project $excelTestProject
 
         Invoke-VisualGateStep `
             -Name 'Approved Excel image baselines are renderable and nonblank' `
-            -Filter $fullApprovedFilter
+            -Filter $fullApprovedFilter `
+            -Project $excelTestProject
 
         Invoke-VisualGateStep `
             -Name 'Excel image visual fidelity manifest tracks clean baselines, approximations, and gaps' `
-            -Filter $fidelityManifestFilter
+            -Filter $fidelityManifestFilter `
+            -Project $excelTestProject
     } elseif ($Suite -eq "Smoke") {
         Invoke-VisualGateStep `
             -Name 'Excel image smoke output matches approved baselines' `
-            -Filter $smokeGeneratedFilter
+            -Filter $smokeGeneratedFilter `
+            -Project $excelTestProject
 
         Invoke-VisualGateStep `
             -Name 'Approved Excel image smoke baselines are renderable and nonblank' `
-            -Filter $smokeApprovedFilter
+            -Filter $smokeApprovedFilter `
+            -Project $excelTestProject
 
         Invoke-VisualGateStep `
             -Name 'Excel image visual fidelity manifest tracks clean baselines, approximations, and gaps' `
-            -Filter $fidelityManifestFilter
+            -Filter $fidelityManifestFilter `
+            -Project $excelTestProject
     }
 
     if (-not $SkipArchitecture) {
         Invoke-VisualGateStep `
             -Name 'Shared Drawing image-rendering architecture guard' `
-            -Filter $architectureFilter
+            -Filter $architectureFilter `
+            -Project $architectureTestProject
     }
 } finally {
     $env:OFFICEIMO_UPDATE_EXCEL_IMAGE_BASELINES = $previousUpdateBaselines

@@ -9,8 +9,17 @@
         <Nullable>enable</Nullable>
         <LangVersion>Latest</LangVersion>
         <WarningsNotAsErrors>$(WarningsNotAsErrors);CS8600;CS8601;CS8602;CS8603;CS8604;CS8625</WarningsNotAsErrors>
-        <NoWarn>$(NoWarn);CS0436</NoWarn>
+        <!-- The legacy aggregate test project still carries thousands of nullable warnings,
+             plus platform/style analyzer noise that should be cleaned as tests move out.
+             Keep CI readable while the suite is split into smaller domain-owned test projects. -->
+        <NoWarn>$(NoWarn);CS0436;CS8600;CS8601;CS8602;CS8603;CS8604;CS8625;CA1416;SYSLIB0057;xUnit2012;xUnit2013;xUnit2029</NoWarn>
     </PropertyGroup>
+    <ItemGroup>
+        <Compile Remove="Excel*.cs" />
+        <Compile Remove="Excel\**\*.cs" />
+        <Compile Remove="Pdf\Excel.*.cs" />
+    </ItemGroup>
+
     <ItemGroup>
         <PackageReference Include="AutoFixture" Version="4.18.1" />
         <PackageReference Include="Markdig" Version="1.3.2" />

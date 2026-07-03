@@ -36,6 +36,7 @@ paths-ignore:
   - Assets/PowerPointTemplates
   - Docs
   - OfficeIMO.CSV.Tests
+  - OfficeIMO.Excel.Tests
   - OfficeIMO.Excel.Benchmarks
   - OfficeIMO.Examples
   - OfficeIMO.Markdown.Benchmarks
