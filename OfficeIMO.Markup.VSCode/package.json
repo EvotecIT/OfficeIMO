@@ -400,7 +400,7 @@
     "mermaid": "^11.14.0"
   },
   "devDependencies": {
-    "@types/node": "^20.19.40",
+    "@types/node": "^24.13.2",
     "@types/vscode": "1.107.0",
     "@vscode/vsce": "^3.6.0",
     "esbuild": "^0.28.1",
