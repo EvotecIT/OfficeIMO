@@ -53,7 +53,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="Documents\**" CopyToOutputDirectory="Always" />
+    <None Update="Documents\**" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">
