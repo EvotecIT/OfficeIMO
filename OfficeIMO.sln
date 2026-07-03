@@ -242,6 +242,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.PowerPoint.Tests"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Visio.Tests", "OfficeIMO.Visio.Tests\OfficeIMO.Visio.Tests.csproj", "{41EE4EBF-88C5-41EB-BC55-76F5A00035D6}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OfficeIMO.Rtf.Tests", "OfficeIMO.Rtf.Tests\OfficeIMO.Rtf.Tests.csproj", "{DCC68741-4E0F-436A-A6EA-1EE076F3B031}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -984,6 +986,18 @@ Global
 		{41EE4EBF-88C5-41EB-BC55-76F5A00035D6}.Release|x64.Build.0 = Release|Any CPU
 		{41EE4EBF-88C5-41EB-BC55-76F5A00035D6}.Release|x86.ActiveCfg = Release|Any CPU
 		{41EE4EBF-88C5-41EB-BC55-76F5A00035D6}.Release|x86.Build.0 = Release|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Debug|x64.Build.0 = Debug|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Debug|x86.Build.0 = Debug|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Release|x64.ActiveCfg = Release|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Release|x64.Build.0 = Release|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Release|x86.ActiveCfg = Release|Any CPU
+		{DCC68741-4E0F-436A-A6EA-1EE076F3B031}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
