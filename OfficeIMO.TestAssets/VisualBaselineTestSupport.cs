@@ -161,18 +161,9 @@ namespace OfficeIMO.Tests {
                     return directory.FullName;
                 }
 
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
-                    return directory.FullName;
-                }
-
                 string pdfProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Pdf.Tests");
                 if (File.Exists(Path.Combine(pdfProjectRoot, "OfficeIMO.Pdf.Tests.csproj"))) {
                     return pdfProjectRoot;
-                }
-
-                string aggregateProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Tests");
-                if (File.Exists(Path.Combine(aggregateProjectRoot, "OfficeIMO.Tests.csproj"))) {
-                    return aggregateProjectRoot;
                 }
 
                 directory = directory.Parent;

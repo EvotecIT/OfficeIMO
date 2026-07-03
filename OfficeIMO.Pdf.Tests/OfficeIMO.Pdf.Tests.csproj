@@ -45,11 +45,11 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.Tests\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="Shared\VisualBaselineTestSupport.cs" />
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\OfficeIMO.Tests\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
   <ItemGroup Condition="'$(TargetFramework)' == 'net472'">

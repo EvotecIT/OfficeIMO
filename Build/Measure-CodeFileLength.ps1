@@ -12,6 +12,7 @@ $rg = Get-Command rg -ErrorAction SilentlyContinue
 
 if (-not $IncludeTests) {
     $excludedDirectoryNames += 'OfficeIMO.Tests'
+    $excludedDirectoryNames += 'OfficeIMO.Shared.Tests'
     $excludedDirectoryNames += 'OfficeIMO.CSV.Tests'
     $excludedDirectoryNames += 'OfficeIMO.VerifyTests'
     $excludedDirectoryNames += 'OfficeIMO.MarkdownRenderer.Wpf.Tests'
@@ -19,6 +20,7 @@ if (-not $IncludeTests) {
 
 if (-not $IncludeAssets) {
     $excludedDirectoryNames += 'Assets'
+    $excludedDirectoryNames += 'OfficeIMO.TestAssets'
 }
 
 function Get-CodeFiles {
@@ -60,15 +62,16 @@ if ($rg) {
     if (-not $IncludeTests) {
         $patterns += @(
             '-g', '!OfficeIMO.Tests/**',
+            '-g', '!OfficeIMO.Shared.Tests/**',
             '-g', '!OfficeIMO.CSV.Tests/**',
             '-g', '!OfficeIMO.VerifyTests/**',
             '-g', '!OfficeIMO.MarkdownRenderer.Wpf.Tests/**'
         )
     }
 
-    if (-not $IncludeAssets) {
-        $patterns += @('-g', '!Assets/**')
-    }
+if (-not $IncludeAssets) {
+    $patterns += @('-g', '!Assets/**', '-g', '!OfficeIMO.TestAssets/**')
+}
 
     Push-Location -LiteralPath $root
     try {

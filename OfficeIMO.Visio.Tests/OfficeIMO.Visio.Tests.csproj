@@ -27,7 +27,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.Tests\VisualBaselineTestSupport.cs" Link="VisualBaselineTestSupport.cs" />
+    <Compile Include="..\OfficeIMO.TestAssets\VisualBaselineTestSupport.cs" Link="VisualBaselineTestSupport.cs" />
   </ItemGroup>
 
   <ItemGroup>

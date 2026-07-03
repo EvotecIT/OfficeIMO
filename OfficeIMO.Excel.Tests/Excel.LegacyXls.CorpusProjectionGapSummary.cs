@@ -158,7 +158,7 @@ namespace OfficeIMO.Tests {
             bool updateBaselines = IsLegacyXlsProjectionGapBaselineUpdateRequested();
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory != null) {
-                string legacyTestRoot = Path.Combine(directory.FullName, "OfficeIMO.Tests");
+                string legacyTestRoot = Path.Combine(directory.FullName, "OfficeIMO.TestAssets");
                 if (updateBaselines && Directory.Exists(Path.Combine(legacyTestRoot, "Documents", "LegacyXlsCorpus"))) {
                     return legacyTestRoot;
                 }

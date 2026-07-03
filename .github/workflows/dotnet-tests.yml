@@ -223,8 +223,8 @@ jobs:
 
       - name: Restore test dependencies
         run: |
-          if [[ "${{ matrix.partition }}" == "markdown-large" || "${{ matrix.partition }}" == "other-projects" ]]; then
-            dotnet restore OfficeIMO.Tests/OfficeIMO.Tests.csproj
+          if [ "${{ matrix.partition }}" = "other-projects" ]; then
+            dotnet restore OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
             dotnet restore OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj
@@ -256,8 +256,8 @@ jobs:
 
       - name: Build test projects
         run: |
-          if [[ "${{ matrix.partition }}" == "markdown-large" || "${{ matrix.partition }}" == "other-projects" ]]; then
-            dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          if [ "${{ matrix.partition }}" = "other-projects" ]; then
+            dotnet build OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [[ "${{ matrix.partition }}" == markdown-* ]]; then
             dotnet build OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -291,10 +291,8 @@ jobs:
         run: |
           # Keep the heavy Excel image visual gate on its dedicated script path; run test projects
           # explicitly so Ubuntu does not spend the job budget walking every solution project.
-          # OfficeIMO.Tests contains long-running graphics/PDF/image-export contracts. Split it
-          # into smaller VSTest processes so Linux runners do not cancel a huge single testhost.
           test_filter='Category!=ExcelImageVisualGate'
-          run_officeimo_tests() {
+          run_shared_tests() {
             local name="$1"
             local filter="$2"
             local collect_coverage="${3:-false}"
@@ -306,8 +304,8 @@ jobs:
               coverage_args=(--collect "XPlat Code Coverage")
             fi
             echo ""
-            echo "== OfficeIMO.Tests: ${name} =="
-            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${coverage_args[@]}"
+            echo "== OfficeIMO.Shared.Tests: ${name} =="
+            dotnet test OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${coverage_args[@]}"
           }
 
           run_excel_tests() {
@@ -390,85 +388,17 @@ jobs:
             dotnet test OfficeIMO.Markup.Tests/OfficeIMO.Markup.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
-          audit_officeimo_test_partitions() {
-            local list_file
-            list_file="$(mktemp)"
+          audit_retired_aggregate_tests() {
             echo ""
-            echo "== OfficeIMO.Tests: partition coverage audit =="
-            dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity quiet --framework ${{ matrix.framework }} --list-tests --filter "${test_filter}" > "${list_file}"
-            python3 - "${list_file}" <<'PY'
-          import sys
-
-          with open(sys.argv[1], encoding="utf-8", errors="replace") as handle:
-              discovered = [line.strip() for line in handle if line.startswith("    ") and line.strip()]
-
-          def has(name, text):
-              return text in name
-
-          excel_core_exclusions = (
-              "OfficeIMO.Tests.Excel.Test_ExcelChart",
-              "OfficeIMO.Tests.Excel.SharedChartRenderer",
-              "OfficeIMO.Tests.Excel.Test_ClosedXmlGap",
-              "OfficeIMO.Tests.Excel.LegacyXls",
-              "OfficeIMO.Tests.Excel.PerformanceReview",
-              "OfficeIMO.Tests.Excel.SaveAsPdf",
-              "OfficeIMO.Tests.Excel.ToPdfDocument",
-              "OfficeIMO.Tests.Excel.PdfTables",
-              "OfficeIMO.Tests.Excel.ReportWorkflow",
-              "OfficeIMO.Tests.Excel.Reader",
-              "OfficeIMO.Tests.Excel.ReadRows",
-              "OfficeIMO.Tests.Excel.ExcelHttp",
-          )
-          simple_partitions = (
-              "OfficeIMO.Tests.ExcelImageExport",
-              "OfficeIMO.Tests.Excel.Test_ExcelChart",
-              "OfficeIMO.Tests.Excel.SharedChartRenderer",
-              "OfficeIMO.Tests.Excel.Test_ClosedXmlGap",
-              "OfficeIMO.Tests.Excel.LegacyXls",
-              "OfficeIMO.Tests.Excel.PerformanceReview",
-              "OfficeIMO.Tests.Excel.Reader",
-              "OfficeIMO.Tests.Excel.ReadRows",
-              "OfficeIMO.Tests.Excel.ExcelHttp",
-              "OfficeIMO.Tests.Excel.SaveAsPdf",
-              "OfficeIMO.Tests.Excel.ToPdfDocument",
-              "OfficeIMO.Tests.Excel.PdfTables",
-              "OfficeIMO.Tests.Excel.ReportWorkflow",
-              "OfficeIMO.Tests.ExcelCellAndRangeTests",
-              "OfficeIMO.Tests.ExcelDelimitedImportTests",
-              "OfficeIMO.Tests.ExcelFluent",
-              "OfficeIMO.Tests.ExcelInfoBuilderTests",
-              "OfficeIMO.Tests.ExcelNamed",
-              "OfficeIMO.Tests.ExcelPowerShell",
-              "OfficeIMO.Tests.ExcelRange",
-              "OfficeIMO.Tests.ExcelRows",
-              "OfficeIMO.Tests.ExcelSheet",
-              "OfficeIMO.Tests.ExcelCoerce",
-              "OfficeIMO.Tests.PackageDependency",
-              "OfficeIMO.Tests.Workflow",
-              "OfficeIMO.Tests.OfficeEncryption",
-              "OfficeIMO.Tests.ConversionOptionsTests",
-              "OfficeIMO.Tests.ConverterExceptions",
-              "OfficeIMO.Tests.FontResolverTests",
-              "OfficeIMO.Tests.PathCrossPlatform",
-          )
-
-          def assigned(name):
-              if any(has(name, item) for item in simple_partitions):
-                  return True
-              if has(name, "OfficeIMO.Tests.Excel.") and not any(has(name, item) for item in excel_core_exclusions):
-                  return True
-              return False
-
-          unassigned = [name for name in discovered if not assigned(name)]
-          if unassigned:
-              print("OfficeIMO.Tests partition audit found tests that are not assigned to a named CI slice:")
-              for name in unassigned:
-                  print(f"  {name}")
-              sys.exit(1)
-
-          print(f"OfficeIMO.Tests partition audit covered {len(discovered)} discovered tests.")
-          PY
-            rm -f "${list_file}"
+            echo "== retired aggregate test project audit =="
+            if [ -f OfficeIMO.Tests/OfficeIMO.Tests.csproj ]; then
+              echo "OfficeIMO.Tests/OfficeIMO.Tests.csproj must stay retired. Put tests in a domain project or OfficeIMO.Shared.Tests."
+              exit 1
+            fi
+            if find OfficeIMO.Tests -maxdepth 1 -name '*.cs' -print -quit 2>/dev/null | grep -q .; then
+              echo "OfficeIMO.Tests still contains root test sources. Move them to a domain test project or OfficeIMO.Shared.Tests."
+              exit 1
+            fi
           }
 
           audit_markdown_test_partitions() {
@@ -511,7 +441,6 @@ jobs:
           }
 
           if [ "${{ matrix.framework }}" = "net8.0" ] && [ "${{ matrix.partition }}" = "markdown-large" ]; then
-            audit_officeimo_test_partitions
             audit_markdown_test_partitions
           fi
 
@@ -551,13 +480,14 @@ jobs:
               run_html_tests
               ;;
             other-projects)
+              audit_retired_aggregate_tests
               run_drawing_tests
               run_googleworkspace_tests
               run_markup_tests
               run_powerpoint_tests
               run_visio_tests
               run_reader_tests
-              run_officeimo_tests "workflow-guardrails" 'FullyQualifiedName~OfficeIMO.Tests.PackageDependency|FullyQualifiedName~OfficeIMO.Tests.Workflow|FullyQualifiedName~OfficeIMO.Tests.OfficeEncryption|FullyQualifiedName~OfficeIMO.Tests.ConversionOptionsTests|FullyQualifiedName~OfficeIMO.Tests.ConverterExceptions|FullyQualifiedName~OfficeIMO.Tests.FontResolverTests|FullyQualifiedName~OfficeIMO.Tests.PathCrossPlatform'
+              run_shared_tests "shared-contracts" 'FullyQualifiedName~OfficeIMO.Shared.Tests.'
               dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
               dotnet test OfficeIMO.MarkdownRenderer.Wpf.Tests/OfficeIMO.MarkdownRenderer.Wpf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
@@ -641,13 +571,11 @@ jobs:
         run: |
           dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
           dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
-          dotnet restore OfficeIMO.Tests/OfficeIMO.Tests.csproj
 
       - name: Build test project
         run: |
           dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
           dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
-          dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
 
       - name: Run Excel image visual gate
         shell: pwsh

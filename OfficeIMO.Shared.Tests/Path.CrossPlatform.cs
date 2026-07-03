@@ -2,7 +2,7 @@ using System;
 using System.IO;
 using Xunit;
 
-namespace OfficeIMO.Tests {
+namespace OfficeIMO.Shared.Tests {
     public class PathCrossPlatform {
         [Fact]
         public void PathCombine_AppendsSeparator_ForDirectoryUri() {

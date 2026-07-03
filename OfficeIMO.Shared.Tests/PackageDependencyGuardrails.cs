@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Xunit;
 
-namespace OfficeIMO.Tests;
+namespace OfficeIMO.Shared.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
     private const string CurrentMarkdigVersion = "1.3.2";
@@ -19,7 +19,7 @@ public sealed class PackageDependencyGuardrailTests {
     [Fact]
     public void MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline() {
         string[] projectPaths = [
-            "OfficeIMO.Tests/OfficeIMO.Tests.csproj",
+            "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj",
             "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj",
             "OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj"
         ];
@@ -41,7 +41,7 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Contains($"external parity baseline: Markdig `{CurrentMarkdigVersion}`", competitorRoadmap, StringComparison.Ordinal);
 
         string correctnessBacklog = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.correctness-backlog.md"));
-        Assert.Contains($"`OfficeIMO.Tests`, `OfficeIMO.Markdown.Tests`, and `OfficeIMO.Markdown.Benchmarks` all reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
+        Assert.Contains($"`OfficeIMO.Shared.Tests`, `OfficeIMO.Markdown.Tests`, and `OfficeIMO.Markdown.Benchmarks` all reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
 
         string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
         Assert.Contains($"curated Markdig {CurrentMarkdigVersion} parity cases", packageCompatibility, StringComparison.Ordinal);
@@ -240,6 +240,19 @@ public sealed class PackageDependencyGuardrailTests {
                 Assert.DoesNotContain($"using {retiredNamespace}", source, StringComparison.Ordinal);
             }
         }
+    }
+
+    [Fact]
+    public void RetiredAggregateTestAssembly_IsNotGrantedFriendAccess() {
+        var offenders = EnumerateProjectFiles()
+            .SelectMany(projectPath => XDocument.Load(projectPath)
+                .Descendants()
+                .Where(static element => element.Name.LocalName == "InternalsVisibleTo")
+                .Where(static element => string.Equals((string?)element.Attribute("Include"), "OfficeIMO.Tests", StringComparison.Ordinal))
+                .Select(_ => GetRepositoryRelativePath(projectPath)))
+            .ToArray();
+
+        Assert.Empty(offenders);
     }
 
     [Fact]

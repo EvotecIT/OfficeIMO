@@ -956,7 +956,7 @@ namespace OfficeIMO.Tests {
         private static string GetTestsProjectRoot() {
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory != null) {
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
+                if (Directory.Exists(Path.Combine(directory.FullName, "Documents", "LegacyXlsCorpus"))) {
                     return directory.FullName;
                 }
 
