@@ -155,16 +155,22 @@ namespace OfficeIMO.Tests {
         }
 
         private static string GetProjectionGapTestsProjectRoot() {
+            bool updateBaselines = IsLegacyXlsProjectionGapBaselineUpdateRequested();
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
             while (directory != null) {
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
+                string legacyTestRoot = Path.Combine(directory.FullName, "OfficeIMO.Tests");
+                if (updateBaselines && Directory.Exists(Path.Combine(legacyTestRoot, "Documents", "LegacyXlsCorpus"))) {
+                    return legacyTestRoot;
+                }
+
+                if (Directory.Exists(Path.Combine(directory.FullName, "Documents", "LegacyXlsCorpus"))) {
                     return directory.FullName;
                 }
 
                 directory = directory.Parent;
             }
 
-            throw new DirectoryNotFoundException("Unable to locate OfficeIMO.Tests project root from " + AppContext.BaseDirectory);
+            throw new DirectoryNotFoundException("Unable to locate OfficeIMO legacy XLS fixture root from " + AppContext.BaseDirectory);
         }
 
         private static string GetProjectionGapRelativePath(string relativeTo, string path) {

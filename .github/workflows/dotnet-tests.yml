@@ -224,6 +224,9 @@ jobs:
       - name: Restore test dependencies
         run: |
           dotnet restore OfficeIMO.Tests/OfficeIMO.Tests.csproj
+          if [[ "${{ matrix.partition }}" == excel-* ]]; then
+            dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+          fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet restore OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
             dotnet restore OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj
@@ -233,6 +236,9 @@ jobs:
       - name: Build test projects
         run: |
           dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          if [[ "${{ matrix.partition }}" == excel-* ]]; then
+            dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet build OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -260,6 +266,14 @@ jobs:
             echo ""
             echo "== OfficeIMO.Tests: ${name} =="
             dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx "${coverage_args[@]}"
+          }
+
+          run_excel_tests() {
+            local name="$1"
+            local filter="$2"
+            echo ""
+            echo "== OfficeIMO.Excel.Tests: ${name} =="
+            dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
           audit_officeimo_test_partitions() {
@@ -404,19 +418,19 @@ jobs:
               run_officeimo_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
               ;;
             excel-image-charts)
-              run_officeimo_tests "excel-image" 'FullyQualifiedName~OfficeIMO.Tests.ExcelImageExport'
-              run_officeimo_tests "excel-charts" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Test_ExcelChart|FullyQualifiedName~OfficeIMO.Tests.Excel.SharedChartRenderer'
-              run_officeimo_tests "excel-closedxml-gap" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Test_ClosedXmlGap'
+              run_excel_tests "excel-image" 'FullyQualifiedName~OfficeIMO.Tests.ExcelImageExport'
+              run_excel_tests "excel-charts" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Test_ExcelChart|FullyQualifiedName~OfficeIMO.Tests.Excel.SharedChartRenderer'
+              run_excel_tests "excel-closedxml-gap" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Test_ClosedXmlGap'
               ;;
             excel-legacy-reader)
-              run_officeimo_tests "excel-legacy-xls" 'FullyQualifiedName~OfficeIMO.Tests.Excel.LegacyXls'
-              run_officeimo_tests "excel-performance" 'FullyQualifiedName~OfficeIMO.Tests.Excel.PerformanceReview'
-              run_officeimo_tests "excel-reader" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Reader|FullyQualifiedName~OfficeIMO.Tests.Excel.ReadRows|FullyQualifiedName~OfficeIMO.Tests.Excel.ExcelHttp'
-              run_officeimo_tests "excel-save-pdf" 'FullyQualifiedName~OfficeIMO.Tests.Excel.SaveAsPdf|FullyQualifiedName~OfficeIMO.Tests.Excel.ToPdfDocument|FullyQualifiedName~OfficeIMO.Tests.Excel.PdfTables|FullyQualifiedName~OfficeIMO.Tests.Excel.ReportWorkflow'
+              run_excel_tests "excel-legacy-xls" 'FullyQualifiedName~OfficeIMO.Tests.Excel.LegacyXls'
+              run_excel_tests "excel-performance" 'FullyQualifiedName~OfficeIMO.Tests.Excel.PerformanceReview'
+              run_excel_tests "excel-reader" 'FullyQualifiedName~OfficeIMO.Tests.Excel.Reader|FullyQualifiedName~OfficeIMO.Tests.Excel.ReadRows|FullyQualifiedName~OfficeIMO.Tests.Excel.ExcelHttp'
+              run_excel_tests "excel-save-pdf" 'FullyQualifiedName~OfficeIMO.Tests.Excel.SaveAsPdf|FullyQualifiedName~OfficeIMO.Tests.Excel.ToPdfDocument|FullyQualifiedName~OfficeIMO.Tests.Excel.PdfTables|FullyQualifiedName~OfficeIMO.Tests.Excel.ReportWorkflow'
               ;;
             excel-core-named)
-              run_officeimo_tests "excel-named-typed" 'FullyQualifiedName~OfficeIMO.Tests.ExcelCellAndRangeTests|FullyQualifiedName~OfficeIMO.Tests.ExcelDelimitedImportTests|FullyQualifiedName~OfficeIMO.Tests.ExcelFluent|FullyQualifiedName~OfficeIMO.Tests.ExcelInfoBuilderTests|FullyQualifiedName~OfficeIMO.Tests.ExcelNamed|FullyQualifiedName~OfficeIMO.Tests.ExcelPowerShell|FullyQualifiedName~OfficeIMO.Tests.ExcelRange|FullyQualifiedName~OfficeIMO.Tests.ExcelRows|FullyQualifiedName~OfficeIMO.Tests.ExcelSheet|FullyQualifiedName~OfficeIMO.Tests.ExcelCoerce'
-              run_officeimo_tests "excel-core" '(FullyQualifiedName~OfficeIMO.Tests.Excel.&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ExcelChart&FullyQualifiedName!~OfficeIMO.Tests.Excel.SharedChartRenderer&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ClosedXmlGap&FullyQualifiedName!~OfficeIMO.Tests.Excel.LegacyXls&FullyQualifiedName!~OfficeIMO.Tests.Excel.PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Excel.SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Excel.ToPdfDocument&FullyQualifiedName!~OfficeIMO.Tests.Excel.PdfTables&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReportWorkflow&FullyQualifiedName!~OfficeIMO.Tests.Excel.Reader&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReadRows&FullyQualifiedName!~OfficeIMO.Tests.Excel.ExcelHttp)'
+              run_excel_tests "excel-named-typed" 'FullyQualifiedName~OfficeIMO.Tests.ExcelCellAndRangeTests|FullyQualifiedName~OfficeIMO.Tests.ExcelDelimitedImportTests|FullyQualifiedName~OfficeIMO.Tests.ExcelFluent|FullyQualifiedName~OfficeIMO.Tests.ExcelInfoBuilderTests|FullyQualifiedName~OfficeIMO.Tests.ExcelNamed|FullyQualifiedName~OfficeIMO.Tests.ExcelPowerShell|FullyQualifiedName~OfficeIMO.Tests.ExcelRange|FullyQualifiedName~OfficeIMO.Tests.ExcelRows|FullyQualifiedName~OfficeIMO.Tests.ExcelSheet|FullyQualifiedName~OfficeIMO.Tests.ExcelCoerce'
+              run_excel_tests "excel-core" '(FullyQualifiedName~OfficeIMO.Tests.Excel.&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ExcelChart&FullyQualifiedName!~OfficeIMO.Tests.Excel.SharedChartRenderer&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ClosedXmlGap&FullyQualifiedName!~OfficeIMO.Tests.Excel.LegacyXls&FullyQualifiedName!~OfficeIMO.Tests.Excel.PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Excel.SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Excel.ToPdfDocument&FullyQualifiedName!~OfficeIMO.Tests.Excel.PdfTables&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReportWorkflow&FullyQualifiedName!~OfficeIMO.Tests.Excel.Reader&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReadRows&FullyQualifiedName!~OfficeIMO.Tests.Excel.ExcelHttp)'
               ;;
             word-rtf-html)
               run_officeimo_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParent|FullyQualifiedName~OfficeIMO.Tests.WordParagraph|FullyQualifiedName~OfficeIMO.Tests.WordTable|FullyQualifiedName~OfficeIMO.Tests.Ordering.WordOrderPreservationTests'
@@ -506,10 +520,14 @@ jobs:
             ${{ runner.os }}-nuget-
 
       - name: Restore test dependencies
-        run: dotnet restore OfficeIMO.Tests/OfficeIMO.Tests.csproj
+        run: |
+          dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
+          dotnet restore OfficeIMO.Tests/OfficeIMO.Tests.csproj
 
       - name: Build test project
-        run: dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+        run: |
+          dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
+          dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework net8.0 --no-restore
 
       - name: Run Excel image visual gate
         shell: pwsh
