@@ -104,6 +104,7 @@
         <InternalsVisibleTo Include="OfficeIMO.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Rtf.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Html" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Markdown" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Pdf" />

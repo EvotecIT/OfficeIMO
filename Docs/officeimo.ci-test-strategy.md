@@ -4,11 +4,11 @@ This note records the current cleanup direction for OfficeIMO tests and build wa
 
 ## Current Shape
 
-The solution has a legacy aggregate test project, `OfficeIMO.Tests`, plus domain projects such as `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, `OfficeIMO.Rtf.Tests`, `OfficeIMO.CSV.Tests`, `OfficeIMO.VerifyTests`, and `OfficeIMO.MarkdownRenderer.Wpf.Tests`.
+The solution has a legacy aggregate test project, `OfficeIMO.Tests`, plus domain projects such as `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, `OfficeIMO.Rtf.Tests`, `OfficeIMO.Html.Tests`, `OfficeIMO.CSV.Tests`, `OfficeIMO.VerifyTests`, and `OfficeIMO.MarkdownRenderer.Wpf.Tests`.
 
-`OfficeIMO.Tests` still covers many product areas: PDF, Markdown, HTML, Reader, Drawing, Markup, and shared workflow tests. That made sense while features were being built quickly, but it is now too large for clean CI ownership. A full rebuild of the aggregate project used to emit thousands of duplicate nullable-warning lines across target frameworks, which made GitHub annotations noisy and hid the warnings that matter.
+`OfficeIMO.Tests` still covers many product areas: PDF, Markdown, Reader, Drawing, Markup, and shared workflow tests. That made sense while features were being built quickly, but it is now too large for clean CI ownership. A full rebuild of the aggregate project used to emit thousands of duplicate nullable-warning lines across target frameworks, which made GitHub annotations noisy and hid the warnings that matter.
 
-`OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, and `OfficeIMO.Rtf.Tests` are the first real splits from the aggregate. `OfficeIMO.Word.Tests` owns the core Word API, Word PDF conversion, Word/Markdown round-trip conversion tests, Google Docs payload, and fixture contracts. `OfficeIMO.Excel.Tests` owns the Excel test sources, Excel image export, Excel PDF, Google Sheets payload, and Excel compatibility contracts. `OfficeIMO.PowerPoint.Tests` owns the PowerPoint presentation API, PowerPoint image export, and PowerPoint PDF conversion tests. `OfficeIMO.Visio.Tests` owns the Visio document, stencil, diagram, SVG/PNG export, validation, and visual baseline contracts. `OfficeIMO.Rtf.Tests` owns native RTF, Word RTF conversion, RTF Markdown, RTF PDF, lossless editor, tokenizer, syntax, and golden corpus contracts. These projects have their own references and friend-assembly access, so their test warnings and internal contracts no longer ride through the whole aggregate test assembly.
+`OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, `OfficeIMO.Rtf.Tests`, and `OfficeIMO.Html.Tests` are the first real splits from the aggregate. `OfficeIMO.Word.Tests` owns the core Word API, Word PDF conversion, Word/Markdown round-trip conversion tests, Google Docs payload, and fixture contracts. `OfficeIMO.Excel.Tests` owns the Excel test sources, Excel image export, Excel PDF, Google Sheets payload, and Excel compatibility contracts. `OfficeIMO.PowerPoint.Tests` owns the PowerPoint presentation API, PowerPoint image export, and PowerPoint PDF conversion tests. `OfficeIMO.Visio.Tests` owns the Visio document, stencil, diagram, SVG/PNG export, validation, and visual baseline contracts. `OfficeIMO.Rtf.Tests` owns native RTF, Word RTF conversion, RTF Markdown, RTF PDF, lossless editor, tokenizer, syntax, and golden corpus contracts. `OfficeIMO.Html.Tests` owns shared HTML policy, HTML ingestion, HTML PDF, and Office-to-HTML bridge contracts. These projects have their own references and friend-assembly access, so their test warnings and internal contracts no longer ride through the whole aggregate test assembly.
 
 ## Decision
 
@@ -22,7 +22,8 @@ The desired end state is:
 - `OfficeIMO.Markdown.Tests` for pure Markdown parsing, rendering, Markdig parity, and Markdown conversion contracts that do not require the Word fixture.
 - `OfficeIMO.Visio.Tests` for Visio document, stencil, diagram, export, validation, and visual baseline contracts. This project exists now and should be the target for new Visio tests.
 - `OfficeIMO.Rtf.Tests` for native RTF, Word RTF conversion, RTF Markdown, RTF PDF, lossless editor, tokenizer, syntax, and golden corpus contracts. This project exists now and should be the target for new RTF tests.
-- `OfficeIMO.Html.Tests` and `OfficeIMO.Reader.Tests` for their domain contracts.
+- `OfficeIMO.Html.Tests` for shared HTML policy, HTML ingestion, HTML PDF, and Office-to-HTML bridge contracts. This project exists now and should be the target for new HTML tests.
+- `OfficeIMO.Reader.Tests` for reader contracts.
 - Small integration or workflow projects only when a test intentionally crosses several domains.
 
 Do not split tests only by folder size. Split when the test project can own a real contract, build a smaller dependency graph, and run independently in CI.
@@ -43,7 +44,7 @@ The current partitions are:
 - `word-rtf-html`
 - `other-projects`
 
-Word, Excel, and RTF partitions run `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, and `OfficeIMO.Rtf.Tests` directly. The `other-projects` partition runs `OfficeIMO.PowerPoint.Tests` and `OfficeIMO.Visio.Tests` directly before the remaining aggregate filters. The `markdown-large` partition also runs the Word/Markdown round-trip tests from `OfficeIMO.Word.Tests`, because those tests exercise Word document conversion behavior even though their class names are Markdown-oriented. The remaining partitions continue to run `OfficeIMO.Tests` until their domains are split into their own projects.
+Word, Excel, RTF, and HTML partitions run `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.Rtf.Tests`, and `OfficeIMO.Html.Tests` directly. The `other-projects` partition runs `OfficeIMO.PowerPoint.Tests` and `OfficeIMO.Visio.Tests` directly before the remaining aggregate filters. The `markdown-large` partition also runs the Word/Markdown round-trip tests from `OfficeIMO.Word.Tests`, because those tests exercise Word document conversion behavior even though their class names are Markdown-oriented. The remaining partitions continue to run `OfficeIMO.Tests` until their domains are split into their own projects.
 
 Keep `max-parallel` bounded so the workflow improves wall-clock time without flooding the organization with too many simultaneous jobs.
 
@@ -55,7 +56,7 @@ For test jobs, prefer building the test project for the target framework instead
 
 Production projects keep warnings as errors.
 
-The legacy aggregate `OfficeIMO.Tests` project suppresses nullable warnings, platform/framework analyzer warnings, and a few xUnit style analyzer warnings while the suite is being split, because the current volume makes CI annotations unusable. `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, and `OfficeIMO.Rtf.Tests` also carry scoped transitional suppressions for the existing moved tests so the real project split can continue without reintroducing annotation spam. New Word, Excel, PowerPoint, Visio, and RTF tests should avoid adding new nullable debt, and follow-up cleanup should remove suppressions as the moved tests are made nullable-clean.
+The legacy aggregate `OfficeIMO.Tests` project suppresses nullable warnings, platform/framework analyzer warnings, and a few xUnit style analyzer warnings while the suite is being split, because the current volume makes CI annotations unusable. `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Visio.Tests`, `OfficeIMO.Rtf.Tests`, and `OfficeIMO.Html.Tests` also carry scoped transitional suppressions for the existing moved tests so the real project split can continue without reintroducing annotation spam. New Word, Excel, PowerPoint, Visio, RTF, and HTML tests should avoid adding new nullable debt, and follow-up cleanup should remove suppressions as the moved tests are made nullable-clean.
 
 New domain test projects should start clean:
 
@@ -101,6 +102,13 @@ Restore and build the RTF test project:
 ```powershell
 dotnet restore OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj
 dotnet build OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration Release --framework net8.0 --no-restore
+```
+
+Restore and build the HTML test project:
+
+```powershell
+dotnet restore OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj
+dotnet build OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration Release --framework net8.0 --no-restore
 ```
 
 Run a focused Excel partition locally:
