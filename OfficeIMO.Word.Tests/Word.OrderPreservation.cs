@@ -8,7 +8,7 @@ using OfficeIMO.Word.Pdf;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Xunit;
 
-namespace OfficeIMO.Tests.Ordering {
+namespace OfficeIMO.Tests {
     public class WordOrderPreservationTests {
         private static int IndexOfMarkdownTable(string markdown, string headerRow) {
             return markdown.IndexOf(headerRow, StringComparison.Ordinal);
