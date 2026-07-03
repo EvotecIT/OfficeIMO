@@ -3,7 +3,7 @@ using System.Text.RegularExpressions;
 using System.Xml.Linq;
 using Xunit;
 
-namespace OfficeIMO.Tests;
+namespace OfficeIMO.Shared.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
     private const string CurrentMarkdigVersion = "1.3.2";
@@ -19,7 +19,7 @@ public sealed class PackageDependencyGuardrailTests {
     [Fact]
     public void MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline() {
         string[] projectPaths = [
-            "OfficeIMO.Tests/OfficeIMO.Tests.csproj",
+            "OfficeIMO.Shared.Tests/OfficeIMO.Shared.Tests.csproj",
             "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj",
             "OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj"
         ];
@@ -41,7 +41,7 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Contains($"external parity baseline: Markdig `{CurrentMarkdigVersion}`", competitorRoadmap, StringComparison.Ordinal);
 
         string correctnessBacklog = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.correctness-backlog.md"));
-        Assert.Contains($"`OfficeIMO.Tests`, `OfficeIMO.Markdown.Tests`, and `OfficeIMO.Markdown.Benchmarks` all reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
+        Assert.Contains($"`OfficeIMO.Shared.Tests`, `OfficeIMO.Markdown.Tests`, and `OfficeIMO.Markdown.Benchmarks` all reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
 
         string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
         Assert.Contains($"curated Markdig {CurrentMarkdigVersion} parity cases", packageCompatibility, StringComparison.Ordinal);
@@ -240,6 +240,33 @@ public sealed class PackageDependencyGuardrailTests {
                 Assert.DoesNotContain($"using {retiredNamespace}", source, StringComparison.Ordinal);
             }
         }
+    }
+
+    [Fact]
+    public void RetiredAggregateTestAssembly_IsNotGrantedFriendAccess() {
+        var projectOffenders = EnumerateProjectFiles()
+            .SelectMany(projectPath => XDocument.Load(projectPath)
+                .Descendants()
+                .Where(static element => element.Name.LocalName == "InternalsVisibleTo")
+                .Where(static element => string.Equals((string?)element.Attribute("Include"), "OfficeIMO.Tests", StringComparison.OrdinalIgnoreCase))
+                .Select(_ => GetRepositoryRelativePath(projectPath)))
+            .ToArray();
+
+        var sourceOffenders = Directory.EnumerateFiles(GetRepositoryRoot(), "*.cs", SearchOption.AllDirectories)
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => !path.Contains($"{Path.DirectorySeparatorChar}Ignore{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase))
+            .Where(static path => new FileInfo(path).Length > 0)
+            .Where(SourceGrantsRetiredAggregateTestAccess)
+            .Select(GetRepositoryRelativePath)
+            .ToArray();
+
+        var offenders = projectOffenders
+            .Concat(sourceOffenders)
+            .OrderBy(static offender => offender, StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+
+        Assert.Empty(offenders);
     }
 
     [Fact]
@@ -606,6 +633,14 @@ public sealed class PackageDependencyGuardrailTests {
 
     private static bool ProjectReferencesSixLaborsFonts(string projectPath) {
         return ProjectReferencesPackages(projectPath, ["SixLabors.Fonts"]).Any();
+    }
+
+    private static bool SourceGrantsRetiredAggregateTestAccess(string sourcePath) {
+        string source = File.ReadAllText(sourcePath);
+        return Regex.IsMatch(
+            source,
+            @"\[\s*assembly\s*:\s*InternalsVisibleTo\s*\(\s*""OfficeIMO\.Tests""\s*\)\s*\]",
+            RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
     }
 
     private static IEnumerable<string> ProjectReferencesPackages(string projectPath, IReadOnlyCollection<string> packageIds) {

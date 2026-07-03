@@ -7,7 +7,7 @@ This matrix tracks the public template and mail-merge workflows that OfficeIMO.W
 ```powershell
 dotnet run --project OfficeIMO.Examples\OfficeIMO.Examples.csproj -f net8.0 -- --word-mail-merge-workflows
 dotnet run --project OfficeIMO.Examples\OfficeIMO.Examples.csproj -f net8.0 -- --word-market-readiness
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -f net8.0 --filter "FullyQualifiedName~Test_MailMerge"
+dotnet test OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj -f net8.0 --filter "FullyQualifiedName~Test_MailMerge"
 ```
 
 The workflow runner writes invoice, grouped table report, proposal, review letter, header/footer approval package, and form-fill documents to the examples output folder. The form-fill workflow also writes content-control validation diagnostics in JSON and Markdown. The market-readiness gallery writes clean and blocked template preflight reports.

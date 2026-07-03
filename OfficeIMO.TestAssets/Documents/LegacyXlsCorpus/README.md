@@ -16,8 +16,8 @@ To refresh approved baselines after an intentional import change:
 
 ```powershell
 $env:OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES = '1'
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyXls_Corpus_Fixtures_MatchApprovedImportReports"
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~ProjectionGapSummary"
+dotnet test .\OfficeIMO.Excel.Tests\OfficeIMO.Excel.Tests.csproj --filter "FullyQualifiedName~LegacyXls_Corpus_Fixtures_MatchApprovedImportReports"
+dotnet test .\OfficeIMO.Excel.Tests\OfficeIMO.Excel.Tests.csproj --filter "FullyQualifiedName~ProjectionGapSummary"
 Remove-Item Env:\OFFICEIMO_UPDATE_LEGACY_XLS_CORPUS_BASELINES
 ```
 
@@ -36,7 +36,7 @@ through OfficeIMO, save the projected `.xlsx`, and verify Excel opens the result
 
 ```powershell
 $env:OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION = '1'
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyXls_ComGeneratedWorkbook_ImportsAndOpensInDesktopExcelWhenRequested"
+dotnet test .\OfficeIMO.Excel.Tests\OfficeIMO.Excel.Tests.csproj --filter "FullyQualifiedName~LegacyXls_ComGeneratedWorkbook_ImportsAndOpensInDesktopExcelWhenRequested"
 Remove-Item Env:\OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION
 ```
 
@@ -46,7 +46,7 @@ The same switch also validates checked-in corpus fixtures by opening each source
 
 ```powershell
 $env:OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION = '1'
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyXls_CorpusFixtures_OpenBeforeAndAfterImportInDesktopExcelWhenRequested"
+dotnet test .\OfficeIMO.Excel.Tests\OfficeIMO.Excel.Tests.csproj --filter "FullyQualifiedName~LegacyXls_CorpusFixtures_OpenBeforeAndAfterImportInDesktopExcelWhenRequested"
 Remove-Item Env:\OFFICEIMO_RUN_LEGACY_XLS_COM_VALIDATION
 ```
 

@@ -44,7 +44,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\OfficeIMO.Tests\TestStreams\**\*.cs" Link="TestStreams\%(RecursiveDir)%(Filename)%(Extension)" />
+    <Compile Include="..\OfficeIMO.TestAssets\TestStreams\**\*.cs" Link="TestStreams\%(RecursiveDir)%(Filename)%(Extension)" />
     <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFile.cs" Link="Shared\Compound\OfficeCompoundFile.cs" />
     <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileEntry.cs" Link="Shared\Compound\OfficeCompoundFileEntry.cs" />
     <Compile Include="..\OfficeIMO.Shared\Compound\OfficeCompoundFileReader.cs" Link="Shared\Compound\OfficeCompoundFileReader.cs" />
@@ -73,9 +73,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\OfficeIMO.Tests\Documents\**" Link="Documents\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <None Include="..\OfficeIMO.Tests\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
-    <EmbeddedResource Include="..\OfficeIMO.Tests\Images\Kulek.jpg" Link="Images\Kulek.jpg" LogicalName="OfficeIMO.Tests.Images.Kulek.jpg" />
+    <None Include="..\OfficeIMO.TestAssets\Documents\**" Link="Documents\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <EmbeddedResource Include="..\OfficeIMO.TestAssets\Images\Kulek.jpg" Link="Images\Kulek.jpg" LogicalName="OfficeIMO.Tests.Images.Kulek.jpg" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">

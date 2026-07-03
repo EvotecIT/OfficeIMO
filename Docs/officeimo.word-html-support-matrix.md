@@ -1,6 +1,6 @@
 # OfficeIMO Word HTML Support Matrix
 
-This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It is grounded in the converter implementation and the HTML-focused tests under `OfficeIMO.Tests`.
+This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It is grounded in the converter implementation and the HTML-focused tests under `OfficeIMO.Html.Tests`, `OfficeIMO.Word.Tests`, and `OfficeIMO.Reader.Tests`.
 
 ## Status Key
 
@@ -134,7 +134,7 @@ This matrix documents the current `OfficeIMO.Word.Html` conversion surface. It i
 
 ## Current Validation Evidence
 
-- HTML-focused tests under `OfficeIMO.Tests` cover import, export, tables, lists, images, links, inline styles, page settings, code blocks, task lists, async/cancellation, and options.
+- HTML-focused tests under `OfficeIMO.Html.Tests`, `OfficeIMO.Word.Tests`, and `OfficeIMO.Reader.Tests` cover import, export, tables, lists, images, links, inline styles, page settings, code blocks, task lists, async/cancellation, and options.
 - On 2026-06-05, branch `codex/html-conversion-robustness-20260605` ran the broad HTML-focused test slice with `637/637` passing on `net8.0`.
 - On 2026-06-05, branch `codex/html-conversion-robustness-20260605` added artifact-level proof that imported image dimensions persist as saved DrawingML extents in a valid DOCX package.
 - On 2026-06-05, branch `codex/html-conversion-robustness-20260605` built `OfficeIMO.Word.Html`, `OfficeIMO.Markdown.Html`, and `OfficeIMO.Reader.Html` in Release across `netstandard2.0`, `net8.0`, `net10.0`, and `net472` with `0` warnings and `0` errors.

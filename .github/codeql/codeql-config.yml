@@ -40,8 +40,6 @@ paths-ignore:
   - OfficeIMO.*.Benchmarks*
   - OfficeIMO.*.Benchmarks*/**
   - OfficeIMO.Examples
-  - OfficeIMO.Tests
-  - OfficeIMO.Tests/**
   - OfficeIMO.VerifyTests
   - OfficeIMO.VerifyTests/**
   - Website/static/assets/prism

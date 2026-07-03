@@ -23,7 +23,7 @@ public class EmbeddedContentTests : VerifyTestBase {
             "..",
             "..",
             "..",
-            "OfficeIMO.Tests",
+            "OfficeIMO.TestAssets",
             "Images",
             "Kulek.jpg"));
     }

@@ -7,7 +7,7 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.Word;
 using Xunit;
 
-namespace OfficeIMO.Tests {
+namespace OfficeIMO.Shared.Tests {
     public class OfficeEncryptionTests {
         private const string Password = "OfficeIMO-Secret-123";
 

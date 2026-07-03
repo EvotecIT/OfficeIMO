@@ -3,7 +3,7 @@ using System.Runtime.InteropServices;
 using OfficeIMO.Word;
 using Xunit;
 
-namespace OfficeIMO.Tests;
+namespace OfficeIMO.Shared.Tests;
 
 public class FontResolverTests {
     [Fact]

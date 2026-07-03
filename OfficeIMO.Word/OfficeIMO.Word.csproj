@@ -101,7 +101,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="OfficeIMO.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Word.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Markdown.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />

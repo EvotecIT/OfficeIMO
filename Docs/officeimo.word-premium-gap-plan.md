@@ -23,8 +23,8 @@ Template/mail-merge polish remains important, but it should follow the review/di
 
 Goal: avoid five separate feature implementations with five different report models.
 
-- [x] Define a shared Word proof fixture folder under `OfficeIMO.Tests/Documents/Word/PremiumGaps`.
-- [x] Add `OfficeIMO.Tests/Documents/Word/PremiumGaps/premium-gap-fixtures.xml` to record the source document, feature family, expected behavior, fixture status, evidence, and validation command for each priority gap.
+- [x] Define a shared Word proof fixture folder under `OfficeIMO.TestAssets/Documents/Word/PremiumGaps`.
+- [x] Add `OfficeIMO.TestAssets/Documents/Word/PremiumGaps/premium-gap-fixtures.xml` to record the source document, feature family, expected behavior, fixture status, evidence, and validation command for each priority gap.
 - [x] Add a contract test that keeps the manifest aligned with this plan and prevents future workstreams from drifting into separate proof models.
 - [x] Extend `WordFeatureReport` only where it improves preflight for these workstreams; do not turn it into a second document model.
 - [x] Keep reusable package-level behavior outside Word when the file-format feature is not Word-specific. Digital-signature package inspection and the bounded package-signing adapter now live in `OfficeIMO.Shared`, with `OfficeIMO.Word` mapping them to Word-facing public models. Cryptographic trust validation still remains future shared-owner or adapter work.
@@ -420,14 +420,14 @@ Use focused tests while implementing, then broaden before release:
 
 ```powershell
 dotnet build OfficeIMO.Word\OfficeIMO.Word.csproj -f net8.0
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -f net8.0 --filter "FullyQualifiedName~Word.Signature|FullyQualifiedName~Word.Review|FullyQualifiedName~Word.Compare|FullyQualifiedName~Word.UpdateFields|FullyQualifiedName~Word.MailMerge"
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -f net10.0 --filter "FullyQualifiedName~Word.Signature|FullyQualifiedName~Word.Review|FullyQualifiedName~Word.Compare|FullyQualifiedName~Word.UpdateFields|FullyQualifiedName~Word.MailMerge"
+dotnet test OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj -f net8.0 --filter "FullyQualifiedName~Word.Signature|FullyQualifiedName~Word.Review|FullyQualifiedName~Word.Compare|FullyQualifiedName~Word.UpdateFields|FullyQualifiedName~Word.MailMerge"
+dotnet test OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj -f net10.0 --filter "FullyQualifiedName~Word.Signature|FullyQualifiedName~Word.Review|FullyQualifiedName~Word.Compare|FullyQualifiedName~Word.UpdateFields|FullyQualifiedName~Word.MailMerge"
 ```
 
 On Windows release-prep lanes, include `net472` once the touched code is compatible:
 
 ```powershell
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -f net472 --filter "FullyQualifiedName~Word.Signature|FullyQualifiedName~Word.Review|FullyQualifiedName~Word.Compare|FullyQualifiedName~Word.UpdateFields|FullyQualifiedName~Word.MailMerge"
+dotnet test OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj -f net472 --filter "FullyQualifiedName~Word.Signature|FullyQualifiedName~Word.Review|FullyQualifiedName~Word.Compare|FullyQualifiedName~Word.UpdateFields|FullyQualifiedName~Word.MailMerge"
 ```
 
 For each workstream, add one artifact-level test that opens the generated DOCX with Open XML SDK validation or a package-level assertion. Feature-level tests are useful, but the user contract is the saved document.

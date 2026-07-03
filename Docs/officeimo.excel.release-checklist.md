@@ -28,7 +28,7 @@ Run at minimum:
 ```powershell
 dotnet build .\OfficeIMO.Excel\OfficeIMO.Excel.csproj -c Release
 dotnet build .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -c Release
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --framework net8.0 --filter "FullyQualifiedName~Excel"
+dotnet test .\OfficeIMO.Excel.Tests\OfficeIMO.Excel.Tests.csproj --framework net8.0 --filter "FullyQualifiedName~Excel"
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- --list flat
 ```
 

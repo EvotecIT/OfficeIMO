@@ -23,7 +23,7 @@ public class ImageAndTextBoxTests : VerifyTestBase {
             "..",
             "..",
             "..",
-            "OfficeIMO.Tests",
+            "OfficeIMO.TestAssets",
             "Images",
             "Kulek.jpg"));
     }

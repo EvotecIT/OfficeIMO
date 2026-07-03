@@ -3,7 +3,7 @@ using OfficeIMO.Word.Markdown;
 using OfficeIMO.Word;
 using Xunit;
 
-namespace OfficeIMO.Tests {
+namespace OfficeIMO.Shared.Tests {
     public class ConverterExceptions {
         [Fact]
         public void LoadFromHtml_NullHtml_ThrowsArgumentNullException() {

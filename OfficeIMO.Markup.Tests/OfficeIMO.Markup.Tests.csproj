@@ -51,7 +51,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <None Include="..\OfficeIMO.Tests\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
+    <None Include="..\OfficeIMO.TestAssets\Images\**" Link="Images\%(RecursiveDir)%(Filename)%(Extension)" CopyToOutputDirectory="Always" />
   </ItemGroup>
 
   <PropertyGroup Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' == 'false' ">

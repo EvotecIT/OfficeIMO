@@ -3,7 +3,6 @@
        Tests and benchmarks still show warnings, but warnings do not block local or CI validation. -->
   <PropertyGroup Condition="
       '$(IsTestProject)' == 'true'
-      Or '$(MSBuildProjectName)' == 'OfficeIMO.Tests'
       Or '$(MSBuildProjectName)' == 'OfficeIMO.Word.Tests'
       Or '$(MSBuildProjectName)' == 'OfficeIMO.CSV.Tests'
       Or '$(MSBuildProjectName)' == 'OfficeIMO.VerifyTests'

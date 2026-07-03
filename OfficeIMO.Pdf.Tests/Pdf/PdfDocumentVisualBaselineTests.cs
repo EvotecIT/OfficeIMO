@@ -336,10 +336,6 @@ public class PdfDocumentVisualBaselineTests {
                 return pdfProjectRoot;
             }
 
-            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
-                return directory.FullName;
-            }
-
             directory = directory.Parent;
         }
 

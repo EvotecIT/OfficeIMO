@@ -7,7 +7,7 @@ using System;
 using System.Net.Http;
 using Xunit;
 
-namespace OfficeIMO.Tests;
+namespace OfficeIMO.Shared.Tests;
 
 public class ConversionOptionsTests {
     [Fact]

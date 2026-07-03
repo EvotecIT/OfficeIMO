@@ -12,7 +12,7 @@ To refresh approved baselines after an intentional import change:
 
 ```powershell
 $env:OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES = '1'
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_CorpusImportReports_MatchCheckedInBaselines"
+dotnet test .\OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_CorpusImportReports_MatchCheckedInBaselines"
 Remove-Item Env:\OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES
 ```
 
@@ -26,23 +26,23 @@ repeatable Word 97-2003 `.doc` samples for simple paragraph, character
 formatting, and paragraph formatting coverage:
 
 ```powershell
-.\OfficeIMO.Tests\Documents\LegacyDocCorpus\Generate-WordComFixtures.ps1
+.\OfficeIMO.TestAssets\Documents\LegacyDocCorpus\Generate-WordComFixtures.ps1
 ```
 
 The generator skips existing files by default. Use `-Force` only when you intend
 to refresh checked-in fixtures and their matching import reports:
 
 ```powershell
-.\OfficeIMO.Tests\Documents\LegacyDocCorpus\Generate-WordComFixtures.ps1 -Force
+.\OfficeIMO.TestAssets\Documents\LegacyDocCorpus\Generate-WordComFixtures.ps1 -Force
 $env:OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES = '1'
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_CorpusImportReports_MatchCheckedInBaselines"
+dotnet test .\OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_CorpusImportReports_MatchCheckedInBaselines"
 Remove-Item Env:\OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES
 ```
 
 Use `-Scenario` to generate one focused fixture family at a time:
 
 ```powershell
-.\OfficeIMO.Tests\Documents\LegacyDocCorpus\Generate-WordComFixtures.ps1 -Scenario CharacterFormatting
+.\OfficeIMO.TestAssets\Documents\LegacyDocCorpus\Generate-WordComFixtures.ps1 -Scenario CharacterFormatting
 ```
 
 The generator is test-support tooling only. It must not be referenced by
@@ -56,7 +56,7 @@ through the native `.doc` writer, and verify desktop Word opens both files:
 
 ```powershell
 $env:OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION = '1'
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_ComGeneratedDocument_ImportsAndNativeSaveOpensInDesktopWordWhenRequested"
+dotnet test .\OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_ComGeneratedDocument_ImportsAndNativeSaveOpensInDesktopWordWhenRequested"
 Remove-Item Env:\OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION
 ```
 
@@ -65,6 +65,6 @@ desktop Word:
 
 ```powershell
 $env:OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION = '1'
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_CorpusFixtures_OpenInDesktopWordWhenRequested"
+dotnet test .\OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj --filter "FullyQualifiedName~LegacyDoc_CorpusFixtures_OpenInDesktopWordWhenRequested"
 Remove-Item Env:\OFFICEIMO_RUN_LEGACY_DOC_COM_VALIDATION
 ```

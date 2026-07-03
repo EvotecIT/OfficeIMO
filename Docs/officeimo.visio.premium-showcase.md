@@ -30,7 +30,7 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
    - Use the `Visio Showcase Artifacts` workflow through `workflow_dispatch` with `run_desktop_preview=true` on a `[self-hosted, Windows, Visio]` runner where Microsoft Visio desktop automation is registered.
 
 4. **Visual baseline proof**
-   - Store approved PNG/SVG previews for the core premium gallery under `OfficeIMO.Tests/Visio/VisualBaselines`.
+   - Store approved PNG/SVG previews for the core premium gallery under `OfficeIMO.Visio.Tests/Visio/VisualBaselines`.
    - Run a no-Visio native baseline lane for all eight premium diagrams; it compares first-party `ToSvg()` and `SaveAsPng(...)` output so renderer drift is gated even on machines without Microsoft Visio.
    - Store approved `.inspection.txt` and `.stencil-profile.txt` snapshots for the same gallery so rendered drift can be reviewed beside structural and stencil-usage drift.
    - Showcase artifact runs additionally publish `.visual-quality.txt` proofs with deterministic `quality.*` counts; promote those into approved premium baselines once the baseline suite starts tracking quality drift directly.

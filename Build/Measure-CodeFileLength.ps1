@@ -11,14 +11,12 @@ $excludedDirectoryNames = @('bin', 'obj', 'Ignore', 'OfficeIMO.Examples', 'Offic
 $rg = Get-Command rg -ErrorAction SilentlyContinue
 
 if (-not $IncludeTests) {
-    $excludedDirectoryNames += 'OfficeIMO.Tests'
-    $excludedDirectoryNames += 'OfficeIMO.CSV.Tests'
     $excludedDirectoryNames += 'OfficeIMO.VerifyTests'
-    $excludedDirectoryNames += 'OfficeIMO.MarkdownRenderer.Wpf.Tests'
 }
 
 if (-not $IncludeAssets) {
     $excludedDirectoryNames += 'Assets'
+    $excludedDirectoryNames += 'OfficeIMO.TestAssets'
 }
 
 function Get-CodeFiles {
@@ -30,6 +28,10 @@ function Get-CodeFiles {
     foreach ($item in Get-ChildItem -LiteralPath $Path -Force) {
         if ($item.PSIsContainer) {
             if ($excludedDirectoryNames -contains $item.Name) {
+                continue
+            }
+
+            if (-not $IncludeTests -and $item.Name -like 'OfficeIMO.*.Tests') {
                 continue
             }
 
@@ -59,16 +61,14 @@ if ($rg) {
 
     if (-not $IncludeTests) {
         $patterns += @(
-            '-g', '!OfficeIMO.Tests/**',
-            '-g', '!OfficeIMO.CSV.Tests/**',
-            '-g', '!OfficeIMO.VerifyTests/**',
-            '-g', '!OfficeIMO.MarkdownRenderer.Wpf.Tests/**'
+            '-g', '!OfficeIMO.*.Tests/**',
+            '-g', '!OfficeIMO.VerifyTests/**'
         )
     }
 
-    if (-not $IncludeAssets) {
-        $patterns += @('-g', '!Assets/**')
-    }
+if (-not $IncludeAssets) {
+    $patterns += @('-g', '!Assets/**', '-g', '!OfficeIMO.TestAssets/**')
+}
 
     Push-Location -LiteralPath $root
     try {

@@ -83,7 +83,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="OfficeIMO.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Visio.Tests" />
     </ItemGroup>
 

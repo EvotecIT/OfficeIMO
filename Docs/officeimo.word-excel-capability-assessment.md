@@ -104,7 +104,7 @@ This assessment tracks where `OfficeIMO.Word` and `OfficeIMO.Excel` stand today,
 | Word product page | `Website/content/products/word.md` |
 | Word feature inspection report | `OfficeIMO.Word/WordFeatureReport.cs` |
 | Word source surface | `OfficeIMO.Word/`, `OfficeIMO.Word.Html/`, `OfficeIMO.Word.Markdown/`, `OfficeIMO.Word.Pdf/` |
-| Word tests | `OfficeIMO.Tests/Word*.cs`, `OfficeIMO.Tests/Pdf/Word.SaveAsPdf*.cs` |
+| Word tests | `OfficeIMO.Word.Tests/Word*.cs`, `OfficeIMO.Word.Tests/Pdf/Word.SaveAsPdf*.cs` |
 
 ## Baseline Reviewed
 

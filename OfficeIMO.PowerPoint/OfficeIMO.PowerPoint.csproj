@@ -86,7 +86,6 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="OfficeIMO.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.PowerPoint.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Pdf.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Html.Tests" />

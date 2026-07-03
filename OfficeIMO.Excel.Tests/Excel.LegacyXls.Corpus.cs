@@ -954,13 +954,30 @@ namespace OfficeIMO.Tests {
         }
 
         private static string GetTestsProjectRoot() {
+            bool updateBaselines = IsLegacyXlsCorpusBaselineUpdateRequested();
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            if (updateBaselines) {
+                DirectoryInfo? sourceDirectory = directory;
+                while (sourceDirectory != null) {
+                    string testAssetsRoot = Path.Combine(sourceDirectory.FullName, "OfficeIMO.TestAssets");
+                    if (Directory.Exists(Path.Combine(testAssetsRoot, "Documents", "LegacyXlsCorpus"))) {
+                        return testAssetsRoot;
+                    }
+
+                    sourceDirectory = sourceDirectory.Parent;
+                }
+            }
+
             while (directory != null) {
-                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
+                if (Directory.Exists(Path.Combine(directory.FullName, "Documents", "LegacyXlsCorpus"))) {
                     return directory.FullName;
                 }
 
                 directory = directory.Parent;
+            }
+
+            if (updateBaselines) {
+                throw new DirectoryNotFoundException("Unable to locate OfficeIMO.TestAssets legacy XLS fixture root from " + AppContext.BaseDirectory);
             }
 
             return AppContext.BaseDirectory;

@@ -1,6 +1,6 @@
 using Xunit;
 
-namespace OfficeIMO.Tests;
+namespace OfficeIMO.Shared.Tests;
 
 public class WorkflowSecurityTests {
     [Fact]
