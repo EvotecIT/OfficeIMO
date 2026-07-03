@@ -55,7 +55,7 @@
     </ItemGroup>
 
     <ItemGroup>
-        <InternalsVisibleTo Include="OfficeIMO.Tests" />
+        <InternalsVisibleTo Include="OfficeIMO.GoogleWorkspace.Tests" />
         <InternalsVisibleTo Include="OfficeIMO.Excel.Tests" />
     </ItemGroup>
 

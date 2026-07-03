@@ -35,6 +35,7 @@
         <Compile Remove="Markdown\**\*.cs" />
         <Compile Remove="Drawing*.cs" />
         <Compile Remove="Markup\**\*.cs" />
+        <Compile Remove="GoogleWorkspace*.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -69,8 +70,6 @@
         <ProjectReference Include="..\\OfficeIMO.Excel\\OfficeIMO.Excel.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.Html\\OfficeIMO.Excel.Html.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Excel.Pdf\\OfficeIMO.Excel.Pdf.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Excel.GoogleSheets\\OfficeIMO.Excel.GoogleSheets.csproj" />
-        <ProjectReference Include="..\\OfficeIMO.Word.GoogleDocs\\OfficeIMO.Word.GoogleDocs.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Reader\\OfficeIMO.Reader.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Pdf\\OfficeIMO.Word.Pdf.csproj" />
         <ProjectReference Include="..\\OfficeIMO.Word.Html\\OfficeIMO.Word.Html.csproj" />
