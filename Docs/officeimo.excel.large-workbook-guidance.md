@@ -87,4 +87,3 @@ Use the comparison summary for public-facing numbers only when the run records:
 - Benchmark artifact guide: `Docs/benchmarks/README.md`
 - Benchmark notes: `Docs/officeimo.excel.benchmark-notes.md`
 - Current capability matrix: `OfficeIMO.Excel/COMPATIBILITY.md`
-- Release checklist: `Docs/officeimo.excel.release-checklist.md`

@@ -1,7 +1,6 @@
 # OfficeIMO.Visio Assessment
 
 Date: 2026-06-05
-Branch/worktree: `codex/visio-market-review-20260605` at `C:\Support\GitHub\OfficeIMO-visio-market-review-20260605`
 
 ## Current Status Update
 

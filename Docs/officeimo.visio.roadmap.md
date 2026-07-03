@@ -1,8 +1,6 @@
 # OfficeIMO.Visio Roadmap
 
 Date: 2026-06-05
-Current branch/worktree: `codex/visio-market-review-20260605` at `C:\Support\GitHub\OfficeIMO-visio-market-review-20260605`
-Current baseline: `origin/master` at `b31d0f80` (`Merge pull request #1884 from EvotecIT/codex/pdf-premium-next-20260604`)
 Last major Visio PR merged: https://github.com/EvotecIT/OfficeIMO/pull/1865
 
 ## Where We Are

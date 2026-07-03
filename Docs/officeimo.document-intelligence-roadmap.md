@@ -1,8 +1,6 @@
 # OfficeIMO Document Intelligence Roadmap
 
 Date: 2026-06-10
-Branch/worktree: `codex/document-intelligence-roadmap` at `C:\Support\GitHub\OfficeIMO-document-intelligence-roadmap`
-Refreshed against: `origin/master` at `4155a3c0`
 
 ## Purpose
 

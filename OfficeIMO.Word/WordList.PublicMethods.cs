@@ -86,6 +86,14 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">Starting number for the level.</param>
         /// <param name="level">Zero-based list level.</param>
+        /// <example>
+        /// <code><![CDATA[
+        /// WordList list = document.AddCustomList();
+        /// list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.Decimal));
+        /// list.SetStartNumberingValue(3);
+        /// list.AddItem("Starts at three");
+        /// ]]></code>
+        /// </example>
         public void SetStartNumberingValue(int value, int level = 0) {
             if (level < 0) {
                 throw new ArgumentOutOfRangeException(nameof(level));
@@ -429,6 +437,16 @@ namespace OfficeIMO.Word {
         /// <param name="colorHex">Optional color specified as hex string. Ignored when <paramref name="color"/> is provided.</param>
         /// <param name="fontSize">Optional font size in points.</param>
         /// <returns>The current <see cref="WordList"/>.</returns>
+        /// <example>
+        /// <code><![CDATA[
+        /// WordList list = document.AddCustomList()
+        ///     .AddListLevel(1, WordListLevelKind.BulletSquareSymbol, "Courier New", colorHex: "#FF0000", fontSize: 14)
+        ///     .AddListLevel(2, WordListLevelKind.BulletBlackCircle, "Arial", colorHex: "#00FF00", fontSize: 10);
+        ///
+        /// list.AddItem("Top level");
+        /// list.AddItem("Nested level", 1);
+        /// ]]></code>
+        /// </example>
         public WordList AddListLevel(int levelIndex, WordListLevelKind kind, string fontName, OfficeIMO.Drawing.OfficeColor? color = null, string? colorHex = null, int? fontSize = null) {
             char symbol = GetBulletSymbol(kind);
             string? finalColor = color?.ToHexColor() ?? colorHex;

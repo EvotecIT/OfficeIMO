@@ -197,6 +197,17 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="styleId">The style identifier.</param>
         /// <returns>The current paragraph instance.</returns>
+        /// <example>
+        /// <code><![CDATA[
+        /// Style style = new() {
+        ///     Type = StyleValues.Paragraph,
+        ///     StyleId = "MyStyle"
+        /// };
+        ///
+        /// WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
+        /// document.AddParagraph("Hello world").SetStyleId("MyStyle");
+        /// ]]></code>
+        /// </example>
         public WordParagraph SetStyleId(string styleId) {
             //Todo Check the styleId exist
             if (!string.IsNullOrEmpty(styleId)) {
