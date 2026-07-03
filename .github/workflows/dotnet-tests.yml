@@ -243,6 +243,7 @@ jobs:
             dotnet restore OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
+            dotnet restore OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
             dotnet restore OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj
@@ -273,6 +274,7 @@ jobs:
             dotnet build OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
+            dotnet build OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -366,6 +368,12 @@ jobs:
             dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
+          run_drawing_tests() {
+            echo ""
+            echo "== OfficeIMO.Drawing.Tests =="
+            dotnet test OfficeIMO.Drawing.Tests/OfficeIMO.Drawing.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          }
+
           audit_officeimo_test_partitions() {
             local list_file
             list_file="$(mktemp)"
@@ -419,7 +427,6 @@ jobs:
               "OfficeIMO.Tests.ExcelRows",
               "OfficeIMO.Tests.ExcelSheet",
               "OfficeIMO.Tests.ExcelCoerce",
-              "OfficeIMO.Tests.Drawing",
               "OfficeIMO.Tests.Markup",
               "OfficeIMO.Tests.Google",
               "OfficeIMO.Tests.PackageDependency",
@@ -530,7 +537,7 @@ jobs:
               run_html_tests
               ;;
             other-projects)
-              run_officeimo_tests "drawing" 'FullyQualifiedName~OfficeIMO.Tests.Drawing'
+              run_drawing_tests
               run_powerpoint_tests
               run_visio_tests
               run_reader_tests

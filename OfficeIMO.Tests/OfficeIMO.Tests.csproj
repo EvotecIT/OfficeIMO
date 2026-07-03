@@ -33,6 +33,7 @@
         <Compile Remove="Markdown.Pdf.cs" />
         <Compile Remove="Markdown*.cs" />
         <Compile Remove="Markdown\**\*.cs" />
+        <Compile Remove="Drawing*.cs" />
     </ItemGroup>
 
     <ItemGroup>
