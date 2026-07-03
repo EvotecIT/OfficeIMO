@@ -62,7 +62,7 @@ public sealed class DefinitionListDefinition : MarkdownObject {
             return string.Empty;
         }
 
-        if (_blocks.Count == 1 && _blocks[0] is ParagraphBlock paragraph && !ForceParagraphHtml) {
+        if (_blocks.Count == 1 && _blocks[0] is ParagraphBlock paragraph && !ForceParagraphHtml && paragraph.Attributes.IsEmpty) {
             return paragraph.Inlines.RenderHtml() + RenderConsumedGenericAttributeWhitespace(paragraph);
         }
 

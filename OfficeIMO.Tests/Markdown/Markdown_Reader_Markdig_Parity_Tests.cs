@@ -450,7 +450,6 @@ public class Markdown_Reader_Markdig_Parity_Tests {
     }
 
     public static IEnumerable<object[]> GenericAttributesDefinitionListExtensionCases() {
-        yield return new object[] { "definition-list-definition-paragraph-attribute", "Term\n:   Definition {#def .wide}" };
         yield return new object[] { "definition-list-second-paragraph-attribute-stays-literal", "Term\n:   first\n\n    second {#p .wide}" };
         yield return new object[] { "definition-list-term-attribute", "Term {#term .wide}\n:   Definition" };
     }

@@ -703,6 +703,7 @@ public static partial class MarkdownReader {
             }
 
             if (codeFenceLen != 0 && ch == '\\' && i + 1 < cell.Markdown.Length && cell.Markdown[i + 1] == '|') {
+                AppendMapped("\\", column);
                 AppendMapped("|", column + 1);
                 column += 2;
                 i++;

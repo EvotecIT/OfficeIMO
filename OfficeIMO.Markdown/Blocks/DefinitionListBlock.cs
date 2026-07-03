@@ -113,6 +113,11 @@ public sealed class DefinitionListBlock : MarkdownBlock, IMarkdownBlock, ISyntax
     /// <inheritdoc />
     string IMarkdownBlock.RenderMarkdown() {
         StringBuilder sb = new StringBuilder();
+        var attributes = MarkdownAttributeBlockRenderer.RenderTrailing(Attributes);
+        if (!string.IsNullOrEmpty(attributes)) {
+            sb.Append(attributes.TrimStart()).Append('\n');
+        }
+
         for (int i = 0; i < _groups.Count; i++) {
             var group = _groups[i];
             var cachedGroup = FindSyntaxGroupForCurrentGroup(group, i);

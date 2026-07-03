@@ -744,20 +744,35 @@ public static partial class MarkdownReader {
         if (schemeEnd < 0 || schemeEnd + 3 >= end) return false;
 
         int hostStart = schemeEnd + 3;
+        int authorityEnd = end;
+        for (int i = hostStart; i < end; i++) {
+            char c = text[i];
+            if (c == '/' || c == '?' || c == '#') {
+                authorityEnd = i;
+                break;
+            }
+        }
+
+        if (authorityEnd <= hostStart) return false;
+
+        int at = text.LastIndexOf('@', authorityEnd - 1, authorityEnd - hostStart);
+        if (at >= hostStart) {
+            hostStart = at + 1;
+        }
+
         if (text[hostStart] == '[') {
-            for (int i = hostStart + 1; i < end; i++) {
+            for (int i = hostStart + 1; i < authorityEnd; i++) {
                 char c = text[i];
                 if (c == ']') return true;
-                if (c == '/' || c == '?' || c == '#') return false;
             }
 
             return false;
         }
 
-        int hostEnd = end;
-        for (int i = hostStart; i < end; i++) {
+        int hostEnd = authorityEnd;
+        for (int i = hostStart; i < authorityEnd; i++) {
             char c = text[i];
-            if (c == '/' || c == '?' || c == '#' || c == ':') {
+            if (c == ':') {
                 hostEnd = i;
                 break;
             }

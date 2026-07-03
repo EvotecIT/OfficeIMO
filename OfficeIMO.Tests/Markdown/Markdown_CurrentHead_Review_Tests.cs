@@ -1082,6 +1082,98 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.Contains("outer", reparsedCode.Attributes.Classes);
     }
 
+    [Fact]
+    public void Table_CodeSpans_Preserve_Escaped_Pipes() {
+        var document = MarkdownReader.Parse("""
+            | Value |
+            | --- |
+            | `a\|b` |
+            """, MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("<code>a\\|b</code>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<code>a|b</code>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DefinitionList_ToMarkdown_Emits_Block_GenericAttributes() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("""
+            {#glossary .wide}
+            Term
+            :   Definition
+            """, options);
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
+        var rendered = ((IMarkdownBlock)definitionList).RenderMarkdown().Replace("\r\n", "\n");
+        var reparsed = Assert.IsType<DefinitionListBlock>(Assert.Single(MarkdownReader.Parse(rendered, options).Blocks));
+
+        Assert.StartsWith("{#glossary .wide}\n", rendered, StringComparison.Ordinal);
+        Assert.Equal("glossary", reparsed.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(reparsed.Attributes.Classes));
+    }
+
+    [Fact]
+    public void DefinitionList_Tight_Definition_Renders_Paragraph_Attributes_In_Html() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(MarkdownReader.Parse("""
+            Term
+            :   Definition {#def .wide}
+            """, options).Blocks));
+        var html = ((IMarkdownBlock)definitionList).RenderHtml();
+
+        Assert.Contains("<dd><p id=\"def\" class=\"wide\">Definition", html, StringComparison.Ordinal);
+        Assert.Contains("</p></dd>", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Native_HardBreak_Marker_SourceSpans_Use_TabExpanded_Columns() {
+        var spaces = MarkdownNativeDocument.Parse("A\t  \nB\n");
+        var spacesBreak = Assert.Single(
+            Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(spaces.Blocks)).InlineRuns,
+            inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+        var spacesMarker = Assert.Single(spacesBreak.Metadata, metadata => metadata.Name == "marker");
+
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 6), spacesMarker.SourceSpan);
+        Assert.Equal("A\t\\\nB\n", spaces.CreateReplaceEdit(spacesMarker, "\\").Apply(spaces.SourceMarkdown));
+
+        var backslash = MarkdownNativeDocument.Parse("A\t\\\nB\n");
+        var backslashBreak = Assert.Single(
+            Assert.IsType<MarkdownNativeParagraphBlock>(Assert.Single(backslash.Blocks)).InlineRuns,
+            inline => inline.Kind == MarkdownNativeInlineKind.HardBreak);
+        var backslashMarker = Assert.Single(backslashBreak.Metadata, metadata => metadata.Name == "marker");
+
+        Assert.Equal(new MarkdownSourceSpan(1, 5, 1, 5), backslashMarker.SourceSpan);
+        Assert.Equal("A\t  \nB\n", backslash.CreateReplaceEdit(backslashMarker, "  ").Apply(backslash.SourceMarkdown));
+    }
+
+    [Fact]
+    public void Autolink_Domain_Period_Check_Ignores_UserInfo() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.AutolinkAllowDomainWithoutPeriod = false;
+        options.AutolinkRejectUserInfoAuthority = false;
+
+        var html = MarkdownReader.Parse("Go https://first.last@localhost/path and https://first.last@example.com/path", options)
+            .ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            });
+
+        Assert.DoesNotContain("href=\"https://first.last@localhost/path\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"https://first.last@example.com/path\"", html, StringComparison.Ordinal);
+    }
+
     private sealed class RendererInspectTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
         public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
             Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);

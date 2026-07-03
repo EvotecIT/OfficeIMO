@@ -1259,7 +1259,7 @@ public static partial class MarkdownReader {
             : trimmed;
 
         if (backslashHardBreak) {
-            var markerColumn = startColumn + Math.Max(0, trimmed.Length - 1);
+            var markerColumn = AdvanceParagraphSourceColumn(startColumn, trimmed, Math.Max(0, trimmed.Length - 1));
             return new ParagraphLineJoinInfo(
                 text,
                 hardBreak: true,
@@ -1270,8 +1270,8 @@ public static partial class MarkdownReader {
         if (spaceHardBreak) {
             var markerStartIndex = raw.TrimEnd(' ').Length;
             var markerLength = raw.Length - markerStartIndex;
-            var markerStartColumn = startColumn + markerStartIndex;
-            var markerEndColumn = startColumn + raw.Length - 1;
+            var markerStartColumn = AdvanceParagraphSourceColumn(startColumn, raw, markerStartIndex);
+            var markerEndColumn = AdvanceParagraphSourceColumn(startColumn, raw, raw.Length) - 1;
             return new ParagraphLineJoinInfo(
                 text,
                 hardBreak: true,
@@ -1284,6 +1284,21 @@ public static partial class MarkdownReader {
         }
 
         return new ParagraphLineJoinInfo(text, hardBreak: false, hardBreakMarker: null, hardBreakMarkerSpan: null);
+    }
+
+    private static int AdvanceParagraphSourceColumn(int startColumn, string? text, int endExclusive) {
+        var column = Math.Max(1, startColumn);
+        var value = text ?? string.Empty;
+        if (value.Length == 0 || endExclusive <= 0) {
+            return column;
+        }
+
+        int limit = Math.Min(value.Length, endExclusive);
+        for (int i = 0; i < limit; i++) {
+            column = MarkdownSourceColumns.AdvanceColumn(column, value[i]);
+        }
+
+        return column;
     }
 
 }
