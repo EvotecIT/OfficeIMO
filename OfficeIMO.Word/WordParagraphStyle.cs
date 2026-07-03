@@ -75,6 +75,22 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Registers a custom paragraph style for later retrieval.
         /// </summary>
+        /// <param name="styleId">The style identifier used by paragraphs.</param>
+        /// <param name="styleDefinition">The Open XML style definition to register.</param>
+        /// <example>
+        /// <code><![CDATA[
+        /// Style style = new() {
+        ///     Type = StyleValues.Paragraph,
+        ///     StyleId = "MyStyle"
+        /// };
+        ///
+        /// WordParagraphStyle.RegisterCustomStyle("MyStyle", style);
+        ///
+        /// using WordDocument document = WordDocument.Create(filePath);
+        /// document.AddParagraph("Hello world").SetStyleId("MyStyle");
+        /// document.Save();
+        /// ]]></code>
+        /// </example>
         public static void RegisterCustomStyle(string styleId, Style styleDefinition) {
             if (string.IsNullOrWhiteSpace(styleId)) throw new ArgumentException("StyleId cannot be empty", nameof(styleId));
             if (styleDefinition == null) throw new ArgumentNullException(nameof(styleDefinition));

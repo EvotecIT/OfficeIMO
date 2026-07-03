@@ -226,6 +226,16 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="value">The starting number.</param>
         /// <returns>The current <see cref="WordListLevel"/> instance.</returns>
+        /// <example>
+        /// <code><![CDATA[
+        /// WordList list = document.AddCustomList();
+        /// WordListLevel level = new WordListLevel(WordListLevelKind.Decimal)
+        ///     .SetStartNumberingValue(3);
+        ///
+        /// list.Numbering.AddLevel(level);
+        /// list.AddItem("Starts at three");
+        /// ]]></code>
+        /// </example>
         public WordListLevel SetStartNumberingValue(int value) {
             StartNumberingValue = value;
             return this;
