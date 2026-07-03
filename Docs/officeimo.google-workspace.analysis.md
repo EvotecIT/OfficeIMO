@@ -56,7 +56,7 @@ There is even explicit Google Docs compatibility work already, but only for `.do
 - `OfficeIMO.Word/WordDocument.WebCompat.cs`
 - `OfficeIMO.Word/WordTable.Properties.cs`
 - `OfficeIMO.Word/WordTable.Methods.cs`
-- `OfficeIMO.Tests/Word.WebCompat.cs`
+- `OfficeIMO.Word.Tests/Word.WebCompat.cs`
 
 ### Excel
 

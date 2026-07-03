@@ -228,6 +228,8 @@ Completed preparation, PowerPoint-start, and Word-start slices:
 
 Validation:
 
+The test commands in this log predate the domain test-project split. For new validation, keep the same `FullyQualifiedName` filters but run them through the owning project: `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Drawing.Tests`, or `OfficeIMO.Pdf.Tests` as appropriate.
+
 ```powershell
 dotnet build OfficeIMO.Drawing\OfficeIMO.Drawing.csproj --framework net8.0 --no-restore
 dotnet build OfficeIMO.Excel\OfficeIMO.Excel.csproj --framework net8.0 --no-restore

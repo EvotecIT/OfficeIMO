@@ -202,7 +202,7 @@ just to reserve names.
   compound read/write helpers into linked `OfficeIMO.Shared` source and keep XLS
   behavior unchanged.
 - [x] Validate the XLS shared-compound slice with `OfficeIMO.Excel` build,
-  `OfficeIMO.Tests` build, and the full focused `LegacyXls` test sweep.
+  `OfficeIMO.Excel.Tests` build, and the full focused `LegacyXls` test sweep.
 - [x] Promote the OLE property-set reader into the shared owner and consume it
   from XLS and DOC import paths.
 - [x] Fold the reusable OLE property-set writer into the shared owner when
