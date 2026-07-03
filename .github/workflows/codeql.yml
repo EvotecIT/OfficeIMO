@@ -73,12 +73,14 @@ jobs:
             $_.FullName -notmatch $excludedProjects
           } | Sort-Object FullName
 
-          dotnet restore OfficeIMO.sln
-
           $codeqlSolution = Join-Path $env:RUNNER_TEMP 'OfficeIMO.CodeQL.sln'
           dotnet new sln --name OfficeIMO.CodeQL --output $env:RUNNER_TEMP --format sln
           dotnet sln $codeqlSolution add @($projects.FullName)
-          dotnet build $codeqlSolution --configuration Release --no-restore
+
+          # CodeQL needs a representative production build, not every target framework.
+          # Keep the normal test/build workflow responsible for the full TFM matrix.
+          dotnet restore $codeqlSolution -p:TargetFramework=net8.0
+          dotnet build $codeqlSolution --configuration Release --framework net8.0 --no-restore
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
