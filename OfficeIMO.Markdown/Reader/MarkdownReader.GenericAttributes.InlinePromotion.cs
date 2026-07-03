@@ -68,6 +68,14 @@ public static partial class MarkdownReader {
         attributeSpan = null;
 
         switch (inline) {
+            case LinkInline link when link.LabelInlines != null:
+                return TryConsumeLinkLabelTrailingAttributes(
+                    link,
+                    out replacement,
+                    out attributes,
+                    out attributeSourceText,
+                    out attributeSpan);
+
             case IInlineContainerMarkdownInline container when container.NestedInlines != null:
                 return TryConsumeNestedInlineSequenceTrailingAttributes(
                     container.NestedInlines,
@@ -95,6 +103,33 @@ public static partial class MarkdownReader {
         return false;
     }
 
+    private static bool TryConsumeLinkLabelTrailingAttributes(
+        LinkInline link,
+        out IMarkdownInline? replacement,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan) {
+        replacement = null;
+        attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+
+        if (link == null ||
+            link.LabelInlines == null ||
+            !TryConsumeNestedInlineSequenceTrailingAttributes(
+                link.LabelInlines,
+                out attributes,
+                out attributeSourceText,
+                out attributeSpan)) {
+            return false;
+        }
+
+        var rewritten = new LinkInline(link.LabelInlines, link.Url, link.Title, link.LinkTarget, link.LinkRel);
+        CopyLinkInlineSourceMetadata(link, rewritten);
+        replacement = rewritten;
+        return true;
+    }
+
     private static bool TryConsumeNestedInlineSequenceTrailingAttributes(
         InlineSequence sequence,
         out MarkdownAttributeSet attributes,
@@ -109,15 +144,39 @@ public static partial class MarkdownReader {
         }
 
         var lastIndex = sequence.Nodes.Count - 1;
-        if (sequence.Nodes[lastIndex] is not TextRun textRun ||
-            !TryConsumeTrailingAttributesFromText(
+        if (sequence.Nodes[lastIndex] is IInlineContainerMarkdownInline container &&
+            container.NestedInlines != null) {
+            if (TryConsumeContainerGenericAttributes(
+                container,
+                out attributes,
+                out attributeSourceText,
+                out attributeSpan)) {
+                return true;
+            }
+
+            if (TryConsumeNestedInlineSequenceTrailingAttributes(
+                    container.NestedInlines,
+                    out attributes,
+                    out attributeSourceText,
+                    out attributeSpan)) {
+                return true;
+            }
+        }
+
+        if (sequence.Nodes[lastIndex] is not TextRun textRun) {
+            return false;
+        }
+
+        var allowEmptyText = lastIndex > 0;
+        if (!TryConsumeTrailingAttributesFromText(
                 textRun.Text,
                 MarkdownInlineSourceSpans.Get(textRun),
                 out var textWithoutAttributeBlock,
                 out attributes,
                 out attributeSourceText,
                 out attributeSpan,
-                out var remainingTextSpan)) {
+                out var remainingTextSpan,
+                allowEmptyText)) {
             return false;
         }
 
@@ -134,6 +193,26 @@ public static partial class MarkdownReader {
 
         sequence.ReplaceItems(replacement);
         return true;
+    }
+
+    private static bool TryConsumeContainerGenericAttributes(
+        IInlineContainerMarkdownInline container,
+        out MarkdownAttributeSet attributes,
+        out string attributeSourceText,
+        out MarkdownSourceSpan? attributeSpan) {
+        attributes = MarkdownAttributeSet.Empty;
+        attributeSourceText = string.Empty;
+        attributeSpan = null;
+
+        if (container is not MarkdownObject markdownObject || markdownObject.Attributes.IsEmpty) {
+            return false;
+        }
+
+        attributes = markdownObject.Attributes;
+        attributeSourceText = MarkdownGenericAttributeSourceSpans.GetSourceText(markdownObject) ?? string.Empty;
+        attributeSpan = MarkdownGenericAttributeSourceSpans.GetSourceSpan(markdownObject);
+        markdownObject.SetAttributes(MarkdownAttributeSet.Empty);
+        return !attributes.IsEmpty;
     }
 
     private static bool TryConsumeImageAltTrailingAttributes(
@@ -155,7 +234,7 @@ public static partial class MarkdownReader {
                 out attributes,
                 out attributeSourceText,
                 out attributeSpan,
-                out _)) {
+                out var remainingAltSpan)) {
             return false;
         }
 
@@ -163,7 +242,7 @@ public static partial class MarkdownReader {
             ? strippedPlainAlt
             : altWithoutAttributeBlock;
         var rewritten = new ImageInline(altWithoutAttributeBlock, image.Src, image.Title, plainAlt);
-        CopyImageInlineSourceMetadata(image, rewritten);
+        CopyImageInlineSourceMetadata(image, rewritten, remainingAltSpan);
         replacement = rewritten;
         return true;
     }
@@ -187,7 +266,7 @@ public static partial class MarkdownReader {
                 out attributes,
                 out attributeSourceText,
                 out attributeSpan,
-                out _)) {
+                out var remainingAltSpan)) {
             return false;
         }
 
@@ -195,7 +274,7 @@ public static partial class MarkdownReader {
             ? strippedPlainAlt
             : altWithoutAttributeBlock;
         var rewritten = new ImageLinkInline(altWithoutAttributeBlock, image.ImageUrl, image.LinkUrl, image.Title, image.LinkTitle, plainAlt);
-        CopyImageLinkInlineSourceMetadata(image, rewritten);
+        CopyImageLinkInlineSourceMetadata(image, rewritten, remainingAltSpan);
         replacement = rewritten;
         return true;
     }
@@ -207,7 +286,8 @@ public static partial class MarkdownReader {
         out MarkdownAttributeSet attributes,
         out string attributeSourceText,
         out MarkdownSourceSpan? attributeSpan,
-        out MarkdownSourceSpan? remainingTextSpan) {
+        out MarkdownSourceSpan? remainingTextSpan,
+        bool allowEmptyText = false) {
         attributeSourceText = string.Empty;
         attributeSpan = null;
         remainingTextSpan = null;
@@ -222,7 +302,7 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (string.IsNullOrEmpty(textWithoutAttributeBlock)) {
+        if (string.IsNullOrEmpty(textWithoutAttributeBlock) && !allowEmptyText) {
             attributes = MarkdownAttributeSet.Empty;
             return false;
         }
@@ -274,21 +354,33 @@ public static partial class MarkdownReader {
     private static MarkdownSourceSpan? TrimSourceSpanToConsumedPrefix(MarkdownSourceSpan? span, string? text, int consumedLength) =>
         span.HasValue ? TrimSourceSpanToConsumedPrefix(span.Value, text, consumedLength) : null;
 
-    private static void CopyImageInlineSourceMetadata(ImageInline source, ImageInline target) {
+    private static void CopyLinkInlineSourceMetadata(LinkInline source, LinkInline target) {
+        MarkdownInlineSourceSpans.Set(target, MarkdownInlineSourceSpans.Get(source));
+        MarkdownInlineMetadataSourceSpans.SetLinkParts(
+            target,
+            MarkdownInlineMetadataSourceSpans.GetLinkTargetSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetLinkTitleSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetLinkHtmlTargetSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetLinkHtmlRelSpan(source),
+            MarkdownInlineMetadataSourceSpans.GetAutolinkLiteral(source));
+        CopyFormattingMarkerMetadata(source, target);
+    }
+
+    private static void CopyImageInlineSourceMetadata(ImageInline source, ImageInline target, MarkdownSourceSpan? altSpan) {
         MarkdownInlineSourceSpans.Set(target, MarkdownInlineSourceSpans.Get(source));
         MarkdownInlineMetadataSourceSpans.SetImageParts(
             target,
-            MarkdownInlineMetadataSourceSpans.GetImageAltSpan(source),
+            altSpan,
             MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(source),
             MarkdownInlineMetadataSourceSpans.GetImageTitleSpan(source));
         CopyFormattingMarkerMetadata(source, target);
     }
 
-    private static void CopyImageLinkInlineSourceMetadata(ImageLinkInline source, ImageLinkInline target) {
+    private static void CopyImageLinkInlineSourceMetadata(ImageLinkInline source, ImageLinkInline target, MarkdownSourceSpan? altSpan) {
         MarkdownInlineSourceSpans.Set(target, MarkdownInlineSourceSpans.Get(source));
         MarkdownInlineMetadataSourceSpans.SetImageLinkParts(
             target,
-            MarkdownInlineMetadataSourceSpans.GetImageAltSpan(source),
+            altSpan,
             MarkdownInlineMetadataSourceSpans.GetImageSourceSpan(source),
             MarkdownInlineMetadataSourceSpans.GetImageTitleSpan(source),
             MarkdownInlineMetadataSourceSpans.GetImageLinkTargetSpan(source),

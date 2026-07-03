@@ -415,6 +415,53 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void GenericAttributes_Nested_LinkLabels_Rebuild_Text_And_Promote_Formatted_Tails() {
+        var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("""
+            [site{#plain .wide}](https://example.com)
+
+            [**site**{#after .wide}](https://example.com)
+
+            [**site{#inside .wide}**](https://example.com)
+            """, options);
+
+        Assert.Collection(
+            document.Blocks.Cast<ParagraphBlock>(),
+            paragraph => AssertPromotedLinkLabel(paragraph, "plain", "[site](https://example.com)"),
+            paragraph => AssertPromotedLinkLabel(paragraph, "after", "[**site**](https://example.com)"),
+            paragraph => AssertPromotedLinkLabel(paragraph, "inside", "[**site**](https://example.com)"));
+    }
+
+    [Fact]
+    public void Native_ImageAlt_SourceFields_Exclude_Promoted_GenericAttributes() {
+        const string markdown = "![alt{#img .wide}](img.png)\n\n[![alt{#link .wide}](img.png)](https://example.com)\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var firstParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[0]);
+        var secondParagraph = Assert.IsType<MarkdownNativeParagraphBlock>(native.Blocks[1]);
+        var image = Assert.Single(firstParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.Image);
+        var imageLink = Assert.Single(secondParagraph.InlineRuns, inline => inline.Kind == MarkdownNativeInlineKind.ImageLink);
+        var imageAlt = Assert.Single(image.Metadata, metadata => metadata.Name == "alt");
+        var imageLinkAlt = Assert.Single(imageLink.Metadata, metadata => metadata.Name == "alt");
+
+        Assert.Equal("alt", imageAlt.Value);
+        Assert.Equal("alt", imageLinkAlt.Value);
+        Assert.Equal(new MarkdownSourceSpan(1, 3, 1, 5), imageAlt.SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 4, 3, 6), imageLinkAlt.SourceSpan);
+        Assert.Equal(
+            "![logo{#img .wide}](img.png)\n\n[![alt{#link .wide}](img.png)](https://example.com)\n",
+            native.CreateReplaceEdit(imageAlt, "logo").Apply(native.SourceMarkdown));
+        Assert.Equal(
+            "![alt{#img .wide}](img.png)\n\n[![logo{#link .wide}](img.png)](https://example.com)\n",
+            native.CreateReplaceEdit(imageLinkAlt, "logo").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
     public void Toc_Uses_Explicit_Heading_Id_And_Reserves_It_For_Generated_Anchors() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;
@@ -1195,6 +1242,17 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.NotNull(runsProperty);
 
         return ((System.Collections.IEnumerable)runsProperty.GetValue(block)!).Cast<PdfTextRun>().ToArray();
+    }
+
+    private static void AssertPromotedLinkLabel(ParagraphBlock paragraph, string expectedId, string expectedMarkdown) {
+        Assert.Equal(expectedId, paragraph.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(paragraph.Attributes.Classes));
+
+        var link = Assert.Single(paragraph.Inlines.Nodes.OfType<LinkInline>());
+        Assert.Equal("site", link.Text);
+        Assert.Equal("site", InlinePlainText.Extract(link.LabelInlines!));
+        Assert.Equal(expectedMarkdown, paragraph.Inlines.RenderMarkdown());
+        Assert.DoesNotContain("{#", paragraph.Inlines.RenderMarkdown(), StringComparison.Ordinal);
     }
 
     private static int CountOccurrences(string value, string search) {
