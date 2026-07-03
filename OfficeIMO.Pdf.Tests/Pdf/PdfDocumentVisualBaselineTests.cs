@@ -327,6 +327,15 @@ public class PdfDocumentVisualBaselineTests {
     private static string GetTestsProjectRoot() {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory != null) {
+            if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Pdf.Tests.csproj"))) {
+                return directory.FullName;
+            }
+
+            string pdfProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Pdf.Tests");
+            if (File.Exists(Path.Combine(pdfProjectRoot, "OfficeIMO.Pdf.Tests.csproj"))) {
+                return pdfProjectRoot;
+            }
+
             if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
                 return directory.FullName;
             }
@@ -334,7 +343,7 @@ public class PdfDocumentVisualBaselineTests {
             directory = directory.Parent;
         }
 
-        throw new DirectoryNotFoundException("Could not locate OfficeIMO.Tests project root from test runtime base directory.");
+        throw new DirectoryNotFoundException("Could not locate OfficeIMO PDF test project root from test runtime base directory.");
     }
 
     private static string Format(double value) =>

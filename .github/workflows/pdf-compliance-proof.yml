@@ -7,8 +7,8 @@ on:
     paths:
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.Drawing/**'
-      - 'OfficeIMO.Tests/Pdf/PdfCompliance*.cs'
-      - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
@@ -19,8 +19,8 @@ on:
     paths:
       - 'OfficeIMO.Pdf/**'
       - 'OfficeIMO.Drawing/**'
-      - 'OfficeIMO.Tests/Pdf/PdfCompliance*.cs'
-      - 'OfficeIMO.Tests/Pdf/PdfExternalValidator.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
+      - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'

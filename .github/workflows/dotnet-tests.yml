@@ -234,6 +234,9 @@ jobs:
             dotnet restore OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj
             dotnet restore OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj
           fi
+          if [[ "${{ matrix.partition }}" == pdf-* ]]; then
+            dotnet restore OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj
+          fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
@@ -255,6 +258,9 @@ jobs:
           if [ "${{ matrix.partition }}" = "word-rtf-html" ]; then
             dotnet build OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
             dotnet build OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
+          if [[ "${{ matrix.partition }}" == pdf-* ]]; then
+            dotnet build OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -334,6 +340,14 @@ jobs:
             dotnet test OfficeIMO.Reader.Tests/OfficeIMO.Reader.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
+          run_pdf_tests() {
+            local name="$1"
+            local filter="$2"
+            echo ""
+            echo "== OfficeIMO.Pdf.Tests: ${name} =="
+            dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          }
+
           audit_officeimo_test_partitions() {
             local list_file
             list_file="$(mktemp)"
@@ -349,13 +363,6 @@ jobs:
           def has(name, text):
               return text in name
 
-          pdf_visual = (
-              "OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests",
-              "OfficeIMO.Tests.Pdf.PdfInspectorTests",
-              "OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests",
-              "OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests",
-              "OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests",
-          )
           excel_core_exclusions = (
               "OfficeIMO.Tests.Excel.Test_ExcelChart",
               "OfficeIMO.Tests.Excel.SharedChartRenderer",
@@ -421,12 +428,6 @@ jobs:
           def assigned(name):
               if any(has(name, item) for item in simple_partitions):
                   return True
-              if any(has(name, item) for item in pdf_visual):
-                  return True
-              if has(name, "OfficeIMO.Tests.Pdf.") and not any(has(name, item) for item in pdf_visual):
-                  return True
-              if has(name, "OfficeIMO.Tests.MarkdownPdfTests") or has(name, "OfficeIMO.Tests.PdfReadLayoutSmokeTests"):
-                  return True
               if has(name, "OfficeIMO.Tests.Excel.") and not any(has(name, item) for item in excel_core_exclusions):
                   return True
               return False
@@ -455,10 +456,10 @@ jobs:
               run_officeimo_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
               ;;
             pdf-visual-inspector)
-              run_officeimo_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
+              run_pdf_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'
               ;;
             pdf-core)
-              run_officeimo_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
+              run_pdf_tests "pdf-core" '(FullyQualifiedName~OfficeIMO.Tests.Pdf.&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfInspectorTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests&FullyQualifiedName!~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests)|FullyQualifiedName~OfficeIMO.Tests.MarkdownPdfTests|FullyQualifiedName~OfficeIMO.Tests.PdfReadLayoutSmokeTests'
               ;;
             excel-image-charts)
               run_excel_tests "excel-image" 'FullyQualifiedName~OfficeIMO.Tests.ExcelImageExport'
@@ -639,7 +640,8 @@ jobs:
         run: |
           dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName=OfficeIMO.Tests.Word.Test_WordDocument_SaveAsPdf" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.Html.Tests/OfficeIMO.Html.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.HtmlCoreTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
-          dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReadStreamTests|FullyQualifiedName~OfficeIMO.Tests.Markdown.Test_SaveAsMarkdown_FileAndRead" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReadStreamTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Markdown.Test_SaveAsMarkdown_FileAndRead" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.CSV.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.VerifyTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 
