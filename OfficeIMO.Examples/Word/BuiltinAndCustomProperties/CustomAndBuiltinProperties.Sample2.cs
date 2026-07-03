@@ -17,8 +17,8 @@ namespace OfficeIMO.Examples.Word {
 
             string folderPath = Path.Combine(Directory.GetCurrentDirectory(), "Templates");
             string filePath = Path.Combine(folderPath, "DocumentWithSection.docx");
-            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\DocumentWithSection.docx";
-            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.Tests\Documents\EmptyDocumentWithSection.docx";
+            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.TestAssets\Documents\DocumentWithSection.docx";
+            //filePath = @"C:\Support\GitHub\OfficeIMO\OfficeIMO.TestAssets\Documents\EmptyDocumentWithSection.docx";
 
             using (WordDocument document = WordDocument.Load(filePath, true)) {
                 Console.WriteLine("+ Document Path: " + document.FilePath);
