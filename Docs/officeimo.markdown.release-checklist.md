@@ -27,7 +27,7 @@ Run at minimum:
 ```powershell
 dotnet build .\OfficeIMO.Markdown\OfficeIMO.Markdown.csproj -c Release -f netstandard2.0
 dotnet build .\OfficeIMO.MarkdownRenderer\OfficeIMO.MarkdownRenderer.csproj -c Release
-dotnet test .\OfficeIMO.Tests\OfficeIMO.Tests.csproj --framework net8.0 --filter "FullyQualifiedName~Markdown_"
+dotnet test .\OfficeIMO.Markdown.Tests\OfficeIMO.Markdown.Tests.csproj --framework net8.0 --filter "FullyQualifiedName~Markdown_"
 dotnet run -c Release --project .\OfficeIMO.Markdown.Benchmarks\OfficeIMO.Markdown.Benchmarks.csproj -- --list flat
 ```
 

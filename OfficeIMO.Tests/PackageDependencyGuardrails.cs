@@ -20,6 +20,7 @@ public sealed class PackageDependencyGuardrailTests {
     public void MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline() {
         string[] projectPaths = [
             "OfficeIMO.Tests/OfficeIMO.Tests.csproj",
+            "OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj",
             "OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj"
         ];
 
@@ -40,7 +41,7 @@ public sealed class PackageDependencyGuardrailTests {
         Assert.Contains($"external parity baseline: Markdig `{CurrentMarkdigVersion}`", competitorRoadmap, StringComparison.Ordinal);
 
         string correctnessBacklog = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.correctness-backlog.md"));
-        Assert.Contains($"`OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks` both reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
+        Assert.Contains($"`OfficeIMO.Tests`, `OfficeIMO.Markdown.Tests`, and `OfficeIMO.Markdown.Benchmarks` all reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
 
         string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
         Assert.Contains($"curated Markdig {CurrentMarkdigVersion} parity cases", packageCompatibility, StringComparison.Ordinal);
@@ -48,8 +49,8 @@ public sealed class PackageDependencyGuardrailTests {
 
     [Fact]
     public void MarkdownCompatibilityDocs_TrackCurrentFixtureBaselineCounts() {
-        int commonMarkFixtureCount = CountJsonArrayEntries("OfficeIMO.Tests/Markdown/Fixtures/CommonMark/commonmark-0.31.2-smoke.json");
-        int gfmFixtureCount = CountJsonArrayEntries("OfficeIMO.Tests/Markdown/Fixtures/GitHubFlavoredMarkdown/cmark-gfm-extensions-smoke.json");
+        int commonMarkFixtureCount = CountJsonArrayEntries("OfficeIMO.Markdown.Tests/Markdown/Fixtures/CommonMark/commonmark-0.31.2-smoke.json");
+        int gfmFixtureCount = CountJsonArrayEntries("OfficeIMO.Markdown.Tests/Markdown/Fixtures/GitHubFlavoredMarkdown/cmark-gfm-extensions-smoke.json");
 
         string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
         Assert.Contains($"| CommonMark reference | {commonMarkFixtureCount} of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |", compatibilityMatrix, StringComparison.Ordinal);

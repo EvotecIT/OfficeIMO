@@ -178,7 +178,7 @@ Term 2
         Assert.Equal(new MarkdownSourceSpan(3, 1, 3, 6), Assert.Single(group.TermItems).SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 1, 4, 1), syntaxGroup.Children[1].SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 14), syntaxGroup.Children[2].SourceSpan);
-        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
     }
@@ -554,7 +554,7 @@ text
         Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), marker.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 8), definitionValue.SourceSpan);
         Assert.Equal(new MarkdownSourceSpan(4, 5, 4, 8), paragraphSyntax.SourceSpan);
-        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
 
         var native = MarkdownNativeDocument.Parse(markdown, CreateMarkdigDefinitionListReaderOptions());
@@ -756,8 +756,8 @@ Term
         var written = NormalizeMarkdown(document.ToMarkdown());
         var reparsed = MarkdownReader.Parse(written);
 
-        Assert.Equal(markdown, written);
-        Assert.Equal(markdown, ((IMarkdownBlock)definitionList).RenderMarkdown());
+        Assert.Equal(NormalizeMarkdown(markdown), written);
+        Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
         var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
         var group = Assert.Single(reparsedDefinitionList.Groups);
         Assert.Equal("Term", Assert.Single(group.TermItems).Markdown);
@@ -778,8 +778,8 @@ Term 2
         var written = NormalizeMarkdown(document.ToMarkdown());
         var reparsed = MarkdownReader.Parse(written);
 
-        Assert.Equal(markdown, written);
-        Assert.Equal(markdown, ((IMarkdownBlock)definitionList).RenderMarkdown());
+        Assert.Equal(NormalizeMarkdown(markdown), written);
+        Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
         var reparsedDefinitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(reparsed.Blocks));
         var group = Assert.Single(reparsedDefinitionList.Groups);
         Assert.Equal(new[] { "Term 1", "Term 2" }, group.TermItems.Select(term => term.Markdown).ToArray());
@@ -806,7 +806,7 @@ Term
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
-        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
     }
 
@@ -827,7 +827,7 @@ Term 2
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
-        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(2, reparsedDefinitionList.Groups.Count);
         Assert.Equal(new[] { "Term 1", "Term 2" }, reparsedDefinitionList.Groups.Select(group => Assert.Single(group.TermItems).Markdown).ToArray());
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
@@ -847,7 +847,7 @@ Term
         var office = reparsed.ToHtmlFragment(CreateMarkdigDefinitionListHtmlOptions());
         var markdig = MarkdigMarkdown.ToHtml(markdown, CreateMarkdigDefinitionListPipeline());
 
-        Assert.Equal(markdown, written);
+        Assert.Equal(NormalizeMarkdown(markdown), written);
         Assert.Equal(NormalizeHtml(markdig), NormalizeHtml(office));
     }
 
@@ -2130,8 +2130,8 @@ Term
         var document = MarkdownReader.Parse(markdown);
         var definitionList = Assert.IsType<DefinitionListBlock>(Assert.Single(document.Blocks));
 
-        Assert.Equal(markdown, ((IMarkdownBlock)definitionList).RenderMarkdown());
-        Assert.Equal(markdown, NormalizeMarkdown(document.ToMarkdown()));
+        Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(((IMarkdownBlock)definitionList).RenderMarkdown()));
+        Assert.Equal(NormalizeMarkdown(markdown), NormalizeMarkdown(document.ToMarkdown()));
     }
 
     [Fact]

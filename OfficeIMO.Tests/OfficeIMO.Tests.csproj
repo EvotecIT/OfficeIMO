@@ -31,6 +31,8 @@
         <Compile Remove="Reader*.cs" />
         <Compile Remove="Pdf\**\*.cs" />
         <Compile Remove="Markdown.Pdf.cs" />
+        <Compile Remove="Markdown*.cs" />
+        <Compile Remove="Markdown\**\*.cs" />
     </ItemGroup>
 
     <ItemGroup>

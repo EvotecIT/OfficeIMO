@@ -768,7 +768,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
     private static string GetTestsProjectRoot() {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null) {
-            string candidate = Path.Combine(dir.FullName, "OfficeIMO.Tests.csproj");
+            string candidate = Path.Combine(dir.FullName, "OfficeIMO.Markdown.Tests.csproj");
             if (File.Exists(candidate)) {
                 return dir.FullName;
             }
@@ -776,7 +776,7 @@ public sealed class Markdown_Golden_Fixture_Tests {
             dir = dir.Parent;
         }
 
-        throw new DirectoryNotFoundException("Could not locate OfficeIMO.Tests project root from test runtime base directory.");
+        throw new DirectoryNotFoundException("Could not locate OfficeIMO.Markdown.Tests project root from test runtime base directory.");
     }
 
     private sealed class GoldenRendererAppendParagraphTransform(string text) : IMarkdownDocumentTransform {

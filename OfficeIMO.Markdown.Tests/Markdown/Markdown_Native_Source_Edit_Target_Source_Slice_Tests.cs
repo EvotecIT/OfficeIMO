@@ -415,13 +415,13 @@ Term
         Assert.True(native.TryCreateOriginalSourceSlice(term, out var originalTermSlice, out var termFailureReason));
         Assert.True(native.TryCreateOriginalSourceSlice(definition, out var originalDefinitionSlice, out var definitionFailureReason));
 
-        Assert.Equal("Term\n:   First", groupSlice.Text);
+        Assert.Equal("Term\n:   First", NormalizeLineEndings(groupSlice.Text));
         Assert.Equal("Term", termSlice.Text);
         Assert.Equal("First", definitionSlice.Text);
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, groupFailureReason);
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, termFailureReason);
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.None, definitionFailureReason);
-        Assert.Equal("Term\n:   First", originalGroupSlice.Text);
+        Assert.Equal("Term\n:   First", NormalizeLineEndings(originalGroupSlice.Text));
         Assert.Equal("Term", originalTermSlice.Text);
         Assert.Equal("First", originalDefinitionSlice.Text);
 
@@ -547,4 +547,6 @@ Term
         Assert.False(created);
         Assert.Equal(MarkdownOriginalSourceSliceFailureReason.OriginalMarkdownNotPreserved, failureReason);
     }
+
+    private static string NormalizeLineEndings(string value) => value.Replace("\r\n", "\n");
 }
