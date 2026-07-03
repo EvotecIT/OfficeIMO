@@ -5,7 +5,7 @@ namespace OfficeIMO.Tests.Pdf;
 
 internal static class PdfComplianceTestFonts {
     internal static string? FindBundledOpenTypeCffFont() {
-        const string relativePath = "OfficeIMO.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf";
+        const string relativePath = "OfficeIMO.Pdf.Tests/Pdf/Fixtures/Fonts/SourceSerif4-Regular.otf";
         foreach (string root in EnumerateSearchRoots()) {
             string candidate = Path.Combine(root, relativePath.Replace('/', Path.DirectorySeparatorChar));
             if (File.Exists(candidate)) {

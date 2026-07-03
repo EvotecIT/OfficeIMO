@@ -157,8 +157,17 @@ namespace OfficeIMO.Tests {
                     return directory.FullName;
                 }
 
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Pdf.Tests.csproj"))) {
+                    return directory.FullName;
+                }
+
                 if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
                     return directory.FullName;
+                }
+
+                string pdfProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Pdf.Tests");
+                if (File.Exists(Path.Combine(pdfProjectRoot, "OfficeIMO.Pdf.Tests.csproj"))) {
+                    return pdfProjectRoot;
                 }
 
                 string aggregateProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Tests");
@@ -169,7 +178,7 @@ namespace OfficeIMO.Tests {
                 directory = directory.Parent;
             }
 
-            throw new DirectoryNotFoundException("Could not locate OfficeIMO.Tests project root from test runtime base directory.");
+            throw new DirectoryNotFoundException("Could not locate OfficeIMO test project root from test runtime base directory.");
         }
     }
 

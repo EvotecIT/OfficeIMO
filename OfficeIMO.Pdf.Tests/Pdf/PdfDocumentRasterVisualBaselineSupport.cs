@@ -27,7 +27,7 @@ public partial class PdfDocumentRasterVisualBaselineTests {
     }
 
     private static void AssertRasterBaseline(string baselineName, string actualPath) {
-        string expectedPath = Path.Combine(VisualBaselineTestSupport.GetTestsProjectRoot(), "Pdf", "VisualBaselines", baselineName);
+        string expectedPath = Path.Combine(GetPdfTestsProjectRoot(), "Pdf", "VisualBaselines", baselineName);
         if (string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_PDF_RASTER_BASELINE"), "1", StringComparison.Ordinal)) {
             Directory.CreateDirectory(Path.GetDirectoryName(expectedPath)!);
             File.Copy(actualPath, expectedPath, overwrite: true);
@@ -148,8 +148,26 @@ public partial class PdfDocumentRasterVisualBaselineTests {
 
     private static string Quote(string value) => "\"" + value.Replace("\"", "\\\"") + "\"";
 
-    private static string GetTestsProjectRoot() =>
+    private static string GetPdfTestsProjectRoot() =>
         VisualBaselineTestSupport.GetTestsProjectRoot();
+
+    private static string GetTestsProjectRoot() {
+        var directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null) {
+            if (File.Exists(Path.Combine(directory.FullName, "Images", "EvotecLogo.png"))) {
+                return directory.FullName;
+            }
+
+            string aggregateProjectRoot = Path.Combine(directory.FullName, "OfficeIMO.Tests");
+            if (File.Exists(Path.Combine(aggregateProjectRoot, "Images", "EvotecLogo.png"))) {
+                return aggregateProjectRoot;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate OfficeIMO shared image fixtures from test runtime base directory.");
+    }
 
     private static void TryDeleteDirectory(string directory) {
         try {

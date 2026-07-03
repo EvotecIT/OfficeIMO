@@ -29,6 +29,8 @@
         <Compile Remove="Rtf\**\*.cs" />
         <Compile Remove="Html*.cs" />
         <Compile Remove="Reader*.cs" />
+        <Compile Remove="Pdf\**\*.cs" />
+        <Compile Remove="Markdown.Pdf.cs" />
     </ItemGroup>
 
     <ItemGroup>

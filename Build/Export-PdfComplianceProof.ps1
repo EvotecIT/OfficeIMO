@@ -330,7 +330,7 @@ try {
 
     $testArgs = @(
         'test',
-        (Join-Path $repoRoot 'OfficeIMO.Tests/OfficeIMO.Tests.csproj'),
+        (Join-Path $repoRoot 'OfficeIMO.Pdf.Tests/OfficeIMO.Pdf.Tests.csproj'),
         '--configuration', $Configuration,
         '--framework', $Framework,
         '--filter', 'FullyQualifiedName~PdfComplianceGateTests',
