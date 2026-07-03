@@ -15341,6 +15341,12 @@ namespace OfficeIMO.Tests {
             return text.Replace("\r\n", "\n").Replace('\r', '\n').TrimEnd() + "\n";
         }
 
+        private static bool IsLegacyDocCorpusBaselineUpdateRequested() {
+            string? value = Environment.GetEnvironmentVariable("OFFICEIMO_UPDATE_LEGACY_DOC_CORPUS_BASELINES");
+            return string.Equals(value, "1", StringComparison.Ordinal)
+                || string.Equals(value, "true", StringComparison.OrdinalIgnoreCase);
+        }
+
         private static string GetRelativePath(string relativeTo, string path) {
             Uri baseUri = new Uri(AppendDirectorySeparator(Path.GetFullPath(relativeTo)));
             Uri pathUri = new Uri(Path.GetFullPath(path));
@@ -15358,13 +15364,30 @@ namespace OfficeIMO.Tests {
         }
 
         private static string GetWordTestsProjectRoot() {
+            bool updateBaselines = IsLegacyDocCorpusBaselineUpdateRequested();
             var directory = new DirectoryInfo(AppContext.BaseDirectory);
+            if (updateBaselines) {
+                DirectoryInfo? sourceDirectory = directory;
+                while (sourceDirectory != null) {
+                    string testAssetsRoot = Path.Combine(sourceDirectory.FullName, "OfficeIMO.TestAssets");
+                    if (Directory.Exists(Path.Combine(testAssetsRoot, "Documents", "LegacyDocCorpus"))) {
+                        return testAssetsRoot;
+                    }
+
+                    sourceDirectory = sourceDirectory.Parent;
+                }
+            }
+
             while (directory != null) {
                 if (Directory.Exists(Path.Combine(directory.FullName, "Documents", "LegacyDocCorpus"))) {
                     return directory.FullName;
                 }
 
                 directory = directory.Parent;
+            }
+
+            if (updateBaselines) {
+                throw new DirectoryNotFoundException("Unable to locate OfficeIMO.TestAssets legacy DOC fixture root from " + AppContext.BaseDirectory);
             }
 
             return AppContext.BaseDirectory;
