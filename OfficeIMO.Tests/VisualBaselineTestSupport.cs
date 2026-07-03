@@ -153,6 +153,10 @@ namespace OfficeIMO.Tests {
                     return directory.FullName;
                 }
 
+                if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Visio.Tests.csproj"))) {
+                    return directory.FullName;
+                }
+
                 if (File.Exists(Path.Combine(directory.FullName, "OfficeIMO.Tests.csproj"))) {
                     return directory.FullName;
                 }
