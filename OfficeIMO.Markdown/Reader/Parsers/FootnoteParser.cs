@@ -58,8 +58,28 @@ public static partial class MarkdownReader {
 
             string content = string.Join("\n", contentSourceLines.Select(slice => slice.Text ?? string.Empty));
             var (blocks, syntaxChildren) = ParseFootnoteBody(contentSourceLines, options, state);
+            var footnote = new FootnoteDefinitionBlock(label, content, blocks, syntaxChildren) {
+                OpeningMarkerSourceSpan = CreateSpan(
+                    state,
+                    absoluteLine,
+                    leading0 + 1,
+                    absoluteLine,
+                    leading0 + 2),
+                LabelSourceSpan = CreateSpan(
+                    state,
+                    absoluteLine,
+                    leading0 + 3,
+                    absoluteLine,
+                    leading0 + 2 + label.Length),
+                SeparatorMarkerSourceSpan = CreateSpan(
+                    state,
+                    absoluteLine,
+                    leading0 + rb + 1,
+                    absoluteLine,
+                    leading0 + rb + 2)
+            };
 
-            doc.Add(new FootnoteDefinitionBlock(label, content, blocks, syntaxChildren));
+            doc.Add(footnote);
             i = j; return true;
         }
     }
@@ -72,7 +92,12 @@ public static partial class MarkdownReader {
             return (Array.Empty<IMarkdownBlock>(), Array.Empty<MarkdownSyntaxNode>());
         }
 
-        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(contentSourceLines, options, state);
+        var suppressedParagraphAttributeStartLines = GetContinuationParagraphGenericAttributeSuppressionLines(contentSourceLines);
+        var (blocks, syntaxChildren) = ParseNestedMarkdownBlocks(
+            contentSourceLines,
+            options,
+            state,
+            suppressedParagraphAttributeStartLines);
         if (blocks.Count > 0) {
             return (blocks, syntaxChildren);
         }
@@ -81,6 +106,37 @@ public static partial class MarkdownReader {
         var paragraphSyntax = new List<MarkdownSyntaxNode>();
         AddParagraphSyntaxNodes(paragraphSyntax, contentSourceLines, options, state);
         return (paragraphs, paragraphSyntax);
+    }
+
+    private static IReadOnlyCollection<int> GetContinuationParagraphGenericAttributeSuppressionLines(
+        IReadOnlyList<MarkdownSourceLineSlice> sourceLines) {
+        if (sourceLines == null || sourceLines.Count == 0) {
+            return Array.Empty<int>();
+        }
+
+        List<int>? suppressedLines = null;
+        bool seenContent = false;
+        bool seenBlankAfterContent = false;
+
+        for (int lineIndex = 0; lineIndex < sourceLines.Count; lineIndex++) {
+            if (string.IsNullOrWhiteSpace(sourceLines[lineIndex].Text)) {
+                if (seenContent) {
+                    seenBlankAfterContent = true;
+                }
+
+                continue;
+            }
+
+            if (seenBlankAfterContent) {
+                suppressedLines ??= new List<int>();
+                suppressedLines.Add(lineIndex);
+            }
+
+            seenContent = true;
+            seenBlankAfterContent = false;
+        }
+
+        return suppressedLines ?? (IReadOnlyCollection<int>)Array.Empty<int>();
     }
 }
 

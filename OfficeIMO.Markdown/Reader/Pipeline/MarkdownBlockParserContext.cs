@@ -136,11 +136,123 @@ public sealed class MarkdownBlockParserContext {
     }
 
     /// <summary>
+    /// Creates a source span for a line range relative to the current parser position.
+    /// </summary>
+    /// <param name="relativeStartLine">Zero-based line offset from the current parser position.</param>
+    /// <param name="lineCount">Number of source lines covered by the span.</param>
+    /// <returns>A source span mapped to the normalized markdown input when source mapping is available.</returns>
+    public MarkdownSourceSpan CreateLineSpan(int relativeStartLine, int lineCount) {
+        if (lineCount <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(lineCount), lineCount, "Line count must be greater than zero.");
+        }
+
+        var startLine = ResolveAbsoluteLine(relativeStartLine);
+        var endLine = ResolveAbsoluteLine(relativeStartLine + lineCount - 1);
+        return State.SourceTextMap?.CreateLineSpan(startLine, endLine) ?? new MarkdownSourceSpan(startLine, endLine);
+    }
+
+    /// <summary>
+    /// Creates a column-aware source span for a range relative to the current parser position.
+    /// </summary>
+    /// <param name="relativeStartLine">Zero-based start-line offset from the current parser position.</param>
+    /// <param name="startColumn">One-based start column on the resolved start line.</param>
+    /// <param name="relativeEndLine">Zero-based end-line offset from the current parser position.</param>
+    /// <param name="endColumn">One-based end column on the resolved end line.</param>
+    /// <returns>A source span mapped to the normalized markdown input when source mapping is available.</returns>
+    public MarkdownSourceSpan CreateSourceSpan(
+        int relativeStartLine,
+        int startColumn,
+        int relativeEndLine,
+        int endColumn) {
+        var startLine = ResolveAbsoluteLine(relativeStartLine);
+        var endLine = ResolveAbsoluteLine(relativeEndLine);
+        return State.SourceTextMap?.CreateSpan(startLine, startColumn, endLine, endColumn)
+               ?? new MarkdownSourceSpan(startLine, startColumn, endLine, endColumn);
+    }
+
+    /// <summary>
+    /// Creates a normalized source slice for a token or field source span captured during parsing.
+    /// </summary>
+    public bool TryCreateSourceSlice(MarkdownSourceSpan sourceSpan, out MarkdownSourceSlice slice) {
+        var sourceMap = State.SourceTextMap;
+        if (sourceMap == null) {
+            slice = default;
+            return false;
+        }
+
+        return MarkdownSourceSlice.TryCreate(sourceMap.Text, sourceSpan, MarkdownSourceTextKind.Normalized, out slice);
+    }
+
+    /// <summary>
+    /// Creates a normalized source slice for a line range relative to the current parser position.
+    /// </summary>
+    /// <param name="relativeStartLine">Zero-based line offset from the current parser position.</param>
+    /// <param name="lineCount">Number of source lines covered by the slice.</param>
+    /// <param name="slice">Materialized normalized source slice when the method returns <c>true</c>.</param>
+    /// <returns><c>true</c> when the normalized source text is available and the range can be materialized.</returns>
+    public bool TryCreateSourceSlice(int relativeStartLine, int lineCount, out MarkdownSourceSlice slice) {
+        if (lineCount <= 0) {
+            slice = default;
+            return false;
+        }
+
+        return TryCreateSourceSlice(CreateLineSpan(relativeStartLine, lineCount), out slice);
+    }
+
+    /// <summary>
+    /// Parses an inline slice from a source line while preserving source spans for inline syntax.
+    /// </summary>
+    /// <param name="relativeLine">Zero-based line offset from the current parser position.</param>
+    /// <param name="startColumn">One-based start column for the inline slice.</param>
+    /// <param name="length">Number of characters to parse from the source line.</param>
+    /// <returns>Parsed inline sequence with source-map-backed inline nodes when available.</returns>
+    public InlineSequence ParseInlineText(int relativeLine, int startColumn, int length) {
+        if (length <= 0 || startColumn < 1 || !TryGetLine(relativeLine, out var line)) {
+            return new InlineSequence();
+        }
+
+        var startIndex = Math.Min(line.Length, startColumn - 1);
+        var safeLength = Math.Min(length, line.Length - startIndex);
+        if (safeLength <= 0) {
+            return new InlineSequence();
+        }
+
+        var text = line.Substring(startIndex, safeLength);
+        MarkdownInlineSourceMap? sourceMap = null;
+        if (State.SourceTextMap != null) {
+            var absoluteLine = ResolveAbsoluteLine(relativeLine);
+            var points = new MarkdownSourcePoint?[text.Length];
+            var sourceColumn = startColumn;
+            for (var i = 0; i < text.Length; i++) {
+                points[i] = State.SourceTextMap.CreatePoint(absoluteLine, sourceColumn);
+                sourceColumn = MarkdownSourceColumns.AdvanceColumn(sourceColumn, text[i]);
+            }
+
+            sourceMap = new MarkdownInlineSourceMap(points);
+        }
+
+        return MarkdownReader.ParseInlineText(text, Options, State, sourceMap);
+    }
+
+    /// <summary>
     /// Parses a nested markdown block range relative to the current line using the same reader options,
     /// while preserving source spans for the nested content.
     /// </summary>
     public IReadOnlyList<IMarkdownBlock> ParseNestedBlocks(int relativeStartLine, int lineCount) =>
         MarkdownReader.ParseNestedBlocksFromLineRange(_lines, LineIndex + relativeStartLine, lineCount, Options, State);
+
+    private int ResolveAbsoluteLine(int relativeLine) {
+        var localLineIndex = LineIndex + relativeLine;
+        var absoluteLines = State.SourceLineAbsoluteNumbers;
+        if (absoluteLines != null
+            && localLineIndex >= 0
+            && localLineIndex < absoluteLines.Count
+            && absoluteLines[localLineIndex] > 0) {
+            return absoluteLines[localLineIndex];
+        }
+
+        return State.SourceLineOffset + localLineIndex + 1;
+    }
 }
 
 /// <summary>

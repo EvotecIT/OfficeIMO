@@ -4,7 +4,7 @@ public static partial class MarkdownReader {
     internal sealed class CalloutParser : IMarkdownBlockParser {
         public bool TryParse(string[] lines, ref int i, MarkdownReaderOptions options, MarkdownDoc doc, MarkdownReaderState state) {
             if (!options.Callouts) return false;
-            if (!IsCalloutHeader(lines[i], out string kind, out string title)) return false;
+            if (!IsCalloutHeader(lines[i], options, out string kind, out string title)) return false;
             var lineNumber = state.SourceLineOffset + i + 1;
             var titleSourceMap = BuildInlineSourceMapForSingleLine(
                 title,
@@ -12,13 +12,28 @@ public static partial class MarkdownReader {
                 GetCalloutTitleStartColumn(lines[i] ?? string.Empty),
                 state);
 
-            // Collect contiguous quote lines as callout body, stripping one leading ">" level.
+            // Collect contiguous quote lines plus Markdig-style lazy continuation lines as callout body.
             var innerSourceLines = new System.Collections.Generic.List<MarkdownSourceLineSlice>();
             int j = i + 1;
             while (j < lines.Length) {
                 var ln = lines[j] ?? string.Empty;
                 var t = ln.TrimStart();
-                if (!t.StartsWith(">")) break;
+                if (!t.StartsWith(">")) {
+                    if (string.IsNullOrWhiteSpace(ln)) {
+                        break;
+                    }
+
+                    if (!TryNormalizeQuoteLazyContinuationLine(lines, j, options, out string normalizedLazyLine)) {
+                        break;
+                    }
+
+                    innerSourceLines.Add(new MarkdownSourceLineSlice(
+                        normalizedLazyLine,
+                        state.SourceLineOffset + j + 1,
+                        GetLazyContinuationStartColumn(ln)));
+                    j++;
+                    continue;
+                }
 
                 var bodyLine = t.Length >= 2 && t[1] == ' ' ? t.Substring(2) : t.Substring(1);
                 innerSourceLines.Add(new MarkdownSourceLineSlice(
@@ -65,6 +80,19 @@ public static partial class MarkdownReader {
         }
 
         index = closeIndex + 1;
+        while (index < line.Length && char.IsWhiteSpace(line[index])) {
+            index++;
+        }
+
+        return index + 1;
+    }
+
+    private static int GetLazyContinuationStartColumn(string line) {
+        if (string.IsNullOrEmpty(line)) {
+            return 1;
+        }
+
+        var index = 0;
         while (index < line.Length && char.IsWhiteSpace(line[index])) {
             index++;
         }

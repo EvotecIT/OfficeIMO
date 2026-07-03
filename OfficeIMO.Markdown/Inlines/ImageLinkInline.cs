@@ -17,6 +17,16 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
     public string? Title { get; }
     /// <summary>Optional hyperlink title.</summary>
     public string? LinkTitle { get; }
+    /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan { get; internal set; }
+    /// <summary>Source span for the embedded image URL token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? ImageUrlSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional embedded image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
+    /// <summary>Source span for the wrapping link URL token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkUrlSourceSpan { get; internal set; }
+    /// <summary>Source span for the optional wrapping link title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkTitleSourceSpan { get; internal set; }
     /// <summary>Creates a linked image inline.</summary>
     public ImageLinkInline(string alt, string imageUrl, string linkUrl, string? title = null, string? linkTitle = null, string? plainAlt = null) {
         Alt = alt ?? string.Empty;
@@ -26,6 +36,20 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
         Title = title;
         LinkTitle = linkTitle;
     }
+
+    internal void SetMarkdownSyntaxMetadataSpans(
+        MarkdownSourceSpan? altSourceSpan,
+        MarkdownSourceSpan? imageUrlSourceSpan,
+        MarkdownSourceSpan? titleSourceSpan,
+        MarkdownSourceSpan? linkUrlSourceSpan,
+        MarkdownSourceSpan? linkTitleSourceSpan) {
+        AltSourceSpan = altSourceSpan;
+        ImageUrlSourceSpan = imageUrlSourceSpan;
+        TitleSourceSpan = titleSourceSpan;
+        LinkUrlSourceSpan = linkUrlSourceSpan;
+        LinkTitleSourceSpan = linkTitleSourceSpan;
+    }
+
     internal string RenderMarkdown() {
         if ((MarkdownRenderContext.Options?.ImageRenderingMode ?? MarkdownImageRenderingMode.RichMarkdown) == MarkdownImageRenderingMode.Html) {
             return RenderHtml();
@@ -36,24 +60,24 @@ public sealed class ImageLinkInline : MarkdownInline, IRenderableMarkdownInline,
         return $"[![{MarkdownEscaper.EscapeImageAlt(Alt)}]({MarkdownEscaper.EscapeImageSrc(ImageUrl)}{title})]({MarkdownEscaper.EscapeLinkUrl(LinkUrl)}{linkTitle})";
     }
     internal string RenderHtml() {
-        var title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
-        var linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(LinkTitle!)}\"";
         var o = HtmlRenderContext.Options;
+        var title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title!, o)}\"";
+        var linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(LinkTitle!, o)}\"";
         bool linkAllowed = UrlOriginPolicy.IsAllowedHttpLink(o, LinkUrl);
         bool imageAllowed = UrlOriginPolicy.IsAllowedHttpImage(o, ImageUrl);
 
         var imgExtra = imageAllowed ? ImageHtmlAttributes.BuildImageAttributes(o, ImageUrl) : string.Empty;
         var extra = linkAllowed ? LinkHtmlAttributes.BuildExternalLinkAttributes(o, LinkUrl) : string.Empty;
 
-        if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt);
+        if (!linkAllowed && !imageAllowed) return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o);
         if (!imageAllowed) {
-            return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl)}\"{linkTitle}{extra}>{System.Net.WebUtility.HtmlEncode(PlainAlt)}</a>";
+            return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}>{HtmlTextEncoder.Encode(PlainAlt, o)}</a>";
         }
         if (!linkAllowed) {
-            return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{title}{imgExtra} />";
+            return $"<img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{imgExtra} />";
         }
 
-        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl)}\"{linkTitle}{extra}><img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl)}\" alt=\"{System.Net.WebUtility.HtmlEncode(PlainAlt)}\"{title}{imgExtra} /></a>";
+        return $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl, o)}\"{linkTitle}{extra}><img src=\"{HtmlAttributeUrlEncoder.Encode(ImageUrl, o)}\" alt=\"{HtmlTextEncoder.Encode(PlainAlt, o)}\"{title}{imgExtra} /></a>";
     }
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();

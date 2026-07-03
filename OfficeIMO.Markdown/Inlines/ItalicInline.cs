@@ -9,7 +9,7 @@ public sealed class ItalicInline : MarkdownInline, IRenderableMarkdownInline, IP
     /// <summary>Creates an italic inline with the given text.</summary>
     public ItalicInline(string text) { Text = text ?? string.Empty; }
     internal string RenderMarkdown() => "_" + MarkdownEscaper.EscapeEmphasis(Text) + "_";
-    internal string RenderHtml() => "<em>" + System.Net.WebUtility.HtmlEncode(Text) + "</em>";
+    internal string RenderHtml() => "<em>" + HtmlTextEncoder.Encode(Text, HtmlRenderContext.Options) + "</em>";
     string IRenderableMarkdownInline.RenderMarkdown() => RenderMarkdown();
     string IRenderableMarkdownInline.RenderHtml() => RenderHtml();
     void IPlainTextMarkdownInline.AppendPlainText(System.Text.StringBuilder sb) => sb.Append(Text);

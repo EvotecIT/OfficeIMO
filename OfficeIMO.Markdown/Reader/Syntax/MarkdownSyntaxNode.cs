@@ -16,6 +16,13 @@ public sealed class MarkdownSyntaxNode {
     public string? CustomKind { get; }
     /// <summary>Optional originating model object (document/block/inline) for AST-aware consumers.</summary>
     public object? AssociatedObject { get; }
+    /// <summary>Generic Markdown attributes associated with this syntax node.</summary>
+    public MarkdownAttributeSet Attributes { get; }
+    /// <summary>
+    /// Gets a value indicating whether this node was generated while rebuilding syntax from the semantic AST
+    /// rather than directly parsed from matching source text.
+    /// </summary>
+    public bool IsGenerated { get; }
     /// <summary>Parent syntax node when this node belongs to a larger syntax tree.</summary>
     public MarkdownSyntaxNode? Parent { get; private set; }
     /// <summary>Child syntax nodes.</summary>
@@ -38,12 +45,16 @@ public sealed class MarkdownSyntaxNode {
         string? literal = null,
         IReadOnlyList<MarkdownSyntaxNode>? children = null,
         object? associatedObject = null,
-        string? customKind = null) {
+        string? customKind = null,
+        MarkdownAttributeSet? attributes = null,
+        bool isGenerated = false) {
         Kind = kind;
         SourceSpan = sourceSpan;
         Literal = literal;
         CustomKind = customKind;
         AssociatedObject = associatedObject;
+        Attributes = attributes == null || attributes.IsEmpty ? MarkdownAttributeSet.Empty : attributes;
+        IsGenerated = isGenerated;
         Children = children ?? Array.Empty<MarkdownSyntaxNode>();
         for (int i = 0; i < Children.Count; i++) {
             Children[i]?.AttachToParent(this, i);
@@ -89,6 +100,15 @@ public sealed class MarkdownSyntaxNode {
         if (SourceSpan.HasValue && !SourceSpan.Value.ContainsLine(lineNumber)) return null;
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            var match = Children[i].FindDeepestNodeAtLine(lineNumber);
+            if (match != null) return match;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             var match = Children[i].FindDeepestNodeAtLine(lineNumber);
             if (match != null) return match;
         }
@@ -136,6 +156,15 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            var match = Children[i].FindDeepestNodeContainingSpan(span);
+            if (match != null) return match;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             var match = Children[i].FindDeepestNodeContainingSpan(span);
             if (match != null) return match;
         }
@@ -163,6 +192,15 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            var match = Children[i].FindDeepestNodeOverlappingSpan(span);
+            if (match != null) return match;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             var match = Children[i].FindDeepestNodeOverlappingSpan(span);
             if (match != null) return match;
         }
@@ -195,6 +233,14 @@ public sealed class MarkdownSyntaxNode {
 
         path.Add(this);
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            if (Children[i].TryBuildNodePathAtLine(lineNumber, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             if (Children[i].TryBuildNodePathAtLine(lineNumber, path)) return true;
         }
 
@@ -224,6 +270,14 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            if (Children[i].TryBuildNodePathContainingSpan(span, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             if (Children[i].TryBuildNodePathContainingSpan(span, path)) return true;
         }
 
@@ -241,6 +295,14 @@ public sealed class MarkdownSyntaxNode {
         }
 
         for (int i = 0; i < Children.Count; i++) {
+            if (IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
+            if (Children[i].TryBuildNodePathOverlappingSpan(span, path)) return true;
+        }
+
+        for (int i = 0; i < Children.Count; i++) {
+            if (!IsLowerPriorityBroadLookupChild(this, Children[i])) continue;
+
             if (Children[i].TryBuildNodePathOverlappingSpan(span, path)) return true;
         }
 
@@ -249,6 +311,14 @@ public sealed class MarkdownSyntaxNode {
 
     private static bool HasExactSpan(MarkdownSyntaxNode node, MarkdownSourceSpan span) =>
         node.SourceSpan.HasValue && node.SourceSpan.Value.Equals(span);
+
+    private static bool IsLowerPriorityBroadLookupChild(MarkdownSyntaxNode parent, MarkdownSyntaxNode child) =>
+        (parent.Kind == MarkdownSyntaxKind.Heading && child.Kind == MarkdownSyntaxKind.HeadingLevel)
+        || (parent.Kind == MarkdownSyntaxKind.ListItem && IsListMarkerTokenKind(child.Kind))
+        || (parent.Kind == MarkdownSyntaxKind.Quote && child.Kind == MarkdownSyntaxKind.QuoteMarker);
+
+    private static bool IsListMarkerTokenKind(MarkdownSyntaxKind kind) =>
+        kind == MarkdownSyntaxKind.ListMarker || kind == MarkdownSyntaxKind.TaskListMarker;
 
     private static MarkdownSyntaxNode? FindNearestBlock(IReadOnlyList<MarkdownSyntaxNode> path) {
         for (int i = path.Count - 1; i >= 0; i--) {
@@ -281,6 +351,7 @@ public sealed class MarkdownSyntaxNode {
             case MarkdownSyntaxKind.DefinitionItem:
             case MarkdownSyntaxKind.FootnoteDefinition:
             case MarkdownSyntaxKind.ReferenceLinkDefinition:
+            case MarkdownSyntaxKind.AbbreviationDefinition:
             case MarkdownSyntaxKind.Details:
             case MarkdownSyntaxKind.Summary:
             case MarkdownSyntaxKind.FrontMatter:

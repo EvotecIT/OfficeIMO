@@ -50,9 +50,19 @@ public sealed class MarkdownDocumentTransformDiagnostic {
     public int ChangedBlockCountAfter { get; set; }
 
     /// <summary>
+    /// Indicates whether the transform changed any top-level block fingerprints.
+    /// </summary>
+    public bool HasChangedBlocks => ChangedBlockCountBefore > 0 || ChangedBlockCountAfter > 0;
+
+    /// <summary>
     /// Aggregate source span of the affected input blocks when original syntax spans are available.
     /// </summary>
     public MarkdownSourceSpan? AffectedSourceSpan { get; set; }
+
+    /// <summary>
+    /// Source spans of individual top-level input blocks affected by the transform, when available.
+    /// </summary>
+    public IReadOnlyList<MarkdownSourceSpan> AffectedSourceSpans { get; set; } = Array.Empty<MarkdownSourceSpan>();
 
     /// <summary>
     /// Deepest original block-like syntax path overlapping the affected source span when available.
@@ -60,9 +70,19 @@ public sealed class MarkdownDocumentTransformDiagnostic {
     public string? AffectedOriginalBlockPath { get; set; }
 
     /// <summary>
+    /// Deepest original syntax path overlapping the affected source span when available.
+    /// </summary>
+    public string? AffectedOriginalNodePath { get; set; }
+
+    /// <summary>
     /// Source span of the original block-like syntax node identified by <see cref="AffectedOriginalBlockPath"/>.
     /// </summary>
     public MarkdownSourceSpan? AffectedOriginalBlockSpan { get; set; }
+
+    /// <summary>
+    /// Source span of the original syntax node identified by <see cref="AffectedOriginalNodePath"/>.
+    /// </summary>
+    public MarkdownSourceSpan? AffectedOriginalNodeSpan { get; set; }
 
     /// <summary>
     /// Deepest final block-like syntax path overlapping the affected source span when available.
@@ -70,7 +90,17 @@ public sealed class MarkdownDocumentTransformDiagnostic {
     public string? AffectedFinalBlockPath { get; set; }
 
     /// <summary>
+    /// Deepest final syntax path overlapping the affected source span when available.
+    /// </summary>
+    public string? AffectedFinalNodePath { get; set; }
+
+    /// <summary>
     /// Source span of the final block-like syntax node identified by <see cref="AffectedFinalBlockPath"/>.
     /// </summary>
     public MarkdownSourceSpan? AffectedFinalBlockSpan { get; set; }
+
+    /// <summary>
+    /// Source span of the final syntax node identified by <see cref="AffectedFinalNodePath"/>.
+    /// </summary>
+    public MarkdownSourceSpan? AffectedFinalNodeSpan { get; set; }
 }

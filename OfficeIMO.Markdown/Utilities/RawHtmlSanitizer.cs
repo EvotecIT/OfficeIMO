@@ -5,6 +5,10 @@ namespace OfficeIMO.Markdown;
 /// </summary>
 internal static class RawHtmlSanitizer {
     internal static string Sanitize(string html) {
+        return Sanitize(html, null);
+    }
+
+    internal static string Sanitize(string html, HtmlOptions? options) {
         if (string.IsNullOrEmpty(html)) return string.Empty;
 
         var sb = new StringBuilder(html.Length + 32);
@@ -12,14 +16,14 @@ internal static class RawHtmlSanitizer {
         while (i < html.Length) {
             int lt = html.IndexOf('<', i);
             if (lt < 0) {
-                sb.Append(System.Net.WebUtility.HtmlEncode(html.Substring(i)));
+                sb.Append(HtmlTextEncoder.Encode(html.Substring(i), options));
                 break;
             }
-            if (lt > i) sb.Append(System.Net.WebUtility.HtmlEncode(html.Substring(i, lt - i)));
+            if (lt > i) sb.Append(HtmlTextEncoder.Encode(html.Substring(i, lt - i), options));
 
             int gt = html.IndexOf('>', lt + 1);
             if (gt < 0) {
-                sb.Append(System.Net.WebUtility.HtmlEncode(html.Substring(lt)));
+                sb.Append(HtmlTextEncoder.Encode(html.Substring(lt), options));
                 break;
             }
 
@@ -27,7 +31,7 @@ internal static class RawHtmlSanitizer {
             if (TrySanitizeAllowedTag(tag, out var sanitized)) {
                 sb.Append(sanitized);
             } else {
-                sb.Append(System.Net.WebUtility.HtmlEncode(tag));
+                sb.Append(HtmlTextEncoder.Encode(tag, options));
             }
             i = gt + 1;
         }

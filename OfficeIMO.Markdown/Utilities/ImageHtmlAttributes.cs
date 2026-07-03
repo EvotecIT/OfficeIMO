@@ -10,16 +10,16 @@ internal static class ImageHtmlAttributes {
         if (o.ImagesDecodingAsync) sb.Append(" decoding=\"async\"");
 
         var rp = (o.ImagesReferrerPolicy ?? string.Empty).Trim();
-        if (rp.Length > 0) sb.Append(" referrerpolicy=\"").Append(System.Net.WebUtility.HtmlEncode(rp)).Append("\"");
+        if (rp.Length > 0) sb.Append(" referrerpolicy=\"").Append(HtmlTextEncoder.Encode(rp, o)).Append("\"");
 
         return sb.ToString();
     }
 
-    internal static string BuildBlockedPlaceholder(string? alt) {
+    internal static string BuildBlockedPlaceholder(string? alt, HtmlOptions? options) {
         // Keep markup minimal and safe.
         alt ??= string.Empty;
         var trimmed = alt.Trim();
         var text = trimmed.Length == 0 ? "image blocked" : ("image blocked: " + trimmed);
-        return "<span class=\"omd-image-blocked\">" + System.Net.WebUtility.HtmlEncode(text) + "</span>";
+        return "<span class=\"omd-image-blocked\">" + HtmlTextEncoder.Encode(text, options) + "</span>";
     }
 }

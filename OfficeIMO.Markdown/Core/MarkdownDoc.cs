@@ -25,6 +25,7 @@ public class MarkdownDoc : MarkdownObject {
     private readonly List<IMarkdownBlock> _blocks = new();
     private IMarkdownBlock? _lastBlock;
     private IFrontMatterMarkdownBlock? _frontMatter;
+    private MarkdownParseResult? _parseResult;
 
     /// <summary>Creates a new, empty Markdown document.</summary>
     public static MarkdownDoc Create() => new MarkdownDoc();
@@ -40,6 +41,8 @@ public class MarkdownDoc : MarkdownObject {
     /// <summary>Whether the document has front matter.</summary>
     public bool HasDocumentHeader => DocumentHeader != null;
 
+    internal MarkdownParseResult? ParseResult => _parseResult;
+
     /// <summary>Adds a block instance (object-model style).</summary>
     /// <param name="block">Block to append to the document.</param>
     /// <returns>Same <see cref="MarkdownDoc"/> for chaining.</returns>
@@ -50,6 +53,7 @@ public class MarkdownDoc : MarkdownObject {
             _blocks.Add(block);
             _lastBlock = block;
         }
+        _parseResult = null;
         MarkdownObjectTreeBinder.BindDocument(this);
         return this;
     }
@@ -66,6 +70,7 @@ public class MarkdownDoc : MarkdownObject {
     internal void ReplaceBlocks(IEnumerable<IMarkdownBlock>? blocks) {
         _blocks.Clear();
         _lastBlock = null;
+        _parseResult = null;
         if (blocks == null) {
             MarkdownObjectTreeBinder.BindDocument(this);
             return;
@@ -81,6 +86,10 @@ public class MarkdownDoc : MarkdownObject {
         }
 
         MarkdownObjectTreeBinder.BindDocument(this);
+    }
+
+    internal void AttachParseResult(MarkdownParseResult parseResult) {
+        _parseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
     }
 
     /// <summary>Enumerates all document blocks depth-first, including front matter when present.</summary>
@@ -165,6 +174,15 @@ public class MarkdownDoc : MarkdownObject {
         foreach (var block in DescendantsAndSelf()) {
             if (block is TableBlock table) {
                 yield return table;
+            }
+        }
+    }
+
+    /// <summary>Enumerates all table rows in document order, including header rows and nested tables.</summary>
+    public IEnumerable<TableRow> DescendantTableRows() {
+        foreach (var table in DescendantTables()) {
+            foreach (var row in table.EnumerateRows()) {
+                yield return row;
             }
         }
     }
@@ -396,6 +414,17 @@ public class MarkdownDoc : MarkdownObject {
     /// <summary>Adds a callout/admonition block (Docs-style).</summary>
     public MarkdownDoc Callout(string kind, string title, string body) => Add(new CalloutBlock(kind, title, body));
 
+    /// <summary>Adds a callout/admonition block with structured markdown body content.</summary>
+    public MarkdownDoc Callout(string kind, string title, Action<MarkdownDoc> buildBody) {
+        if (buildBody == null) {
+            throw new ArgumentNullException(nameof(buildBody));
+        }
+
+        var body = MarkdownDoc.Create();
+        buildBody(body);
+        return Add(new CalloutBlock(kind, title, body.Blocks));
+    }
+
     /// <summary>Adds an unordered list.</summary>
     public MarkdownDoc Ul(Action<UnorderedListBuilder> build) {
         UnorderedListBuilder builder = new UnorderedListBuilder();
@@ -514,13 +543,18 @@ public class MarkdownDoc : MarkdownObject {
         options ??= MarkdownWriteOptions.CreateOfficeIMOProfile();
         // Build a transient block list where TOC placeholders are realized
         var (blocks, headingCatalog) = GetBlocksAndHeadingSlugs();
-        var context = new MarkdownWriteContext(blocks, options, headingCatalog);
-        using var _ctx = MarkdownRenderContext.Push(options);
+        var context = new MarkdownWriteContext(this, blocks, options, headingCatalog);
+        using var _ctx = MarkdownRenderContext.Push(context);
         StringBuilder sb = new StringBuilder();
         if (_frontMatter != null) {
             sb.AppendLine(_frontMatter.RenderFrontMatter());
             sb.AppendLine();
         }
+
+        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult) && blocks.Count > 0) {
+            sb.AppendLine();
+        }
+
         for (int i = 0; i < blocks.Count; i++) {
             string rendered = RenderMarkdownBlock(blocks[i], context);
             if (!string.IsNullOrEmpty(rendered)) sb.AppendLine(rendered);
@@ -578,9 +612,10 @@ public class MarkdownDoc : MarkdownObject {
         return HtmlRenderer.RenderParts(this, options);
     }
 
-    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs() {
+    internal (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) GetBlocksAndHeadingSlugs(
+        MarkdownHeadingIdentifierStyle headingIdentifierStyle = MarkdownHeadingIdentifierStyle.OfficeIMO) {
         var registry = MarkdownSlug.CreateRegistry();
-        var (realized, headingCatalog) = RealizeTocPlaceholders(registry);
+        var (realized, headingCatalog) = RealizeTocPlaceholders(registry, headingIdentifierStyle);
         return (realized, headingCatalog);
     }
 
@@ -696,10 +731,12 @@ public class MarkdownDoc : MarkdownObject {
         return Toc(opts => { opts.Title = title ?? ""; opts.IncludeTitle = !string.IsNullOrEmpty(title); opts.MinLevel = min; opts.MaxLevel = max; opts.Ordered = ordered; opts.TitleLevel = titleLevel; opts.Scope = TocScope.HeadingTitle; opts.ScopeHeadingTitle = headingTitle; }, placeAtTop: false);
     }
 
-    private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(System.Collections.Generic.Dictionary<string, int> slugRegistry) {
+    private (System.Collections.Generic.List<IMarkdownBlock> Blocks, MarkdownHeadingCatalog HeadingCatalog) RealizeTocPlaceholders(
+        System.Collections.Generic.Dictionary<string, int> slugRegistry,
+        MarkdownHeadingIdentifierStyle headingIdentifierStyle) {
         // Create a shallow copy first
         var realized = new System.Collections.Generic.List<IMarkdownBlock>(_blocks);
-        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry);
+        var headingCatalog = MarkdownHeadingCatalog.Create(realized, slugRegistry, headingIdentifierStyle);
         // Replace placeholders with generated TOC blocks
         for (int i = 0; i < realized.Count; i++) {
             if (realized[i] is ITocPlaceholderMarkdownBlock tocPlaceholder) {
@@ -710,22 +747,40 @@ public class MarkdownDoc : MarkdownObject {
     }
 
     private static string RenderMarkdownBlock(IMarkdownBlock block, MarkdownWriteContext context) {
-        var extensions = context.Options.BlockRenderExtensions;
-        if (extensions != null && extensions.Count > 0) {
-            for (int i = extensions.Count - 1; i >= 0; i--) {
-                var extension = extensions[i];
-                if (extension == null || !extension.Matches(block)) {
-                    continue;
-                }
+        return MarkdownBlockRenderDispatcher.RenderMarkdown(block, context);
+    }
 
-                var rendered = extension.RenderMarkdown(block, context);
-                if (rendered != null) {
-                    return rendered;
-                }
+    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult) {
+        if (parseResult == null || parseResult.AbbreviationDefinitions.Count == 0) {
+            return false;
+        }
+
+        var wroteDefinition = false;
+        for (int i = 0; i < parseResult.AbbreviationDefinitions.Count; i++) {
+            var definition = parseResult.AbbreviationDefinitions[i];
+            if (definition == null
+                || string.IsNullOrWhiteSpace(definition.Label)
+                || definition.IsListItemDefinition) {
+                continue;
+            }
+
+            sb.AppendLine(RenderAbbreviationDefinition(parseResult, definition));
+            wroteDefinition = true;
+        }
+
+        return wroteDefinition;
+    }
+
+    private static string RenderAbbreviationDefinition(MarkdownParseResult parseResult, MarkdownAbbreviationDefinition definition) {
+        if (definition.SourceSpan.HasValue
+            && parseResult.TryCreateSourceSlice(definition.SourceSpan.Value, out var slice)) {
+            var sourceLine = slice.Text.TrimEnd('\r', '\n');
+            if (!string.IsNullOrWhiteSpace(sourceLine)) {
+                return sourceLine;
             }
         }
 
-        return block.RenderMarkdown();
+        return "*[" + definition.Label + "]: " + definition.Title;
     }
 
     private static string NormalizeLineEndings(string value, string lineEnding) {

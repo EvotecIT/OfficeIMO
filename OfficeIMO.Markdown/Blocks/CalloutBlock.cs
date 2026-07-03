@@ -7,14 +7,34 @@ namespace OfficeIMO.Markdown;
 public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock, ISyntaxMarkdownBlock {
     /// <summary>Admonition kind, e.g., info, warning, success.</summary>
     public string Kind { get; }
+    /// <summary>Source span for the opening callout marker (<c>[!</c>) when parsed from markdown.</summary>
+    public MarkdownSourceSpan? OpeningMarkerSourceSpan { get; internal set; }
+    /// <summary>Source span for the callout kind token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? KindSourceSpan { get; internal set; }
+    /// <summary>Source span for the closing callout marker (<c>]</c>) when parsed from markdown.</summary>
+    public MarkdownSourceSpan? ClosingMarkerSourceSpan { get; internal set; }
+    /// <summary>Source span for the explicit callout title when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan { get; internal set; }
     private readonly string _fallbackBody;
+    private readonly string? _fallbackBodyProjection;
     private readonly IReadOnlyList<IMarkdownBlock> _childBlocks;
     /// <summary>Callout title displayed inline with the marker.</summary>
     public string Title => InlinePlainText.Extract(TitleInlines);
     /// <summary>Parsed inline title content when available.</summary>
     public InlineSequence TitleInlines { get; }
-    /// <summary>Callout body text (can include multiple lines). When parsed child blocks are available, this is derived from them.</summary>
-    public string Body => _childBlocks.Count > 0 ? RenderBlocksAsBody(_childBlocks) : _fallbackBody;
+    /// <summary>Callout body text (can include multiple lines). Structured callouts derive this from child blocks; legacy plain-text bodies preserve the original text.</summary>
+    public string Body {
+        get {
+            if (string.IsNullOrEmpty(_fallbackBody)) {
+                return RenderBlocksAsBody(_childBlocks);
+            }
+
+            var projectedBody = RenderBlocksAsBody(_childBlocks);
+            return string.Equals(projectedBody, _fallbackBodyProjection, StringComparison.Ordinal)
+                ? _fallbackBody
+                : projectedBody;
+        }
+    }
     /// <summary>
     /// Parsed body blocks when the callout is created by the reader.
     /// This exposes callout content as owned child blocks for AST-style consumers.
@@ -32,21 +52,43 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         : this(kind, new InlineSequence().Text(title ?? string.Empty), body) {
     }
 
+    /// <summary>
+    /// Creates a callout with structured body blocks.
+    /// Prefer this overload when the body contains lists, code blocks, tables, or other nested markdown structure.
+    /// </summary>
+    public CalloutBlock(string kind, string title, IEnumerable<IMarkdownBlock> children)
+        : this(kind, new InlineSequence().Text(title ?? string.Empty), CopyChildren(children), syntaxChildren: null) {
+    }
+
+    /// <summary>
+    /// Creates a callout with structured title inlines and structured body blocks.
+    /// This is the canonical semantic shape used by parsed callouts.
+    /// </summary>
+    public CalloutBlock(string kind, InlineSequence titleInlines, IEnumerable<IMarkdownBlock> children)
+        : this(kind, titleInlines, CopyChildren(children), syntaxChildren: null) {
+    }
+
     internal CalloutBlock(string kind, InlineSequence titleInlines, string body) {
         Kind = (kind ?? "info").Trim();
         TitleInlines = titleInlines ?? new InlineSequence();
         _fallbackBody = body ?? string.Empty;
-        _childBlocks = Array.Empty<IMarkdownBlock>();
+        _childBlocks = CreatePlainTextBodyBlocks(body);
+        _fallbackBodyProjection = RenderBlocksAsBody(_childBlocks);
     }
 
     internal CalloutBlock(string kind, string title, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null)
         : this(kind, new InlineSequence().Text(title ?? string.Empty), children, syntaxChildren) {
     }
 
-    internal CalloutBlock(string kind, InlineSequence titleInlines, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null) {
+    internal CalloutBlock(string kind, InlineSequence titleInlines, IReadOnlyList<IMarkdownBlock> children, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null)
+        : this(kind, titleInlines, children, fallbackBody: string.Empty, syntaxChildren) {
+    }
+
+    private CalloutBlock(string kind, InlineSequence titleInlines, IReadOnlyList<IMarkdownBlock> children, string fallbackBody, IReadOnlyList<MarkdownSyntaxNode>? syntaxChildren = null) {
         Kind = (kind ?? "info").Trim();
         TitleInlines = titleInlines ?? new InlineSequence();
-        _fallbackBody = string.Empty;
+        _fallbackBody = fallbackBody ?? string.Empty;
+        _fallbackBodyProjection = null;
         _childBlocks = CopyChildren(children);
         SyntaxChildren = syntaxChildren;
     }
@@ -63,9 +105,14 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             var inner = new StringBuilder();
             for (int i = 0; i < ChildBlocks.Count; i++) {
                 if (ChildBlocks[i] == null) continue;
-                var rendered = ChildBlocks[i].RenderMarkdown();
+                var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(ChildBlocks[i]);
                 if (string.IsNullOrEmpty(rendered)) continue;
-                inner.AppendLine(rendered.TrimEnd());
+                if (inner.Length > 0) {
+                    inner.AppendLine();
+                    inner.AppendLine();
+                }
+
+                inner.Append(rendered.TrimEnd());
             }
             bodyMarkdown = inner.ToString().TrimEnd();
         } else {
@@ -79,10 +126,10 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        var kind = System.Net.WebUtility.HtmlEncode(Kind);
+        var kind = HtmlTextEncoder.Encode(Kind, HtmlRenderContext.Options);
         var titleMarkdown = TitleInlines.RenderMarkdown();
         var hasTitleInlines = !string.IsNullOrWhiteSpace(titleMarkdown);
-        var titleText = hasTitleInlines ? TitleInlines.RenderHtml() : System.Net.WebUtility.HtmlEncode(FormatTitleFromKind(Kind));
+        var titleText = hasTitleInlines ? TitleInlines.RenderHtml() : HtmlTextEncoder.Encode(FormatTitleFromKind(Kind), HtmlRenderContext.Options);
         var hasVisibleTitle = hasTitleInlines || !string.IsNullOrWhiteSpace(FormatTitleFromKind(Kind));
 
         var sb = new StringBuilder();
@@ -98,7 +145,7 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         if (ChildBlocks.Count > 0) {
             for (int i = 0; i < ChildBlocks.Count; i++) {
                 if (ChildBlocks[i] == null) continue;
-                sb.Append(ChildBlocks[i].RenderHtml());
+                sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(ChildBlocks[i]));
             }
         } else {
             // Plain text body (builder-created callouts).
@@ -107,13 +154,25 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             sb.Append("<p>");
             for (int i = 0; i < lines.Length; i++) {
                 if (i > 0) sb.Append("<br/>");
-                sb.Append(System.Net.WebUtility.HtmlEncode(lines[i]));
+                sb.Append(HtmlTextEncoder.Encode(lines[i], HtmlRenderContext.Options));
             }
             sb.Append("</p>");
         }
 
         sb.Append("</blockquote>");
         return sb.ToString();
+    }
+
+    private static IReadOnlyList<IMarkdownBlock> CopyChildren(IEnumerable<IMarkdownBlock>? children) {
+        if (children is IReadOnlyList<IMarkdownBlock> readOnlyChildren) {
+            return CopyChildren(readOnlyChildren);
+        }
+
+        if (children == null) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        return children.Where(child => child != null).ToArray();
     }
 
     private static IReadOnlyList<IMarkdownBlock> CopyChildren(IReadOnlyList<IMarkdownBlock>? children) {
@@ -127,6 +186,28 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
         }
 
         return copy;
+    }
+
+    private static IReadOnlyList<IMarkdownBlock> CreatePlainTextBodyBlocks(string? body) {
+        if (string.IsNullOrEmpty(body)) {
+            return Array.Empty<IMarkdownBlock>();
+        }
+
+        var inlines = new InlineSequence { AutoSpacing = false };
+        var bodyText = body!;
+        var normalized = bodyText.Replace("\r\n", "\n").Replace('\r', '\n');
+        var lines = normalized.Split('\n');
+        for (int i = 0; i < lines.Length; i++) {
+            if (i > 0) {
+                inlines.HardBreak();
+            }
+
+            if (lines[i].Length > 0) {
+                inlines.Text(lines[i]);
+            }
+        }
+
+        return new IMarkdownBlock[] { new ParagraphBlock(inlines) };
     }
 
     private static string RenderBlocksAsBody(IReadOnlyList<IMarkdownBlock> blocks) {
@@ -164,27 +245,43 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
     IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
 
     IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
-        if (SyntaxChildren != null && SyntaxChildren.Count > 0) {
-            return SyntaxChildren;
-        }
-
-        return MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(ChildBlocks);
+        return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
     }
 
     MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
         var calloutTitleMarkdown = TitleInlines.RenderMarkdown();
+        OpeningMarkerSourceSpan = GetCalloutOpeningMarkerSpan(span);
+        KindSourceSpan = GetCalloutKindSpan(span);
+        ClosingMarkerSourceSpan = GetCalloutClosingMarkerSpan(span);
         var children = new List<MarkdownSyntaxNode>();
+        if (OpeningMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CalloutOpeningMarker,
+                OpeningMarkerSourceSpan,
+                "[!"));
+        }
+
         children.Add(new MarkdownSyntaxNode(
             MarkdownSyntaxKind.CalloutKind,
-            GetCalloutKindSpan(span),
+            KindSourceSpan,
             Kind));
 
+        if (ClosingMarkerSourceSpan.HasValue) {
+            children.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.CalloutClosingMarker,
+                ClosingMarkerSourceSpan,
+                "]"));
+        }
+
         if (!string.IsNullOrWhiteSpace(calloutTitleMarkdown)) {
+            TitleSourceSpan = TitleInlines.SourceSpan;
             children.Add(MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(
                 MarkdownSyntaxKind.CalloutTitle,
                 TitleInlines,
-                TitleInlines.SourceSpan,
+                TitleSourceSpan,
                 calloutTitleMarkdown));
+        } else {
+            TitleSourceSpan = null;
         }
 
         var bodyChildren = ((IOwnedSyntaxChildrenMarkdownBlock)this).BuildOwnedSyntaxChildren();
@@ -198,6 +295,19 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             string.IsNullOrWhiteSpace(calloutTitleMarkdown) ? Kind : Kind + ":" + calloutTitleMarkdown,
             children,
             this);
+    }
+
+    private MarkdownSourceSpan? GetCalloutOpeningMarkerSpan(MarkdownSourceSpan? calloutSpan) {
+        if (!calloutSpan.HasValue || !calloutSpan.Value.StartColumn.HasValue) {
+            return null;
+        }
+
+        var startColumn = calloutSpan.Value.StartColumn.Value + 2;
+        return new MarkdownSourceSpan(
+            calloutSpan.Value.StartLine,
+            startColumn,
+            calloutSpan.Value.StartLine,
+            startColumn + 1);
     }
 
     private MarkdownSourceSpan? GetCalloutKindSpan(MarkdownSourceSpan? calloutSpan) {
@@ -215,5 +325,23 @@ public sealed class CalloutBlock : MarkdownBlock, IMarkdownBlock, IChildMarkdown
             startColumn.Value + 4,
             calloutSpan.Value.StartLine,
             startColumn.Value + 3 + Kind.Length);
+    }
+
+    private MarkdownSourceSpan? GetCalloutClosingMarkerSpan(MarkdownSourceSpan? calloutSpan) {
+        if (!calloutSpan.HasValue || string.IsNullOrWhiteSpace(Kind)) {
+            return null;
+        }
+
+        var startColumn = calloutSpan.Value.StartColumn;
+        if (!startColumn.HasValue) {
+            return null;
+        }
+
+        var markerColumn = startColumn.Value + 4 + Kind.Length;
+        return new MarkdownSourceSpan(
+            calloutSpan.Value.StartLine,
+            markerColumn,
+            calloutSpan.Value.StartLine,
+            markerColumn);
     }
 }

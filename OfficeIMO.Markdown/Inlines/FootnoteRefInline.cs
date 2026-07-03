@@ -9,7 +9,11 @@ public sealed class FootnoteRefInline : MarkdownInline, IRenderableMarkdownInlin
     /// <summary>Create a footnote reference inline.</summary>
     public FootnoteRefInline(string label) { Label = label ?? string.Empty; }
     internal string RenderMarkdown() => $"[^{Label}]";
-    internal string RenderHtml() => $"<sup id=\"fnref:{System.Net.WebUtility.HtmlEncode(Label)}\"><a href=\"#fn:{System.Net.WebUtility.HtmlEncode(Label)}\">{System.Net.WebUtility.HtmlEncode(Label)}</a></sup>";
+    internal string RenderHtml() {
+        var options = HtmlRenderContext.Options;
+        var encodedLabel = HtmlTextEncoder.Encode(Label, options);
+        return $"<sup id=\"fnref:{encodedLabel}\"><a href=\"#fn:{encodedLabel}\">{encodedLabel}</a></sup>";
+    }
     string IContextualHtmlMarkdownInline.RenderHtml(HtmlOptions options) {
         if (options?.GitHubFootnoteHtml != true) {
             return RenderHtml();
@@ -17,14 +21,14 @@ public sealed class FootnoteRefInline : MarkdownInline, IRenderableMarkdownInlin
 
         var state = HtmlRenderContext.Footnotes;
         if (state == null || !state.IsDefined(Label)) {
-            return System.Net.WebUtility.HtmlEncode(RenderMarkdown());
+            return HtmlTextEncoder.Encode(RenderMarkdown(), options);
         }
 
         var reference = state.RegisterReference(Label);
         return "<sup class=\"footnote-ref\"><a href=\"#fn-"
-               + System.Net.WebUtility.HtmlEncode(reference.EscapedLabel)
+               + HtmlTextEncoder.Encode(reference.EscapedLabel, options)
                + "\" id=\""
-               + System.Net.WebUtility.HtmlEncode(reference.ReferenceId)
+               + HtmlTextEncoder.Encode(reference.ReferenceId, options)
                + "\" data-footnote-ref>"
                + reference.Number.ToString()
                + "</a></sup>";

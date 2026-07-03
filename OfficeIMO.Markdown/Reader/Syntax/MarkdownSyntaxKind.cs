@@ -10,12 +10,26 @@ public enum MarkdownSyntaxKind {
     Heading,
     /// <summary>Heading level metadata.</summary>
     HeadingLevel,
+    /// <summary>ATX opening heading marker token.</summary>
+    HeadingOpeningMarker,
     /// <summary>Heading text payload.</summary>
     HeadingText,
+    /// <summary>Setext heading underline marker token.</summary>
+    HeadingSetextUnderlineMarker,
+    /// <summary>Optional closing ATX heading marker token.</summary>
+    HeadingClosingMarker,
     /// <summary>Plain text inline node.</summary>
     InlineText,
+    /// <summary>Backslash escape marker token inside a text inline.</summary>
+    InlineEscapeMarker,
+    /// <summary>Escaped character token inside a text inline.</summary>
+    InlineEscapedCharacter,
+    /// <summary>Original entity source text token inside a decoded text inline.</summary>
+    InlineEntitySourceText,
     /// <summary>Inline code span node.</summary>
     InlineCodeSpan,
+    /// <summary>Code span content token.</summary>
+    InlineCodeSpanContent,
     /// <summary>Hyperlink inline node.</summary>
     InlineLink,
     /// <summary>Hyperlink destination URL metadata.</summary>
@@ -40,46 +54,94 @@ public enum MarkdownSyntaxKind {
     InlineStrikethrough,
     /// <summary>Highlight/mark inline node.</summary>
     InlineHighlight,
+    /// <summary>Inserted inline node.</summary>
+    InlineInserted,
+    /// <summary>Superscript inline node.</summary>
+    InlineSuperscript,
+    /// <summary>Subscript inline node.</summary>
+    InlineSubscript,
     /// <summary>Underline inline node.</summary>
     InlineUnderline,
     /// <summary>Hard line break inline node.</summary>
     InlineHardBreak,
+    /// <summary>Soft line break inline node.</summary>
+    InlineSoftBreak,
+    /// <summary>Hard line break marker token.</summary>
+    InlineHardBreakMarker,
     /// <summary>Inline HTML tag wrapper node.</summary>
     InlineHtmlTag,
+    /// <summary>Opening delimiter or marker token for a source-backed inline wrapper.</summary>
+    InlineOpeningMarker,
+    /// <summary>Middle delimiter or separator token for a source-backed inline wrapper.</summary>
+    InlineSeparatorMarker,
+    /// <summary>Closing delimiter or marker token for a source-backed inline wrapper.</summary>
+    InlineClosingMarker,
     /// <summary>Raw inline HTML node.</summary>
     InlineHtmlRaw,
     /// <summary>Footnote reference inline node.</summary>
     InlineFootnoteRef,
+    /// <summary>Footnote reference label metadata.</summary>
+    InlineFootnoteLabel,
+    /// <summary>Abbreviation inline node.</summary>
+    InlineAbbreviation,
+    /// <summary>Abbreviation visible text metadata.</summary>
+    InlineAbbreviationText,
+    /// <summary>Abbreviation title metadata.</summary>
+    InlineAbbreviationTitle,
+    /// <summary>Generic Markdown attribute block token such as <c>{#id .class key=value}</c>.</summary>
+    GenericAttributeBlock,
+    /// <summary>Colon-fenced custom container block.</summary>
+    CustomContainer,
+    /// <summary>Opening colon fence token for a custom container block.</summary>
+    CustomContainerOpeningFence,
+    /// <summary>Info string token for a custom container block.</summary>
+    CustomContainerInfo,
+    /// <summary>Closing colon fence token for a custom container block.</summary>
+    CustomContainerClosingFence,
     /// <summary>Paragraph block.</summary>
     Paragraph,
     /// <summary>Blockquote block.</summary>
     Quote,
+    /// <summary>Blockquote marker token (<c>&gt;</c>).</summary>
+    QuoteMarker,
     /// <summary>Unordered list block.</summary>
     UnorderedList,
     /// <summary>Ordered list block.</summary>
     OrderedList,
     /// <summary>List item node.</summary>
     ListItem,
+    /// <summary>List item marker token such as <c>-</c>, <c>*</c>, <c>1.</c>, or <c>1)</c>.</summary>
+    ListMarker,
+    /// <summary>Task list marker token such as <c>[ ]</c>, <c>[x]</c>, or <c>[X]</c>.</summary>
+    TaskListMarker,
     /// <summary>Fenced or indented code block.</summary>
     CodeBlock,
     /// <summary>Host-defined semantic fenced block.</summary>
     SemanticFencedBlock,
     /// <summary>Semantic kind metadata for a semantic fenced block.</summary>
     FenceSemanticKind,
+    /// <summary>Opening fence marker token for a fenced code or semantic block.</summary>
+    CodeFenceOpening,
     /// <summary>Fenced code block info string / language hint.</summary>
     CodeFenceInfo,
     /// <summary>Code block content payload.</summary>
     CodeContent,
+    /// <summary>Closing fence marker token for a fenced code or semantic block.</summary>
+    CodeFenceClosing,
     /// <summary>Markdown table block.</summary>
     Table,
     /// <summary>Header row inside a markdown table.</summary>
     TableHeader,
+    /// <summary>Alignment/separator row inside a markdown table.</summary>
+    TableAlignmentRow,
     /// <summary>Body row inside a markdown table.</summary>
     TableRow,
     /// <summary>Single cell inside a markdown table row/header.</summary>
     TableCell,
     /// <summary>Horizontal rule block.</summary>
     HorizontalRule,
+    /// <summary>Thematic-break marker token such as <c>---</c>, <c>* * *</c>, or <c>___</c>.</summary>
+    ThematicBreakMarker,
     /// <summary>Image block.</summary>
     Image,
     /// <summary>Image alternative text.</summary>
@@ -98,8 +160,12 @@ public enum MarkdownSyntaxKind {
     ImageTitle,
     /// <summary>Callout or admonition block.</summary>
     Callout,
+    /// <summary>Opening callout/admonition marker token (<c>[!</c>).</summary>
+    CalloutOpeningMarker,
     /// <summary>Callout/admonition marker kind such as note or tip.</summary>
     CalloutKind,
+    /// <summary>Closing callout/admonition marker token (<c>]</c>).</summary>
+    CalloutClosingMarker,
     /// <summary>Inline title/header content for a callout block.</summary>
     CalloutTitle,
     /// <summary>Definition list block.</summary>
@@ -110,30 +176,88 @@ public enum MarkdownSyntaxKind {
     DefinitionItem,
     /// <summary>Definition list term node.</summary>
     DefinitionTerm,
+    /// <summary>Definition list marker token such as <c>:</c>.</summary>
+    DefinitionMarker,
     /// <summary>Definition list definition/content node.</summary>
     DefinitionValue,
     /// <summary>Footnote definition block.</summary>
     FootnoteDefinition,
+    /// <summary>Opening <c>[^</c> token for a footnote definition label.</summary>
+    FootnoteOpeningMarker,
     /// <summary>Footnote definition label/identifier.</summary>
     FootnoteLabel,
+    /// <summary>Closing bracket and colon token for a footnote definition label.</summary>
+    FootnoteSeparatorMarker,
     /// <summary>Reference-style link definition consumed during parsing.</summary>
     ReferenceLinkDefinition,
+    /// <summary>Opening bracket token for a reference-style link definition label.</summary>
+    ReferenceLinkOpeningMarker,
     /// <summary>Reference-style link definition label/identifier.</summary>
     ReferenceLinkLabel,
+    /// <summary>Closing bracket and colon token for a reference-style link definition label.</summary>
+    ReferenceLinkSeparatorMarker,
     /// <summary>Reference-style link definition URL/destination.</summary>
     ReferenceLinkUrl,
     /// <summary>Reference-style link definition optional title.</summary>
     ReferenceLinkTitle,
+    /// <summary>Abbreviation definition consumed during parsing.</summary>
+    AbbreviationDefinition,
+    /// <summary>Opening <c>*[</c> token for an abbreviation definition label.</summary>
+    AbbreviationOpeningMarker,
+    /// <summary>Abbreviation definition label.</summary>
+    AbbreviationLabel,
+    /// <summary>Closing bracket and colon token for an abbreviation definition label.</summary>
+    AbbreviationSeparatorMarker,
+    /// <summary>Abbreviation definition title.</summary>
+    AbbreviationTitle,
     /// <summary>Details/disclosure block.</summary>
     Details,
+    /// <summary>Opening <c>&lt;details&gt;</c> tag token for a details block.</summary>
+    DetailsOpeningTag,
     /// <summary>Summary node inside a details block.</summary>
     Summary,
+    /// <summary>Opening <c>&lt;summary&gt;</c> tag token for a details summary.</summary>
+    SummaryOpeningTag,
+    /// <summary>Text content inside a details summary.</summary>
+    SummaryText,
+    /// <summary>Closing <c>&lt;/summary&gt;</c> tag token for a details summary.</summary>
+    SummaryClosingTag,
+    /// <summary>Closing <c>&lt;/details&gt;</c> tag token for a details block.</summary>
+    DetailsClosingTag,
     /// <summary>Front matter block.</summary>
     FrontMatter,
+    /// <summary>Opening fence marker token for a front matter block.</summary>
+    FrontMatterOpeningFence,
+    /// <summary>Closing fence marker token for a front matter block.</summary>
+    FrontMatterClosingFence,
+    /// <summary>Complete front matter entry line or literal-value block.</summary>
+    FrontMatterEntry,
+    /// <summary>Front matter entry key.</summary>
+    FrontMatterKey,
+    /// <summary>Front matter entry value.</summary>
+    FrontMatterValue,
+    /// <summary>Raw YAML payload between front matter fence markers.</summary>
+    FrontMatterBody,
     /// <summary>Raw HTML block.</summary>
     HtmlRaw,
+    /// <summary>Opening tag token for a recognized raw HTML block frame.</summary>
+    HtmlRawOpeningTag,
+    /// <summary>Opening marker token for a recognized non-tag raw HTML block frame.</summary>
+    HtmlRawOpeningMarker,
+    /// <summary>Body content inside a recognized raw HTML block frame.</summary>
+    HtmlRawBody,
+    /// <summary>Closing marker token for a recognized non-tag raw HTML block frame.</summary>
+    HtmlRawClosingMarker,
+    /// <summary>Closing tag token for a recognized raw HTML block frame.</summary>
+    HtmlRawClosingTag,
     /// <summary>HTML comment block.</summary>
     HtmlComment,
+    /// <summary>Opening <c>&lt;!--</c> marker token for an HTML comment block.</summary>
+    HtmlCommentOpeningMarker,
+    /// <summary>Body content inside an HTML comment block.</summary>
+    HtmlCommentBody,
+    /// <summary>Closing <c>--&gt;</c> marker token for an HTML comment block.</summary>
+    HtmlCommentClosingMarker,
     /// <summary>Generated table of contents block.</summary>
     Toc,
     /// <summary>Placeholder table of contents block.</summary>

@@ -259,8 +259,8 @@ public static partial class MarkdownPdfConverterExtensions {
                 RenderParagraph(pdf, item.AdditionalParagraphs[paragraphIndex], options, visualTheme);
             }
 
-            for (int childIndex = 0; childIndex < item.ChildBlocks.Count; childIndex++) {
-                RenderBlock(pdf, item.ChildBlocks[childIndex], document, options, visualTheme);
+            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
+                RenderBlock(pdf, item.Children[childIndex], document, options, visualTheme);
             }
         }
     }

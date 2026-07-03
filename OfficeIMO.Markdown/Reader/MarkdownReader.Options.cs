@@ -10,26 +10,66 @@ public static partial class MarkdownReader {
         var clone = new MarkdownReaderOptions {
             FrontMatter = false,
             Callouts = source.Callouts,
+            CalloutTitleMode = source.CalloutTitleMode,
             Headings = source.Headings,
             FencedCode = source.FencedCode,
             IndentedCodeBlocks = source.IndentedCodeBlocks,
             Images = source.Images,
+            StandaloneImageBlocks = source.StandaloneImageBlocks,
             UnorderedLists = source.UnorderedLists,
             TaskLists = source.TaskLists,
             OrderedLists = source.OrderedLists,
+            ListExtras = source.ListExtras,
+            StrictListIndentation = source.StrictListIndentation,
             Tables = source.Tables,
+            AllowHeaderlessTables = source.AllowHeaderlessTables,
+            RequireTableBodyRowPipes = source.RequireTableBodyRowPipes,
+            ParseTableCellBlocks = source.ParseTableCellBlocks,
             DefinitionLists = source.DefinitionLists,
             TocPlaceholders = source.TocPlaceholders,
             Footnotes = source.Footnotes,
+            SingleTildeStrikethrough = source.SingleTildeStrikethrough,
+            Highlight = source.Highlight,
+            Inserted = source.Inserted,
+            Superscript = source.Superscript,
+            Subscript = source.Subscript,
+            CjkFriendlyEmphasis = source.CjkFriendlyEmphasis,
             PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
             HtmlBlocks = source.HtmlBlocks,
+            AllowLooseHtmlBlockStartTags = source.AllowLooseHtmlBlockStartTags,
+            PreserveHtmlBlockBlankLineContent = source.PreserveHtmlBlockBlankLineContent,
             Paragraphs = source.Paragraphs,
             AutolinkUrls = source.AutolinkUrls,
+            AutolinkAllowDomainWithoutPeriod = source.AutolinkAllowDomainWithoutPeriod,
+            AutolinkAllowQueryAndFragmentSpecialCharacters = source.AutolinkAllowQueryAndFragmentSpecialCharacters,
+            AutolinkAllowBalancedParenthesesWithTrailingPunctuation = source.AutolinkAllowBalancedParenthesesWithTrailingPunctuation,
+            AutolinkAllowTrailingPunctuationBeforeClosingParenthesis = source.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis,
+            AutolinkTrimSingleTrailingPunctuationOrUnderscore = source.AutolinkTrimSingleTrailingPunctuationOrUnderscore,
+            AutolinkKeepTrailingSemicolonPunctuation = source.AutolinkKeepTrailingSemicolonPunctuation,
+            AutolinkRequireLowercaseWwwPrefix = source.AutolinkRequireLowercaseWwwPrefix,
+            AutolinkRejectUnderscoreInWwwHost = source.AutolinkRejectUnderscoreInWwwHost,
+            AutolinkRejectUnderscoreInWwwSubdomainLabels = source.AutolinkRejectUnderscoreInWwwSubdomainLabels,
+            AutolinkRejectUnderscoreInUrlHost = source.AutolinkRejectUnderscoreInUrlHost,
+            AutolinkRejectUserInfoAuthority = source.AutolinkRejectUserInfoAuthority,
+            AutolinkAllowClosingBracketInUrl = source.AutolinkAllowClosingBracketInUrl,
+            AutolinkKeepTrailingQuotePunctuation = source.AutolinkKeepTrailingQuotePunctuation,
+            AutolinkRequireLowercaseBareSchemePrefix = source.AutolinkRequireLowercaseBareSchemePrefix,
+            AutolinkBareMailtoDisplayAddressOnly = source.AutolinkBareMailtoDisplayAddressOnly,
+            AutolinkBareMailtoMarkdigSemicolonHandling = source.AutolinkBareMailtoMarkdigSemicolonHandling,
+            AutolinkValidPreviousCharacters = source.AutolinkValidPreviousCharacters,
+            AutolinkBareSchemeUrls = source.AutolinkBareSchemeUrls,
+            AutolinkBareSchemePrefixes = source.AutolinkBareSchemePrefixes == null
+                ? null
+                : (string[])source.AutolinkBareSchemePrefixes.Clone(),
             AutolinkWwwUrls = source.AutolinkWwwUrls,
             AutolinkWwwScheme = source.AutolinkWwwScheme,
             AutolinkEmails = source.AutolinkEmails,
             BackslashHardBreaks = source.BackslashHardBreaks,
+            SoftLineBreaksAsHardLineBreaks = source.SoftLineBreaksAsHardLineBreaks,
             InlineHtml = source.InlineHtml,
+            Abbreviations = source.Abbreviations,
+            GenericAttributes = source.GenericAttributes,
+            CustomContainers = source.CustomContainers,
             BaseUri = source.BaseUri,
             DisallowScriptUrls = source.DisallowScriptUrls,
             DisallowFileUrls = source.DisallowFileUrls,
@@ -38,6 +78,7 @@ public static partial class MarkdownReader {
             AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
             RestrictUrlSchemes = source.RestrictUrlSchemes,
             AllowedUrlSchemes = source.AllowedUrlSchemes,
+            PreserveTrivia = source.PreserveTrivia,
             MaxInputCharacters = source.MaxInputCharacters,
             InputNormalization = new MarkdownInputNormalizationOptions {
                 NormalizeZeroWidthSpacingArtifacts = source.InputNormalization?.NormalizeZeroWidthSpacingArtifacts ?? false,
@@ -77,6 +118,7 @@ public static partial class MarkdownReader {
 
         CopyBlockParserExtensions(source, clone);
         CopyInlineParserExtensions(source, clone);
+        CopyInlineTransformExtensions(source, clone);
         CopyFencedBlockExtensions(source, clone);
         CopyDocumentTransforms(source, clone);
         return clone;
@@ -162,8 +204,18 @@ public static partial class MarkdownReader {
     private static MarkdownReaderState CloneState(MarkdownReaderState state) {
         var clone = new MarkdownReaderState();
         foreach (var kvp in state.LinkRefs) clone.LinkRefs[kvp.Key] = kvp.Value;
+        foreach (var kvp in state.Abbreviations) clone.Abbreviations[kvp.Key] = kvp.Value;
         clone.SourceLineOffset = state.SourceLineOffset;
         clone.SourceTextMap = state.SourceTextMap;
+        clone.SourceLineAbsoluteNumbers = state.SourceLineAbsoluteNumbers;
+        clone.ListMarkerIndentOffset = state.ListMarkerIndentOffset;
+        clone.SuppressBlockGenericAttributes = state.SuppressBlockGenericAttributes;
+        clone.SuppressHeadingGenericAttributes = state.SuppressHeadingGenericAttributes;
+        clone.IsMarkdigDefinitionListBody = state.IsMarkdigDefinitionListBody;
+        foreach (var line in state.LazyQuoteContinuationLines) clone.LazyQuoteContinuationLines.Add(line);
+        foreach (var line in state.QuoteContainerLines) clone.QuoteContainerLines.Add(line);
+        foreach (var line in state.SuppressedSetextHeadingUnderlineLines) clone.SuppressedSetextHeadingUnderlineLines.Add(line);
+        foreach (var line in state.SuppressedParagraphGenericAttributeStartLines) clone.SuppressedParagraphGenericAttributeStartLines.Add(line);
         return clone;
     }
 
@@ -215,6 +267,25 @@ public static partial class MarkdownReader {
             var extension = extensions[i];
             if (extension != null) {
                 target.InlineParserExtensions.Add(extension);
+            }
+        }
+    }
+
+    private static void CopyInlineTransformExtensions(MarkdownReaderOptions source, MarkdownReaderOptions target) {
+        if (source == null || target == null) {
+            return;
+        }
+
+        var extensions = source.InlineTransformExtensions;
+        target.InlineTransformExtensions.Clear();
+        if (extensions.Count == 0) {
+            return;
+        }
+
+        for (int i = 0; i < extensions.Count; i++) {
+            var extension = extensions[i];
+            if (extension != null) {
+                target.InlineTransformExtensions.Add(extension);
             }
         }
     }

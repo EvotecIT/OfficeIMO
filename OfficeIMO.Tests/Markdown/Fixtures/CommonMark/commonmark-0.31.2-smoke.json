@@ -1,5 +1,301 @@
 [
   {
+    "example": 9,
+    "section": "Tabs",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": " - foo\n   - bar\n\t - baz\n",
+    "html": "<ul>\n<li>foo\n<ul>\n<li>bar\n<ul>\n<li>baz</li>\n</ul>\n</li>\n</ul>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 12,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\\!\\\"\\#\\$\\%\\&\\'\\(\\)\\*\\+\\,\\-\\.\\/\\:\\;\\<\\=\\>\\?\\@\\[\\\\\\]\\^\\_\\`\\{\\|\\}\\~\n",
+    "html": "<p>!&quot;#$%&amp;'()*+,-./:;&lt;=&gt;?@[\\]^_`{|}~</p>\n"
+  },
+  {
+    "example": 17,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`` \\[\\` ``\n",
+    "html": "<p><code>\\[\\`</code></p>\n"
+  },
+  {
+    "example": 18,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    \\[\\]\n",
+    "html": "<pre><code>\\[\\]\n</code></pre>\n"
+  },
+  {
+    "example": 19,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~\n\\[\\]\n~~~\n",
+    "html": "<pre><code>\\[\\]\n</code></pre>\n"
+  },
+  {
+    "example": 24,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "``` foo\\+bar\nfoo\n```\n",
+    "html": "<pre><code class=\"language-foo+bar\">foo\n</code></pre>\n"
+  },
+  {
+    "example": 25,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "&nbsp; &amp; &copy; &AElig; &Dcaron;\n&frac34; &HilbertSpace; &DifferentialD;\n&ClockwiseContourIntegral; &ngE;\n",
+    "html": "<p>  &amp; © Æ Ď\n¾ ℋ ⅆ\n∲ ≧̸</p>\n"
+  },
+  {
+    "example": 26,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "&#35; &#1234; &#992; &#0;\n",
+    "html": "<p># Ӓ Ϡ �</p>\n"
+  },
+  {
+    "example": 32,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo](/f&ouml;&ouml; \"f&ouml;&ouml;\")\n",
+    "html": "<p><a href=\"/f%C3%B6%C3%B6\" title=\"föö\">foo</a></p>\n"
+  },
+  {
+    "example": 34,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "``` f&ouml;&ouml;\nfoo\n```\n",
+    "html": "<pre><code class=\"language-föö\">foo\n</code></pre>\n"
+  },
+  {
+    "example": 35,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`f&ouml;&ouml;`\n",
+    "html": "<p><code>f&amp;ouml;&amp;ouml;</code></p>\n"
+  },
+  {
+    "example": 36,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    f&ouml;f&ouml;\n",
+    "html": "<pre><code>f&amp;ouml;f&amp;ouml;\n</code></pre>\n"
+  },
+  {
+    "example": 37,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "&#42;foo&#42;\n*foo*\n",
+    "html": "<p>*foo*\n<em>foo</em></p>\n"
+  },
+  {
+    "example": 38,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph", "UnorderedList"],
+    "markdown": "&#42; foo\n\n* foo\n",
+    "html": "<p>* foo</p>\n<ul>\n<li>foo</li>\n</ul>\n"
+  },
+  {
+    "example": 43,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule", "HorizontalRule", "HorizontalRule"],
+    "markdown": "***\n---\n___\n",
+    "html": "<hr />\n<hr />\n<hr />\n",
+    "syntaxAssertions": [
+      {
+        "description": "asterisk thematic break resolves as a horizontal rule",
+        "line": 1,
+        "column": 2,
+        "expectedPathKinds": ["Document", "HorizontalRule", "ThematicBreakMarker"],
+        "expectedDeepestLiteral": "***",
+        "expectedNearestBlockKind": "HorizontalRule",
+        "expectedNearestBlockLiteral": "---"
+      }
+    ]
+  },
+  {
+    "example": 44,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "+++\n",
+    "html": "<p>+++</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "plus signs alone are paragraph text, not thematic breaks",
+        "line": 1,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "+++",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 45,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "===\n",
+    "html": "<p>===</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "equals signs alone are paragraph text, not thematic breaks",
+        "line": 1,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "===",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 3 },
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 46,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "--\n**\n__\n",
+    "html": "<p>--\n**\n__</p>\n"
+  },
+  {
+    "example": 47,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule", "HorizontalRule", "HorizontalRule"],
+    "markdown": " ***\n  ***\n   ***\n",
+    "html": "<hr />\n<hr />\n<hr />\n"
+  },
+  {
+    "example": 48,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    ***\n",
+    "html": "<pre><code>***\n</code></pre>\n",
+    "syntaxAssertions": [
+      {
+        "description": "four-space indented stars are an indented code block, not a thematic break",
+        "line": 1,
+        "column": 5,
+        "expectedPathKinds": ["Document", "CodeBlock", "CodeContent"],
+        "expectedDeepestLiteral": "***",
+        "expectedNearestBlockKind": "CodeBlock"
+      }
+    ]
+  },
+  {
+    "example": 49,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Foo\n    ***\n",
+    "html": "<p>Foo\n***</p>\n"
+  },
+  {
+    "example": 50,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": "_____________________________________\n",
+    "html": "<hr />\n"
+  },
+  {
+    "example": 51,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": " - - -\n",
+    "html": "<hr />\n",
+    "syntaxAssertions": [
+      {
+        "description": "spaced dash markers form a thematic break",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "HorizontalRule", "ThematicBreakMarker"],
+        "expectedDeepestLiteral": "- - -",
+        "expectedNearestBlockKind": "HorizontalRule",
+        "expectedNearestBlockLiteral": "---"
+      }
+    ]
+  },
+  {
+    "example": 52,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": " **  * ** * ** * **\n",
+    "html": "<hr />\n"
+  },
+  {
+    "example": 53,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": "-     -      -      -\n",
+    "html": "<hr />\n"
+  },
+  {
+    "example": 54,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["HorizontalRule"],
+    "markdown": "- - - -    \n",
+    "html": "<hr />\n"
+  },
+  {
+    "example": 55,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph", "Paragraph", "Paragraph"],
+    "markdown": "_ _ _ _ a\n\na------\n\n---a---\n",
+    "html": "<p>_ _ _ _ a</p>\n<p>a------</p>\n<p>---a---</p>\n"
+  },
+  {
+    "example": 56,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": " *-*\n",
+    "html": "<p><em>-</em></p>\n"
+  },
+  {
+    "example": 57,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["UnorderedList", "HorizontalRule", "UnorderedList"],
+    "markdown": "- foo\n***\n- bar\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n<hr />\n<ul>\n<li>bar</li>\n</ul>\n"
+  },
+  {
+    "example": 58,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Paragraph", "HorizontalRule", "Paragraph"],
+    "markdown": "Foo\n***\nbar\n",
+    "html": "<p>Foo</p>\n<hr />\n<p>bar</p>\n"
+  },
+  {
+    "example": 59,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["Heading", "Paragraph"],
+    "markdown": "Foo\n---\nbar\n",
+    "html": "<h2>Foo</h2>\n<p>bar</p>\n"
+  },
+  {
+    "example": 60,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["UnorderedList", "HorizontalRule", "UnorderedList"],
+    "markdown": "* Foo\n* * *\n* Bar\n",
+    "html": "<ul>\n<li>Foo</li>\n</ul>\n<hr />\n<ul>\n<li>Bar</li>\n</ul>\n"
+  },
+  {
+    "example": 61,
+    "section": "Thematic breaks",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- Foo\n- * * *\n",
+    "html": "<ul>\n<li>Foo</li>\n<li>\n<hr />\n</li>\n</ul>\n",
+    "syntaxAssertions": [
+      {
+        "description": "thematic break can appear as the block content of a list item",
+        "line": 2,
+        "column": 4,
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "HorizontalRule", "ThematicBreakMarker"],
+        "expectedDeepestLiteral": "* * *",
+        "expectedNearestBlockKind": "HorizontalRule",
+        "expectedNearestBlockLiteral": "---"
+      }
+    ]
+  },
+  {
     "example": 62,
     "section": "ATX headings",
     "topLevelKinds": ["Heading", "Heading", "Heading", "Heading", "Heading", "Heading"],
@@ -17,6 +313,27 @@
         "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 5 }
       }
     ]
+  },
+  {
+    "example": 63,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "####### foo\n",
+    "html": "<p>####### foo</p>\n"
+  },
+  {
+    "example": 64,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "#5 bolt\n\n#hashtag\n",
+    "html": "<p>#5 bolt</p>\n<p>#hashtag</p>\n"
+  },
+  {
+    "example": 65,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\\## foo\n",
+    "html": "<p>## foo</p>\n"
   },
   {
     "example": 66,
@@ -37,11 +354,305 @@
     ]
   },
   {
+    "example": 67,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "#                  foo                     \n",
+    "html": "<h1>foo</h1>\n"
+  },
+  {
+    "example": 68,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading", "Heading"],
+    "markdown": " ### foo\n  ## foo\n   # foo\n",
+    "html": "<h3>foo</h3>\n<h2>foo</h2>\n<h1>foo</h1>\n"
+  },
+  {
+    "example": 69,
+    "section": "ATX headings",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    # foo\n",
+    "html": "<pre><code># foo\n</code></pre>\n"
+  },
+  {
+    "example": 70,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo\n    # bar\n",
+    "html": "<p>foo\n# bar</p>\n"
+  },
+  {
+    "example": 71,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading"],
+    "markdown": "## foo ##\n  ###   bar    ###\n",
+    "html": "<h2>foo</h2>\n<h3>bar</h3>\n"
+  },
+  {
+    "example": 72,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading"],
+    "markdown": "# foo ##################################\n##### foo ##\n",
+    "html": "<h1>foo</h1>\n<h5>foo</h5>\n"
+  },
+  {
+    "example": 73,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "### foo ###     \n",
+    "html": "<h3>foo</h3>\n"
+  },
+  {
+    "example": 74,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "### foo ### b\n",
+    "html": "<h3>foo ### b</h3>\n"
+  },
+  {
+    "example": 75,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "# foo#\n",
+    "html": "<h1>foo#</h1>\n",
+    "syntaxAssertions": [
+      {
+        "description": "hashes not preceded by spaces remain heading text",
+        "line": 1,
+        "column": 6,
+        "expectedPathKinds": ["Document", "Heading", "HeadingText", "InlineText"],
+        "expectedDeepestLiteral": "foo#",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 3, "endLine": 1, "endColumn": 6 },
+        "expectedNearestBlockKind": "Heading"
+      }
+    ]
+  },
+  {
+    "example": 76,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading", "Heading"],
+    "markdown": "### foo \\###\n## foo #\\##\n# foo \\#\n",
+    "html": "<h3>foo ###</h3>\n<h2>foo ###</h2>\n<h1>foo #</h1>\n",
+    "syntaxAssertions": [
+      {
+        "description": "escaped closing ATX marker characters stay in heading text",
+        "line": 1,
+        "column": 10,
+        "expectedPathKinds": ["Document", "Heading", "HeadingText", "InlineText", "InlineEscapedCharacter"],
+        "expectedDeepestLiteral": "#",
+        "expectedNearestBlockKind": "Heading"
+      }
+    ]
+  },
+  {
+    "example": 77,
+    "section": "ATX headings",
+    "topLevelKinds": ["HorizontalRule", "Heading", "HorizontalRule"],
+    "markdown": "****\n## foo\n****\n",
+    "html": "<hr />\n<h2>foo</h2>\n<hr />\n"
+  },
+  {
+    "example": 78,
+    "section": "ATX headings",
+    "topLevelKinds": ["Paragraph", "Heading", "Paragraph"],
+    "markdown": "Foo bar\n# baz\nBar foo\n",
+    "html": "<p>Foo bar</p>\n<h1>baz</h1>\n<p>Bar foo</p>\n"
+  },
+  {
+    "example": 79,
+    "section": "ATX headings",
+    "topLevelKinds": ["Heading", "Heading", "Heading"],
+    "markdown": "## \n#\n### ###\n",
+    "html": "<h2></h2>\n<h1></h1>\n<h3></h3>\n"
+  },
+  {
     "example": 80,
     "section": "Setext headings",
     "topLevelKinds": ["Heading", "Heading"],
     "markdown": "Foo *bar*\n=========\n\nFoo *bar*\n---------\n",
     "html": "<h1>Foo <em>bar</em></h1>\n<h2>Foo <em>bar</em></h2>\n"
+  },
+  {
+    "example": 81,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "Foo *bar\nbaz*\n====\n",
+    "html": "<h1>Foo <em>bar\nbaz</em></h1>\n"
+  },
+  {
+    "example": 82,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "  Foo *bar\nbaz*\t\n====\n",
+    "html": "<h1>Foo <em>bar\nbaz</em></h1>\n"
+  },
+  {
+    "example": 83,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading", "Heading"],
+    "markdown": "Foo\n-------------------------\n\nFoo\n=\n",
+    "html": "<h2>Foo</h2>\n<h1>Foo</h1>\n"
+  },
+  {
+    "example": 84,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading", "Heading", "Heading"],
+    "markdown": "   Foo\n---\n\n  Foo\n-----\n\n  Foo\n  ===\n",
+    "html": "<h2>Foo</h2>\n<h2>Foo</h2>\n<h1>Foo</h1>\n"
+  },
+  {
+    "example": 85,
+    "section": "Setext headings",
+    "topLevelKinds": ["CodeBlock", "HorizontalRule"],
+    "markdown": "    Foo\n    ---\n\n    Foo\n---\n",
+    "html": "<pre><code>Foo\n---\n\nFoo\n</code></pre>\n<hr />\n"
+  },
+  {
+    "example": 86,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "Foo\n   ----      \n",
+    "html": "<h2>Foo</h2>\n"
+  },
+  {
+    "example": 87,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Foo\n    ---\n",
+    "html": "<p>Foo\n---</p>\n"
+  },
+  {
+    "example": 88,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph", "Paragraph", "HorizontalRule"],
+    "markdown": "Foo\n= =\n\nFoo\n--- -\n",
+    "html": "<p>Foo\n= =</p>\n<p>Foo</p>\n<hr />\n"
+  },
+  {
+    "example": 89,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "Foo  \n-----\n",
+    "html": "<h2>Foo</h2>\n"
+  },
+  {
+    "example": 90,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "Foo\\\n----\n",
+    "html": "<h2>Foo\\</h2>\n"
+  },
+  {
+    "example": 91,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading", "Paragraph", "Heading", "Paragraph"],
+    "markdown": "`Foo\n----\n`\n\n<a title=\"a lot\n---\nof dashes\"/>\n",
+    "html": "<h2>`Foo</h2>\n<p>`</p>\n<h2>&lt;a title=&quot;a lot</h2>\n<p>of dashes&quot;/&gt;</p>\n"
+  },
+  {
+    "example": 92,
+    "section": "Setext headings",
+    "topLevelKinds": ["Quote", "HorizontalRule"],
+    "markdown": "> Foo\n---\n",
+    "html": "<blockquote>\n<p>Foo</p>\n</blockquote>\n<hr />\n"
+  },
+  {
+    "example": 93,
+    "section": "Setext headings",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> foo\nbar\n===\n",
+    "html": "<blockquote>\n<p>foo\nbar\n===</p>\n</blockquote>\n"
+  },
+  {
+    "example": 94,
+    "section": "Setext headings",
+    "topLevelKinds": ["UnorderedList", "HorizontalRule"],
+    "markdown": "- Foo\n---\n",
+    "html": "<ul>\n<li>Foo</li>\n</ul>\n<hr />\n"
+  },
+  {
+    "example": 95,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "Foo\nBar\n---\n",
+    "html": "<h2>Foo\nBar</h2>\n"
+  },
+  {
+    "example": 96,
+    "section": "Setext headings",
+    "topLevelKinds": ["HorizontalRule", "Heading", "Heading", "Paragraph"],
+    "markdown": "---\nFoo\n---\nBar\n---\nBaz\n",
+    "html": "<hr />\n<h2>Foo</h2>\n<h2>Bar</h2>\n<p>Baz</p>\n"
+  },
+  {
+    "example": 97,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\n====\n",
+    "html": "<p>====</p>\n"
+  },
+  {
+    "example": 98,
+    "section": "Setext headings",
+    "topLevelKinds": ["HorizontalRule", "HorizontalRule"],
+    "markdown": "---\n---\n",
+    "html": "<hr />\n<hr />\n"
+  },
+  {
+    "example": 99,
+    "section": "Setext headings",
+    "topLevelKinds": ["UnorderedList", "HorizontalRule"],
+    "markdown": "- foo\n-----\n",
+    "html": "<ul>\n<li>foo</li>\n</ul>\n<hr />\n"
+  },
+  {
+    "example": 100,
+    "section": "Setext headings",
+    "topLevelKinds": ["CodeBlock", "HorizontalRule"],
+    "markdown": "    foo\n---\n",
+    "html": "<pre><code>foo\n</code></pre>\n<hr />\n"
+  },
+  {
+    "example": 101,
+    "section": "Setext headings",
+    "topLevelKinds": ["Quote", "HorizontalRule"],
+    "markdown": "> foo\n-----\n",
+    "html": "<blockquote>\n<p>foo</p>\n</blockquote>\n<hr />\n"
+  },
+  {
+    "example": 102,
+    "section": "Setext headings",
+    "topLevelKinds": ["Heading"],
+    "markdown": "\\> foo\n------\n",
+    "html": "<h2>&gt; foo</h2>\n"
+  },
+  {
+    "example": 103,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph", "Heading", "Paragraph"],
+    "markdown": "Foo\n\nbar\n---\nbaz\n",
+    "html": "<p>Foo</p>\n<h2>bar</h2>\n<p>baz</p>\n"
+  },
+  {
+    "example": 104,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph", "HorizontalRule", "Paragraph"],
+    "markdown": "Foo\nbar\n\n---\n\nbaz\n",
+    "html": "<p>Foo\nbar</p>\n<hr />\n<p>baz</p>\n"
+  },
+  {
+    "example": 105,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph", "HorizontalRule", "Paragraph"],
+    "markdown": "Foo\nbar\n* * *\nbaz\n",
+    "html": "<p>Foo\nbar</p>\n<hr />\n<p>baz</p>\n"
+  },
+  {
+    "example": 106,
+    "section": "Setext headings",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Foo\nbar\n\\---\nbaz\n",
+    "html": "<p>Foo\nbar\n---\nbaz</p>\n"
   },
   {
     "example": 107,
@@ -51,6 +662,13 @@
     "html": "<pre><code>a simple\n  indented code block\n</code></pre>\n"
   },
   {
+    "example": 111,
+    "section": "Indented code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    chunk1\n\n    chunk2\n  \n \n \n    chunk3\n",
+    "html": "<pre><code>chunk1\n\nchunk2\n\n\n\nchunk3\n</code></pre>\n"
+  },
+  {
     "example": 119,
     "section": "Fenced code blocks",
     "topLevelKinds": ["CodeBlock"],
@@ -58,11 +676,490 @@
     "html": "<pre><code>&lt;\n &gt;\n</code></pre>\n"
   },
   {
+    "example": 120,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~\n<\n >\n~~~\n",
+    "html": "<pre><code>&lt;\n &gt;\n</code></pre>\n"
+  },
+  {
+    "example": 121,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "``\nfoo\n``\n",
+    "html": "<p><code>foo</code></p>\n"
+  },
+  {
     "example": 122,
     "section": "Fenced code blocks",
     "topLevelKinds": ["CodeBlock"],
     "markdown": "```\naaa\n~~~\n```\n",
     "html": "<pre><code>aaa\n~~~\n</code></pre>\n"
+  },
+  {
+    "example": 123,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~\naaa\n```\n~~~\n",
+    "html": "<pre><code>aaa\n```\n</code></pre>\n"
+  },
+  {
+    "example": 124,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "````\naaa\n```\n``````\n",
+    "html": "<pre><code>aaa\n```\n</code></pre>\n"
+  },
+  {
+    "example": 125,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~~\naaa\n~~~\n~~~~\n",
+    "html": "<pre><code>aaa\n~~~\n</code></pre>\n"
+  },
+  {
+    "example": 126,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\n",
+    "html": "<pre><code></code></pre>\n"
+  },
+  {
+    "example": 127,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "`````\n\n```\naaa\n",
+    "html": "<pre><code>\n```\naaa\n</code></pre>\n"
+  },
+  {
+    "example": 128,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["Quote", "Paragraph"],
+    "markdown": "> ```\n> aaa\n\nbbb\n",
+    "html": "<blockquote>\n<pre><code>aaa\n</code></pre>\n</blockquote>\n<p>bbb</p>\n"
+  },
+  {
+    "example": 129,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\n\n  \n```\n",
+    "html": "<pre><code>\n  \n</code></pre>\n"
+  },
+  {
+    "example": 130,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\n```\n",
+    "html": "<pre><code></code></pre>\n"
+  },
+  {
+    "example": 131,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": " ```\n aaa\naaa\n```\n",
+    "html": "<pre><code>aaa\naaa\n</code></pre>\n"
+  },
+  {
+    "example": 132,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "  ```\naaa\n  aaa\naaa\n  ```\n",
+    "html": "<pre><code>aaa\naaa\naaa\n</code></pre>\n"
+  },
+  {
+    "example": 133,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "   ```\n   aaa\n    aaa\n  aaa\n   ```\n",
+    "html": "<pre><code>aaa\n aaa\naaa\n</code></pre>\n"
+  },
+  {
+    "example": 134,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    ```\n    aaa\n    ```\n",
+    "html": "<pre><code>```\naaa\n```\n</code></pre>\n"
+  },
+  {
+    "example": 135,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\naaa\n  ```\n",
+    "html": "<pre><code>aaa\n</code></pre>\n"
+  },
+  {
+    "example": 136,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "   ```\naaa\n  ```\n",
+    "html": "<pre><code>aaa\n</code></pre>\n"
+  },
+  {
+    "example": 137,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\naaa\n    ```\n",
+    "html": "<pre><code>aaa\n    ```\n</code></pre>\n"
+  },
+  {
+    "example": 138,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "``` ```\naaa\n",
+    "html": "<p><code> </code>\naaa</p>\n"
+  },
+  {
+    "example": 139,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~~~~\naaa\n~~~ ~~\n",
+    "html": "<pre><code>aaa\n~~~ ~~\n</code></pre>\n"
+  },
+  {
+    "example": 140,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["Paragraph", "CodeBlock", "Paragraph"],
+    "markdown": "foo\n```\nbar\n```\nbaz\n",
+    "html": "<p>foo</p>\n<pre><code>bar\n</code></pre>\n<p>baz</p>\n"
+  },
+  {
+    "example": 141,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["Heading", "CodeBlock", "Heading"],
+    "markdown": "foo\n---\n~~~\nbar\n~~~\n# baz\n",
+    "html": "<h2>foo</h2>\n<pre><code>bar\n</code></pre>\n<h1>baz</h1>\n"
+  },
+  {
+    "example": 142,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```ruby\ndef foo(x)\n  return 3\nend\n```\n",
+    "html": "<pre><code class=\"language-ruby\">def foo(x)\n  return 3\nend\n</code></pre>\n"
+  },
+  {
+    "example": 143,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~~    ruby startline=3 $%@#$\ndef foo(x)\n  return 3\nend\n~~~~~~~\n",
+    "html": "<pre><code class=\"language-ruby\">def foo(x)\n  return 3\nend\n</code></pre>\n"
+  },
+  {
+    "example": 144,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "````;\n````\n",
+    "html": "<pre><code class=\"language-;\"></code></pre>\n"
+  },
+  {
+    "example": 145,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "``` aa ```\nfoo\n",
+    "html": "<p><code>aa</code>\nfoo</p>\n"
+  },
+  {
+    "example": 146,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "~~~ aa ``` ~~~\nfoo\n~~~\n",
+    "html": "<pre><code class=\"language-aa\">foo\n</code></pre>\n"
+  },
+  {
+    "example": 147,
+    "section": "Fenced code blocks",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "```\n``` aaa\n```\n",
+    "html": "<pre><code>``` aaa\n</code></pre>\n"
+  },
+  {
+    "example": 185,
+    "section": "HTML blocks",
+    "topLevelKinds": ["Paragraph", "HtmlRaw"],
+    "markdown": "Foo\n<div>\nbar\n</div>\n",
+    "html": "<p>Foo</p>\n<div>\nbar\n</div>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark type 6 HTML blocks can interrupt after paragraph text",
+        "line": 2,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
+        "expectedNearestBlockKind": "HtmlRaw"
+      },
+      {
+        "description": "the preceding line remains a normal paragraph before the interrupting HTML block",
+        "line": 1,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "Foo",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 149,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<table>\n  <tr>\n    <td>\n           hi\n    </td>\n  </tr>\n</table>\n\nokay.\n",
+    "html": "<table>\n  <tr>\n    <td>\n           hi\n    </td>\n  </tr>\n</table>\n<p>okay.</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark table HTML blocks preserve their raw block until the blank-line boundary",
+        "line": 1,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
+        "expectedNearestBlockKind": "HtmlRaw"
+      },
+      {
+        "description": "content after a blank line following an HTML table block becomes a paragraph",
+        "line": 9,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "okay.",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 153,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div id=\"foo\"\n  class=\"bar\">\n</div>\n",
+    "html": "<div id=\"foo\"\n  class=\"bar\">\n</div>\n"
+  },
+  {
+    "example": 154,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div id=\"foo\" class=\"bar\n  baz\">\n</div>\n",
+    "html": "<div id=\"foo\" class=\"bar\n  baz\">\n</div>\n"
+  },
+  {
+    "example": 156,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div id=\"foo\"\n*hi*\n",
+    "html": "<div id=\"foo\"\n*hi*\n"
+  },
+  {
+    "example": 157,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div class\nfoo\n",
+    "html": "<div class\nfoo\n"
+  },
+  {
+    "example": 158,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<div *???-&&&-<---\n*foo*\n",
+    "html": "<div *???-&&&-<---\n*foo*\n"
+  },
+  {
+    "example": 168,
+    "section": "HTML blocks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<del>*foo*</del>\n",
+    "html": "<p><del><em>foo</em></del></p>\n"
+  },
+  {
+    "example": 169,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<pre language=\"haskell\"><code>\nimport Text.HTML.TagSoup\n\nmain :: IO ()\nmain = print $ parseTags tags\n</code></pre>\nokay\n",
+    "html": "<pre language=\"haskell\"><code>\nimport Text.HTML.TagSoup\n\nmain :: IO ()\nmain = print $ parseTags tags\n</code></pre>\n<p>okay</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark type 1 pre blocks continue through blank lines until their matching end tag",
+        "line": 1,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
+        "expectedNearestBlockKind": "HtmlRaw"
+      },
+      {
+        "description": "text after the pre end tag starts a normal paragraph",
+        "line": 7,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "okay",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 170,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<script type=\"text/javascript\">\n// JavaScript example\n\ndocument.getElementById(\"demo\").innerHTML = \"Hello JavaScript!\";\n</script>\nokay\n",
+    "html": "<script type=\"text/javascript\">\n// JavaScript example\n\ndocument.getElementById(\"demo\").innerHTML = \"Hello JavaScript!\";\n</script>\n<p>okay</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark type 1 script blocks continue through blank lines until their matching end tag",
+        "line": 1,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
+  },
+  {
+    "example": 171,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<textarea>\n\n*foo*\n\n_bar_\n\n</textarea>\n",
+    "html": "<textarea>\n\n*foo*\n\n_bar_\n\n</textarea>\n"
+  },
+  {
+    "example": 172,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<style\n  type=\"text/css\">\nh1 {color:red;}\n\np {color:blue;}\n</style>\nokay\n",
+    "html": "<style\n  type=\"text/css\">\nh1 {color:red;}\n\np {color:blue;}\n</style>\n<p>okay</p>\n"
+  },
+  {
+    "example": 173,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw"],
+    "markdown": "<style\n  type=\"text/css\">\n\nfoo\n",
+    "html": "<style\n  type=\"text/css\">\n\nfoo\n"
+  },
+  {
+    "example": 174,
+    "section": "HTML blocks",
+    "topLevelKinds": ["Quote", "Paragraph"],
+    "markdown": "> <div>\n> foo\n\nbar\n",
+    "html": "<blockquote>\n<div>\nfoo\n</blockquote>\n<p>bar</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "raw HTML inside a blockquote keeps the quote boundary before the following paragraph",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Quote", "HtmlRaw", "HtmlRawOpeningTag"],
+        "expectedDeepestKind": "HtmlRawOpeningTag",
+        "expectedNearestBlockKind": "HtmlRaw"
+      },
+      {
+        "description": "the unquoted line after the blank line starts a normal paragraph",
+        "line": 4,
+        "column": 1,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
+        "expectedDeepestLiteral": "bar",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 179,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlComment", "Paragraph"],
+    "markdown": "<!-- Foo\n\nbar\n   baz -->\nokay\n",
+    "html": "<!-- Foo\n\nbar\n   baz -->\n<p>okay</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark HTML comments continue through blank lines until the closing comment marker",
+        "line": 1,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlComment", "HtmlCommentOpeningMarker"],
+        "expectedDeepestKind": "HtmlCommentOpeningMarker",
+        "expectedNearestBlockKind": "HtmlComment"
+      }
+    ]
+  },
+  {
+    "example": 180,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<?php\n\n  echo '>';\n\n?>\nokay\n",
+    "html": "<?php\n\n  echo '>';\n\n?>\n<p>okay</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark processing-instruction HTML blocks ignore inner greater-than characters until ?>",
+        "line": 3,
+        "column": 9,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],
+        "expectedDeepestKind": "HtmlRawBody",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
+  },
+  {
+    "example": 181,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<!DOCTYPE html>\nokay\n",
+    "html": "<!DOCTYPE html>\n<p>okay</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark declaration HTML blocks expose declaration marker and body tokens",
+        "line": 1,
+        "column": 6,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],
+        "expectedDeepestKind": "HtmlRawBody",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
+  },
+  {
+    "example": 182,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph"],
+    "markdown": "<![CDATA[\nfunction matchwo(a,b)\n{\n  if (a < b && a < 0) then {\n    return 1;\n\n  } else {\n\n    return 0;\n  }\n}\n]]>\nokay\n",
+    "html": "<![CDATA[\nfunction matchwo(a,b)\n{\n  if (a < b && a < 0) then {\n    return 1;\n\n  } else {\n\n    return 0;\n  }\n}\n]]>\n<p>okay</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark CDATA HTML blocks continue through nested blank lines until ]]>",
+        "line": 1,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawOpeningMarker"],
+        "expectedDeepestKind": "HtmlRawOpeningMarker",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
+  },
+  {
+    "example": 188,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "Paragraph", "HtmlRaw"],
+    "markdown": "<div>\n\n*Emphasized* text.\n\n</div>\n",
+    "html": "<div>\n<p><em>Emphasized</em> text.</p>\n</div>\n",
+    "syntaxAssertions": [
+      {
+        "description": "blank lines around type 6 HTML block tags allow Markdown paragraphs between raw tags",
+        "line": 3,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineEmphasis", "InlineText"],
+        "expectedDeepestLiteral": "Emphasized",
+        "expectedNearestBlockKind": "Paragraph"
+      },
+      {
+        "description": "the closing HTML tag remains a source-addressable raw HTML block",
+        "line": 5,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlRaw"],
+        "expectedDeepestKind": "HtmlRaw",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
+  },
+  {
+    "example": 190,
+    "section": "HTML blocks",
+    "topLevelKinds": ["HtmlRaw", "HtmlRaw", "HtmlRaw", "HtmlRaw", "HtmlRaw"],
+    "markdown": "<table>\n\n<tr>\n\n<td>\nHi\n</td>\n\n</tr>\n\n</table>\n",
+    "html": "<table>\n<tr>\n<td>\nHi\n</td>\n</tr>\n</table>\n",
+    "syntaxAssertions": [
+      {
+        "description": "CommonMark table HTML blocks split at blank lines while preserving raw body source mapping",
+        "line": 6,
+        "column": 1,
+        "expectedPathKinds": ["Document", "HtmlRaw", "HtmlRawBody"],
+        "expectedDeepestKind": "HtmlRawBody",
+        "expectedNearestBlockKind": "HtmlRaw"
+      }
+    ]
   },
   {
     "example": 193,
@@ -113,6 +1210,13 @@
     ]
   },
   {
+    "example": 196,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[foo]: /url '\ntitle\nline1\nline2\n'\n\n[foo]\n",
+    "html": "<p><a href=\"/url\" title=\"\ntitle\nline1\nline2\n\">foo</a></p>\n"
+  },
+  {
     "example": 205,
     "section": "Link reference definitions",
     "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
@@ -132,6 +1236,13 @@
     ]
   },
   {
+    "example": 201,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "[foo]: <bar>(baz)\n\n[foo]\n",
+    "html": "<p>[foo]: <bar>(baz)</p>\n<p>[foo]</p>\n"
+  },
+  {
     "example": 206,
     "section": "Link reference definitions",
     "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
@@ -149,6 +1260,32 @@
         "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 11 }
       }
     ]
+  },
+  {
+    "example": 208,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["ReferenceLinkDefinition", "Paragraph"],
+    "markdown": "[\nfoo\n]: /url\nbar\n",
+    "html": "<p>bar</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "multiline reference labels keep separator markers addressable when the closing bracket starts a line",
+        "line": 3,
+        "column": 1,
+        "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkSeparatorMarker"],
+        "expectedDeepestLiteral": "]:",
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 1, "endLine": 3, "endColumn": 2 },
+        "expectedNearestBlockKind": "ReferenceLinkDefinition",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 3, "endColumn": 7 }
+      }
+    ]
+  },
+  {
+    "example": 213,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "Foo\n[bar]: /baz\n\n[bar]\n",
+    "html": "<p>Foo\n[bar]: /baz</p>\n<p>[bar]</p>\n"
   },
   {
     "example": 217,
@@ -178,6 +1315,13 @@
         "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 1, "endLine": 8, "endColumn": 5 }
       }
     ]
+  },
+  {
+    "example": 218,
+    "section": "Link reference definitions",
+    "topLevelKinds": ["Paragraph", "Quote"],
+    "markdown": "[foo]\n\n> [foo]: /url\n",
+    "html": "<p><a href=\"/url\">foo</a></p>\n<blockquote>\n</blockquote>\n"
   },
   {
     "example": 541,
@@ -212,7 +1356,7 @@
     "example": 540,
     "section": "Full reference links",
     "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
-    "markdown": "[ẞ]\n[SS]: /url\n",
+    "markdown": "[ẞ]\n\n[SS]: /url\n",
     "html": "<p><a href=\"/url\">ẞ</a></p>\n",
     "syntaxAssertions": [
       {
@@ -227,15 +1371,23 @@
       },
       {
         "description": "the original definition label span still points at the unfolded label text",
-        "line": 2,
+        "line": 3,
         "column": 2,
         "expectedPathKinds": ["Document", "ReferenceLinkDefinition", "ReferenceLinkLabel"],
         "expectedDeepestLiteral": "ss",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 2, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 3, "startColumn": 2, "endLine": 3, "endColumn": 3 },
         "expectedNearestBlockKind": "ReferenceLinkDefinition",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 1, "endLine": 2, "endColumn": 10 }
+        "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 1, "endLine": 3, "endColumn": 10 }
       }
     ]
+  },
+  {
+    "example": 545,
+    "section": "Full reference links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "description": "unresolved reference labels reprocess backslash escapes as literal inline text",
+    "markdown": "[bar][foo\\!]\n\n[foo!]: /url\n",
+    "html": "<p>[bar][foo!]</p>\n"
   },
   {
     "example": 553,
@@ -265,16 +1417,6 @@
         "expectedPathKinds": ["Document", "Paragraph", "InlineLink", "InlineText"],
         "expectedDeepestLiteral": "foo",
         "expectedDeepestSpan": { "startLine": 1, "startColumn": 2, "endLine": 1, "endColumn": 4 },
-        "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 17 }
-      },
-      {
-        "description": "the trailing parenthesized text remains literal paragraph text after the shortcut reference",
-        "line": 1,
-        "column": 8,
-        "expectedPathKinds": ["Document", "Paragraph", "InlineText"],
-        "expectedDeepestLiteral": "(not a link)",
-        "expectedDeepestSpan": { "startLine": 1, "startColumn": 6, "endLine": 1, "endColumn": 17 },
         "expectedNearestBlockKind": "Paragraph",
         "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 17 }
       }
@@ -348,6 +1490,132 @@
     ]
   },
   {
+    "example": 219,
+    "section": "Paragraphs",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "aaa\n\nbbb\n",
+    "html": "<p>aaa</p>\n<p>bbb</p>\n"
+  },
+  {
+    "example": 220,
+    "section": "Paragraphs",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "aaa\nbbb\n\nccc\nddd\n",
+    "html": "<p>aaa\nbbb</p>\n<p>ccc\nddd</p>\n"
+  },
+  {
+    "example": 221,
+    "section": "Paragraphs",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "aaa\n\n\nbbb\n",
+    "html": "<p>aaa</p>\n<p>bbb</p>\n"
+  },
+  {
+    "example": 222,
+    "section": "Paragraphs",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "  aaa\n bbb\n",
+    "html": "<p>aaa\nbbb</p>\n"
+  },
+  {
+    "example": 223,
+    "section": "Paragraphs",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "aaa\n             bbb\n                                       ccc\n",
+    "html": "<p>aaa\nbbb\nccc</p>\n"
+  },
+  {
+    "example": 224,
+    "section": "Paragraphs",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "   aaa\nbbb\n",
+    "html": "<p>aaa\nbbb</p>\n"
+  },
+  {
+    "example": 225,
+    "section": "Paragraphs",
+    "topLevelKinds": ["CodeBlock", "Paragraph"],
+    "markdown": "    aaa\nbbb\n",
+    "html": "<pre><code>aaa\n</code></pre>\n<p>bbb</p>\n"
+  },
+  {
+    "example": 226,
+    "section": "Paragraphs",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "aaa     \nbbb     \n",
+    "html": "<p>aaa<br />\nbbb</p>\n"
+  },
+  {
+    "example": 633,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo  \nbaz\n",
+    "html": "<p>foo<br />\nbaz</p>\n"
+  },
+  {
+    "example": 635,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo       \nbaz\n",
+    "html": "<p>foo<br />\nbaz</p>\n"
+  },
+  {
+    "example": 636,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo  \n     bar\n",
+    "html": "<p>foo<br />\nbar</p>\n"
+  },
+  {
+    "example": 637,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo\\\n     bar\n",
+    "html": "<p>foo<br />\nbar</p>\n"
+  },
+  {
+    "example": 641,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`code\\\nspan`\n",
+    "html": "<p><code>code\\ span</code></p>\n"
+  },
+  {
+    "example": 642,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"foo  \nbar\">\n",
+    "html": "<p><a href=\"foo  \nbar\"></p>\n"
+  },
+  {
+    "example": 643,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"foo\\\nbar\">\n",
+    "html": "<p><a href=\"foo\\\nbar\"></p>\n"
+  },
+  {
+    "example": 644,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo\\\n",
+    "html": "<p>foo\\</p>\n"
+  },
+  {
+    "example": 648,
+    "section": "Soft line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo\nbaz\n",
+    "html": "<p>foo\nbaz</p>\n"
+  },
+  {
+    "example": 649,
+    "section": "Soft line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo \n baz\n",
+    "html": "<p>foo\nbaz</p>\n"
+  },
+  {
     "example": 228,
     "section": "Block quotes",
     "topLevelKinds": ["Quote"],
@@ -375,6 +1643,97 @@
         "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 3, "endColumn": 5 }
       }
     ]
+  },
+  {
+    "example": 229,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": "># Foo\n>bar\n> baz\n",
+    "html": "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>\n"
+  },
+  {
+    "example": 231,
+    "section": "Block quotes",
+    "topLevelKinds": ["CodeBlock"],
+    "markdown": "    > # Foo\n    > bar\n    > baz\n",
+    "html": "<pre><code>&gt; # Foo\n&gt; bar\n&gt; baz\n</code></pre>\n"
+  },
+  {
+    "example": 232,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> # Foo\n> bar\nbaz\n",
+    "html": "<blockquote>\n<h1>Foo</h1>\n<p>bar\nbaz</p>\n</blockquote>\n"
+  },
+  {
+    "example": 233,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> bar\nbaz\n> foo\n",
+    "html": "<blockquote>\n<p>bar\nbaz\nfoo</p>\n</blockquote>\n"
+  },
+  {
+    "example": 234,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote", "HorizontalRule"],
+    "markdown": "> foo\n---\n",
+    "html": "<blockquote>\n<p>foo</p>\n</blockquote>\n<hr />\n"
+  },
+  {
+    "example": 235,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote", "UnorderedList"],
+    "markdown": "> - foo\n- bar\n",
+    "html": "<blockquote>\n<ul>\n<li>foo</li>\n</ul>\n</blockquote>\n<ul>\n<li>bar</li>\n</ul>\n"
+  },
+  {
+    "example": 238,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> foo\n    - bar\n",
+    "html": "<blockquote>\n<p>foo\n- bar</p>\n</blockquote>\n"
+  },
+  {
+    "example": 247,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> bar\nbaz\n",
+    "html": "<blockquote>\n<p>bar\nbaz</p>\n</blockquote>\n"
+  },
+  {
+    "example": 250,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> > > foo\nbar\n",
+    "html": "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar</p>\n</blockquote>\n</blockquote>\n</blockquote>\n"
+  },
+  {
+    "example": 242,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote", "Quote"],
+    "markdown": "> foo\n\n> bar\n",
+    "html": "<blockquote>\n<p>foo</p>\n</blockquote>\n<blockquote>\n<p>bar</p>\n</blockquote>\n"
+  },
+  {
+    "example": 251,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote"],
+    "markdown": ">>> foo\n> bar\n>>baz\n",
+    "html": "<blockquote>\n<blockquote>\n<blockquote>\n<p>foo\nbar\nbaz</p>\n</blockquote>\n</blockquote>\n</blockquote>\n"
+  },
+  {
+    "example": 252,
+    "section": "Block quotes",
+    "topLevelKinds": ["Quote", "Quote"],
+    "markdown": ">     code\n\n>    not code\n",
+    "html": "<blockquote>\n<pre><code>code\n</code></pre>\n</blockquote>\n<blockquote>\n<p>not code</p>\n</blockquote>\n"
+  },
+  {
+    "example": 253,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph", "CodeBlock", "Quote"],
+    "markdown": "A paragraph\nwith two lines.\n\n    indented code\n\n> A block quote.\n",
+    "html": "<p>A paragraph\nwith two lines.</p>\n<pre><code>indented code\n</code></pre>\n<blockquote>\n<p>A block quote.</p>\n</blockquote>\n"
   },
   {
     "example": 254,
@@ -406,14 +1765,21 @@
       {
         "description": "nested block quote content stays under the same list item",
         "line": 6,
-        "column": 5,
+        "column": 7,
         "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "A block quote.",
-        "expectedDeepestSpan": { "startLine": 6, "startColumn": 3, "endLine": 6, "endColumn": 16 },
+        "expectedDeepestSpan": { "startLine": 6, "startColumn": 7, "endLine": 6, "endColumn": 20 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 3, "endLine": 6, "endColumn": 16 }
+        "expectedNearestBlockSpan": { "startLine": 6, "startColumn": 7, "endLine": 6, "endColumn": 20 }
       }
     ]
+  },
+  {
+    "example": 255,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList", "Paragraph"],
+    "markdown": "- one\n\n two\n",
+    "html": "<ul>\n<li>one</li>\n</ul>\n<p>two</p>\n"
   },
   {
     "example": 256,
@@ -447,6 +1813,55 @@
         "expectedNearestBlockSpan": { "startLine": 3, "startColumn": 7, "endLine": 3, "endColumn": 9 }
       }
     ]
+  },
+  {
+    "example": 261,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph", "Paragraph"],
+    "markdown": "-one\n\n2.two\n",
+    "html": "<p>-one</p>\n<p>2.two</p>\n"
+  },
+  {
+    "example": 264,
+    "section": "List items",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- Foo\n\n      bar\n\n\n      baz\n",
+    "html": "<ul>\n<li>\n<p>Foo</p>\n<pre><code>bar\n\n\nbaz\n</code></pre>\n</li>\n</ul>\n"
+  },
+  {
+    "example": 265,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "123456789. ok\n",
+    "html": "<ol start=\"123456789\">\n<li>ok</li>\n</ol>\n"
+  },
+  {
+    "example": 266,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "1234567890. not ok\n",
+    "html": "<p>1234567890. not ok</p>\n"
+  },
+  {
+    "example": 267,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "0. ok\n",
+    "html": "<ol start=\"0\">\n<li>ok</li>\n</ol>\n"
+  },
+  {
+    "example": 268,
+    "section": "List items",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "003. ok\n",
+    "html": "<ol start=\"3\">\n<li>ok</li>\n</ol>\n"
+  },
+  {
+    "example": 269,
+    "section": "List items",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "-1. not ok\n",
+    "html": "<p>-1. not ok</p>\n"
   },
   {
     "example": 273,
@@ -578,6 +1993,20 @@
     "topLevelKinds": ["OrderedList"],
     "markdown": "  1.  A paragraph\n    with two lines.\n",
     "html": "<ol>\n<li>A paragraph\nwith two lines.</li>\n</ol>\n"
+  },
+  {
+    "example": 292,
+    "section": "List items",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> 1. > Blockquote\ncontinued here.\n",
+    "html": "<blockquote>\n<ol>\n<li>\n<blockquote>\n<p>Blockquote\ncontinued here.</p>\n</blockquote>\n</li>\n</ol>\n</blockquote>\n"
+  },
+  {
+    "example": 293,
+    "section": "List items",
+    "topLevelKinds": ["Quote"],
+    "markdown": "> 1. > Blockquote\n> continued here.\n",
+    "html": "<blockquote>\n<ol>\n<li>\n<blockquote>\n<p>Blockquote\ncontinued here.</p>\n</blockquote>\n</li>\n</ol>\n</blockquote>\n"
   },
   {
     "example": 294,
@@ -775,26 +2204,68 @@
       {
         "description": "nested loose sublists keep the second paragraph inside the deepest list item",
         "line": 5,
-        "column": 7,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "bim",
-        "expectedDeepestSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 },
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 }
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 }
       }
     ],
     "finalSyntaxAssertions": [
       {
-        "description": "the final syntax tree preserves deep loose-list paragraph paths",
+        "description": "the final syntax tree preserves deep loose-list paragraph paths in normalized output",
         "line": 5,
-        "column": 7,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "UnorderedList", "ListItem", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "bim",
-        "expectedDeepestSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 },
+        "expectedDeepestSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 7, "endLine": 5, "endColumn": 9 }
+        "expectedNearestBlockSpan": { "startLine": 5, "startColumn": 5, "endLine": 5, "endColumn": 7 }
       }
     ]
+  },
+  {
+    "example": 308,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList", "HtmlComment", "UnorderedList"],
+    "markdown": "- foo\n- bar\n\n<!-- -->\n\n- baz\n- bim\n",
+    "html": "<ul>\n<li>foo</li>\n<li>bar</li>\n</ul>\n<!-- -->\n<ul>\n<li>baz</li>\n<li>bim</li>\n</ul>\n"
+  },
+  {
+    "example": 309,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList", "HtmlComment", "CodeBlock"],
+    "markdown": "-   foo\n\n    notcode\n\n-   foo\n\n<!-- -->\n\n    code\n",
+    "html": "<ul>\n<li>\n<p>foo</p>\n<p>notcode</p>\n</li>\n<li>\n<p>foo</p>\n</li>\n</ul>\n<!-- -->\n<pre><code>code\n</code></pre>\n"
+  },
+  {
+    "example": 310,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n - b\n  - c\n   - d\n  - e\n - f\n- g\n",
+    "html": "<ul>\n<li>a</li>\n<li>b</li>\n<li>c</li>\n<li>d</li>\n<li>e</li>\n<li>f</li>\n<li>g</li>\n</ul>\n"
+  },
+  {
+    "example": 311,
+    "section": "Lists",
+    "topLevelKinds": ["OrderedList"],
+    "markdown": "1. a\n\n  2. b\n\n   3. c\n",
+    "html": "<ol>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n<li>\n<p>c</p>\n</li>\n</ol>\n"
+  },
+  {
+    "example": 312,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n - b\n  - c\n   - d\n    - e\n",
+    "html": "<ul>\n<li>a</li>\n<li>b</li>\n<li>c</li>\n<li>d\n- e</li>\n</ul>\n"
+  },
+  {
+    "example": 313,
+    "section": "Lists",
+    "topLevelKinds": ["OrderedList", "CodeBlock"],
+    "markdown": "1. a\n\n  2. b\n\n    3. c\n",
+    "html": "<ol>\n<li>\n<p>a</p>\n</li>\n<li>\n<p>b</p>\n</li>\n</ol>\n<pre><code>3. c\n</code></pre>\n"
   },
   {
     "example": 314,
@@ -847,12 +2318,12 @@
         "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
       },
       {
-        "description": "reference definitions inside list items remain addressable as hidden block children in the original tree",
+        "description": "reference definition opening markers inside list items remain addressable as hidden block children in the original tree",
         "line": 4,
         "column": 3,
-        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition"],
-        "expectedDeepestLiteral": "[ref]: /url",
-        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 },
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition", "ReferenceLinkOpeningMarker"],
+        "expectedDeepestLiteral": "[",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 3 },
         "expectedNearestBlockKind": "ReferenceLinkDefinition",
         "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 }
       }
@@ -869,12 +2340,12 @@
         "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
       },
       {
-        "description": "reference definitions inside list items remain addressable as hidden block children after the final tree rebuild",
+        "description": "reference definition opening markers inside list items remain addressable as hidden block children after the final tree rebuild",
         "line": 4,
         "column": 3,
-        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition"],
-        "expectedDeepestLiteral": "[ref]: /url",
-        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 },
+        "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "ReferenceLinkDefinition", "ReferenceLinkOpeningMarker"],
+        "expectedDeepestLiteral": "[",
+        "expectedDeepestSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 3 },
         "expectedNearestBlockKind": "ReferenceLinkDefinition",
         "expectedNearestBlockSpan": { "startLine": 4, "startColumn": 3, "endLine": 4, "endColumn": 13 }
       }
@@ -950,24 +2421,24 @@
       {
         "description": "blockquote content inside a tight list item remains reachable through the quote and paragraph path",
         "line": 2,
-        "column": 3,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "b",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 }
       }
     ],
     "finalSyntaxAssertions": [
       {
         "description": "the rebuilt syntax tree keeps quoted paragraph content under the same list item",
         "line": 2,
-        "column": 3,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "b",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 }
       }
     ]
   },
@@ -981,12 +2452,12 @@
       {
         "description": "mixed quote-plus-code list items expose the quoted paragraph path in the original syntax tree",
         "line": 2,
-        "column": 3,
+        "column": 5,
         "expectedPathKinds": ["Document", "UnorderedList", "ListItem", "Quote", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "b",
-        "expectedDeepestSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 },
+        "expectedDeepestSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 },
         "expectedNearestBlockKind": "Paragraph",
-        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 3, "endLine": 2, "endColumn": 3 }
+        "expectedNearestBlockSpan": { "startLine": 2, "startColumn": 5, "endLine": 2, "endColumn": 5 }
       }
     ],
     "finalSyntaxAssertions": [
@@ -999,6 +2470,20 @@
         "expectedNearestBlockKind": "CodeBlock"
       }
     ]
+  },
+  {
+    "example": 322,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n",
+    "html": "<ul>\n<li>a</li>\n</ul>\n"
+  },
+  {
+    "example": 323,
+    "section": "Lists",
+    "topLevelKinds": ["UnorderedList"],
+    "markdown": "- a\n  - b\n",
+    "html": "<ul>\n<li>a\n<ul>\n<li>b</li>\n</ul>\n</li>\n</ul>\n"
   },
   {
     "example": 324,
@@ -1020,7 +2505,7 @@
         "description": "the paragraph after a block-leading fenced code block stays under the same list item",
         "line": 5,
         "column": 4,
-        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph"],
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "bar",
         "expectedDeepestSpan": { "startLine": 5, "startColumn": 4, "endLine": 5, "endColumn": 6 },
         "expectedNearestBlockKind": "Paragraph",
@@ -1041,7 +2526,7 @@
         "description": "the rebuilt syntax tree keeps the post-fence paragraph attached to the same list item",
         "line": 5,
         "column": 4,
-        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph"],
+        "expectedPathKinds": ["Document", "OrderedList", "ListItem", "Paragraph", "InlineText"],
         "expectedDeepestLiteral": "bar",
         "expectedDeepestSpan": { "startLine": 5, "startColumn": 4, "endLine": 5, "endColumn": 6 },
         "expectedNearestBlockKind": "Paragraph",
@@ -1149,6 +2634,67 @@
     "html": "<p><code>foo</code></p>\n"
   },
   {
+    "example": 329,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`` foo ` bar ``\n",
+    "html": "<p><code>foo ` bar</code></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "multi-backtick code spans can contain single backticks and keep the full source span",
+        "line": 1,
+        "column": 5,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineCodeSpan", "InlineCodeSpanContent"],
+        "expectedDeepestLiteral": "foo ` bar",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 3, "endLine": 1, "endColumn": 13 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 15 }
+      }
+    ]
+  },
+  {
+    "example": 330,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "` `` `\n",
+    "html": "<p><code>``</code></p>\n"
+  },
+  {
+    "example": 333,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`\u00A0b\u00A0`\n",
+    "html": "<p><code>\u00A0b\u00A0</code></p>\n"
+  },
+  {
+    "example": 334,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "`\u00A0`\n`  `\n",
+    "html": "<p><code>\u00A0</code>\n<code>  </code></p>\n"
+  },
+  {
+    "example": 336,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "``\nfoo \n``\n",
+    "html": "<p><code>foo </code></p>\n"
+  },
+  {
+    "example": 339,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "``foo`bar``\n",
+    "html": "<p><code>foo`bar</code></p>\n"
+  },
+  {
+    "example": 344,
+    "section": "Code spans",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"`\">`\n",
+    "html": "<p><a href=\"`\">`</p>\n"
+  },
+  {
     "example": 350,
     "section": "Emphasis and strong emphasis",
     "topLevelKinds": ["Paragraph"],
@@ -1161,6 +2707,93 @@
     "topLevelKinds": ["Paragraph"],
     "markdown": "foo*bar*\n",
     "html": "<p>foo<em>bar</em></p>\n"
+  },
+  {
+    "example": 356,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "5*6*78\n",
+    "html": "<p>5<em>6</em>78</p>\n"
+  },
+  {
+    "example": 357,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "_foo bar_\n",
+    "html": "<p><em>foo bar</em></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "underscore emphasis produces a normal inline emphasis node",
+        "line": 1,
+        "column": 3,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineEmphasis", "InlineText"],
+        "expectedDeepestLiteral": "foo bar",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 2, "endLine": 1, "endColumn": 8 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 9 }
+      }
+    ]
+  },
+  {
+    "example": 358,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "_ foo bar_\n",
+    "html": "<p>_ foo bar_</p>\n"
+  },
+  {
+    "example": 359,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "a_\"foo\"_\n",
+    "html": "<p>a_&quot;foo&quot;_</p>\n"
+  },
+  {
+    "example": 360,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo_bar_\n",
+    "html": "<p>foo_bar_</p>\n"
+  },
+  {
+    "example": 361,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "5_6_78\n",
+    "html": "<p>5_6_78</p>\n"
+  },
+  {
+    "example": 362,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "пристаням_стремятся_\n",
+    "html": "<p>пристаням_стремятся_</p>\n"
+  },
+  {
+    "example": 363,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "aa_\"bb\"_cc\n",
+    "html": "<p>aa_&quot;bb&quot;_cc</p>\n"
+  },
+  {
+    "example": 364,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo-_(bar)_\n",
+    "html": "<p>foo-<em>(bar)</em></p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "punctuation before an underscore opener still allows CommonMark emphasis",
+        "line": 1,
+        "column": 7,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineEmphasis", "InlineText"],
+        "expectedDeepestLiteral": "(bar)",
+        "expectedDeepestSpan": { "startLine": 1, "startColumn": 6, "endLine": 1, "endColumn": 10 },
+        "expectedNearestBlockKind": "Paragraph",
+        "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 11 }
+      }
+    ]
   },
   {
     "example": 482,
@@ -1180,6 +2813,139 @@
         "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 20 }
       }
     ]
+  },
+  {
+    "example": 491,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](<foo\nbar>)\n",
+    "html": "<p>[link](<foo\nbar>)</p>\n"
+  },
+  {
+    "example": 494,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[a](<b)c\n[a](<b)c>\n[a](<b>c)\n",
+    "html": "<p>[a](&lt;b)c\n[a](&lt;b)c&gt;\n[a](<b>c)</p>\n"
+  },
+  {
+    "example": 503,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](foo%20b&auml;)\n",
+    "html": "<p><a href=\"foo%20b%C3%A4\">link</a></p>\n"
+  },
+  {
+    "example": 506,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](/url \"title \\\"&quot;\")\n",
+    "html": "<p><a href=\"/url\" title=\"title &quot;&quot;\">link</a></p>\n"
+  },
+  {
+    "example": 507,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](/url\u00A0\"title\")\n",
+    "html": "<p><a href=\"/url%C2%A0%22title%22\">link</a></p>\n"
+  },
+  {
+    "example": 508,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[link](/url \"title \"and\" title\")\n",
+    "html": "<p>[link](/url &quot;title &quot;and&quot; title&quot;)</p>\n"
+  },
+  {
+    "example": 518,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo [bar](/uri)](/uri)\n",
+    "html": "<p>[foo <a href=\"/uri\">bar</a>](/uri)</p>\n"
+  },
+  {
+    "example": 519,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo *[bar [baz](/uri)](/uri)*](/uri)\n",
+    "html": "<p>[foo <em>[bar <a href=\"/uri\">baz</a>](/uri)</em>](/uri)</p>\n"
+  },
+  {
+    "example": 520,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "![[[foo](uri1)](uri2)](uri3)\n",
+    "html": "<p><img src=\"uri3\" alt=\"[foo](uri2)\" /></p>\n"
+  },
+  {
+    "example": 523,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "*foo [bar* baz]\n",
+    "html": "<p><em>foo [bar</em> baz]</p>\n"
+  },
+  {
+    "example": 524,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo <bar attr=\"](baz)\">\n",
+    "html": "<p>[foo <bar attr=\"](baz)\"></p>\n"
+  },
+  {
+    "example": 525,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo`](/uri)`\n",
+    "html": "<p>[foo<code>](/uri)</code></p>\n"
+  },
+  {
+    "example": 526,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "[foo<https://example.com/?search=](uri)>\n",
+    "html": "<p>[foo<a href=\"https://example.com/?search=%5D(uri)\">https://example.com/?search=](uri)</a></p>\n"
+  },
+  {
+    "example": 531,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[![moon](moon.jpg)][ref]\n\n[ref]: /uri\n",
+    "html": "<p><a href=\"/uri\"><img src=\"moon.jpg\" alt=\"moon\" /></a></p>\n"
+  },
+  {
+    "example": 532,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo [bar](/uri)][ref]\n\n[ref]: /uri\n",
+    "html": "<p>[foo <a href=\"/uri\">bar</a>]<a href=\"/uri\">ref</a></p>\n"
+  },
+  {
+    "example": 533,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo *bar [baz][ref]*][ref]\n\n[ref]: /uri\n",
+    "html": "<p>[foo <em>bar <a href=\"/uri\">baz</a></em>]<a href=\"/uri\">ref</a></p>\n"
+  },
+  {
+    "example": 536,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo <bar attr=\"][ref]\">\n\n[ref]: /uri\n",
+    "html": "<p>[foo <bar attr=\"][ref]\"></p>\n"
+  },
+  {
+    "example": 537,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo`][ref]`\n\n[ref]: /uri\n",
+    "html": "<p>[foo<code>][ref]</code></p>\n"
+  },
+  {
+    "example": 538,
+    "section": "Links",
+    "topLevelKinds": ["Paragraph", "ReferenceLinkDefinition"],
+    "markdown": "[foo<https://example.com/?search=][ref]>\n\n[ref]: /uri\n",
+    "html": "<p>[foo<a href=\"https://example.com/?search=%5D%5Bref%5D\">https://example.com/?search=][ref]</a></p>\n"
   },
   {
     "example": 594,
@@ -1206,5 +2972,242 @@
         "expectedNearestBlockSpan": { "startLine": 1, "startColumn": 1, "endLine": 1, "endColumn": 48 }
       }
     ]
+  },
+  {
+    "example": 596,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<irc://foo.bar:2233/baz>\n",
+    "html": "<p><a href=\"irc://foo.bar:2233/baz\">irc://foo.bar:2233/baz</a></p>\n"
+  },
+  {
+    "example": 597,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<MAILTO:FOO@BAR.BAZ>\n",
+    "html": "<p><a href=\"MAILTO:FOO@BAR.BAZ\">MAILTO:FOO@BAR.BAZ</a></p>\n"
+  },
+  {
+    "example": 598,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a+b+c:d>\n",
+    "html": "<p><a href=\"a+b+c:d\">a+b+c:d</a></p>\n"
+  },
+  {
+    "example": 599,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<made-up-scheme://foo,bar>\n",
+    "html": "<p><a href=\"made-up-scheme://foo,bar\">made-up-scheme://foo,bar</a></p>\n"
+  },
+  {
+    "example": 600,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<https://../>\n",
+    "html": "<p><a href=\"https://../\">https://../</a></p>\n"
+  },
+  {
+    "example": 602,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<https://foo.bar/baz bim>\n",
+    "html": "<p>&lt;https://foo.bar/baz bim&gt;</p>\n"
+  },
+  {
+    "example": 603,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<https://example.com/\\[\\>\n",
+    "html": "<p><a href=\"https://example.com/%5C%5B%5C\">https://example.com/\\[\\</a></p>\n"
+  },
+  {
+    "example": 606,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<foo\\+@bar.example.com>\n",
+    "html": "<p>&lt;foo+@bar.example.com&gt;</p>\n"
+  },
+  {
+    "example": 609,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<m:abc>\n",
+    "html": "<p>&lt;m:abc&gt;</p>\n"
+  },
+  {
+    "example": 610,
+    "section": "Autolinks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<foo.bar.baz>\n",
+    "html": "<p>&lt;foo.bar.baz&gt;</p>\n"
+  },
+  {
+    "example": 613,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a><bab><c2c>\n",
+    "html": "<p><a><bab><c2c></p>\n"
+  },
+  {
+    "example": 614,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a/><b2/>\n",
+    "html": "<p><a/><b2/></p>\n"
+  },
+  {
+    "example": 616,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a foo=\"bar\" bam = 'baz <em>\"</em>'\n_boolean zoop:33=zoop:33 />\n",
+    "html": "<p><a foo=\"bar\" bam = 'baz <em>\"</em>'\n_boolean zoop:33=zoop:33 /></p>\n"
+  },
+  {
+    "example": 617,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "Foo <responsive-image src=\"foo.jpg\" />\n",
+    "html": "<p>Foo <responsive-image src=\"foo.jpg\" /></p>\n"
+  },
+  {
+    "example": 618,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<33> <__>\n",
+    "html": "<p>&lt;33&gt; &lt;__&gt;</p>\n"
+  },
+  {
+    "example": 620,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "<a href=\"hi'> <a href=hi'>\n",
+    "html": "<p>&lt;a href=&quot;hi'&gt; &lt;a href=hi'&gt;</p>\n"
+  },
+  {
+    "example": 623,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "</a></foo >\n",
+    "html": "<p></a></foo ></p>\n"
+  },
+  {
+    "example": 624,
+    "section": "Raw HTML",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "</a href=\"foo\">\n",
+    "html": "<p>&lt;/a href=&quot;foo&quot;&gt;</p>\n"
+  },
+  {
+    "example": 14,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\\*not emphasized*\n\\<br/> not a tag\n\\[not a link](/foo)\n\\`not code`\n1\\. not a list\n\\* not a list\n\\# not a heading\n\\[foo]: /url \"not a reference\"\n\\&ouml; not a character entity\n",
+    "html": "<p>*not emphasized*\n&lt;br/&gt; not a tag\n[not a link](/foo)\n`not code`\n1. not a list\n* not a list\n# not a heading\n[foo]: /url &quot;not a reference&quot;\n&amp;ouml; not a character entity</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "escaped reference-looking syntax remains paragraph text instead of becoming a definition",
+        "line": 8,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText", "InlineEscapedCharacter"],
+        "expectedDeepestLiteral": "[",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 15,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\\→\\A\\a\\ \\3\\φ\\«\n",
+    "html": "<p>\\→\\A\\a\\ \\3\\φ\\«</p>\n"
+  },
+  {
+    "example": 16,
+    "section": "Backslash escapes",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "\\*foo*\n",
+    "html": "<p>*foo*</p>\n",
+    "syntaxAssertions": [
+      {
+        "description": "escaped opening emphasis delimiter remains literal text",
+        "line": 1,
+        "column": 2,
+        "expectedPathKinds": ["Document", "Paragraph", "InlineText", "InlineEscapedCharacter"],
+        "expectedDeepestLiteral": "*",
+        "expectedNearestBlockKind": "Paragraph"
+      }
+    ]
+  },
+  {
+    "example": 33,
+    "section": "Entity and numeric character references",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "&copy;\n",
+    "html": "<p>©</p>\n"
+  },
+  {
+    "example": 408,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "__foo_ bar_\n",
+    "html": "<p><em><em>foo</em> bar</em></p>\n"
+  },
+  {
+    "example": 418,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "*foo **bar *baz* bim** bop*\n",
+    "html": "<p><em>foo <strong>bar <em>baz</em> bim</strong> bop</em></p>\n"
+  },
+  {
+    "example": 432,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "**foo *bar **baz**\nbim* bop**\n",
+    "html": "<p><strong>foo <em>bar <strong>baz</strong>\nbim</em> bop</strong></p>\n"
+  },
+  {
+    "example": 438,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo *_*\n",
+    "html": "<p>foo <em>_</em></p>\n"
+  },
+  {
+    "example": 441,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo **_**\n",
+    "html": "<p>foo <strong>_</strong></p>\n"
+  },
+  {
+    "example": 450,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo _*_\n",
+    "html": "<p>foo <em>*</em></p>\n"
+  },
+  {
+    "example": 453,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo __*__\n",
+    "html": "<p>foo <strong>*</strong></p>\n"
+  },
+  {
+    "example": 470,
+    "section": "Emphasis and strong emphasis",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "*foo __bar *baz bim__ bam*\n",
+    "html": "<p><em>foo <strong>bar *baz bim</strong> bam</em></p>\n"
+  },
+  {
+    "example": 634,
+    "section": "Hard line breaks",
+    "topLevelKinds": ["Paragraph"],
+    "markdown": "foo\\\nbaz\n",
+    "html": "<p>foo<br />\nbaz</p>\n"
   }
 ]

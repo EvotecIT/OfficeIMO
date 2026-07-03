@@ -3,12 +3,13 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Native, AST-backed projection of a parsed markdown document for UI hosts that need structured blocks and source spans.
 /// </summary>
-public sealed class MarkdownNativeDocument {
+public sealed partial class MarkdownNativeDocument {
     private MarkdownNativeDocument(
         MarkdownParseResult parseResult,
         string sourceMarkdown,
         MarkdownNativeDocumentSourceKind sourceKind,
         IReadOnlyList<MarkdownNativeBlock> blocks,
+        IReadOnlyList<MarkdownNativeSourceTrivia> sourceTrivia,
         IReadOnlyList<MarkdownNativeDiagnostic> diagnostics) {
         ParseResult = parseResult ?? throw new ArgumentNullException(nameof(parseResult));
         Document = parseResult.Document;
@@ -18,6 +19,7 @@ public sealed class MarkdownNativeDocument {
         SourceMarkdown = sourceMarkdown ?? string.Empty;
         SourceKind = sourceKind;
         Blocks = blocks ?? Array.Empty<MarkdownNativeBlock>();
+        SourceTrivia = sourceTrivia ?? Array.Empty<MarkdownNativeSourceTrivia>();
         Diagnostics = diagnostics ?? Array.Empty<MarkdownNativeDiagnostic>();
     }
 
@@ -36,6 +38,12 @@ public sealed class MarkdownNativeDocument {
     /// <summary>Document-transform diagnostics captured during parsing.</summary>
     public IReadOnlyList<MarkdownDocumentTransformDiagnostic> TransformDiagnostics { get; }
 
+    /// <summary>Effective reference-style link definitions collected during parsing.</summary>
+    public IReadOnlyList<MarkdownReferenceLinkDefinition> ReferenceLinkDefinitions => ParseResult.ReferenceLinkDefinitions;
+
+    /// <summary>Effective abbreviation definitions collected during parsing.</summary>
+    public IReadOnlyList<MarkdownAbbreviationDefinition> AbbreviationDefinitions => ParseResult.AbbreviationDefinitions;
+
     /// <summary>Markdown source text whose source spans back this projection.</summary>
     public string SourceMarkdown { get; }
 
@@ -44,6 +52,9 @@ public sealed class MarkdownNativeDocument {
 
     /// <summary>Top-level native block projection in document order.</summary>
     public IReadOnlyList<MarkdownNativeBlock> Blocks { get; }
+
+    /// <summary>Document-level source trivia such as blank lines, in source order.</summary>
+    public IReadOnlyList<MarkdownNativeSourceTrivia> SourceTrivia { get; }
 
     /// <summary>Projection diagnostics including transform notices and unsupported block fallbacks.</summary>
     public IReadOnlyList<MarkdownNativeDiagnostic> Diagnostics { get; }
@@ -82,7 +93,14 @@ public sealed class MarkdownNativeDocument {
             }
         }
 
-        return new MarkdownNativeDocument(parseResult, sourceMarkdown ?? parseResult.SourceMarkdown, sourceKind, blocks, diagnostics);
+        var nativeSourceMarkdown = sourceMarkdown ?? parseResult.SourceMarkdown;
+        return new MarkdownNativeDocument(
+            parseResult,
+            nativeSourceMarkdown,
+            sourceKind,
+            blocks,
+            CreateSourceTrivia(nativeSourceMarkdown),
+            diagnostics);
     }
 
     /// <summary>Finds the first native block whose source span contains the supplied 1-based line.</summary>
@@ -202,13 +220,42 @@ public sealed class MarkdownNativeDocument {
     /// <summary>Creates a UI-safe snapshot of this document without parser object references.</summary>
     public MarkdownNativeDocumentSnapshot ToSnapshot() => MarkdownNativeSnapshotFactory.FromDocument(this);
 
+    /// <summary>
+    /// Emits the original markdown when this native document was parsed with trivia preservation and no transforms changed it.
+    /// </summary>
+    public MarkdownRoundtripResult WriteUnchanged() => MarkdownRoundtripWriter.WriteUnchanged(ParseResult);
+
+    /// <summary>
+    /// Applies one native source edit while preserving original markdown around it when the edit can be remapped safely.
+    /// </summary>
+    public MarkdownRoundtripResult WriteWithSourceEdit(MarkdownNativeSourceEdit edit) =>
+        MarkdownRoundtripWriter.WriteWithSourceEdit(ParseResult, edit);
+
+    /// <summary>
+    /// Applies native source edits while preserving original markdown around them when every edit can be remapped safely.
+    /// </summary>
+    public MarkdownRoundtripResult WriteWithSourceEdits(IEnumerable<MarkdownNativeSourceEdit> edits) =>
+        MarkdownRoundtripWriter.WriteWithSourceEdits(ParseResult, edits);
+
     /// <summary>Creates a non-mutating source edit that replaces a source span.</summary>
     public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownSourceSpan sourceSpan, string replacementMarkdown) {
+        return CreateReplaceEdit(sourceSpan, replacementMarkdown, originalSourceFailureReason: null);
+    }
+
+    private MarkdownNativeSourceEdit CreateReplaceEdit(
+        MarkdownSourceSpan sourceSpan,
+        string replacementMarkdown,
+        MarkdownOriginalSourceSliceFailureReason? originalSourceFailureReason) {
         if (!TryResolveOffsets(sourceSpan, out var startOffset, out var endOffsetInclusive)) {
             throw new InvalidOperationException("The supplied source span cannot be mapped to offsets in this native document source.");
         }
 
-        return new MarkdownNativeSourceEdit(sourceSpan, startOffset, endOffsetInclusive, replacementMarkdown);
+        return new MarkdownNativeSourceEdit(
+            sourceSpan,
+            startOffset,
+            endOffsetInclusive,
+            replacementMarkdown,
+            ResolveOriginalSourceFailureReason(sourceSpan, originalSourceFailureReason));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native block.</summary>
@@ -221,7 +268,10 @@ public sealed class MarkdownNativeDocument {
             throw new InvalidOperationException("The native block does not have a source span.");
         }
 
-        return CreateReplaceEdit(block.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            block.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(block.SyntaxNode));
     }
 
     /// <summary>Creates a non-mutating source edit that replaces a native inline.</summary>
@@ -234,7 +284,178 @@ public sealed class MarkdownNativeDocument {
             throw new InvalidOperationException("The native inline does not have a source span.");
         }
 
-        return CreateReplaceEdit(inline.SourceSpan.Value, replacementMarkdown);
+        return CreateReplaceEdit(
+            inline.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(inline.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces the source-backed content span of a native list item.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeListItem listItem, string replacementMarkdown) {
+        if (listItem == null) {
+            throw new ArgumentNullException(nameof(listItem));
+        }
+
+        if (!listItem.ContentSourceSpan.HasValue) {
+            throw new InvalidOperationException("The native list item does not have a source-backed content span.");
+        }
+
+        return CreateReplaceEdit(
+            listItem.ContentSourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(listItem.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a paragraph owned by a native list item.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeListItemParagraph paragraph, string replacementMarkdown) {
+        if (paragraph == null) {
+            throw new ArgumentNullException(nameof(paragraph));
+        }
+
+        if (!paragraph.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native list item paragraph does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            paragraph.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(paragraph.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a reference-style link definition.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownReferenceLinkDefinition referenceDefinition, string replacementMarkdown) {
+        if (referenceDefinition == null) {
+            throw new ArgumentNullException(nameof(referenceDefinition));
+        }
+
+        if (!referenceDefinition.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The reference definition does not have a source span.");
+        }
+
+        return CreateReplaceEdit(referenceDefinition.SourceSpan.Value, replacementMarkdown);
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native table cell.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeTableCell tableCell, string replacementMarkdown) {
+        if (tableCell == null) {
+            throw new ArgumentNullException(nameof(tableCell));
+        }
+
+        if (!tableCell.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native table cell does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            tableCell.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(tableCell.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native table row payload.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeTableRow tableRow, string replacementMarkdown) {
+        if (tableRow == null) {
+            throw new ArgumentNullException(nameof(tableRow));
+        }
+
+        if (!tableRow.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native table row does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            tableRow.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(tableRow.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native definition-list group.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListGroup definitionGroup, string replacementMarkdown) {
+        if (definitionGroup == null) {
+            throw new ArgumentNullException(nameof(definitionGroup));
+        }
+
+        if (!definitionGroup.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native definition-list group does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            definitionGroup.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(definitionGroup.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native definition-list term.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListTerm definitionTerm, string replacementMarkdown) {
+        if (definitionTerm == null) {
+            throw new ArgumentNullException(nameof(definitionTerm));
+        }
+
+        if (!definitionTerm.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native definition-list term does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            definitionTerm.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(definitionTerm.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces a native definition-list definition body.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeDefinitionListDefinition definition, string replacementMarkdown) {
+        if (definition == null) {
+            throw new ArgumentNullException(nameof(definition));
+        }
+
+        if (!definition.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native definition-list definition does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            definition.SourceSpan.Value,
+            FormatDefinitionListDefinitionReplacement(definition, replacementMarkdown),
+            GetOriginalSourceFailureReason(definition.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces source-backed inline metadata.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeInlineMetadata metadata, string replacementMarkdown) {
+        if (metadata == null) {
+            throw new ArgumentNullException(nameof(metadata));
+        }
+
+        if (!metadata.SourceSpan.HasValue) {
+            throw new InvalidOperationException("The native inline metadata does not have a source span.");
+        }
+
+        return CreateReplaceEdit(
+            metadata.SourceSpan.Value,
+            replacementMarkdown,
+            GetOriginalSourceFailureReason(metadata.SyntaxNode));
+    }
+
+    /// <summary>Creates a non-mutating source edit that replaces document-level source trivia.</summary>
+    public MarkdownNativeSourceEdit CreateReplaceEdit(MarkdownNativeSourceTrivia trivia, string replacementMarkdown) {
+        if (trivia == null) {
+            throw new ArgumentNullException(nameof(trivia));
+        }
+
+        return CreateReplaceEdit(trivia.SourceSpan, replacementMarkdown);
+    }
+
+    private static MarkdownOriginalSourceSliceFailureReason? GetOriginalSourceFailureReason(MarkdownSyntaxNode? syntaxNode) {
+        return syntaxNode?.IsGenerated == true
+            ? MarkdownOriginalSourceSliceFailureReason.GeneratedSyntaxNode
+            : null;
+    }
+
+    private MarkdownOriginalSourceSliceFailureReason? ResolveOriginalSourceFailureReason(
+        MarkdownSourceSpan sourceSpan,
+        MarkdownOriginalSourceSliceFailureReason? preferredFailureReason) {
+        if (preferredFailureReason.HasValue) {
+            return preferredFailureReason.Value;
+        }
+
+        return ParseResult.TryCreateOriginalSourceSlice(sourceSpan, out _, out var failureReason)
+            ? null
+            : failureReason;
     }
 
     private static MarkdownNativeBlock? FindBlockAtLine(MarkdownNativeBlock block, int lineNumber) {
@@ -245,6 +466,10 @@ public sealed class MarkdownNativeDocument {
                 return FindChildBlockAtLine(callout.Children, lineNumber) ?? (callout.ContainsLine(lineNumber) ? callout : null);
             case MarkdownNativeDetailsBlock details:
                 return FindChildBlockAtLine(details.Children, lineNumber) ?? (details.ContainsLine(lineNumber) ? details : null);
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return FindChildBlockAtLine(definitionList.Children, lineNumber) ?? (definitionList.ContainsLine(lineNumber) ? definitionList : null);
+            case MarkdownNativeFootnoteDefinitionBlock footnote:
+                return FindChildBlockAtLine(footnote.Children, lineNumber) ?? (footnote.ContainsLine(lineNumber) ? footnote : null);
             case MarkdownNativeListBlock list:
                 for (var i = 0; i < list.Items.Count; i++) {
                     var itemMatch = FindChildBlockAtLine(list.Items[i].Children, lineNumber);
@@ -269,6 +494,10 @@ public sealed class MarkdownNativeDocument {
                 return FindChildBlockAtPosition(callout.Children, lineNumber, columnNumber) ?? (ContainsPosition(callout, lineNumber, columnNumber) ? callout : null);
             case MarkdownNativeDetailsBlock details:
                 return FindChildBlockAtPosition(details.Children, lineNumber, columnNumber) ?? (ContainsPosition(details, lineNumber, columnNumber) ? details : null);
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return FindChildBlockAtPosition(definitionList.Children, lineNumber, columnNumber) ?? (ContainsPosition(definitionList, lineNumber, columnNumber) ? definitionList : null);
+            case MarkdownNativeFootnoteDefinitionBlock footnote:
+                return FindChildBlockAtPosition(footnote.Children, lineNumber, columnNumber) ?? (ContainsPosition(footnote, lineNumber, columnNumber) ? footnote : null);
             case MarkdownNativeListBlock list:
                 for (var i = 0; i < list.Items.Count; i++) {
                     var itemMatch = FindChildBlockAtPosition(list.Items[i].Children, lineNumber, columnNumber);
@@ -358,6 +587,10 @@ public sealed class MarkdownNativeDocument {
                 return callout.Children;
             case MarkdownNativeDetailsBlock details:
                 return details.Children;
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return definitionList.Children;
+            case MarkdownNativeFootnoteDefinitionBlock footnote:
+                return footnote.Children;
             case MarkdownNativeListBlock list:
                 return EnumerateListItemChildren(list);
             case MarkdownNativeTableBlock table:
@@ -418,6 +651,8 @@ public sealed class MarkdownNativeDocument {
                 return callout.TitleInlineRuns;
             case MarkdownNativeDetailsBlock details:
                 return details.SummaryInlineRuns;
+            case MarkdownNativeDefinitionListBlock definitionList:
+                return EnumerateDefinitionListTermInlines(definitionList);
             case MarkdownNativeTableBlock table:
                 return EnumerateTableInlines(table);
             case MarkdownNativeListBlock list:
@@ -438,6 +673,18 @@ public sealed class MarkdownNativeDocument {
             for (var column = 0; column < table.Rows[row].Count; column++) {
                 for (var i = 0; i < table.Rows[row][column].InlineRuns.Count; i++) {
                     yield return table.Rows[row][column].InlineRuns[i];
+                }
+            }
+        }
+    }
+
+    private static IEnumerable<MarkdownNativeInline> EnumerateDefinitionListTermInlines(MarkdownNativeDefinitionListBlock definitionList) {
+        for (var groupIndex = 0; groupIndex < definitionList.Groups.Count; groupIndex++) {
+            var group = definitionList.Groups[groupIndex];
+            for (var termIndex = 0; termIndex < group.Terms.Count; termIndex++) {
+                var term = group.Terms[termIndex];
+                for (var inlineIndex = 0; inlineIndex < term.InlineRuns.Count; inlineIndex++) {
+                    yield return term.InlineRuns[inlineIndex];
                 }
             }
         }
@@ -533,7 +780,7 @@ public sealed class MarkdownNativeDocument {
             return false;
         }
 
-        offset = Math.Min(SourceMarkdown.Length - 1, lineStart + Math.Max(0, columnNumber - 1));
+        offset = MarkdownSourceColumns.ResolveVisualColumnOffset(SourceMarkdown, lineStart, columnNumber);
         return true;
     }
 
@@ -549,15 +796,17 @@ public sealed class MarkdownNativeDocument {
 
         var currentLine = 1;
         for (var i = 0; i < SourceMarkdown.Length; i++) {
-            if (SourceMarkdown[i] != '\n') {
+            if (!MarkdownSourceColumns.IsLineBreakStart(SourceMarkdown, i, out var lineBreakLength)) {
                 continue;
             }
 
             currentLine++;
             if (currentLine == lineNumber) {
-                offset = i + 1;
+                offset = i + lineBreakLength;
                 return offset <= SourceMarkdown.Length;
             }
+
+            i += lineBreakLength - 1;
         }
 
         return false;
@@ -571,12 +820,8 @@ public sealed class MarkdownNativeDocument {
 
         offset = SourceMarkdown.Length - 1;
         for (var i = lineStart; i < SourceMarkdown.Length; i++) {
-            if (SourceMarkdown[i] == '\n') {
+            if (MarkdownSourceColumns.IsLineBreakStart(SourceMarkdown, i, out _)) {
                 offset = Math.Max(lineStart, i - 1);
-                if (offset > lineStart && SourceMarkdown[offset] == '\r') {
-                    offset--;
-                }
-
                 return true;
             }
         }

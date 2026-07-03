@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Text;
 using DocumentFormat.OpenXml.Wordprocessing;
 using Omd = OfficeIMO.Markdown;
 
@@ -87,6 +88,18 @@ namespace OfficeIMO.Word.Markdown {
             return runs;
         }
 
+        private static bool TryGetPlainLeafInlineText(Omd.MarkdownInline inline, out string text) {
+            if (inline is Omd.IPlainTextMarkdownInline plain && inline.ChildObjects.Count == 0) {
+                var builder = new StringBuilder();
+                plain.AppendPlainText(builder);
+                text = builder.ToString();
+                return true;
+            }
+
+            text = string.Empty;
+            return false;
+        }
+
         private sealed class DetachedInlineRunBuilder : Omd.MarkdownVisitor {
             private readonly WordDocument _document;
             private readonly List<WordParagraph> _runs;
@@ -118,6 +131,9 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitHardBreakInline(Omd.HardBreakInline inline) =>
                 _runs.Add(CreateDetachedRun(_document, " ", _fmt, _defaultFont));
 
+            protected override void VisitSoftBreakInline(Omd.SoftBreakInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, " ", _fmt, _defaultFont));
+
             protected override void VisitCodeSpanInline(Omd.CodeSpanInline inline) =>
                 _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt, _defaultFont, forceMonospace: true));
 
@@ -126,6 +142,9 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitImageInline(Omd.ImageInline inline) =>
                 _runs.Add(CreateDetachedRun(_document, inline.Alt ?? string.Empty, _fmt, _defaultFont));
+
+            protected override void VisitAbbreviationInline(Omd.AbbreviationInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt, _defaultFont));
 
             protected override void VisitImageLinkInline(Omd.ImageLinkInline inline) =>
                 _runs.Add(CreateDetachedRun(_document, inline.Alt ?? inline.ImageUrl ?? inline.LinkUrl ?? string.Empty, _fmt, _defaultFont));
@@ -151,6 +170,15 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitUnderlineInline(Omd.UnderlineInline inline) =>
                 _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont));
 
+            protected override void VisitInsertedInline(Omd.InsertedInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont));
+
+            protected override void VisitSuperscriptInline(Omd.SuperscriptInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), _defaultFont));
+
+            protected override void VisitSubscriptInline(Omd.SubscriptInline inline) =>
+                _runs.Add(CreateDetachedRun(_document, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), _defaultFont));
+
             protected override void VisitBoldSequenceInline(Omd.BoldSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithBold());
 
@@ -165,6 +193,15 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitHighlightSequenceInline(Omd.HighlightSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithHighlight(HighlightColorValues.Yellow));
+
+            protected override void VisitInsertedSequenceInline(Omd.InsertedSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+
+            protected override void VisitSuperscriptSequenceInline(Omd.SuperscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+
+            protected override void VisitSubscriptSequenceInline(Omd.SubscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
 
             protected override void VisitHtmlTagSequenceInline(Omd.HtmlTagSequenceInline inline) {
                 switch (inline.TagName) {
@@ -193,6 +230,15 @@ namespace OfficeIMO.Word.Markdown {
                 if (!string.IsNullOrEmpty(inline.Html)) {
                     _runs.Add(CreateDetachedRun(_document, inline.Html, _fmt, _defaultFont));
                 }
+            }
+
+            protected override void VisitInline(Omd.MarkdownInline inline) {
+                if (TryGetPlainLeafInlineText(inline, out var text)) {
+                    _runs.Add(CreateDetachedRun(_document, text, _fmt, _defaultFont));
+                    return;
+                }
+
+                base.VisitInline(inline);
             }
         }
 
@@ -285,6 +331,9 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitHardBreakInline(Omd.HardBreakInline inline) =>
                 _paragraph.AddBreak();
 
+            protected override void VisitSoftBreakInline(Omd.SoftBreakInline inline) =>
+                AddRun(_paragraph, " ", _fmt, _defaultFont, _defaultTextColorHex);
+
             protected override void VisitCodeSpanInline(Omd.CodeSpanInline inline) {
                 var run = AddRun(_paragraph, inline.Text, _fmt, _defaultFont, _defaultTextColorHex);
                 var mono = FontResolver.Resolve("monospace") ?? "Consolas";
@@ -346,6 +395,9 @@ namespace OfficeIMO.Word.Markdown {
                     _quoteDepth,
                     "inline");
 
+            protected override void VisitAbbreviationInline(Omd.AbbreviationInline inline) =>
+                AddRun(_paragraph, inline.Text, _fmt, _defaultFont, _defaultTextColorHex);
+
             protected override void VisitFootnoteRefInline(Omd.FootnoteRefInline inline) {
                 string text = inline.Label;
                 if (_footnoteDefs != null && _footnoteDefs.TryGetValue(inline.Label, out var body)) {
@@ -373,6 +425,15 @@ namespace OfficeIMO.Word.Markdown {
             protected override void VisitUnderlineInline(Omd.UnderlineInline inline) =>
                 AddRun(_paragraph, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont, _defaultTextColorHex);
 
+            protected override void VisitInsertedInline(Omd.InsertedInline inline) =>
+                AddRun(_paragraph, inline.Text, _fmt.WithUnderline(UnderlineValues.Single), _defaultFont, _defaultTextColorHex);
+
+            protected override void VisitSuperscriptInline(Omd.SuperscriptInline inline) =>
+                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript), _defaultFont, _defaultTextColorHex);
+
+            protected override void VisitSubscriptInline(Omd.SubscriptInline inline) =>
+                AddRun(_paragraph, inline.Text, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript), _defaultFont, _defaultTextColorHex);
+
             protected override void VisitBoldSequenceInline(Omd.BoldSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithBold());
 
@@ -387,6 +448,15 @@ namespace OfficeIMO.Word.Markdown {
 
             protected override void VisitHighlightSequenceInline(Omd.HighlightSequenceInline inline) =>
                 VisitNested(inline.Inlines, _fmt.WithHighlight(HighlightColorValues.Yellow));
+
+            protected override void VisitInsertedSequenceInline(Omd.InsertedSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithUnderline(UnderlineValues.Single));
+
+            protected override void VisitSuperscriptSequenceInline(Omd.SuperscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Superscript));
+
+            protected override void VisitSubscriptSequenceInline(Omd.SubscriptSequenceInline inline) =>
+                VisitNested(inline.Inlines, _fmt.WithVerticalTextAlignment(VerticalPositionValues.Subscript));
 
             protected override void VisitHtmlTagSequenceInline(Omd.HtmlTagSequenceInline inline) {
                 switch (inline.TagName) {
@@ -415,6 +485,15 @@ namespace OfficeIMO.Word.Markdown {
                 if (!string.IsNullOrEmpty(inline.Html)) {
                     AddRun(_paragraph, inline.Html, _fmt, _defaultFont, _defaultTextColorHex);
                 }
+            }
+
+            protected override void VisitInline(Omd.MarkdownInline inline) {
+                if (TryGetPlainLeafInlineText(inline, out var text)) {
+                    AddRun(_paragraph, text, _fmt, _defaultFont, _defaultTextColorHex);
+                    return;
+                }
+
+                base.VisitInline(inline);
             }
         }
 

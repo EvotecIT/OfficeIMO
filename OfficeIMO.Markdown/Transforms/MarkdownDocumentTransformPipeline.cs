@@ -52,6 +52,9 @@ public static class MarkdownDocumentTransformPipeline {
             string[]? beforeFingerprints = context.Diagnostics != null
                 ? MarkdownTransformSourceSpanHelper.CreateBlockFingerprints(current.Blocks)
                 : null;
+            MarkdownSyntaxNode?[]? beforeSyntaxNodes = context.Diagnostics != null
+                ? BuildBlockSyntaxNodes(current.Blocks, blockSpans)
+                : null;
             current = transform.Transform(current, context) ?? current;
             if (context.Diagnostics == null) {
                 continue;
@@ -59,8 +62,10 @@ public static class MarkdownDocumentTransformPipeline {
 
             string[] afterFingerprints = MarkdownTransformSourceSpanHelper.CreateBlockFingerprints(current.Blocks);
             var change = MarkdownTransformSourceSpanHelper.ComputeChangedRange(beforeFingerprints!, afterFingerprints);
+            IReadOnlyList<MarkdownSourceSpan> affectedSourceSpans = MarkdownTransformSourceSpanHelper.CollectSpans(blockSpans, change.StartBefore, change.CountBefore);
             MarkdownSourceSpan? affectedSourceSpan = MarkdownTransformSourceSpanHelper.AggregateSpans(blockSpans, change.StartBefore, change.CountBefore);
             blockSpans = MarkdownTransformSourceSpanHelper.UpdateBlockSpans(blockSpans, current.Blocks.Count, change, affectedSourceSpan);
+            MarkdownSyntaxNode?[]? afterSyntaxNodes = BuildBlockSyntaxNodes(current.Blocks, blockSpans);
 
             var diagnostic = new MarkdownDocumentTransformDiagnostic {
                 Source = context.Source,
@@ -72,14 +77,46 @@ public static class MarkdownDocumentTransformPipeline {
                 ChangedBlockCountBefore = change.CountBefore,
                 ChangedBlockStartAfter = change.StartAfter,
                 ChangedBlockCountAfter = change.CountAfter,
-                AffectedSourceSpan = affectedSourceSpan
+                AffectedSourceSpan = affectedSourceSpan,
+                AffectedSourceSpans = affectedSourceSpans
             };
             MarkdownTransformDiagnosticSyntaxHelper.PopulateOriginalBlockAnchor(diagnostic, context.SyntaxTree);
+            if (beforeSyntaxNodes != null && afterSyntaxNodes != null) {
+                MarkdownTransformDiagnosticSyntaxHelper.PopulateOriginalChangedNodeAnchor(
+                    diagnostic,
+                    GetSyntaxNodeOrNull(beforeSyntaxNodes, change.StartBefore),
+                    GetSyntaxNodeOrNull(afterSyntaxNodes, change.StartAfter),
+                    change);
+            }
             context.Diagnostics.Add(diagnostic);
         }
 
         return current;
     }
+
+    private static MarkdownSyntaxNode?[] BuildBlockSyntaxNodes(
+        IReadOnlyList<IMarkdownBlock> blocks,
+        IReadOnlyList<MarkdownSourceSpan?>? blockSpans) {
+        var nodes = new MarkdownSyntaxNode?[blocks.Count];
+        for (var i = 0; i < blocks.Count; i++) {
+            if (!CanBuildTransformComparisonSyntax(blocks[i])) {
+                continue;
+            }
+
+            var span = blockSpans != null && i < blockSpans.Count
+                ? blockSpans[i]
+                : null;
+            nodes[i] = MarkdownBlockSyntaxBuilder.BuildBlock(blocks[i], span);
+        }
+
+        return nodes;
+    }
+
+    private static bool CanBuildTransformComparisonSyntax(IMarkdownBlock block) =>
+        block is ParagraphBlock or HeadingBlock;
+
+    private static MarkdownSyntaxNode? GetSyntaxNodeOrNull(IReadOnlyList<MarkdownSyntaxNode?> nodes, int index) =>
+        index >= 0 && index < nodes.Count ? nodes[index] : null;
 
     private static List<MarkdownSourceSpan?> InitializeBlockSpans(
         IReadOnlyList<IMarkdownBlock> blocks,

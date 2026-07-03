@@ -200,6 +200,16 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
+    public void MarkdownToRtfDocument_Renders_SoftBreak_As_Space() {
+        RtfDocument document = "Alpha\nBeta".ToRtfDocumentFromMarkdown();
+
+        RtfParagraph paragraph = Assert.Single(document.Paragraphs);
+
+        Assert.Equal("Alpha Beta", paragraph.ToPlainText());
+        Assert.DoesNotContain(paragraph.Inlines, inline => inline is RtfBreak);
+    }
+
+    [Fact]
     public void MarkdownRtfMarkdownRoundTripKeepsFencedCodeBlocks() {
         string markdown = """
             ```csharp
@@ -259,6 +269,23 @@ public class RtfMarkdownConverterTests {
         RtfTable table = Assert.IsType<RtfTable>(document.Blocks.OfType<RtfTable>().Single());
         Assert.Contains(table.Rows[1].Cells[0].Paragraphs[0].Runs, run => run.Text == "Bold" && run.Bold);
         Assert.Contains(table.Rows[1].Cells[1].Paragraphs[0].Runs, run => run.Text == "Link" && run.Hyperlink != null);
+    }
+
+    [Fact]
+    public void MarkdownToRtfDocument_Does_Not_Drop_Repeated_List_Item_Paragraph_After_Nested_Block() {
+        string markdown = """
+            - repeat
+
+              > quote
+
+              repeat
+            """;
+
+        RtfDocument document = markdown.ToRtfDocumentFromMarkdown();
+        var plainText = document.Paragraphs.Select(paragraph => paragraph.ToPlainText()).ToArray();
+
+        Assert.Equal(2, plainText.Count(text => text == "repeat"));
+        Assert.Contains("quote", plainText);
     }
 
     [Fact]

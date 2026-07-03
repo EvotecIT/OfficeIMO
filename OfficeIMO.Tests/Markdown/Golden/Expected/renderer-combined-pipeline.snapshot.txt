@@ -5,7 +5,7 @@ graph TD A-->B
 
 [renderer-combined.preprocessors]
 InputNormalization changed=true before=32 after=33
-CustomPreProcessor changed=true before=33 after=29 processor=<MarkdownGolden_RendererCombinedPipeline>b__16_0
+CustomPreProcessor changed=true before=33 after=29 processor=<MarkdownGolden_RendererCombinedPipeline>b__20_0
 
 [renderer-combined.transforms]
 MarkdownReader MarkdownRegisteredFencedBlockTransform before=1 after=1 changed-before=1+0 changed-after=1+0 span=- replaced=false

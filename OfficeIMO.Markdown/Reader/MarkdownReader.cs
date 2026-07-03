@@ -19,7 +19,36 @@ public static partial class MarkdownReader {
     public static MarkdownDoc Parse(string markdown, MarkdownReaderOptions? options = null) {
         options ??= new MarkdownReaderOptions();
         var state = new MarkdownReaderState();
-        return ParseInternal(markdown, options, state, allowFrontMatter: true, out _, out _);
+        var syntaxNodes = new List<MarkdownSyntaxNode>();
+        var diagnostics = new List<MarkdownDocumentTransformDiagnostic>();
+        var document = ParseInternal(
+            markdown,
+            options,
+            state,
+            allowFrontMatter: true,
+            out var syntaxTree,
+            out var sourceMarkdown,
+            syntaxNodes,
+            lineOffset: 0,
+            transformDiagnostics: diagnostics);
+        var originalSyntaxTree = syntaxTree ?? BuildDocumentSyntaxTree(syntaxNodes, document);
+        if (diagnostics.Any(diagnostic => diagnostic.ReplacedDocument)) {
+            originalSyntaxTree = DetachOriginalSyntaxAssociations(originalSyntaxTree);
+        }
+
+        var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
+        MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
+        _ = new MarkdownParseResult(
+            document,
+            originalSyntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            options.PreserveTrivia ? markdown : null,
+            options.PreserveTrivia,
+            diagnostics,
+            SnapshotReferenceLinkDefinitions(state),
+            SnapshotAbbreviationDefinitions(state));
+        return document;
     }
 
     /// <summary>
@@ -38,7 +67,16 @@ public static partial class MarkdownReader {
 
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, sourceMarkdown);
+        return new MarkdownParseResult(
+            document,
+            originalSyntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            options.PreserveTrivia ? markdown : null,
+            options.PreserveTrivia,
+            diagnostics,
+            referenceLinkDefinitions: SnapshotReferenceLinkDefinitions(state),
+            abbreviationDefinitions: SnapshotAbbreviationDefinitions(state));
     }
 
     /// <summary>
@@ -66,7 +104,16 @@ public static partial class MarkdownReader {
 
         var finalSyntaxTree = BuildFinalSyntaxTree(document, originalSyntaxTree, diagnostics);
         MarkdownObjectTreeBinder.BindDocument(document, finalSyntaxTree);
-        return new MarkdownParseResult(document, originalSyntaxTree, finalSyntaxTree, sourceMarkdown, diagnostics);
+        return new MarkdownParseResult(
+            document,
+            originalSyntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            options.PreserveTrivia ? markdown : null,
+            options.PreserveTrivia,
+            diagnostics,
+            SnapshotReferenceLinkDefinitions(state),
+            SnapshotAbbreviationDefinitions(state));
     }
 
     /// <summary>Parses a Markdown file path into a <see cref="MarkdownDoc"/>.</summary>
@@ -149,9 +196,8 @@ public static partial class MarkdownReader {
                 int end = -1;
                 for (int j = start; j < lines.Length; j++) { if (lines[j].Trim() == "---") { end = j; break; } }
                 if (end > start) {
-                    var dict = ParseFrontMatter(lines, start, end - 1);
-                    if (dict.Count > 0) {
-                        var frontMatter = FrontMatterBlock.FromObject(dict);
+                    var frontMatter = ParseFrontMatterBlock(lines, start, end - 1, state);
+                    if (frontMatter.Entries.Count > 0 || frontMatter.RawYaml != null) {
                         doc.Add(frontMatter);
                         if (syntaxNodes != null) {
                             syntaxNodes.Add(((ISyntaxMarkdownBlock)frontMatter).BuildSyntaxNode(
@@ -167,8 +213,10 @@ public static partial class MarkdownReader {
             var pipeline = MarkdownReaderPipeline.Default(options);
             // Pre-scan for reference-style link definitions so inline refs in earlier paragraphs can resolve
             PreScanReferenceLinkDefinitions(lines, state, options);
+            PreScanAbbreviationDefinitions(lines, state, options);
             while (i < lines.Length) {
                 if (string.IsNullOrWhiteSpace(lines[i])) { i++; continue; }
+                if (TryConsumeStandaloneGenericAttributeBlock(lines, i, options, state)) { i++; continue; }
                 bool matched = false;
                 var parsers = pipeline.Parsers;
                 int previousBlockCount = doc.Blocks.Count;
@@ -177,6 +225,11 @@ public static partial class MarkdownReader {
                 for (int p = 0; p < parsers.Count; p++) {
                     if (parsers[p].TryParse(lines, ref i, options, doc, state)) {
                         matched = true;
+                        if (doc.Blocks.Count > previousBlockCount
+                            && TryApplyPendingGenericAttributeBlock(doc, previousBlockCount, startLine, state, out var pendingAttributeStartLine)) {
+                            startLine = Math.Min(startLine, pendingAttributeStartLine);
+                        }
+
                         if (syntaxNodes != null && doc.Blocks.Count > previousBlockCount) {
                             CaptureSyntaxNodes(doc, previousBlockCount, startLine, lineOffset + i, syntaxNodes, state);
                         } else if (syntaxNodes != null) {
@@ -197,7 +250,14 @@ public static partial class MarkdownReader {
                 return doc;
             }
 
-            var transformed = ApplyDocumentTransforms(doc, options, transformDiagnostics, syntaxTree);
+            var transformed = ApplyDocumentTransforms(
+                doc,
+                options,
+                transformDiagnostics,
+                syntaxTree,
+                normalizedSourceText,
+                options.PreserveTrivia ? markdown : null,
+                options.PreserveTrivia);
             return transformed;
         } finally {
             state.SourceLineOffset = previousLineOffset;

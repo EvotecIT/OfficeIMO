@@ -1,7 +1,7 @@
 namespace OfficeIMO.Markdown;
 
 public static partial class MarkdownReader {
-    private static int FindMatchingBracket(string text, int openIndex) {
+    private static int FindMatchingBracket(string text, int openIndex, MarkdownReaderOptions? options = null) {
         if (string.IsNullOrEmpty(text) || openIndex < 0 || openIndex >= text.Length || text[openIndex] != '[') return -1;
 
         int depth = 0;
@@ -18,6 +18,11 @@ public static partial class MarkdownReader {
                 continue;
             }
 
+            if (TrySkipLinkLabelInlineSpan(text, i, options, out int spanConsumed)) {
+                i += spanConsumed - 1;
+                continue;
+            }
+
             if (c == '[') {
                 depth++;
                 continue;
@@ -30,6 +35,66 @@ public static partial class MarkdownReader {
         }
 
         return -1;
+    }
+
+    private static bool TrySkipLinkLabelInlineSpan(string text, int start, MarkdownReaderOptions? options, out int consumed) {
+        consumed = 0;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length) return false;
+
+        if (text[start] == '`' && TryConsumeMatchedBacktickSpan(text, start, out consumed)) {
+            return true;
+        }
+
+        if (text[start] == '<') {
+            bool inlineHtml = options?.InlineHtml != false;
+            if (inlineHtml && TryConsumeSupportedInlineHtmlWrapperSpan(text, start, out consumed)) {
+                return true;
+            }
+
+            if (TryParseAngleAutolink(text, start, out consumed, out _, out _)) {
+                return true;
+            }
+
+            if (inlineHtml && TryConsumeRawInlineHtmlTag(text, start, out consumed)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool TryConsumeMatchedBacktickSpan(string text, int start, out int consumed) {
+        consumed = 0;
+        if (string.IsNullOrEmpty(text) || start < 0 || start >= text.Length || text[start] != '`') {
+            return false;
+        }
+
+        int fenceLength = 0;
+        while (start + fenceLength < text.Length && text[start + fenceLength] == '`') {
+            fenceLength++;
+        }
+
+        int scan = start + fenceLength;
+        while (scan < text.Length) {
+            if (text[scan] != '`') {
+                scan++;
+                continue;
+            }
+
+            int runLength = 0;
+            while (scan + runLength < text.Length && text[scan + runLength] == '`') {
+                runLength++;
+            }
+
+            if (runLength == fenceLength) {
+                consumed = scan + runLength - start;
+                return true;
+            }
+
+            scan += runLength;
+        }
+
+        return false;
     }
 
     private static int FindReferenceLabelEnd(string text, int openIndex) {
@@ -73,45 +138,127 @@ public static partial class MarkdownReader {
         return sb.ToString();
     }
 
+    private static bool ContainsBackslashEscapableCharacter(string value) {
+        if (string.IsNullOrEmpty(value)) return false;
+
+        for (int i = 0; i + 1 < value.Length; i++) {
+            if (value[i] == '\\' && IsBackslashEscapable(value[i + 1])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string DecodeLinkDestinationOrTitle(string value) {
+        var unescaped = UnescapeMarkdownBackslashEscapes(value);
+        return CommonMarkCharacterReference.DecodeAll(unescaped);
+    }
+
+    private static string DecodeLinkDestination(string value) {
+        var unescaped = UnescapeMarkdownDestination(value);
+        return CommonMarkCharacterReference.DecodeAll(unescaped);
+    }
+
     private static string UnescapeMarkdownDestination(string value) {
         if (IsWindowsDriveLike(value)) return value.Replace("\\\\", "\\");
         return UnescapeMarkdownBackslashEscapes(value);
     }
 
-    private static bool TryParseRefLink(string text, int start, out int consumed, out string label, out string refLabel) {
+    private static bool TryParseRefLink(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label, out string refLabel) {
         consumed = 0; label = refLabel = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start, options); if (rb < 0) return false;
         if (rb + 1 >= text.Length || text[rb + 1] != '[') return false;
-        int rb2 = FindMatchingBracket(text, rb + 1); if (rb2 < 0) return false;
+        int rb2 = FindMatchingBracket(text, rb + 1, options); if (rb2 < 0) return false;
         label = text.Substring(start + 1, rb - (start + 1));
         refLabel = text.Substring(rb + 2, rb2 - (rb + 2));
         consumed = rb2 - start + 1; return true;
     }
 
-    private static bool TryParseCollapsedRef(string text, int start, out int consumed, out string label) {
+    private static bool TryParseCollapsedRef(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start, options); if (rb < 0) return false;
         if (rb + 2 >= text.Length || text[rb + 1] != '[' || text[rb + 2] != ']') return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 3 - start;
         return true;
     }
 
-    private static bool TryParseShortcutRef(string text, int start, out int consumed, out string label) {
+    private static bool TryParseShortcutRef(string text, int start, MarkdownReaderOptions? options, out int consumed, out string label) {
         consumed = 0; label = string.Empty;
         if (start >= text.Length || text[start] != '[') return false;
-        int rb = FindMatchingBracket(text, start); if (rb < 0) return false;
+        int rb = FindMatchingBracket(text, start, options); if (rb < 0) return false;
         if (rb + 1 < text.Length && text[rb + 1] == '[') return false;
         label = text.Substring(start + 1, rb - (start + 1));
         consumed = rb + 1 - start;
         return true;
     }
 
+    private static bool ContainsResolvedLinkInLabel(string label, MarkdownReaderOptions? options, MarkdownReaderState? state) {
+        if (string.IsNullOrEmpty(label)) return false;
+
+        for (int i = 0; i < label.Length; i++) {
+            if (TrySkipLinkLabelInlineSpan(label, i, options, out int spanConsumed)) {
+                i += spanConsumed - 1;
+                continue;
+            }
+
+            if (label[i] != '[') {
+                continue;
+            }
+
+            if (i > 0 && label[i - 1] == '!') {
+                continue;
+            }
+
+            if (TryParseLink(
+                label,
+                i,
+                options,
+                sourceMap: null,
+                state,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _,
+                out _)) {
+                return true;
+            }
+
+            if (state == null) {
+                continue;
+            }
+
+            if (TryParseRefLink(label, i, options, out _, out _, out var referenceLabel)
+                && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(referenceLabel))) {
+                return true;
+            }
+
+            if (TryParseCollapsedRef(label, i, options, out _, out var collapsedLabel)
+                && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(collapsedLabel))) {
+                return true;
+            }
+
+            if (TryParseShortcutRef(label, i, options, out _, out var shortcutLabel)
+                && state.LinkRefs.ContainsKey(NormalizeReferenceLabel(shortcutLabel))) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private static bool TryParseLink(
         string text,
         int start,
+        MarkdownReaderOptions? options,
+        MarkdownInlineSourceMap? sourceMap,
+        MarkdownReaderState? state,
         out int consumed,
         out string label,
         out string href,
@@ -123,15 +270,26 @@ public static partial class MarkdownReader {
         consumed = 0; label = href = string.Empty; title = null;
         hrefStart = 0; hrefLength = 0; titleStart = null; titleLength = null;
         if (start >= text.Length || text[start] != '[') return false;
-        int labelEnd = FindMatchingBracket(text, start);
+        int labelEnd = FindMatchingBracket(text, start, options);
         if (labelEnd < 0) return false;
         int parenOpen = (labelEnd + 1 < text.Length && text[labelEnd + 1] == '(') ? labelEnd + 1 : -1;
         if (parenOpen < 0) return false;
         int parenClose = FindMatchingParen(text, parenOpen);
         if (parenClose < 0) return false;
         label = text.Substring(start + 1, labelEnd - (start + 1));
+        if (ContainsResolvedLinkInLabel(label, options, state)) return false;
+
         string inner = text.Substring(parenOpen + 1, parenClose - (parenOpen + 1));
-        if (!TrySplitUrlAndOptionalTitle(inner, out href, out title, out int hrefInnerStart, out int hrefInnerLength, out int? titleInnerStart, out int? titleInnerLength)) {
+        if (!TrySplitUrlAndOptionalTitle(
+            inner,
+            out href,
+            out title,
+            out int hrefInnerStart,
+            out int hrefInnerLength,
+            out int? titleInnerStart,
+            out int? titleInnerLength,
+            sourceMap,
+            parenOpen + 1)) {
             if (!TryParseTrimmedLiteralDestination(inner, out href, out hrefInnerStart, out hrefInnerLength)) return false;
             title = null;
             titleInnerStart = null;
@@ -156,7 +314,9 @@ public static partial class MarkdownReader {
         out int urlStart,
         out int urlLength,
         out int? titleStart,
-        out int? titleLength) {
+        out int? titleLength,
+        MarkdownInlineSourceMap? sourceMap = null,
+        int sourceOffset = 0) {
         url = string.Empty;
         title = null;
         urlStart = 0;
@@ -164,30 +324,44 @@ public static partial class MarkdownReader {
         titleStart = null;
         titleLength = null;
         if (inner == null) return false;
-        if (string.IsNullOrWhiteSpace(inner)) return false;
 
         int start = 0;
-        while (start < inner.Length && char.IsWhiteSpace(inner[start])) {
+        while (start < inner.Length && IsLinkWhitespace(inner[start])) {
             start++;
         }
 
         int endExclusive = inner.Length;
-        while (endExclusive > start && char.IsWhiteSpace(inner[endExclusive - 1])) {
+        while (endExclusive > start && IsLinkWhitespace(inner[endExclusive - 1])) {
             endExclusive--;
         }
 
-        if (endExclusive <= start) return false;
+        if (endExclusive <= start) {
+            urlStart = start;
+            urlLength = 0;
+            url = string.Empty;
+            title = null;
+            return true;
+        }
 
         // CommonMark: destination can be wrapped in <...> to allow spaces and parentheses safely.
         if (inner[start] == '<') {
             int gt = inner.IndexOf('>', start + 1);
             if (gt >= start + 1 && gt < endExclusive) {
+                if (!IsValidAngleLinkDestination(inner, start + 1, gt)
+                    || ContainsSourceLineBreak(sourceMap, sourceOffset + start + 1, gt - (start + 1))) {
+                    return false;
+                }
+
                 urlStart = start + 1;
                 urlLength = gt - urlStart;
-                url = UnescapeMarkdownDestination(inner.Substring(urlStart, urlLength).Trim());
+                url = DecodeLinkDestination(inner.Substring(urlStart, urlLength));
 
                 int restStart = gt + 1;
-                while (restStart < endExclusive && char.IsWhiteSpace(inner[restStart])) {
+                if (restStart < endExclusive && !IsLinkWhitespace(inner[restStart])) {
+                    return false;
+                }
+
+                while (restStart < endExclusive && IsLinkWhitespace(inner[restStart])) {
                     restStart++;
                 }
 
@@ -199,7 +373,7 @@ public static partial class MarkdownReader {
                     return false;
                 }
 
-                title = UnescapeMarkdownBackslashEscapes(title!);
+                title = DecodeLinkDestinationOrTitle(title!);
                 titleStart = parsedTitleStart;
                 titleLength = parsedTitleLength;
                 return true;
@@ -208,7 +382,7 @@ public static partial class MarkdownReader {
 
         int ws = -1;
         for (int i = start; i < endExclusive; i++) {
-            if (char.IsWhiteSpace(inner[i])) {
+            if (IsLinkWhitespace(inner[i])) {
                 ws = i;
                 break;
             }
@@ -217,24 +391,24 @@ public static partial class MarkdownReader {
         if (ws < 0) {
             urlStart = start;
             urlLength = endExclusive - start;
-            url = UnescapeMarkdownDestination(inner.Substring(urlStart, urlLength));
+            url = DecodeLinkDestination(inner.Substring(urlStart, urlLength));
             title = null;
             return true;
         }
 
         urlStart = start;
         urlLength = ws - start;
-        url = UnescapeMarkdownDestination(inner.Substring(urlStart, urlLength).Trim());
+        url = DecodeLinkDestination(inner.Substring(urlStart, urlLength));
 
         int remainingStart = ws;
-        while (remainingStart < endExclusive && char.IsWhiteSpace(inner[remainingStart])) {
+        while (remainingStart < endExclusive && IsLinkWhitespace(inner[remainingStart])) {
             remainingStart++;
         }
 
         if (remainingStart >= endExclusive) { title = null; return true; }
 
         if (!TryParseOptionalTitleToken(inner, remainingStart, endExclusive, out title, out int parsedStart, out int parsedLength)) return false;
-        title = UnescapeMarkdownBackslashEscapes(title!);
+        title = DecodeLinkDestinationOrTitle(title!);
         titleStart = parsedStart;
         titleLength = parsedLength;
         return true;
@@ -243,33 +417,56 @@ public static partial class MarkdownReader {
     private static bool TrySplitUrlAndOptionalTitle(string? inner, out string url, out string? title) =>
         TrySplitUrlAndOptionalTitle(inner, out url, out title, out _, out _, out _, out _);
 
+    private static bool ContainsSourceLineBreak(MarkdownInlineSourceMap? sourceMap, int startIndex, int length) =>
+        sourceMap != null && sourceMap.ContainsSourceLineBreak(startIndex, length);
+
     private static bool TryParseTrimmedLiteralDestination(string inner, out string destination, out int destinationStart, out int destinationLength) {
         destination = string.Empty;
         destinationStart = 0;
         destinationLength = 0;
 
-        string trimmed = inner.Trim();
-        if (IndexOfWhitespace(trimmed) >= 0) return false;
-
         int trimmedStart = 0;
-        while (trimmedStart < inner.Length && char.IsWhiteSpace(inner[trimmedStart])) {
+        while (trimmedStart < inner.Length && IsLinkWhitespace(inner[trimmedStart])) {
             trimmedStart++;
         }
 
         int trimmedEndExclusive = inner.Length;
-        while (trimmedEndExclusive > trimmedStart && char.IsWhiteSpace(inner[trimmedEndExclusive - 1])) {
+        while (trimmedEndExclusive > trimmedStart && IsLinkWhitespace(inner[trimmedEndExclusive - 1])) {
             trimmedEndExclusive--;
         }
 
-        destination = UnescapeMarkdownDestination(trimmed);
+        if (trimmedEndExclusive <= trimmedStart) return false;
+        if (inner[trimmedStart] == '<') return false;
+        if (IndexOfWhitespace(inner, trimmedStart, trimmedEndExclusive) >= 0) return false;
+
+        destination = DecodeLinkDestination(inner.Substring(trimmedStart, trimmedEndExclusive - trimmedStart));
         destinationStart = trimmedStart;
         destinationLength = Math.Max(0, trimmedEndExclusive - trimmedStart);
         return true;
     }
 
     private static int IndexOfWhitespace(string s) {
-        for (int i = 0; i < s.Length; i++) if (char.IsWhiteSpace(s[i])) return i;
+        for (int i = 0; i < s.Length; i++) if (IsLinkWhitespace(s[i])) return i;
         return -1;
+    }
+
+    private static int IndexOfWhitespace(string s, int start, int endExclusive) {
+        for (int i = start; i < endExclusive; i++) if (IsLinkWhitespace(s[i])) return i;
+        return -1;
+    }
+
+    private static bool IsLinkWhitespace(char c) =>
+        c == ' ' || c == '\t' || c == '\n' || c == '\r';
+
+    private static bool IsValidAngleLinkDestination(string value, int start, int endExclusive) {
+        for (int i = start; i < endExclusive; i++) {
+            char c = value[i];
+            if (c == '\n' || c == '\r' || c == '<') {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static string? TryParseOptionalTitleToken(string s) {
@@ -308,6 +505,10 @@ public static partial class MarkdownReader {
             (open == '(' && close == ')')) {
             titleStart = start + 1;
             titleLength = endExclusive - start - 2;
+            if (ContainsUnescapedTitleDelimiter(s, titleStart, titleStart + titleLength, close)) {
+                return false;
+            }
+
             title = s.Substring(titleStart, titleLength);
             return true;
         }
@@ -352,5 +553,27 @@ public static partial class MarkdownReader {
             }
         }
         return -1;
+    }
+
+    private static bool ContainsUnescapedTitleDelimiter(string value, int start, int endExclusive, char delimiter) {
+        bool escaped = false;
+        for (int i = start; i < endExclusive; i++) {
+            char c = value[i];
+            if (escaped) {
+                escaped = false;
+                continue;
+            }
+
+            if (c == '\\') {
+                escaped = true;
+                continue;
+            }
+
+            if (c == delimiter) {
+                return true;
+            }
+        }
+
+        return false;
     }
 }

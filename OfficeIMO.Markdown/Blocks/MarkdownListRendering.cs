@@ -2,9 +2,15 @@ namespace OfficeIMO.Markdown;
 
 internal static class MarkdownListRendering {
     internal static string RenderMarkdown(
+        MarkdownAttributeSet? attributes,
         IReadOnlyList<ListItem> items,
         Func<ListItem, int, string> markerFactory) {
         var sb = new System.Text.StringBuilder();
+        var attributeBlock = MarkdownAttributeBlockRenderer.RenderInlineTrailing(attributes);
+        if (!string.IsNullOrEmpty(attributeBlock)) {
+            sb.Append(attributeBlock).AppendLine();
+        }
+
         int topLevelIndex = 0;
 
         for (int idx = 0; idx < items.Count; idx++) {
@@ -18,7 +24,7 @@ internal static class MarkdownListRendering {
             string firstPrefix = baseIndent + marker;
             string contPrefix = baseIndent + new string(' ', marker.Length);
 
-            AppendItemMarkdown(sb, item.RenderMarkdown(), baseIndent, firstPrefix, contPrefix);
+            AppendItemMarkdown(sb, RenderItemMarkdown(item), baseIndent, firstPrefix, contPrefix);
             AppendChildrenMarkdown(sb, item, baseIndent, contPrefix);
         }
 
@@ -28,6 +34,7 @@ internal static class MarkdownListRendering {
     internal static string RenderHtml(
         string listTag,
         IReadOnlyList<ListItem> items,
+        MarkdownAttributeSet? attributes,
         Func<int, string> topLevelAttributesFactory) {
         var sb = new System.Text.StringBuilder();
 
@@ -52,14 +59,19 @@ internal static class MarkdownListRendering {
 
         void AppendOpenList(int startIndex, int level, bool isTopLevel) {
             var options = HtmlRenderContext.Options;
+            var containsTasks = ContainsTasksInScope(startIndex, level);
+            var useGitHubTaskListHtml = options?.GitHubTaskListHtml == true;
             sb.Append('<').Append(listTag);
             if (isTopLevel) {
+                var taskClasses = containsTasks && !useGitHubTaskListHtml
+                    ? new[] { "contains-task-list" }
+                    : null;
+                sb.Append(MarkdownHtmlAttributes.Render(attributes, options, additionalClasses: taskClasses));
                 var attrs = topLevelAttributesFactory(startIndex);
                 if (!string.IsNullOrEmpty(attrs)) {
                     sb.Append(attrs);
                 }
-            }
-            if (ContainsTasksInScope(startIndex, level) && options?.GitHubTaskListHtml != true) {
+            } else if (containsTasks && !useGitHubTaskListHtml) {
                 sb.Append(" class=\"contains-task-list\"");
             }
             sb.Append('>');
@@ -119,15 +131,49 @@ internal static class MarkdownListRendering {
         }
     }
 
+    private static string RenderItemMarkdown(ListItem item) {
+        if (item == null) {
+            return string.Empty;
+        }
+
+        var content = MarkdownEscaper.EscapeRenderedListItemLineStarts(item.RenderMarkdown());
+        if (item.SyntaxChildren.Count == 0) {
+            return content;
+        }
+
+        var definitions = new List<string>();
+        for (int i = 0; i < item.SyntaxChildren.Count; i++) {
+            var syntaxChild = item.SyntaxChildren[i];
+            if (syntaxChild.Kind != MarkdownSyntaxKind.AbbreviationDefinition
+                || string.IsNullOrWhiteSpace(syntaxChild.Literal)) {
+                continue;
+            }
+
+            definitions.Add(syntaxChild.Literal!.TrimEnd('\r', '\n'));
+        }
+
+        if (definitions.Count == 0) {
+            return content;
+        }
+
+        var prefix = string.Join("\n", definitions);
+        return string.IsNullOrEmpty(content)
+            ? prefix
+            : prefix + "\n" + content;
+    }
+
     private static void AppendChildrenMarkdown(System.Text.StringBuilder sb, ListItem item, string baseIndent, string contPrefix) {
         if (item.Children.Count == 0) return;
 
         for (int c = 0; c < item.Children.Count; c++) {
             var child = item.Children[c];
-            var childMd = child.RenderMarkdown();
+            var childMd = MarkdownBlockRenderDispatcher.RenderMarkdown(child);
             if (string.IsNullOrWhiteSpace(childMd)) continue;
 
-            sb.Append(baseIndent).AppendLine();
+            var renderAsTightChildContinuation = ShouldRenderAsTightChildContinuation(item, child);
+            if (!renderAsTightChildContinuation) {
+                sb.Append(baseIndent).AppendLine();
+            }
 
             var lines = childMd.Replace("\r\n", "\n").Replace('\r', '\n').Split('\n');
             for (int i = 0; i < lines.Length; i++) {
@@ -136,7 +182,16 @@ internal static class MarkdownListRendering {
                 else sb.Append(contPrefix).AppendLine(line);
             }
 
-            sb.Append(baseIndent).AppendLine();
+            if (!renderAsTightChildContinuation || c + 1 < item.Children.Count) {
+                sb.Append(baseIndent).AppendLine();
+            }
         }
     }
+
+    private static bool ShouldRenderAsTightChildContinuation(ListItem item, IMarkdownBlock child) =>
+        (child is TableBlock || child is QuoteBlock || child is CustomContainerBlock) &&
+        item != null &&
+        !item.RequiresLooseListRendering() &&
+        item.AdditionalParagraphs.Count == 0 &&
+        item.Content.Nodes.Count > 0;
 }

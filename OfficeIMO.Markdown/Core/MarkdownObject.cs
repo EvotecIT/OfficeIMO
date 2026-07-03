@@ -25,6 +25,9 @@ public abstract class MarkdownObject {
     /// <summary>Source span mapped from the syntax tree when available.</summary>
     public MarkdownSourceSpan? SourceSpan { get; internal set; }
 
+    /// <summary>Generic Markdown attributes associated with this node.</summary>
+    public MarkdownAttributeSet Attributes { get; private set; } = MarkdownAttributeSet.Empty;
+
     /// <summary>Immediate child objects in document order.</summary>
     public IReadOnlyList<MarkdownObject> ChildObjects => MarkdownObjectTreeBinder.GetChildObjects(this);
 
@@ -81,6 +84,10 @@ public abstract class MarkdownObject {
         IndexInParent = indexInParent;
         PreviousSibling = previousSibling;
         NextSibling = nextSibling;
+    }
+
+    internal void SetAttributes(MarkdownAttributeSet? attributes) {
+        Attributes = attributes == null || attributes.IsEmpty ? MarkdownAttributeSet.Empty : attributes;
     }
 }
 

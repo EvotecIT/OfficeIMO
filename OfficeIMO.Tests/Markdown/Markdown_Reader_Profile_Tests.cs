@@ -9,14 +9,25 @@ public class Markdown_Reader_Profile_Tests {
         var options = MarkdownReaderOptions.CreatePortableProfile();
 
         Assert.False(options.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, options.CalloutTitleMode);
         Assert.False(options.TaskLists);
         Assert.False(options.TocPlaceholders);
         Assert.False(options.Footnotes);
         Assert.False(options.StandaloneImageBlocks);
         Assert.False(options.AutolinkUrls);
+        Assert.False(options.AutolinkBareSchemeUrls);
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
+        Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Highlight);
+        Assert.False(options.Inserted);
+        Assert.False(options.Superscript);
+        Assert.False(options.Subscript);
+        Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.Tables);
+        Assert.True(options.AllowHeaderlessTables);
+        Assert.True(options.ParseTableCellBlocks);
+        Assert.False(options.PreserveTrivia);
         Assert.True(options.DefinitionLists);
         Assert.Empty(options.BlockParserExtensions);
         Assert.Empty(options.InlineParserExtensions);
@@ -28,15 +39,26 @@ public class Markdown_Reader_Profile_Tests {
 
         Assert.False(options.FrontMatter);
         Assert.False(options.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, options.CalloutTitleMode);
         Assert.False(options.TaskLists);
         Assert.False(options.Tables);
+        Assert.True(options.AllowHeaderlessTables);
+        Assert.True(options.ParseTableCellBlocks);
+        Assert.False(options.PreserveTrivia);
         Assert.False(options.DefinitionLists);
         Assert.False(options.TocPlaceholders);
         Assert.False(options.Footnotes);
         Assert.False(options.StandaloneImageBlocks);
         Assert.False(options.AutolinkUrls);
+        Assert.False(options.AutolinkBareSchemeUrls);
         Assert.False(options.AutolinkWwwUrls);
         Assert.False(options.AutolinkEmails);
+        Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Highlight);
+        Assert.False(options.Inserted);
+        Assert.False(options.Superscript);
+        Assert.False(options.Subscript);
+        Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.HtmlBlocks);
         Assert.True(options.InlineHtml);
         Assert.Empty(options.BlockParserExtensions);
@@ -49,20 +71,159 @@ public class Markdown_Reader_Profile_Tests {
 
         Assert.False(options.FrontMatter);
         Assert.False(options.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, options.CalloutTitleMode);
         Assert.True(options.TaskLists);
         Assert.True(options.Tables);
+        Assert.False(options.AllowHeaderlessTables);
+        Assert.False(options.RequireTableBodyRowPipes);
+        Assert.False(options.ParseTableCellBlocks);
+        Assert.False(options.PreserveTrivia);
         Assert.False(options.DefinitionLists);
         Assert.False(options.TocPlaceholders);
         Assert.True(options.Footnotes);
         Assert.False(options.StandaloneImageBlocks);
         Assert.True(options.SingleTildeStrikethrough);
+        Assert.False(options.Subscript);
+        Assert.False(options.CjkFriendlyEmphasis);
         Assert.True(options.AutolinkUrls);
+        Assert.False(options.AutolinkAllowDomainWithoutPeriod);
+        Assert.True(options.AutolinkAllowQueryAndFragmentSpecialCharacters);
+        Assert.True(options.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
+        Assert.False(options.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis);
+        Assert.False(options.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
+        Assert.True(options.AutolinkRequireLowercaseWwwPrefix);
+        Assert.False(options.AutolinkRejectUnderscoreInWwwHost);
+        Assert.True(options.AutolinkRejectUnderscoreInWwwSubdomainLabels);
+        Assert.False(options.AutolinkRejectUnderscoreInUrlHost);
+        Assert.True(options.AutolinkRequireLowercaseBareSchemePrefix);
+        Assert.False(options.AutolinkBareMailtoDisplayAddressOnly);
+        Assert.Null(options.AutolinkValidPreviousCharacters);
+        Assert.True(options.AutolinkBareSchemeUrls);
         Assert.True(options.AutolinkWwwUrls);
         Assert.Equal("http://", options.AutolinkWwwScheme);
         Assert.True(options.AutolinkEmails);
+        Assert.False(options.SoftLineBreaksAsHardLineBreaks);
+        Assert.False(options.Highlight);
+        Assert.False(options.Inserted);
+        Assert.False(options.Superscript);
         Assert.Single(options.BlockParserExtensions);
         Assert.Empty(options.InlineParserExtensions);
         Assert.Equal(MarkdownReaderBuiltInExtensions.FootnotesExtensionName, options.BlockParserExtensions[0].Name);
+    }
+
+    [Fact]
+    public void Strict_Profiles_Keep_Emphasis_Extras_Literal() {
+        const string markdown = "x^2^ and a ++b++ and ==mark== and H~2~O";
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        };
+
+        var commonMark = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile()).ToHtmlFragment(htmlOptions);
+        var portable = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+
+        Assert.Equal("<p>x^2^ and a ++b++ and ==mark== and H~2~O</p>", commonMark);
+        Assert.Equal(commonMark, portable);
+        Assert.DoesNotContain("<sup>", commonMark, StringComparison.Ordinal);
+        Assert.DoesNotContain("<ins>", commonMark, StringComparison.Ordinal);
+        Assert.DoesNotContain("<mark>", commonMark, StringComparison.Ordinal);
+        Assert.DoesNotContain("<sub>", commonMark, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Gfm_Profile_Keeps_Single_Tilde_As_Strikethrough_Instead_Of_Subscript() {
+        var document = MarkdownReader.Parse("Use ~this~", MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile());
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Equal("<p>Use <del>this</del></p>", html);
+        Assert.DoesNotContain("<sub>", html);
+    }
+
+    [Fact]
+    public void InlineHtml_Disabled_Keeps_Character_References_Literal() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.InlineHtml = false;
+
+        var document = MarkdownReader.Parse("&copy; stays literal", options);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+        var text = Assert.IsType<TextRun>(Assert.Single(paragraph.Inlines.Nodes));
+
+        Assert.Equal("&copy; stays literal", text.Text);
+        Assert.Equal(
+            "<p>&amp;copy; stays literal</p>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }));
+    }
+
+    [Fact]
+    public void CommonMark_Profile_Keeps_Overlong_Hex_Character_References_Literal() {
+        var document = MarkdownReader.Parse("&#x0000041;", MarkdownReaderOptions.CreateCommonMarkProfile());
+
+        Assert.Equal(
+            "<p>&amp;#x0000041;</p>",
+            document.ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            }));
+    }
+
+    [Fact]
+    public void Setext_Heading_Consumes_Multiline_Paragraph_And_Underline() {
+        const string markdown = """
+Alpha
+Beta
+---
+""";
+
+        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal(2, heading.Level);
+        Assert.Equal("Alpha Beta", heading.Inlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void Nested_Profile_Clones_Preserve_StandaloneImageBlocks_Option() {
+        const string markdown = "> ![Alt](image.png)";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(document.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.Children));
+
+        Assert.Contains(paragraph.Inlines.Nodes, node => node is ImageInline);
+        Assert.DoesNotContain(quote.Children, block => block is ImageBlock);
+    }
+
+    [Fact]
+    public void CjkFriendlyEmphasis_Is_OptIn_And_Preserves_Markdown_Writing() {
+        const string markdown = "これは**強調？**です";
+        var htmlOptions = new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        };
+
+        var defaultHtml = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreatePortableProfile()).ToHtmlFragment(htmlOptions);
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.CjkFriendlyEmphasis = true;
+        var document = MarkdownReader.Parse(markdown, options);
+        var optInHtml = document.ToHtmlFragment(htmlOptions);
+
+        Assert.Equal("<p>これは**強調？**です</p>", defaultHtml);
+        Assert.Equal("<p>これは<strong>強調？</strong>です</p>", optInHtml);
+        Assert.Equal(markdown, document.ToMarkdown().Trim());
     }
 
     [Fact]
@@ -73,18 +234,85 @@ public class Markdown_Reader_Profile_Tests {
         var portable = MarkdownReaderOptions.CreateProfile(MarkdownReaderOptions.MarkdownDialectProfile.Portable);
 
         Assert.True(office.Callouts);
+        Assert.Equal(MarkdownCalloutTitleMode.OfficeIMO, office.CalloutTitleMode);
+        Assert.False(office.PreserveTrivia);
+        Assert.False(office.AutolinkAllowBalancedParenthesesWithTrailingPunctuation);
+        Assert.False(office.AutolinkAllowTrailingPunctuationBeforeClosingParenthesis);
+        Assert.False(office.AutolinkTrimSingleTrailingPunctuationOrUnderscore);
+        Assert.False(office.AutolinkRequireLowercaseWwwPrefix);
+        Assert.False(office.AutolinkRejectUnderscoreInWwwHost);
+        Assert.False(office.AutolinkRejectUnderscoreInWwwSubdomainLabels);
+        Assert.False(office.AutolinkRejectUnderscoreInUrlHost);
+        Assert.False(office.AutolinkRequireLowercaseBareSchemePrefix);
+        Assert.False(office.AutolinkBareMailtoDisplayAddressOnly);
         Assert.Equal(3, office.BlockParserExtensions.Count);
         Assert.Empty(office.InlineParserExtensions);
         Assert.False(commonMark.Callouts);
         Assert.Empty(commonMark.BlockParserExtensions);
         Assert.Empty(commonMark.InlineParserExtensions);
         Assert.True(gfm.Tables);
+        Assert.False(gfm.AllowHeaderlessTables);
+        Assert.False(gfm.ParseTableCellBlocks);
+        Assert.True(gfm.AutolinkBareSchemeUrls);
         Assert.Single(gfm.BlockParserExtensions);
         Assert.Empty(gfm.InlineParserExtensions);
         Assert.False(portable.Footnotes);
         Assert.False(portable.StandaloneImageBlocks);
         Assert.Empty(portable.BlockParserExtensions);
         Assert.Empty(portable.InlineParserExtensions);
+    }
+
+    [Fact]
+    public void SoftLineBreaksAsHardLineBreaks_Renders_Ordinary_Paragraph_Line_Breaks_As_Hard_Breaks() {
+        const string markdown = """
+alpha
+beta
+""";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.SoftLineBreaksAsHardLineBreaks = true;
+
+        var document = MarkdownReader.Parse(markdown, options);
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Equal("<p>alpha<br/>beta</p>", html);
+        Assert.Equal("alpha  \nbeta", document.ToMarkdown().Replace("\r\n", "\n").TrimEnd());
+    }
+
+    [Fact]
+    public void SoftLineBreaksAsHardLineBreaks_Does_Not_Change_Default_Profile_Behavior() {
+        const string markdown = """
+alpha
+beta
+""";
+
+        var document = MarkdownReader.Parse(markdown, MarkdownReaderOptions.CreateCommonMarkProfile());
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.DoesNotContain(paragraph.Inlines.Items, inline => inline is HardBreakInline);
+        Assert.Equal("alpha beta", document.ToMarkdown().TrimEnd());
+    }
+
+    [Fact]
+    public void SoftLineBreaksAsHardLineBreaks_Applies_To_Nested_List_Paragraphs() {
+        const string markdown = """
+- alpha
+  beta
+""";
+        var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+        options.SoftLineBreaksAsHardLineBreaks = true;
+
+        var html = MarkdownReader.Parse(markdown, options)
+            .ToHtmlFragment(new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null
+            });
+
+        Assert.Contains("alpha<br/>beta", html);
     }
 
     [Fact]
@@ -635,6 +863,38 @@ Lead[^1]
         var callout = Assert.IsType<CalloutBlock>(Assert.Single(doc.Blocks));
         Assert.Equal("note", callout.Kind);
         Assert.Equal("Example", callout.TitleInlines.RenderMarkdown());
+    }
+
+    [Fact]
+    public void Callout_Title_Mode_Can_Match_Markdig_Alert_Boundary() {
+        const string markdown = """
+> [!NOTE] Example
+> Body text
+""";
+        var options = new MarkdownReaderOptions {
+            CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible,
+            PreserveTrivia = true
+        };
+
+        var result = MarkdownReader.ParseWithSyntaxTree(markdown, options);
+        var quote = Assert.IsType<QuoteBlock>(Assert.Single(result.Document.Blocks));
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(quote.ChildBlocks));
+        var syntax = Assert.Single(result.SyntaxTree.Children);
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+        var written = result.Document.ToMarkdown();
+        var reparsed = MarkdownReader.Parse(written, options);
+
+        Assert.Equal("\\[!NOTE\\] Example Body text", paragraph.Inlines.RenderMarkdown().Replace("\r\n", "\n"));
+        Assert.Equal(2, quote.MarkerSourceSpans.Count);
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 1), quote.MarkerSourceSpans[0]);
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 1), quote.MarkerSourceSpans[1]);
+        Assert.Equal(MarkdownSyntaxKind.Quote, syntax.Kind);
+        Assert.DoesNotContain("class=\"callout", html, StringComparison.OrdinalIgnoreCase);
+        Assert.IsType<QuoteBlock>(Assert.Single(reparsed.Blocks));
     }
 
     [Fact]

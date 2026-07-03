@@ -18,12 +18,20 @@ public static partial class MarkdownReader {
             }
             int absoluteLine = state.SourceLineOffset + i + 1;
             int startColumn = CountLeadingIndentColumns(line) + 1;
+            string trimmedLine = line.Trim();
             img.SetMarkdownSyntaxMetadataSpans(
                 CreateMetadataSpan(ranges.AltStart, ranges.AltLength),
                 CreateMetadataSpan(ranges.SourceStart, ranges.SourceLength),
                 CreateMetadataSpan(ranges.TitleStart, ranges.TitleLength),
                 CreateMetadataSpan(ranges.LinkTargetStart, ranges.LinkTargetLength),
                 CreateMetadataSpan(ranges.LinkTitleStart, ranges.LinkTitleLength));
+            var attributeSourceSpan = CreateVisualMetadataSpan(ranges.GenericAttributeStart, ranges.GenericAttributeLength);
+            if (attributeSourceSpan.HasValue && ranges.GenericAttributeStart.HasValue && ranges.GenericAttributeLength.HasValue) {
+                MarkdownGenericAttributeSourceSpans.Set(
+                    img,
+                    trimmedLine.Substring(ranges.GenericAttributeStart.Value, ranges.GenericAttributeLength.Value),
+                    attributeSourceSpan);
+            }
             if (!string.IsNullOrWhiteSpace(sizeSpec))
             {
                 foreach (var part in sizeSpec!.Split(new[]{' '}, StringSplitOptions.RemoveEmptyEntries))
@@ -63,7 +71,12 @@ public static partial class MarkdownReader {
                     Caption = img.Caption,
                     PictureFallbackPath = pictureFallbackPath
                 };
+                img.SetAttributes(originalImage.Attributes);
                 img.CopyMarkdownSyntaxMetadataSpansFrom(originalImage);
+                MarkdownGenericAttributeSourceSpans.Set(
+                    img,
+                    MarkdownGenericAttributeSourceSpans.GetSourceText(originalImage),
+                    MarkdownGenericAttributeSourceSpans.GetSourceSpan(originalImage));
                 foreach (var pictureSource in pictureSources) {
                     img.PictureSources.Add(pictureSource);
                 }
@@ -83,6 +96,16 @@ public static partial class MarkdownReader {
                     startColumn + relativeStart.Value,
                     absoluteLine,
                     startColumn + relativeStart.Value + length.Value - 1);
+            }
+
+            MarkdownSourceSpan? CreateVisualMetadataSpan(int? relativeStart, int? length) {
+                if (!relativeStart.HasValue || !length.HasValue || length.Value <= 0) {
+                    return null;
+                }
+
+                var start = AdvanceSourceColumn(startColumn, trimmedLine, relativeStart.Value);
+                var end = AdvanceSourceColumn(startColumn, trimmedLine, relativeStart.Value + length.Value) - 1;
+                return CreateSpan(state, absoluteLine, start, absoluteLine, end);
             }
         }
     }

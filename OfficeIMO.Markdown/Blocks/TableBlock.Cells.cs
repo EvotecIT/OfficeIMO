@@ -268,10 +268,7 @@ public sealed partial class TableBlock {
             return value;
         }
 
-        return value
-            .Replace("&amp;lt;", "&lt;")
-            .Replace("&amp;gt;", "&gt;")
-            .Replace("&amp;amp;", "&amp;");
+        return value.Replace("&amp;amp;", "&amp;");
     }
 
     private static StringBuilder AllocateCellBuilder(string seed, int copyLength) {
@@ -361,6 +358,10 @@ public sealed partial class TableBlock {
     }
 
     private int GetEffectiveColumnCount() {
+        if (UseHeaderColumnCountForRendering && Headers.Count > 0) {
+            return Headers.Count;
+        }
+
         int columnCount = Headers.Count;
 
         foreach (var row in Rows) {
@@ -467,9 +468,13 @@ public sealed partial class TableBlock {
         return cells;
     }
 
-    private static IReadOnlyList<TableCell>? PrepareStructuredRowHtmlCells(IReadOnlyList<TableCell>? row, int maxLogicalColumnCount) {
+    private static IReadOnlyList<TableCell>? PrepareStructuredRowHtmlCells(IReadOnlyList<TableCell>? row, int maxLogicalColumnCount, bool padToLogicalColumnCount) {
         if (row == null) {
             return null;
+        }
+
+        if (padToLogicalColumnCount) {
+            return PrepareStructuredRowCells(row, maxLogicalColumnCount);
         }
 
         if (row.Count == 0 || maxLogicalColumnCount <= 0) {

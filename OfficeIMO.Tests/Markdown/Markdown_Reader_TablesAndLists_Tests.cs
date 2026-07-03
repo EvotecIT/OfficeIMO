@@ -5,6 +5,22 @@ using Xunit;
 namespace OfficeIMO.Tests.MarkdownSuite {
     public class Markdown_Reader_TablesAndLists_Tests {
         [Fact]
+        public void Table_Shaped_Paragraph_Stays_Literal_When_Tables_Are_Disabled() {
+            const string md = """
+First paragraph
+| A |
+|---|
+| B |
+""";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+
+            var doc = MarkdownReader.Parse(md, options);
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Equal("First paragraph \\| A \\| \\|---\\| \\| B \\|", paragraph.Inlines.RenderMarkdown());
+        }
+
+        [Fact]
         public void Table_Parsing_Does_Not_Split_Escaped_Pipes() {
             string md = """
 | Col1 | Col2 |
@@ -53,6 +69,222 @@ namespace OfficeIMO.Tests.MarkdownSuite {
 
             var html = doc.ToHtmlFragment();
             Assert.DoesNotContain("<code>`a</code>", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Structured_Table_Cells_Preserve_GenericAttribute_Options_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| {#cell}<br># Cell |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.GenericAttributes = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+            var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
+            var heading = Assert.IsType<HeadingBlock>(Assert.Single(cell.Blocks));
+            var html = doc.ToHtmlFragment();
+
+            Assert.Equal("cell", heading.Attributes.ElementId);
+            Assert.Contains("<h1 id=\"cell\">Cell</h1>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("{#cell}", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Standalone_Image_Trailing_GenericAttributes_Parse_Quoted_Braces() {
+            const string md = "![alt](img.png){title=\"a}b\"}{width=320}";
+            var options = MarkdownReaderOptions.CreatePortableProfile();
+            options.GenericAttributes = true;
+            options.StandaloneImageBlocks = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var image = Assert.IsType<ImageBlock>(Assert.Single(doc.Blocks));
+
+            Assert.Equal("a}b", image.Attributes.Attributes["title"]);
+            Assert.Equal(320, image.Width);
+            Assert.Contains("{title=\"a}b\"}", doc.ToMarkdown(), StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Table_RenderMarkdown_Escapes_Pipes_In_GenericAttribute_Suffix() {
+            const string md = """
+{title="a|b"}
+| A |
+| --- |
+| B |
+""";
+            var options = MarkdownReaderOptions.CreatePortableProfile();
+            options.GenericAttributes = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var written = doc.ToMarkdown(new MarkdownWriteOptions { OutputLineEnding = "\n" });
+
+            Assert.Contains("{title=\"a\\|b\"}", written, StringComparison.Ordinal);
+
+            var reparsed = MarkdownReader.Parse(written, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(reparsed.Blocks));
+            Assert.Single(table.Headers);
+            Assert.Equal("a|b", table.Attributes.Attributes["title"]);
+        }
+
+        [Fact]
+        public void Structured_Table_Cells_Preserve_Autolink_Rejection_Options_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| # Visit https://exa_mple.com |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.AutolinkRejectUnderscoreInUrlHost = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+
+            Assert.Contains(">Visit https://exa_mple.com</h1>", html, StringComparison.Ordinal);
+            Assert.DoesNotContain("href=\"https://exa_mple.com\"", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void Structured_Table_Cells_Preserve_ListExtras_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| a. Alpha<br>b. Beta |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+            var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
+            var list = Assert.IsType<OrderedListBlock>(Assert.Single(cell.Blocks));
+
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Collection(list.Items,
+                item => Assert.Equal("Alpha", item.Content.RenderMarkdown()),
+                item => Assert.Equal("Beta", item.Content.RenderMarkdown()));
+        }
+
+        [Fact]
+        public void Structured_Table_Cells_Preserve_Callout_Title_Mode_When_Reparsed() {
+            const string md = """
+| Col |
+| --- |
+| > [!NOTE] Title<br>> body |
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ParseTableCellBlocks = true;
+            options.Callouts = true;
+            options.CalloutTitleMode = MarkdownCalloutTitleMode.MarkdigCompatible;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+            var cell = Assert.Single(Assert.Single(table.BodyRows).Cells);
+
+            Assert.IsType<QuoteBlock>(Assert.Single(cell.Blocks));
+            Assert.DoesNotContain(cell.Blocks, block => block is CalloutBlock);
+        }
+
+        [Fact]
+        public void ListExtras_Ordered_List_Interrupts_Paragraph_When_Enabled() {
+            const string md = """
+intro
+a. alpha
+""";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[1]);
+
+            Assert.Equal("intro", paragraph.Inlines.RenderMarkdown());
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("alpha", Assert.Single(list.Items).Content.RenderMarkdown());
+        }
+
+        [Fact]
+        public void ListExtras_Ordered_Item_Preserves_Indented_Code_Lead() {
+            const string md = "a.     code\n";
+            var options = MarkdownReaderOptions.CreateCommonMarkProfile();
+            options.ListExtras = true;
+
+            var doc = MarkdownReader.Parse(md, options);
+            var list = Assert.IsType<OrderedListBlock>(Assert.Single(doc.Blocks));
+            var item = Assert.Single(list.Items);
+            var code = Assert.IsType<CodeBlock>(Assert.Single(item.Children));
+
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("code", code.Content);
+        }
+
+        [Fact]
+        public void Delimited_Table_Stops_Before_ListExtras_Ordered_List_When_Body_Pipes_Are_Optional() {
+            const string md = """
+| A |
+|---|
+body row
+a. alpha
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.ListExtras = true;
+            options.RequireTableBodyRowPipes = false;
+
+            var doc = MarkdownReader.Parse(md, options);
+
+            Assert.Equal(2, doc.Blocks.Count);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            var list = Assert.IsType<OrderedListBlock>(doc.Blocks[1]);
+
+            Assert.Equal(new[] { "body row" }, Assert.Single(table.Rows));
+            Assert.Equal(MarkdownOrderedListMarkerStyle.LowerAlpha, list.MarkerStyle);
+            Assert.Equal("alpha", Assert.Single(list.Items).Content.RenderMarkdown());
+        }
+
+        [Fact]
+        public void Delimited_Table_Stops_Before_Custom_Container_When_Body_Pipes_Are_Optional() {
+            const string md = """
+| A |
+|---|
+body row
+::: note
+inside
+:::
+""";
+            var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+            options.CustomContainers = true;
+            options.RequireTableBodyRowPipes = false;
+
+            var doc = MarkdownReader.Parse(md, options);
+
+            Assert.Equal(2, doc.Blocks.Count);
+            var table = Assert.IsType<TableBlock>(doc.Blocks[0]);
+            var container = Assert.IsType<CustomContainerBlock>(doc.Blocks[1]);
+
+            Assert.Equal(new[] { "body row" }, Assert.Single(table.Rows));
+            Assert.Equal("note", container.Info);
+        }
+
+        [Fact]
+        public void Delimited_Table_Stops_Before_Plain_Paragraph_Line() {
+            const string md = """
+| A |
+|---|
+| B |
+plain text
+""";
+
+            var doc = MarkdownReader.Parse(md);
+
+            Assert.IsType<TableBlock>(doc.Blocks[0]);
+            var paragraph = Assert.IsType<ParagraphBlock>(doc.Blocks[1]);
+            Assert.Equal("plain text", paragraph.Inlines.RenderMarkdown());
         }
 
         [Fact]
@@ -272,6 +504,24 @@ namespace OfficeIMO.Tests.MarkdownSuite {
         }
 
         [Fact]
+        public void Table_Cells_Do_Not_Promote_Textarea_RawHtml_To_Structured_Blocks() {
+            string md = """
+| Notes |
+| --- |
+| <textarea>draft</textarea> |
+""";
+            var doc = MarkdownReader.Parse(md);
+            var table = Assert.IsType<TableBlock>(Assert.Single(doc.Blocks));
+
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(table.RowCells[0][0].Blocks));
+            Assert.Contains("textarea", paragraph.Inlines.RenderHtml(), StringComparison.Ordinal);
+
+            var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
+            Assert.DoesNotContain("<textarea", html, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("&lt;textarea&gt;draft&lt;/textarea&gt;", html, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void Table_Cells_Can_Parse_Indented_Code_Block_Content_From_Cell_Body() {
             string md = """
 | Section | Notes |
@@ -439,7 +689,7 @@ continuation
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<ul><li>item continuation</li></ul>", html, StringComparison.Ordinal);
+            Assert.Contains("<ul><li>item\ncontinuation</li></ul>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -454,7 +704,7 @@ continuation
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<ol><li>item continuation</li></ol>", html, StringComparison.Ordinal);
+            Assert.Contains("<ol><li>item\ncontinuation</li></ol>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -499,7 +749,7 @@ after
             Assert.Single(list.Items);
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<ul><li><p>item</p><p>code after</p></li></ul>", html, StringComparison.Ordinal);
+            Assert.Contains("<ul><li><p>item</p><p>code\nafter</p></li></ul>", html, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -683,7 +933,7 @@ after
             Assert.Contains(list.Items[0].Children, b => b is UnorderedListBlock);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<blockquote><p>quote continuation</p></blockquote><ul><li>nested</li></ul>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>quote\ncontinuation</p></blockquote><ul><li>nested</li></ul>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<p>- nested</p>", html, StringComparison.Ordinal);
         }
 
@@ -700,7 +950,7 @@ after
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<li>item<blockquote><p>quote continuation</p></blockquote></li>", html, StringComparison.Ordinal);
+            Assert.Contains("<li>item<blockquote><p>quote\ncontinuation</p></blockquote></li>", html, StringComparison.Ordinal);
             Assert.Single(quote.Children);
         }
 
@@ -718,7 +968,7 @@ after
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
 
             var html = doc.ToHtmlFragment();
-            Assert.Contains("<blockquote><p>quote continuation</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>quote\ncontinuation</p></blockquote>", html, StringComparison.Ordinal);
             Assert.Single(quote.Children);
         }
 
@@ -799,14 +1049,15 @@ after
             var doc = MarkdownReader.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
-            Assert.Equal(2, list.Items[0].ChildBlocks.Count);
-            Assert.IsType<QuoteBlock>(list.Items[0].ChildBlocks[0]);
-            Assert.IsType<ParagraphBlock>(list.Items[0].ChildBlocks[1]);
+            Assert.Equal(2, list.Items[0].Children.Count);
+            Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+            Assert.IsType<ParagraphBlock>(list.Items[0].Children[1]);
             Assert.Collection(
-                list.Items[0].BlockChildren,
+                list.Items[0].ChildBlocks,
                 block => Assert.Equal("item", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.IsType<QuoteBlock>(block),
                 block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+            Assert.Equal(list.Items[0].BlockChildren, list.Items[0].ChildBlocks);
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
@@ -825,14 +1076,15 @@ after
             var doc = MarkdownReader.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
-            Assert.Equal(2, list.Items[0].ChildBlocks.Count);
-            Assert.IsType<QuoteBlock>(list.Items[0].ChildBlocks[0]);
-            Assert.IsType<ParagraphBlock>(list.Items[0].ChildBlocks[1]);
+            Assert.Equal(2, list.Items[0].Children.Count);
+            Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+            Assert.IsType<ParagraphBlock>(list.Items[0].Children[1]);
             Assert.Collection(
-                list.Items[0].BlockChildren,
+                list.Items[0].ChildBlocks,
                 block => Assert.Equal("item", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()),
                 block => Assert.IsType<QuoteBlock>(block),
                 block => Assert.Equal("trailing", Assert.IsType<ParagraphBlock>(block).Inlines.RenderMarkdown()));
+            Assert.Equal(list.Items[0].BlockChildren, list.Items[0].ChildBlocks);
             Assert.True(list.Items[0].ForceLoose);
 
             var html = doc.ToHtmlFragment();
@@ -853,6 +1105,7 @@ after
             var doc = MarkdownReader.Parse(md);
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Equal(2, list.Items.Count);
+            Assert.Contains(list.Items[0].Children, b => b is DetailsBlock);
             Assert.Contains(list.Items[0].ChildBlocks, b => b is DetailsBlock);
 
             var html = doc.ToHtmlFragment();
@@ -1007,7 +1260,7 @@ after
         }
 
         [Fact]
-        public void List_Item_Nested_Blockquote_Keeps_Lazy_NonOne_Ordered_Continuation_As_Paragraph() {
+        public void List_Item_Nested_Blockquote_Stops_Before_NonOne_Ordered_Child_List() {
             string md = """
 - outer
   > alpha
@@ -1018,9 +1271,13 @@ after
             var list = Assert.IsType<UnorderedListBlock>(doc.Blocks[0]);
             Assert.Single(list.Items);
             var quote = Assert.IsType<QuoteBlock>(list.Items[0].Children[0]);
+            var ordered = Assert.IsType<OrderedListBlock>(list.Items[0].Children[1]);
+            Assert.Equal(10, ordered.Start);
+            Assert.Single(ordered.Items);
+            Assert.Equal("beta gamma", ordered.Items[0].Content.RenderMarkdown());
 
             var html = doc.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null });
-            Assert.Contains("<blockquote><p>alpha 10. beta gamma</p></blockquote>", html, StringComparison.Ordinal);
+            Assert.Contains("<blockquote><p>alpha</p></blockquote><ol start=\"10\"><li>beta gamma</li></ol>", html, StringComparison.Ordinal);
             Assert.DoesNotContain("<pre><code>", html, StringComparison.Ordinal);
             Assert.Single(quote.Children);
         }

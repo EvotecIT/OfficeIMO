@@ -105,9 +105,9 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             }
 
             sbNested.Append("<li><a href=\"")
-                .Append('#').Append(System.Net.WebUtility.HtmlEncode(e.Anchor))
+                .Append('#').Append(HtmlTextEncoder.Encode(e.Anchor, context.Options))
                 .Append("\">")
-                .Append(System.Net.WebUtility.HtmlEncode(e.Text))
+                .Append(HtmlTextEncoder.Encode(e.Text, context.Options))
                 .Append("</a>");
 
             currentDepth = depth;
@@ -119,7 +119,7 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
 
         if (Options.Collapsible) {
             string open = Options.Collapsed ? string.Empty : " open";
-            string summary = System.Net.WebUtility.HtmlEncode(Options.Title ?? "Contents");
+            string summary = HtmlTextEncoder.Encode(Options.Title ?? "Contents", context.Options);
             var sbWrap = new System.Text.StringBuilder();
             sbWrap.Append("<details class=\"md-toc\"").Append(open).Append("><summary>")
                 .Append(summary).Append("</summary>")
@@ -140,14 +140,14 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
             if (Options.Chrome == TocChrome.Outline) classes.Append(" outline");
             if (Options.Chrome == TocChrome.Panel) classes.Append(" panel");
             if (Options.HideOnNarrow) classes.Append(" hide-narrow");
-            string aria = System.Net.WebUtility.HtmlEncode(Options.AriaLabel ?? "Table of Contents");
+            string aria = HtmlTextEncoder.Encode(Options.AriaLabel ?? "Table of Contents", context.Options);
             var sb = new System.Text.StringBuilder();
             sb.Append("<nav role=\"navigation\" aria-label=\"").Append(aria).Append("\" class=\"").Append(classes).Append("\"");
             if (Options.ScrollSpy) sb.Append(" data-md-scrollspy=\"1\"");
             if (Options.Sticky) sb.Append(" data-autoscroll=\"1\"");
             sb.Append(">");
             if (Options.IncludeTitle && !string.IsNullOrWhiteSpace(Options.Title)) {
-                sb.Append("<div class=\"toc-title\">").Append(System.Net.WebUtility.HtmlEncode(Options.Title)).Append("</div>");
+                sb.Append("<div class=\"toc-title\">").Append(HtmlTextEncoder.Encode(Options.Title, context.Options)).Append("</div>");
             }
             sb.Append(sbNested.ToString());
             sb.Append("</nav>");
@@ -157,7 +157,7 @@ internal sealed class TocPlaceholderBlock : MarkdownBlock, IMarkdownBlock, ISynt
         if (Options.IncludeTitle) {
             var sbo = new System.Text.StringBuilder();
             sbo.Append("<h").Append(titleLevel).Append('>')
-               .Append(System.Net.WebUtility.HtmlEncode(Options.Title))
+               .Append(HtmlTextEncoder.Encode(Options.Title, context.Options))
                .Append("</h").Append(titleLevel).Append('>')
                .Append(sbNested.ToString());
             return sbo.ToString();

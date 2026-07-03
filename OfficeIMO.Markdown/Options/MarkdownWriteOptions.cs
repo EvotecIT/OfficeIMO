@@ -66,6 +66,23 @@ public sealed class MarkdownWriteOptions {
     public List<MarkdownBlockMarkdownRenderExtension> BlockRenderExtensions { get; } = new();
 
     /// <summary>
+    /// Optional markdown inline render extensions. Later registrations win when inline types overlap.
+    /// </summary>
+    public List<MarkdownInlineMarkdownRenderExtension> InlineRenderExtensions { get; } = new();
+
+    /// <summary>
+    /// Optional markdown block render extensions that match parsed blocks by final syntax kind.
+    /// Later registrations win when syntax kinds overlap. These extensions run before type-based block extensions.
+    /// </summary>
+    public List<MarkdownSyntaxBlockMarkdownRenderExtension> SyntaxBlockRenderExtensions { get; } = new();
+
+    /// <summary>
+    /// Optional markdown inline render extensions that match parsed inlines by final syntax kind.
+    /// Later registrations win when syntax kinds overlap. These extensions run before type-based inline extensions.
+    /// </summary>
+    public List<MarkdownSyntaxInlineMarkdownRenderExtension> SyntaxInlineRenderExtensions { get; } = new();
+
+    /// <summary>
     /// Creates a shallow clone of the writer options while copying mutable collections.
     /// </summary>
     public MarkdownWriteOptions Clone() {
@@ -76,6 +93,15 @@ public sealed class MarkdownWriteOptions {
         };
         for (int i = 0; i < BlockRenderExtensions.Count; i++) {
             clone.BlockRenderExtensions.Add(BlockRenderExtensions[i]);
+        }
+        for (int i = 0; i < InlineRenderExtensions.Count; i++) {
+            clone.InlineRenderExtensions.Add(InlineRenderExtensions[i]);
+        }
+        for (int i = 0; i < SyntaxBlockRenderExtensions.Count; i++) {
+            clone.SyntaxBlockRenderExtensions.Add(SyntaxBlockRenderExtensions[i]);
+        }
+        for (int i = 0; i < SyntaxInlineRenderExtensions.Count; i++) {
+            clone.SyntaxInlineRenderExtensions.Add(SyntaxInlineRenderExtensions[i]);
         }
 
         return clone;

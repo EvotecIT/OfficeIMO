@@ -6,6 +6,8 @@ using Xunit;
 namespace OfficeIMO.Tests;
 
 public sealed class PackageDependencyGuardrailTests {
+    private const string CurrentMarkdigVersion = "1.3.2";
+
     private static readonly string[] ForbiddenRenderingPackageIds = [
         "SixLabors.ImageSharp",
         "SixLabors.Fonts",
@@ -13,6 +15,56 @@ public sealed class PackageDependencyGuardrailTests {
         "SkiaSharp.Views",
         "System.Drawing.Common"
     ];
+
+    [Fact]
+    public void MarkdownParityProjects_UseTheSameCurrentMarkdigBaseline() {
+        string[] projectPaths = [
+            "OfficeIMO.Tests/OfficeIMO.Tests.csproj",
+            "OfficeIMO.Markdown.Benchmarks/OfficeIMO.Markdown.Benchmarks.csproj"
+        ];
+
+        foreach (var relativeProjectPath in projectPaths) {
+            var projectPath = GetRepositoryPath(relativeProjectPath);
+            Assert.True(File.Exists(projectPath), "Project file is missing: " + projectPath);
+
+            Assert.Equal(CurrentMarkdigVersion, GetPackageReferenceVersion(projectPath, "Markdig"));
+        }
+    }
+
+    [Fact]
+    public void MarkdownCompatibilityDocs_TrackCurrentMarkdigBaselineVersion() {
+        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
+        Assert.Contains($"| External comparison package | Markdig `{CurrentMarkdigVersion}`", compatibilityMatrix, StringComparison.Ordinal);
+
+        string competitorRoadmap = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-competitor-roadmap.md"));
+        Assert.Contains($"external parity baseline: Markdig `{CurrentMarkdigVersion}`", competitorRoadmap, StringComparison.Ordinal);
+
+        string correctnessBacklog = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.correctness-backlog.md"));
+        Assert.Contains($"`OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks` both reference Markdig `{CurrentMarkdigVersion}`", correctnessBacklog, StringComparison.Ordinal);
+
+        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
+        Assert.Contains($"curated Markdig {CurrentMarkdigVersion} parity cases", packageCompatibility, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownCompatibilityDocs_TrackCurrentFixtureBaselineCounts() {
+        int commonMarkFixtureCount = CountJsonArrayEntries("OfficeIMO.Tests/Markdown/Fixtures/CommonMark/commonmark-0.31.2-smoke.json");
+        int gfmFixtureCount = CountJsonArrayEntries("OfficeIMO.Tests/Markdown/Fixtures/GitHubFlavoredMarkdown/cmark-gfm-extensions-smoke.json");
+
+        string compatibilityMatrix = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.compatibility-matrix.md"));
+        Assert.Contains($"| CommonMark reference | {commonMarkFixtureCount} of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |", compatibilityMatrix, StringComparison.Ordinal);
+        Assert.Contains($"| GFM reference | {gfmFixtureCount} cmark-gfm extension smoke fixtures plus focused OfficeIMO supplements for upstream ignored-autolink crash and query/fragment autolink regressions |", compatibilityMatrix, StringComparison.Ordinal);
+
+        string competitorRoadmap = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-competitor-roadmap.md"));
+        Assert.Contains($"standards smoke baseline: {commonMarkFixtureCount} CommonMark `0.31.2` fixtures, {gfmFixtureCount} cmark-gfm extension fixtures", competitorRoadmap, StringComparison.Ordinal);
+
+        string parityGapPlan = File.ReadAllText(GetRepositoryPath("Docs/officeimo.markdown.markdig-parity-gap-plan.md"));
+        Assert.Contains($"| CommonMark corpus | {commonMarkFixtureCount} of 652 official CommonMark `0.31.2` examples pinned as smoke fixtures |", parityGapPlan, StringComparison.Ordinal);
+        Assert.Contains($"| GFM corpus | {gfmFixtureCount} cmark-gfm extension smoke fixtures plus focused crash/regression coverage |", parityGapPlan, StringComparison.Ordinal);
+
+        string packageCompatibility = File.ReadAllText(GetRepositoryPath("OfficeIMO.Markdown/COMPATIBILITY.md"));
+        Assert.Contains($"includes {commonMarkFixtureCount} pinned CommonMark 0.31.2 fixtures, {gfmFixtureCount} cmark-gfm smoke fixtures", packageCompatibility, StringComparison.Ordinal);
+    }
 
     [Fact]
     public void Projects_DoNotReferenceImageSharpPackage() {
@@ -495,6 +547,15 @@ public sealed class PackageDependencyGuardrailTests {
             .Where(static path => new FileInfo(path).Length > 0)
             .ToArray();
 
+    private static int CountJsonArrayEntries(string relativePath) {
+        var path = GetRepositoryPath(relativePath);
+        Assert.True(File.Exists(path), "Fixture file is missing: " + path);
+
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path));
+        Assert.Equal(JsonValueKind.Array, document.RootElement.ValueKind);
+        return document.RootElement.GetArrayLength();
+    }
+
     private static bool IsNonProductionProject(string projectPath) {
         string normalized = projectPath.Replace('\\', '/');
         return normalized.Contains("/OfficeIMO.Tests/", StringComparison.OrdinalIgnoreCase) ||
@@ -554,5 +615,16 @@ public sealed class PackageDependencyGuardrailTests {
             .Descendants(ns + "PackageReference")
             .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
             .Where(include => packageIds.Contains(include, StringComparer.Ordinal));
+    }
+
+    private static string? GetPackageReferenceVersion(string projectPath, string packageId) {
+        var document = XDocument.Load(projectPath);
+        var ns = document.Root?.Name.Namespace ?? XNamespace.None;
+
+        return document
+            .Descendants(ns + "PackageReference")
+            .Where(element => string.Equals((string?)element.Attribute("Include"), packageId, StringComparison.OrdinalIgnoreCase))
+            .Select(static element => (string?)element.Attribute("Version"))
+            .SingleOrDefault();
     }
 }

@@ -18,6 +18,16 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
     public string? Alt { get; }
     /// <summary>Plain-text alternate text used for HTML rendering and text extraction.</summary>
     public string? PlainAlt { get; }
+    /// <summary>Source span for the image alternate-text token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? AltSourceSpan => AltSyntaxSpan;
+    /// <summary>Source span for the image path token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? PathSourceSpan => SourceSyntaxSpan;
+    /// <summary>Source span for the image title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? TitleSourceSpan => TitleSyntaxSpan;
+    /// <summary>Source span for the wrapping link URL token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkUrlSourceSpan => LinkTargetSyntaxSpan;
+    /// <summary>Source span for the wrapping link title token when parsed from markdown.</summary>
+    public MarkdownSourceSpan? LinkTitleSourceSpan => LinkTitleSyntaxSpan;
     /// <summary>Optional title attribute.</summary>
     public string? Title { get; }
     /// <summary>Optional width hint (points/pixels as provided).</summary>
@@ -71,6 +81,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         } else {
             sb.Append(imageMarkdown);
         }
+        sb.Append(MarkdownAttributeBlockRenderer.RenderInlineTrailing(Attributes));
         if (imageRenderingMode == MarkdownImageRenderingMode.RichMarkdown && (Width != null || Height != null)) {
             var w = Width != null ? $"width={Width.Value}" : string.Empty;
             var h = Height != null ? $"height={Height.Value}" : string.Empty;
@@ -84,27 +95,28 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() {
-        string alt = System.Net.WebUtility.HtmlEncode(PlainAlt ?? string.Empty);
-        string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(Title!)}\"";
+        var o = HtmlRenderContext.Options;
+        string alt = HtmlTextEncoder.Encode(PlainAlt ?? string.Empty, o);
+        string title = string.IsNullOrEmpty(Title) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(Title!, o)}\"";
         string size = string.Empty;
         if (Width != null) size += $" width=\"{Width.Value}\"";
         if (Height != null) size += $" height=\"{Height.Value}\"";
-        var o = HtmlRenderContext.Options;
         if (!UrlOriginPolicy.IsAllowedHttpImage(o, Path)) {
-            string captionBlocked = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
-            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt) + captionBlocked;
+            string captionBlocked = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
+            return ImageHtmlAttributes.BuildBlockedPlaceholder(PlainAlt, o) + captionBlocked;
         }
         var extra = ImageHtmlAttributes.BuildImageAttributes(o, Path);
-        string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o))}\" alt=\"{alt}\"{title}{size}{extra} />";
+        var attributes = MarkdownHtmlAttributes.Render(Attributes, o);
+        string img = $"<img src=\"{HtmlAttributeUrlEncoder.Encode(GetRenderedFallbackImagePath(o), o)}\" alt=\"{alt}\"{title}{size}{extra}{attributes} />";
         if (PictureSources.Count > 0) {
             img = BuildPictureHtml(o, img);
         }
         if (!string.IsNullOrWhiteSpace(LinkUrl) && UrlOriginPolicy.IsAllowedHttpLink(o, LinkUrl!)) {
             string linkExtra = BuildLinkHtmlAttributes(o, LinkUrl!, LinkTarget, LinkRel);
-            string linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{System.Net.WebUtility.HtmlEncode(LinkTitle!)}\"";
-            img = $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl!)}\"{linkTitle}{linkExtra}>{img}</a>";
+            string linkTitle = string.IsNullOrEmpty(LinkTitle) ? string.Empty : $" title=\"{HtmlTextEncoder.Encode(LinkTitle!, o)}\"";
+            img = $"<a href=\"{HtmlAttributeUrlEncoder.Encode(LinkUrl!, o)}\"{linkTitle}{linkExtra}>{img}</a>";
         }
-        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{System.Net.WebUtility.HtmlEncode(Caption!)}</div>";
+        string caption = string.IsNullOrWhiteSpace(Caption) ? string.Empty : $"<div class=\"caption\">{HtmlTextEncoder.Encode(Caption!, o)}</div>";
         return img + caption;
     }
 
@@ -127,11 +139,11 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
 
             string srcSet = NormalizeAttributeValue(source.SrcSet) ?? source.Path;
             sb.Append("<source srcset=\"")
-                .Append(HtmlAttributeUrlEncoder.EncodeSrcSet(srcSet))
+                .Append(HtmlAttributeUrlEncoder.EncodeSrcSet(srcSet, options))
                 .Append('"');
-            AppendAttribute(sb, "media", NormalizeAttributeValue(source.Media));
-            AppendAttribute(sb, "type", NormalizeAttributeValue(source.Type));
-            AppendAttribute(sb, "sizes", NormalizeAttributeValue(source.Sizes));
+            AppendAttribute(sb, "media", NormalizeAttributeValue(source.Media), options);
+            AppendAttribute(sb, "type", NormalizeAttributeValue(source.Type), options);
+            AppendAttribute(sb, "sizes", NormalizeAttributeValue(source.Sizes), options);
             sb.Append(" />");
         }
 
@@ -219,9 +231,9 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         rel = HardenRelForTarget(target, rel);
 
         var sb = new System.Text.StringBuilder();
-        AppendAttribute(sb, "target", target);
-        AppendAttribute(sb, "rel", rel);
-        AppendAttribute(sb, "referrerpolicy", referrerPolicy);
+        AppendAttribute(sb, "target", target, options);
+        AppendAttribute(sb, "rel", rel, options);
+        AppendAttribute(sb, "referrerpolicy", referrerPolicy, options);
         return sb.ToString();
     }
 
@@ -280,7 +292,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         return string.IsNullOrWhiteSpace(value) ? token : value + " " + token;
     }
 
-    private static void AppendAttribute(System.Text.StringBuilder sb, string attributeName, string? value) {
+    private static void AppendAttribute(System.Text.StringBuilder sb, string attributeName, string? value, HtmlOptions? options) {
         if (string.IsNullOrEmpty(value)) {
             return;
         }
@@ -288,7 +300,7 @@ public sealed class ImageBlock : MarkdownBlock, IMarkdownBlock, ICaptionable, IS
         sb.Append(' ')
             .Append(attributeName)
             .Append("=\"")
-            .Append(System.Net.WebUtility.HtmlEncode(value))
+            .Append(HtmlTextEncoder.Encode(value, options))
             .Append('"');
     }
 }

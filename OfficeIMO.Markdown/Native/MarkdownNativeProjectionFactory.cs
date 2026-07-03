@@ -15,11 +15,18 @@ internal static class MarkdownNativeProjectionFactory {
             UnorderedListBlock unordered => new MarkdownNativeListBlock(unordered, syntaxNode, CreateListItems(syntaxNode, diagnostics)),
             QuoteBlock quote => new MarkdownNativeQuoteBlock(quote, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
             CalloutBlock callout => new MarkdownNativeCalloutBlock(callout, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
+            CustomContainerBlock customContainer => new MarkdownNativeCustomContainerBlock(customContainer, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
             ImageBlock image => new MarkdownNativeImageBlock(image, syntaxNode),
             CodeBlock code => new MarkdownNativeCodeBlock(code, syntaxNode),
+            HorizontalRuleBlock horizontalRule => new MarkdownNativeThematicBreakBlock(horizontalRule, syntaxNode),
             SemanticFencedBlock visual => new MarkdownNativeVisualBlock(visual, syntaxNode),
             TableBlock table => new MarkdownNativeTableBlock(table, syntaxNode, diagnostics),
-            DetailsBlock details => new MarkdownNativeDetailsBlock(details, syntaxNode, CreateChildren(syntaxNode, diagnostics, static node => node.AssociatedObject is not SummaryBlock)),
+            DetailsBlock details => new MarkdownNativeDetailsBlock(details, syntaxNode, CreateChildren(syntaxNode, diagnostics, static node =>
+                node.AssociatedObject is not SummaryBlock &&
+                node.Kind != MarkdownSyntaxKind.DetailsOpeningTag &&
+                node.Kind != MarkdownSyntaxKind.DetailsClosingTag)),
+            DefinitionListBlock definitionList => new MarkdownNativeDefinitionListBlock(definitionList, syntaxNode, diagnostics),
+            FootnoteDefinitionBlock footnote => new MarkdownNativeFootnoteDefinitionBlock(footnote, syntaxNode, CreateChildren(syntaxNode, diagnostics)),
             FrontMatterBlock frontMatter => new MarkdownNativeFrontMatterBlock(frontMatter, syntaxNode),
             HtmlRawBlock html => new MarkdownNativeHtmlBlock(html, syntaxNode),
             HtmlCommentBlock comment => new MarkdownNativeHtmlBlock(comment, syntaxNode),

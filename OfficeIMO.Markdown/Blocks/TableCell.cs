@@ -6,12 +6,14 @@ namespace OfficeIMO.Markdown;
 /// <summary>
 /// Typed table cell containing one or more markdown blocks.
 /// </summary>
-public sealed class TableCell : MarkdownObject {
+public sealed class TableCell : MarkdownObject, IChildMarkdownBlockContainer, ISyntaxChildrenMarkdownBlock, IOwnedSyntaxChildrenMarkdownBlock {
     private int _columnSpan = 1;
     private int _rowSpan = 1;
 
     /// <summary>Structured cell content.</summary>
     public List<IMarkdownBlock> Blocks { get; } = new List<IMarkdownBlock>();
+    /// <summary>Structured child blocks owned by this table cell.</summary>
+    public IReadOnlyList<IMarkdownBlock> ChildBlocks => Blocks;
     /// <summary>Owned syntax nodes for the structured cell body.</summary>
     internal IReadOnlyList<MarkdownSyntaxNode>? SyntaxChildren { get; set; }
     /// <summary>Whether this cell belongs to the header row.</summary>
@@ -83,7 +85,7 @@ public sealed class TableCell : MarkdownObject {
 
         var sb = new StringBuilder();
         for (int i = 0; i < Blocks.Count; i++) {
-            var rendered = Blocks[i].RenderMarkdown();
+            var rendered = MarkdownBlockRenderDispatcher.RenderMarkdown(Blocks[i]);
             if (string.IsNullOrEmpty(rendered)) {
                 continue;
             }
@@ -110,9 +112,15 @@ public sealed class TableCell : MarkdownObject {
 
         var sb = new StringBuilder();
         for (int i = 0; i < Blocks.Count; i++) {
-            sb.Append(Blocks[i].RenderHtml());
+            sb.Append(MarkdownBlockRenderDispatcher.RenderHtml(Blocks[i]));
         }
 
         return sb.ToString();
+    }
+
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => SyntaxChildren;
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() {
+        return MarkdownBlockSyntaxBuilder.BuildCanonicalChildSyntaxNodes(SyntaxChildren, ChildBlocks);
     }
 }

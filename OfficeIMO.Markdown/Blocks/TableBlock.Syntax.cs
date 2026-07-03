@@ -30,9 +30,39 @@ public sealed partial class TableBlock {
     private void InvalidateRealizedCellCache() {
         _cachedHeaderCells = null;
         _cachedRowCells = null;
+        _cachedHeaderRow = null;
+        _cachedBodyRows = null;
         _cachedCellContentSignature = null;
         _cachedUsesStructuredCells = false;
         _cachedCellColumnCount = -1;
+    }
+
+    private TableRow? GetOrBuildHeaderRow() {
+        if (Headers.Count == 0) {
+            return null;
+        }
+
+        return _cachedHeaderRow ??= new TableRow(HeaderCells, isHeader: true, rowIndex: -1);
+    }
+
+    private IReadOnlyList<TableRow> GetOrBuildBodyRows() {
+        if (_cachedBodyRows != null) {
+            return _cachedBodyRows;
+        }
+
+        var rowCells = RowCells;
+        if (rowCells.Count == 0) {
+            _cachedBodyRows = Array.Empty<TableRow>();
+            return _cachedBodyRows;
+        }
+
+        var rows = new TableRow[rowCells.Count];
+        for (int i = 0; i < rowCells.Count; i++) {
+            rows[i] = new TableRow(rowCells[i], isHeader: false, rowIndex: i);
+        }
+
+        _cachedBodyRows = rows;
+        return _cachedBodyRows;
     }
 
     internal int ComputeContentSignature() {
@@ -105,9 +135,11 @@ public sealed partial class TableBlock {
         int line = span.Value.StartLine;
         int columnCount = GetEffectiveColumnCount();
         var bodyRows = RowCells;
+        var bodyRowOwners = BodyRows;
 
         if (Headers.Count > 0) {
             var headerCells = HeaderCells;
+            var headerRow = HeaderRow;
             var headerChildren = BuildTableCellSyntaxChildren(
                 PrepareRowCells(Headers, columnCount),
                 headerCells,
@@ -116,7 +148,12 @@ public sealed partial class TableBlock {
                 MarkdownSyntaxKind.TableHeader,
                 MarkdownBlockSyntaxBuilder.GetAggregateSpan(headerChildren) ?? new MarkdownSourceSpan(line, line),
                 string.Join(" | ", Headers),
-                headerChildren));
+                headerChildren,
+                headerRow));
+            nodes.Add(new MarkdownSyntaxNode(
+                MarkdownSyntaxKind.TableAlignmentRow,
+                GetAlignmentRowSourceSpan(span, line + 1),
+                BuildAlignmentRowLiteral(columnCount)));
             line += 2;
         }
 
@@ -134,11 +171,42 @@ public sealed partial class TableBlock {
                 MarkdownSyntaxKind.TableRow,
                 MarkdownBlockSyntaxBuilder.GetAggregateSpan(rowChildren) ?? new MarkdownSourceSpan(line, line),
                 string.Join(" | ", Rows[i]),
-                rowChildren));
+                rowChildren,
+                i < bodyRowOwners.Count ? bodyRowOwners[i] : null));
             line++;
         }
 
         return nodes;
+    }
+
+    private MarkdownSourceSpan? GetAlignmentRowSourceSpan(MarkdownSourceSpan? tableSpan, int line) {
+        if (AlignmentRowSourceSpan.HasValue) {
+            return AlignmentRowSourceSpan;
+        }
+
+        if (!tableSpan.HasValue) {
+            return null;
+        }
+
+        return new MarkdownSourceSpan(line, line);
+    }
+
+    private string BuildAlignmentRowLiteral(int columnCount) {
+        if (columnCount <= 0) {
+            return string.Empty;
+        }
+
+        var cells = new string[columnCount];
+        for (int i = 0; i < columnCount; i++) {
+            cells[i] = GetAlignment(i) switch {
+                ColumnAlignment.Left => ":---",
+                ColumnAlignment.Center => ":---:",
+                ColumnAlignment.Right => "---:",
+                _ => "---"
+            };
+        }
+
+        return string.Join(" | ", cells);
     }
 
     private static IReadOnlyList<MarkdownSyntaxNode> BuildTableCellSyntaxChildren(
@@ -161,22 +229,13 @@ public sealed partial class TableBlock {
                 ? structuredCells[i]?.SourceSpan ?? rowSpan
                 : rowSpan;
 
-            IReadOnlyList<MarkdownSyntaxNode> children;
-            if (structuredCells != null && i < structuredCells.Count && structuredCells[i]?.SyntaxChildren != null && structuredCells[i]!.SyntaxChildren!.Count > 0) {
-                children = structuredCells[i]!.SyntaxChildren!;
-            } else if (structuredCells != null && i < structuredCells.Count && structuredCells[i] != null && structuredCells[i].Blocks.Count > 0) {
-                var blockNodes = new List<MarkdownSyntaxNode>(structuredCells[i].Blocks.Count);
-                for (int blockIndex = 0; blockIndex < structuredCells[i].Blocks.Count; blockIndex++) {
-                    blockNodes.Add(MarkdownBlockSyntaxBuilder.BuildBlock(structuredCells[i].Blocks[blockIndex]));
-                }
-                children = blockNodes;
-            } else {
-                children = Array.Empty<MarkdownSyntaxNode>();
-            }
+            IReadOnlyList<MarkdownSyntaxNode> children = structuredCells != null && i < structuredCells.Count && structuredCells[i] != null
+                ? MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(structuredCells[i]!)
+                : Array.Empty<MarkdownSyntaxNode>();
 
             nodes.Add(new MarkdownSyntaxNode(
                 MarkdownSyntaxKind.TableCell,
-                MarkdownBlockSyntaxBuilder.GetAggregateSpan(children) ?? cellSpan,
+                cellSpan,
                 literal,
                 children,
                 structuredCells != null && i < structuredCells.Count ? structuredCells[i] : null));
@@ -185,11 +244,21 @@ public sealed partial class TableBlock {
         return nodes;
     }
 
-    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) =>
-        new MarkdownSyntaxNode(
+    IReadOnlyList<MarkdownSyntaxNode>? ISyntaxChildrenMarkdownBlock.ProvidedSyntaxChildren => null;
+
+    IReadOnlyList<MarkdownSyntaxNode> IOwnedSyntaxChildrenMarkdownBlock.BuildOwnedSyntaxChildren() =>
+        BuildSyntaxChildren(SourceSpan);
+
+    MarkdownSyntaxNode ISyntaxMarkdownBlock.BuildSyntaxNode(MarkdownSourceSpan? span) {
+        var children = SourceSpan.HasValue || !span.HasValue
+            ? MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(this)
+            : BuildSyntaxChildren(span);
+
+        return new MarkdownSyntaxNode(
             MarkdownSyntaxKind.Table,
             span,
             ((IMarkdownBlock)this).RenderMarkdown(),
-            BuildSyntaxChildren(span),
+            children,
             this);
+    }
 }

@@ -8,12 +8,12 @@ internal static class LinkHtmlAttributes {
         if (!string.IsNullOrEmpty(target) || !string.IsNullOrEmpty(rel)) {
             var sb = new System.Text.StringBuilder();
             if (!string.IsNullOrEmpty(target)) {
-                sb.Append(" target=\"").Append(System.Net.WebUtility.HtmlEncode(target)).Append("\"");
+                sb.Append(" target=\"").Append(HtmlTextEncoder.Encode(target, o)).Append("\"");
             }
 
             rel = HardenRelForTarget(target, rel);
             if (!string.IsNullOrEmpty(rel)) {
-                sb.Append(" rel=\"").Append(System.Net.WebUtility.HtmlEncode(rel)).Append("\"");
+                sb.Append(" rel=\"").Append(HtmlTextEncoder.Encode(rel, o)).Append("\"");
             }
 
             return sb.ToString();
@@ -50,10 +50,10 @@ internal static class LinkHtmlAttributes {
                 if (!relLower.Contains("noreferrer")) rel += " noreferrer";
             }
         }
-        if (rel.Length > 0) sb.Append(" rel=\"").Append(System.Net.WebUtility.HtmlEncode(rel)).Append("\"");
+        if (rel.Length > 0) sb.Append(" rel=\"").Append(HtmlTextEncoder.Encode(rel, o)).Append("\"");
 
         var rp = (o.ExternalLinksReferrerPolicy ?? string.Empty).Trim();
-        if (rp.Length > 0) sb.Append(" referrerpolicy=\"").Append(System.Net.WebUtility.HtmlEncode(rp)).Append("\"");
+        if (rp.Length > 0) sb.Append(" referrerpolicy=\"").Append(HtmlTextEncoder.Encode(rp, o)).Append("\"");
 
         return sb.ToString();
     }

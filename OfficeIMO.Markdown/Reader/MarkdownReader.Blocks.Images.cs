@@ -15,7 +15,9 @@ public static partial class MarkdownReader {
         int? linkTargetStart,
         int? linkTargetLength,
         int? linkTitleStart,
-        int? linkTitleLength) {
+        int? linkTitleLength,
+        int? genericAttributeStart = null,
+        int? genericAttributeLength = null) {
         public int? AltStart { get; } = altStart;
         public int? AltLength { get; } = altLength;
         public int? SourceStart { get; } = sourceStart;
@@ -26,6 +28,8 @@ public static partial class MarkdownReader {
         public int? LinkTargetLength { get; } = linkTargetLength;
         public int? LinkTitleStart { get; } = linkTitleStart;
         public int? LinkTitleLength { get; } = linkTitleLength;
+        public int? GenericAttributeStart { get; } = genericAttributeStart;
+        public int? GenericAttributeLength { get; } = genericAttributeLength;
     }
 
     private static bool IsImageLine(string line) {
@@ -65,6 +69,8 @@ public static partial class MarkdownReader {
         }
         string plainAlt = ExtractImageAltPlainText(alt, options, state);
         image = new ImageBlock(src, alt, title, plainAlt: plainAlt);
+        int? attributeStart = null;
+        int? attributeLength = null;
         ranges = new MarkdownImageSyntaxRanges(
             altStart: 2,
             altLength: altEnd - 2,
@@ -76,28 +82,20 @@ public static partial class MarkdownReader {
             linkTargetLength: null,
             linkTitleStart: null,
             linkTitleLength: null);
-        // Optional attribute list: {width=.. height=..}
-        if (parenClose + 1 < t.Length) {
-            var rest = t.Substring(parenClose + 1).Trim();
-            if (rest.StartsWith("{")) {
-                int close = rest.IndexOf('}');
-                if (close > 0) {
-                    sizeSpec = rest.Substring(1, close - 1).Trim();
-                    var attrs = sizeSpec;
-                    foreach (var part in attrs.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
-                        int eq = part.IndexOf('=');
-                        if (eq > 0) {
-                            var key = part.Substring(0, eq).Trim();
-                            var val = part.Substring(eq + 1).Trim();
-                            if (double.TryParse(val, System.Globalization.NumberStyles.Number, System.Globalization.CultureInfo.InvariantCulture, out var num)) {
-                                if (string.Equals(key, "width", StringComparison.OrdinalIgnoreCase)) image.Width = num;
-                                else if (string.Equals(key, "height", StringComparison.OrdinalIgnoreCase)) image.Height = num;
-                            }
-                        }
-                    }
-                }
-            }
-        }
+        ConsumeImageTrailingBlocks(t.Substring(parenClose + 1), parenClose + 1, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
+        ranges = new MarkdownImageSyntaxRanges(
+            ranges.AltStart,
+            ranges.AltLength,
+            ranges.SourceStart,
+            ranges.SourceLength,
+            ranges.TitleStart,
+            ranges.TitleLength,
+            ranges.LinkTargetStart,
+            ranges.LinkTargetLength,
+            ranges.LinkTitleStart,
+            ranges.LinkTitleLength,
+            attributeStart,
+            attributeLength);
         return true;
     }
 
@@ -122,6 +120,7 @@ public static partial class MarkdownReader {
         if (!TryParseImageLink(
             t,
             0,
+            null,
             out int consumed,
             out var alt,
             out var src,
@@ -146,6 +145,8 @@ public static partial class MarkdownReader {
             LinkUrl = href,
             LinkTitle = hrefTitle
         };
+        int? attributeStart = null;
+        int? attributeLength = null;
         ranges = new MarkdownImageSyntaxRanges(
             altStart,
             altLength,
@@ -158,16 +159,86 @@ public static partial class MarkdownReader {
             hrefTitleStart,
             hrefTitleLength);
 
-        if (consumed < t.Length) {
-            var rest = t.Substring(consumed).Trim();
-            if (rest.StartsWith("{", StringComparison.Ordinal)) {
-                int close = rest.IndexOf('}');
-                if (close > 0) {
-                    sizeSpec = rest.Substring(1, close - 1).Trim();
-                }
+        ConsumeImageTrailingBlocks(t.Substring(consumed), consumed, image, options, ref sizeSpec, ref attributeStart, ref attributeLength);
+        ranges = new MarkdownImageSyntaxRanges(
+            ranges.AltStart,
+            ranges.AltLength,
+            ranges.SourceStart,
+            ranges.SourceLength,
+            ranges.TitleStart,
+            ranges.TitleLength,
+            ranges.LinkTargetStart,
+            ranges.LinkTargetLength,
+            ranges.LinkTitleStart,
+            ranges.LinkTitleLength,
+            attributeStart,
+            attributeLength);
+
+        return true;
+    }
+
+    private static void ConsumeImageTrailingBlocks(
+        string? suffix,
+        int suffixStart,
+        ImageBlock image,
+        MarkdownReaderOptions options,
+        ref string? sizeSpec,
+        ref int? genericAttributeStart,
+        ref int? genericAttributeLength) {
+        suffix ??= string.Empty;
+        var restStart = 0;
+        while (restStart < suffix.Length && char.IsWhiteSpace(suffix[restStart])) {
+            restStart++;
+        }
+
+        while (restStart < suffix.Length && suffix[restStart] == '{') {
+            var rest = suffix.Substring(restStart);
+            int close = MarkdownGenericAttributeParser.FindMatchingClosingBrace(rest, 0);
+            if (close <= 0) {
+                break;
+            }
+
+            var block = rest.Substring(1, close - 1).Trim();
+            if (TryApplyImageSizeSpec(block, image)) {
+                sizeSpec = block;
+            } else if (options.GenericAttributes && MarkdownGenericAttributeParser.TryParseAttributeBlock(block, out var attributes)) {
+                image.SetAttributes(attributes);
+                genericAttributeStart = suffixStart + restStart;
+                genericAttributeLength = close + 1;
+            } else {
+                break;
+            }
+
+            restStart += close + 1;
+            while (restStart < suffix.Length && char.IsWhiteSpace(suffix[restStart])) {
+                restStart++;
+            }
+        }
+    }
+
+    private static bool TryApplyImageSizeSpec(string? block, ImageBlock image) {
+        bool applied = false;
+        foreach (var part in (block ?? string.Empty).Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries)) {
+            int eq = part.IndexOf('=');
+            if (eq <= 0) {
+                continue;
+            }
+
+            var key = part.Substring(0, eq).Trim();
+            var val = part.Substring(eq + 1).Trim();
+            if (!double.TryParse(val, NumberStyles.Number, CultureInfo.InvariantCulture, out var num)) {
+                continue;
+            }
+
+            if (string.Equals(key, "width", StringComparison.OrdinalIgnoreCase)) {
+                image.Width = num;
+                applied = true;
+            } else if (string.Equals(key, "height", StringComparison.OrdinalIgnoreCase)) {
+                image.Height = num;
+                applied = true;
             }
         }
 
-        return true;
+        return applied;
     }
 }

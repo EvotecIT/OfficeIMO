@@ -120,13 +120,32 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
-    public void MarkdownRenderer_StrictPreset_Still_Encodes_Unsupported_Inline_Html() {
+    public void MarkdownRenderer_StrictPreset_Strips_Unsupported_Inline_Html_Tags() {
         var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml(
             "<span>hello</span>",
             MarkdownRendererPresets.CreateStrict());
 
-        Assert.Contains("&lt;span&gt;hello&lt;/span&gt;", html, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains(">hello<", html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("<span>hello</span>", html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("&lt;span&gt;hello&lt;/span&gt;", html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_Copies_Full_Profile_ReaderOptions() {
+        var options = new MarkdownRendererOptions {
+            ReaderOptions = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile(),
+            HtmlOptions = new HtmlOptions {
+                Style = HtmlStyle.Plain,
+                CssDelivery = CssDelivery.None,
+                BodyClass = null,
+                EscapeNonAsciiText = false
+            }
+        };
+
+        var html = MarkdownRenderer.MarkdownRenderer.RenderBodyHtml("~gone~", options);
+
+        Assert.Contains("<del>gone</del>", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("<sub>gone</sub>", html, StringComparison.Ordinal);
     }
 
     [Theory]
@@ -722,6 +741,75 @@ public class Markdown_Renderer_Tests {
     }
 
     [Fact]
+    public void InlineNormalization_Preserves_Heading_GenericAttributes() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.DocumentTransforms.Add(new MarkdownInlineNormalizationTransform(new MarkdownInputNormalizationOptions {
+            NormalizeTightColonSpacing = true
+        }));
+
+        var document = MarkdownReader.Parse("# Key:value {#heading}", options);
+
+        var heading = Assert.IsType<HeadingBlock>(Assert.Single(document.Blocks));
+        Assert.Equal("heading", heading.Attributes.ElementId);
+        Assert.Equal("# Key: value {#heading}", document.ToMarkdown().Trim());
+        Assert.Contains("<h1 id=\"heading\">Key: value</h1>", document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void InlineSequence_Inserted_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Ins() {
+        var document = new MarkdownDoc()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Text("Add")
+                .Inserted("inserted")
+                .Text("text")));
+
+        Assert.Equal("Add ++inserted++ text", document.ToMarkdown().Trim());
+        Assert.Equal("<p>Add <ins>inserted</ins> text</p>", document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }).Trim());
+    }
+
+    [Fact]
+    public void InlineSequence_Superscript_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Sup() {
+        var document = new MarkdownDoc()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Text("Power")
+                .Text("2")
+                .Superscript("10")));
+
+        Assert.Equal("Power 2 ^10^", document.ToMarkdown().Trim());
+        Assert.Equal("<p>Power 2 <sup>10</sup></p>", document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }).Trim());
+    }
+
+    [Fact]
+    public void InlineSequence_Subscript_Writes_Markdig_EmphasisExtra_Syntax_And_Renders_Sub() {
+        var document = new MarkdownDoc()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Text("Water")
+                .Text("H")
+                .Subscript("2")
+                .Text("O")));
+
+        Assert.Equal("Water H ~2~ O", document.ToMarkdown().Trim());
+        Assert.Equal("<p>Water H <sub>2</sub> O</p>", document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        }).Trim());
+    }
+
+    [Fact]
     public void MarkdownRendererFeaturePack_Can_Compose_Plugins_With_Fence_Option_Schemas() {
         var schema = new MarkdownFenceOptionSchema(
             "vendor.visual-options",
@@ -1264,7 +1352,7 @@ x^2 + 1
 
         Assert.Equal(MarkdownSyntaxKind.InlineText, result.FindDeepestNodeAtPosition(1, 8)!.Kind);
         Assert.Equal(MarkdownSyntaxKind.InlineLinkTarget, result.FindDeepestNodeAtPosition(1, 30)!.Kind);
-        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpan, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
+        Assert.Equal(MarkdownSyntaxKind.InlineCodeSpanContent, result.FindDeepestNodeAtPosition(1, 48)!.Kind);
         Assert.Equal(new[] { MarkdownSyntaxKind.Document, MarkdownSyntaxKind.Paragraph, MarkdownSyntaxKind.InlineLink, MarkdownSyntaxKind.InlineLinkTarget }, result.FindNodePathAtPosition(1, 30).Select(node => node.Kind).ToArray());
         Assert.Equal(MarkdownSyntaxKind.Paragraph, result.FindNearestBlockAtPosition(1, 48)!.Kind);
     }
@@ -1323,6 +1411,24 @@ second
             diagnostic.Source == MarkdownDocumentTransformSource.MarkdownRenderer
             && diagnostic.TransformName.Contains(nameof(RendererRewriteSecondParagraphTransform), StringComparison.Ordinal));
         Assert.Equal(new MarkdownSourceSpan(7, 1, 7, 6), rendererDiagnostic.AffectedSourceSpan);
+    }
+
+    [Fact]
+    public void MarkdownRenderer_ParseDocumentResult_Provides_SourceMarkdown_To_Renderer_Transforms() {
+        var opts = new MarkdownRendererOptions();
+        bool createdSourceSlice = false;
+        string sourceText = string.Empty;
+        opts.DocumentTransforms.Add(new RendererInspectFirstParagraphSourceTransform((document, context) => {
+            var paragraph = Assert.IsType<ParagraphBlock>(document.Blocks[0]);
+            createdSourceSlice = context.TryCreateSourceSlice(paragraph, out var slice);
+            sourceText = slice.Text;
+            return document;
+        }));
+
+        MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("hello\n\nworld", opts);
+
+        Assert.True(createdSourceSlice);
+        Assert.Equal("hello", sourceText);
     }
 
     [Fact]
@@ -1925,6 +2031,25 @@ Lead[^1]
         Assert.Contains("<p>[^1]: Footnote text</p>", html, StringComparison.Ordinal);
         Assert.DoesNotContain("footnotes", html, StringComparison.OrdinalIgnoreCase);
     }
+
+    [Fact]
+    public void MarkdownRenderer_DocumentTransform_BlockSpans_Skip_Consumed_Abbreviation_Definitions() {
+        var seenSpan = default(MarkdownSourceSpan?);
+        var options = new MarkdownRendererOptions {
+            ReaderOptions = new MarkdownReaderOptions {
+                Abbreviations = true
+            }
+        };
+        options.DocumentTransforms.Add(new RendererInspectFirstParagraphSourceTransform((document, context) => {
+            seenSpan = Assert.Single(context.TopLevelBlockSourceSpans);
+            return document;
+        }));
+
+        MarkdownRenderer.MarkdownRenderer.ParseDocumentResult("*[HTML]: Hyper Text\nHTML", options);
+
+        Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 4), seenSpan);
+    }
+
     private static int Count(string value, string token) {
         if (string.IsNullOrEmpty(value) || string.IsNullOrEmpty(token)) return 0;
 
@@ -2009,6 +2134,13 @@ Lead[^1]
             }
 
             return rewritten;
+        }
+    }
+
+    private sealed class RendererInspectFirstParagraphSourceTransform(Func<MarkdownDoc, MarkdownDocumentTransformContext, MarkdownDoc> inspect) : IMarkdownDocumentTransform {
+        public MarkdownDoc Transform(MarkdownDoc document, MarkdownDocumentTransformContext context) {
+            Assert.Equal(MarkdownDocumentTransformSource.MarkdownRenderer, context.Source);
+            return inspect(document, context);
         }
     }
 

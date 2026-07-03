@@ -24,16 +24,26 @@ public enum MarkdownNativeInlineKind {
     Strikethrough,
     /// <summary>Highlighted inline content.</summary>
     Highlight,
+    /// <summary>Inserted inline content.</summary>
+    Inserted,
+    /// <summary>Superscript inline content.</summary>
+    Superscript,
+    /// <summary>Subscript inline content.</summary>
+    Subscript,
     /// <summary>Underline inline content.</summary>
     Underline,
     /// <summary>Hard line break.</summary>
     HardBreak,
+    /// <summary>Soft line break.</summary>
+    SoftBreak,
     /// <summary>Inline HTML tag wrapper.</summary>
     HtmlTag,
     /// <summary>Raw inline HTML.</summary>
     HtmlRaw,
     /// <summary>Footnote reference.</summary>
     FootnoteRef,
+    /// <summary>Abbreviation inline rendered as <c>&lt;abbr&gt;</c>.</summary>
+    Abbreviation,
     /// <summary>Inline node without a specialized native projection.</summary>
     Other
 }

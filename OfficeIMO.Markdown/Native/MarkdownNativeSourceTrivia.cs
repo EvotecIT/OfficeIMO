@@ -1,0 +1,38 @@
+namespace OfficeIMO.Markdown;
+
+/// <summary>
+/// Identifies source trivia projected by <see cref="MarkdownNativeDocument"/>.
+/// </summary>
+public enum MarkdownNativeSourceTriviaKind {
+    /// <summary>A blank source line, including whitespace-only lines.</summary>
+    BlankLine,
+    /// <summary>A source line ending.</summary>
+    LineEnding,
+    /// <summary>Leading spaces or tabs before nonblank line content.</summary>
+    LeadingWhitespace,
+    /// <summary>Trailing spaces or tabs after nonblank line content.</summary>
+    TrailingWhitespace
+}
+
+/// <summary>
+/// Source-backed document trivia that is not owned by a semantic block or inline.
+/// </summary>
+public sealed class MarkdownNativeSourceTrivia {
+    internal MarkdownNativeSourceTrivia(MarkdownNativeSourceTriviaKind kind, string text, MarkdownSourceSpan sourceSpan) {
+        Kind = kind;
+        Text = text ?? string.Empty;
+        SourceSpan = sourceSpan;
+    }
+
+    /// <summary>Trivia kind.</summary>
+    public MarkdownNativeSourceTriviaKind Kind { get; }
+
+    /// <summary>Exact normalized text represented by this trivia.</summary>
+    public string Text { get; }
+
+    /// <summary>Source span for the trivia content.</summary>
+    public MarkdownSourceSpan SourceSpan { get; }
+
+    /// <summary>1-based source line number.</summary>
+    public int LineNumber => SourceSpan.StartLine;
+}

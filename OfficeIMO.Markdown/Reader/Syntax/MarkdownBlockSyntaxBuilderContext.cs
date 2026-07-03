@@ -21,6 +21,13 @@ public sealed class MarkdownBlockSyntaxBuilderContext {
         MarkdownBlockSyntaxBuilder.BuildChildSyntaxNodes(children);
 
     /// <summary>
+    /// Builds child syntax nodes for a child-block container using the same owned-syntax projection rules
+    /// as the core reader, falling back to the container's public child blocks when no parsed syntax is available.
+    /// </summary>
+    public IReadOnlyList<MarkdownSyntaxNode> BuildOwnedChildSyntaxNodes(IChildMarkdownBlockContainer container) =>
+        MarkdownBlockSyntaxBuilder.GetOwnedSyntaxChildrenOrBuild(container);
+
+    /// <summary>
     /// Builds a syntax node for inline content wrapped in a specific syntax kind.
     /// </summary>
     public MarkdownSyntaxNode BuildInlineContainerNode(
@@ -29,6 +36,18 @@ public sealed class MarkdownBlockSyntaxBuilderContext {
         MarkdownSourceSpan? span = null,
         string? literal = null) =>
         MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(kind, inlines, span, literal);
+
+    /// <summary>
+    /// Builds a syntax node for inline content with an explicit associated object.
+    /// Use this when a wrapper syntax node represents a semantic owner other than the inline sequence itself.
+    /// </summary>
+    public MarkdownSyntaxNode BuildInlineContainerNode(
+        MarkdownSyntaxKind kind,
+        InlineSequence inlines,
+        MarkdownSourceSpan? span,
+        string? literal,
+        object? associatedObject) =>
+        MarkdownBlockSyntaxBuilder.BuildInlineContainerNode(kind, inlines, span, literal, associatedObject);
 
     /// <summary>
     /// Computes an aggregate source span covering the supplied child nodes when possible.

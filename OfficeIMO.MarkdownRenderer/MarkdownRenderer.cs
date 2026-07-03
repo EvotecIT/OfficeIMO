@@ -19,9 +19,13 @@ public static partial class MarkdownRenderer {
         if (diagnostics == null && preProcessorDiagnostics == null) {
             options ??= new MarkdownRendererOptions();
             var readerOptions = CreateEffectiveReaderOptions(options);
+            if (RequiresSyntaxBackedParse(options, readerOptions)) {
+                return ParseDocumentResult(markdown, options).Document;
+            }
+
             markdown = PrepareMarkdown(markdown, options, renderErrorAsException: true);
             var doc = MarkdownReader.Parse(markdown, readerOptions);
-            return ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null);
+            return ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null, sourceMarkdown: markdown);
         }
 
         var result = ParseDocumentResult(markdown, options);
@@ -53,13 +57,26 @@ public static partial class MarkdownRenderer {
             readerOptions,
             transformDiagnostics,
             parseResult.SyntaxTree,
-            topLevelBlockSourceSpans);
+            topLevelBlockSourceSpans,
+            parseResult.SourceMarkdown,
+            parseResult.OriginalMarkdown,
+            parseResult.PreservesOriginalMarkdown);
         var rendererDiagnostics = transformDiagnostics.Count > readerDiagnosticCount
             ? transformDiagnostics.Skip(readerDiagnosticCount).ToArray()
             : Array.Empty<MarkdownDocumentTransformDiagnostic>();
         var finalSyntaxTree = rendererDiagnostics.Length == 0
             ? parseResult.FinalSyntaxTree
             : MarkdownReader.BuildFinalSyntaxTree(document, parseResult.FinalSyntaxTree, rendererDiagnostics);
+        AttachRendererParseResult(
+            document,
+            parseResult.SyntaxTree,
+            finalSyntaxTree,
+            parseResult.SourceMarkdown,
+            parseResult.OriginalMarkdown,
+            parseResult.PreservesOriginalMarkdown,
+            transformDiagnostics,
+            parseResult.ReferenceLinkDefinitions,
+            parseResult.AbbreviationDefinitions);
 
         return new MarkdownRendererParseResult(
             document,
@@ -68,7 +85,11 @@ public static partial class MarkdownRenderer {
             parseResult.SyntaxTree,
             finalSyntaxTree,
             transformDiagnostics,
-            preProcessorDiagnostics);
+            preProcessorDiagnostics,
+            parseResult.OriginalMarkdown,
+            parseResult.PreservesOriginalMarkdown,
+            parseResult.ReferenceLinkDefinitions,
+            parseResult.AbbreviationDefinitions);
     }
 
     /// <summary>
@@ -83,7 +104,11 @@ public static partial class MarkdownRenderer {
             result.SyntaxTree,
             result.FinalSyntaxTree,
             sourceMarkdown: result.SourceMarkdown,
-            result.TransformDiagnostics);
+            originalMarkdown: result.OriginalMarkdown,
+            preservesOriginalMarkdown: result.PreservesOriginalMarkdown,
+            transformDiagnostics: result.TransformDiagnostics,
+            referenceLinkDefinitions: result.ReferenceLinkDefinitions,
+            abbreviationDefinitions: result.AbbreviationDefinitions);
         return MarkdownNativeDocument.FromParseResult(
             parseResult,
             sourceMarkdown: null,
@@ -103,8 +128,41 @@ public static partial class MarkdownRenderer {
         } catch (MarkdownPreparationOverflowException ex) {
             return ex.OverflowHtml;
         }
-        var doc = MarkdownReader.Parse(markdown, readerOptions);
-        doc = ApplyRendererDocumentTransforms(doc, options, readerOptions, diagnostics: null);
+        MarkdownDoc doc;
+        if (RequiresSyntaxBackedParse(options, readerOptions)) {
+            var parseResult = MarkdownReader.ParseWithSyntaxTreeAndDiagnostics(markdown, readerOptions);
+            var transformDiagnostics = new List<MarkdownDocumentTransformDiagnostic>(parseResult.TransformDiagnostics);
+            var topLevelBlockSourceSpans = BuildTopLevelBlockSourceSpans(parseResult);
+            var readerDiagnosticCount = transformDiagnostics.Count;
+            doc = ApplyRendererDocumentTransforms(
+                parseResult.Document,
+                options,
+                readerOptions,
+                transformDiagnostics,
+                parseResult.SyntaxTree,
+                topLevelBlockSourceSpans,
+                parseResult.SourceMarkdown,
+                parseResult.OriginalMarkdown,
+                parseResult.PreservesOriginalMarkdown);
+            var rendererDiagnostics = transformDiagnostics.Count > readerDiagnosticCount
+                ? transformDiagnostics.Skip(readerDiagnosticCount).ToArray()
+                : Array.Empty<MarkdownDocumentTransformDiagnostic>();
+            var finalSyntaxTree = rendererDiagnostics.Length == 0
+                ? parseResult.FinalSyntaxTree
+                : MarkdownReader.BuildFinalSyntaxTree(doc, parseResult.FinalSyntaxTree, rendererDiagnostics);
+            AttachRendererParseResult(
+                doc,
+                parseResult.SyntaxTree,
+                finalSyntaxTree,
+                parseResult.SourceMarkdown,
+                parseResult.OriginalMarkdown,
+                parseResult.PreservesOriginalMarkdown,
+                transformDiagnostics,
+                parseResult.ReferenceLinkDefinitions,
+                parseResult.AbbreviationDefinitions);
+        } else {
+            doc = MarkdownReader.Parse(markdown, readerOptions);
+        }
 
         var priorBaseUri = htmlOptions.BaseUri;
         if (!string.IsNullOrWhiteSpace(options.BaseHref) && htmlOptions.BaseUri == null) {
@@ -162,6 +220,14 @@ public static partial class MarkdownRenderer {
         }
 
         return html ?? string.Empty;
+    }
+
+    private static bool RequiresSyntaxBackedParse(MarkdownRendererOptions options, MarkdownReaderOptions readerOptions) {
+        var htmlOptions = options.HtmlOptions;
+        return options.DocumentTransforms.Count > 0
+               || readerOptions.DocumentTransforms.Count > 0
+               || htmlOptions?.SyntaxBlockRenderExtensions.Count > 0
+               || htmlOptions?.SyntaxInlineRenderExtensions.Count > 0;
     }
 
 }

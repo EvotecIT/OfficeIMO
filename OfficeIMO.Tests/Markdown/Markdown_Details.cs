@@ -19,7 +19,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void Reader_RoundTrips_Details_Html() {
-            string markdown = "<details open>\n<summary>Expand</summary>\n\nParagraph text\n</details>";
+            string markdown = "<details open>\n<summary>  Expand  </summary>\n\nParagraph text\n</details>";
 
             var doc = MarkdownReader.Parse(markdown);
 
@@ -27,12 +27,35 @@ namespace OfficeIMO.Tests {
             Assert.True(details.Open);
             var summaryText = Assert.IsType<TextRun>(details.Summary!.Inlines.Items[0]);
             Assert.Equal("Expand", summaryText.Text);
+            Assert.Equal("<details open>", details.OpeningTag);
+            Assert.Equal("</details>", details.ClosingTag);
+            Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 14), details.OpeningTagSourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(5, 1, 5, 10), details.ClosingTagSourceSpan);
+            Assert.Equal("<summary>", details.Summary.OpeningTag);
+            Assert.Equal("  Expand  ", details.Summary.SourceText);
+            Assert.Equal("</summary>", details.Summary.ClosingTag);
+            Assert.Equal(new MarkdownSourceSpan(2, 1, 2, 9), details.Summary.OpeningTagSourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(2, 10, 2, 19), details.Summary.TextSourceSpan);
+            Assert.Equal(new MarkdownSourceSpan(2, 20, 2, 29), details.Summary.ClosingTagSourceSpan);
             var child = Assert.Single(details.ChildBlocks);
             var paragraph = Assert.IsType<ParagraphBlock>(child);
             Assert.Equal("Paragraph text", paragraph.Inlines.RenderMarkdown());
 
             var html = ((IMarkdownBlock)details).RenderHtml();
             Assert.Equal("<details open>\n<summary>Expand</summary>\n\n<p>Paragraph text</p>\n</details>", html);
+        }
+
+        [Fact]
+        public void Reader_Preserves_Details_Same_Line_Body_Source_Column() {
+            string markdown = "<details>body</details>";
+
+            var result = MarkdownReader.ParseWithSyntaxTree(markdown);
+            var details = Assert.IsType<DetailsBlock>(Assert.Single(result.Document.Blocks));
+            var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(details.ChildBlocks));
+
+            Assert.Equal(new MarkdownSourceSpan(1, 10, 1, 13), paragraph.SourceSpan);
+            Assert.True(result.TryCreateSourceSlice(paragraph.SourceSpan!.Value, out var slice));
+            Assert.Equal("body", slice.Text);
         }
 
         [Fact]

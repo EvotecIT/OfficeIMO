@@ -10,12 +10,53 @@ public static partial class MarkdownReader {
         MarkdownDoc document,
         MarkdownReaderOptions options,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics = null,
-        MarkdownSyntaxNode? syntaxTree = null) {
+        MarkdownSyntaxNode? syntaxTree = null,
+        string? sourceMarkdown = null,
+        string? originalMarkdown = null,
+        bool preservesOriginalMarkdown = false) {
         var transforms = BuildEffectiveDocumentTransforms(options);
+        var topLevelBlockSourceSpans = syntaxTree == null
+            ? null
+            : BuildTopLevelBlockSourceSpans(document, syntaxTree);
         return MarkdownDocumentTransformPipeline.Apply(
             document,
             transforms,
-            new MarkdownDocumentTransformContext(MarkdownDocumentTransformSource.MarkdownReader, options, sourceOptions: null, diagnostics, syntaxTree));
+            new MarkdownDocumentTransformContext(
+                MarkdownDocumentTransformSource.MarkdownReader,
+                options,
+                sourceOptions: null,
+                diagnostics,
+                syntaxTree,
+                topLevelBlockSourceSpans,
+                sourceMarkdown,
+                originalMarkdown,
+                preservesOriginalMarkdown));
+    }
+
+    private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownDoc document, MarkdownSyntaxNode syntaxTree) {
+        var spans = new List<MarkdownSourceSpan?>(document.Blocks.Count);
+        var blockChildren = syntaxTree.Children
+            .Where(static child => child.AssociatedObject is IMarkdownBlock)
+            .ToList();
+        var topLevelBlocks = document.TopLevelBlocks;
+        var childCount = Math.Min(blockChildren.Count, topLevelBlocks.Count);
+        for (var i = 0; i < childCount; i++) {
+            if (topLevelBlocks[i] is FrontMatterBlock) {
+                continue;
+            }
+
+            spans.Add(blockChildren[i].SourceSpan);
+        }
+
+        while (spans.Count < document.Blocks.Count) {
+            spans.Add(null);
+        }
+
+        if (spans.Count > document.Blocks.Count) {
+            spans.RemoveRange(document.Blocks.Count, spans.Count - document.Blocks.Count);
+        }
+
+        return spans;
     }
 
     private static IReadOnlyList<IMarkdownDocumentTransform> BuildEffectiveDocumentTransforms(MarkdownReaderOptions options) {

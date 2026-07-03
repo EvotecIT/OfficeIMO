@@ -20,6 +20,7 @@ public sealed class MarkdownReaderPipeline {
         if (options.FrontMatter) p.Add(new MarkdownReader.FrontMatterParser());
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterFrontMatter);
         p.Add(new MarkdownReader.QuoteParser());
+        if (options.CustomContainers) p.Add(new MarkdownReader.CustomContainerParser());
         if (options.FencedCode) p.Add(new MarkdownReader.FencedCodeParser());
         if (options.Images && options.StandaloneImageBlocks) p.Add(new MarkdownReader.ImageParser());
         p.Add(new MarkdownReader.HrParser());
@@ -27,6 +28,7 @@ public sealed class MarkdownReaderPipeline {
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterHtmlBlocks);
         p.Add(new MarkdownReader.ReferenceLinkDefParser());
         AddExtensions(p, options, MarkdownBlockParserPlacement.AfterReferenceLinkDefinitions);
+        if (options.Abbreviations) p.Add(new MarkdownReader.AbbreviationDefParser());
         if (options.Tables) p.Add(new MarkdownReader.TableParser());
         if (options.DefinitionLists) p.Add(new MarkdownReader.DefinitionListParser());
         if (options.OrderedLists) p.Add(new MarkdownReader.OrderedListParser());

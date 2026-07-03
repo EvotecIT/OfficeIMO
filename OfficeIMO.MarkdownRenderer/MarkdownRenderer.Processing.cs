@@ -74,7 +74,10 @@ public static partial class MarkdownRenderer {
         MarkdownReaderOptions readerOptions,
         ICollection<MarkdownDocumentTransformDiagnostic>? diagnostics,
         MarkdownSyntaxNode? syntaxTree = null,
-        IReadOnlyList<MarkdownSourceSpan?>? topLevelBlockSourceSpans = null) {
+        IReadOnlyList<MarkdownSourceSpan?>? topLevelBlockSourceSpans = null,
+        string? sourceMarkdown = null,
+        string? originalMarkdown = null,
+        bool preservesOriginalMarkdown = false) {
         if (document == null) {
             throw new ArgumentNullException(nameof(document));
         }
@@ -93,22 +96,47 @@ public static partial class MarkdownRenderer {
                 options,
                 diagnostics,
                 syntaxTree,
-                topLevelBlockSourceSpans));
+                topLevelBlockSourceSpans,
+                sourceMarkdown,
+                originalMarkdown,
+                preservesOriginalMarkdown));
     }
+
+    private static MarkdownParseResult AttachRendererParseResult(
+        MarkdownDoc document,
+        MarkdownSyntaxNode syntaxTree,
+        MarkdownSyntaxNode finalSyntaxTree,
+        string sourceMarkdown,
+        string originalMarkdown,
+        bool preservesOriginalMarkdown,
+        IReadOnlyList<MarkdownDocumentTransformDiagnostic> transformDiagnostics,
+        IReadOnlyList<MarkdownReferenceLinkDefinition> referenceLinkDefinitions,
+        IReadOnlyList<MarkdownAbbreviationDefinition> abbreviationDefinitions) =>
+        new MarkdownParseResult(
+            document,
+            syntaxTree,
+            finalSyntaxTree,
+            sourceMarkdown,
+            originalMarkdown,
+            preservesOriginalMarkdown,
+            transformDiagnostics,
+            referenceLinkDefinitions,
+            abbreviationDefinitions);
 
     private static IReadOnlyList<MarkdownSourceSpan?> BuildTopLevelBlockSourceSpans(MarkdownParseResult parseResult) {
         var children = parseResult.SyntaxTree.Children;
         var spans = new List<MarkdownSourceSpan?>(parseResult.Document.Blocks.Count);
 
         if (children.Count > 0) {
+            var blockChildren = children.Where(static child => child.AssociatedObject is IMarkdownBlock).ToList();
             var topLevelBlocks = parseResult.Document.TopLevelBlocks;
-            var childCount = Math.Min(children.Count, topLevelBlocks.Count);
+            var childCount = Math.Min(blockChildren.Count, topLevelBlocks.Count);
             for (var i = 0; i < childCount; i++) {
                 if (topLevelBlocks[i] is FrontMatterBlock) {
                     continue;
                 }
 
-                spans.Add(children[i].SourceSpan);
+                spans.Add(blockChildren[i].SourceSpan);
             }
         } else {
             for (var i = 0; i < parseResult.Document.Blocks.Count; i++) {
@@ -213,45 +241,12 @@ public static partial class MarkdownRenderer {
     private static MarkdownReaderOptions CreateEffectiveReaderOptions(MarkdownRendererOptions options) {
         var source = options.ReaderOptions ?? new MarkdownReaderOptions();
         var normalization = CreateEffectiveInputNormalization(options);
-        var effective = new MarkdownReaderOptions {
-            FrontMatter = source.FrontMatter,
-            Callouts = source.Callouts,
-            Headings = source.Headings,
-            FencedCode = source.FencedCode,
-            IndentedCodeBlocks = source.IndentedCodeBlocks,
-            Images = source.Images,
-            UnorderedLists = source.UnorderedLists,
-            OrderedLists = source.OrderedLists,
-            TaskLists = source.TaskLists,
-            Tables = source.Tables,
-            DefinitionLists = source.DefinitionLists,
-            TocPlaceholders = source.TocPlaceholders,
-            Footnotes = source.Footnotes,
-            PreferNarrativeSingleLineDefinitions = source.PreferNarrativeSingleLineDefinitions,
-            HtmlBlocks = source.HtmlBlocks,
-            Paragraphs = source.Paragraphs,
-            AutolinkUrls = source.AutolinkUrls,
-            AutolinkWwwUrls = source.AutolinkWwwUrls,
-            AutolinkWwwScheme = source.AutolinkWwwScheme,
-            AutolinkEmails = source.AutolinkEmails,
-            BackslashHardBreaks = source.BackslashHardBreaks,
-            InlineHtml = source.InlineHtml,
-            BaseUri = source.BaseUri,
-            DisallowScriptUrls = source.DisallowScriptUrls,
-            DisallowFileUrls = source.DisallowFileUrls,
-            AllowMailtoUrls = source.AllowMailtoUrls,
-            AllowDataUrls = source.AllowDataUrls,
-            AllowProtocolRelativeUrls = source.AllowProtocolRelativeUrls,
-            RestrictUrlSchemes = source.RestrictUrlSchemes,
-            AllowedUrlSchemes = source.AllowedUrlSchemes,
-            MaxInputCharacters = source.MaxInputCharacters,
-            InputNormalization = CreateInlineNormalizationOptions(normalization)
-        };
+        var effective = source.Clone();
+        effective.InputNormalization = CreateInlineNormalizationOptions(normalization);
 
+        effective.FencedBlockExtensions.Clear();
         AddRendererSemanticFencedBlockExtensions(effective, options);
-        CopyBlockParserExtensions(source, effective);
         CopyFencedBlockExtensions(source, effective);
-        CopyDocumentTransforms(source, effective);
         return effective;
     }
 
