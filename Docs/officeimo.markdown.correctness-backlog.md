@@ -403,7 +403,7 @@ Goal:
 
 Current coverage:
 
-- `OfficeIMO.Tests` and `OfficeIMO.Markdown.Benchmarks` both reference Markdig `1.3.2`; a guardrail test keeps the versions aligned
+- `OfficeIMO.Tests`, `OfficeIMO.Markdown.Tests`, and `OfficeIMO.Markdown.Benchmarks` all reference Markdig `1.3.2`; a guardrail test keeps the versions aligned
 - the official NuGet package page and `dotnet list ... package --outdated` reported no newer Markdig package for the parity test or benchmark projects on 2026-06-27
 
 Done means:

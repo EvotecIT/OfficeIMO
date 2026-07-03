@@ -396,7 +396,6 @@ jobs:
               "OfficeIMO.Tests.Excel.ExcelHttp",
           )
           simple_partitions = (
-              "OfficeIMO.Tests.MarkdownSuite",
               "OfficeIMO.Tests.ExcelImageExport",
               "OfficeIMO.Tests.Excel.Test_ExcelChart",
               "OfficeIMO.Tests.Excel.SharedChartRenderer",
@@ -451,8 +450,48 @@ jobs:
             rm -f "${list_file}"
           }
 
+          audit_markdown_test_partitions() {
+            local list_file
+            list_file="$(mktemp)"
+            echo ""
+            echo "== OfficeIMO.Markdown.Tests: partition coverage audit =="
+            dotnet test OfficeIMO.Markdown.Tests/OfficeIMO.Markdown.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity quiet --framework ${{ matrix.framework }} --list-tests --filter "${test_filter}" > "${list_file}"
+            python3 - "${list_file}" <<'PY'
+          import sys
+
+          with open(sys.argv[1], encoding="utf-8", errors="replace") as handle:
+              discovered = [line.strip() for line in handle if line.startswith("    ") and line.strip()]
+
+          markdown_partitions = (
+              "OfficeIMO.Tests.Markdown.",
+              "OfficeIMO.Tests.MarkdownSuite",
+              "OfficeIMO.Tests.MarkdownHtmlToMarkdownTests",
+              "OfficeIMO.Tests.Markdown_",
+              "OfficeIMO.Tests.MarkdownTranscript",
+              "OfficeIMO.Tests.MarkdownReaderBomTests",
+              "OfficeIMO.Tests.MarkdownBlankLinesTests",
+              "OfficeIMO.Tests.MarkdownDefinitionLinesTests",
+              "OfficeIMO.Tests.MarkdownOrderedListsTests",
+              "OfficeIMO.Tests.MarkdownStreamingPreviewTests",
+              "OfficeIMO.Tests.Markdown_Renderer",
+              "OfficeIMO.Tests.Markdown_IntelligenceX",
+          )
+
+          unassigned = [name for name in discovered if not any(partition in name for partition in markdown_partitions)]
+          if unassigned:
+              print("OfficeIMO.Markdown.Tests partition audit found tests that are not assigned to a named CI slice:")
+              for name in unassigned:
+                  print(f"  {name}")
+              sys.exit(1)
+
+          print(f"OfficeIMO.Markdown.Tests partition audit covered {len(discovered)} discovered tests.")
+          PY
+            rm -f "${list_file}"
+          }
+
           if [ "${{ matrix.framework }}" = "net8.0" ] && [ "${{ matrix.partition }}" = "markdown-large" ]; then
             audit_officeimo_test_partitions
+            audit_markdown_test_partitions
           fi
 
           case "${{ matrix.partition }}" in
