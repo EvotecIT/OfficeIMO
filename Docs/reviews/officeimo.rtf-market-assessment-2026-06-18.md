@@ -18,7 +18,7 @@ OfficeIMO already has a real first-party RTF stack, not just examples:
 The RTF-related surface currently spans 329 implementation files and 66 RTF test files. The focused RTF test slice passes across all currently relevant test frameworks:
 
 ```powershell
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --filter "FullyQualifiedName~Rtf"
+dotnet test OfficeIMO.Rtf.Tests\OfficeIMO.Rtf.Tests.csproj -c Release --filter "FullyQualifiedName~Rtf"
 ```
 
 Result:

@@ -49,7 +49,8 @@ The first code slice addresses the "style-less output looks bad" problem without
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme|FullyQualifiedName~MarkdownSaveAsPdfVisualTests"
+dotnet test OfficeIMO.Markdown.Tests\OfficeIMO.Markdown.Tests.csproj --filter "FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme"
+dotnet test OfficeIMO.Pdf.Tests\OfficeIMO.Pdf.Tests.csproj --filter "FullyQualifiedName~MarkdownSaveAsPdfVisualTests"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 132 filtered tests.
@@ -65,7 +66,8 @@ The second code slice closes the profile vocabulary gap for point 1:
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles"
+dotnet test OfficeIMO.Markdown.Tests\OfficeIMO.Markdown.Tests.csproj --no-restore --filter "FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 45 filtered tests.
@@ -81,7 +83,7 @@ The third code slice starts the schema-first proof/gallery manifest without addi
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 15 filtered tests.
@@ -99,7 +101,7 @@ The fourth code slice prevents the HTML/PDF adapters from becoming a second prof
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~HtmlEnginePlatform" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~HtmlEnginePlatform" --logger "console;verbosity=minimal"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 15 filtered tests.
@@ -117,7 +119,8 @@ The fifth code slice makes the shared Markdown visual theme choices discoverable
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme|FullyQualifiedName~MarkdownSaveAsPdfVisualTests" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Markdown.Tests\OfficeIMO.Markdown.Tests.csproj --no-restore --filter "FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Pdf.Tests\OfficeIMO.Pdf.Tests.csproj --no-restore --filter "FullyQualifiedName~MarkdownSaveAsPdfVisualTests" --logger "console;verbosity=minimal"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 134 filtered tests.
@@ -135,7 +138,7 @@ The sixth code slice declares the Excel and PowerPoint HTML lanes in the shared 
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles" --logger "console;verbosity=minimal"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 16 filtered tests.
@@ -153,7 +156,7 @@ The seventh code slice connects the real HTML -> Word -> HTML gallery proof to t
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlArtifactGallery_GeneratesValidDocxAndRoundTripHtml|FullyQualifiedName~HtmlEnginePlatform" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlArtifactGallery_GeneratesValidDocxAndRoundTripHtml|FullyQualifiedName~HtmlEnginePlatform" --logger "console;verbosity=minimal"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 15 filtered tests.
@@ -173,7 +176,7 @@ The eighth code slice replaces the previous contract-only Excel/PowerPoint HTML 
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --filter "FullyQualifiedName~HtmlOfficeAdapters|FullyQualifiedName~HtmlEnginePlatform" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --filter "FullyQualifiedName~HtmlOfficeAdapters|FullyQualifiedName~HtmlEnginePlatform" --logger "console;verbosity=minimal"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 19 filtered tests.
@@ -189,7 +192,9 @@ Visual proof artifacts:
 Broader regression validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlArtifactGallery_GeneratesValidDocxAndRoundTripHtml|FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme|FullyQualifiedName~MarkdownSaveAsPdfVisualTests|FullyQualifiedName~HtmlOfficeAdapters" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlArtifactGallery_GeneratesValidDocxAndRoundTripHtml|FullyQualifiedName~HtmlEnginePlatform|FullyQualifiedName~HtmlPdf_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~PdfHtml_ProfileContracts_CoverSupportedProfiles|FullyQualifiedName~HtmlOfficeAdapters" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Markdown.Tests\OfficeIMO.Markdown.Tests.csproj --no-restore --filter "FullyQualifiedName~Markdown_VisualTheme_Tests|FullyQualifiedName~Markdown_Html_Render_Tests|FullyQualifiedName~MarkdownToWord_AppliesDefaultSharedVisualThemeWhenThemeIsOmitted|FullyQualifiedName~MarkdownToWord_CanDisableDefaultSharedVisualTheme" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Pdf.Tests\OfficeIMO.Pdf.Tests.csproj --no-restore --filter "FullyQualifiedName~MarkdownSaveAsPdfVisualTests" --logger "console;verbosity=minimal"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 156 filtered tests.
@@ -207,7 +212,7 @@ The ninth code slice makes the shared proof/gallery manifest machine-readable wi
 Validation:
 
 ```text
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlArtifactGallery_GeneratesValidDocxAndRoundTripHtml|FullyQualifiedName~HtmlEnginePlatform_ConnectsProfilesIrStylesResourcesScoringDiagnosticsAndGallery" --logger "console;verbosity=minimal"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj --no-restore --filter "FullyQualifiedName~HtmlArtifactGallery_GeneratesValidDocxAndRoundTripHtml|FullyQualifiedName~HtmlEnginePlatform_ConnectsProfilesIrStylesResourcesScoringDiagnosticsAndGallery" --logger "console;verbosity=minimal"
 ```
 
 Result: passed on `net10.0`, `net8.0`, and `net472` with 2 filtered tests.
