@@ -7,7 +7,7 @@ This scorecard tracks evidence for the RTF market roadmap. It is intentionally e
 Command last run from `C:\Support\GitHub\OfficeIMO-rtf-market-assessment-20260618`:
 
 ```powershell
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --filter "FullyQualifiedName~Rtf"
+dotnet test OfficeIMO.Rtf.Tests\OfficeIMO.Rtf.Tests.csproj -c Release --filter "FullyQualifiedName~Rtf"
 ```
 
 Result:
@@ -21,7 +21,7 @@ Result:
 PDF work is intentionally out of scope for the current implementation phases. The current non-PDF RTF validation command is:
 
 ```powershell
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --no-restore --filter "FullyQualifiedName~Rtf&FullyQualifiedName!~Pdf"
+dotnet test OfficeIMO.Rtf.Tests\OfficeIMO.Rtf.Tests.csproj -c Release --no-restore --filter "FullyQualifiedName~Rtf&FullyQualifiedName!~Pdf"
 ```
 
 Result:
@@ -38,7 +38,7 @@ Result:
 | --- | --- | --- |
 | Support matrix | `Docs/officeimo.rtf-support-matrix.md` | Added |
 | Conversion class vocabulary | `Lossless`, `Semantic`, `Visual`, `Extractive`, `Diagnostic` in support matrix | Added |
-| Golden corpus structure | `OfficeIMO.Tests/Documents/RtfCorpus` | Added |
+| Golden corpus structure | `OfficeIMO.Rtf.Tests/Documents/RtfCorpus` | Added |
 | Golden corpus parse guard | `RtfGoldenCorpusTests.GoldenCorpusFixturesParseWithoutErrors` | Passing |
 | PDF deferral boundary | PDF rows marked `Deferred`; no PDF implementation edits | Added |
 
@@ -65,7 +65,7 @@ Result:
 Focused Phase 3 validation:
 
 ```powershell
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --no-restore --filter "FullyQualifiedName~WordRtfConverterTests|FullyQualifiedName~RtfHtmlOptionsTests|FullyQualifiedName~RtfHtmlConverterTests"
+dotnet test OfficeIMO.Rtf.Tests\OfficeIMO.Rtf.Tests.csproj -c Release --no-restore --filter "FullyQualifiedName~WordRtfConverterTests|FullyQualifiedName~RtfHtmlOptionsTests|FullyQualifiedName~RtfHtmlConverterTests"
 ```
 
 Result:

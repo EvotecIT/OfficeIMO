@@ -562,8 +562,8 @@ just to reserve names.
   - [x] Report DOC revision-tracking DOP flags before tracked revisions have a
     projection or rewrite story.
 - [x] Add normal fixture folders under
-  `OfficeIMO.Tests\Documents\LegacyDocCorpus` and
-  keep `OfficeIMO.Tests\Documents\LegacyDocDiagnosticCorpus` for the first
+  `OfficeIMO.TestAssets\Documents\LegacyDocCorpus` and
+  keep `OfficeIMO.TestAssets\Documents\LegacyDocDiagnosticCorpus` for the first
   diagnostic corpus slice.
 - [x] Add a Word COM fixture-generation helper for simple paragraph, character
   formatting, and paragraph formatting fixtures in test/support tooling only;
@@ -1217,7 +1217,7 @@ Use contract-focused tests rather than a giant incidental matrix:
 Run at least:
 
 ```powershell
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --configuration Release --filter "FullyQualifiedName~LegacyDoc|FullyQualifiedName~Word.Save|FullyQualifiedName~Word.Load"
+dotnet test OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj --configuration Release --filter "FullyQualifiedName~LegacyDoc|FullyQualifiedName~Word.Save|FullyQualifiedName~Word.Load"
 dotnet build OfficeIMO.Word\OfficeIMO.Word.csproj --configuration Release
 ```
 
@@ -1225,7 +1225,7 @@ When the shared compound layer changes, also run the legacy XLS tests because th
 container owner is shared:
 
 ```powershell
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --configuration Release --filter FullyQualifiedName~LegacyXls
+dotnet test OfficeIMO.Excel.Tests\OfficeIMO.Excel.Tests.csproj --configuration Release --filter FullyQualifiedName~LegacyXls
 ```
 
 ## Remaining Design Choices

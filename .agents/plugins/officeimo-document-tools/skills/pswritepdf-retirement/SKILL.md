@@ -30,7 +30,7 @@ Use this skill for PSWritePDF retirement and PSWriteOffice PDF surface work.
 
 ```powershell
 dotnet build OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj -c Release -f net10.0
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --filter "*Pdf*"
+dotnet test OfficeIMO.Pdf.Tests\OfficeIMO.Pdf.Tests.csproj -c Release --filter "*Pdf*"
 ```
 
 For PSWriteOffice changes, also validate import and command discovery from the target PSWriteOffice worktree.

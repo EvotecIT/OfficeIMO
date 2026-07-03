@@ -77,7 +77,7 @@ Conversion class legend:
 
 ## Golden Corpus Buckets
 
-The corpus lives under `OfficeIMO.Tests/Documents/RtfCorpus`. Every fixture should state its expected conversion class and the target adapters it protects.
+The corpus lives under `OfficeIMO.Rtf.Tests/Documents/RtfCorpus`. Every fixture should state its expected conversion class and the target adapters it protects.
 
 | Bucket | Purpose | Initial status |
 | --- | --- | --- |

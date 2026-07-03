@@ -30,7 +30,9 @@ Use this skill for OfficeIMO build, package, release, website, and downstream va
 
 ```powershell
 dotnet build OfficeIMO.sln -c Release
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release
+dotnet test OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj -c Release
+dotnet test OfficeIMO.Excel.Tests\OfficeIMO.Excel.Tests.csproj -c Release
+dotnet test OfficeIMO.Shared.Tests\OfficeIMO.Shared.Tests.csproj -c Release
 pwsh Website\build.ps1 -Mode dev
 git diff --check
 ```

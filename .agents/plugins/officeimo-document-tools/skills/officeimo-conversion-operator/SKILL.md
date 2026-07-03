@@ -32,8 +32,9 @@ Use this skill for OfficeIMO conversion work across Word, Excel, PowerPoint, Mar
 
 ```powershell
 dotnet build OfficeIMO.Word.Pdf\OfficeIMO.Word.Pdf.csproj -c Release -f net10.0
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --filter "*SaveAsPdf*"
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj -c Release --filter "*Html*|*Markdown*"
+dotnet test OfficeIMO.Word.Tests\OfficeIMO.Word.Tests.csproj -c Release --filter "*SaveAsPdf*"
+dotnet test OfficeIMO.Html.Tests\OfficeIMO.Html.Tests.csproj -c Release --filter "*Html*"
+dotnet test OfficeIMO.Markdown.Tests\OfficeIMO.Markdown.Tests.csproj -c Release --filter "*Markdown*"
 ```
 
 When the work targets GitHub Pages or OfficeIMO.com, pair these with the browser conversion proof described in `Docs/officeimo.blazor-wasm-conversion-proof.md`.
