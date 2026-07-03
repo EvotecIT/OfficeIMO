@@ -164,7 +164,6 @@ File.WriteAllText("README.normalized.md", parsed.ToMarkdown());
 - [Correctness roadmap](../Docs/officeimo.markdown.correctness-roadmap.md)
 - [Correctness backlog](../Docs/officeimo.markdown.correctness-backlog.md)
 - [Extension authoring](../Docs/officeimo.markdown.extension-authoring.md)
-- [Release checklist](../Docs/officeimo.markdown.release-checklist.md)
 - [Benchmarks](../OfficeIMO.Markdown.Benchmarks/README.md)
 
 ## Targets and license

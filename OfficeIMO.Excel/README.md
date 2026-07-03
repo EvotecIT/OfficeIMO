@@ -356,7 +356,6 @@ document.Save();
 - [Compatibility matrix](COMPATIBILITY.md)
 - [Large workbook guidance](../Docs/officeimo.excel.large-workbook-guidance.md)
 - [Excel roadmap](../Docs/officeimo.excel.roadmap.md)
-- [Release checklist](../Docs/officeimo.excel.release-checklist.md)
 - [Excel examples](../OfficeIMO.Examples/Excel)
 
 ## Targets and license
