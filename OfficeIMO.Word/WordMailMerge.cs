@@ -205,9 +205,16 @@ namespace OfficeIMO.Word {
             if (document == null) throw new ArgumentNullException(nameof(document));
             if (conditions == null) throw new ArgumentNullException(nameof(conditions));
 
+            var conditionLookup = new Dictionary<string, bool>(StringComparer.OrdinalIgnoreCase);
+            foreach (KeyValuePair<string, bool> condition in conditions) {
+                if (!string.IsNullOrWhiteSpace(condition.Key)) {
+                    conditionLookup[condition.Key] = condition.Value;
+                }
+            }
+
             int processed = 0;
             foreach (var root in EnumerateTemplateRoots(document)) {
-                processed += ExecuteConditionalBlocks(root, conditions, removeMarkers);
+                processed += ExecuteConditionalBlocks(root, conditionLookup, removeMarkers);
             }
 
             return processed;
@@ -230,6 +237,7 @@ namespace OfficeIMO.Word {
 
             foreach (var root in EnumerateTemplateRoots(document)) {
                 mergeFields.AddRange(EnumerateMergeFieldNames(root));
+                issues.AddRange(EnumerateUnsupportedMailMergeControlFieldIssues(root));
                 var conditionalInspection = InspectConditionalBlocks(root);
                 conditionalNames.AddRange(conditionalInspection.Names);
                 issues.AddRange(conditionalInspection.Issues);
@@ -281,6 +289,17 @@ namespace OfficeIMO.Word {
             }
 
             return new WordMailMergeTemplateInspection(mergeFields, conditionalNames, repeatingNames, issues);
+        }
+
+        /// <summary>
+        /// Inspects a Word mail-merge template and returns a CI-friendly preflight report with capability checks and diagnostics.
+        /// </summary>
+        /// <param name="document">Document to inspect.</param>
+        /// <param name="mergeFieldNames">Optional supplied MERGEFIELD names. When provided, missing fields are reported as issues.</param>
+        /// <param name="conditionNames">Optional supplied conditional block names. When provided, missing conditions are reported as issues.</param>
+        /// <param name="repeatingBlockNames">Optional supplied repeated block names. When provided, missing repeated block rows are reported as issues.</param>
+        public static WordTemplatePreflightReport PreflightTemplate(WordDocument document, IEnumerable<string>? mergeFieldNames = null, IEnumerable<string>? conditionNames = null, IEnumerable<string>? repeatingBlockNames = null) {
+            return WordTemplatePreflightReport.FromInspection(InspectTemplate(document, mergeFieldNames, conditionNames, repeatingBlockNames));
         }
 
         /// <summary>

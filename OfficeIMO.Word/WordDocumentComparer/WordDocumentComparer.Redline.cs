@@ -1,0 +1,888 @@
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
+
+namespace OfficeIMO.Word {
+    public static partial class WordDocumentComparer {
+        /// <summary>
+        /// Compares two documents and writes a DOCX redline document using the configured redline mode.
+        /// </summary>
+        /// <param name="sourcePath">Path to the original document.</param>
+        /// <param name="targetPath">Path to the modified document.</param>
+        /// <param name="outputPath">Path where the redline DOCX should be written.</param>
+        /// <param name="options">Optional redline and comparison settings.</param>
+        /// <returns>The structured comparison result used to generate the redline document.</returns>
+        public static WordComparisonResult CreateRedlineDocument(string sourcePath, string targetPath, string outputPath, WordComparisonRedlineOptions? options = null) {
+            if (string.IsNullOrEmpty(sourcePath)) throw new ArgumentNullException(nameof(sourcePath));
+            if (string.IsNullOrEmpty(targetPath)) throw new ArgumentNullException(nameof(targetPath));
+            if (string.IsNullOrEmpty(outputPath)) throw new ArgumentNullException(nameof(outputPath));
+
+            options ??= new WordComparisonRedlineOptions();
+            ValidateRedlineOutputPath(sourcePath, targetPath, outputPath);
+            WordComparisonResult result = CompareStructure(sourcePath, targetPath, options.ComparisonOptions);
+
+            EnsureOutputDirectory(outputPath);
+
+            if (options.Mode == WordComparisonRedlineMode.InPlaceTarget) {
+                CreateInPlaceTargetRedlineDocument(sourcePath, targetPath, outputPath, result, options);
+                return result;
+            }
+
+            using WordDocument document = WordDocument.Create(outputPath);
+            document.AddParagraph("Word Comparison Redline").SetStyle(WordParagraphStyles.Heading1);
+            document.AddParagraph(WordComparisonReportWriter.ToTextSummary(result));
+
+            if (options.IncludeSummary) {
+                AppendRedlineSummary(document, result);
+            }
+
+            if (options.IncludeFindingsTable) {
+                AppendRedlineFindingsTable(document, result);
+            }
+
+            if (ShouldAppendTrackedRedlineFindings(options)) {
+                AppendTrackedRedlineFindings(document, result, options);
+            }
+
+            document.Save(false);
+            return result;
+        }
+
+        private static void ValidateRedlineOutputPath(string sourcePath, string targetPath, string outputPath) {
+            string sourceFullPath = Path.GetFullPath(sourcePath);
+            string targetFullPath = Path.GetFullPath(targetPath);
+            string outputFullPath = Path.GetFullPath(outputPath);
+
+            if (string.Equals(outputFullPath, sourceFullPath, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidOperationException("Redline output must be written to a different path than the source document.");
+            }
+
+            if (string.Equals(outputFullPath, targetFullPath, StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidOperationException("Redline output must be written to a different path than the target document.");
+            }
+        }
+
+        private static void EnsureOutputDirectory(string outputPath) {
+            string? directory = Path.GetDirectoryName(outputPath);
+            if (!string.IsNullOrEmpty(directory)) {
+                Directory.CreateDirectory(directory);
+            }
+        }
+
+        private static void CreateInPlaceTargetRedlineDocument(string sourcePath, string targetPath, string outputPath, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            if (string.Equals(Path.GetFullPath(targetPath), Path.GetFullPath(outputPath), StringComparison.OrdinalIgnoreCase)) {
+                throw new InvalidOperationException("In-place target redline output must be written to a different path than the target document.");
+            }
+
+            File.Copy(targetPath, outputPath, overwrite: true);
+            using WordDocument sourceDocument = WordDocument.Load(sourcePath, readOnly: true);
+            using WordDocument document = WordDocument.Load(outputPath);
+            HashSet<int> rewrittenParagraphs = ApplyParagraphFindings(
+                sourceDocument._wordprocessingDocument,
+                document._wordprocessingDocument,
+                result,
+                options,
+                out IReadOnlyList<RedlineParagraphEntry> sourceParagraphs,
+                out IReadOnlyList<RedlineParagraphEntry> targetParagraphs);
+            ApplyRunFindings(sourceParagraphs, targetParagraphs, result, options, rewrittenParagraphs);
+            ApplyContentControlFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            ApplyImageFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+
+            ApplyTableCellFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            ApplyTableRowFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            ApplyTableFindings(sourceDocument._wordprocessingDocument, document._wordprocessingDocument, result, options);
+            AppendInPlaceFeatureAndReviewFindings(document, result, options);
+
+            document.Save(false, new WordSaveOptions { SignedDocumentPolicy = WordSignedDocumentSavePolicy.AllowSignatureInvalidation });
+        }
+
+        private static bool HasTrackedText(WordComparisonFinding finding) {
+            return !string.IsNullOrEmpty(finding.SourceText) || !string.IsNullOrEmpty(finding.TargetText);
+        }
+
+        private static void RewriteParagraphWithTrackedText(Paragraph paragraph, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            foreach (OpenXmlElement child in paragraph.ChildElements.Where(child => child is not ParagraphProperties && !ShouldPreserveParagraphRedlineChild(child)).ToList()) {
+                child.Remove();
+            }
+
+            OpenXmlElement? insertionPoint = paragraph.ChildElements.FirstOrDefault(child => child is not ParagraphProperties);
+            if (!string.IsNullOrEmpty(sourceText)) {
+                InsertParagraphRedlineRun(paragraph, insertionPoint, CreateDeletedRun(sourceText!, options));
+            }
+
+            if (!string.IsNullOrEmpty(targetText)) {
+                InsertParagraphRedlineRun(paragraph, insertionPoint, CreateInsertedRun(targetText!, options));
+            }
+        }
+
+        private static bool ShouldPreserveParagraphRedlineChild(OpenXmlElement child) {
+            if (child.Descendants<Text>().Any() || child.Descendants<DeletedText>().Any()) {
+                return false;
+            }
+
+            if (child is not Run run) {
+                return true;
+            }
+
+            return run.ChildElements.Any(runChild => runChild is not RunProperties && runChild is not Text);
+        }
+
+        private static void InsertParagraphRedlineRun(Paragraph paragraph, OpenXmlElement? insertionPoint, OpenXmlElement run) {
+            if (insertionPoint != null) {
+                paragraph.InsertBefore(run, insertionPoint);
+                return;
+            }
+
+            paragraph.Append(run);
+        }
+
+        private static void ApplyRunFinding(Paragraph paragraph, int runIndex, WordComparisonFinding finding, WordComparisonRedlineOptions options) {
+            List<Run> runs = paragraph.Descendants<Run>()
+                .Where(run => run.Ancestors<Paragraph>().FirstOrDefault() == paragraph)
+                .ToList();
+            if (runs.Count == 0) {
+                RewriteParagraphWithTrackedText(paragraph, finding.SourceText, finding.TargetText, options);
+                return;
+            }
+
+            int boundedRunIndex = Math.Max(0, Math.Min(runIndex, runs.Count - 1));
+            Run targetRun = runs[boundedRunIndex];
+            OpenXmlElement parent = targetRun.Parent ?? paragraph;
+            bool insertTrailingDeletion = finding.ChangeKind == WordComparisonChangeKind.Deleted && runIndex >= runs.Count;
+
+            if (finding.ChangeKind != WordComparisonChangeKind.Inserted && !string.IsNullOrEmpty(finding.SourceText)) {
+                OpenXmlElement deletedRun = CreateDeletedRun(finding.SourceText!, options);
+                if (insertTrailingDeletion) {
+                    parent.InsertAfter(deletedRun, targetRun);
+                } else {
+                    parent.InsertBefore(deletedRun, targetRun);
+                }
+            }
+
+            if (finding.ChangeKind != WordComparisonChangeKind.Deleted && !string.IsNullOrEmpty(finding.TargetText)) {
+                parent.InsertBefore(CreateInsertedRun(finding.TargetText!, options), targetRun);
+            }
+
+            if (finding.ChangeKind != WordComparisonChangeKind.Deleted) {
+                targetRun.Remove();
+            }
+        }
+
+        private static void ApplyTableCellFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            List<RedlineTableEntry> sourceTables = GetRedlineTableEntries(sourceDocument);
+            List<RedlineTableEntry> targetTables = GetRedlineTableEntries(targetDocument);
+            HashSet<string> nestedTableParentCellKeys = GetNestedTableParentCellKeys(sourceTables, targetTables, result, options);
+            var rewrittenCells = new HashSet<string>(StringComparer.Ordinal);
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.TableCell ||
+                    !TryParseTableCellLocation(finding.Location, out int tableIndex, out int rowIndex, out int cellIndex) ||
+                    tableIndex < 0 ||
+                    tableIndex >= targetTables.Count ||
+                    rowIndex < 0 ||
+                    !HasTrackedText(finding)) {
+                    continue;
+                }
+
+                switch (finding.ChangeKind) {
+                    case WordComparisonChangeKind.Modified:
+                    case WordComparisonChangeKind.Inserted:
+                        Table table = targetTables[tableIndex].Table;
+                        List<TableRow> rows = table.Elements<TableRow>().ToList();
+                        if (rowIndex >= rows.Count) {
+                            continue;
+                        }
+
+                        TableRow row = rows[rowIndex];
+                        List<TableCell> cells = row.Elements<TableCell>().ToList();
+                        string cellKey = CreateTableCellKey(tableIndex, rowIndex, cellIndex);
+                        if (rewrittenCells.Contains(cellKey) || nestedTableParentCellKeys.Contains(cellKey)) {
+                            continue;
+                        }
+
+                        if (cellIndex >= 0 && cellIndex < cells.Count) {
+                            RewriteCellWithTrackedText(cells[cellIndex], finding.SourceText, finding.TargetText, options);
+                            RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
+                            rewrittenCells.Add(cellKey);
+                        }
+
+                        break;
+                    case WordComparisonChangeKind.Deleted:
+                        if (!string.IsNullOrEmpty(finding.SourceText)) {
+                            RedlineTableEntry targetTable = targetTables[tableIndex];
+                            RedlineTableEntry? sourceTable = FindSourceTableForDeletedCell(sourceTables, targetTable, rowIndex, cellIndex, finding.SourceText);
+                            if (sourceTable == null) {
+                                break;
+                            }
+
+                            List<TableRow> sourceRows = sourceTable.Table.Elements<TableRow>().ToList();
+                            if (rowIndex < 0 || rowIndex >= sourceRows.Count) {
+                                break;
+                            }
+
+                            List<TableRow> targetRows = targetTable.Table.Elements<TableRow>().ToList();
+                            int targetRowIndex = FindTargetRowIndexForDeletedCell(sourceRows[rowIndex], targetRows, rowIndex);
+                            if (targetRowIndex < 0 || targetRowIndex >= targetRows.Count) {
+                                break;
+                            }
+
+                            TableRow targetRow = targetRows[targetRowIndex];
+                            List<TableCell> targetCells = targetRow.Elements<TableCell>().ToList();
+                            int targetCellIndex = cellIndex;
+                            List<TableCell> sourceCells = sourceRows[rowIndex].Elements<TableCell>().ToList();
+                            if (cellIndex >= 0 && cellIndex < sourceCells.Count) {
+                                targetCellIndex = FindTargetGapByNeighborIdentity(sourceCells, targetCells, cellIndex, GetOpenXmlCellText, GetOpenXmlCellText);
+                            }
+
+                            string deletedCellKey = CreateTableCellKey(tableIndex, targetRowIndex, targetCellIndex) + "/deleted/" + rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" + cellIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                            if (rewrittenCells.Contains(deletedCellKey) || nestedTableParentCellKeys.Contains(CreateTableCellKey(tableIndex, targetRowIndex, targetCellIndex))) {
+                                break;
+                            }
+
+                            TableCell? sourceCell = cellIndex >= 0 && cellIndex < sourceCells.Count ? sourceCells[cellIndex] : null;
+                            InsertDeletedCell(targetRow, targetCells, targetCellIndex, sourceCell, finding.SourceText!, options);
+                            RemoveEmptyWordColorAttributes(targetTables[tableIndex].Table);
+                            rewrittenCells.Add(deletedCellKey);
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private static RedlineTableEntry? FindSourceTableForDeletedCell(
+            IReadOnlyList<RedlineTableEntry> sourceTables,
+            RedlineTableEntry targetTable,
+            int rowIndex,
+            int cellIndex,
+            string? sourceCellText) {
+            RedlineTableEntry? ordinalMatch = sourceTables.FirstOrDefault(table =>
+                string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal) &&
+                table.LocalIndex == targetTable.LocalIndex);
+
+            RedlineTableEntry? textMatch = sourceTables
+                .Where(table => string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal))
+                .Where(table => {
+                    List<TableRow> rows = table.Table.Elements<TableRow>().ToList();
+                    if (rowIndex < 0 || rowIndex >= rows.Count) {
+                        return false;
+                    }
+
+                    List<TableCell> cells = rows[rowIndex].Elements<TableCell>().ToList();
+                    return cellIndex >= 0 &&
+                        cellIndex < cells.Count &&
+                        string.Equals(GetOpenXmlCellText(cells[cellIndex]), sourceCellText ?? string.Empty, StringComparison.Ordinal);
+                })
+                .OrderByDescending(table => GetRedlineTableSimilarity(table.Table, targetTable.Table))
+                .FirstOrDefault();
+
+            return textMatch ?? ordinalMatch;
+        }
+
+        private static int FindTargetRowIndexForDeletedCell(TableRow sourceRow, IReadOnlyList<TableRow> targetRows, int sourceRowIndex) {
+            if (targetRows.Count == 0) {
+                return -1;
+            }
+
+            string sourceText = GetOpenXmlRowText(sourceRow);
+            int bestIndex = -1;
+            double bestSimilarity = double.MinValue;
+            for (int index = 0; index < targetRows.Count; index++) {
+                double similarity = GetTextSimilarity(sourceText, GetOpenXmlRowText(targetRows[index]));
+                if (similarity > bestSimilarity) {
+                    bestSimilarity = similarity;
+                    bestIndex = index;
+                }
+            }
+
+            return bestIndex >= 0
+                ? bestIndex
+                : Math.Max(0, Math.Min(sourceRowIndex, targetRows.Count - 1));
+        }
+
+        private static HashSet<string> GetNestedTableParentCellKeys(IReadOnlyList<RedlineTableEntry> sourceTables, IReadOnlyList<RedlineTableEntry> targetTables, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            var cellKeys = new HashSet<string>(StringComparer.Ordinal);
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.Table ||
+                    !TryParseTableLocation(finding.Location, out int tableIndex)) {
+                    continue;
+                }
+
+                IReadOnlyList<RedlineTableEntry> tables = finding.ChangeKind == WordComparisonChangeKind.Deleted ? sourceTables : targetTables;
+                if (tableIndex < 0 || tableIndex >= tables.Count) {
+                    continue;
+                }
+
+                if (TryGetNestedTablePlacement(tables, tables[tableIndex].Table, out NestedTablePlacement placement)) {
+                    cellKeys.Add(CreateTableCellKey(placement.ParentTableIndex, placement.RowIndex, placement.CellIndex));
+                }
+            }
+
+            return cellKeys;
+        }
+
+        private static void ApplyTableRowFindings(WordprocessingDocument sourceDocument, WordprocessingDocument targetDocument, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            List<RedlineTableEntry> sourceTables = GetRedlineTableEntries(sourceDocument);
+            List<RedlineTableEntry> targetTables = GetRedlineTableEntries(targetDocument);
+            var rewrittenRows = new HashSet<string>(StringComparer.Ordinal);
+
+            foreach (WordComparisonFinding finding in result.Findings) {
+                if (!ShouldTrackFinding(finding, options) ||
+                    finding.Scope != WordComparisonScope.TableRow ||
+                    !TryParseTableRowLocation(finding.Location, out int tableIndex, out int rowIndex) ||
+                    tableIndex < 0 ||
+                    !HasTrackedText(finding)) {
+                    continue;
+                }
+
+                string rowKey = tableIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                                rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                if (rewrittenRows.Contains(rowKey)) {
+                    continue;
+                }
+
+                switch (finding.ChangeKind) {
+                    case WordComparisonChangeKind.Inserted:
+                        if (tableIndex < targetTables.Count) {
+                            List<TableRow> targetRows = targetTables[tableIndex].Table.Elements<TableRow>().ToList();
+                            if (rowIndex >= 0 && rowIndex < targetRows.Count) {
+                                RewriteRowWithTrackedText(targetRows[rowIndex], trackInserted: true, options);
+                                rewrittenRows.Add(rowKey);
+                            }
+                        }
+
+                        break;
+                    case WordComparisonChangeKind.Deleted:
+                        if (tableIndex < targetTables.Count) {
+                            RedlineTableEntry? sourceTable = FindSourceTableForDeletedRow(sourceTables, targetTables[tableIndex], rowIndex, finding.SourceText);
+                            if (sourceTable == null) {
+                                break;
+                            }
+
+                            List<TableRow> sourceRows = sourceTable.Table.Elements<TableRow>().ToList();
+                            if (rowIndex >= 0 && rowIndex < sourceRows.Count) {
+                                List<TableRow> targetRows = targetTables[tableIndex].Table.Elements<TableRow>().ToList();
+                                int targetRowIndex = FindTargetGapByNeighborIdentity(sourceRows, targetRows, rowIndex, GetOpenXmlRowText, GetOpenXmlRowText);
+                                InsertDeletedRow(targetTables[tableIndex].Table, sourceRows[rowIndex], targetRowIndex, options);
+                                rewrittenRows.Add(rowKey);
+                            }
+                        }
+
+                        break;
+                }
+            }
+        }
+
+        private static RedlineTableEntry? FindSourceTableForDeletedRow(
+            IReadOnlyList<RedlineTableEntry> sourceTables,
+            RedlineTableEntry targetTable,
+            int rowIndex,
+            string? sourceRowText) {
+            RedlineTableEntry? ordinalMatch = sourceTables.FirstOrDefault(table =>
+                string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal) &&
+                table.LocalIndex == targetTable.LocalIndex);
+
+            RedlineTableEntry? textMatch = sourceTables
+                .Where(table => string.Equals(table.PartKey, targetTable.PartKey, StringComparison.Ordinal))
+                .Where(table => {
+                    List<TableRow> rows = table.Table.Elements<TableRow>().ToList();
+                    return rowIndex >= 0 &&
+                        rowIndex < rows.Count &&
+                        string.Equals(GetOpenXmlRowText(rows[rowIndex]), sourceRowText ?? string.Empty, StringComparison.Ordinal);
+                })
+                .OrderByDescending(table => GetRedlineTableSimilarity(table.Table, targetTable.Table))
+                .FirstOrDefault();
+
+            return textMatch ?? ordinalMatch;
+        }
+
+        private static double GetRedlineTableSimilarity(Table sourceTable, Table targetTable) {
+            return GetTextSimilarity(GetOpenXmlTableText(sourceTable), GetOpenXmlTableText(targetTable));
+        }
+
+        private static int FindTargetGapByNeighborIdentity<TSource, TTarget>(
+            IReadOnlyList<TSource> sourceItems,
+            IReadOnlyList<TTarget> targetItems,
+            int sourceIndex,
+            Func<TSource, string> sourceIdentity,
+            Func<TTarget, string> targetIdentity) {
+            if (sourceIndex < 0 || sourceIndex >= sourceItems.Count || targetItems.Count == 0) {
+                return Math.Max(0, Math.Min(sourceIndex, targetItems.Count));
+            }
+
+            for (int index = sourceIndex + 1; index < sourceItems.Count; index++) {
+                string identity = sourceIdentity(sourceItems[index]);
+                if (string.IsNullOrEmpty(identity)) {
+                    continue;
+                }
+
+                int targetIndex = FindFirstTargetIdentity(targetItems, targetIdentity, identity);
+                if (targetIndex >= 0) {
+                    return targetIndex;
+                }
+            }
+
+            for (int index = sourceIndex - 1; index >= 0; index--) {
+                string identity = sourceIdentity(sourceItems[index]);
+                if (string.IsNullOrEmpty(identity)) {
+                    continue;
+                }
+
+                int targetIndex = FindLastTargetIdentity(targetItems, targetIdentity, identity);
+                if (targetIndex >= 0) {
+                    return targetIndex + 1;
+                }
+            }
+
+            return Math.Max(0, Math.Min(sourceIndex, targetItems.Count));
+        }
+
+        private static int FindFirstTargetIdentity<TTarget>(IReadOnlyList<TTarget> targetItems, Func<TTarget, string> targetIdentity, string identity) {
+            for (int index = 0; index < targetItems.Count; index++) {
+                if (string.Equals(targetIdentity(targetItems[index]), identity, StringComparison.Ordinal)) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static int FindLastTargetIdentity<TTarget>(IReadOnlyList<TTarget> targetItems, Func<TTarget, string> targetIdentity, string identity) {
+            for (int index = targetItems.Count - 1; index >= 0; index--) {
+                if (string.Equals(targetIdentity(targetItems[index]), identity, StringComparison.Ordinal)) {
+                    return index;
+                }
+            }
+
+            return -1;
+        }
+
+        private static string GetOpenXmlTableText(Table table) {
+            return string.Join(TableRowSeparator, table.Elements<TableRow>().Select(GetOpenXmlRowText).ToArray());
+        }
+
+        private static string GetOpenXmlRowText(TableRow row) {
+            return string.Join(" | ", row.Elements<TableCell>().Select(GetOpenXmlCellText).ToArray());
+        }
+
+        private static List<RedlineTableEntry> GetRedlineTableEntries(WordprocessingDocument document) {
+            var entries = new List<RedlineTableEntry>();
+            MainDocumentPart? mainPart = document.MainDocumentPart;
+            AddRedlineTableEntries(entries, BodyPartKey, mainPart?.Document?.Body, BodyPartOrderBase);
+
+            if (mainPart == null) {
+                return entries;
+            }
+
+            int headerIndex = 0;
+            foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
+                AddRedlineTableEntries(entries, headerPartKey.Value, headerPartKey.Key.Header, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                headerIndex++;
+            }
+
+            int footerIndex = 0;
+            foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
+                AddRedlineTableEntries(entries, footerPartKey.Value, footerPartKey.Key.Footer, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                footerIndex++;
+            }
+
+            List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
+            for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
+                string noteId = GetNotePartKeyId(footnotes[footnoteIndex], footnoteIndex);
+                AddRedlineTableEntries(entries, FootnotePartKeyPrefix + noteId, footnotes[footnoteIndex], FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+            }
+
+            List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
+            for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
+                string noteId = GetNotePartKeyId(endnotes[endnoteIndex], endnoteIndex);
+                AddRedlineTableEntries(entries, EndnotePartKeyPrefix + noteId, endnotes[endnoteIndex], EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+            }
+
+            return entries;
+        }
+
+        private static void AddRedlineTableEntries(List<RedlineTableEntry> entries, string partKey, OpenXmlCompositeElement? container, int orderBase) {
+            if (container == null) {
+                return;
+            }
+
+            int localIndex = 0;
+            foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
+                if (ordered.Element is Table table) {
+                    entries.Add(new RedlineTableEntry(partKey, container, table, localIndex));
+                    localIndex++;
+                }
+            }
+        }
+
+        private static void RewriteCellWithTrackedText(TableCell cell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            TableCellProperties? properties = cell.GetFirstChild<TableCellProperties>()?.CloneNode(true) as TableCellProperties;
+            cell.RemoveAllChildren();
+            if (properties != null) {
+                cell.Append(properties);
+            }
+
+            AppendCellTrackedParagraphs(cell, sourceText, targetText, options);
+            EnsureCellHasParagraph(cell);
+            RemoveEmptyWordColorAttributes(cell);
+        }
+
+        private static void InsertDeletedCell(TableRow row, IReadOnlyList<TableCell> existingCells, int cellIndex, TableCell? sourceCell, string sourceText, WordComparisonRedlineOptions options) {
+            var deletedCell = new TableCell();
+            TableCellProperties? properties = sourceCell?.GetFirstChild<TableCellProperties>()?.CloneNode(true) as TableCellProperties;
+            if (properties != null) {
+                deletedCell.Append(properties);
+            }
+
+            AppendCellTrackedParagraphs(deletedCell, sourceText, null, options);
+            EnsureCellHasParagraph(deletedCell);
+
+            if (cellIndex >= 0 && cellIndex < existingCells.Count) {
+                existingCells[cellIndex].InsertBeforeSelf(deletedCell);
+            } else {
+                row.Append(deletedCell);
+            }
+        }
+
+        private static void RewriteRowWithTrackedText(TableRow row, bool trackInserted, WordComparisonRedlineOptions options) {
+            foreach (TableCell cell in row.Elements<TableCell>()) {
+                string cellText = GetOpenXmlCellText(cell);
+                if (trackInserted) {
+                    RewriteCellWithTrackedText(cell, null, cellText, options);
+                } else {
+                    RewriteCellWithTrackedText(cell, cellText, null, options);
+                }
+            }
+        }
+
+        private static void InsertDeletedRow(Table targetTable, TableRow sourceRow, int rowIndex, WordComparisonRedlineOptions options) {
+            var deletedRow = (TableRow)sourceRow.CloneNode(true);
+            RewriteRowWithTrackedText(deletedRow, trackInserted: false, options);
+
+            List<TableRow> targetRows = targetTable.Elements<TableRow>().ToList();
+            if (rowIndex >= 0 && rowIndex < targetRows.Count) {
+                targetRows[rowIndex].InsertBeforeSelf(deletedRow);
+            } else {
+                targetTable.Append(deletedRow);
+            }
+        }
+
+        private static void AppendCellTrackedParagraphs(TableCell cell, string? sourceText, string? targetText, WordComparisonRedlineOptions options) {
+            string[] sourceParagraphs = SplitCellParagraphText(sourceText);
+            string[] targetParagraphs = SplitCellParagraphText(targetText);
+            int paragraphCount = Math.Max(sourceParagraphs.Length, targetParagraphs.Length);
+            for (int index = 0; index < paragraphCount; index++) {
+                string? sourceParagraph = index < sourceParagraphs.Length ? sourceParagraphs[index] : null;
+                string? targetParagraph = index < targetParagraphs.Length ? targetParagraphs[index] : null;
+                var paragraph = new Paragraph();
+                if (!string.IsNullOrEmpty(sourceParagraph)) {
+                    paragraph.Append(CreateDeletedRun(sourceParagraph!, options));
+                }
+
+                if (!string.IsNullOrEmpty(targetParagraph)) {
+                    paragraph.Append(CreateInsertedRun(targetParagraph!, options));
+                }
+
+                cell.Append(paragraph);
+            }
+        }
+
+        private static string[] SplitCellParagraphText(string? text) {
+            if (string.IsNullOrEmpty(text)) {
+                return Array.Empty<string>();
+            }
+
+            return text!.Split(new[] { CellParagraphSeparator }, StringSplitOptions.None);
+        }
+
+        private static string GetOpenXmlCellText(TableCell cell) {
+            return string.Join(
+                CellParagraphSeparator,
+                cell.Descendants<Paragraph>()
+                    .Where(paragraph => ReferenceEquals(paragraph.Ancestors<TableCell>().FirstOrDefault(), cell))
+                    .Select(paragraph => paragraph.InnerText)
+                    .ToArray());
+        }
+
+        private static void EnsureCellHasParagraph(TableCell cell) {
+            if (!cell.Elements<Paragraph>().Any()) {
+                cell.Append(new Paragraph());
+            }
+        }
+
+        private static bool TryParseTableCellLocation(string location, out int tableIndex, out int rowIndex, out int cellIndex) {
+            tableIndex = -1;
+            rowIndex = -1;
+            cellIndex = -1;
+            const string tablePrefix = "table[";
+            const string rowToken = "]/row[";
+            const string cellToken = "]/cell[";
+            if (!location.StartsWith(tablePrefix, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            int rowTokenIndex = location.IndexOf(rowToken, StringComparison.Ordinal);
+            int cellTokenIndex = location.IndexOf(cellToken, StringComparison.Ordinal);
+            if (rowTokenIndex < 0 || cellTokenIndex < 0 || cellTokenIndex <= rowTokenIndex || !location.EndsWith("]", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            string tableText = location.Substring(tablePrefix.Length, rowTokenIndex - tablePrefix.Length);
+            string rowText = location.Substring(rowTokenIndex + rowToken.Length, cellTokenIndex - rowTokenIndex - rowToken.Length);
+            string cellText = location.Substring(cellTokenIndex + cellToken.Length, location.Length - cellTokenIndex - cellToken.Length - 1);
+            return int.TryParse(tableText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out tableIndex) &&
+                   int.TryParse(rowText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out rowIndex) &&
+                   int.TryParse(cellText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out cellIndex);
+        }
+
+        private static bool TryParseTableRowLocation(string location, out int tableIndex, out int rowIndex) {
+            tableIndex = -1;
+            rowIndex = -1;
+            const string tablePrefix = "table[";
+            const string rowToken = "]/row[";
+            if (!location.StartsWith(tablePrefix, StringComparison.Ordinal)) {
+                return false;
+            }
+
+            int rowTokenIndex = location.IndexOf(rowToken, StringComparison.Ordinal);
+            if (rowTokenIndex < 0 || !location.EndsWith("]", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            string tableText = location.Substring(tablePrefix.Length, rowTokenIndex - tablePrefix.Length);
+            string rowText = location.Substring(rowTokenIndex + rowToken.Length, location.Length - rowTokenIndex - rowToken.Length - 1);
+            return int.TryParse(tableText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out tableIndex) &&
+                   int.TryParse(rowText, System.Globalization.NumberStyles.None, System.Globalization.CultureInfo.InvariantCulture, out rowIndex);
+        }
+
+        private static string CreateTableCellKey(int tableIndex, int rowIndex, int cellIndex) {
+            return tableIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                   rowIndex.ToString(System.Globalization.CultureInfo.InvariantCulture) + "/" +
+                   cellIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        }
+
+        private sealed class RedlineTableEntry {
+            internal RedlineTableEntry(string partKey, OpenXmlCompositeElement container, Table table, int localIndex) {
+                PartKey = partKey;
+                Container = container;
+                Table = table;
+                LocalIndex = localIndex;
+            }
+
+            internal string PartKey { get; }
+
+            internal OpenXmlCompositeElement Container { get; }
+
+            internal Table Table { get; }
+
+            internal int LocalIndex { get; }
+        }
+
+        private static InsertedRun CreateInsertedRun(string text, WordComparisonRedlineOptions options) {
+            var run = new Run();
+            run.RsidRunAddition = WordHeadersAndFooters.GenerateRsid();
+            run.Append(new Text(text) { Space = SpaceProcessingModeValues.Preserve });
+            var inserted = new InsertedRun {
+                Author = options.Author,
+                Date = options.DateTime ?? DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+            inserted.Append(run);
+            return inserted;
+        }
+
+        private static DeletedRun CreateDeletedRun(string text, WordComparisonRedlineOptions options) {
+            var run = new Run();
+            run.RsidRunDeletion = WordHeadersAndFooters.GenerateRsid();
+            run.Append(new DeletedText(text) { Space = SpaceProcessingModeValues.Preserve });
+            var deleted = new DeletedRun {
+                Author = options.Author,
+                Date = options.DateTime ?? DateTime.Now,
+                Id = WordHeadersAndFooters.GenerateRevisionId()
+            };
+            deleted.Append(run);
+            return deleted;
+        }
+
+        private static void AppendRedlineSummary(WordDocument document, WordComparisonResult result) {
+            document.AddParagraph("Summary").SetStyle(WordParagraphStyles.Heading2);
+            WordTable table = document.AddTable(4, 2);
+            SetCellText(table, 0, 0, "Metric");
+            SetCellText(table, 0, 1, "Value");
+            SetCellText(table, 1, 0, "Source");
+            SetCellText(table, 1, 1, result.SourcePath);
+            SetCellText(table, 2, 0, "Target");
+            SetCellText(table, 2, 1, result.TargetPath);
+            SetCellText(table, 3, 0, "Findings");
+            SetCellText(table, 3, 1, result.Findings.Count.ToString(System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        private static void AppendRedlineFindingsTable(WordDocument document, WordComparisonResult result) {
+            document.AddParagraph("Findings").SetStyle(WordParagraphStyles.Heading2);
+            WordTable table = document.AddTable(result.Findings.Count + 1, 6);
+            SetCellText(table, 0, 0, "#");
+            SetCellText(table, 0, 1, "Scope");
+            SetCellText(table, 0, 2, "Change");
+            SetCellText(table, 0, 3, "Location");
+            SetCellText(table, 0, 4, "Source");
+            SetCellText(table, 0, 5, "Target");
+
+            for (int i = 0; i < result.Findings.Count; i++) {
+                WordComparisonFinding finding = result.Findings[i];
+                int row = i + 1;
+                SetCellText(table, row, 0, i.ToString(System.Globalization.CultureInfo.InvariantCulture));
+                SetCellText(table, row, 1, finding.Scope.ToString());
+                SetCellText(table, row, 2, finding.ChangeKind.ToString());
+                SetCellText(table, row, 3, finding.Location);
+                SetCellText(table, row, 4, finding.SourceText ?? string.Empty);
+                SetCellText(table, row, 5, finding.TargetText ?? string.Empty);
+            }
+        }
+
+        private static void AppendTrackedRedlineFindings(WordDocument document, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            document.AddParagraph("Tracked Changes").SetStyle(WordParagraphStyles.Heading2);
+            if (result.Findings.Count == 0) {
+                document.AddParagraph("No tracked changes were generated because no structural differences were detected.");
+                return;
+            }
+
+            bool wroteAnyRevision = false;
+            foreach (WordComparisonFinding finding in result.Findings) {
+                document.AddParagraph(finding.Location + " - " + finding.Scope + " " + finding.ChangeKind);
+                WordParagraph paragraph = document.AddParagraph();
+                bool wroteRevision = false;
+
+                if (ShouldTrackFinding(finding, options) && ShouldEmitDeletedText(finding)) {
+                    paragraph.AddDeletedText(finding.SourceText!, options.Author, options.DateTime);
+                    wroteRevision = true;
+                }
+
+                if (ShouldTrackFinding(finding, options) && ShouldEmitInsertedText(finding)) {
+                    paragraph.AddInsertedText(finding.TargetText!, options.Author, options.DateTime);
+                    wroteRevision = true;
+                }
+
+                if (!wroteRevision) {
+                    paragraph.SetText(finding.Message);
+                } else {
+                    wroteAnyRevision = true;
+                }
+            }
+
+            if (!wroteAnyRevision) {
+                document.AddParagraph("No tracked changes were generated because the selected redline policy kept all findings report-only.");
+            }
+        }
+
+        private static void AppendInPlaceFeatureAndReviewFindings(WordDocument document, WordComparisonResult result, WordComparisonRedlineOptions options) {
+            WordComparisonFinding[] fallbackFindings = result.Findings
+                .Where(finding => (IsInPlaceFallbackFeatureFinding(finding) || IsReviewFinding(finding)) && ShouldTrackFinding(finding, options))
+                .ToArray();
+            if (fallbackFindings.Length == 0) {
+                return;
+            }
+
+            document.AddParagraph("Tracked Review Changes").SetStyle(WordParagraphStyles.Heading2);
+            foreach (WordComparisonFinding finding in fallbackFindings) {
+                document.AddParagraph(finding.Location + " - " + finding.Scope + " " + finding.ChangeKind);
+                WordParagraph paragraph = document.AddParagraph();
+                bool wroteRevision = false;
+
+                if (ShouldEmitDeletedText(finding)) {
+                    paragraph.AddDeletedText(finding.SourceText!, options.Author, options.DateTime);
+                    wroteRevision = true;
+                }
+
+                if (ShouldEmitInsertedText(finding)) {
+                    paragraph.AddInsertedText(finding.TargetText!, options.Author, options.DateTime);
+                    wroteRevision = true;
+                }
+
+                if (!wroteRevision) {
+                    paragraph.SetText(finding.Message);
+                }
+            }
+        }
+
+        private static bool ShouldAppendTrackedRedlineFindings(WordComparisonRedlineOptions options) {
+            return options.TrackTextFindings ||
+                   options.TrackFeatureFindings ||
+                   options.TrackReviewFindings ||
+                   options.TrackFormattingFindings;
+        }
+
+        private static bool ShouldTrackFinding(WordComparisonFinding finding, WordComparisonRedlineOptions options) {
+            if (!options.TrackFeatureFindings && IsFeatureFinding(finding)) {
+                return false;
+            }
+
+            if (!options.TrackReviewFindings && IsReviewFinding(finding)) {
+                return false;
+            }
+
+            if (!options.TrackFormattingFindings && IsFormattingFinding(finding)) {
+                return false;
+            }
+
+            if (!options.TrackTextFindings && IsTextFinding(finding)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool IsFeatureFinding(WordComparisonFinding finding) {
+            return finding.Scope is WordComparisonScope.Field
+                or WordComparisonScope.ContentControl
+                or WordComparisonScope.Bookmark
+                or WordComparisonScope.Hyperlink
+                or WordComparisonScope.List
+                or WordComparisonScope.Image;
+        }
+
+        private static bool IsInPlaceFallbackFeatureFinding(WordComparisonFinding finding) {
+            return finding.Scope is WordComparisonScope.Field
+                or WordComparisonScope.Bookmark
+                or WordComparisonScope.Hyperlink
+                or WordComparisonScope.List;
+        }
+
+        private static bool IsReviewFinding(WordComparisonFinding finding) {
+            return finding.Scope is WordComparisonScope.Comment or WordComparisonScope.Revision;
+        }
+
+        private static bool IsFormattingFinding(WordComparisonFinding finding) {
+            if (finding.Message.IndexOf("formatting", StringComparison.OrdinalIgnoreCase) >= 0) {
+                return true;
+            }
+
+            string sourceText = finding.SourceText ?? string.Empty;
+            string targetText = finding.TargetText ?? string.Empty;
+            return ContainsReviewFormattingKind(sourceText) || ContainsReviewFormattingKind(targetText);
+        }
+
+        private static bool IsTextFinding(WordComparisonFinding finding) {
+            return HasTrackedText(finding)
+                && !IsFeatureFinding(finding)
+                && !IsReviewFinding(finding)
+                && !IsFormattingFinding(finding);
+        }
+
+        private static bool ContainsReviewFormattingKind(string value) {
+            return value.IndexOf("Formatting", StringComparison.OrdinalIgnoreCase) >= 0;
+        }
+
+        private static bool ShouldEmitDeletedText(WordComparisonFinding finding) {
+            return finding.ChangeKind != WordComparisonChangeKind.Inserted && !string.IsNullOrEmpty(finding.SourceText);
+        }
+
+        private static bool ShouldEmitInsertedText(WordComparisonFinding finding) {
+            return finding.ChangeKind != WordComparisonChangeKind.Deleted && !string.IsNullOrEmpty(finding.TargetText);
+        }
+
+        private static void SetCellText(WordTable table, int row, int column, string text) {
+            table.Rows[row].Cells[column].Paragraphs[0].SetText(text);
+        }
+    }
+}

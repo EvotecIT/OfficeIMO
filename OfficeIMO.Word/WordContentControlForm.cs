@@ -1,5 +1,8 @@
 using System.Globalization;
 using System.IO;
+using DocumentFormat.OpenXml.Wordprocessing;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
+using W15 = DocumentFormat.OpenXml.Office2013.Word;
 
 namespace OfficeIMO.Word {
     /// <summary>
@@ -115,7 +118,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Describes the content-control form keys and validation issues found for a supplied form map.
     /// </summary>
-    public sealed class WordContentControlFormValidationResult {
+    public sealed partial class WordContentControlFormValidationResult {
         internal WordContentControlFormValidationResult(IEnumerable<string> expectedKeys, IEnumerable<string> suppliedKeys, IEnumerable<WordContentControlFormIssue> issues) {
             ExpectedKeys = expectedKeys.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(key => key, StringComparer.OrdinalIgnoreCase).ToList();
             SuppliedKeys = suppliedKeys.Distinct(StringComparer.OrdinalIgnoreCase).OrderBy(key => key, StringComparer.OrdinalIgnoreCase).ToList();
@@ -180,6 +183,10 @@ namespace OfficeIMO.Word {
             }
 
             foreach (WordStructuredDocumentTag structuredDocumentTag in StructuredDocumentTags) {
+                if (IsSpecializedStructuredDocumentTag(structuredDocumentTag)) {
+                    continue;
+                }
+
                 AddFormValue(values, keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias, structuredDocumentTag.Text);
             }
 
@@ -241,16 +248,14 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            var specializedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (WordCheckBox checkBox in CheckBoxes) AddFormKeys(specializedKeys, keyMode, checkBox.Tag, checkBox.Alias);
-            foreach (WordDatePicker datePicker in DatePickers) AddFormKeys(specializedKeys, keyMode, datePicker.Tag, datePicker.Alias);
-            foreach (WordDropDownList dropDownList in DropDownLists) AddFormKeys(specializedKeys, keyMode, dropDownList.Tag, dropDownList.Alias);
-            foreach (WordComboBox comboBox in ComboBoxes) AddFormKeys(specializedKeys, keyMode, comboBox.Tag, comboBox.Alias);
-            foreach (WordPictureControl pictureControl in PictureControls) AddFormKeys(specializedKeys, keyMode, pictureControl.Tag, pictureControl.Alias);
-            foreach (WordRepeatingSection repeatingSection in RepeatingSections) AddFormKeys(specializedKeys, keyMode, repeatingSection.Tag, repeatingSection.Alias);
+            HashSet<SdtElement> specializedElements = GetSpecializedStructuredDocumentTagElements();
 
             foreach (WordStructuredDocumentTag structuredDocumentTag in StructuredDocumentTags) {
-                if (TryGetFormValue(values, keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias, out object? value, specializedKeys)) {
+                if (IsSpecializedStructuredDocumentTag(structuredDocumentTag, specializedElements)) {
+                    continue;
+                }
+
+                if (TryGetFormValue(values, keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias, out object? value)) {
                     structuredDocumentTag.Text = ConvertFormValueToString(value) ?? string.Empty;
                     updated++;
                 }
@@ -325,7 +330,7 @@ namespace OfficeIMO.Word {
                     dropDownList.Alias,
                     "Dropdown list",
                     requireAllControls,
-                    value => IsAllowedChoice(dropDownList.Items, value),
+                    value => IsAllowedChoice(EnumerateDropDownListChoices(dropDownList), value),
                     WordContentControlFormIssueKind.InvalidChoice,
                     "is not one of the configured dropdown choices.");
             }
@@ -342,7 +347,7 @@ namespace OfficeIMO.Word {
                     comboBox.Alias,
                     "Combo box",
                     requireAllControls,
-                    value => IsAllowedChoice(comboBox.Items, value),
+                    value => IsAllowedChoice(EnumerateComboBoxChoices(comboBox), value),
                     WordContentControlFormIssueKind.InvalidChoice,
                     "is not one of the configured combo box choices.");
             }
@@ -381,19 +386,24 @@ namespace OfficeIMO.Word {
                     "cannot be converted to repeating-section item values.");
             }
 
-            var specializedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (WordCheckBox checkBox in CheckBoxes) AddFormKeys(specializedKeys, keyMode, checkBox.Tag, checkBox.Alias);
-            foreach (WordDatePicker datePicker in DatePickers) AddFormKeys(specializedKeys, keyMode, datePicker.Tag, datePicker.Alias);
-            foreach (WordDropDownList dropDownList in DropDownLists) AddFormKeys(specializedKeys, keyMode, dropDownList.Tag, dropDownList.Alias);
-            foreach (WordComboBox comboBox in ComboBoxes) AddFormKeys(specializedKeys, keyMode, comboBox.Tag, comboBox.Alias);
-            foreach (WordPictureControl pictureControl in PictureControls) AddFormKeys(specializedKeys, keyMode, pictureControl.Tag, pictureControl.Alias);
-            foreach (WordRepeatingSection repeatingSection in RepeatingSections) AddFormKeys(specializedKeys, keyMode, repeatingSection.Tag, repeatingSection.Alias);
+            HashSet<SdtElement> specializedElements = GetSpecializedStructuredDocumentTagElements();
 
             foreach (WordStructuredDocumentTag structuredDocumentTag in StructuredDocumentTags) {
+                if (IsSpecializedStructuredDocumentTag(structuredDocumentTag, specializedElements)) {
+                    continue;
+                }
+
                 var keys = GetFormKeys(keyMode, structuredDocumentTag.Tag, structuredDocumentTag.Alias)
-                    .Where(key => !specializedKeys.Contains(key))
                     .ToList();
                 if (keys.Count == 0) {
+                    if (requireAllControls) {
+                        issues.Add(new WordContentControlFormIssue(
+                            WordContentControlFormIssueKind.UnmappedControl,
+                            string.Empty,
+                            "Structured document tag",
+                            "Structured document tag has no tag or alias that can be used as a form key."));
+                    }
+
                     continue;
                 }
 
@@ -435,10 +445,24 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static void AddFormKeys(ISet<string> values, WordContentControlFormKey keyMode, string? tag, string? alias) {
-            foreach (string key in GetFormKeys(keyMode, tag, alias)) {
-                values.Add(key);
-            }
+        private bool IsSpecializedStructuredDocumentTag(WordStructuredDocumentTag structuredDocumentTag) {
+            return IsSpecializedStructuredDocumentTag(structuredDocumentTag, GetSpecializedStructuredDocumentTagElements());
+        }
+
+        private HashSet<SdtElement> GetSpecializedStructuredDocumentTagElements() {
+            var elements = new HashSet<SdtElement>();
+            foreach (WordCheckBox checkBox in CheckBoxes) elements.Add(checkBox._sdtRun);
+            foreach (WordDatePicker datePicker in DatePickers) elements.Add(datePicker._sdtRun);
+            foreach (WordDropDownList dropDownList in DropDownLists) elements.Add(dropDownList._sdtRun);
+            foreach (WordComboBox comboBox in ComboBoxes) elements.Add(comboBox._sdtRun);
+            foreach (WordPictureControl pictureControl in PictureControls) elements.Add(pictureControl._sdtRun);
+            foreach (WordRepeatingSection repeatingSection in RepeatingSections) elements.Add(repeatingSection._sdtRun);
+            return elements;
+        }
+
+        private static bool IsSpecializedStructuredDocumentTag(WordStructuredDocumentTag structuredDocumentTag, ISet<SdtElement> specializedElements) {
+            SdtElement? element = structuredDocumentTag.SdtElement;
+            return element != null && specializedElements.Contains(element);
         }
 
         private static bool TryGetFormValue(
@@ -670,6 +694,34 @@ namespace OfficeIMO.Word {
             string? text = ConvertFormValueToString(value);
             return string.IsNullOrEmpty(text)
                 || allowedValues.Any(allowedValue => string.Equals(allowedValue, text, StringComparison.OrdinalIgnoreCase));
+        }
+
+        private static IEnumerable<string> EnumerateDropDownListChoices(WordDropDownList dropDownList) {
+            SdtContentDropDownList? list = dropDownList._sdtRun.SdtProperties?.Elements<SdtContentDropDownList>().FirstOrDefault();
+            return list == null
+                ? dropDownList.Items
+                : EnumerateListItemChoices(list.Elements<ListItem>());
+        }
+
+        private static IEnumerable<string> EnumerateComboBoxChoices(WordComboBox comboBox) {
+            SdtContentComboBox? list = comboBox._sdtRun.SdtProperties?.Elements<SdtContentComboBox>().FirstOrDefault();
+            return list == null
+                ? comboBox.Items
+                : EnumerateListItemChoices(list.Elements<ListItem>());
+        }
+
+        private static IEnumerable<string> EnumerateListItemChoices(IEnumerable<ListItem> items) {
+            foreach (ListItem item in items) {
+                string? value = item.Value?.Value;
+                if (!string.IsNullOrEmpty(value)) {
+                    yield return value!;
+                }
+
+                string? displayText = item.DisplayText?.Value;
+                if (!string.IsNullOrEmpty(displayText) && !string.Equals(displayText, value, StringComparison.OrdinalIgnoreCase)) {
+                    yield return displayText!;
+                }
+            }
         }
 
         private static bool IsValidPictureFormValue(object? value) {

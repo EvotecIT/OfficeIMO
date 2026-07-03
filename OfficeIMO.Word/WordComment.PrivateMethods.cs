@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Office2013.Word;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.Word {
@@ -67,7 +68,31 @@ namespace OfficeIMO.Word {
             return commentsExPart.CommentsEx;
         }
 
-        internal static string GetNewParaId(CommentsEx commentsEx) {
+        internal static CommentEx? FindCommentExForComment(Comment comment, IReadOnlyList<CommentEx> commentsEx, int fallbackIndex) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+
+            string? paraId = GetCommentParagraphId(comment);
+            if (!string.IsNullOrWhiteSpace(paraId)) {
+                CommentEx? matched = commentsEx.FirstOrDefault(commentEx =>
+                    string.Equals(commentEx.ParaId?.Value, paraId, StringComparison.Ordinal));
+                return matched;
+            }
+
+            return fallbackIndex >= 0 && fallbackIndex < commentsEx.Count
+                ? commentsEx[fallbackIndex]
+                : null;
+        }
+
+        internal static string? GetCommentParagraphId(Comment comment) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+
+            return comment.Elements<Paragraph>()
+                .Select(paragraph => paragraph.ParagraphId?.Value)
+                .FirstOrDefault(value => !string.IsNullOrWhiteSpace(value));
+        }
+
+        internal static string GetNewParaId(CommentsEx commentsEx, Comments? comments = null) {
             if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
 
             var existing = commentsEx
@@ -75,15 +100,57 @@ namespace OfficeIMO.Word {
                 .Select(c => c.ParaId?.Value)
                 .Where(v => !string.IsNullOrEmpty(v))
                 .ToList();
+            if (comments != null) {
+                existing.AddRange(comments
+                    .Descendants<Comment>()
+                    .Select(GetCommentParagraphId)
+                    .Where(v => !string.IsNullOrEmpty(v))
+                    .Select(v => v!));
+            }
 
-            int max = 0;
+            var used = new HashSet<uint>();
+            uint max = 0;
             foreach (var v in existing) {
-                if (int.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out int num)) {
+                if (uint.TryParse(v, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint num)) {
+                    used.Add(num);
                     if (num > max) max = num;
                 }
             }
 
-            return (max + 1).ToString("X8", CultureInfo.InvariantCulture);
+            uint candidate = max + 1U;
+            while (used.Contains(candidate)) {
+                candidate++;
+            }
+
+            return candidate.ToString("X8", CultureInfo.InvariantCulture);
+        }
+
+        private static string EnsureCommentParaId(WordComment comment, Comments comments, CommentsEx commentsEx) {
+            if (comment == null) throw new ArgumentNullException(nameof(comment));
+            if (comments == null) throw new ArgumentNullException(nameof(comments));
+            if (commentsEx == null) throw new ArgumentNullException(nameof(commentsEx));
+
+            string? paraId = comment.ParaId;
+            if (string.IsNullOrWhiteSpace(paraId)) {
+                paraId = GetNewParaId(commentsEx, comments);
+                Paragraph paragraph = comment._comment.Elements<Paragraph>().First();
+                paragraph.ParagraphId = paraId;
+                comments.Save();
+            }
+
+            CommentEx? commentEx = comment.FindCommentEx();
+            if (commentEx == null || commentEx.Parent == null) {
+                commentEx = new CommentEx();
+                commentsEx.AppendChild(commentEx);
+            }
+
+            if (!string.Equals(commentEx.ParaId?.Value, paraId, StringComparison.Ordinal)) {
+                commentEx.ParaId = paraId;
+            }
+
+            comment._commentEx = commentEx;
+            commentsEx.Save();
+            return paraId!;
         }
 
         private static MainDocumentPart GetMainDocumentPart(WordDocument document) {

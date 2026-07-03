@@ -9,6 +9,11 @@ using System.Xml.XPath;
 
 namespace OfficeIMO.Word {
     public static partial class WordMailMerge {
+        private static readonly Regex MailMergeControlFieldTypePattern = new Regex(
+            @"^\s*(?<field>NEXTIF|SKIPIF|NEXT|MERGEREC|MERGESEQ)\b",
+            RegexOptions.IgnoreCase | RegexOptions.Compiled,
+            TimeSpan.FromMilliseconds(100));
+
         private static void ReplaceMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields) {
             ReplaceSimpleMergeFields(root, values, removeFields);
             ReplaceComplexMergeFields(root, values, removeFields);
@@ -16,7 +21,7 @@ namespace OfficeIMO.Word {
         private static void ReplaceSimpleMergeFields(OpenXmlElement root, IDictionary<string, string> values, bool removeFields) {
             foreach (var simpleField in root.Descendants<SimpleField>().ToList()) {
                 string? name = GetMergeFieldName(simpleField.Instruction?.Value);
-                if (name == null || !values.TryGetValue(name, out string? value)) {
+                if (name == null || !TryGetMergeValue(values, name, out string? value)) {
                     continue;
                 }
 
@@ -88,6 +93,14 @@ namespace OfficeIMO.Word {
                     yield return footerPart.Footer;
                 }
             }
+
+            if (mainPart.FootnotesPart?.Footnotes != null) {
+                yield return mainPart.FootnotesPart.Footnotes;
+            }
+
+            if (mainPart.EndnotesPart?.Endnotes != null) {
+                yield return mainPart.EndnotesPart.Endnotes;
+            }
         }
 
         private static void ReplaceComplexFieldRuns(IReadOnlyList<Run> fieldRuns, IDictionary<string, string> values, bool removeFields) {
@@ -95,7 +108,7 @@ namespace OfficeIMO.Word {
                 .SelectMany(run => run.Elements<FieldCode>())
                 .Select(code => code.Text));
             string? name = GetMergeFieldName(instruction);
-            if (name == null || !values.TryGetValue(name, out string? value)) {
+            if (name == null || !TryGetMergeValue(values, name, out string? value)) {
                 return;
             }
 
@@ -163,6 +176,22 @@ namespace OfficeIMO.Word {
             return run;
         }
 
+        private static bool TryGetMergeValue(IDictionary<string, string> values, string name, out string value) {
+            if (values.TryGetValue(name, out value!)) {
+                return true;
+            }
+
+            foreach (KeyValuePair<string, string> entry in values) {
+                if (string.Equals(entry.Key, name, StringComparison.OrdinalIgnoreCase)) {
+                    value = entry.Value;
+                    return true;
+                }
+            }
+
+            value = string.Empty;
+            return false;
+        }
+
         private static string? GetMergeFieldName(string? fieldInstruction) {
             if (string.IsNullOrWhiteSpace(fieldInstruction)) {
                 return null;
@@ -221,6 +250,76 @@ namespace OfficeIMO.Word {
             } catch (NotImplementedException) {
                 return null;
             }
+        }
+
+        private static IEnumerable<WordMailMergeTemplateIssue> EnumerateUnsupportedMailMergeControlFieldIssues(OpenXmlElement root) {
+            foreach (string instruction in EnumerateFieldInstructions(root)) {
+                if (!TryGetUnsupportedMailMergeControlField(instruction, out string? fieldName)) {
+                    continue;
+                }
+
+                yield return new WordMailMergeTemplateIssue(
+                    WordMailMergeTemplateIssueKind.UnsupportedMailMergeControlField,
+                    fieldName!,
+                    $"{fieldName} field '{NormalizeFieldInstructionForMessage(instruction)}' is a Word-native mail-merge record-control field and is not executed by OfficeIMO mail merge.");
+            }
+        }
+
+        private static IEnumerable<string> EnumerateFieldInstructions(OpenXmlElement root) {
+            foreach (var simpleField in root.Descendants<SimpleField>()) {
+                string? instruction = simpleField.Instruction?.Value;
+                if (!string.IsNullOrWhiteSpace(instruction)) {
+                    yield return instruction!;
+                }
+            }
+
+            foreach (var paragraph in EnumerateParagraphs(root)) {
+                List<Run>? fieldRuns = null;
+                foreach (var run in paragraph.Elements<Run>()) {
+                    var fieldChar = run.Elements<FieldChar>().FirstOrDefault();
+                    if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
+                        fieldRuns = new List<Run> { run };
+                        continue;
+                    }
+
+                    if (fieldRuns == null) {
+                        continue;
+                    }
+
+                    fieldRuns.Add(run);
+                    if (fieldChar?.FieldCharType?.Value != FieldCharValues.End) {
+                        continue;
+                    }
+
+                    string instruction = string.Concat(fieldRuns
+                        .SelectMany(item => item.Elements<FieldCode>())
+                        .Select(code => code.Text));
+                    if (!string.IsNullOrWhiteSpace(instruction)) {
+                        yield return instruction;
+                    }
+
+                    fieldRuns = null;
+                }
+            }
+        }
+
+        private static bool TryGetUnsupportedMailMergeControlField(string? instruction, out string? fieldName) {
+            fieldName = null;
+            if (string.IsNullOrWhiteSpace(instruction)) {
+                return false;
+            }
+
+            Match match = MailMergeControlFieldTypePattern.Match(instruction!);
+            if (!match.Success) {
+                return false;
+            }
+
+            fieldName = match.Groups["field"].Value.ToUpperInvariant();
+            return true;
+        }
+
+        private static string NormalizeFieldInstructionForMessage(string instruction) {
+            return Regex.Replace(instruction.Trim(), @"\s+", " ");
         }
 
     }

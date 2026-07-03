@@ -4,9 +4,9 @@ using DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     public static partial class WordDocumentComparer {
-        private static void AnalyzeBlockOrder(WordDocument source, WordDocument target, WordComparisonResult result) {
-            List<BlockOrderSnapshot> sourceBlocks = GetBlockOrderSnapshots(source);
-            List<BlockOrderSnapshot> targetBlocks = GetBlockOrderSnapshots(target);
+        private static void AnalyzeBlockOrder(WordDocument source, WordDocument target, WordComparisonResult result, WordComparisonOptions options) {
+            List<BlockOrderSnapshot> sourceBlocks = GetBlockOrderSnapshots(source, options);
+            List<BlockOrderSnapshot> targetBlocks = GetBlockOrderSnapshots(target, options);
             if (sourceBlocks.Count < 2 || sourceBlocks.Count != targetBlocks.Count) {
                 return;
             }
@@ -30,41 +30,41 @@ namespace OfficeIMO.Word {
                 targetBlocks[0].DocumentOrder);
         }
 
-        private static List<BlockOrderSnapshot> GetBlockOrderSnapshots(WordDocument document) {
+        private static List<BlockOrderSnapshot> GetBlockOrderSnapshots(WordDocument document, WordComparisonOptions options) {
             var snapshots = new List<BlockOrderSnapshot>();
             MainDocumentPart? mainPart = document._wordprocessingDocument.MainDocumentPart;
-            AddBlockOrderSnapshots(snapshots, document, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase);
+            AddBlockOrderSnapshots(snapshots, document, mainPart, mainPart?.Document?.Body, BodyPartKey, BodyPartOrderBase, options);
 
             if (mainPart != null) {
                 int headerIndex = 0;
                 foreach (KeyValuePair<HeaderPart, string> headerPartKey in CreateOrderedHeaderPartKeys(mainPart)) {
-                    AddBlockOrderSnapshots(snapshots, document, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride));
+                    AddBlockOrderSnapshots(snapshots, document, headerPartKey.Key, headerPartKey.Key.Header, headerPartKey.Value, HeaderPartOrderBase + (headerIndex * RelatedPartOrderStride), options);
                     headerIndex++;
                 }
 
                 int footerIndex = 0;
                 foreach (KeyValuePair<FooterPart, string> footerPartKey in CreateOrderedFooterPartKeys(mainPart)) {
-                    AddBlockOrderSnapshots(snapshots, document, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride));
+                    AddBlockOrderSnapshots(snapshots, document, footerPartKey.Key, footerPartKey.Key.Footer, footerPartKey.Value, FooterPartOrderBase + (footerIndex * RelatedPartOrderStride), options);
                     footerIndex++;
                 }
 
                 List<Footnote> footnotes = GetReferencedFootnotes(mainPart);
                 for (int footnoteIndex = 0; footnoteIndex < footnotes.Count; footnoteIndex++) {
                     string noteId = footnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddBlockOrderSnapshots(snapshots, document, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride));
+                    AddBlockOrderSnapshots(snapshots, document, mainPart.FootnotesPart, footnotes[footnoteIndex], FootnotePartKeyPrefix + noteId, FootnotePartOrderBase + (footnoteIndex * RelatedPartOrderStride), options);
                 }
 
                 List<Endnote> endnotes = GetReferencedEndnotes(mainPart);
                 for (int endnoteIndex = 0; endnoteIndex < endnotes.Count; endnoteIndex++) {
                     string noteId = endnoteIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
-                    AddBlockOrderSnapshots(snapshots, document, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride));
+                    AddBlockOrderSnapshots(snapshots, document, mainPart.EndnotesPart, endnotes[endnoteIndex], EndnotePartKeyPrefix + noteId, EndnotePartOrderBase + (endnoteIndex * RelatedPartOrderStride), options);
                 }
             }
 
             return snapshots;
         }
 
-        private static void AddBlockOrderSnapshots(List<BlockOrderSnapshot> snapshots, WordDocument document, OpenXmlPart? part, OpenXmlElement? container, string partKey, int orderBase) {
+        private static void AddBlockOrderSnapshots(List<BlockOrderSnapshot> snapshots, WordDocument document, OpenXmlPart? part, OpenXmlElement? container, string partKey, int orderBase, WordComparisonOptions options) {
             foreach (OrderedElement ordered in EnumerateDescendantsWithOrder(container, orderBase)) {
                 switch (ordered.Element) {
                     case Paragraph paragraph:
@@ -78,7 +78,7 @@ namespace OfficeIMO.Word {
                         }
 
                         snapshots.Add(new BlockOrderSnapshot(
-                            "paragraph:" + partKey + ":" + GetParagraphMatchText(paragraph, part),
+                            "paragraph:" + partKey + ":" + GetParagraphMatchText(paragraph, part, options),
                             "paragraph:" + paragraphText,
                             ordered.DocumentOrder));
                         break;
@@ -89,18 +89,18 @@ namespace OfficeIMO.Word {
 
                         var wordTable = new WordTable(document, table);
                         snapshots.Add(new BlockOrderSnapshot(
-                            "table:" + GetTableMatchKey(partKey, wordTable, part),
+                            "table:" + GetTableMatchKey(partKey, wordTable, part, options),
                             "table:" + GetTableText(wordTable),
                             ordered.DocumentOrder));
                         break;
                     case TableCell cell:
-                        AddTableCellBlockOrderSnapshots(snapshots, document, part, cell, partKey, ordered.DocumentOrder);
+                        AddTableCellBlockOrderSnapshots(snapshots, document, part, cell, partKey, ordered.DocumentOrder, options);
                         break;
                 }
             }
         }
 
-        private static void AddTableCellBlockOrderSnapshots(List<BlockOrderSnapshot> snapshots, WordDocument document, OpenXmlPart? part, TableCell cell, string partKey, int orderBase) {
+        private static void AddTableCellBlockOrderSnapshots(List<BlockOrderSnapshot> snapshots, WordDocument document, OpenXmlPart? part, TableCell cell, string partKey, int orderBase, WordComparisonOptions options) {
             int blockIndex = 0;
             string cellKey = partKey + ":cell:" + GetStableElementPath(cell);
             foreach (OpenXmlElement child in cell.Elements()) {
@@ -112,14 +112,14 @@ namespace OfficeIMO.Word {
                         }
 
                         snapshots.Add(new BlockOrderSnapshot(
-                            "cell-paragraph:" + cellKey + ":" + GetParagraphMatchText(paragraph, part),
+                            "cell-paragraph:" + cellKey + ":" + GetParagraphMatchText(paragraph, part, options),
                             "cell-paragraph:" + paragraphText,
                             orderBase + blockIndex));
                         break;
                     case Table table:
                         var wordTable = new WordTable(document, table);
                         snapshots.Add(new BlockOrderSnapshot(
-                            "cell-table:" + cellKey + ":" + GetTableMatchKey(partKey, wordTable, part),
+                            "cell-table:" + cellKey + ":" + GetTableMatchKey(partKey, wordTable, part, options),
                             "cell-table:" + GetTableText(wordTable),
                             orderBase + blockIndex));
                         break;

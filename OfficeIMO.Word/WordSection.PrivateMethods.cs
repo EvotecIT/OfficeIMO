@@ -1,3 +1,4 @@
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Wordprocessing;
 using System.Diagnostics;
 using Ovml = DocumentFormat.OpenXml.Vml.Office;
@@ -110,7 +111,450 @@ namespace OfficeIMO.Word {
                     return new WordTableOfContent(document, sdtBlock!, queueUpdateOnOpen: false);
                 }
             }
+            return ConvertRawSimpleFieldToTableOfContent(document) ?? ConvertRawComplexFieldToTableOfContent(document);
+        }
+
+        private static WordTableOfContent? ConvertRawSimpleFieldToTableOfContent(WordDocument document) {
+            Body? body = document._document.Body;
+            if (body == null) {
+                return null;
+            }
+
+            foreach (Paragraph paragraph in body.Elements<Paragraph>().ToList()) {
+                int? fieldChildIndex = FindSimpleTocOrIndexFieldChildIndex(paragraph);
+                if (fieldChildIndex == null) {
+                    continue;
+                }
+
+                SdtBlock sdtBlock = CreateImportedTableOfContentBlock();
+                SdtContentBlock content = sdtBlock.SdtContentBlock!;
+                int insertIndex = body.ChildElements.ToList().IndexOf(paragraph);
+
+                Paragraph? fieldStartPrefix = SplitFieldStartPrefix(paragraph, fieldChildIndex.Value);
+                if (fieldStartPrefix != null) {
+                    fieldChildIndex = FindSimpleTocOrIndexFieldChildIndex(paragraph);
+                    if (fieldChildIndex == null) {
+                        continue;
+                    }
+                }
+
+                Paragraph? fieldPrefix = SplitSimpleFieldPrefix(paragraph, fieldChildIndex.Value);
+                if (fieldPrefix != null) {
+                    content.Append(fieldPrefix);
+                } else {
+                    paragraph.Remove();
+                    content.Append(paragraph);
+                }
+
+                document.AssignNewSdtIds(sdtBlock);
+                if (insertIndex >= 0 && insertIndex <= body.ChildElements.Count) {
+                    if (fieldStartPrefix != null) {
+                        body.InsertAt(fieldStartPrefix, insertIndex);
+                        insertIndex++;
+                    }
+
+                    body.InsertAt(sdtBlock, insertIndex);
+                } else {
+                    if (fieldStartPrefix != null) {
+                        body.Append(fieldStartPrefix);
+                    }
+
+                    body.Append(sdtBlock);
+                }
+
+                return new WordTableOfContent(document, sdtBlock, queueUpdateOnOpen: false);
+            }
+
             return null;
+        }
+
+        private static WordTableOfContent? ConvertRawComplexFieldToTableOfContent(WordDocument document) {
+            Body? body = document._document.Body;
+            if (body == null) {
+                return null;
+            }
+
+            List<Paragraph> paragraphs = body.Elements<Paragraph>().ToList();
+            for (int index = 0; index < paragraphs.Count; index++) {
+                Paragraph paragraph = paragraphs[index];
+                int? fieldStartChildIndex = FindTocOrIndexComplexFieldStart(paragraph);
+                if (fieldStartChildIndex == null) {
+                    continue;
+                }
+
+                ComplexFieldEnd? fieldEnd = FindComplexFieldEnd(paragraphs, index, fieldStartChildIndex.Value);
+                if (fieldEnd == null) {
+                    continue;
+                }
+
+                SdtBlock sdtBlock = CreateImportedTableOfContentBlock();
+                SdtContentBlock content = sdtBlock.SdtContentBlock!;
+                int insertIndex = body.ChildElements.ToList().IndexOf(paragraph);
+                Paragraph? fieldStartPrefix = SplitFieldStartPrefix(paragraph, fieldStartChildIndex.Value);
+                if (fieldStartPrefix != null) {
+                    ComplexFieldEnd? adjustedFieldEnd = FindComplexFieldEnd(paragraphs, index, 0);
+                    if (adjustedFieldEnd != null) {
+                        fieldEnd = adjustedFieldEnd;
+                    }
+                }
+
+                foreach (Paragraph tocParagraph in paragraphs.Skip(index).Take(fieldEnd.ParagraphIndex - index + 1)) {
+                    if (ReferenceEquals(tocParagraph, paragraphs[fieldEnd.ParagraphIndex])) {
+                        Paragraph? fieldEndPrefix = SplitFieldEndPrefix(tocParagraph, fieldEnd.ChildIndex);
+                        if (fieldEndPrefix != null) {
+                            content.Append(fieldEndPrefix);
+                            continue;
+                        }
+                    }
+
+                    tocParagraph.Remove();
+                    content.Append(tocParagraph);
+                }
+
+                document.AssignNewSdtIds(sdtBlock);
+                if (insertIndex >= 0 && insertIndex <= body.ChildElements.Count) {
+                    if (fieldStartPrefix != null) {
+                        body.InsertAt(fieldStartPrefix, insertIndex);
+                        insertIndex++;
+                    }
+
+                    body.InsertAt(sdtBlock, insertIndex);
+                } else {
+                    if (fieldStartPrefix != null) {
+                        body.Append(fieldStartPrefix);
+                    }
+
+                    body.Append(sdtBlock);
+                }
+
+                return new WordTableOfContent(document, sdtBlock, queueUpdateOnOpen: false);
+            }
+
+            return null;
+        }
+
+        private static int? FindTocOrIndexComplexFieldStart(Paragraph paragraph) {
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            var fieldStarts = new Stack<(int StartIndex, System.Text.StringBuilder Instruction)>();
+            for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+                OpenXmlElement child = children[childIndex];
+                foreach (OpenXmlElement descendant in child.Descendants<OpenXmlElement>()) {
+                    if (descendant is FieldChar fieldChar && IsFieldBegin(fieldChar)) {
+                        fieldStarts.Push((childIndex, new System.Text.StringBuilder()));
+                    } else if (descendant is FieldChar endFieldChar && IsFieldEnd(endFieldChar) && fieldStarts.Count > 0) {
+                        fieldStarts.Pop();
+                    } else if (descendant is FieldCode fieldCode && fieldStarts.Count > 0) {
+                        var current = fieldStarts.Peek();
+                        current.Instruction.Append(fieldCode.Text);
+                        if (!string.IsNullOrWhiteSpace(current.Instruction.ToString()) &&
+                            IsTocOrIndexInstruction(current.Instruction.ToString())) {
+                            return current.StartIndex;
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static int? FindSimpleTocOrIndexFieldChildIndex(Paragraph paragraph) {
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            for (int childIndex = 0; childIndex < children.Count; childIndex++) {
+                IEnumerable<SimpleField> simpleFields = children[childIndex] is SimpleField directSimpleField
+                    ? new[] { directSimpleField }.Concat(children[childIndex].Descendants<SimpleField>())
+                    : children[childIndex].Descendants<SimpleField>();
+
+                foreach (SimpleField simpleField in simpleFields) {
+                    string instruction = simpleField.Instruction?.Value ?? simpleField.Instruction?.ToString() ?? string.Empty;
+                    if (!string.IsNullOrWhiteSpace(instruction) && IsTocOrIndexInstruction(instruction)) {
+                        return childIndex;
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsTocOrIndexInstruction(string instruction) {
+            WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction);
+            return parsed.FieldType == WordFieldType.TOC ||
+                   parsed.FieldType == WordFieldType.Index;
+        }
+
+        private static ComplexFieldEnd? FindComplexFieldEnd(IReadOnlyList<Paragraph> paragraphs, int startIndex, int startChildIndex) {
+            int depth = 0;
+            bool started = false;
+
+            for (int index = startIndex; index < paragraphs.Count; index++) {
+                List<OpenXmlElement> children = paragraphs[index].ChildElements.ToList();
+                int firstChildIndex = index == startIndex ? startChildIndex : 0;
+                for (int childIndex = firstChildIndex; childIndex < children.Count; childIndex++) {
+                    foreach (FieldChar fieldChar in children[childIndex].Descendants<FieldChar>()) {
+                        if (IsFieldBegin(fieldChar)) {
+                            depth++;
+                            started = true;
+                        } else if (IsFieldEnd(fieldChar) && started) {
+                            depth--;
+                            if (depth == 0) {
+                                return new ComplexFieldEnd(index, childIndex);
+                            }
+                        }
+                    }
+                }
+            }
+
+            return null;
+        }
+
+        private static bool IsFieldBegin(FieldChar fieldChar) =>
+            fieldChar.FieldCharType?.Value == FieldCharValues.Begin;
+
+        private static bool IsFieldEnd(FieldChar fieldChar) =>
+            fieldChar.FieldCharType?.Value == FieldCharValues.End;
+
+        private static Paragraph? SplitFieldEndPrefix(Paragraph paragraph, int endChildIndex) {
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            if (endChildIndex < 0 || !HasMeaningfulContentAfterFieldEnd(children, endChildIndex)) {
+                return null;
+            }
+
+            var prefix = new Paragraph();
+            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            if (properties != null) {
+                prefix.Append((ParagraphProperties)properties.CloneNode(true));
+            }
+
+            for (int index = 0; index <= endChildIndex; index++) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                prefix.Append(index == endChildIndex
+                    ? CloneThroughFieldEnd(children[index])
+                    : children[index].CloneNode(true));
+            }
+
+            for (int index = endChildIndex; index >= 0; index--) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                if (index == endChildIndex && RemoveThroughFieldEnd(children[index])) {
+                    continue;
+                }
+
+                children[index].Remove();
+            }
+
+            return prefix;
+        }
+
+        private static bool HasMeaningfulContentAfterFieldEnd(IReadOnlyList<OpenXmlElement> children, int endChildIndex) {
+            return children.Skip(endChildIndex + 1).Any(HasMeaningfulContent) ||
+                   HasMeaningfulContentAfterFieldEnd(children[endChildIndex]);
+        }
+
+        private static bool HasMeaningfulContentAfterFieldEnd(OpenXmlElement element) {
+            FieldChar? end = element.Descendants<FieldChar>().FirstOrDefault(IsFieldEnd);
+            if (end == null) {
+                return false;
+            }
+
+            bool afterEnd = false;
+            foreach (OpenXmlElement descendant in element.Descendants<OpenXmlElement>()) {
+                if (ReferenceEquals(descendant, end)) {
+                    afterEnd = true;
+                    continue;
+                }
+
+                if (!afterEnd) {
+                    continue;
+                }
+
+                if (descendant is Text text && !string.IsNullOrWhiteSpace(text.Text)) {
+                    return true;
+                }
+
+                if (descendant is SimpleField ||
+                    descendant is FieldCode ||
+                    descendant is DocumentFormat.OpenXml.Wordprocessing.Drawing ||
+                    descendant is Picture) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private static OpenXmlElement CloneThroughFieldEnd(OpenXmlElement element) {
+            if (element is not Run run) {
+                return element.CloneNode(true);
+            }
+
+            var clone = new Run();
+            foreach (OpenXmlElement child in run.ChildElements) {
+                clone.Append(child.CloneNode(true));
+                if (child is FieldChar fieldChar && IsFieldEnd(fieldChar)) {
+                    break;
+                }
+            }
+
+            return clone;
+        }
+
+        private static bool RemoveThroughFieldEnd(OpenXmlElement element) {
+            if (element is not Run run) {
+                return false;
+            }
+
+            bool removedEnd = false;
+            foreach (OpenXmlElement child in run.ChildElements.ToList()) {
+                child.Remove();
+                if (child is FieldChar fieldChar && IsFieldEnd(fieldChar)) {
+                    removedEnd = true;
+                    break;
+                }
+            }
+
+            if (!removedEnd || !HasMeaningfulContent(run)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static Paragraph? SplitFieldStartPrefix(Paragraph paragraph, int startChildIndex) {
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            Run? sameRunPrefix = startChildIndex >= 0 && startChildIndex < children.Count
+                ? CloneBeforeFieldBegin(children[startChildIndex])
+                : null;
+            bool hasPreviousContent = startChildIndex > 0 && children.Take(startChildIndex).Any(HasMeaningfulContent);
+            if (!hasPreviousContent && sameRunPrefix == null) {
+                return null;
+            }
+
+            var prefix = new Paragraph();
+            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            if (properties != null) {
+                prefix.Append((ParagraphProperties)properties.CloneNode(true));
+            }
+
+            for (int index = 0; index < startChildIndex; index++) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                prefix.Append(children[index].CloneNode(true));
+            }
+
+            if (sameRunPrefix != null) {
+                prefix.Append(sameRunPrefix);
+            }
+
+            for (int index = startChildIndex - 1; index >= 0; index--) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                children[index].Remove();
+            }
+
+            if (startChildIndex >= 0 && startChildIndex < children.Count) {
+                RemoveBeforeFieldBegin(children[startChildIndex]);
+            }
+
+            return prefix;
+        }
+
+        private static Run? CloneBeforeFieldBegin(OpenXmlElement element) {
+            if (element is not Run run) {
+                return null;
+            }
+
+            var clone = new Run();
+            foreach (OpenXmlElement child in run.ChildElements) {
+                if (child is FieldChar fieldChar && IsFieldBegin(fieldChar)) {
+                    break;
+                }
+
+                clone.Append(child.CloneNode(true));
+            }
+
+            return HasMeaningfulContent(clone) ? clone : null;
+        }
+
+        private static void RemoveBeforeFieldBegin(OpenXmlElement element) {
+            if (element is not Run run) {
+                return;
+            }
+
+            foreach (OpenXmlElement child in run.ChildElements.ToList()) {
+                if (child is FieldChar fieldChar && IsFieldBegin(fieldChar)) {
+                    break;
+                }
+
+                child.Remove();
+            }
+        }
+
+        private static Paragraph? SplitSimpleFieldPrefix(Paragraph paragraph, int fieldChildIndex) {
+            List<OpenXmlElement> children = paragraph.ChildElements.ToList();
+            if (fieldChildIndex < 0 || !children.Skip(fieldChildIndex + 1).Any(HasMeaningfulContent)) {
+                return null;
+            }
+
+            var prefix = new Paragraph();
+            ParagraphProperties? properties = paragraph.GetFirstChild<ParagraphProperties>();
+            if (properties != null) {
+                prefix.Append((ParagraphProperties)properties.CloneNode(true));
+            }
+
+            for (int index = 0; index <= fieldChildIndex; index++) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                prefix.Append(children[index].CloneNode(true));
+            }
+
+            for (int index = fieldChildIndex; index >= 0; index--) {
+                if (children[index] is ParagraphProperties) {
+                    continue;
+                }
+
+                children[index].Remove();
+            }
+
+            return prefix;
+        }
+
+        private sealed class ComplexFieldEnd {
+            internal ComplexFieldEnd(int paragraphIndex, int childIndex) {
+                ParagraphIndex = paragraphIndex;
+                ChildIndex = childIndex;
+            }
+
+            internal int ParagraphIndex { get; }
+
+            internal int ChildIndex { get; }
+        }
+
+        private static bool HasMeaningfulContent(OpenXmlElement element) {
+            return element.Descendants<Text>().Any(text => !string.IsNullOrWhiteSpace(text.Text)) ||
+                   element.Descendants<SimpleField>().Any() ||
+                   element.Descendants<FieldCode>().Any() ||
+                   element.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>().Any() ||
+                   element.Descendants<Picture>().Any();
+        }
+
+        private static SdtBlock CreateImportedTableOfContentBlock() {
+            return new SdtBlock(
+                new SdtProperties(
+                    new SdtId(),
+                    new SdtContentDocPartObject(
+                        new DocPartGallery { Val = "Table of Contents" },
+                        new DocPartUnique())),
+                new SdtContentBlock());
         }
 
         /// <summary>

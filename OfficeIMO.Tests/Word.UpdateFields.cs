@@ -1,5 +1,7 @@
 using System.IO;
 using System.Linq;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -71,6 +73,40 @@ namespace OfficeIMO.Tests {
                 errors = errors.Where(e => e.Id != "Sem_UniqueAttributeValue" && e.Id != "Sch_UnexpectedElementContentExpectingComplex").ToList();
                 Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
             }
+        }
+
+        [Fact]
+        public void Test_UpdateFieldsKeepsLegacyPageCounterScope() {
+            string filePath = Path.Combine(_directoryWithFiles, "UpdateFieldsPageCounterScope.docx");
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Page 1").AddPageNumber(includeTotalPages: true);
+                document.AddParagraph("Date: ")._paragraph.Append(BuildSimpleField(" DATE \\@ \"yyyy-MM-dd\" ", "stale-date"));
+                document.AddParagraph("Quote: ")._paragraph.Append(BuildSimpleField(" QUOTE \"fresh\" ", "stale-quote"));
+                document.AddPageBreak();
+                document.AddParagraph("Page 2").AddPageNumber();
+
+                document.UpdateFields();
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                var pages = document.Fields.Where(f => f.FieldType == WordFieldType.Page).Select(f => f.Text).ToList();
+                Assert.Equal(2, pages.Count);
+                Assert.Contains("1", pages);
+                Assert.Contains("2", pages);
+                Assert.Equal("2", document.Fields.First(f => f.FieldType == WordFieldType.NumPages).Text);
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == "stale-date");
+                Assert.Contains(document._document.Body!.Descendants<Text>(), text => text.Text == "stale-quote");
+                Assert.DoesNotContain(document._document.Body!.Descendants<Text>(), text => text.Text == "fresh");
+            }
+        }
+
+        private static SimpleField BuildSimpleField(string instruction, string resultText) {
+            return new SimpleField(
+                new Run(
+                    new Text(resultText) { Space = SpaceProcessingModeValues.Preserve })) {
+                Instruction = instruction
+            };
         }
     }
 }

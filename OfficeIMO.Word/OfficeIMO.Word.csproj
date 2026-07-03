@@ -77,6 +77,8 @@
         <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetReader.cs" Link="Shared\Ole\OfficeOlePropertySetReader.cs" />
         <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertySetWriter.cs" Link="Shared\Ole\OfficeOlePropertySetWriter.cs" />
         <Compile Include="..\OfficeIMO.Shared\Ole\OfficeOlePropertyValue.cs" Link="Shared\Ole\OfficeOlePropertyValue.cs" />
+        <Compile Include="..\OfficeIMO.Shared\OfficePackageSignatureInfo.cs" Link="Shared\OfficePackageSignatureInfo.cs" />
+        <Compile Include="..\OfficeIMO.Shared\OfficePackageSignatureWriter.cs" Link="Shared\OfficePackageSignatureWriter.cs" />
     </ItemGroup>
 
     <ItemGroup>
@@ -85,6 +87,7 @@
 
     <ItemGroup Condition="'$(TargetFramework)' == 'net472'">
         <Reference Include="System.Net.Http" />
+        <Reference Include="WindowsBase" />
     </ItemGroup>
 
     <ItemGroup>

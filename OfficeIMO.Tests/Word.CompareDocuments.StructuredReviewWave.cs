@@ -228,6 +228,21 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsTextHyperlinkMetadataChanges() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_text_hlink_metadata.docx");
+            CreateTextHyperlinkDocument(sourcePath, "OfficeIMO", "https://evotec.xyz/docs", "source-tip", "_blank", true, "source-location");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_text_hlink_metadata.docx");
+            CreateTextHyperlinkDocument(targetPath, "OfficeIMO", "https://evotec.xyz/docs", "target-tip", "_self", false, "target-location");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Hyperlink &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
         public void CompareStructureIgnoresUnreferencedNormalNotes() {
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_unreferenced_note.docx");
             CreateDocumentWithParagraphsForReviewWave(sourcePath, "Policy");
@@ -304,6 +319,22 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void CompareStructureReportsListDefinitionChangesWithStableNumberingId() {
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_numbering_definition.docx");
+            CreateDocumentWithNumberedItem(sourcePath, "Item");
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_numbering_definition.docx");
+            CreateDocumentWithNumberedItem(targetPath, "Item");
+            SetFirstAbstractNumberingFormat(targetPath, NumberFormatValues.Bullet, "\u2022");
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.List &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
         public void CompareStructureIgnoresInactiveAlternateContentFallbackImages() {
             string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
             string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_alternate_content_fallback.docx");
@@ -317,6 +348,32 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(result.Findings, finding =>
                 finding.Scope == WordComparisonScope.Image &&
                 finding.ChangeKind == WordComparisonChangeKind.Modified);
+        }
+
+        [Fact]
+        public void CompareStructureReportsImageLayoutChangesWithoutPayloadChanges() {
+            string imagePath = Path.Combine(_directoryWithImages, "EvotecLogo.png");
+            string sourcePath = Path.Combine(_directoryWithFiles, "compare_structure_source_image_layout_only.docx");
+            using (WordDocument doc = WordDocument.Create(sourcePath)) {
+                doc.AddParagraph().AddImage(imagePath, 80, 40);
+                doc.Save(false);
+            }
+
+            string targetPath = Path.Combine(_directoryWithFiles, "compare_structure_target_image_layout_only.docx");
+            using (WordDocument doc = WordDocument.Create(targetPath)) {
+                doc.AddParagraph().AddImage(imagePath, 120, 40);
+                doc.Save(false);
+            }
+
+            WordComparisonResult result = WordDocumentComparer.CompareStructure(sourcePath, targetPath);
+
+            Assert.DoesNotContain(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.Message == "Image payload changed.");
+            Assert.Contains(result.Findings, finding =>
+                finding.Scope == WordComparisonScope.Image &&
+                finding.ChangeKind == WordComparisonChangeKind.Modified &&
+                finding.Message == "Image layout changed.");
         }
 
         [Fact]
@@ -350,6 +407,27 @@ namespace OfficeIMO.Tests {
             WordList list = doc.AddList(WordListStyle.Numbered);
             list.AddItem(text);
             doc.Save(false);
+        }
+
+        private static void CreateTextHyperlinkDocument(string path, string text, string target, string tooltip, string targetFrame, bool history, string docLocation) {
+            using (WordDocument doc = WordDocument.Create(path)) {
+                doc.AddParagraph("Before");
+                doc.Save(false);
+            }
+
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            MainDocumentPart mainPart = document.MainDocumentPart!;
+            string relationshipId = mainPart.AddHyperlinkRelationship(new Uri(target), true).Id;
+            Paragraph paragraph = mainPart.Document.Body!.Elements<Paragraph>().First();
+            paragraph.RemoveAllChildren<Run>();
+            paragraph.Append(new Hyperlink(new Run(new Text(text))) {
+                Id = relationshipId,
+                Tooltip = tooltip,
+                TargetFrame = targetFrame,
+                History = history,
+                DocLocation = docLocation
+            });
+            mainPart.Document.Save();
         }
 
         private static void CreateDocumentWithOneColumnTableForReviewWave(string path, params string[] rows) {
@@ -576,6 +654,16 @@ namespace OfficeIMO.Tests {
             }
 
             instance.Append(new LevelOverride(new StartOverrideNumberingValue { Val = start }) { LevelIndex = level });
+            numbering.Save();
+        }
+
+        private static void SetFirstAbstractNumberingFormat(string path, NumberFormatValues format, string levelText) {
+            using WordprocessingDocument document = WordprocessingDocument.Open(path, true);
+            Numbering numbering = document.MainDocumentPart!.NumberingDefinitionsPart!.Numbering;
+            AbstractNum abstractNum = numbering.Elements<AbstractNum>().First();
+            Level level = abstractNum.Elements<Level>().First();
+            level.NumberingFormat = new NumberingFormat { Val = format };
+            level.LevelText = new LevelText { Val = levelText };
             numbering.Save();
         }
 

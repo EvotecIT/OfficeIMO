@@ -804,7 +804,7 @@ namespace OfficeIMO.Tests {
                 Assert.Equal(new[] { "ShowPanel" }, inspection.ConditionalBlockNames);
 
                 int processed = WordMailMerge.ExecuteConditionalBlocks(document, new Dictionary<string, bool> {
-                    ["ShowPanel"] = false
+                    ["showpanel"] = false
                 });
 
                 Assert.Equal(1, processed);
@@ -898,6 +898,142 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_MailMerge_ContentControlBindingDoesNotFallbackWhenStoreItemIdIsMissing() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlMissingStoreItem.docx");
+            const string existingStoreItemId = "{33333333-4444-5555-6666-777777777777}";
+            const string missingStoreItemId = "{44444444-5555-6666-7777-888888888888}";
+            const string schemaUri = "urn:officeimo:test:client";
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                AddClientCustomXmlPart(document, existingStoreItemId, schemaUri, "Alice");
+                document._document.MainDocumentPart!.Document.Body!.Append(CreateBoundClientContentControl(missingStoreItemId, schemaUri, "Placeholder"));
+
+                WordContentControlDataBindingResult refreshResult = WordMailMerge.RefreshContentControlDataBindings(document);
+
+                Assert.Equal(1, refreshResult.BindingCount);
+                Assert.Equal(0, refreshResult.UpdatedContentControls);
+                Assert.Equal(0, refreshResult.UpdatedCustomXmlNodes);
+                Assert.True(refreshResult.HasMissingValues);
+                Assert.Contains("ClientName", refreshResult.MissingValueKeys);
+
+                WordContentControlDataBindingResult executeResult = WordMailMerge.ExecuteContentControlDataBindings(
+                    document,
+                    new Dictionary<string, string> {
+                        ["ClientName"] = "Bob"
+                    });
+
+                Assert.Equal(1, executeResult.BindingCount);
+                Assert.Equal(1, executeResult.UpdatedContentControls);
+                Assert.Equal(0, executeResult.UpdatedCustomXmlNodes);
+                Assert.False(executeResult.HasMissingValues);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal("Bob", document.StructuredDocumentTags[0].Text);
+
+                CustomXmlPart customXmlPart = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.CustomXmlParts);
+                using Stream stream = customXmlPart.GetStream(FileMode.Open, FileAccess.Read);
+                XDocument xml = XDocument.Load(stream);
+                XNamespace ns = XNamespace.Get(schemaUri);
+                Assert.Equal("Alice", xml.Root?.Element(ns + "Client")?.Element(ns + "Name")?.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_MailMerge_ContentControlBindingSupportsCustomXmlAttributes() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlAttributeBinding.docx");
+            const string storeItemId = "{55555555-6666-7777-8888-999999999999}";
+            const string schemaUri = "urn:officeimo:test:client";
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                AddClientAttributeCustomXmlPart(document, storeItemId, schemaUri, "Alice");
+                document._document.MainDocumentPart!.Document.Body!.Append(CreateBoundClientAttributeContentControl(storeItemId, schemaUri, "Placeholder"));
+
+                WordContentControlDataBindingResult refreshResult = WordMailMerge.RefreshContentControlDataBindings(document);
+
+                Assert.Equal(1, refreshResult.BindingCount);
+                Assert.Equal(1, refreshResult.UpdatedContentControls);
+                Assert.False(refreshResult.HasMissingValues);
+
+                WordContentControlDataBindingResult executeResult = WordMailMerge.ExecuteContentControlDataBindings(
+                    document,
+                    new Dictionary<string, string> {
+                        ["ClientAttributeName"] = "Bob"
+                    });
+
+                Assert.Equal(1, executeResult.UpdatedContentControls);
+                Assert.Equal(1, executeResult.UpdatedCustomXmlNodes);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                Assert.Equal("Bob", document.StructuredDocumentTags[0].Text);
+
+                CustomXmlPart customXmlPart = Assert.Single(document._wordprocessingDocument.MainDocumentPart!.CustomXmlParts);
+                using Stream stream = customXmlPart.GetStream(FileMode.Open, FileAccess.Read);
+                XDocument xml = XDocument.Load(stream);
+                XNamespace ns = XNamespace.Get(schemaUri);
+                Assert.Equal("Bob", xml.Root?.Element(ns + "Client")?.Attribute("name")?.Value);
+            }
+        }
+
+        [Fact]
+        public void Test_MailMerge_ContentControlBindingRefreshesRowControls() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlRowBinding.docx");
+            const string storeItemId = "{66666666-7777-8888-9999-000000000000}";
+            const string schemaUri = "urn:officeimo:test:client";
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                AddClientCustomXmlPart(document, storeItemId, schemaUri, "Alice");
+                document._document.MainDocumentPart!.Document.Body!.Append(new Table(CreateBoundClientRowContentControl(storeItemId, schemaUri, "Placeholder")));
+
+                WordContentControlDataBindingResult result = WordMailMerge.RefreshContentControlDataBindings(document);
+
+                Assert.Equal(1, result.BindingCount);
+                Assert.Equal(1, result.UpdatedContentControls);
+                Assert.False(result.HasMissingValues);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                SdtRow row = Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SdtRow>());
+                Assert.Equal("Alice", string.Concat(row.Descendants<Text>().Select(text => text.Text)));
+            }
+        }
+
+        [Fact]
+        public void Test_MailMerge_ContentControlBindingRefreshesRowControlByClearingStaleSiblingCells() {
+            string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlRowBindingSiblingCells.docx");
+            const string storeItemId = "{77777777-8888-9999-0000-111111111111}";
+            const string schemaUri = "urn:officeimo:test:client";
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                AddClientCustomXmlPart(document, storeItemId, schemaUri, "Alice");
+                SdtRow control = CreateBoundClientRowContentControl(storeItemId, schemaUri, "Placeholder", "Keep me");
+                control.Descendants<TableCell>().First().Descendants<Paragraph>().First()
+                    .Append(new Run(new Text(" stale") { Space = DocumentFormat.OpenXml.SpaceProcessingModeValues.Preserve }));
+                document._document.MainDocumentPart!.Document.Body!.Append(new Table(control));
+
+                WordContentControlDataBindingResult result = WordMailMerge.RefreshContentControlDataBindings(document);
+
+                Assert.Equal(1, result.BindingCount);
+                Assert.Equal(1, result.UpdatedContentControls);
+                Assert.False(result.HasMissingValues);
+                document.Save(false);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                SdtRow row = Assert.Single(document._document.MainDocumentPart!.Document.Body!.Descendants<SdtRow>());
+                TableCell[] cells = row.Descendants<TableCell>().ToArray();
+                Assert.Single(cells);
+                Assert.Equal("Alice", cells[0].InnerText);
+                Assert.DoesNotContain("Keep me", row.InnerText, StringComparison.Ordinal);
+                Assert.DoesNotContain("stale", row.InnerText, StringComparison.Ordinal);
+            }
+        }
+
+        [Fact]
         public void Test_MailMerge_ExecutesContentControlDataBindingsAndUpdatesCustomXml() {
             string filePath = Path.Combine(_directoryWithFiles, "MailMergeContentControlBindingExecute.docx");
             const string storeItemId = "{22222222-3333-4444-5555-666666666666}";
@@ -967,6 +1103,24 @@ namespace OfficeIMO.Tests {
             propertiesPart.DataStoreItem.Save();
         }
 
+        private static void AddClientAttributeCustomXmlPart(WordDocument document, string storeItemId, string schemaUri, string name) {
+            MainDocumentPart mainPart = document._wordprocessingDocument.MainDocumentPart!;
+            CustomXmlPart customXmlPart = mainPart.AddCustomXmlPart(CustomXmlPartType.CustomXml);
+
+            using (Stream stream = customXmlPart.GetStream(FileMode.Create, FileAccess.Write)) {
+                var xml = new XDocument(
+                    new XElement(XName.Get("Root", schemaUri),
+                        new XElement(XName.Get("Client", schemaUri),
+                            new XAttribute("name", name))));
+                xml.Save(stream);
+            }
+
+            CustomXmlPropertiesPart propertiesPart = customXmlPart.AddNewPart<CustomXmlPropertiesPart>();
+            propertiesPart.DataStoreItem = new DataStoreItem { ItemId = storeItemId };
+            propertiesPart.DataStoreItem.Append(new SchemaReferences(new SchemaReference { Uri = schemaUri }));
+            propertiesPart.DataStoreItem.Save();
+        }
+
         private static SdtBlock CreateBoundClientContentControl(string storeItemId, string schemaUri, string text) {
             return new SdtBlock(
                 new SdtProperties(
@@ -980,6 +1134,41 @@ namespace OfficeIMO.Tests {
                     },
                     new SdtContentText()),
                 new SdtContentBlock(CreateMailMergeParagraph(text)));
+        }
+
+        private static SdtBlock CreateBoundClientAttributeContentControl(string storeItemId, string schemaUri, string text) {
+            return new SdtBlock(
+                new SdtProperties(
+                    new SdtAlias { Val = "ClientAttributeName" },
+                    new Tag { Val = "Client.AttributeName" },
+                    new SdtId { Val = 1002 },
+                    new DataBinding {
+                        PrefixMappings = $"xmlns:c='{schemaUri}'",
+                        XPath = "/c:Root[1]/c:Client[1]/@name",
+                        StoreItemId = storeItemId
+                    },
+                    new SdtContentText()),
+                new SdtContentBlock(CreateMailMergeParagraph(text)));
+        }
+
+        private static SdtRow CreateBoundClientRowContentControl(string storeItemId, string schemaUri, string text, string? siblingCellText = null) {
+            var row = new TableRow(new TableCell(CreateMailMergeParagraph(text)));
+            if (siblingCellText != null) {
+                row.Append(new TableCell(CreateMailMergeParagraph(siblingCellText)));
+            }
+
+            return new SdtRow(
+                new SdtProperties(
+                    new SdtAlias { Val = "ClientName" },
+                    new Tag { Val = "Client.Name.Row" },
+                    new SdtId { Val = 1003 },
+                    new DataBinding {
+                        PrefixMappings = $"xmlns:c='{schemaUri}'",
+                        XPath = "/c:Root[1]/c:Client[1]/c:Name[1]",
+                        StoreItemId = storeItemId
+                    },
+                    new SdtContentText()),
+                new SdtContentRow(row));
         }
     }
 }

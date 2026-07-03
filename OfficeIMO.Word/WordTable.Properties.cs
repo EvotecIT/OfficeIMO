@@ -643,6 +643,10 @@ namespace OfficeIMO.Word {
                                 list.Add(structuredDocumentTag);
                             }
                         }
+
+                        foreach (var structuredDocumentTag in cell.Elements.OfType<WordStructuredDocumentTag>()) {
+                            list.Add(structuredDocumentTag);
+                        }
                     }
                 }
                 return list;
