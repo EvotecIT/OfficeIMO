@@ -62,6 +62,7 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           build-mode: ${{ matrix.build-mode }}
+          dependency-caching: false
           config-file: ./.github/codeql/codeql-config.yml
 
       - name: Restore and Build
