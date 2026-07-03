@@ -268,15 +268,15 @@ After
         var edited = native.CreateReplaceEdit(oldItem, "new\n    continuation").Apply(native.SourceMarkdown);
 
         Assert.Equal(
-            """
+            NormalizeLineEndings("""
 - outer
   - new
     continuation
   - keep
 
 After
-""",
-            edited);
+"""),
+            NormalizeLineEndings(edited));
     }
 
     [Fact]

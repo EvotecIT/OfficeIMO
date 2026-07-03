@@ -15,7 +15,7 @@ Refresh command:
 
 ```powershell
 $env:OFFICEIMO_UPDATE_MARKDIG_INVENTORY = '1'
-dotnet test OfficeIMO.Tests\OfficeIMO.Tests.csproj --framework net8.0 --filter "FullyQualifiedName~Markdown_Markdig_Extension_Inventory_Tests"
+dotnet test OfficeIMO.Markdown.Tests\OfficeIMO.Markdown.Tests.csproj --framework net8.0 --filter "FullyQualifiedName~Markdown_Markdig_Extension_Inventory_Tests"
 Remove-Item Env:\OFFICEIMO_UPDATE_MARKDIG_INVENTORY
 ```
 

@@ -117,8 +117,8 @@ Goal:
 
 Current coverage:
 
-- shared helpers landed in `OfficeIMO.Tests/Markdown/MarkdownInvariantAssert.cs`
-- representative invariant suite landed in `OfficeIMO.Tests/Markdown/Markdown_Tree_Invariant_Tests.cs`
+- shared helpers landed in `OfficeIMO.Markdown.Tests/Markdown/MarkdownInvariantAssert.cs`
+- representative invariant suite landed in `OfficeIMO.Markdown.Tests/Markdown/Markdown_Tree_Invariant_Tests.cs`
 - follow-up findings are captured in `Docs/reviews/officeimo.markdown-tree-invariant-findings-2026-03-21.md`
 
 Done means:

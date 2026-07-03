@@ -263,10 +263,10 @@ layout:
             var parsed = MarkdownReader.Parse(markdown);
             var frontMatter = Assert.IsType<FrontMatterBlock>(parsed.DocumentHeader);
 
-            Assert.Equal(expectedRawYaml, frontMatter.RawYaml);
+            Assert.Equal(NormalizeMarkdown(expectedRawYaml), NormalizeMarkdown(frontMatter.RawYaml));
             Assert.Equal(new MarkdownSourceSpan(2, 1, 9, 16), frontMatter.BodySourceSpan);
             Assert.Equal(
-                "---\n" + expectedRawYaml + "\n---",
+                "---\n" + NormalizeMarkdown(expectedRawYaml) + "\n---",
                 frontMatter.Render().Replace("\r\n", "\n"));
 
             var html = parsed.ToHtmlFragment(new HtmlOptions { Style = HtmlStyle.Plain, CssDelivery = CssDelivery.None, BodyClass = null, AutoHeadingIdentifiers = false }).Replace("\r\n", "\n");

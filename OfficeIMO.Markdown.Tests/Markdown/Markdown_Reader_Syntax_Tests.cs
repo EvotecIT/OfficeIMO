@@ -5557,7 +5557,7 @@ title: Sample
         Assert.NotNull(comment.SourceSpan);
         Assert.Equal(1, comment.SourceSpan!.Value.StartLine);
         Assert.Equal(1, comment.SourceSpan!.Value.EndLine);
-        Assert.Equal(markdown, comment.Literal);
+        Assert.Equal(NormalizeLineEndings(markdown), NormalizeLineEndings(comment.Literal));
         Assert.Collection(comment.Children,
             node => {
                 Assert.Equal(MarkdownSyntaxKind.HtmlCommentOpeningMarker, node.Kind);
@@ -5591,7 +5591,7 @@ this comment
 
         var comment = Assert.Single(result.SyntaxTree.Children);
         Assert.Equal(MarkdownSyntaxKind.HtmlComment, comment.Kind);
-        Assert.Equal(markdown, comment.Literal);
+        Assert.Equal(NormalizeLineEndings(markdown), NormalizeLineEndings(comment.Literal));
         Assert.Collection(comment.Children,
             node => {
                 Assert.Equal(MarkdownSyntaxKind.HtmlCommentOpeningMarker, node.Kind);
@@ -5599,7 +5599,7 @@ this comment
             },
             node => {
                 Assert.Equal(MarkdownSyntaxKind.HtmlCommentBody, node.Kind);
-                Assert.Equal(" keep\nthis comment", node.Literal);
+                Assert.Equal(" keep\nthis comment", NormalizeLineEndings(node.Literal));
                 Assert.Equal(new MarkdownSourceSpan(1, 5, 2, 12), node.SourceSpan);
             },
             node => {
@@ -6285,4 +6285,6 @@ Term: Definition
         result = new MarkdownInlineParseResult(new DoubleBraceInline(nested), closing + 2 - context.Position);
         return true;
     }
+
+    private static string NormalizeLineEndings(string value) => value.Replace("\r\n", "\n");
 }

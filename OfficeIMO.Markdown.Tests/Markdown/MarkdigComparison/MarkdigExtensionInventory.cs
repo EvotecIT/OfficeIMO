@@ -78,7 +78,7 @@ internal static class MarkdigExtensionInventory {
     }
 
     private static string GetPackageReferenceVersion(string repositoryRoot) {
-        string projectPath = Path.Combine(repositoryRoot, "OfficeIMO.Tests", "OfficeIMO.Tests.csproj");
+        string projectPath = Path.Combine(repositoryRoot, "OfficeIMO.Markdown.Tests", "OfficeIMO.Markdown.Tests.csproj");
         var document = XDocument.Load(projectPath);
         var ns = document.Root?.Name.Namespace ?? XNamespace.None;
         return document
