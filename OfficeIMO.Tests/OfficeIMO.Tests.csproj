@@ -28,6 +28,7 @@
         <Compile Remove="Visio\**\*.cs" />
         <Compile Remove="Rtf\**\*.cs" />
         <Compile Remove="Html*.cs" />
+        <Compile Remove="Reader*.cs" />
     </ItemGroup>
 
     <ItemGroup>

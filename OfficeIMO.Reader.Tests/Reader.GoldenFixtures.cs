@@ -211,7 +211,7 @@ public sealed class ReaderGoldenFixtureTests {
     private static string GetTestsProjectRoot() {
         var dir = new DirectoryInfo(AppContext.BaseDirectory);
         while (dir != null) {
-            var candidate = Path.Combine(dir.FullName, "OfficeIMO.Tests.csproj");
+            var candidate = Path.Combine(dir.FullName, "OfficeIMO.Reader.Tests.csproj");
             if (File.Exists(candidate)) {
                 return dir.FullName;
             }
