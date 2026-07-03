@@ -26,6 +26,7 @@
         <Compile Remove="Pdf\PowerPoint.*.cs" />
         <Compile Remove="Visio*.cs" />
         <Compile Remove="Visio\**\*.cs" />
+        <Compile Remove="Rtf\**\*.cs" />
     </ItemGroup>
 
     <ItemGroup>

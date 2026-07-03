@@ -230,6 +230,9 @@ jobs:
           if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
             dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
           fi
+          if [ "${{ matrix.partition }}" = "word-rtf-html" ]; then
+            dotnet restore OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj
+          fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet restore OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj
             dotnet restore OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj
@@ -246,6 +249,9 @@ jobs:
           fi
           if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
             dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
+          if [ "${{ matrix.partition }}" = "word-rtf-html" ]; then
+            dotnet build OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet build OfficeIMO.PowerPoint.Tests/OfficeIMO.PowerPoint.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -304,6 +310,12 @@ jobs:
             echo ""
             echo "== OfficeIMO.Visio.Tests =="
             dotnet test OfficeIMO.Visio.Tests/OfficeIMO.Visio.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          }
+
+          run_rtf_tests() {
+            echo ""
+            echo "== OfficeIMO.Rtf.Tests =="
+            dotnet test OfficeIMO.Rtf.Tests/OfficeIMO.Rtf.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
           audit_officeimo_test_partitions() {
@@ -367,7 +379,6 @@ jobs:
               "OfficeIMO.Tests.ExcelRows",
               "OfficeIMO.Tests.ExcelSheet",
               "OfficeIMO.Tests.ExcelCoerce",
-              "OfficeIMO.Tests.Rtf",
               "OfficeIMO.Tests.Html",
               "OfficeIMO.Tests.HtmlDomTraversalTests",
               "OfficeIMO.Tests.HtmlTableMergeTests",
@@ -454,7 +465,7 @@ jobs:
               ;;
             word-rtf-html)
               run_word_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParentMutationTests'
-              run_officeimo_tests "rtf" 'FullyQualifiedName~OfficeIMO.Tests.Rtf'
+              run_rtf_tests
               run_officeimo_tests "html" 'FullyQualifiedName~OfficeIMO.Tests.Html|FullyQualifiedName~OfficeIMO.Tests.HtmlDomTraversalTests|FullyQualifiedName~OfficeIMO.Tests.HtmlTableMergeTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests'
               ;;
             other-projects)
