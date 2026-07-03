@@ -35,12 +35,14 @@ public static partial class MarkdownReader {
 
                 var absoluteLineNumber = state.SourceLineOffset + i + 1;
                 attributeSourceText = line.Substring(contentStart + attributeStart, attributeEnd - attributeStart + 1);
+                var attributeStartColumn = AdvanceSourceColumn(1, line, contentStart + attributeStart);
+                var attributeEndColumn = AdvanceSourceColumn(1, line, contentStart + attributeEnd + 1) - 1;
                 attributeSpan = CreateSpan(
                     state,
                     absoluteLineNumber,
-                    contentStart + attributeStart + 1,
+                    attributeStartColumn,
                     absoluteLineNumber,
-                    contentStart + attributeEnd + 1);
+                    attributeEndColumn);
             }
 
             var sourceMap = BuildInlineSourceMapForSingleLine(headingText, state.SourceLineOffset + i + 1, contentStart + 1, state);
@@ -66,6 +68,16 @@ public static partial class MarkdownReader {
             doc.Add(heading);
             i += 2; // consume both lines
             return true;
+        }
+
+        private static int AdvanceSourceColumn(int startColumn, string? text, int endExclusive) {
+            var column = Math.Max(1, startColumn);
+            var boundedEnd = Math.Max(0, Math.Min(endExclusive, text?.Length ?? 0));
+            for (var i = 0; i < boundedEnd; i++) {
+                column = MarkdownSourceColumns.AdvanceColumn(column, text![i]);
+            }
+
+            return column;
         }
     }
 }

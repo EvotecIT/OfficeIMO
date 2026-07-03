@@ -627,12 +627,14 @@ public static partial class MarkdownReader {
             var sourceLine = sourceLines != null && lineIndex >= 0 && lineIndex < sourceLines.Count
                 ? sourceLines[lineIndex]
                 : new MarkdownSourceLineSlice(line, (state?.SourceLineOffset ?? 0) + lineOffset + lineIndex + 1, 1);
+            var attributeStartColumn = AdvanceSourceColumn(sourceLine.StartColumn, line, attributeStart);
+            var attributeEndColumn = AdvanceSourceColumn(sourceLine.StartColumn, line, attributeEnd + 1) - 1;
             var span = CreateSpan(
                 state,
                 sourceLine.AbsoluteLine,
-                sourceLine.StartColumn + attributeStart,
+                attributeStartColumn,
                 sourceLine.AbsoluteLine,
-                sourceLine.StartColumn + attributeEnd);
+                attributeEndColumn);
 
             lines[lineIndex] = lineWithoutAttributeBlock;
             if (sourceLines != null && lineIndex >= 0 && lineIndex < sourceLines.Count) {

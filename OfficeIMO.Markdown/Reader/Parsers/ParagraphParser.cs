@@ -73,12 +73,14 @@ public static partial class MarkdownReader {
                         var attributeLine = contentLines[lastContentLineIndex];
                         var absoluteAttributeLine = state.SourceLineOffset + i + lastContentLineIndex + 1;
                         headingAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
+                        var attributeStartColumn = AdvanceSourceColumn(1, attributeLine, attributeStart);
+                        var attributeEndColumn = AdvanceSourceColumn(1, attributeLine, attributeEnd + 1) - 1;
                         headingAttributeSpan = CreateSpan(
                             state,
                             absoluteAttributeLine,
-                            attributeStart + 1,
+                            attributeStartColumn,
                             absoluteAttributeLine,
-                            attributeEnd + 1);
+                            attributeEndColumn);
                         contentLines[lastContentLineIndex] = lineWithoutAttributeBlock;
                         while (contentLines.Count > 0 && string.IsNullOrWhiteSpace(contentLines[contentLines.Count - 1])) {
                             contentLines.RemoveAt(contentLines.Count - 1);
@@ -149,12 +151,14 @@ public static partial class MarkdownReader {
 
                     if (!suppressGenericAttributeMetadata) {
                         paragraphAttributeSourceText = attributeLine.Substring(attributeStart, attributeEnd - attributeStart + 1);
+                        var attributeStartColumn = AdvanceSourceColumn(1, attributeLine, attributeStart);
+                        var attributeEndColumn = AdvanceSourceColumn(1, attributeLine, attributeEnd + 1) - 1;
                         paragraphAttributeSpan = CreateSpan(
                             state,
                             absoluteAttributeLine,
-                            attributeStart + 1,
+                            attributeStartColumn,
                             absoluteAttributeLine,
-                            attributeEnd + 1);
+                            attributeEndColumn);
                     }
 
                     paragraphLines[lastLineIndex] = lineWithoutAttributeBlock;
@@ -711,6 +715,16 @@ public static partial class MarkdownReader {
             int count = 0;
             while (n >= 0 && s[n] == ' ') { count++; n--; if (count >= 2) return true; }
             return false;
+        }
+
+        private static int AdvanceSourceColumn(int startColumn, string? text, int endExclusive) {
+            var column = Math.Max(1, startColumn);
+            var boundedEnd = Math.Max(0, Math.Min(endExclusive, text?.Length ?? 0));
+            for (var i = 0; i < boundedEnd; i++) {
+                column = MarkdownSourceColumns.AdvanceColumn(column, text![i]);
+            }
+
+            return column;
         }
     }
 

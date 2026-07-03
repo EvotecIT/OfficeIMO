@@ -66,6 +66,21 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void MarkdownDoc_SaveAsPdf_Renders_SoftBreak_As_Space() {
+        var markdown = MarkdownDoc.Create();
+        markdown.Add(new ParagraphBlock(new InlineSequence()
+            .Text("Alpha")
+            .SoftBreak()
+            .Text("Beta")));
+
+        byte[] pdf = markdown.SaveAsPdf(new MarkdownPdfSaveOptions());
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Alpha Beta", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Alpha\nBeta", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_PreservesExplicitTableColumnAlignment() {
         string markdown = """
 # Invoice

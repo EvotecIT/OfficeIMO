@@ -29,12 +29,14 @@ public static partial class MarkdownReader {
 
                 var attributeLineNumber = state.SourceLineOffset + i + 1;
                 attributeSourceText = lines[i].Substring(contentStart + attributeStart, attributeEnd - attributeStart + 1);
+                var attributeStartColumn = AdvanceSourceColumn(1, lines[i], contentStart + attributeStart);
+                var attributeEndColumn = AdvanceSourceColumn(1, lines[i], contentStart + attributeEnd + 1) - 1;
                 attributeSpan = CreateSpan(
                     state,
                     attributeLineNumber,
-                    contentStart + attributeStart + 1,
+                    attributeStartColumn,
                     attributeLineNumber,
-                    contentStart + attributeEnd + 1);
+                    attributeEndColumn);
             }
 
             var sourceMap = BuildInlineSourceMapForSingleLine(text, state.SourceLineOffset + i + 1, contentStart + 1, state);
@@ -112,6 +114,16 @@ public static partial class MarkdownReader {
             closingMarkerEnd = contentStart + end;
             textEndBeforeMarker = contentStart + textEnd;
             return true;
+        }
+
+        private static int AdvanceSourceColumn(int startColumn, string? text, int endExclusive) {
+            var column = Math.Max(1, startColumn);
+            var boundedEnd = Math.Max(0, Math.Min(endExclusive, text?.Length ?? 0));
+            for (var i = 0; i < boundedEnd; i++) {
+                column = MarkdownSourceColumns.AdvanceColumn(column, text![i]);
+            }
+
+            return column;
         }
     }
 }

@@ -29,10 +29,20 @@ internal static class MarkdownNativeFenceInfoSourceSpans {
         }
 
         var span = infoStringSourceSpan.Value;
-        var startColumn = span.StartColumn.Value + relativeStart;
-        var endColumn = startColumn + sourceText!.Length - 1;
+        var startColumn = AdvanceSourceColumn(span.StartColumn.Value, infoString, relativeStart);
+        var endColumn = AdvanceSourceColumn(span.StartColumn.Value, infoString, relativeStart + sourceText!.Length) - 1;
         int? startOffset = span.StartOffset.HasValue ? span.StartOffset.Value + relativeStart : null;
         int? endOffset = startOffset.HasValue ? startOffset.Value + sourceText.Length - 1 : null;
         return new MarkdownSourceSpan(span.StartLine, startColumn, span.StartLine, endColumn, startOffset, endOffset);
+    }
+
+    private static int AdvanceSourceColumn(int startColumn, string? text, int endExclusive) {
+        var column = Math.Max(1, startColumn);
+        var boundedEnd = Math.Max(0, Math.Min(endExclusive, text?.Length ?? 0));
+        for (var i = 0; i < boundedEnd; i++) {
+            column = MarkdownSourceColumns.AdvanceColumn(column, text![i]);
+        }
+
+        return column;
     }
 }

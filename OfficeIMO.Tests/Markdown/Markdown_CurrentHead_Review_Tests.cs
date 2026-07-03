@@ -386,6 +386,35 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
+    public void Native_GenericAttribute_SourceFields_Use_TabExpanded_Columns() {
+        const string markdown = "# AB\t{#h}\n\nAlpha\t{#p}\n\n- item\t{#li}\n\n```cs\t{#code}\nbody\n```\n\nTitle\t{#setext}\n---\n";
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var native = MarkdownNativeDocument.Parse(markdown, options);
+        var attributesByLine = native.EnumerateBlockSourceFields("attributes")
+            .ToDictionary(field => field.SourceSpan.StartLine);
+
+        Assert.Equal(new MarkdownSourceSpan(1, 9, 1, 12), attributesByLine[1].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(3, 9, 3, 12), attributesByLine[3].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(5, 9, 5, 13), attributesByLine[5].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(7, 9, 7, 15), attributesByLine[7].SourceSpan);
+        Assert.Equal(new MarkdownSourceSpan(11, 9, 11, 17), attributesByLine[11].SourceSpan);
+
+        Assert.Equal("# AB\t{#heading}\n\nAlpha\t{#p}\n\n- item\t{#li}\n\n```cs\t{#code}\nbody\n```\n\nTitle\t{#setext}\n---\n",
+            native.CreateReplaceEdit(attributesByLine[1], "{#heading}").Apply(native.SourceMarkdown));
+        Assert.Equal("# AB\t{#h}\n\nAlpha\t{#paragraph}\n\n- item\t{#li}\n\n```cs\t{#code}\nbody\n```\n\nTitle\t{#setext}\n---\n",
+            native.CreateReplaceEdit(attributesByLine[3], "{#paragraph}").Apply(native.SourceMarkdown));
+        Assert.Equal("# AB\t{#h}\n\nAlpha\t{#p}\n\n- item\t{#list}\n\n```cs\t{#code}\nbody\n```\n\nTitle\t{#setext}\n---\n",
+            native.CreateReplaceEdit(attributesByLine[5], "{#list}").Apply(native.SourceMarkdown));
+        Assert.Equal("# AB\t{#h}\n\nAlpha\t{#p}\n\n- item\t{#li}\n\n```cs\t{#fence}\nbody\n```\n\nTitle\t{#setext}\n---\n",
+            native.CreateReplaceEdit(attributesByLine[7], "{#fence}").Apply(native.SourceMarkdown));
+        Assert.Equal("# AB\t{#h}\n\nAlpha\t{#p}\n\n- item\t{#li}\n\n```cs\t{#code}\nbody\n```\n\nTitle\t{#title}\n---\n",
+            native.CreateReplaceEdit(attributesByLine[11], "{#title}").Apply(native.SourceMarkdown));
+    }
+
+    [Fact]
     public void Toc_Uses_Explicit_Heading_Id_And_Reserves_It_For_Generated_Anchors() {
         var options = MarkdownReaderOptions.CreateOfficeIMOProfile();
         options.GenericAttributes = true;

@@ -88,6 +88,9 @@ public static partial class MarkdownPdfConverterExtensions {
             case HardBreakInline:
                 builder.LineBreak();
                 break;
+            case SoftBreakInline:
+                ApplyStyle(builder, style).Text(" ");
+                break;
             case HtmlTagSequenceInline htmlTag:
                 AppendHtmlTagInline(builder, htmlTag, style);
                 break;
@@ -223,6 +226,9 @@ public static partial class MarkdownPdfConverterExtensions {
                 break;
             case HardBreakInline:
                 runs.Add(PdfTextRun.LineBreak());
+                break;
+            case SoftBreakInline:
+                runs.Add(CreateRun(" ", style));
                 break;
             case HtmlTagSequenceInline htmlTag:
                 InlineStyle tagStyle = htmlTag.TagName switch {
