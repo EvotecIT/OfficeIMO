@@ -32,10 +32,6 @@ public static partial class MarkdownReader {
             return false;
         }
 
-        if (HasFollowingConsumedStandaloneAttributeTarget(lines, lineIndex, options)) {
-            return true;
-        }
-
         if (!HasFollowingSupportedStandaloneAttributeTarget(lines, lineIndex, options)) {
             return false;
         }
@@ -99,22 +95,6 @@ public static partial class MarkdownReader {
             || (options.UnorderedLists && IsUnorderedListLine(line, out _, out _, out _, out _))
             || (options.OrderedLists && IsOrderedListLine(line, options, out _, out _))
             || StartsTable(lines, lineIndex, options, state);
-    }
-
-    private static bool HasFollowingConsumedStandaloneAttributeTarget(
-        string[] lines,
-        int lineIndex,
-        MarkdownReaderOptions options) {
-        for (int i = lineIndex + 1; i < lines.Length; i++) {
-            if (string.IsNullOrWhiteSpace(lines[i])) {
-                continue;
-            }
-
-            return HtmlBlockParser.TryGetHtmlBlockLineCount(lines, i, options, out _)
-                || IsStandaloneAttributeFootnoteDefinitionTarget(lines[i], options);
-        }
-
-        return false;
     }
 
     private static bool TryApplyPendingGenericAttributeBlock(
@@ -264,6 +244,14 @@ public static partial class MarkdownReader {
                 return true;
             }
 
+            if (HtmlBlockParser.TryGetHtmlBlockLineCount(lines, i, options, out _)) {
+                return true;
+            }
+
+            if (IsStandaloneAttributeFootnoteDefinitionTarget(lines[i], options)) {
+                return true;
+            }
+
             if (options.Images
                 && options.StandaloneImageBlocks
                 && IsImageLine(lines[i])) {
@@ -314,13 +302,25 @@ public static partial class MarkdownReader {
     private static bool IsReferenceDefinitionAfterStandaloneGenericAttribute(
         string[] lines,
         int lineIndex,
-        MarkdownReaderOptions options) =>
-        options?.GenericAttributes == true
-        && lines != null
-        && lineIndex > 0
-        && lineIndex < lines.Length
-        && IsStandaloneGenericAttributeOnlyLine(lines[lineIndex - 1])
-        && TryParseReferenceLinkDefinition(lines, lineIndex, options, out _, out _, out _, out _);
+        MarkdownReaderOptions options) {
+        if (options?.GenericAttributes != true
+            || lines == null
+            || lineIndex <= 0
+            || lineIndex >= lines.Length
+            || !TryParseReferenceLinkDefinition(lines, lineIndex, options, out _, out _, out _, out _)) {
+            return false;
+        }
+
+        for (int previous = lineIndex - 1; previous >= 0; previous--) {
+            if (string.IsNullOrWhiteSpace(lines[previous])) {
+                continue;
+            }
+
+            return IsStandaloneGenericAttributeOnlyLine(lines[previous]);
+        }
+
+        return false;
+    }
 
     private static bool IsStandaloneAttributeFootnoteDefinitionTarget(string line, MarkdownReaderOptions options) {
         if (options?.Footnotes != true || string.IsNullOrWhiteSpace(line)) {

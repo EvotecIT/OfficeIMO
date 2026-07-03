@@ -77,7 +77,7 @@ internal static class MarkdownGenericAttributeParser {
     }
 
     internal static bool TryParseAttributeBlock(string? value, out MarkdownAttributeSet attributes) {
-        if (HasInvalidIdToken(value)) {
+        if (HasInvalidShorthandToken(value)) {
             attributes = MarkdownAttributeSet.Empty;
             return false;
         }
@@ -184,14 +184,14 @@ internal static class MarkdownGenericAttributeParser {
         }
     }
 
-    private static bool HasInvalidIdToken(string? value) {
+    private static bool HasInvalidShorthandToken(string? value) {
         if (string.IsNullOrWhiteSpace(value)) {
             return false;
         }
 
         foreach (var token in Tokenize(value!)) {
             var trimmed = token.Trim();
-            if (trimmed.Length > 0 && trimmed[0] == '#' && trimmed.Length == 1) {
+            if (trimmed.Length == 1 && (trimmed[0] == '#' || trimmed[0] == '.')) {
                 return true;
             }
         }

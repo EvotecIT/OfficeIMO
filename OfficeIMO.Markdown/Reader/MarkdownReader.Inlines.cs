@@ -164,7 +164,7 @@ public static partial class MarkdownReader {
             if (options.AutolinkBareSchemeUrls && TryConsumeBareSchemeAutolink(text, start, options, out int schemeEnd, out string schemeLabel, out string schemeHref)) {
                 var resolved = ResolveUrl(schemeHref, options);
                 if (resolved is null) {
-                    AddTextNode(schemeLabel, start, schemeEnd - start);
+                    AddTextNode(text.Substring(start, schemeEnd - start), start, schemeEnd - start);
                 } else {
                     AddAutolinkNode(schemeLabel, resolved!, start, schemeEnd - start, start, schemeEnd - start, angleWrapped: false);
                 }

@@ -458,7 +458,7 @@ public sealed class Markdown_CurrentHead_Review_Tests {
     }
 
     [Fact]
-    public void Standalone_GenericAttributes_Before_Type7_HtmlBlock_Are_Consumed_Without_Metadata() {
+    public void Standalone_GenericAttributes_Before_Type7_HtmlBlock_Attach_With_Metadata() {
         const string markdown = "{#html .wide}\n<custom>\nok\n</custom>\n\n";
         var options = new MarkdownReaderOptions {
             GenericAttributes = true,
@@ -472,11 +472,16 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
         var htmlBlock = Assert.IsType<HtmlRawBlock>(Assert.Single(result.Document.Blocks));
-        Assert.True(htmlBlock.Attributes.IsEmpty);
-        Assert.DoesNotContain(
+        Assert.Equal("html", htmlBlock.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(htmlBlock.Attributes.Classes));
+
+        var attributeNode = Assert.Single(
             result.FinalSyntaxTree.Descendants(),
             node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
-        Assert.Empty(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
+        Assert.Equal("{#html .wide}", attributeNode.Literal);
+
+        var attributeField = Assert.Single(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), attributeField.SourceSpan);
 
         var html = result.Document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,
@@ -486,6 +491,126 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         });
 
         Assert.Equal("<custom>\nok\n</custom>", html);
+    }
+
+    [Fact]
+    public void Rejected_BareScheme_Autolinks_Preserve_Original_Source_Text() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.RestrictUrlSchemes = true;
+        options.AllowedUrlSchemes = new[] { "http", "https", "mailto" };
+
+        var document = MarkdownReader.Parse("Call tel:+123 now.", options);
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("Call tel:+123 now.", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("href=\"tel:+123\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("Call +123 now.", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Abbreviations_Expand_After_Opening_Punctuation() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.Abbreviations = true;
+
+        var document = MarkdownReader.Parse("""
+            *[HTML]: Hyper Text Markup Language
+
+            (HTML) [HTML] "HTML" xHTML
+            """, options);
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null,
+            EscapeNonAsciiText = false
+        });
+
+        Assert.Contains("(<abbr title=\"Hyper Text Markup Language\">HTML</abbr>)", html, StringComparison.Ordinal);
+        Assert.Contains("[<abbr title=\"Hyper Text Markup Language\">HTML</abbr>]", html, StringComparison.Ordinal);
+        Assert.Equal(3, CountOccurrences(html, "<abbr title=\"Hyper Text Markup Language\">HTML</abbr>"));
+        Assert.Contains("xHTML", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GenericAttributes_Reject_Bare_Class_Shorthand() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+
+        var document = MarkdownReader.Parse("Text {.}", options);
+        var paragraph = Assert.IsType<ParagraphBlock>(Assert.Single(document.Blocks));
+
+        Assert.True(paragraph.Attributes.IsEmpty);
+        Assert.Equal("Text {.}", InlinePlainText.Extract(paragraph.Inlines));
+
+        var html = document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.Contains("Text {.}", html, StringComparison.Ordinal);
+        Assert.DoesNotContain(".=\"true\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Standalone_GenericAttributes_Before_FootnoteDefinitions_Attach_With_Metadata() {
+        var options = MarkdownReaderOptions.CreateGitHubFlavoredMarkdownProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+            {#note .wide}
+            [^a]: note
+
+            [^a]
+            """, options);
+
+        MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
+        MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
+
+        var footnote = Assert.IsType<FootnoteDefinitionBlock>(result.Document.Blocks[0]);
+        Assert.Equal("note", footnote.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(footnote.Attributes.Classes));
+
+        var attributes = Assert.Single(MarkdownNativeDocument.Parse(result.SourceMarkdown, options).EnumerateBlockSourceFields("attributes"));
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), attributes.SourceSpan);
+    }
+
+    [Fact]
+    public void Standalone_GenericAttributes_Before_ReferenceDefinitions_Suppress_PreScan_Across_Blanks() {
+        var options = MarkdownReaderOptions.CreatePortableProfile();
+        options.GenericAttributes = true;
+        options.PreserveTrivia = true;
+
+        var result = MarkdownReader.ParseWithSyntaxTree("""
+            {#ref .wide}
+
+            [id]: /url
+
+            [id]
+            """, options);
+
+        Assert.Empty(result.ReferenceLinkDefinitions);
+
+        var first = Assert.IsType<ParagraphBlock>(result.Document.Blocks[0]);
+        var second = Assert.IsType<ParagraphBlock>(result.Document.Blocks[1]);
+
+        Assert.Equal("ref", first.Attributes.ElementId);
+        Assert.Equal("[id]: /url", InlinePlainText.Extract(first.Inlines));
+        Assert.Equal("[id]", InlinePlainText.Extract(second.Inlines));
+
+        var html = result.Document.ToHtmlFragment(new HtmlOptions {
+            Style = HtmlStyle.Plain,
+            CssDelivery = CssDelivery.None,
+            BodyClass = null
+        });
+
+        Assert.DoesNotContain("href=\"/url\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -915,5 +1040,16 @@ public sealed class Markdown_CurrentHead_Review_Tests {
         Assert.NotNull(runsProperty);
 
         return ((System.Collections.IEnumerable)runsProperty.GetValue(block)!).Cast<PdfTextRun>().ToArray();
+    }
+
+    private static int CountOccurrences(string value, string search) {
+        var count = 0;
+        var index = 0;
+        while ((index = value.IndexOf(search, index, StringComparison.Ordinal)) >= 0) {
+            count++;
+            index += search.Length;
+        }
+
+        return count;
     }
 }

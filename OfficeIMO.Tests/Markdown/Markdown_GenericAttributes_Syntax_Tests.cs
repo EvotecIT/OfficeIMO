@@ -1924,7 +1924,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
-    public void Standalone_GenericAttributes_Before_Footnote_Definition_Are_Consumed_Without_Metadata() {
+    public void Standalone_GenericAttributes_Before_Footnote_Definition_Attach_With_Metadata() {
         const string markdown = "{#fn .wide}\n[^a]: note\n\ntext[^a]\n";
         var options = new MarkdownReaderOptions {
             Footnotes = true,
@@ -1936,16 +1936,22 @@ public class Markdown_GenericAttributes_Syntax_Tests {
 
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
-        Assert.DoesNotContain(
+        var attributeNode = Assert.Single(
             result.FinalSyntaxTree.Descendants(),
             node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
+        Assert.Equal("{#fn .wide}", attributeNode.Literal);
         Assert.DoesNotContain(
             result.FinalSyntaxTree.Children,
             node => node.Kind == MarkdownSyntaxKind.Paragraph && string.Equals(node.Literal, "{#fn .wide}", StringComparison.Ordinal));
 
+        var footnote = Assert.Single(result.Document.Blocks.OfType<FootnoteDefinitionBlock>());
+        Assert.Equal("fn", footnote.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(footnote.Attributes.Classes));
+
         var native = MarkdownNativeDocument.Parse(markdown, options);
         Assert.Single(native.Blocks.OfType<MarkdownNativeFootnoteDefinitionBlock>());
-        Assert.Empty(native.EnumerateBlockSourceFields("attributes"));
+        var attributeField = Assert.Single(native.EnumerateBlockSourceFields("attributes"));
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 11), attributeField.SourceSpan);
         Assert.Empty(native.EnumerateInlineMetadata("attributes"));
 
         var html = result.Document.ToHtmlFragment(new HtmlOptions {
@@ -2065,7 +2071,7 @@ public class Markdown_GenericAttributes_Syntax_Tests {
     }
 
     [Fact]
-    public void Standalone_GenericAttributes_Before_HtmlBlock_Are_Consumed_Without_Metadata() {
+    public void Standalone_GenericAttributes_Before_HtmlBlock_Attach_With_Metadata() {
         const string markdown = "{#html .wide}\n<div>raw</div>\n";
         var options = new MarkdownReaderOptions {
             GenericAttributes = true,
@@ -2078,11 +2084,17 @@ public class Markdown_GenericAttributes_Syntax_Tests {
         MarkdownInvariantAssert.SyntaxTreeIsWellFormed(result.FinalSyntaxTree);
         MarkdownInvariantAssert.MappedAssociatedObjectsAreConsistent(result);
 
-        Assert.IsType<HtmlRawBlock>(Assert.Single(result.Document.Blocks));
-        Assert.DoesNotContain(
+        var htmlBlock = Assert.IsType<HtmlRawBlock>(Assert.Single(result.Document.Blocks));
+        Assert.Equal("html", htmlBlock.Attributes.ElementId);
+        Assert.Equal("wide", Assert.Single(htmlBlock.Attributes.Classes));
+
+        var attributeNode = Assert.Single(
             result.FinalSyntaxTree.Descendants(),
             node => node.Kind == MarkdownSyntaxKind.GenericAttributeBlock);
-        Assert.Empty(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
+        Assert.Equal("{#html .wide}", attributeNode.Literal);
+
+        var attributeField = Assert.Single(MarkdownNativeDocument.Parse(markdown, options).EnumerateBlockSourceFields("attributes"));
+        Assert.Equal(new MarkdownSourceSpan(1, 1, 1, 13), attributeField.SourceSpan);
 
         var html = result.Document.ToHtmlFragment(new HtmlOptions {
             Style = HtmlStyle.Plain,

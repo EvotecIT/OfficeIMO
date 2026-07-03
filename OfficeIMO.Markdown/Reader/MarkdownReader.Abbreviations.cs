@@ -301,7 +301,7 @@ public static partial class MarkdownReader {
         }
 
         var value = text[index];
-        return char.IsWhiteSpace(value) || value == '_' || value == '[' || value == '*';
+        return !char.IsLetterOrDigit(value);
     }
 
     private static bool IsAbbreviationClosingBoundary(string text, int index) {
