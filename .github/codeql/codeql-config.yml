@@ -43,4 +43,5 @@ paths-ignore:
   - OfficeIMO.MarkdownRenderer.Wpf.Tests
   - OfficeIMO.Tests
   - OfficeIMO.VerifyTests
+  - OfficeIMO.Word.Tests
   - Website/static/assets/prism

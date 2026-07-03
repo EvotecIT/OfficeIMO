@@ -6,8 +6,7 @@ using OfficeIMO.Word.Markdown;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    [Collection("WordTests")]
-    public class MarkdownMoreCasesTests : Word {
+    public class MarkdownMoreCasesTests {
         [Fact]
         public void ReferenceStyleLinks_WithAngleBrackets_AndTitle() {
             string md = "See the [API][ref].\n\n[ref]: <https://example.com/api> \"My API\"\n";

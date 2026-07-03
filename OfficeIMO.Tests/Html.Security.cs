@@ -92,7 +92,7 @@ namespace OfficeIMO.Tests {
             using MemoryStream stream = document.SaveAsMemoryStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
-            Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+            Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));
         }
     }
 }

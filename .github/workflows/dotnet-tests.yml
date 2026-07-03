@@ -227,6 +227,9 @@ jobs:
           if [[ "${{ matrix.partition }}" == excel-* ]]; then
             dotnet restore OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj
           fi
+          if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
+            dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
+          fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet restore OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj
             dotnet restore OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj
@@ -238,6 +241,9 @@ jobs:
           dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           if [[ "${{ matrix.partition }}" == excel-* ]]; then
             dotnet build OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
+          fi
+          if [[ "${{ matrix.partition }}" == "word-rtf-html" || "${{ matrix.partition }}" == "markdown-large" ]]; then
+            dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
           fi
           if [ "${{ matrix.partition }}" = "other-projects" ]; then
             dotnet build OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --framework ${{ matrix.framework }} --no-restore
@@ -274,6 +280,14 @@ jobs:
             echo ""
             echo "== OfficeIMO.Excel.Tests: ${name} =="
             dotnet test OfficeIMO.Excel.Tests/OfficeIMO.Excel.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          }
+
+          run_word_tests() {
+            local name="$1"
+            local filter="$2"
+            echo ""
+            echo "== OfficeIMO.Word.Tests: ${name} =="
+            dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "(${filter})&${test_filter}" -m:1 --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           }
 
           audit_officeimo_test_partitions() {
@@ -313,8 +327,6 @@ jobs:
               "OfficeIMO.Tests.Excel.ExcelHttp",
           )
           simple_partitions = (
-              "OfficeIMO.Tests.MarkdownMoreCasesTests",
-              "OfficeIMO.Tests.MarkdownRoundTripTests",
               "OfficeIMO.Tests.MarkdownSuite",
               "OfficeIMO.Tests.ExcelImageExport",
               "OfficeIMO.Tests.Excel.Test_ExcelChart",
@@ -339,12 +351,6 @@ jobs:
               "OfficeIMO.Tests.ExcelRows",
               "OfficeIMO.Tests.ExcelSheet",
               "OfficeIMO.Tests.ExcelCoerce",
-              "OfficeIMO.Tests.Word",
-              "OfficeIMO.Tests.ImageEmbedderTests",
-              "OfficeIMO.Tests.ParagraphParent",
-              "OfficeIMO.Tests.WordParagraph",
-              "OfficeIMO.Tests.WordTable",
-              "OfficeIMO.Tests.Ordering.WordOrderPreservationTests",
               "OfficeIMO.Tests.Rtf",
               "OfficeIMO.Tests.Html",
               "OfficeIMO.Tests.HtmlDomTraversalTests",
@@ -406,7 +412,7 @@ jobs:
 
           case "${{ matrix.partition }}" in
             markdown-large)
-              run_officeimo_tests "markdown-large" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownMoreCasesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownRoundTripTests' true
+              run_word_tests "word-markdown-roundtrip" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownMoreCasesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownRoundTripTests'
               ;;
             markdown-suite)
               run_officeimo_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
@@ -433,7 +439,7 @@ jobs:
               run_excel_tests "excel-core" '(FullyQualifiedName~OfficeIMO.Tests.Excel.&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ExcelChart&FullyQualifiedName!~OfficeIMO.Tests.Excel.SharedChartRenderer&FullyQualifiedName!~OfficeIMO.Tests.Excel.Test_ClosedXmlGap&FullyQualifiedName!~OfficeIMO.Tests.Excel.LegacyXls&FullyQualifiedName!~OfficeIMO.Tests.Excel.PerformanceReview&FullyQualifiedName!~OfficeIMO.Tests.Excel.SaveAsPdf&FullyQualifiedName!~OfficeIMO.Tests.Excel.ToPdfDocument&FullyQualifiedName!~OfficeIMO.Tests.Excel.PdfTables&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReportWorkflow&FullyQualifiedName!~OfficeIMO.Tests.Excel.Reader&FullyQualifiedName!~OfficeIMO.Tests.Excel.ReadRows&FullyQualifiedName!~OfficeIMO.Tests.Excel.ExcelHttp)'
               ;;
             word-rtf-html)
-              run_officeimo_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParent|FullyQualifiedName~OfficeIMO.Tests.WordParagraph|FullyQualifiedName~OfficeIMO.Tests.WordTable|FullyQualifiedName~OfficeIMO.Tests.Ordering.WordOrderPreservationTests'
+              run_word_tests "word" 'FullyQualifiedName~OfficeIMO.Tests.Word|FullyQualifiedName~OfficeIMO.Tests.ImageEmbedderTests|FullyQualifiedName~OfficeIMO.Tests.ParagraphParentMutationTests'
               run_officeimo_tests "rtf" 'FullyQualifiedName~OfficeIMO.Tests.Rtf'
               run_officeimo_tests "html" 'FullyQualifiedName~OfficeIMO.Tests.Html|FullyQualifiedName~OfficeIMO.Tests.HtmlDomTraversalTests|FullyQualifiedName~OfficeIMO.Tests.HtmlTableMergeTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests'
               ;;
@@ -590,7 +596,8 @@ jobs:
 
       - name: Run tests
         run: |
-          dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName=OfficeIMO.Tests.Word.Test_WordDocument_SaveAsPdf|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReadStreamTests|FullyQualifiedName~OfficeIMO.Tests.HtmlCoreTests|FullyQualifiedName~OfficeIMO.Tests.Markdown.Test_SaveAsMarkdown_FileAndRead" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName=OfficeIMO.Tests.Word.Test_WordDocument_SaveAsPdf" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
+          dotnet test OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReadStreamTests|FullyQualifiedName~OfficeIMO.Tests.HtmlCoreTests|FullyQualifiedName~OfficeIMO.Tests.Markdown.Test_SaveAsMarkdown_FileAndRead" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.CSV.Tests/OfficeIMO.CSV.Tests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.CSV.Tests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
           dotnet test OfficeIMO.VerifyTests/OfficeIMO.VerifyTests.csproj --configuration ${{ env.BUILD_CONFIGURATION }} --no-build --verbosity ${{ env.TEST_VERBOSITY }} --framework ${{ matrix.framework }} --filter "FullyQualifiedName~OfficeIMO.VerifyTests" --logger "console;verbosity=${{ env.TEST_VERBOSITY }}" --logger trx
 

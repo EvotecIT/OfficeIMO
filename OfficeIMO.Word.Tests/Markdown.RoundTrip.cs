@@ -6,8 +6,7 @@ using OfficeIMO.Word.Fluent;
 using Xunit;
 
 namespace OfficeIMO.Tests {
-    [Collection("WordTests")]
-    public class MarkdownRoundTripTests : Word {
+    public class MarkdownRoundTripTests {
         [Fact]
         public void Markdown_To_Word_To_Markdown_RoundTrip_Preserves_CoreFeatures() {
             string md = "" +

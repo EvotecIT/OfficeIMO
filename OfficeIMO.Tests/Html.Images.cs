@@ -1016,7 +1016,7 @@ namespace OfficeIMO.Tests {
             using MemoryStream stream = doc.SaveAsMemoryStream();
             using WordprocessingDocument package = WordprocessingDocument.Open(stream, false);
             var errors = new OpenXmlValidator().Validate(package).ToList();
-            Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+            Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));
 
             var drawing = Assert.Single(package.MainDocumentPart!.Document.Body!.Descendants<DocumentFormat.OpenXml.Wordprocessing.Drawing>());
             var extent = drawing.Inline!.Extent!;

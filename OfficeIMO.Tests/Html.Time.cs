@@ -47,7 +47,7 @@ namespace OfficeIMO.Tests {
             using (var validationStream = new MemoryStream(packageBytes))
             using (var package = WordprocessingDocument.Open(validationStream, false)) {
                 var errors = new OpenXmlValidator().Validate(package).ToList();
-                Assert.True(errors.Count == 0, Word.FormatValidationErrors(errors));
+                Assert.True(errors.Count == 0, OpenXmlValidationFormatting.FormatValidationErrors(errors));
             }
 
             using var reloadStream = new MemoryStream(packageBytes);

@@ -18,6 +18,9 @@
         <Compile Remove="Excel*.cs" />
         <Compile Remove="Excel\**\*.cs" />
         <Compile Remove="Pdf\Excel.*.cs" />
+        <Compile Remove="Word*.cs" />
+        <Compile Remove="Word\**\*.cs" />
+        <Compile Remove="Pdf\Word.*.cs" />
     </ItemGroup>
 
     <ItemGroup>
