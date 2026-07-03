@@ -4,11 +4,11 @@ This note records the current cleanup direction for OfficeIMO tests and build wa
 
 ## Current Shape
 
-The solution has a legacy aggregate test project, `OfficeIMO.Tests`, plus domain projects such as `OfficeIMO.Excel.Tests`, `OfficeIMO.CSV.Tests`, `OfficeIMO.VerifyTests`, and `OfficeIMO.MarkdownRenderer.Wpf.Tests`.
+The solution has a legacy aggregate test project, `OfficeIMO.Tests`, plus domain projects such as `OfficeIMO.Word.Tests`, `OfficeIMO.Excel.Tests`, `OfficeIMO.CSV.Tests`, `OfficeIMO.VerifyTests`, and `OfficeIMO.MarkdownRenderer.Wpf.Tests`.
 
-`OfficeIMO.Tests` still covers many product areas: PDF, Word, Markdown, Visio, RTF, PowerPoint, HTML, Reader, Drawing, Markup, and shared workflow tests. That made sense while features were being built quickly, but it is now too large for clean CI ownership. A full rebuild of the aggregate project used to emit thousands of duplicate nullable-warning lines across target frameworks, which made GitHub annotations noisy and hid the warnings that matter.
+`OfficeIMO.Tests` still covers many product areas: PDF, Markdown, Visio, RTF, PowerPoint, HTML, Reader, Drawing, Markup, and shared workflow tests. That made sense while features were being built quickly, but it is now too large for clean CI ownership. A full rebuild of the aggregate project used to emit thousands of duplicate nullable-warning lines across target frameworks, which made GitHub annotations noisy and hid the warnings that matter.
 
-`OfficeIMO.Excel.Tests` is the first real split from the aggregate. It owns the Excel test sources, Excel image export, Excel PDF, Google Sheets payload, and Excel compatibility contracts. The project has its own references and friend-assembly access, so Excel test warnings and internal contracts no longer ride through the whole aggregate test assembly.
+`OfficeIMO.Word.Tests` and `OfficeIMO.Excel.Tests` are the first real splits from the aggregate. `OfficeIMO.Word.Tests` owns the core Word API, Word PDF conversion, Word/Markdown round-trip conversion tests, Google Docs payload, and fixture contracts. `OfficeIMO.Excel.Tests` owns the Excel test sources, Excel image export, Excel PDF, Google Sheets payload, and Excel compatibility contracts. Both projects have their own references and friend-assembly access, so their test warnings and internal contracts no longer ride through the whole aggregate test assembly.
 
 ## Decision
 
@@ -16,10 +16,10 @@ It is time to split tests by product/domain project instead of continuing to gro
 
 The desired end state is:
 
-- `OfficeIMO.Word.Tests` for Word and Word conversion contracts.
+- `OfficeIMO.Word.Tests` for core Word and Word conversion contracts. This project exists now and should be the target for new core Word and Word PDF conversion tests.
 - `OfficeIMO.Excel.Tests` for Excel, Excel image export, Excel PDF, and Excel compatibility contracts. This project exists now and should be the target for new Excel tests.
 - `OfficeIMO.Pdf.Tests` for native PDF contracts and PDF compliance/readback tests.
-- `OfficeIMO.Markdown.Tests` for Markdown parsing, rendering, Markdig parity, and Markdown conversion contracts.
+- `OfficeIMO.Markdown.Tests` for pure Markdown parsing, rendering, Markdig parity, and Markdown conversion contracts that do not require the Word fixture.
 - `OfficeIMO.Visio.Tests`, `OfficeIMO.Rtf.Tests`, `OfficeIMO.PowerPoint.Tests`, `OfficeIMO.Html.Tests`, and `OfficeIMO.Reader.Tests` for their domain contracts.
 - Small integration or workflow projects only when a test intentionally crosses several domains.
 
@@ -41,7 +41,7 @@ The current partitions are:
 - `word-rtf-html`
 - `other-projects`
 
-Excel partitions run `OfficeIMO.Excel.Tests` directly. The remaining partitions continue to run `OfficeIMO.Tests` until their domains are split into their own projects.
+Word and Excel partitions run `OfficeIMO.Word.Tests` and `OfficeIMO.Excel.Tests` directly. The `markdown-large` partition also runs the Word/Markdown round-trip tests from `OfficeIMO.Word.Tests`, because those tests exercise Word document conversion behavior even though their class names are Markdown-oriented. The remaining partitions continue to run `OfficeIMO.Tests` until their domains are split into their own projects.
 
 Keep `max-parallel` bounded so the workflow improves wall-clock time without flooding the organization with too many simultaneous jobs.
 
@@ -53,7 +53,7 @@ For test jobs, prefer building the test project for the target framework instead
 
 Production projects keep warnings as errors.
 
-The legacy aggregate `OfficeIMO.Tests` project suppresses nullable warnings, platform/framework analyzer warnings, and a few xUnit style analyzer warnings while the suite is being split, because the current volume makes CI annotations unusable. `OfficeIMO.Excel.Tests` also carries a scoped transitional suppression for the existing moved Excel tests so the real project split can land without reintroducing annotation spam. New Excel tests should avoid adding new nullable debt, and follow-up cleanup should remove suppressions as the moved tests are made nullable-clean.
+The legacy aggregate `OfficeIMO.Tests` project suppresses nullable warnings, platform/framework analyzer warnings, and a few xUnit style analyzer warnings while the suite is being split, because the current volume makes CI annotations unusable. `OfficeIMO.Word.Tests` and `OfficeIMO.Excel.Tests` also carry scoped transitional suppressions for the existing moved tests so the real project split can continue without reintroducing annotation spam. New Word and Excel tests should avoid adding new nullable debt, and follow-up cleanup should remove suppressions as the moved tests are made nullable-clean.
 
 New domain test projects should start clean:
 
@@ -71,6 +71,13 @@ Restore and build the current aggregate test project:
 ```powershell
 dotnet restore OfficeIMO.Tests/OfficeIMO.Tests.csproj
 dotnet build OfficeIMO.Tests/OfficeIMO.Tests.csproj --configuration Release --framework net8.0 --no-restore
+```
+
+Restore and build the Word test project:
+
+```powershell
+dotnet restore OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj
+dotnet build OfficeIMO.Word.Tests/OfficeIMO.Word.Tests.csproj --configuration Release --framework net8.0 --no-restore
 ```
 
 Restore and build the Excel test project:

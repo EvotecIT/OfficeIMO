@@ -2595,7 +2595,9 @@ namespace OfficeIMO.Tests {
 
             using var stream = new NonSeekableReadStream(docxBytes);
 
-            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Load(stream, autoSave: true));
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => {
+                using WordDocument _ = WordDocument.Load(stream, autoSave: true);
+            });
 
             Assert.Contains("Auto-save is not supported", exception.Message);
         }

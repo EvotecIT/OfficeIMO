@@ -4,6 +4,7 @@
   <PropertyGroup Condition="
       '$(IsTestProject)' == 'true'
       Or '$(MSBuildProjectName)' == 'OfficeIMO.Tests'
+      Or '$(MSBuildProjectName)' == 'OfficeIMO.Word.Tests'
       Or '$(MSBuildProjectName)' == 'OfficeIMO.CSV.Tests'
       Or '$(MSBuildProjectName)' == 'OfficeIMO.VerifyTests'
       Or '$(MSBuildProjectName)' == 'OfficeIMO.MarkdownRenderer.Wpf.Tests'
