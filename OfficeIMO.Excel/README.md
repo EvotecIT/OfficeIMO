@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Excel)](https://www.nuget.org/packages/OfficeIMO.Excel)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Excel?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Excel)
 
-`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It can also open BIFF8 legacy binary `.xls` workbooks, project supported content into the normal OfficeIMO Excel model, and save a native `.xls` subset through the first-party BIFF writer.
+`OfficeIMO.Excel` is the main Excel package in the OfficeIMO family. It creates, edits, reads, converts, and saves `.xlsx` workbooks without COM automation and without Microsoft Excel installed. It can also open BIFF8 legacy binary `.xls` workbooks, project supported content into the normal OfficeIMO Excel model, and save a native `.xls` subset through the first-party BIFF writer.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -62,6 +62,9 @@ ExcelFeatureReport report = document.InspectFeatures();
 
 document.Save("converted.xlsx");
 document.Save("native-copy.xls");
+
+ExcelDocument.Convert("legacy.xls", "converted.xlsx");
+ExcelDocument.Convert("openxml.xlsx", "native-copy.xls");
 ```
 
 BIFF8 `.xls` files load through the normal `ExcelDocument.Load` entry point.
@@ -77,6 +80,10 @@ Native `.xls` save uses the same `Save("*.xls")` path as other OfficeIMO saves.
 When a workbook contains a feature outside the supported BIFF8 writer subset,
 OfficeIMO throws a preflight error with the unsupported feature name so the
 caller can save as `.xlsx`, remove the feature, or choose a different workflow.
+`ExcelDocument.Convert(...)` uses those same load and save paths and blocks
+legacy sources with unsupported or preserve-only content by default; set
+`ExcelDocumentConversionOptions.AllowLossyLegacyConversion` only after reviewing
+that loss.
 
 ### Map rows to objects
 

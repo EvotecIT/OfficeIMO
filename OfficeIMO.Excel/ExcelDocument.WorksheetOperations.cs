@@ -1035,7 +1035,7 @@ namespace OfficeIMO.Excel {
         }
 
         private static string NormalizeHeaderText(object? value) {
-            return Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim() ?? string.Empty;
+            return System.Convert.ToString(value, CultureInfo.InvariantCulture)?.Trim() ?? string.Empty;
         }
 
         private static int GetAppendStartRow(ExcelSheet targetSheet, int blankRowsBefore) {

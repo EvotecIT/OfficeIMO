@@ -855,9 +855,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal bool HasNoteStories => HasFootnotes || HasEndnotes;
 
-            internal string StoredText => HasNoteStories ? FullText + "\r" : FullText;
+            internal string StoredText => FullText + "\r";
 
-            internal int PieceTableCharacterCount => HasNoteStories ? FullText.Length + 1 : FullText.Length;
+            internal int PieceTableCharacterCount => FullText.Length + 1;
 
             internal byte[] PlcffndRef { get; }
 
@@ -909,9 +909,9 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
 
             internal IReadOnlyDictionary<string, int> FontFamilyIndexes { get; }
 
-            internal bool HasCharacterFormatting => FormattedRuns.Count > 0 || FootnoteFormattedRuns.Count > 0 || HeaderFooterFormattedRuns.Count > 0 || EndnoteFormattedRuns.Count > 0;
+            internal bool HasCharacterFormatting => true;
 
-            internal bool HasParagraphFormatting => FormattedParagraphs.Count > 0 || FootnoteFormattedParagraphs.Count > 0 || HeaderFooterFormattedParagraphs.Count > 0 || EndnoteFormattedParagraphs.Count > 0 || HasNoteStories;
+            internal bool HasParagraphFormatting => true;
 
             internal bool HasFontTable => FontFamilies.Count > 0;
 

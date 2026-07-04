@@ -735,10 +735,10 @@ namespace OfficeIMO.Excel {
 
             private static string ApplyTint(string argb, double tint) {
                 string normalized = ToArgb(argb);
-                byte alpha = Convert.ToByte(normalized.Substring(0, 2), 16);
-                byte red = Convert.ToByte(normalized.Substring(2, 2), 16);
-                byte green = Convert.ToByte(normalized.Substring(4, 2), 16);
-                byte blue = Convert.ToByte(normalized.Substring(6, 2), 16);
+                byte alpha = System.Convert.ToByte(normalized.Substring(0, 2), 16);
+                byte red = System.Convert.ToByte(normalized.Substring(2, 2), 16);
+                byte green = System.Convert.ToByte(normalized.Substring(4, 2), 16);
+                byte blue = System.Convert.ToByte(normalized.Substring(6, 2), 16);
                 return alpha.ToString("X2", CultureInfo.InvariantCulture)
                     + ApplyTintChannel(red, tint).ToString("X2", CultureInfo.InvariantCulture)
                     + ApplyTintChannel(green, tint).ToString("X2", CultureInfo.InvariantCulture)
