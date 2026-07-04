@@ -14,7 +14,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? colorType = null,
             string? colorTypeName = null,
             short? colorTintShade = null,
-            uint? colorValue = null) {
+            uint? colorValue = null,
+            bool usesStyleXfPropMapping = false,
+            ushort? borderStyle = null,
+            string? borderStyleName = null) {
             if (index < 0) {
                 throw new ArgumentOutOfRangeException(nameof(index));
             }
@@ -34,6 +37,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ColorTypeName = string.IsNullOrWhiteSpace(colorTypeName) ? null : colorTypeName;
             ColorTintShade = colorTintShade;
             ColorValue = colorValue;
+            UsesStyleXfPropMapping = usesStyleXfPropMapping;
+            BorderStyle = borderStyle;
+            BorderStyleName = string.IsNullOrWhiteSpace(borderStyleName) ? null : borderStyleName;
         }
 
         /// <summary>Gets the zero-based property index within the XFExt record.</summary>
@@ -71,5 +77,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the raw FullColorExt color value formatted as hexadecimal, when present.</summary>
         public string? ColorValueHex => ColorValue.HasValue ? $"0x{ColorValue.Value:X8}" : null;
+
+        /// <summary>Gets whether the property type follows StyleExt XFProps numbering instead of XFExt numbering.</summary>
+        internal bool UsesStyleXfPropMapping { get; }
+
+        /// <summary>Gets the XFPropBorder border style value, when present.</summary>
+        public ushort? BorderStyle { get; }
+
+        /// <summary>Gets the decoded XFPropBorder border style name, when known.</summary>
+        public string? BorderStyleName { get; }
     }
 }

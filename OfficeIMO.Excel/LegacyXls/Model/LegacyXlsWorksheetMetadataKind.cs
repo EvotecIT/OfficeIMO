@@ -12,6 +12,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>GridSet print-gridline state metadata.</summary>
         GridSet,
 
+        /// <summary>Column display bookkeeping metadata from a GCW record.</summary>
+        ColumnDisplay,
+
+        /// <summary>Worksheet locale identifiers from a Country record.</summary>
+        Country,
+
         /// <summary>Row block lookup metadata from an Index record.</summary>
         RowBlockIndex,
 
@@ -20,6 +26,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Worksheet pane metadata from a Pane record.</summary>
         Pane,
+
+        /// <summary>Worksheet window metadata from a Window1 record in a legacy sheet substream.</summary>
+        Window,
 
         /// <summary>VBA sheet object name from a CodeName record.</summary>
         CodeName,

@@ -151,14 +151,29 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                 case long integer64 when integer64 >= int.MinValue && integer64 <= int.MaxValue:
                     customValue = new LegacyDocDocumentPropertyValue((int)integer64, LegacyDocDocumentPropertyValueKind.Integer);
                     return true;
+                case long integer64:
+                    customValue = new LegacyDocDocumentPropertyValue(integer64, LegacyDocDocumentPropertyValueKind.Integer);
+                    return true;
                 case uint unsignedInteger when unsignedInteger <= int.MaxValue:
                     customValue = new LegacyDocDocumentPropertyValue((int)unsignedInteger, LegacyDocDocumentPropertyValueKind.Integer);
+                    return true;
+                case uint unsignedInteger:
+                    customValue = new LegacyDocDocumentPropertyValue((long)unsignedInteger, LegacyDocDocumentPropertyValueKind.Integer);
+                    return true;
+                case ulong unsignedInteger64 when unsignedInteger64 <= int.MaxValue:
+                    customValue = new LegacyDocDocumentPropertyValue((int)unsignedInteger64, LegacyDocDocumentPropertyValueKind.Integer);
+                    return true;
+                case ulong unsignedInteger64 when unsignedInteger64 <= long.MaxValue:
+                    customValue = new LegacyDocDocumentPropertyValue((long)unsignedInteger64, LegacyDocDocumentPropertyValueKind.Integer);
                     return true;
                 case double number:
                     customValue = new LegacyDocDocumentPropertyValue(number, LegacyDocDocumentPropertyValueKind.Number);
                     return true;
                 case float number:
                     customValue = new LegacyDocDocumentPropertyValue((double)number, LegacyDocDocumentPropertyValueKind.Number);
+                    return true;
+                case byte[] bytes:
+                    customValue = new LegacyDocDocumentPropertyValue((byte[])bytes.Clone(), LegacyDocDocumentPropertyValueKind.Binary);
                     return true;
             }
 

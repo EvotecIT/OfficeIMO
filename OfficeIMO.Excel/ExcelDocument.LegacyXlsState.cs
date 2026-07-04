@@ -10,6 +10,8 @@ namespace OfficeIMO.Excel {
         private LegacyXlsImportDiagnostic[] _legacyXlsImportDiagnostics = Array.Empty<LegacyXlsImportDiagnostic>();
         private LegacyXlsUnsupportedFeature[] _legacyXlsUnsupportedFeatures = Array.Empty<LegacyXlsUnsupportedFeature>();
         private LegacyXlsUnsupportedSheet[] _legacyXlsUnsupportedSheets = Array.Empty<LegacyXlsUnsupportedSheet>();
+        private LegacyXlsChartSheet[] _legacyXlsChartSheets = Array.Empty<LegacyXlsChartSheet>();
+        private LegacyXlsCompoundFeatureRecord[] _legacyXlsCompoundFeatures = Array.Empty<LegacyXlsCompoundFeatureRecord>();
         private string? _legacyXlsSourcePath;
 
         /// <summary>
@@ -32,6 +34,16 @@ namespace OfficeIMO.Excel {
         /// </summary>
         public IReadOnlyList<LegacyXlsUnsupportedSheet> LegacyXlsUnsupportedSheets => _legacyXlsUnsupportedSheets;
 
+        /// <summary>
+        /// Gets legacy XLS chart sheets decoded during import and projected as chart-sheet package parts.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsChartSheet> LegacyXlsChartSheets => _legacyXlsChartSheets;
+
+        /// <summary>
+        /// Gets legacy XLS compound-container features decoded during import but not projected into the normal workbook package.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsCompoundFeatureRecord> LegacyXlsCompoundFeatures => _legacyXlsCompoundFeatures;
+
         internal void MarkLoadedFromLegacyXls(string? sourcePath, LegacyXlsWorkbook workbook) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
@@ -40,6 +52,8 @@ namespace OfficeIMO.Excel {
             _legacyXlsImportDiagnostics = workbook.Diagnostics.ToArray();
             _legacyXlsUnsupportedFeatures = workbook.UnsupportedFeatures.ToArray();
             _legacyXlsUnsupportedSheets = workbook.UnsupportedSheets.ToArray();
+            _legacyXlsChartSheets = workbook.ChartSheets.ToArray();
+            _legacyXlsCompoundFeatures = workbook.CompoundFeatureRecords.ToArray();
 
             if (!string.IsNullOrEmpty(sourcePath)) {
                 FilePath = sourcePath!;
@@ -49,8 +63,8 @@ namespace OfficeIMO.Excel {
         internal static ExcelDocument ProjectLoadedLegacyXlsWorkbook(LegacyXlsWorkbook workbook, string? sourcePath) {
             if (workbook == null) throw new ArgumentNullException(nameof(workbook));
 
-            if (workbook.Worksheets.Count == 0) {
-                throw new InvalidDataException("Legacy XLS import failed: no supported worksheets were projected. Unsupported legacy sheet content cannot be saved as a normal .xlsx workbook.");
+            if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
+                throw new InvalidDataException("Legacy XLS import failed: no supported worksheets or chart sheets were projected. Unsupported legacy sheet content cannot be saved as a normal .xlsx workbook.");
             }
 
             ExcelDocument document = workbook.ToExcelDocument();
@@ -85,7 +99,9 @@ namespace OfficeIMO.Excel {
 
         private bool HasLossyLegacyXlsImportState() {
             return _legacyXlsUnsupportedFeatures.Length > 0
-                || _legacyXlsUnsupportedSheets.Length > 0;
+                || _legacyXlsUnsupportedSheets.Length > 0
+                || _legacyXlsChartSheets.Length > 0
+                || _legacyXlsCompoundFeatures.Length > 0;
         }
 
         private void EnsureNativeLegacyXlsSaveDoesNotDropImportedContent(ExcelSaveOptions? options) {
@@ -98,7 +114,7 @@ namespace OfficeIMO.Excel {
             string source = string.IsNullOrWhiteSpace(_legacyXlsSourcePath)
                 ? "a legacy binary .xls source"
                 : $"legacy binary .xls source '{_legacyXlsSourcePath}'";
-            throw new NotSupportedException($"Native XLS saving is blocked because this workbook was loaded from {source} with unsupported or preserve-only legacy content. Save to .xlsx, remove the unsupported legacy content, or set ExcelSaveOptions.AllowLossyLegacyXlsSave when that loss is intentional.");
+            throw new NotSupportedException($"Native XLS saving is blocked because this workbook was loaded from {source} with unsupported, preserve-only, or non-projected legacy content. Save to .xlsx, remove the unsupported legacy content, or set ExcelSaveOptions.AllowLossyLegacyXlsSave when that loss is intentional.");
         }
 
         private bool TrySaveNativeLegacyXlsToFile(string path, bool openExcel, ExcelSaveOptions? options, CancellationToken cancellationToken = default) {

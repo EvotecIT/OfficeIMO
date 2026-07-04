@@ -1,6 +1,7 @@
 ﻿# Legacy XLS Import Report
 
 Worksheets: 1
+Chart sheets: 0
 Unsupported sheets: 0
 Cells: 28
 Formula cells: 0
@@ -22,13 +23,15 @@ Data consolidation references: 0
 Data consolidation named sources: 0
 Pivot table records: 3
 Chart records: 0
+Chart sheet metadata records: 0
+Chart sheet future metadata records: 0
 Drawing records: 10
 Theme records: 1
-Drawing OfficeArt records: 19
+Drawing OfficeArt records: 30
 Drawing group blocks: 1
-Drawing group infos: 0
+Drawing group infos: 1
 Drawing identifier clusters: 1
-Drawing shape properties: 15
+Drawing shape properties: 19
 Differential formats: 0
 Table style collection records: 1
 Table style definitions: 0
@@ -50,20 +53,11 @@ Worksheet metadata records: 7
 Worksheet future metadata records: 1
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 123
+Unsupported features: 0
 Unsupported projection gaps: 0
-Preserved feature records: 123
+Preserved feature records: 0
 Errors: 0
 Warnings: 0
-
-## Diagnostics By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 9 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
-| XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
 
 ## Formula Tokens By Name
 
@@ -299,65 +293,6 @@ Warnings: 0
 | --- | --- |
 | Missing | 1 |
 
-## Unsupported Features By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 9 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED | 110 |
-| XLS-BIFF-FEATURE-THEME-UNSUPPORTED | 1 |
-
-## Unsupported Features By Kind
-
-| Key | Count |
-| --- | --- |
-| DrawingObject | 9 |
-| PivotTable | 3 |
-| StyleExtension | 110 |
-| Theme | 1 |
-
-## Unsupported Feature Record Types
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x08A3 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087C | 1 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x087D | 62 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|0x0892 | 47 |
-| Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|0x0896 | 1 |
-
-## Unsupported Feature Details
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 62 |
-| Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |
-
-## Unsupported Feature Locations
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Filters | 8 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Filters | 1 |
-| XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|(workbook) | 110 |
-| XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|(workbook) | 1 |
-
 ## File Format States
 
 | Key | Count |
@@ -497,6 +432,12 @@ Warnings: 0
 | --- | --- |
 | View:Missing\|Cache:Missing\|CacheSource:Missing\|CacheItems:Missing\|Fields:Missing\|Items:Missing\|DataItems:Present\|Grouping:Present\|Formulas:Missing\|Additional:Missing\|Locations:WorkbookAndSheets | 1 |
 
+## Pivot Table Data Item Field Indexes
+
+| Key | Count |
+| --- | --- |
+| FieldIndex:0 | 1 |
+
 ## Pivot Table Grouping Kinds
 
 | Key | Count |
@@ -611,7 +552,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Complete | 8 |
-| Truncated | 4 |
+| RequiresContinuation | 4 |
 
 ## Drawing Future Record Wrapped Types
 
@@ -658,51 +599,64 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | EscherRecordType:0xF000 | 1 |
-| EscherRecordType:0xF004 | 3 |
+| EscherRecordType:0xF002 | 1 |
+| EscherRecordType:0xF003 | 1 |
+| EscherRecordType:0xF004 | 5 |
 | EscherRecordType:0xF006 | 1 |
-| EscherRecordType:0xF00A | 3 |
-| EscherRecordType:0xF00B | 4 |
-| EscherRecordType:0xF010 | 3 |
-| EscherRecordType:0xF011 | 3 |
+| EscherRecordType:0xF008 | 1 |
+| EscherRecordType:0xF009 | 1 |
+| EscherRecordType:0xF00A | 5 |
+| EscherRecordType:0xF00B | 5 |
+| EscherRecordType:0xF010 | 4 |
+| EscherRecordType:0xF011 | 4 |
 | EscherRecordType:0xF11E | 1 |
 
 ## Drawing OfficeArt Records By Type Name
 
 | Key | Count |
 | --- | --- |
+| OfficeArtDgContainer | 1 |
 | OfficeArtDggContainer | 1 |
-| OfficeArtFClientAnchor | 3 |
-| OfficeArtFClientData | 3 |
+| OfficeArtFClientAnchor | 4 |
+| OfficeArtFClientData | 4 |
+| OfficeArtFDG | 1 |
 | OfficeArtFDGGBlock | 1 |
-| OfficeArtFOPT | 4 |
-| OfficeArtFSP | 3 |
-| OfficeArtSpContainer | 3 |
+| OfficeArtFOPT | 5 |
+| OfficeArtFSP | 5 |
+| OfficeArtFSPGR | 1 |
+| OfficeArtSpContainer | 5 |
+| OfficeArtSpgrContainer | 1 |
 | OfficeArtSplitMenuColorContainer | 1 |
 
 ## Drawing OfficeArt Records By Depth
 
 | Key | Count |
 | --- | --- |
-| Depth:0 | 4 |
-| Depth:1 | 15 |
+| Depth:0 | 5 |
+| Depth:1 | 17 |
+| Depth:2 | 2 |
+| Depth:3 | 6 |
 
 ## Drawing OfficeArt Records By Container State
 
 | Key | Count |
 | --- | --- |
-| Container | 4 |
-| Leaf | 15 |
+| Container | 8 |
+| Leaf | 22 |
 
 ## Drawing OfficeArt Records By Payload Length
 
 | Key | Count |
 | --- | --- |
-| PayloadLength:0 | 3 |
-| PayloadLength:16 | 1 |
-| PayloadLength:18 | 4 |
-| PayloadLength:24 | 4 |
-| PayloadLength:8 | 3 |
-| PayloadLength:82 | 4 |
+| PayloadLength:0 | 4 |
+| PayloadLength:16 | 2 |
+| PayloadLength:18 | 5 |
+| PayloadLength:24 | 5 |
+| PayloadLength:40 | 1 |
+| PayloadLength:408 | 1 |
+| PayloadLength:432 | 1 |
+| PayloadLength:8 | 6 |
+| PayloadLength:82 | 5 |
 
 ## Drawing Group Blocks By Max Shape Id
 
@@ -746,65 +700,86 @@ Warnings: 0
 | --- | --- |
 | CurrentShapeId:5 | 1 |
 
+## Drawing Group Infos By Drawing Id
+
+| Key | Count |
+| --- | --- |
+| DrawingId:1 | 1 |
+
+## Drawing Group Infos By Shape Count
+
+| Key | Count |
+| --- | --- |
+| Shapes:5 | 1 |
+
+## Drawing Group Infos By Last Shape Id
+
+| Key | Count |
+| --- | --- |
+| LastShapeId:1028 | 1 |
+
 ## Drawing Shape Properties By Id
 
 | Key | Count |
 | --- | --- |
-| PropertyId:0x007F | 3 |
-| PropertyId:0x00BF | 4 |
+| PropertyId:0x007F | 4 |
+| PropertyId:0x00BF | 5 |
 | PropertyId:0x0181 | 1 |
 | PropertyId:0x01C0 | 1 |
-| PropertyId:0x01FF | 3 |
-| PropertyId:0x03BF | 3 |
+| PropertyId:0x01FF | 4 |
+| PropertyId:0x03BF | 4 |
 
 ## Drawing Shape Properties By Name
 
 | Key | Count |
 | --- | --- |
 | fillColor | 1 |
-| GroupShapeBooleanProperties | 3 |
+| GroupShapeBooleanProperties | 4 |
 | lineColor | 1 |
-| LineStyleBooleanProperties | 3 |
-| ProtectionBooleanProperties | 3 |
-| TextBooleanProperties | 4 |
+| LineStyleBooleanProperties | 4 |
+| ProtectionBooleanProperties | 4 |
+| TextBooleanProperties | 5 |
 
 ## Drawing Shape Properties By Group
 
 | Key | Count |
 | --- | --- |
 | Fill | 1 |
-| GroupShape | 3 |
-| Line | 4 |
-| Protection | 3 |
-| Text | 4 |
+| GroupShape | 4 |
+| Line | 5 |
+| Protection | 4 |
+| Text | 5 |
 
 ## Drawing Shape Properties By Flag State
 
 | Key | Count |
 | --- | --- |
-| Simple | 15 |
+| Simple | 19 |
 
 ## Drawing Shape Properties By Value
 
 | Key | Count |
 | --- | --- |
-| PropertyId:0x007F;Value:0x01040104 | 3 |
-| PropertyId:0x00BF;Value:0x00080008 | 4 |
+| PropertyId:0x007F;Value:0x01040104 | 4 |
+| PropertyId:0x00BF;Value:0x00080008 | 5 |
 | PropertyId:0x0181;Value:0x08000041 | 1 |
 | PropertyId:0x01C0;Value:0x08000040 | 1 |
-| PropertyId:0x01FF;Value:0x00080000 | 3 |
-| PropertyId:0x03BF;Value:0x00020000 | 3 |
+| PropertyId:0x01FF;Value:0x00080000 | 4 |
+| PropertyId:0x03BF;Value:0x00020000 | 4 |
 
 ## Drawing Shape Entries By Type
 
 | Key | Count |
 | --- | --- |
-| HostControl | 3 |
+| HostControl | 4 |
+| NotPrimitive | 1 |
 
 ## Drawing Shape Entries By Id
 
 | Key | Count |
 | --- | --- |
+| ShapeId:1024 | 1 |
+| ShapeId:1025 | 1 |
 | ShapeId:1026 | 1 |
 | ShapeId:1027 | 1 |
 | ShapeId:1028 | 1 |
@@ -813,25 +788,29 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Flags:0x00000A00 | 3 |
+| Flags:0x00000005 | 1 |
+| Flags:0x00000A00 | 4 |
 
 ## Drawing Shape Entries By Reserved State
 
 | Key | Count |
 | --- | --- |
-| ReservedClear | 3 |
+| ReservedClear | 5 |
 
 ## Drawing Shape Entries By Flag Name
 
 | Key | Count |
 | --- | --- |
-| HaveAnchor | 3 |
-| HaveShapeType | 3 |
+| Group | 1 |
+| HaveAnchor | 4 |
+| HaveShapeType | 4 |
+| Patriarch | 1 |
 
 ## Drawing Anchor Entries By Range
 
 | Key | Count |
 | --- | --- |
+| R0C0:R1C1 | 1 |
 | R0C1:R1C2 | 1 |
 | R0C2:R1C3 | 1 |
 | R0C3:R1C4 | 1 |
@@ -840,13 +819,13 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| StartDx:0;StartDy:0;EndDx:0;EndDy:0 | 3 |
+| StartDx:0;StartDy:0;EndDx:0;EndDy:0 | 4 |
 
 ## Drawing Anchor Entries By Flags
 
 | Key | Count |
 | --- | --- |
-| Flags:0x0001 | 3 |
+| Flags:0x0001 | 4 |
 
 ## Drawing Records By Location
 
@@ -1042,59 +1021,75 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| 0x0001 | 32 |
 | 0x0004 | 32 |
-| 0x0007 | 6 |
-| 0x0008 | 10 |
-| 0x0009 | 5 |
+| 0x0005 | 41 |
+| 0x0006 | 6 |
+| 0x0007 | 16 |
+| 0x0008 | 15 |
+| 0x0009 | 10 |
 | 0x000A | 5 |
 | 0x000D | 62 |
 | 0x000E | 62 |
+| 0x0025 | 41 |
 
 ## Cell Style Extension Properties By Name
 
 | Key | Count |
 | --- | --- |
+| BottomBorder | 10 |
 | BottomBorderColor | 10 |
-| FillForegroundColor | 32 |
-| FontScheme | 62 |
+| FillForegroundColor | 64 |
+| FontScheme | 103 |
+| LeftBorder | 5 |
 | LeftBorderColor | 5 |
+| RightBorder | 5 |
 | RightBorderColor | 5 |
-| TextColor | 62 |
+| TextColor | 103 |
+| TopBorder | 6 |
 | TopBorderColor | 6 |
 
 ## Cell Style Extension Properties By Data Byte Count
 
 | Key | Count |
 | --- | --- |
-| Bytes:1 | 62 |
+| Bytes:1 | 103 |
+| Bytes:10 | 26 |
 | Bytes:16 | 120 |
+| Bytes:8 | 73 |
 
 ## Cell Style Extension Properties By Numeric Value
 
 | Key | Count |
 | --- | --- |
-| FontScheme:1 | 1 |
-| FontScheme:2 | 61 |
+| FontScheme:1 | 2 |
+| FontScheme:2 | 101 |
 
 ## Cell Style Extension Properties By Numeric Value Name
 
 | Key | Count |
 | --- | --- |
-| FontScheme:Major | 1 |
-| FontScheme:Minor | 61 |
+| FontScheme:Major | 2 |
+| FontScheme:Minor | 101 |
 
 ## Cell Style Extension Properties By Color Type
 
 | Key | Count |
 | --- | --- |
+| BottomBorder:Rgb | 6 |
+| BottomBorder:Theme | 4 |
 | BottomBorderColor:Rgb | 6 |
 | BottomBorderColor:Theme | 4 |
-| FillForegroundColor:Rgb | 8 |
-| FillForegroundColor:Theme | 24 |
+| FillForegroundColor:Rgb | 16 |
+| FillForegroundColor:Theme | 48 |
+| LeftBorder:Rgb | 5 |
 | LeftBorderColor:Rgb | 5 |
+| RightBorder:Rgb | 5 |
 | RightBorderColor:Rgb | 5 |
-| TextColor:Rgb | 9 |
-| TextColor:Theme | 53 |
+| TextColor:Rgb | 18 |
+| TextColor:Theme | 85 |
+| TopBorder:Rgb | 5 |
+| TopBorder:Theme | 1 |
 | TopBorderColor:Rgb | 5 |
 | TopBorderColor:Theme | 1 |
 
@@ -1102,57 +1097,78 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| BottomBorder:TintShade:0 | 8 |
+| BottomBorder:TintShade:13106 | 1 |
+| BottomBorder:TintShade:16383 | 1 |
 | BottomBorderColor:TintShade:0 | 8 |
 | BottomBorderColor:TintShade:13106 | 1 |
 | BottomBorderColor:TintShade:16383 | 1 |
-| FillForegroundColor:TintShade:0 | 14 |
-| FillForegroundColor:TintShade:13106 | 6 |
-| FillForegroundColor:TintShade:19660 | 6 |
-| FillForegroundColor:TintShade:26213 | 6 |
+| FillForegroundColor:TintShade:0 | 28 |
+| FillForegroundColor:TintShade:13106 | 12 |
+| FillForegroundColor:TintShade:19660 | 12 |
+| FillForegroundColor:TintShade:26213 | 12 |
+| LeftBorder:TintShade:0 | 5 |
 | LeftBorderColor:TintShade:0 | 5 |
+| RightBorder:TintShade:0 | 5 |
 | RightBorderColor:TintShade:0 | 5 |
-| TextColor:TintShade:0 | 62 |
+| TextColor:TintShade:0 | 103 |
+| TopBorder:TintShade:0 | 6 |
 | TopBorderColor:TintShade:0 | 6 |
 
 ## Cell Style Extension Properties By Color Value
 
 | Key | Count |
 | --- | --- |
+| BottomBorder:0x00000004 | 4 |
+| BottomBorder:0xFF0180FF | 1 |
+| BottomBorder:0xFF3F3F3F | 2 |
+| BottomBorder:0xFF7F7F7F | 2 |
+| BottomBorder:0xFFB2B2B2 | 1 |
 | BottomBorderColor:0x00000004 | 4 |
 | BottomBorderColor:0xFF0180FF | 1 |
 | BottomBorderColor:0xFF3F3F3F | 2 |
 | BottomBorderColor:0xFF7F7F7F | 2 |
 | BottomBorderColor:0xFFB2B2B2 | 1 |
-| FillForegroundColor:0x00000004 | 4 |
-| FillForegroundColor:0x00000005 | 4 |
-| FillForegroundColor:0x00000006 | 4 |
-| FillForegroundColor:0x00000007 | 4 |
-| FillForegroundColor:0x00000008 | 4 |
-| FillForegroundColor:0x00000009 | 4 |
-| FillForegroundColor:0xFF99CCFF | 1 |
-| FillForegroundColor:0xFF9CEBFF | 1 |
-| FillForegroundColor:0xFFA5A5A5 | 1 |
-| FillForegroundColor:0xFFCCFFFF | 1 |
-| FillForegroundColor:0xFFCEC7FF | 1 |
-| FillForegroundColor:0xFFCEEFC6 | 1 |
-| FillForegroundColor:0xFFF2F2F2 | 2 |
+| FillForegroundColor:0x00000004 | 8 |
+| FillForegroundColor:0x00000005 | 8 |
+| FillForegroundColor:0x00000006 | 8 |
+| FillForegroundColor:0x00000007 | 8 |
+| FillForegroundColor:0x00000008 | 8 |
+| FillForegroundColor:0x00000009 | 8 |
+| FillForegroundColor:0xFF99CCFF | 2 |
+| FillForegroundColor:0xFF9CEBFF | 2 |
+| FillForegroundColor:0xFFA5A5A5 | 2 |
+| FillForegroundColor:0xFFCCFFFF | 2 |
+| FillForegroundColor:0xFFCEC7FF | 2 |
+| FillForegroundColor:0xFFCEEFC6 | 2 |
+| FillForegroundColor:0xFFF2F2F2 | 4 |
+| LeftBorder:0xFF3F3F3F | 2 |
+| LeftBorder:0xFF7F7F7F | 2 |
+| LeftBorder:0xFFB2B2B2 | 1 |
 | LeftBorderColor:0xFF3F3F3F | 2 |
 | LeftBorderColor:0xFF7F7F7F | 2 |
 | LeftBorderColor:0xFFB2B2B2 | 1 |
+| RightBorder:0xFF3F3F3F | 2 |
+| RightBorder:0xFF7F7F7F | 2 |
+| RightBorder:0xFFB2B2B2 | 1 |
 | RightBorderColor:0xFF3F3F3F | 2 |
 | RightBorderColor:0xFF7F7F7F | 2 |
 | RightBorderColor:0xFFB2B2B2 | 1 |
-| TextColor:0x00000000 | 7 |
-| TextColor:0x00000001 | 41 |
-| TextColor:0x00000003 | 5 |
-| TextColor:0xFF0000FF | 1 |
-| TextColor:0xFF00579C | 1 |
-| TextColor:0xFF006100 | 1 |
-| TextColor:0xFF007DFA | 2 |
-| TextColor:0xFF06009C | 1 |
-| TextColor:0xFF3F3F3F | 1 |
-| TextColor:0xFF763F3F | 1 |
-| TextColor:0xFF7F7F7F | 1 |
+| TextColor:0x00000000 | 14 |
+| TextColor:0x00000001 | 61 |
+| TextColor:0x00000003 | 10 |
+| TextColor:0xFF0000FF | 2 |
+| TextColor:0xFF00579C | 2 |
+| TextColor:0xFF006100 | 2 |
+| TextColor:0xFF007DFA | 4 |
+| TextColor:0xFF06009C | 2 |
+| TextColor:0xFF3F3F3F | 2 |
+| TextColor:0xFF763F3F | 2 |
+| TextColor:0xFF7F7F7F | 2 |
+| TopBorder:0x00000004 | 1 |
+| TopBorder:0xFF3F3F3F | 2 |
+| TopBorder:0xFF7F7F7F | 2 |
+| TopBorder:0xFFB2B2B2 | 1 |
 | TopBorderColor:0x00000004 | 1 |
 | TopBorderColor:0xFF3F3F3F | 2 |
 | TopBorderColor:0xFF7F7F7F | 2 |
@@ -1328,27 +1344,3 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Bytes:4 | 1 |
-
-## Preserved Feature Records By Kind
-
-| Key | Count |
-| --- | --- |
-| DrawingObject | 9 |
-| PivotTable | 3 |
-| StyleExtension | 110 |
-| Theme | 1 |
-
-## Preserved Feature Record Details
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:ShapePropsStream | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:StyleExt | 47 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XFCRC | 1 |
-| StyleExtension\|XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED\|StyleExtension:XfExt | 62 |
-| Theme\|XLS-BIFF-FEATURE-THEME-UNSUPPORTED\|Theme:Theme | 1 |

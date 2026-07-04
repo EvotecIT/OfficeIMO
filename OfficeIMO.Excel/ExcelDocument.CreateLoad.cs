@@ -344,7 +344,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Loads a password-encrypted Office Open XML workbook.
+        /// Loads a password-encrypted Office Open XML workbook or legacy binary `.xls` workbook.
         /// </summary>
         /// <param name="filePath">Path to the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
@@ -359,6 +359,13 @@ namespace OfficeIMO.Excel {
             EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(filePath)) {
+                return LoadLegacyXls(filePath, new LegacyXlsImportOptions {
+                    Password = password,
+                    ReportUnsupportedRecords = true
+                });
             }
 
             var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();

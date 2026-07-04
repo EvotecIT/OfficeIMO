@@ -15,6 +15,10 @@ namespace OfficeIMO.Excel.LegacyXls {
             LegacyXlsComment[] comments = workbook.Worksheets.SelectMany(sheet => sheet.Comments).ToArray();
             LegacyXlsDataValidationCollectionRecord[] dataValidationCollections = workbook.Worksheets.SelectMany(sheet => sheet.DataValidationCollections).ToArray();
             LegacyXlsDataValidation[] dataValidations = workbook.Worksheets.SelectMany(sheet => sheet.DataValidations).ToArray();
+            var phoneticSettings = workbook.Worksheets
+                .Where(sheet => sheet.PhoneticSettings != null)
+                .Select(sheet => new { SheetName = sheet.Name, Settings = sheet.PhoneticSettings! })
+                .ToArray();
             var arrayFormulaRecords = workbook.Worksheets
                 .SelectMany(sheet => sheet.ArrayFormulaRecords.Select(record => new { SheetName = sheet.Name, Record = record }))
                 .ToArray();
@@ -22,6 +26,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             LegacyXlsConditionalFormattingExtensionRecord[] conditionalFormattingExtensions = workbook.Worksheets.SelectMany(sheet => sheet.ConditionalFormattingExtensions).ToArray();
             LegacyXlsUnsupportedFeature[] unsupportedProjectionGaps = GetUnsupportedProjectionGaps(workbook);
             WorksheetCount = workbook.Worksheets.Count;
+            ChartSheetCount = workbook.ChartSheets.Count;
             UnsupportedSheetCount = workbook.UnsupportedSheets.Count;
             CellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count);
             FormulaCellCount = workbook.Worksheets.Sum(sheet => sheet.Cells.Count(cell => cell.IsFormula));
@@ -57,6 +62,15 @@ namespace OfficeIMO.Excel.LegacyXls {
             WorksheetProtectionScenarioStates = CountByCode(workbook.Worksheets
                 .Where(sheet => sheet.Protection?.ProtectScenarios.HasValue == true)
                 .Select(sheet => sheet.Protection!.ProtectScenarios!.Value ? "Protected" : "Unprotected"));
+            WorksheetPhoneticSettingsBySheet = CountByCode(phoneticSettings.Select(item => item.SheetName));
+            WorksheetPhoneticSettingsByType = CountByCode(phoneticSettings.Select(item => item.Settings.Type.ToString()));
+            WorksheetPhoneticSettingsByAlignment = CountByCode(phoneticSettings.Select(item => item.Settings.Alignment.ToString()));
+            WorksheetPhoneticSettingsByFontId = CountByCode(phoneticSettings.Select(item => $"Font:{item.Settings.FontId.ToString(CultureInfo.InvariantCulture)}"));
+            WorksheetPhoneticSettingsByRangeCount = CountByCode(phoneticSettings.Select(item => $"Ranges:{item.Settings.Ranges.Count.ToString(CultureInfo.InvariantCulture)}"));
+            WorksheetPhoneticRangesBySheet = CountByCode(phoneticSettings
+                .SelectMany(item => item.Settings.Ranges.Select(_ => item.SheetName)));
+            WorksheetPhoneticRangesBySheetAndRange = CountByCode(phoneticSettings
+                .SelectMany(item => item.Settings.Ranges.Select(range => $"{item.SheetName}!{range}")));
             DataValidationCollectionsBySheet = CountByCode(dataValidationCollections.Select(record => record.SheetName));
             DataValidationCollectionsByDeclaredCount = CountByCode(dataValidationCollections.Select(record => $"Declared:{record.DeclaredValidationCount.ToString(CultureInfo.InvariantCulture)}"));
             DataValidationCollectionStates = CountByCode(workbook.Worksheets.SelectMany(GetDataValidationCollectionStateKeys));
@@ -281,6 +295,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             DataConsolidationNameCount = workbook.DataConsolidationNames.Count;
             PivotTableRecordCount = workbook.PivotTableRecords.Count;
             ChartRecordCount = workbook.ChartRecords.Count;
+            ChartSheetMetadataRecordCount = workbook.ChartSheets.Sum(sheet => sheet.MetadataRecords.Count);
+            ChartSheetFutureMetadataRecordCount = workbook.ChartSheets.Sum(sheet => sheet.FutureMetadataRecords.Count);
             DrawingRecordCount = workbook.DrawingRecords.Count;
             ThemeRecordCount = workbook.ThemeRecords.Count;
             DrawingOfficeArtRecordCount = workbook.DrawingRecords.Sum(record => record.OfficeArtRecords.Count);
@@ -472,6 +488,35 @@ namespace OfficeIMO.Excel.LegacyXls {
             UnsupportedSheetsByName = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.Name));
             UnsupportedSheetsByVisibility = CountByCode(workbook.UnsupportedSheets.Select(sheet => sheet.VisibilityName));
             UnsupportedSheetsByKindAndVisibility = CountByCode(workbook.UnsupportedSheets.Select(sheet => $"{sheet.Kind}|{sheet.VisibilityName}"));
+            ChartSheetsByType = CountByCode(workbook.ChartSheets.Select(sheet => $"0x{sheet.SheetType:X2}|ChartSheet"));
+            ChartSheetsByName = CountByCode(workbook.ChartSheets.Select(sheet => sheet.Name));
+            ChartSheetsByVisibility = CountByCode(workbook.ChartSheets.Select(sheet => sheet.VisibilityName));
+            ChartSheetMetadataRecordsByKind = CountByCode(workbook.ChartSheets
+                .SelectMany(sheet => sheet.MetadataRecords)
+                .Select(record => record.Kind.ToString()));
+            ChartSheetFutureMetadataRecordsByRecordType = CountByCode(workbook.ChartSheets
+                .SelectMany(sheet => sheet.FutureMetadataRecords)
+                .Select(record => $"0x{record.RecordType:X4}"));
+            ChartSheetPrintSizes = CountByCode(workbook.ChartSheets
+                .Where(sheet => sheet.ChartPrintSize.HasValue)
+                .Select(sheet => $"PrintSize:{sheet.ChartPrintSize!.Value}"));
+            ChartSheetPrintSizeKinds = CountByCode(workbook.ChartSheets
+                .Where(sheet => !string.IsNullOrWhiteSpace(sheet.ChartPrintSizeName))
+                .Select(sheet => sheet.ChartPrintSizeName!));
+            ChartSheetTextObjectCounts = CountByCode(workbook.ChartSheets
+                .Where(sheet => sheet.ChartTextObjectCount > 0)
+                .Select(sheet => $"TextObjects:{sheet.ChartTextObjectCount}"));
+            ChartSheetChartRecordCounts = CountByCode(workbook.ChartSheets
+                .Where(sheet => sheet.ChartRecordCount > 0)
+                .Select(sheet => $"ChartRecords:{sheet.ChartRecordCount}"));
+            ChartSheetChartRecordCountsBySheet = CountByCode(workbook.ChartSheets
+                .Where(sheet => sheet.ChartRecordCount > 0)
+                .Select(sheet => $"Sheet:{sheet.Name};ChartRecords:{sheet.ChartRecordCount}"));
+            ChartSheetChartRecordKinds = CountChartSheetChartRecordKinds(workbook.ChartSheets);
+            ChartSheetChartRecordKindsBySheet = CountChartSheetChartRecordKindsBySheet(workbook.ChartSheets);
+            ChartSheetChartTypes = CountChartSheetChartTypes(workbook.ChartSheets);
+            ChartSheetChartTypesBySheet = CountChartSheetChartTypesBySheet(workbook.ChartSheets);
+            ChartSheetStates = CountByCode(workbook.ChartSheets.Select(GetChartSheetStateKey));
             UnsupportedChartSheetPrintSizes = CountByCode(workbook.UnsupportedSheets
                 .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.ChartPrintSize.HasValue)
                 .Select(sheet => $"PrintSize:{sheet.ChartPrintSize!.Value}"));
@@ -660,6 +705,9 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableLineItemEntryCounts = CountByCode(workbook.PivotTableRecords
                 .SelectMany(record => record.LineItems)
                 .Select(item => $"Entries:{item.EntryCount}"));
+            PivotTableLineItemEntrySlotCounts = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.LineItems)
+                .Select(item => $"Slots:{item.EntrySlotCount};Entries:{item.EntryCount}"));
             PivotTableLineItemEntryIndexes = CountByCode(workbook.PivotTableRecords
                 .SelectMany(record => record.LineItems)
                 .SelectMany(item => item.EntryIndexNames));
@@ -705,6 +753,63 @@ namespace OfficeIMO.Excel.LegacyXls {
             PivotTableFormulaPayloadLengths = CountByCode(workbook.PivotTableRecords
                 .Where(record => record.Kind == LegacyXlsPivotTableRecordKind.Formula)
                 .Select(record => $"{record.RecordName}|Bytes:{record.PayloadLength}"));
+            PivotTableFormulaPayloadKinds = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.CalculatedItemFormulaPayloadKind))
+                .Select(record => record.CalculatedItemFormulaPayloadKind!));
+            PivotTableFormulaTokenByteCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CalculatedItemFormulaTokenByteCount.HasValue)
+                .Select(record => $"TokenBytes:{record.CalculatedItemFormulaTokenByteCount!.Value}"));
+            PivotTableCalculatedFieldFormulaTokenByteCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CalculatedFieldFormulaTokenByteCount.HasValue)
+                .Select(record => $"TokenBytes:{record.CalculatedFieldFormulaTokenByteCount!.Value}"));
+            PivotTableFormulaTrailingByteCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.CalculatedItemFormulaTrailingByteCount.HasValue)
+                .Select(record => $"TrailingBytes:{record.CalculatedItemFormulaTrailingByteCount!.Value}"));
+            PivotTableRuleAxes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.RuleAxisName))
+                .Select(record => record.RuleAxisName!));
+            PivotTableRuleTypes = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.RuleTypeName))
+                .Select(record => record.RuleTypeName!));
+            PivotTableRuleFieldReferences = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.RuleFieldReferenceName))
+                .Select(record => record.RuleFieldReferenceName!));
+            PivotTableRuleFilterCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.RuleFilterCount.HasValue)
+                .Select(record => $"Filters:{record.RuleFilterCount!.Value}"));
+            PivotTableRuleOptionStates = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.RulePartialArea.HasValue)
+                .Select(record => $"Partial:{record.RulePartialArea!.Value};DataOnly:{record.RuleDataOnly!.Value};LabelOnly:{record.RuleLabelOnly!.Value};CacheBased:{record.RuleCacheBased!.Value}"));
+            PivotTableRulePartialAreas = CountByCode(workbook.PivotTableRecords
+                .Where(record => !string.IsNullOrWhiteSpace(record.RulePartialAreaRange))
+                .Select(record => record.RulePartialAreaRange!));
+            PivotTableRuleFilterEntryCounts = CountByCode(workbook.PivotTableRecords
+                .Where(record => record.RuleFilters.Count > 0)
+                .Select(record => $"Filters:{record.RuleFilters.Count}"));
+            PivotTableRuleFilterAxes = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .Select(filter => filter.AxisName));
+            PivotTableRuleFilterFieldPositions = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .Select(filter => $"Position:{filter.FieldPosition}"));
+            PivotTableRuleFilterFieldReferences = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .Select(filter => filter.FieldReferenceName));
+            PivotTableRuleFilterSelectedStates = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .Select(filter => $"Selected:{filter.Selected}"));
+            PivotTableRuleFilterSubtotalFlags = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .Select(filter => $"Flags:0x{filter.SubtotalFlags:X4}"));
+            PivotTableRuleFilterSubtotalFunctions = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .SelectMany(filter => filter.SubtotalFunctionNames));
+            PivotTableRuleFilterItemIndexCounts = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .Select(filter => $"Indexes:{filter.ItemIndexCount}"));
+            PivotTableRuleFilterStates = CountByCode(workbook.PivotTableRecords
+                .SelectMany(record => record.RuleFilters)
+                .Select(GetPivotTableRuleFilterStateKey));
             PivotTableCacheItemKinds = CountByCode(workbook.PivotTableRecords
                 .Where(record => !string.IsNullOrWhiteSpace(record.CacheItemKindName))
                 .Select(record => record.CacheItemKindName!));
@@ -862,7 +967,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             ChartRecordsByName = CountByCode(workbook.ChartRecords.Select(record => record.RecordName));
             ChartRecordsByNameAndPayloadLength = CountByCode(workbook.ChartRecords
                 .Select(record => $"{record.RecordName}|Bytes:{record.PayloadLength}"));
-            ChartWorkbookStates = CountByCode(GetChartWorkbookStateKeys(workbook.ChartRecords, workbook.UnsupportedSheets));
+            ChartWorkbookStates = CountByCode(GetChartWorkbookStateKeys(workbook.ChartRecords, workbook.ChartSheets));
             ChartRecordsByContainerDepthBefore = CountByCode(workbook.ChartRecords
                 .Where(record => record.ContainerDepthBefore.HasValue)
                 .Select(record => $"Depth:{record.ContainerDepthBefore!.Value}"));
@@ -1405,7 +1510,7 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .Select(subRecord => $"DeclaredBytes:{subRecord.DeclaredLength}"));
             DrawingObjectSubRecordsByCompleteness = CountByCode(workbook.DrawingRecords
                 .SelectMany(record => record.ObjectSubRecords)
-                .Select(subRecord => subRecord.IsComplete ? "Complete" : "Truncated"));
+                .Select(subRecord => subRecord.CompletionState));
             DrawingFutureRecordWrappedTypes = CountByCode(workbook.DrawingRecords
                 .Where(record => record.FutureRecordHeader != null)
                 .Select(record => $"{record.RecordName}|0x{record.FutureRecordHeader!.WrappedRecordType:X4}"));
@@ -1425,6 +1530,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             DrawingFutureRecordStreamByteCounts = CountByCode(workbook.DrawingRecords
                 .Where(record => record.FutureRecordHeader != null)
                 .Select(record => $"{record.RecordName}|StreamBytes:{record.FutureRecordHeader!.StreamByteCount}"));
+            DrawingHeaderFooterPictureHeaderStates = CountByCode(workbook.DrawingRecords
+                .Where(record => record.HeaderFooterPicture != null)
+                .Select(record => record.HeaderFooterPicture!.HeaderState));
+            DrawingHeaderFooterPictureDrawingKinds = CountByCode(workbook.DrawingRecords
+                .Where(record => record.HeaderFooterPicture != null)
+                .Select(record => record.HeaderFooterPicture!.DrawingKindName));
+            DrawingHeaderFooterPictureContinuationStates = CountByCode(workbook.DrawingRecords
+                .Where(record => record.HeaderFooterPicture != null)
+                .Select(record => record.HeaderFooterPicture!.ContinuationState));
+            DrawingHeaderFooterPictureFutureRecordFlags = CountByCode(workbook.DrawingRecords
+                .Where(record => record.HeaderFooterPicture != null)
+                .Select(record => $"Flags:0x{record.HeaderFooterPicture!.FutureRecordFlags:X4}"));
+            DrawingHeaderFooterPictureDrawingByteCounts = CountByCode(workbook.DrawingRecords
+                .Where(record => record.HeaderFooterPicture != null)
+                .Select(record => $"DrawingBytes:{record.HeaderFooterPicture!.DrawingByteCount}"));
             DrawingTextObjectAlignments = CountByCode(workbook.DrawingRecords
                 .Where(record => record.TextObject != null)
                 .Select(record => $"Horizontal:{record.TextObject!.HorizontalAlignmentName};Vertical:{record.TextObject.VerticalAlignmentName}"));
@@ -1729,6 +1849,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of imported worksheet sheets.</summary>
         public int WorksheetCount { get; }
 
+        /// <summary>Gets the number of decoded legacy chart sheets.</summary>
+        public int ChartSheetCount { get; }
+
         /// <summary>Gets the number of sheet entries that were preserved as unsupported metadata.</summary>
         public int UnsupportedSheetCount { get; }
 
@@ -1785,6 +1908,27 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets worksheet scenario protection states declared by ScenarioProtect records.</summary>
         public IReadOnlyDictionary<string, int> WorksheetProtectionScenarioStates { get; }
+
+        /// <summary>Gets worksheet phonetic settings grouped by worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsBySheet { get; }
+
+        /// <summary>Gets worksheet phonetic settings grouped by conversion type.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByType { get; }
+
+        /// <summary>Gets worksheet phonetic settings grouped by alignment.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByAlignment { get; }
+
+        /// <summary>Gets worksheet phonetic settings grouped by BIFF font id.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByFontId { get; }
+
+        /// <summary>Gets worksheet phonetic settings grouped by attached range count.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetPhoneticSettingsByRangeCount { get; }
+
+        /// <summary>Gets worksheet phonetic ranges grouped by worksheet name.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetPhoneticRangesBySheet { get; }
+
+        /// <summary>Gets worksheet phonetic ranges grouped by worksheet-qualified A1 range.</summary>
+        public IReadOnlyDictionary<string, int> WorksheetPhoneticRangesBySheetAndRange { get; }
 
         /// <summary>Gets parsed DVal collection headers grouped by worksheet name.</summary>
         public IReadOnlyDictionary<string, int> DataValidationCollectionsBySheet { get; }
@@ -2056,10 +2200,16 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets the number of preserve-only chart BIFF records discovered during import.</summary>
         public int ChartRecordCount { get; }
 
+        /// <summary>Gets the number of metadata records parsed from chart-sheet substreams.</summary>
+        public int ChartSheetMetadataRecordCount { get; }
+
+        /// <summary>Gets the number of future metadata records parsed from chart-sheet substreams.</summary>
+        public int ChartSheetFutureMetadataRecordCount { get; }
+
         /// <summary>Gets the number of preserve-only drawing and object BIFF records discovered during import.</summary>
         public int DrawingRecordCount { get; }
 
-        /// <summary>Gets the number of preserve-only workbook Theme records discovered during import.</summary>
+        /// <summary>Gets the number of workbook Theme records discovered during import.</summary>
         public int ThemeRecordCount { get; }
 
         /// <summary>Gets the number of OfficeArt record headers discovered under preserve-only drawing records.</summary>
@@ -2361,6 +2511,51 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets unsupported sheet entries grouped by sheet kind and decoded visibility state.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedSheetsByKindAndVisibility { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by raw BoundSheet type.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetsByType { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by sheet name.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetsByName { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by visibility state.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetsByVisibility { get; }
+
+        /// <summary>Gets chart-sheet metadata records grouped by decoded kind.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetMetadataRecordsByKind { get; }
+
+        /// <summary>Gets chart-sheet future metadata records grouped by BIFF record type.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetFutureMetadataRecordsByRecordType { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by raw PrintSize value.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetPrintSizes { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by PrintSize mode name.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetPrintSizeKinds { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by chart text object count.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetTextObjectCounts { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by chart record count.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetChartRecordCounts { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by sheet name and chart record count.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetChartRecordCountsBySheet { get; }
+
+        /// <summary>Gets chart-sheet chart records grouped by shallow category.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetChartRecordKinds { get; }
+
+        /// <summary>Gets chart-sheet chart records grouped by sheet name and shallow category.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetChartRecordKindsBySheet { get; }
+
+        /// <summary>Gets chart-sheet chart type records grouped by decoded chart family.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetChartTypes { get; }
+
+        /// <summary>Gets chart-sheet chart type records grouped by sheet name and decoded chart family.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetChartTypesBySheet { get; }
+
+        /// <summary>Gets decoded chart sheets grouped by metadata shape.</summary>
+        public IReadOnlyDictionary<string, int> ChartSheetStates { get; }
 
         /// <summary>Gets unsupported chart sheets grouped by raw PrintSize value.</summary>
         public IReadOnlyDictionary<string, int> UnsupportedChartSheetPrintSizes { get; }
@@ -2668,6 +2863,9 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets decoded SXLI PivotTable line items grouped by declared entry count.</summary>
         public IReadOnlyDictionary<string, int> PivotTableLineItemEntryCounts { get; }
 
+        /// <summary>Gets decoded SXLI PivotTable line items grouped by physical entry slots and declared entry count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableLineItemEntrySlotCounts { get; }
+
         /// <summary>Gets decoded SXLI PivotTable line items grouped by entry index name.</summary>
         public IReadOnlyDictionary<string, int> PivotTableLineItemEntryIndexes { get; }
 
@@ -2712,6 +2910,63 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         /// <summary>Gets PivotTable formula records grouped by BIFF record name and payload length.</summary>
         public IReadOnlyDictionary<string, int> PivotTableFormulaPayloadLengths { get; }
+
+        /// <summary>Gets PivotTable formula records grouped by decoded payload shape.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFormulaPayloadKinds { get; }
+
+        /// <summary>Gets SXFormula token streams grouped by parsed-expression byte count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFormulaTokenByteCounts { get; }
+
+        /// <summary>Gets calculated-field SXFormula token streams grouped by parsed-expression byte count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableCalculatedFieldFormulaTokenByteCounts { get; }
+
+        /// <summary>Gets SXFormula token streams grouped by trailing byte count after the parsed expression.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableFormulaTrailingByteCounts { get; }
+
+        /// <summary>Gets decoded SxRule records grouped by axis.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleAxes { get; }
+
+        /// <summary>Gets decoded SxRule records grouped by rule area type.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleTypes { get; }
+
+        /// <summary>Gets decoded SxRule records grouped by field reference.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFieldReferences { get; }
+
+        /// <summary>Gets decoded SxRule records grouped by following SxFilt count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterCounts { get; }
+
+        /// <summary>Gets decoded SxRule records grouped by option flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleOptionStates { get; }
+
+        /// <summary>Gets decoded partial-area SxRule records grouped by relative area bounds.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRulePartialAreas { get; }
+
+        /// <summary>Gets decoded SxFilt records grouped by contained rule-filter entry count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterEntryCounts { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by axis.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterAxes { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by field position.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterFieldPositions { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by referenced field.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterFieldReferences { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by selected-header state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterSelectedStates { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by raw subtotal flags.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterSubtotalFlags { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by subtotal function.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterSubtotalFunctions { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by following SxItm index count.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterItemIndexCounts { get; }
+
+        /// <summary>Gets decoded SxFilt rule-filter entries grouped by compact filter state.</summary>
+        public IReadOnlyDictionary<string, int> PivotTableRuleFilterStates { get; }
 
         /// <summary>Gets decoded PivotCache item records grouped by value kind.</summary>
         public IReadOnlyDictionary<string, int> PivotTableCacheItemKinds { get; }
@@ -3439,6 +3694,21 @@ namespace OfficeIMO.Excel.LegacyXls {
         /// <summary>Gets drawing future-record streams grouped by remaining stream byte count.</summary>
         public IReadOnlyDictionary<string, int> DrawingFutureRecordStreamByteCounts { get; }
 
+        /// <summary>Gets HFPicture records grouped by decoded header state.</summary>
+        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureHeaderStates { get; }
+
+        /// <summary>Gets HFPicture records grouped by declared OfficeArt drawing kind.</summary>
+        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureDrawingKinds { get; }
+
+        /// <summary>Gets HFPicture records grouped by continuation state.</summary>
+        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureContinuationStates { get; }
+
+        /// <summary>Gets HFPicture records grouped by future-record flags.</summary>
+        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureFutureRecordFlags { get; }
+
+        /// <summary>Gets HFPicture records grouped by embedded OfficeArt byte count.</summary>
+        public IReadOnlyDictionary<string, int> DrawingHeaderFooterPictureDrawingByteCounts { get; }
+
         /// <summary>Gets TxO text-object records grouped by decoded horizontal and vertical alignment.</summary>
         public IReadOnlyDictionary<string, int> DrawingTextObjectAlignments { get; }
 
@@ -3846,6 +4116,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine("# Legacy XLS Import Report");
             builder.AppendLine();
             builder.AppendLine($"Worksheets: {WorksheetCount}");
+            builder.AppendLine($"Chart sheets: {ChartSheetCount}");
             builder.AppendLine($"Unsupported sheets: {UnsupportedSheetCount}");
             builder.AppendLine($"Cells: {CellCount}");
             builder.AppendLine($"Formula cells: {FormulaCellCount}");
@@ -3867,6 +4138,8 @@ namespace OfficeIMO.Excel.LegacyXls {
             builder.AppendLine($"Data consolidation named sources: {DataConsolidationNameCount}");
             builder.AppendLine($"Pivot table records: {PivotTableRecordCount}");
             builder.AppendLine($"Chart records: {ChartRecordCount}");
+            builder.AppendLine($"Chart sheet metadata records: {ChartSheetMetadataRecordCount}");
+            builder.AppendLine($"Chart sheet future metadata records: {ChartSheetFutureMetadataRecordCount}");
             builder.AppendLine($"Drawing records: {DrawingRecordCount}");
             builder.AppendLine($"Theme records: {ThemeRecordCount}");
             builder.AppendLine($"Drawing OfficeArt records: {DrawingOfficeArtRecordCount}");
@@ -4028,6 +4301,13 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "AutoFilter Top10 Values", AutoFilterTop10Values);
             AppendDictionary(builder, "AutoFilter Top10 Directions", AutoFilterTop10Directions);
             AppendDictionary(builder, "AutoFilter Top10 Units", AutoFilterTop10Units);
+            AppendDictionary(builder, "Worksheet Phonetic Settings By Sheet", WorksheetPhoneticSettingsBySheet);
+            AppendDictionary(builder, "Worksheet Phonetic Settings By Type", WorksheetPhoneticSettingsByType);
+            AppendDictionary(builder, "Worksheet Phonetic Settings By Alignment", WorksheetPhoneticSettingsByAlignment);
+            AppendDictionary(builder, "Worksheet Phonetic Settings By Font Id", WorksheetPhoneticSettingsByFontId);
+            AppendDictionary(builder, "Worksheet Phonetic Settings By Range Count", WorksheetPhoneticSettingsByRangeCount);
+            AppendDictionary(builder, "Worksheet Phonetic Ranges By Sheet", WorksheetPhoneticRangesBySheet);
+            AppendDictionary(builder, "Worksheet Phonetic Ranges By Sheet And Range", WorksheetPhoneticRangesBySheetAndRange);
             AppendDictionary(builder, "Worksheets By Visibility", WorksheetsByVisibility);
             AppendDictionary(builder, "Workbook CodeName States", WorkbookCodeNameStates);
             AppendDictionary(builder, "Workbook CodeNames", WorkbookCodeNames);
@@ -4066,6 +4346,21 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Unsupported Sheets By Name", UnsupportedSheetsByName);
             AppendDictionary(builder, "Unsupported Sheets By Visibility", UnsupportedSheetsByVisibility);
             AppendDictionary(builder, "Unsupported Sheets By Kind And Visibility", UnsupportedSheetsByKindAndVisibility);
+            AppendDictionary(builder, "Chart Sheets By Type", ChartSheetsByType);
+            AppendDictionary(builder, "Chart Sheets By Name", ChartSheetsByName);
+            AppendDictionary(builder, "Chart Sheets By Visibility", ChartSheetsByVisibility);
+            AppendDictionary(builder, "Chart Sheet Metadata Records By Kind", ChartSheetMetadataRecordsByKind);
+            AppendDictionary(builder, "Chart Sheet Future Metadata Records By Record Type", ChartSheetFutureMetadataRecordsByRecordType);
+            AppendDictionary(builder, "Chart Sheet Print Sizes", ChartSheetPrintSizes);
+            AppendDictionary(builder, "Chart Sheet Print Size Kinds", ChartSheetPrintSizeKinds);
+            AppendDictionary(builder, "Chart Sheet Text Object Counts", ChartSheetTextObjectCounts);
+            AppendDictionary(builder, "Chart Sheet Chart Record Counts", ChartSheetChartRecordCounts);
+            AppendDictionary(builder, "Chart Sheet Chart Record Counts By Sheet", ChartSheetChartRecordCountsBySheet);
+            AppendDictionary(builder, "Chart Sheet Chart Record Kinds", ChartSheetChartRecordKinds);
+            AppendDictionary(builder, "Chart Sheet Chart Record Kinds By Sheet", ChartSheetChartRecordKindsBySheet);
+            AppendDictionary(builder, "Chart Sheet Chart Types", ChartSheetChartTypes);
+            AppendDictionary(builder, "Chart Sheet Chart Types By Sheet", ChartSheetChartTypesBySheet);
+            AppendDictionary(builder, "Chart Sheet States", ChartSheetStates);
             AppendDictionary(builder, "Unsupported Chart Sheet Print Sizes", UnsupportedChartSheetPrintSizes);
             AppendDictionary(builder, "Unsupported Chart Sheet Print Size Kinds", UnsupportedChartSheetPrintSizeKinds);
             AppendDictionary(builder, "Unsupported Chart Sheet Text Object Counts", UnsupportedChartSheetTextObjectCounts);
@@ -4183,6 +4478,7 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Line Item Types", PivotTableLineItemTypes);
             AppendDictionary(builder, "Pivot Table Line Item Type Kinds", PivotTableLineItemTypeKinds);
             AppendDictionary(builder, "Pivot Table Line Item Entry Counts", PivotTableLineItemEntryCounts);
+            AppendDictionary(builder, "Pivot Table Line Item Entry Slot Counts", PivotTableLineItemEntrySlotCounts);
             AppendDictionary(builder, "Pivot Table Line Item Entry Indexes", PivotTableLineItemEntryIndexes);
             AppendDictionary(builder, "Pivot Table Line Item Data Indexes", PivotTableLineItemDataIndexes);
             AppendDictionary(builder, "Pivot Table Line Item Flag States", PivotTableLineItemFlagStates);
@@ -4198,6 +4494,25 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Pivot Table Item Flag States", PivotTableItemFlagStates);
             AppendDictionary(builder, "Pivot Table Item Names", PivotTableItemNames);
             AppendDictionary(builder, "Pivot Table Formula Payload Lengths", PivotTableFormulaPayloadLengths);
+            AppendDictionary(builder, "Pivot Table Formula Payload Kinds", PivotTableFormulaPayloadKinds);
+            AppendDictionary(builder, "Pivot Table Formula Token Byte Counts", PivotTableFormulaTokenByteCounts);
+            AppendDictionary(builder, "Pivot Table Calculated Field Formula Token Byte Counts", PivotTableCalculatedFieldFormulaTokenByteCounts);
+            AppendDictionary(builder, "Pivot Table Formula Trailing Byte Counts", PivotTableFormulaTrailingByteCounts);
+            AppendDictionary(builder, "Pivot Table Rule Axes", PivotTableRuleAxes);
+            AppendDictionary(builder, "Pivot Table Rule Types", PivotTableRuleTypes);
+            AppendDictionary(builder, "Pivot Table Rule Field References", PivotTableRuleFieldReferences);
+            AppendDictionary(builder, "Pivot Table Rule Filter Counts", PivotTableRuleFilterCounts);
+            AppendDictionary(builder, "Pivot Table Rule Option States", PivotTableRuleOptionStates);
+            AppendDictionary(builder, "Pivot Table Rule Partial Areas", PivotTableRulePartialAreas);
+            AppendDictionary(builder, "Pivot Table Rule Filter Entry Counts", PivotTableRuleFilterEntryCounts);
+            AppendDictionary(builder, "Pivot Table Rule Filter Axes", PivotTableRuleFilterAxes);
+            AppendDictionary(builder, "Pivot Table Rule Filter Field Positions", PivotTableRuleFilterFieldPositions);
+            AppendDictionary(builder, "Pivot Table Rule Filter Field References", PivotTableRuleFilterFieldReferences);
+            AppendDictionary(builder, "Pivot Table Rule Filter Selected States", PivotTableRuleFilterSelectedStates);
+            AppendDictionary(builder, "Pivot Table Rule Filter Subtotal Flags", PivotTableRuleFilterSubtotalFlags);
+            AppendDictionary(builder, "Pivot Table Rule Filter Subtotal Functions", PivotTableRuleFilterSubtotalFunctions);
+            AppendDictionary(builder, "Pivot Table Rule Filter Item Index Counts", PivotTableRuleFilterItemIndexCounts);
+            AppendDictionary(builder, "Pivot Table Rule Filter States", PivotTableRuleFilterStates);
             AppendDictionary(builder, "Pivot Table Cache Item Kinds", PivotTableCacheItemKinds);
             AppendDictionary(builder, "Pivot Table Cache Item Value States", PivotTableCacheItemValueStates);
             AppendDictionary(builder, "Pivot Table Cache Item String Lengths", PivotTableCacheItemStringLengths);
@@ -4446,6 +4761,11 @@ namespace OfficeIMO.Excel.LegacyXls {
             AppendDictionary(builder, "Drawing Future Record Reference States", DrawingFutureRecordReferenceStates);
             AppendDictionary(builder, "Drawing Future Record Ranges", DrawingFutureRecordRanges);
             AppendDictionary(builder, "Drawing Future Record Stream Byte Counts", DrawingFutureRecordStreamByteCounts);
+            AppendDictionary(builder, "Drawing Header Footer Picture Header States", DrawingHeaderFooterPictureHeaderStates);
+            AppendDictionary(builder, "Drawing Header Footer Picture Drawing Kinds", DrawingHeaderFooterPictureDrawingKinds);
+            AppendDictionary(builder, "Drawing Header Footer Picture Continuation States", DrawingHeaderFooterPictureContinuationStates);
+            AppendDictionary(builder, "Drawing Header Footer Picture Future Record Flags", DrawingHeaderFooterPictureFutureRecordFlags);
+            AppendDictionary(builder, "Drawing Header Footer Picture Drawing Byte Counts", DrawingHeaderFooterPictureDrawingByteCounts);
             AppendDictionary(builder, "Drawing Text Object Alignments", DrawingTextObjectAlignments);
             AppendDictionary(builder, "Drawing Text Object Rotations", DrawingTextObjectRotations);
             AppendDictionary(builder, "Drawing Text Object Text Lengths", DrawingTextObjectTextLengths);
@@ -4735,6 +5055,44 @@ namespace OfficeIMO.Excel.LegacyXls {
                 .GroupBy(sheet => sheet.Kind)
                 .OrderBy(group => group.Key.ToString(), StringComparer.OrdinalIgnoreCase)
                 .ToDictionary(group => group.Key, group => group.Count());
+        }
+
+        private static IReadOnlyDictionary<string, int> CountChartSheetChartRecordKinds(IEnumerable<LegacyXlsChartSheet> sheets) {
+            return sheets
+                .SelectMany(sheet => sheet.ChartRecordsByKind)
+                .GroupBy(entry => entry.Key.ToString(), StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.Value), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static IReadOnlyDictionary<string, int> CountChartSheetChartRecordKindsBySheet(IEnumerable<LegacyXlsChartSheet> sheets) {
+            return sheets
+                .SelectMany(sheet => sheet.ChartRecordsByKind.Select(entry => new {
+                    Key = $"Sheet:{sheet.Name};Kind:{entry.Key}",
+                    entry.Value
+                }))
+                .GroupBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.Value), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static IReadOnlyDictionary<string, int> CountChartSheetChartTypes(IEnumerable<LegacyXlsChartSheet> sheets) {
+            return sheets
+                .SelectMany(sheet => sheet.ChartRecordsByChartType)
+                .GroupBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.Value), StringComparer.OrdinalIgnoreCase);
+        }
+
+        private static IReadOnlyDictionary<string, int> CountChartSheetChartTypesBySheet(IEnumerable<LegacyXlsChartSheet> sheets) {
+            return sheets
+                .SelectMany(sheet => sheet.ChartRecordsByChartType.Select(entry => new {
+                    Key = $"Sheet:{sheet.Name};ChartType:{entry.Key}",
+                    entry.Value
+                }))
+                .GroupBy(entry => entry.Key, StringComparer.OrdinalIgnoreCase)
+                .OrderBy(group => group.Key, StringComparer.OrdinalIgnoreCase)
+                .ToDictionary(group => group.Key, group => group.Sum(entry => entry.Value), StringComparer.OrdinalIgnoreCase);
         }
 
         private static IReadOnlyDictionary<string, int> CountUnsupportedChartSheetChartRecordKinds(IEnumerable<LegacyXlsUnsupportedSheet> sheets) {
@@ -5055,17 +5413,22 @@ namespace OfficeIMO.Excel.LegacyXls {
                 + $"|ChartTypes:{GetPresenceKey(sheet.ChartRecordsByChartType.Count > 0)}";
         }
 
+        private static string GetChartSheetStateKey(LegacyXlsChartSheet sheet) {
+            return $"PrintSize:{GetPresenceKey(sheet.ChartPrintSize.HasValue)}"
+                + $"|TextObjects:{GetPresenceKey(sheet.ChartTextObjectCount > 0)}"
+                + $"|ChartRecords:{GetPresenceKey(sheet.ChartRecordCount > 0)}"
+                + $"|ChartTypes:{GetPresenceKey(sheet.ChartRecordsByChartType.Count > 0)}";
+        }
+
         private static IEnumerable<string> GetChartWorkbookStateKeys(
             IReadOnlyCollection<LegacyXlsChartRecord> records,
-            IReadOnlyCollection<LegacyXlsUnsupportedSheet> unsupportedSheets) {
+            IReadOnlyCollection<LegacyXlsChartSheet> chartSheets) {
             if (records.Count == 0) {
                 yield break;
             }
 
             var chartSheetNames = new HashSet<string>(
-                unsupportedSheets
-                    .Where(sheet => sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet)
-                    .Select(sheet => sheet.Name),
+                chartSheets.Select(sheet => sheet.Name),
                 StringComparer.OrdinalIgnoreCase);
 
             yield return $"Containers:{GetPresenceKey(records.Any(record => record.Kind == LegacyXlsChartRecordKind.Container))}"
@@ -5340,6 +5703,8 @@ namespace OfficeIMO.Excel.LegacyXls {
         private static IEnumerable<string> GetDrawingTextObjectFlagKeys(LegacyXlsDrawingTextObject textObject) {
             yield return $"TextInContinueRecords:{GetPresenceKey(textObject.HasTextInContinueRecords)}";
             yield return $"FormattingRunsInContinueRecords:{GetPresenceKey(textObject.HasFormattingRunsInContinueRecords)}";
+            yield return $"DecodedText:{GetPresenceKey(textObject.HasDecodedText)}";
+            yield return $"DecodedFormattingRuns:{textObject.FormattingRuns.Count}";
             yield return $"LockedText:{textObject.LockedText}";
             yield return $"JustifyLastLine:{textObject.JustifyLastLine}";
             yield return $"SecretEdit:{textObject.SecretEdit}";
@@ -5543,6 +5908,15 @@ namespace OfficeIMO.Excel.LegacyXls {
 
         private static string GetPivotTableDataItemDisplayCalculationReferenceStateKey(LegacyXlsPivotTableRecord record) {
             return $"{record.DisplayCalculationName}|Field:{record.DisplayCalculationFieldReferenceName}|Item:{record.DisplayCalculationItemReferenceName}";
+        }
+
+        private static string GetPivotTableRuleFilterStateKey(LegacyXlsPivotRuleFilter filter) {
+            return $"Axis:{filter.AxisName}"
+                + $"|Position:{filter.FieldPosition}"
+                + $"|Field:{filter.FieldReferenceName}"
+                + $"|Selected:{filter.Selected}"
+                + $"|Subtotals:0x{filter.SubtotalFlags:X4}"
+                + $"|Indexes:{filter.ItemIndexCount}";
         }
 
         private static string GetPivotTableGroupingNumericRangeKey(LegacyXlsPivotTableRecord record) {
@@ -5809,6 +6183,14 @@ namespace OfficeIMO.Excel.LegacyXls {
             int differentialFormatCount) {
             if (record.IsCf12) {
                 return "UnprojectedCf12";
+            }
+
+            if (record.HasProjectedFormatting) {
+                if (record.InlineFormattingByteCount.HasValue) {
+                    return $"ProjectedInlineDxfBytes:{record.InlineFormattingByteCount.Value.ToString(CultureInfo.InvariantCulture)}";
+                }
+
+                return "ProjectedSingleDxf";
             }
 
             if (!record.HasUnprojectedFormatting) {

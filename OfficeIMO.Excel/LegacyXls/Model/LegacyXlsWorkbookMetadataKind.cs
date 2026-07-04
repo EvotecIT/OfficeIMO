@@ -15,6 +15,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Built-in function category count from a BuiltInFnGroupCount record.</summary>
         BuiltInFunctionGroupCount,
 
+        /// <summary>BIFF5 workbook compatibility marker from a Book record.</summary>
+        Biff5BookStreamMarker,
+
+        /// <summary>BIFF5 workbook-global compatibility marker.</summary>
+        Biff5WorkbookGlobalsMarker,
+
         /// <summary>Workbook text code page from a CodePage record.</summary>
         CodePage,
 
@@ -68,6 +74,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Workbook window geometry and display flags from a Window1 record.</summary>
         Window,
+
+        /// <summary>BIFF workspace metadata preserved from legacy workbook globals.</summary>
+        Workspace,
 
         /// <summary>Last write user name from a WriteAccess record.</summary>
         WriteAccess,

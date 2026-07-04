@@ -211,6 +211,11 @@ namespace OfficeIMO.Excel {
         {
             List<ExcelSheet> listExcel = new List<ExcelSheet>(elements.Count);
             foreach (Sheet s in elements) {
+                if (s.Id?.Value == null
+                    || _spreadSheetDocument?.WorkbookPart?.GetPartById(s.Id.Value) is not WorksheetPart) {
+                    continue;
+                }
+
                 listExcel.Add(new ExcelSheet(this, _spreadSheetDocument!, s));
             }
 

@@ -709,7 +709,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out IReadOnlyList<LegacyXlsDrawingOfficeArtRecord> officeArtRecords,
                 out _,
                 out _,
-                out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties);
+                out IReadOnlyList<LegacyXlsDrawingShapeProperty> shapeProperties,
+                out _);
             gelFrame = new LegacyXlsChartGelFrame(officeArtRecords, shapeProperties);
             return true;
         }
@@ -1393,8 +1394,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case 0x1035: // PlotArea
                 case 0x104F: // Pos
                 case 0x1064: // PlotGrowth
+                case 0x089D: // CrtLayout12
                 case 0x08A7: // CrtLayout12A
                     return LegacyXlsChartRecordKind.Layout;
+                case 0x089E: // CrtMlFrt
+                    return LegacyXlsChartRecordKind.Extension;
                 case 0x1015: // Legend
                 case 0x1017: // Bar
                 case 0x1018: // Line

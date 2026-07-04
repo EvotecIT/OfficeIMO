@@ -3,7 +3,12 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffStyleReader {
-        internal static bool TryRead(BiffRecord record, LegacyXlsWorkbook workbook, List<LegacyXlsImportDiagnostic> diagnostics) {
+        internal static bool TryRead(
+            BiffRecord record,
+            LegacyXlsWorkbook workbook,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            out LegacyXlsCellStyleExtension? styleExtension) {
+            styleExtension = null;
             switch ((BiffRecordType)record.Type) {
                 case BiffRecordType.Style:
                     if (TryReadStyle(record, diagnostics, out LegacyXlsCellStyle? style)) {
@@ -15,6 +20,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case BiffRecordType.XfCrc:
                     if (TryReadXfCrc(record, diagnostics, out LegacyXlsCellStyleExtension? xfCrcExtension)) {
                         workbook.AddCellStyleExtension(xfCrcExtension!);
+                        styleExtension = xfCrcExtension;
                     }
 
                     return true;
@@ -22,13 +28,15 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case BiffRecordType.XfExt:
                     if (TryReadXfExt(record, diagnostics, out LegacyXlsCellStyleExtension? extension)) {
                         workbook.AddCellStyleExtension(extension!);
+                        styleExtension = extension;
                     }
 
                     return true;
 
                 case BiffRecordType.StyleExt:
-                    if (TryReadStyleExt(record, diagnostics, out LegacyXlsCellStyleExtension? styleExtExtension)) {
+                    if (TryReadStyleExt(record, workbook, diagnostics, out LegacyXlsCellStyleExtension? styleExtExtension)) {
                         workbook.AddCellStyleExtension(styleExtExtension!);
+                        styleExtension = styleExtExtension;
                     }
 
                     return true;
@@ -89,7 +97,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             try {
                 int offset = 2;
-                string name = BiffStringReader.ReadUnicodeString(record.Payload, ref offset);
+                string name = ReadUnicodeOrShortByteString(record.Payload, ref offset);
                 style = new LegacyXlsCellStyle(
                     styleFormatIndex,
                     isBuiltIn: false,
@@ -108,6 +116,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     recordType: record.Type));
                 style = null;
                 return false;
+            }
+        }
+
+        private static string ReadUnicodeOrShortByteString(byte[] payload, ref int offset) {
+            int originalOffset = offset;
+            try {
+                return BiffStringReader.ReadUnicodeString(payload, ref offset);
+            } catch (InvalidDataException) {
+                offset = originalOffset;
+                return BiffStringReader.ReadShortByteString(payload, ref offset);
             }
         }
 
@@ -192,22 +210,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 record.Offset,
                 record.Type,
                 record.Payload.Length,
-                ReadXfExtProperties(record, diagnostics, BiffRecordReader.ReadUInt16(record.Payload, 18)));
+                ReadXfExtProperties(record, diagnostics, BiffRecordReader.ReadUInt16(record.Payload, 18), 20, usesStyleXfPropMapping: false, out _));
             return true;
         }
 
         private static IReadOnlyList<LegacyXlsCellStyleExtensionProperty> ReadXfExtProperties(
             BiffRecord record,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            ushort extensionCount) {
+            ushort extensionCount,
+            int startOffset,
+            bool usesStyleXfPropMapping,
+            out bool fullyRead) {
+            fullyRead = true;
             if (extensionCount == 0) {
                 return Array.Empty<LegacyXlsCellStyleExtensionProperty>();
             }
 
             var properties = new List<LegacyXlsCellStyleExtensionProperty>(extensionCount);
-            int offset = 20;
+            int offset = startOffset;
             for (int index = 0; index < extensionCount; index++) {
                 if (offset + 4 > record.Payload.Length) {
+                    fullyRead = false;
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
                         "XLS-BIFF-XFEXT-PROPERTY-SHORT",
@@ -220,6 +243,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ushort propertyType = BiffRecordReader.ReadUInt16(record.Payload, offset);
                 ushort totalByteCount = BiffRecordReader.ReadUInt16(record.Payload, offset + 2);
                 if (totalByteCount < 4) {
+                    fullyRead = false;
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
                         "XLS-BIFF-XFEXT-PROPERTY-SIZE-INVALID",
@@ -230,6 +254,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
 
                 if (offset + totalByteCount > record.Payload.Length) {
+                    fullyRead = false;
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
                         "XLS-BIFF-XFEXT-PROPERTY-TRUNCATED",
@@ -247,11 +272,52 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     index,
                     propertyType,
                     totalByteCount,
-                    dataByteCount));
+                    dataByteCount,
+                    usesStyleXfPropMapping));
                 offset += totalByteCount;
             }
 
+            if (offset < record.Payload.Length) {
+                fullyRead = false;
+            }
+
             return properties;
+        }
+
+        private static IReadOnlyList<LegacyXlsCellStyleExtensionProperty> ReadStyleExtProperties(
+            BiffRecord record,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            int xfPropsOffset,
+            out bool fullyRead) {
+            fullyRead = true;
+            if (xfPropsOffset >= record.Payload.Length) {
+                return Array.Empty<LegacyXlsCellStyleExtensionProperty>();
+            }
+
+            if (xfPropsOffset + 4 > record.Payload.Length) {
+                fullyRead = false;
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-STYLEEXT-XFPROPS-SHORT",
+                    "The StyleExt record ended before its XFProps header could be read.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                return Array.Empty<LegacyXlsCellStyleExtensionProperty>();
+            }
+
+            ushort propertyCount = BiffRecordReader.ReadUInt16(record.Payload, xfPropsOffset + 2);
+            if (propertyCount > 1024) {
+                fullyRead = false;
+                diagnostics.Add(new LegacyXlsImportDiagnostic(
+                    LegacyXlsDiagnosticSeverity.Warning,
+                    "XLS-BIFF-STYLEEXT-XFPROPS-COUNT-INVALID",
+                    $"The StyleExt XFProps structure declares {propertyCount} properties.",
+                    recordOffset: record.Offset,
+                    recordType: record.Type));
+                return Array.Empty<LegacyXlsCellStyleExtensionProperty>();
+            }
+
+            return ReadXfExtProperties(record, diagnostics, propertyCount, xfPropsOffset + 4, usesStyleXfPropMapping: true, out fullyRead);
         }
 
         private static LegacyXlsCellStyleExtensionProperty ReadXfExtProperty(
@@ -260,25 +326,45 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             int index,
             ushort propertyType,
             ushort totalByteCount,
-            int dataByteCount) {
+            int dataByteCount,
+            bool usesStyleXfPropMapping) {
             ushort? numericValue = null;
             string? numericValueName = null;
             ushort? colorType = null;
             string? colorTypeName = null;
             short? colorTintShade = null;
             uint? colorValue = null;
+            ushort? borderStyle = null;
+            string? borderStyleName = null;
 
-            if (IsFullColorExtProperty(propertyType) && dataByteCount >= 8) {
-                colorType = BiffRecordReader.ReadUInt16(payload, dataOffset);
-                colorTypeName = GetXfExtColorTypeName(colorType.Value);
-                colorTintShade = BiffRecordReader.ReadInt16(payload, dataOffset + 2);
-                colorValue = BiffRecordReader.ReadUInt32(payload, dataOffset + 4);
-            } else if (propertyType == 0x000E && dataByteCount >= 1) {
+            if (usesStyleXfPropMapping && IsStyleXfPropColorProperty(propertyType) && dataByteCount >= 8) {
+                ReadStyleXfPropColor(payload, dataOffset, out colorType, out colorTypeName, out colorTintShade, out colorValue);
+            } else if (usesStyleXfPropMapping && IsStyleXfPropBorderProperty(propertyType) && dataByteCount >= 10) {
+                ReadStyleXfPropColor(payload, dataOffset, out colorType, out colorTypeName, out colorTintShade, out colorValue);
+                borderStyle = BiffRecordReader.ReadUInt16(payload, dataOffset + 8);
+                borderStyleName = GetBorderStyleName(borderStyle.Value);
+            } else if (usesStyleXfPropMapping && propertyType == 0x0000 && dataByteCount >= 1) {
+                numericValue = payload[dataOffset];
+                numericValueName = GetFillPatternName(numericValue.Value);
+            } else if (usesStyleXfPropMapping && propertyType == 0x0012 && dataByteCount >= 2) {
+                numericValue = BiffRecordReader.ReadUInt16(payload, dataOffset);
+                numericValueName = $"Indent:{numericValue.Value}";
+            } else if (usesStyleXfPropMapping && propertyType == 0x0025 && dataByteCount >= 1) {
                 numericValue = dataByteCount >= 2
                     ? BiffRecordReader.ReadUInt16(payload, dataOffset)
                     : payload[dataOffset];
                 numericValueName = GetFontSchemeName(numericValue.Value);
-            } else if (propertyType == 0x000F && dataByteCount >= 2) {
+            } else if (!usesStyleXfPropMapping && IsFullColorExtProperty(propertyType) && dataByteCount >= 8) {
+                colorType = BiffRecordReader.ReadUInt16(payload, dataOffset);
+                colorTypeName = GetXfExtColorTypeName(colorType.Value);
+                colorTintShade = BiffRecordReader.ReadInt16(payload, dataOffset + 2);
+                colorValue = BiffRecordReader.ReadUInt32(payload, dataOffset + 4);
+            } else if (!usesStyleXfPropMapping && propertyType == 0x000E && dataByteCount >= 1) {
+                numericValue = dataByteCount >= 2
+                    ? BiffRecordReader.ReadUInt16(payload, dataOffset)
+                    : payload[dataOffset];
+                numericValueName = GetFontSchemeName(numericValue.Value);
+            } else if (!usesStyleXfPropMapping && propertyType == 0x000F && dataByteCount >= 2) {
                 numericValue = BiffRecordReader.ReadUInt16(payload, dataOffset);
                 numericValueName = $"Indent:{numericValue.Value}";
             }
@@ -286,7 +372,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return new LegacyXlsCellStyleExtensionProperty(
                 index,
                 propertyType,
-                GetXfExtPropertyTypeName(propertyType),
+                usesStyleXfPropMapping ? GetStyleXfPropTypeName(propertyType) : GetXfExtPropertyTypeName(propertyType),
                 totalByteCount,
                 dataByteCount,
                 numericValue,
@@ -294,10 +380,17 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 colorType,
                 colorTypeName,
                 colorTintShade,
-                colorValue);
+                colorValue,
+                usesStyleXfPropMapping,
+                borderStyle,
+                borderStyleName);
         }
 
-        private static bool TryReadStyleExt(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out LegacyXlsCellStyleExtension? extension) {
+        private static bool TryReadStyleExt(
+            BiffRecord record,
+            LegacyXlsWorkbook workbook,
+            List<LegacyXlsImportDiagnostic> diagnostics,
+            out LegacyXlsCellStyleExtension? extension) {
             if (record.Payload.Length < 16) {
                 diagnostics.Add(new LegacyXlsImportDiagnostic(
                     LegacyXlsDiagnosticSeverity.Warning,
@@ -340,6 +433,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 }
             }
 
+            IReadOnlyList<LegacyXlsCellStyleExtensionProperty> properties = ReadStyleExtProperties(
+                record,
+                diagnostics,
+                offset,
+                out bool stylePropertiesFullyRead);
+            bool hasUnparsedStyleProperties = !stylePropertiesFullyRead;
+            ushort? associatedStyleFormatIndex = workbook.CellStyles.LastOrDefault()?.StyleFormatIndex;
             extension = new LegacyXlsCellStyleExtension(
                 "StyleExt",
                 isBuiltIn,
@@ -349,6 +449,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 GetStyleExtCategoryName(category),
                 builtInData,
                 styleName,
+                associatedStyleFormatIndex,
+                hasUnparsedStyleProperties,
+                properties,
                 record.Offset,
                 record.Type,
                 record.Payload.Length);
@@ -384,6 +487,27 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             };
         }
 
+        private static string GetStyleXfPropTypeName(ushort propertyType) {
+            return propertyType switch {
+                0x0000 => "FillPattern",
+                0x0001 => "FillForegroundColor",
+                0x0002 => "FillBackgroundColor",
+                0x0003 => "FillGradient",
+                0x0004 => "FillGradientStop",
+                0x0005 => "TextColor",
+                0x0006 => "TopBorder",
+                0x0007 => "BottomBorder",
+                0x0008 => "LeftBorder",
+                0x0009 => "RightBorder",
+                0x000A => "DiagonalBorder",
+                0x000B => "VerticalBorder",
+                0x000C => "HorizontalBorder",
+                0x0012 => "Indentation",
+                0x0025 => "FontScheme",
+                _ => $"Unknown:0x{propertyType:X4}"
+            };
+        }
+
         private static bool IsFullColorExtProperty(ushort propertyType) {
             return propertyType == 0x0004
                 || propertyType == 0x0005
@@ -395,6 +519,33 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 || propertyType == 0x000D;
         }
 
+        private static bool IsStyleXfPropColorProperty(ushort propertyType) {
+            return propertyType == 0x0001
+                || propertyType == 0x0002
+                || propertyType == 0x0005;
+        }
+
+        private static bool IsStyleXfPropBorderProperty(ushort propertyType) {
+            return propertyType >= 0x0006 && propertyType <= 0x000A;
+        }
+
+        private static void ReadStyleXfPropColor(
+            byte[] payload,
+            int dataOffset,
+            out ushort? colorType,
+            out string? colorTypeName,
+            out short? colorTintShade,
+            out uint? colorValue) {
+            byte flagsAndType = payload[dataOffset];
+            colorType = checked((ushort)(flagsAndType >> 1));
+            colorTypeName = GetXfExtColorTypeName(colorType.Value);
+            byte indexedOrThemeValue = payload[dataOffset + 1];
+            colorTintShade = BiffRecordReader.ReadInt16(payload, dataOffset + 2);
+            colorValue = colorType.Value == 0x0001 || colorType.Value == 0x0003
+                ? indexedOrThemeValue
+                : BiffRecordReader.ReadUInt32(payload, dataOffset + 4);
+        }
+
         private static string GetXfExtColorTypeName(ushort colorType) {
             return colorType switch {
                 0x0000 => "Automatic",
@@ -403,6 +554,51 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 0x0003 => "Theme",
                 0x0004 => "Ninch",
                 _ => $"Unknown:0x{colorType:X4}"
+            };
+        }
+
+        private static string GetFillPatternName(ushort pattern) {
+            return pattern switch {
+                0x0000 => "None",
+                0x0001 => "Solid",
+                0x0002 => "MediumGray",
+                0x0003 => "DarkGray",
+                0x0004 => "LightGray",
+                0x0005 => "DarkHorizontal",
+                0x0006 => "DarkVertical",
+                0x0007 => "DarkDown",
+                0x0008 => "DarkUp",
+                0x0009 => "DarkGrid",
+                0x000A => "DarkTrellis",
+                0x000B => "LightHorizontal",
+                0x000C => "LightVertical",
+                0x000D => "LightDown",
+                0x000E => "LightUp",
+                0x000F => "LightGrid",
+                0x0010 => "LightTrellis",
+                0x0011 => "Gray125",
+                0x0012 => "Gray0625",
+                _ => $"Unknown:0x{pattern:X4}"
+            };
+        }
+
+        private static string GetBorderStyleName(ushort style) {
+            return style switch {
+                0x0000 => "None",
+                0x0001 => "Thin",
+                0x0002 => "Medium",
+                0x0003 => "Dashed",
+                0x0004 => "Dotted",
+                0x0005 => "Thick",
+                0x0006 => "Double",
+                0x0007 => "Hair",
+                0x0008 => "MediumDashed",
+                0x0009 => "DashDot",
+                0x000A => "MediumDashDot",
+                0x000B => "DashDotDot",
+                0x000C => "MediumDashDotDot",
+                0x000D => "SlantDashDot",
+                _ => $"Unknown:0x{style:X4}"
             };
         }
 

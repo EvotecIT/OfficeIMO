@@ -31,7 +31,12 @@ namespace OfficeIMO.Word {
         /// <summary>
         /// Represents a double number property type.
         /// </summary>
-        NumberDouble
+        NumberDouble,
+
+        /// <summary>
+        /// Represents binary blob data.
+        /// </summary>
+        Binary
     }
 }
 

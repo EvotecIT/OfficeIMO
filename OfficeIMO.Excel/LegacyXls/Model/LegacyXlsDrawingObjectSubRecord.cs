@@ -48,6 +48,15 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether the containing OBJ record had enough bytes for the declared subrecord payload.</summary>
         public bool IsComplete => AvailableLength >= DeclaredLength;
 
+        /// <summary>Gets whether this subrecord is an FtLbsData structure whose remaining fields are carried by following Continue records.</summary>
+        public bool RequiresContinuation => SubRecordType == 0x0013 && DeclaredLength > 0 && AvailableLength < DeclaredLength;
+
+        /// <summary>Gets whether the subrecord's in-record payload is structurally valid for import metadata.</summary>
+        public bool HasSupportedPayload => IsComplete || RequiresContinuation;
+
+        /// <summary>Gets a stable completeness state for import reports.</summary>
+        public string CompletionState => RequiresContinuation ? "RequiresContinuation" : IsComplete ? "Complete" : "Truncated";
+
         private static string GetSubRecordName(ushort subRecordType) {
             return subRecordType switch {
                 0x0000 => "FtEnd",

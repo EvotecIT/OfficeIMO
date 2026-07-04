@@ -32,9 +32,23 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 ToOutlineLevel(BiffRecordReader.ReadUInt16(payload, 6), "column"));
         }
 
-        internal static LegacyXlsWorksheetIndex ReadIndex(byte[] payload) {
+        internal static LegacyXlsWorksheetIndex ReadIndex(byte[] payload, bool useBiff5Layout) {
             if (payload.Length < 16) {
                 throw new InvalidDataException("The INDEX record is shorter than expected.");
+            }
+
+            if (useBiff5Layout && payload.Length == 16) {
+                ushort biff5FirstRow = BiffRecordReader.ReadUInt16(payload, 4);
+                ushort biff5RowAfterLast = BiffRecordReader.ReadUInt16(payload, 6);
+                if (biff5RowAfterLast < biff5FirstRow) {
+                    throw new InvalidDataException("The INDEX record contains an invalid row range.");
+                }
+
+                return new LegacyXlsWorksheetIndex(
+                    biff5FirstRow + 1,
+                    biff5RowAfterLast + 1,
+                    BiffRecordReader.ReadUInt32(payload, 8),
+                    dbCellBlockCount: 2);
             }
 
             uint firstRow = BiffRecordReader.ReadUInt32(payload, 4);

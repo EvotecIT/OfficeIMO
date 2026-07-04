@@ -358,6 +358,12 @@ namespace OfficeIMO.Word {
                 "Document protection metadata can be inspected through settings; complete protection workflows remain partial.");
 
             var vbaDetails = DescribePartsByUriOrContentType(allParts, "vbaProject");
+            var legacyDocPreservedDetails = LegacyDocPreservedFeatures
+                .Select(feature => $"{feature.Kind}: {feature.DetailCode}")
+                .ToArray();
+            var legacyDocCompoundDetails = LegacyDocCompoundFeatures
+                .Select(feature => $"{feature.Kind}: {feature.DetailCode}; Entry={feature.EntryPath ?? string.Empty}; Entries={feature.EntryCount}; Bytes={feature.TotalBytes}")
+                .ToArray();
             var altChunkDetails = DescribePartsByType<AlternativeFormatImportPart>(allParts);
             var externalImageDetails = DescribeExternalRelationshipsByType(allParts, "relationships/image");
             var attachedTemplateDetails = DescribeExternalRelationshipsByType(allParts, "attachedTemplate");
@@ -397,6 +403,12 @@ namespace OfficeIMO.Word {
             Add(features, "Compatibility", "Attached templates", WordFeatureSupportLevel.Preserved, attachedTemplateDetails.Count, null,
                 "Attached template relationships are detected as preserve-only package metadata before edit-heavy workflows.",
                 attachedTemplateDetails);
+            Add(features, "Compatibility", "Legacy DOC preserved metadata", WordFeatureSupportLevel.Preserved, legacyDocPreservedDetails.Length, "Legacy DOC",
+                "Legacy binary DOC picture and revision-tracking indicators are detected as preserve-only import metadata.",
+                legacyDocPreservedDetails);
+            Add(features, "Compatibility", "Legacy DOC compound storage", WordFeatureSupportLevel.Preserved, legacyDocCompoundDetails.Length, "Legacy DOC",
+                "Legacy binary DOC compound storage such as macros, embedded objects, ActiveX controls, embedded packages, and binary payload streams is detected as preserve-only import metadata.",
+                legacyDocCompoundDetails);
             Add(features, "Content", "Content-control data bindings", WordFeatureSupportLevel.PartiallyEditable, contentControlDataBindingDetails.Count, null,
                 "Bound content controls can be refreshed from backing Custom XML or filled from supplied values with backing XML updates; broader SDT mapping workflows remain partial.",
                 contentControlDataBindingDetails);

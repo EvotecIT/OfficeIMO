@@ -242,7 +242,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
             return true;
         }
 
-        private static IReadOnlyList<LegacyDocNoteParagraph> BuildStoryParagraphs(
+        internal static IReadOnlyList<LegacyDocNoteParagraph> BuildStoryParagraphs(
             IReadOnlyList<LegacyDocTextCharacter> characters,
             int startCharacter,
             int endCharacter,

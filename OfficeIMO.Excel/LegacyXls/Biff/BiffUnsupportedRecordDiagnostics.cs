@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return new LegacyXlsUnsupportedFeature(
                 LegacyXlsUnsupportedFeatureKind.EncryptedWorkbook,
                 "XLS-BIFF-FILEPASS-UNSUPPORTED",
-                "The workbook contains a FilePass record, which means password-to-open encryption is present. Encrypted legacy XLS import is not supported." + encryptionDescription,
+                "The workbook contains a FilePass record, which means password-to-open encryption is present, but it could not be decrypted with the supplied import options." + encryptionDescription,
                 recordOffset: record.Offset,
                 recordType: record.Type,
                 detailCode: $"Encryption:FilePass:{encryptionTypeName}");
@@ -202,7 +202,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             } else if (IsThemeRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.Theme;
                 code = "XLS-BIFF-FEATURE-THEME-UNSUPPORTED";
-                message = "Theme records are present but theme projection is not implemented in this phase.";
+                message = "A Theme record is present but this theme shape is not supported by the current legacy XLS import phase.";
                 detailCode = "Theme:" + GetBiffRecordName(type);
             } else if (IsWorkbookMetadataRecord(type)) {
                 kind = LegacyXlsUnsupportedFeatureKind.WorkbookMetadata;

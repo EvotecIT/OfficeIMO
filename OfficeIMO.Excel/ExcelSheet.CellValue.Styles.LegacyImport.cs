@@ -1,6 +1,7 @@
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel.LegacyXls.Model;
+using System.Globalization;
 
 namespace OfficeIMO.Excel {
     public partial class ExcelSheet {
@@ -22,20 +23,34 @@ namespace OfficeIMO.Excel {
                 var stylesheet = stylesPart.Stylesheet ??= new Stylesheet();
                 EnsureDefaultStylePrimitives(stylesheet);
 
-                CellFormat candidate = GetBaseCellFormat(stylesheet, 0U);
-                ApplyLegacyNumberFormat(stylesheet, candidate, format);
-                ApplyLegacyFont(stylesheet, candidate, workbook, format);
-                ApplyLegacyFill(stylesheet, candidate, workbook, format);
-                ApplyLegacyAlignment(candidate, format);
-                ApplyLegacyBorder(stylesheet, candidate, workbook, format);
-                ApplyLegacyProtection(candidate, format);
-                ApplyLegacyQuotePrefix(candidate, format);
+                CellFormat candidate = CreateLegacyCellFormat(stylesheet, workbook, format);
 
                 styleIndex = AppendOrReuseCellFormat(stylesheet, candidate);
                 stylesPart.Stylesheet.Save();
             });
 
             return styleIndex;
+        }
+
+        /// <summary>
+        /// Converts a parsed legacy XLS XF record into an Open XML cell format.
+        /// </summary>
+        internal static CellFormat CreateLegacyCellFormat(Stylesheet stylesheet, LegacyXlsWorkbook workbook, LegacyXlsCellFormat format) {
+            if (stylesheet == null) throw new ArgumentNullException(nameof(stylesheet));
+            if (workbook == null) throw new ArgumentNullException(nameof(workbook));
+            if (format == null) throw new ArgumentNullException(nameof(format));
+
+            EnsureDefaultStylePrimitives(stylesheet);
+            CellFormat candidate = GetBaseCellFormat(stylesheet, 0U);
+            ApplyLegacyNumberFormat(stylesheet, candidate, format);
+            ApplyLegacyFont(stylesheet, candidate, workbook, format);
+            ApplyLegacyFill(stylesheet, candidate, workbook, format);
+            ApplyLegacyAlignment(candidate, format);
+            ApplyLegacyBorder(stylesheet, candidate, workbook, format);
+            ApplyLegacyProtection(candidate, format);
+            ApplyLegacyQuotePrefix(candidate, format);
+            ApplyLegacyCellStyleExtensions(stylesheet, candidate, workbook, format);
+            return candidate;
         }
 
         /// <summary>
@@ -123,6 +138,32 @@ namespace OfficeIMO.Excel {
                 Row row = GetOrCreateRowElement(sheetData, rowIndex);
                 row.StyleIndex = styleIndex;
                 row.CustomFormat = true;
+                if (save) {
+                    WorksheetRoot.Save();
+                }
+            });
+        }
+
+        /// <summary>
+        /// Applies an existing style index to a worksheet cell.
+        /// </summary>
+        internal void SetCellStyleIndex(int row, int column, uint styleIndex, bool save = true) {
+            if (row <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(row), "Row index must be greater than 0.");
+            }
+
+            if (column <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(column), "Column index must be greater than 0.");
+            }
+
+            if (!_excelDocument.IsMaterializingDeferredDataSetImport) {
+                MaterializeDeferredDataSetImportIfNeeded();
+            }
+
+            WriteLockConditional(() => {
+                Cell cell = GetCell(row, column);
+                cell.StyleIndex = styleIndex;
+                ClearHeaderCacheForCellMutation(row, column);
                 if (save) {
                     WorksheetRoot.Save();
                 }
@@ -631,6 +672,384 @@ namespace OfficeIMO.Excel {
             if (format.QuotePrefix) {
                 candidate.QuotePrefix = true;
             }
+        }
+
+        private static void ApplyLegacyCellStyleExtensions(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellFormat format) {
+            foreach (LegacyXlsCellStyleExtension extension in workbook.CellStyleExtensions.Where(extension =>
+                extension.HasProjectableFormatting && extension.AppliesToFormatIndex(format.StyleIndex))) {
+                foreach (LegacyXlsCellStyleExtensionProperty property in extension.Properties) {
+                    ApplyLegacyCellStyleExtensionProperty(stylesheet, candidate, workbook, property);
+                }
+            }
+        }
+
+        private static void ApplyLegacyCellStyleExtensionProperty(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellStyleExtensionProperty property) {
+            if (property.UsesStyleXfPropMapping) {
+                ApplyLegacyStyleXfProperty(stylesheet, candidate, workbook, property);
+                return;
+            }
+
+            switch (property.PropertyType) {
+                case 0x0004:
+                    ApplyLegacyFillExtensionColor<ForegroundColor>(stylesheet, candidate, workbook, property, foreground: true);
+                    break;
+                case 0x0005:
+                    ApplyLegacyFillExtensionColor<BackgroundColor>(stylesheet, candidate, workbook, property, foreground: false);
+                    break;
+                case 0x0007:
+                    ApplyLegacyBorderExtensionColor(stylesheet, candidate, workbook, property, BorderColorTarget.Top);
+                    break;
+                case 0x0008:
+                    ApplyLegacyBorderExtensionColor(stylesheet, candidate, workbook, property, BorderColorTarget.Bottom);
+                    break;
+                case 0x0009:
+                    ApplyLegacyBorderExtensionColor(stylesheet, candidate, workbook, property, BorderColorTarget.Left);
+                    break;
+                case 0x000A:
+                    ApplyLegacyBorderExtensionColor(stylesheet, candidate, workbook, property, BorderColorTarget.Right);
+                    break;
+                case 0x000B:
+                    ApplyLegacyBorderExtensionColor(stylesheet, candidate, workbook, property, BorderColorTarget.Diagonal);
+                    break;
+                case 0x000D:
+                    ApplyLegacyFontExtensionColor(stylesheet, candidate, workbook, property);
+                    break;
+                case 0x000E:
+                    ApplyLegacyFontScheme(stylesheet, candidate, property);
+                    break;
+                case 0x000F:
+                    ApplyLegacyExtensionIndent(candidate, property);
+                    break;
+            }
+        }
+
+        private static void ApplyLegacyStyleXfProperty(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellStyleExtensionProperty property) {
+            switch (property.PropertyType) {
+                case 0x0000:
+                    ApplyLegacyFillExtensionPattern(stylesheet, candidate, property);
+                    break;
+                case 0x0001:
+                    ApplyLegacyFillExtensionColor<ForegroundColor>(stylesheet, candidate, workbook, property, foreground: true);
+                    break;
+                case 0x0002:
+                    ApplyLegacyFillExtensionColor<BackgroundColor>(stylesheet, candidate, workbook, property, foreground: false);
+                    break;
+                case 0x0005:
+                    ApplyLegacyFontExtensionColor(stylesheet, candidate, workbook, property);
+                    break;
+                case 0x0006:
+                    ApplyLegacyBorderExtension(stylesheet, candidate, workbook, property, BorderColorTarget.Top);
+                    break;
+                case 0x0007:
+                    ApplyLegacyBorderExtension(stylesheet, candidate, workbook, property, BorderColorTarget.Bottom);
+                    break;
+                case 0x0008:
+                    ApplyLegacyBorderExtension(stylesheet, candidate, workbook, property, BorderColorTarget.Left);
+                    break;
+                case 0x0009:
+                    ApplyLegacyBorderExtension(stylesheet, candidate, workbook, property, BorderColorTarget.Right);
+                    break;
+                case 0x000A:
+                    ApplyLegacyBorderExtension(stylesheet, candidate, workbook, property, BorderColorTarget.Diagonal);
+                    break;
+                case 0x0012:
+                    ApplyLegacyExtensionIndent(candidate, property);
+                    break;
+                case 0x0025:
+                    ApplyLegacyFontScheme(stylesheet, candidate, property);
+                    break;
+            }
+        }
+
+        private static void ApplyLegacyFontExtensionColor(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellStyleExtensionProperty property) {
+            if (!TryCreateLegacyExtensionColor<DocumentFormat.OpenXml.Spreadsheet.Color>(workbook, property, out var color) || color == null) {
+                return;
+            }
+
+            candidate.FontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(candidate.FontId), font => {
+                SetFontColorElement(font, color);
+            });
+            candidate.ApplyFont = true;
+        }
+
+        private static void ApplyLegacyFontScheme(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsCellStyleExtensionProperty property) {
+            FontSchemeValues? scheme = property.NumericValue switch {
+                0x0001 => FontSchemeValues.Major,
+                0x0002 => FontSchemeValues.Minor,
+                _ => null
+            };
+
+            candidate.FontId = GetOrCreateFontVariant(stylesheet, GetOptionalValue(candidate.FontId), font => {
+                SetFontSchemeElement(font, scheme);
+            });
+            candidate.ApplyFont = true;
+        }
+
+        private static void ApplyLegacyFillExtensionPattern(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsCellStyleExtensionProperty property) {
+            if (!property.NumericValue.HasValue) {
+                return;
+            }
+
+            PatternValues? pattern = ToLegacyFillPattern(checked((byte)property.NumericValue.Value));
+            if (!pattern.HasValue) {
+                return;
+            }
+
+            candidate.FillId = GetOrCreateFillVariant(stylesheet, GetOptionalValue(candidate.FillId), fill => {
+                PatternFill patternFill = fill.PatternFill ??= new PatternFill();
+                patternFill.PatternType = pattern.Value;
+            });
+            candidate.ApplyFill = true;
+        }
+
+        private static void ApplyLegacyFillExtensionColor<TColor>(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellStyleExtensionProperty property,
+            bool foreground) where TColor : ColorType, new() {
+            if (!TryCreateLegacyExtensionColor<TColor>(workbook, property, out var color) || color == null) {
+                return;
+            }
+
+            candidate.FillId = GetOrCreateFillVariant(stylesheet, GetOptionalValue(candidate.FillId), fill => {
+                PatternFill patternFill = fill.PatternFill ??= new PatternFill {
+                    PatternType = PatternValues.Solid
+                };
+
+                if (foreground) {
+                    patternFill.ForegroundColor = color as ForegroundColor;
+                } else {
+                    patternFill.BackgroundColor = color as BackgroundColor;
+                }
+            });
+            candidate.ApplyFill = true;
+        }
+
+        private static void ApplyLegacyBorderExtensionColor(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellStyleExtensionProperty property,
+            BorderColorTarget target) {
+            if (!TryCreateLegacyExtensionColor<DocumentFormat.OpenXml.Spreadsheet.Color>(workbook, property, out var color) || color == null) {
+                return;
+            }
+
+            candidate.BorderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(candidate.BorderId), border => {
+                switch (target) {
+                    case BorderColorTarget.Top:
+                        SetBorderColor(border.TopBorder, color);
+                        break;
+                    case BorderColorTarget.Bottom:
+                        SetBorderColor(border.BottomBorder, color);
+                        break;
+                    case BorderColorTarget.Left:
+                        SetBorderColor(border.LeftBorder, color);
+                        break;
+                    case BorderColorTarget.Right:
+                        SetBorderColor(border.RightBorder, color);
+                        break;
+                    case BorderColorTarget.Diagonal:
+                        SetBorderColor(border.DiagonalBorder, color);
+                        break;
+                }
+            });
+            candidate.ApplyBorder = true;
+        }
+
+        private static void ApplyLegacyBorderExtension(
+            Stylesheet stylesheet,
+            CellFormat candidate,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellStyleExtensionProperty property,
+            BorderColorTarget target) {
+            if (!property.BorderStyle.HasValue
+                || !TryCreateLegacyExtensionColor<DocumentFormat.OpenXml.Spreadsheet.Color>(workbook, property, out var color)
+                || color == null) {
+                return;
+            }
+
+            BorderStyleValues? style = ToLegacyBorderStyle(checked((byte)property.BorderStyle.Value));
+            if (!style.HasValue) {
+                return;
+            }
+
+            candidate.BorderId = GetOrCreateBorderVariant(stylesheet, GetOptionalValue(candidate.BorderId), border => {
+                switch (target) {
+                    case BorderColorTarget.Top:
+                        SetBorder(border.TopBorder ??= new TopBorder(), style.Value, color);
+                        break;
+                    case BorderColorTarget.Bottom:
+                        SetBorder(border.BottomBorder ??= new BottomBorder(), style.Value, color);
+                        break;
+                    case BorderColorTarget.Left:
+                        SetBorder(border.LeftBorder ??= new LeftBorder(), style.Value, color);
+                        break;
+                    case BorderColorTarget.Right:
+                        SetBorder(border.RightBorder ??= new RightBorder(), style.Value, color);
+                        break;
+                    case BorderColorTarget.Diagonal:
+                        SetBorder(border.DiagonalBorder ??= new DiagonalBorder(), style.Value, color);
+                        break;
+                }
+            });
+            candidate.ApplyBorder = true;
+        }
+
+        private static void ApplyLegacyExtensionIndent(CellFormat candidate, LegacyXlsCellStyleExtensionProperty property) {
+            if (!property.NumericValue.HasValue) {
+                return;
+            }
+
+            var alignment = candidate.Alignment != null
+                ? (Alignment)candidate.Alignment.CloneNode(true)
+                : new Alignment();
+            alignment.Indent = property.NumericValue.Value;
+            candidate.Alignment = alignment;
+            candidate.ApplyAlignment = true;
+        }
+
+        private static bool TryCreateLegacyExtensionColor<TColor>(
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCellStyleExtensionProperty property,
+            out TColor? color) where TColor : ColorType, new() {
+            color = null;
+            if (!property.ColorType.HasValue
+                || !property.ColorValue.HasValue) {
+                return false;
+            }
+
+            color = new TColor();
+            switch (property.ColorType.Value) {
+                case 0x0001:
+                    string? indexedColor = ResolveLegacyColor(workbook, checked((ushort)property.ColorValue.Value));
+                    if (string.IsNullOrWhiteSpace(indexedColor)) {
+                        color = null;
+                        return false;
+                    }
+
+                    color.Rgb = NormalizeHexColor(indexedColor!);
+                    break;
+                case 0x0002:
+                    color.Rgb = NormalizeHexColor(ToLegacyExtensionArgb(property.ColorValue.Value));
+                    break;
+                case 0x0003:
+                    if (!TryMapLegacyThemeColor(property.ColorValue.Value, out uint openXmlTheme)) {
+                        color = null;
+                        return false;
+                    }
+
+                    color.Theme = openXmlTheme;
+                    break;
+                default:
+                    color = null;
+                    return false;
+            }
+
+            double tint = ToLegacyExtensionTint(property.ColorTintShade.GetValueOrDefault());
+            if (Math.Abs(tint) > double.Epsilon) {
+                color.Tint = tint;
+            }
+
+            return true;
+        }
+
+        private static uint GetOrCreateFillVariant(Stylesheet stylesheet, uint? baseFillId, Action<Fill> mutate) {
+            var fills = stylesheet.Fills ??= new Fills();
+            var baseFill = fills.Elements<Fill>().ElementAtOrDefault((int)(baseFillId ?? 0U));
+            var candidate = baseFill != null
+                ? (Fill)baseFill.CloneNode(true)
+                : new Fill();
+
+            mutate(candidate);
+            return GetOrCreateFill(stylesheet, candidate);
+        }
+
+        private static void SetBorderColor(BorderPropertiesType? borderSide, DocumentFormat.OpenXml.Spreadsheet.Color color) {
+            if (borderSide?.Style == null) {
+                return;
+            }
+
+            foreach (DocumentFormat.OpenXml.Spreadsheet.Color existing in borderSide.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().ToList()) {
+                existing.Remove();
+            }
+
+            borderSide.Append((DocumentFormat.OpenXml.Spreadsheet.Color)color.CloneNode(true));
+        }
+
+        private static void SetBorder(BorderPropertiesType borderSide, BorderStyleValues style, DocumentFormat.OpenXml.Spreadsheet.Color color) {
+            borderSide.Style = style;
+            SetBorderColor(borderSide, color);
+        }
+
+        private static string ToLegacyExtensionArgb(uint longRgba) {
+            byte red = (byte)(longRgba & 0xff);
+            byte green = (byte)((longRgba >> 8) & 0xff);
+            byte blue = (byte)((longRgba >> 16) & 0xff);
+            byte alpha = (byte)((longRgba >> 24) & 0xff);
+            return string.Concat(
+                alpha.ToString("X2", CultureInfo.InvariantCulture),
+                red.ToString("X2", CultureInfo.InvariantCulture),
+                green.ToString("X2", CultureInfo.InvariantCulture),
+                blue.ToString("X2", CultureInfo.InvariantCulture));
+        }
+
+        private static bool TryMapLegacyThemeColor(uint legacyThemeColor, out uint openXmlThemeColor) {
+            switch (legacyThemeColor) {
+                case 0:
+                    openXmlThemeColor = 1;
+                    return true;
+                case 1:
+                    openXmlThemeColor = 0;
+                    return true;
+                case 2:
+                    openXmlThemeColor = 3;
+                    return true;
+                case 3:
+                    openXmlThemeColor = 2;
+                    return true;
+                case >= 4 and <= 11:
+                    openXmlThemeColor = legacyThemeColor;
+                    return true;
+                default:
+                    openXmlThemeColor = 0;
+                    return false;
+            }
+        }
+
+        private static double ToLegacyExtensionTint(short tintShade) {
+            return tintShade == 0 ? 0D : Math.Round(tintShade / 32767D, 5, MidpointRounding.AwayFromZero);
+        }
+
+        private enum BorderColorTarget {
+            Top,
+            Bottom,
+            Left,
+            Right,
+            Diagonal
         }
 
         private static HorizontalAlignmentValues? ToLegacyHorizontalAlignment(byte alignment) {

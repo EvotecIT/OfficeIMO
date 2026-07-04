@@ -99,6 +99,10 @@ namespace OfficeIMO.Excel {
             var wb = WorkbookRoot;
             var names = new List<string>();
             foreach (var sheet in wb.Sheets!.Elements<Sheet>()) {
+                if (!TryGetWorksheetPart(sheet, out _)) {
+                    continue;
+                }
+
                 names.Add(sheet.Name!.Value!);
             }
 
@@ -116,15 +120,35 @@ namespace OfficeIMO.Excel {
             var wb = WorkbookRoot;
             Sheet? sheet = null;
             foreach (var candidate in wb.Sheets!.Elements<Sheet>()) {
-                if (string.Equals(candidate.Name?.Value, name, StringComparison.OrdinalIgnoreCase)) {
+                if (string.Equals(candidate.Name?.Value, name, StringComparison.OrdinalIgnoreCase)
+                    && TryGetWorksheetPart(candidate, out _)) {
                     sheet = candidate;
                     break;
                 }
             }
 
             if (sheet is null) throw new KeyNotFoundException($"Sheet '{name}' not found.");
-            var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
-            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _dateSystem, _owns);
+            if (!TryGetWorksheetPart(sheet, out WorksheetPart? wsPart)) {
+                throw new KeyNotFoundException($"Sheet '{name}' is not a worksheet.");
+            }
+
+            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _owns);
+        }
+
+        private bool TryGetWorksheetPart(Sheet sheet, out WorksheetPart? worksheetPart) {
+            worksheetPart = null;
+            if (sheet.Id?.Value == null) {
+                return false;
+            }
+
+            try {
+                worksheetPart = WorkbookPartRoot.GetPartById(sheet.Id.Value) as WorksheetPart;
+                return worksheetPart != null;
+            } catch (ArgumentOutOfRangeException) {
+                return false;
+            } catch (InvalidOperationException) {
+                return false;
+            }
         }
 
         private static ExcelDateSystem GetWorkbookDateSystem(SpreadsheetDocument document) {
@@ -229,19 +253,19 @@ namespace OfficeIMO.Excel {
                         continue;
                     }
 
-                    currentIndex++;
-                    if (currentIndex != index) {
-                        continue;
-                    }
-
                     string? candidateName = reader.GetAttribute("name");
                     string? relationshipId = GetRelationshipIdAttribute(reader);
                     if (string.IsNullOrEmpty(candidateName) || string.IsNullOrEmpty(relationshipId)) {
-                        return false;
+                        continue;
                     }
 
                     if (WorkbookPartRoot.GetPartById(relationshipId!) is not WorksheetPart resolvedPart) {
-                        return false;
+                        continue;
+                    }
+
+                    currentIndex++;
+                    if (currentIndex != index) {
+                        continue;
                     }
 
                     sheetName = candidateName!;
@@ -285,6 +309,12 @@ namespace OfficeIMO.Excel {
                         return false;
                     }
 
+                    string? relationshipId = GetRelationshipIdAttribute(reader);
+                    if (string.IsNullOrEmpty(relationshipId)
+                        || WorkbookPartRoot.GetPartById(relationshipId!) is not WorksheetPart) {
+                        continue;
+                    }
+
                     names.Add(sheetName!);
                 }
 
@@ -321,7 +351,13 @@ namespace OfficeIMO.Excel {
                 using var stream = WorkbookPartRoot.GetStream(FileMode.Open, FileAccess.Read);
                 using var reader = XmlReader.Create(stream, WorkbookXmlReaderSettings);
                 while (reader.Read()) {
-                    if (reader.NodeType == XmlNodeType.Element && reader.LocalName == "sheet") {
+                    if (reader.NodeType != XmlNodeType.Element || reader.LocalName != "sheet") {
+                        continue;
+                    }
+
+                    string? relationshipId = GetRelationshipIdAttribute(reader);
+                    if (!string.IsNullOrEmpty(relationshipId)
+                        && WorkbookPartRoot.GetPartById(relationshipId!) is WorksheetPart) {
                         count++;
                     }
                 }

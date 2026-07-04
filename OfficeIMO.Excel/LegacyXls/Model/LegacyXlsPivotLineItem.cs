@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             bool blockTotal,
             bool grandTotal,
             bool multiDataOnAxis,
-            IReadOnlyList<short> entryIndexes) {
+            IReadOnlyList<short> entryIndexes,
+            int? entrySlotCount = null) {
             SameAsPreviousCount = sameAsPreviousCount;
             ItemType = itemType;
             ItemTypeKind = TryGetItemTypeKind(itemType);
@@ -29,6 +30,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             GrandTotal = grandTotal;
             MultiDataOnAxis = multiDataOnAxis;
             EntryIndexes = entryIndexes ?? throw new ArgumentNullException(nameof(entryIndexes));
+            EntrySlotCount = entrySlotCount ?? EntryIndexes.Count;
+            if (EntrySlotCount < EntryIndexes.Count) {
+                throw new ArgumentOutOfRangeException(nameof(entrySlotCount), "Entry slot count cannot be smaller than the decoded entry count.");
+            }
+
             EntryIndexNames = EntryIndexes.Select(GetEntryIndexName).ToArray();
         }
 
@@ -67,6 +73,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the raw pivot line entry indexes.</summary>
         public IReadOnlyList<short> EntryIndexes { get; }
+
+        /// <summary>Gets the physical entry slots occupied by this line item in the SXLI record.</summary>
+        public int EntrySlotCount { get; }
 
         /// <summary>Gets stable names for the pivot line entry indexes.</summary>
         public IReadOnlyList<string> EntryIndexNames { get; }

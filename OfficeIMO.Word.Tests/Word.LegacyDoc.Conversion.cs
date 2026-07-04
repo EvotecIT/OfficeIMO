@@ -43,6 +43,7 @@ namespace OfficeIMO.Tests {
             NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Convert(docPath, blockedPath));
 
             Assert.Contains("unsupported or preserve-only", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("LegacyDocCompoundFeatures", exception.Message);
             Assert.False(File.Exists(blockedPath));
 
             WordDocument.Convert(docPath, allowedPath, new WordDocumentConversionOptions {
@@ -52,6 +53,29 @@ namespace OfficeIMO.Tests {
             using WordDocument converted = WordDocument.Load(allowedPath);
             Assert.False(converted.WasLoadedFromLegacyDoc);
             Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text == "Preserve-only body");
+        }
+
+        [Fact]
+        public void LegacyDoc_Convert_BlocksPreservedLegacyMetadataUnlessLossIsAllowed() {
+            string docPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".doc");
+            string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".docx");
+            const ushort pictureFlag = 0x0008;
+            File.WriteAllBytes(docPath, LegacyDocTestBuilder.CreateSimpleDocWithFibFlags(pictureFlag, "Picture body"));
+
+            NotSupportedException exception = Assert.Throws<NotSupportedException>(() => WordDocument.Convert(docPath, blockedPath));
+
+            Assert.Contains("unsupported or preserve-only", exception.Message, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("LegacyDocPreservedFeatures", exception.Message);
+            Assert.False(File.Exists(blockedPath));
+
+            WordDocument.Convert(docPath, allowedPath, new WordDocumentConversionOptions {
+                AllowLossyLegacyConversion = true
+            });
+
+            using WordDocument converted = WordDocument.Load(allowedPath);
+            Assert.False(converted.WasLoadedFromLegacyDoc);
+            Assert.Contains(converted.Paragraphs, paragraph => paragraph.Text == "Picture body");
         }
 
         private static void AssertOleCompoundFile(string path) {

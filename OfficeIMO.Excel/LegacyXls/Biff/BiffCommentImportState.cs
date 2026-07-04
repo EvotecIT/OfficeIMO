@@ -1,6 +1,5 @@
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
 using OfficeIMO.Excel.LegacyXls.Model;
-using System.Text;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     /// <summary>
@@ -50,13 +49,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             return true;
         }
 
-        internal bool TryReadDrawingAnchors(BiffRecord record) {
-            if (BiffDrawingMetadataReader.TryReadClientAnchors(record, out IReadOnlyList<LegacyXlsDrawingAnchor> anchors)) {
-                foreach (LegacyXlsDrawingAnchor anchor in anchors) {
+        internal bool TryReadDrawingAnchors(BiffRecord record, out LegacyXlsDrawingRecord? drawingRecord) {
+            drawingRecord = null;
+            if (BiffDrawingMetadataReader.TryRead(record, _sheet.Name, out LegacyXlsDrawingRecord? parsedRecord) && parsedRecord!.AnchorEntries.Count > 0) {
+                drawingRecord = parsedRecord;
+                foreach (LegacyXlsDrawingAnchor anchor in parsedRecord.AnchorEntries) {
                     _pendingAnchors.Enqueue(anchor);
                 }
 
-                _pendingDrawingRecords.Enqueue(new PendingDrawingRecord(record.Type, record.Offset, record.Payload.Length));
+                _pendingDrawingRecords.Enqueue(new PendingDrawingRecord(
+                    record.Type,
+                    record.Offset,
+                    record.Payload.Length,
+                    parsedRecord.HasSupportedDrawingMetadata));
                 return true;
             }
 
@@ -70,6 +75,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             bool reportDiagnostics) {
             while (_pendingDrawingRecords.Count > 0) {
                 PendingDrawingRecord pendingDrawing = _pendingDrawingRecords.Dequeue();
+                if (pendingDrawing.HasSupportedOfficeArtMetadata) {
+                    continue;
+                }
+
                 LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(
                     pendingDrawing.RecordType,
                     pendingDrawing.RecordOffset,
@@ -238,13 +247,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             internal int RecordOffset { get; }
 
             internal int RecordPayloadLength { get; }
-        }
+    }
 
         private readonly struct PendingDrawingRecord {
-            internal PendingDrawingRecord(ushort recordType, int recordOffset, int recordPayloadLength) {
+            internal PendingDrawingRecord(ushort recordType, int recordOffset, int recordPayloadLength, bool hasSupportedOfficeArtMetadata) {
                 RecordType = recordType;
                 RecordOffset = recordOffset;
                 RecordPayloadLength = recordPayloadLength;
+                HasSupportedOfficeArtMetadata = hasSupportedOfficeArtMetadata;
             }
 
             internal ushort RecordType { get; }
@@ -252,94 +262,28 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             internal int RecordOffset { get; }
 
             internal int RecordPayloadLength { get; }
+
+            internal bool HasSupportedOfficeArtMetadata { get; }
         }
 
         private sealed class PendingTextObject {
-            private readonly StringBuilder _builder = new();
-            private readonly List<byte> _formattingBytes = new();
-            private int _remainingCharacters;
-            private int _remainingFormattingBytes;
-            private IReadOnlyList<LegacyXlsCommentFormattingRun>? _formattingRuns;
+            private readonly BiffTextObjectContinueReader _reader;
 
             internal PendingTextObject(ushort objectId, int textCharacters, int formattingRunBytes) {
                 ObjectId = objectId;
-                _remainingCharacters = textCharacters;
-                _remainingFormattingBytes = formattingRunBytes;
+                _reader = new BiffTextObjectContinueReader(textCharacters, formattingRunBytes);
             }
 
             internal ushort ObjectId { get; }
 
-            internal string Text => _builder.ToString();
+            internal string Text => _reader.Text;
 
-            internal IReadOnlyList<LegacyXlsCommentFormattingRun> FormattingRuns => _formattingRuns ??= ParseFormattingRuns();
+            internal IReadOnlyList<LegacyXlsCommentFormattingRun> FormattingRuns => _reader.FormattingRuns;
 
-            internal bool Complete => _remainingCharacters == 0 && _remainingFormattingBytes == 0;
+            internal bool Complete => _reader.Complete;
 
             internal bool TryRead(byte[] payload) {
-                int offset = 0;
-                if (_remainingCharacters > 0) {
-                    if (payload.Length == 0) {
-                        return false;
-                    }
-
-                    byte options = payload[offset++];
-                    bool isUtf16 = (options & 0x01) != 0;
-                    int bytesPerCharacter = isUtf16 ? 2 : 1;
-                    int availableCharacters = (payload.Length - offset) / bytesPerCharacter;
-                    int charactersToRead = Math.Min(_remainingCharacters, availableCharacters);
-                    int bytesToRead = checked(charactersToRead * bytesPerCharacter);
-                    if (isUtf16) {
-                        _builder.Append(Encoding.Unicode.GetString(payload, offset, bytesToRead));
-                    } else {
-                        for (int i = 0; i < bytesToRead; i++) {
-                            _builder.Append((char)payload[offset + i]);
-                        }
-                    }
-
-                    offset += bytesToRead;
-                    _remainingCharacters -= charactersToRead;
-                }
-
-                if (_remainingCharacters == 0 && _remainingFormattingBytes > 0) {
-                    int formattingBytesToRead = Math.Min(_remainingFormattingBytes, payload.Length - offset);
-                    for (int i = 0; i < formattingBytesToRead; i++) {
-                        _formattingBytes.Add(payload[offset + i]);
-                    }
-
-                    _remainingFormattingBytes -= formattingBytesToRead;
-                }
-
-                return true;
-            }
-
-            private IReadOnlyList<LegacyXlsCommentFormattingRun> ParseFormattingRuns() {
-                if (_formattingBytes.Count < 16 || _formattingBytes.Count % 8 != 0) {
-                    return Array.Empty<LegacyXlsCommentFormattingRun>();
-                }
-
-                int runCount = (_formattingBytes.Count / 8) - 1;
-                if (runCount <= 0) {
-                    return Array.Empty<LegacyXlsCommentFormattingRun>();
-                }
-
-                var runs = new List<LegacyXlsCommentFormattingRun>(runCount);
-                byte[] bytes = _formattingBytes.ToArray();
-                for (int i = 0; i < runCount; i++) {
-                    int offset = i * 8;
-                    ushort startCharacter = BiffRecordReader.ReadUInt16(bytes, offset);
-                    ushort fontIndex = BiffRecordReader.ReadUInt16(bytes, offset + 2);
-                    if (startCharacter > Text.Length) {
-                        continue;
-                    }
-
-                    if (runs.Count > 0 && startCharacter <= runs[runs.Count - 1].StartCharacter) {
-                        continue;
-                    }
-
-                    runs.Add(new LegacyXlsCommentFormattingRun(startCharacter, fontIndex));
-                }
-
-                return runs;
+                return _reader.TryRead(payload);
             }
         }
     }

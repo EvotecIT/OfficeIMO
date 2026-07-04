@@ -92,10 +92,19 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 case PropertyTypes.YesNo:
                     property = OfficeOleProperty.Boolean(propertyId, Convert.ToBoolean(value, CultureInfo.InvariantCulture));
                     return true;
+                case PropertyTypes.Binary:
+                    property = OfficeOleProperty.Blob(propertyId, GetBinaryValue(value));
+                    return true;
                 default:
                     property = OfficeOleProperty.String(propertyId, Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
                     return true;
             }
+        }
+
+        private static byte[] GetBinaryValue(object? value) {
+            return value is byte[] bytes
+                ? bytes
+                : Convert.FromBase64String(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
         }
     }
 }

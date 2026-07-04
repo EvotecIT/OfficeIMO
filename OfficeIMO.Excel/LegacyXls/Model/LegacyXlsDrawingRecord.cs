@@ -32,7 +32,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             IReadOnlyList<LegacyXlsDrawingShapeProperty>? shapeProperties = null,
             IReadOnlyList<LegacyXlsDrawingObjectSubRecord>? objectSubRecords = null,
             LegacyXlsDrawingFutureRecordHeader? futureRecordHeader = null,
-            LegacyXlsDrawingTextObject? textObject = null) {
+            LegacyXlsDrawingTextObject? textObject = null,
+            LegacyXlsHeaderFooterPicture? headerFooterPicture = null,
+            bool officeArtPayloadFullyTraversed = false) {
             if (payloadLength < 0) {
                 throw new ArgumentOutOfRangeException(nameof(payloadLength));
             }
@@ -66,6 +68,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ObjectSubRecords = objectSubRecords?.ToArray() ?? Array.Empty<LegacyXlsDrawingObjectSubRecord>();
             FutureRecordHeader = futureRecordHeader;
             TextObject = textObject;
+            HeaderFooterPicture = headerFooterPicture;
+            OfficeArtPayloadFullyTraversed = officeArtPayloadFullyTraversed;
         }
 
         /// <summary>Gets the shallow drawing record category.</summary>
@@ -110,17 +114,58 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether this OBJ record contains discovered subrecords.</summary>
         public bool HasObjectSubRecords => ObjectSubRecords.Count > 0;
 
+        /// <summary>Gets whether this OBJ record has complete common-object metadata that can be reported without treating the record as unsupported.</summary>
+        public bool HasSupportedObjectMetadata =>
+            Kind == LegacyXlsDrawingRecordKind.Object
+            && ObjectType.HasValue
+            && ObjectId.HasValue
+            && ObjectFlags.HasValue
+            && ObjectTypeKind.HasValue
+            && ObjectSubRecords.Count > 0
+            && ObjectSubRecords[0].SubRecordType == 0x0015
+            && ObjectSubRecords[0].HasSupportedPayload
+            && HasSupportedObjectSubRecordTerminator
+            && ObjectSubRecords.All(subRecord => subRecord.HasSupportedPayload);
+
+        private bool HasSupportedObjectSubRecordTerminator =>
+            ObjectSubRecords.Any(subRecord => subRecord.SubRecordType == 0x0000 && subRecord.IsComplete)
+            || ObjectSubRecords[ObjectSubRecords.Count - 1].RequiresContinuation;
+
         /// <summary>Gets the decoded future-record stream header, when this drawing record uses that wrapper.</summary>
         public LegacyXlsDrawingFutureRecordHeader? FutureRecordHeader { get; }
 
         /// <summary>Gets whether this drawing record has a decoded future-record stream header.</summary>
         public bool HasFutureRecordHeader => FutureRecordHeader != null;
 
+        /// <summary>Gets whether this future drawing stream has complete metadata that can be reported without treating the record as unsupported.</summary>
+        public bool HasSupportedFutureDrawingStreamMetadata =>
+            (Kind == LegacyXlsDrawingRecordKind.ShapePropertiesStream
+                || Kind == LegacyXlsDrawingRecordKind.TextPropertiesStream
+                || Kind == LegacyXlsDrawingRecordKind.RichTextStream)
+            && FutureRecordHeader != null
+            && FutureRecordHeader.WrappedRecordType == RecordType
+            && FutureRecordHeader.HasCompleteRangeReference;
+
+        /// <summary>Gets whether this drawing record is decoded enough to be represented as supported import metadata.</summary>
+        public bool HasSupportedDrawingMetadata =>
+            HasSupportedObjectMetadata
+            || HasSupportedOfficeArtMetadata
+            || HasSupportedPartialOfficeArtContainerMetadata
+            || HasSupportedOfficeArtClientTextboxMetadata
+            || HasSupportedFutureDrawingStreamMetadata
+            || HasSupportedHeaderFooterPictureMetadata;
+
         /// <summary>Gets decoded TxO text-object header metadata, when this record is a TxO record.</summary>
         public LegacyXlsDrawingTextObject? TextObject { get; }
 
         /// <summary>Gets whether this record has decoded TxO text-object header metadata.</summary>
         public bool HasTextObject => TextObject != null;
+
+        /// <summary>Gets decoded HFPicture wrapper metadata, when this record is a header/footer picture.</summary>
+        public LegacyXlsHeaderFooterPicture? HeaderFooterPicture { get; }
+
+        /// <summary>Gets whether this record has decoded HFPicture wrapper metadata.</summary>
+        public bool HasHeaderFooterPicture => HeaderFooterPicture != null;
 
         /// <summary>Gets whether the object is locked.</summary>
         public bool IsObjectLocked => HasObjectFlag(0x0001);
@@ -194,6 +239,70 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether this drawing record contains discovered OfficeArt record headers.</summary>
         public bool HasOfficeArtRecords => OfficeArtRecords.Count > 0;
 
+        /// <summary>Gets whether the OfficeArt payload was traversed without truncation or trailing bytes.</summary>
+        public bool OfficeArtPayloadFullyTraversed { get; }
+
+        /// <summary>Gets whether this MsoDrawing record has complete OfficeArt metadata that can be reported without treating the record as unsupported.</summary>
+        public bool HasSupportedOfficeArtMetadata =>
+            Kind == LegacyXlsDrawingRecordKind.Drawing
+            && EscherRecordType.HasValue
+            && EscherPayloadLength.HasValue
+            && OfficeArtPayloadFullyTraversed
+            && OfficeArtRecords.Count > 0
+            && (ShapeEntries.Count > 0
+                || AnchorEntries.Count > 0
+                || ChildAnchorEntries.Count > 0
+                || ShapeProperties.Count > 0
+                || DrawingGroupInfos.Count > 0
+                || BlipStoreEntries.Count > 0);
+
+        /// <summary>Gets whether this split MsoDrawing record has enough OfficeArt container metadata to report as supported.</summary>
+        public bool HasSupportedPartialOfficeArtContainerMetadata =>
+            Kind == LegacyXlsDrawingRecordKind.Drawing
+            && (EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer
+                || EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtSpContainer)
+            && EscherPayloadLength.HasValue
+            && !OfficeArtPayloadFullyTraversed
+            && OfficeArtRecords.Count > 0
+            && OfficeArtRecords[0].RecordTypeKind == EscherRecordTypeKind
+            && OfficeArtRecords[0].IsContainer
+            && (ShapeEntries.Count > 0
+                || AnchorEntries.Count > 0
+                || ChildAnchorEntries.Count > 0
+                || ShapeProperties.Count > 0
+                || DrawingGroupInfos.Count > 0);
+
+        /// <summary>Gets whether this MsoDrawing record contains a complete OfficeArt client-textbox marker.</summary>
+        public bool HasSupportedOfficeArtClientTextboxMetadata =>
+            Kind == LegacyXlsDrawingRecordKind.Drawing
+            && EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtFClientTextbox
+            && EscherPayloadLength == 0
+            && OfficeArtPayloadFullyTraversed
+            && OfficeArtRecords.Count == 1;
+
+        /// <summary>Gets whether this HFPicture record has complete header/footer picture OfficeArt metadata.</summary>
+        public bool HasSupportedHeaderFooterPictureMetadata =>
+            Kind == LegacyXlsDrawingRecordKind.HeaderFooterPicture
+            && HeaderFooterPicture != null
+            && HeaderFooterPicture.HasMatchingFutureRecordHeader
+            && HeaderFooterPicture.HasValidDrawingKind
+            && !HeaderFooterPicture.IsContinuation
+            && EscherRecordType.HasValue
+            && EscherPayloadLength.HasValue
+            && OfficeArtPayloadFullyTraversed
+            && OfficeArtRecords.Count > 0
+            && ((HeaderFooterPicture.IsDrawing
+                    && EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer
+                    && (ShapeEntries.Count > 0
+                        || AnchorEntries.Count > 0
+                        || ChildAnchorEntries.Count > 0
+                        || ShapeProperties.Count > 0
+                        || DrawingGroupInfos.Count > 0))
+                || (HeaderFooterPicture.IsDrawingGroup
+                    && EscherRecordTypeKind == LegacyXlsDrawingEscherRecordType.OfficeArtDggContainer
+                    && (DrawingGroupBlocks.Count > 0
+                        || BlipStoreEntries.Count > 0)));
+
         /// <summary>Gets preserve-only document-wide OfficeArtFDGGBlock drawing metadata discovered under this record.</summary>
         public IReadOnlyList<LegacyXlsDrawingGroupBlock> DrawingGroupBlocks { get; }
 
@@ -211,6 +320,45 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether this drawing record contains discovered OfficeArtFOPT shape properties.</summary>
         public bool HasShapeProperties => ShapeProperties.Count > 0;
+
+        /// <summary>
+        /// Creates a copy of this record with updated TxO text-object metadata.
+        /// </summary>
+        internal LegacyXlsDrawingRecord WithTextObject(LegacyXlsDrawingTextObject textObject) {
+            if (textObject == null) {
+                throw new ArgumentNullException(nameof(textObject));
+            }
+
+            return new LegacyXlsDrawingRecord(
+                Kind,
+                RecordName,
+                SheetName,
+                RecordOffset,
+                RecordType,
+                PayloadLength,
+                ObjectType,
+                ObjectId,
+                EscherRecordType,
+                EscherRecordInstance,
+                EscherRecordVersion,
+                EscherPayloadLength,
+                ObjectTypeKind,
+                EscherRecordTypeKind,
+                ObjectFlags,
+                BlipStoreEntries,
+                ShapeEntries,
+                AnchorEntries,
+                ChildAnchorEntries,
+                OfficeArtRecords,
+                DrawingGroupBlocks,
+                DrawingGroupInfos,
+                ShapeProperties,
+                ObjectSubRecords,
+                FutureRecordHeader,
+                textObject,
+                HeaderFooterPicture,
+                OfficeArtPayloadFullyTraversed);
+        }
 
         private bool HasObjectFlag(ushort mask) {
             return ObjectFlags.HasValue && (ObjectFlags.Value & mask) != 0;

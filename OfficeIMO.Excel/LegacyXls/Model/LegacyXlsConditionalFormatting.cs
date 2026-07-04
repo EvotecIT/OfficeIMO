@@ -13,7 +13,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? formula2,
             IReadOnlyList<string> ranges,
             int? priority = null,
-            bool stopIfTrue = false) {
+            bool stopIfTrue = false,
+            LegacyXlsDifferentialFormat? differentialFormat = null) {
             Type = type;
             Operator = @operator;
             Formula1 = formula1 ?? throw new ArgumentNullException(nameof(formula1));
@@ -21,6 +22,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             Ranges = ranges ?? throw new ArgumentNullException(nameof(ranges));
             Priority = priority;
             StopIfTrue = stopIfTrue;
+            DifferentialFormat = differentialFormat;
         }
 
         /// <summary>

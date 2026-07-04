@@ -3,6 +3,7 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal sealed class BiffConditionalFormattingImportState {
+        private readonly LegacyXlsWorkbook _workbook;
         private readonly LegacyXlsWorksheet _sheet;
         private readonly IReadOnlyList<BiffExternSheetReference> _externSheets;
         private readonly IReadOnlyList<LegacyXlsExternalReference> _externalReferences;
@@ -18,12 +19,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private int _headerPayloadLength;
 
         internal BiffConditionalFormattingImportState(
+            LegacyXlsWorkbook workbook,
             LegacyXlsWorksheet sheet,
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             IReadOnlyList<LegacyXlsDifferentialFormat> differentialFormats) {
+            _workbook = workbook;
             _sheet = sheet;
             _externSheets = externSheets;
             _externalReferences = externalReferences;
@@ -50,10 +53,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         internal bool TryReadRule(byte[] payload) {
-            return TryReadRule(payload, out _);
+            return TryReadRule(payload, recordOffset: 0, out _);
         }
 
-        internal bool TryReadRule(byte[] payload, out BiffFormulaReadFailure? formulaFailure) {
+        internal bool TryReadRule(byte[] payload, int recordOffset, out BiffFormulaReadFailure? formulaFailure) {
             formulaFailure = null;
             if (!HasPendingHeader) {
                 return false;
@@ -61,6 +64,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             bool parsed = BiffConditionalFormattingReader.TryReadRule(
                 payload,
+                _workbook,
+                recordOffset,
                 _externSheets,
                 _externalReferences,
                 _sheetNames,
@@ -101,11 +106,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 out ushort ruleIndex,
                 out int? priority,
                 out bool stopIfTrue,
-                out hasUnprojectedFormatting)) {
+                out bool hasInlineFormatting)) {
                 if (extensionRecord != null) {
                     _sheet.AddConditionalFormattingExtension(extensionRecord);
                 }
 
+                hasUnprojectedFormatting = hasInlineFormatting;
                 return false;
             }
 
@@ -115,6 +121,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         _sheet.AddConditionalFormattingExtension(extensionRecord);
                     }
 
+                    hasUnprojectedFormatting = hasInlineFormatting;
                     return false;
                 }
 
@@ -129,6 +136,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     _sheet.AddConditionalFormattingExtension(extensionRecord);
                 }
 
+                hasUnprojectedFormatting = hasInlineFormatting;
                 return false;
             }
 
@@ -137,11 +145,24 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 _sheet.AddConditionalFormattingExtension(extensionRecord);
             }
 
-            LegacyXlsDifferentialFormat? differentialFormat = hasUnprojectedFormatting && _differentialFormats.Count == 1
-                ? _differentialFormats[0]
+            LegacyXlsDifferentialFormat? differentialFormat = hasInlineFormatting
+                ? ResolveDifferentialFormat(headerId)
                 : null;
+            if (differentialFormat != null) {
+                extensionRecord?.MarkProjectedFormatting();
+            }
+
             rules[ruleIndex].ApplyExtension(priority, stopIfTrue, differentialFormat);
+            hasUnprojectedFormatting = hasInlineFormatting && differentialFormat == null;
             return true;
+        }
+
+        private LegacyXlsDifferentialFormat? ResolveDifferentialFormat(ushort headerId) {
+            if (headerId > 0 && headerId <= _differentialFormats.Count) {
+                return _differentialFormats[headerId - 1];
+            }
+
+            return _differentialFormats.Count == 1 ? _differentialFormats[0] : null;
         }
 
         internal void AddUnresolvedFeatures(

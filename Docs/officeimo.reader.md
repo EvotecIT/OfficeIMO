@@ -1,8 +1,8 @@
 # OfficeIMO.Reader
 
 `OfficeIMO.Reader` is an optional, read-only facade that normalizes extraction across:
-- Word (`.docx`, `.docm`) -> Markdown chunks
-- Excel (`.xlsx`, `.xlsm`) -> row/table chunks (+ optional Markdown previews)
+- Word (`.docx`, `.docm`, `.doc`) -> Markdown chunks
+- Excel (`.xlsx`, `.xlsm`, `.xls`) -> row/table chunks (+ optional Markdown previews)
 - PowerPoint (`.pptx`, `.pptm`) -> slide-aligned Markdown chunks (optionally including notes)
 - Markdown (`.md`, `.markdown`) -> heading-aware chunks
 - PDF (`.pdf`) -> page-aware text chunks
@@ -161,7 +161,7 @@ Each chunk is returned as `ReaderChunk`:
 
 ## Notes / Limitations
 
-- Legacy binary formats (`.doc`, `.xls`, `.ppt`) are not supported (convert to OpenXML first).
+- Legacy binary Word and Excel files (`.doc`, `.xls`) route through the OfficeIMO.Word and OfficeIMO.Excel legacy import engines. Unsupported or preserve-only legacy content is reported as reader warnings/diagnostics. Legacy binary PowerPoint (`.ppt`) is not supported.
 - Folder ingestion is best-effort: unreadable/corrupt/oversized files emit warning chunks and processing continues.
 - `ReadFolderDocuments(...)` yields per-source payloads (`ReaderSourceDocument`) for straightforward source/chunk table upserts.
 - `ReadFolderDetailed(...)` provides aggregate counts and per-file status with optional progress callbacks.

@@ -24,6 +24,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsScenario> _scenarios = new();
         private readonly List<LegacyXlsRowLayout> _rows = new();
         private readonly List<LegacyXlsSelection> _selections = new();
+        private readonly List<LegacyXlsTableDefinition> _tableDefinitions = new();
         private readonly List<LegacyXlsWorksheetWindowView> _windowViews = new();
 
         /// <summary>
@@ -194,6 +195,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// Gets parsed worksheet selections.
         /// </summary>
         public IReadOnlyList<LegacyXlsSelection> Selections => _selections;
+
+        /// <summary>
+        /// Gets worksheet table/list definitions parsed from BIFF shared-feature records.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsTableDefinition> TableDefinitions => _tableDefinitions;
 
         /// <summary>
         /// Gets worksheet-window view records parsed from BIFF Window2 records.
@@ -539,6 +545,46 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void AddSelection(LegacyXlsSelection selection) {
             _selections.Add(selection);
+        }
+
+        internal void AddTableDefinition(LegacyXlsTableDefinition tableDefinition) {
+            _tableDefinitions.Add(tableDefinition);
+        }
+
+        internal bool TryApplyTableDefinitionStyle(
+            uint idList,
+            string styleName,
+            bool showFirstColumn,
+            bool showLastColumn,
+            bool showRowStripes,
+            bool showColumnStripes) {
+            LegacyXlsTableDefinition? tableDefinition = _tableDefinitions.LastOrDefault(table => table.IdList == idList);
+            if (tableDefinition == null) {
+                return false;
+            }
+
+            tableDefinition.ApplyStyle(styleName, showFirstColumn, showLastColumn, showRowStripes, showColumnStripes);
+            return true;
+        }
+
+        internal bool TryApplyTableDefinitionDisplayMetadata(uint idList, string? displayName, string? comment) {
+            LegacyXlsTableDefinition? tableDefinition = _tableDefinitions.LastOrDefault(table => table.IdList == idList);
+            if (tableDefinition == null) {
+                return false;
+            }
+
+            tableDefinition.ApplyDisplayMetadata(displayName, comment);
+            return true;
+        }
+
+        internal bool TryApplyTableDefinitionBlockLevelFormatting(uint idList, LegacyXlsTableBlockLevelFormatting formatting) {
+            LegacyXlsTableDefinition? tableDefinition = _tableDefinitions.LastOrDefault(table => table.IdList == idList);
+            if (tableDefinition == null) {
+                return false;
+            }
+
+            tableDefinition.ApplyBlockLevelFormatting(formatting);
+            return true;
         }
 
         internal void AddWindowView(LegacyXlsWorksheetWindowView view) {

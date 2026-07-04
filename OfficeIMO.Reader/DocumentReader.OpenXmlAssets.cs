@@ -22,12 +22,20 @@ public static partial class DocumentReader {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
+        if (IsLegacyBinaryOfficeExtension(path)) {
+            return Array.Empty<OfficeDocumentAsset>();
+        }
+
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         return ReadOpenXmlImageAssets(stream, path, kind, opt, cancellationToken);
     }
 
     private static IReadOnlyList<OfficeDocumentAsset> ReadOpenXmlImageAssets(Stream stream, string sourceName, ReaderInputKind kind, ReaderOptions opt, CancellationToken cancellationToken) {
         if (kind != ReaderInputKind.Word && kind != ReaderInputKind.PowerPoint && kind != ReaderInputKind.Excel) {
+            return Array.Empty<OfficeDocumentAsset>();
+        }
+
+        if (IsLegacyBinaryOfficeExtension(sourceName)) {
             return Array.Empty<OfficeDocumentAsset>();
         }
 

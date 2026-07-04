@@ -1,4 +1,6 @@
 using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Excel.LegacyXls.Diagnostics;
@@ -385,34 +387,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_NormalAndExplicitLoad_ThrowWhenNoSupportedWorksheetsAreProjected() {
+        public void LegacyXls_NormalAndExplicitLoad_ProjectChartOnlyWorkbooksAsXlsxChartSheets() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateChartOnlyWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
 
-            InvalidDataException normalException = Assert.Throws<InvalidDataException>(() => ExcelDocument.Load(new MemoryStream(compound)));
-            InvalidDataException explicitException = Assert.Throws<InvalidDataException>(() => ExcelDocument.LoadLegacyXls(new MemoryStream(compound)));
+            try {
+                using ExcelDocument normal = ExcelDocument.Load(new MemoryStream(compound));
+                using ExcelDocument explicitLoad = ExcelDocument.LoadLegacyXls(new MemoryStream(compound));
 
-            Assert.Contains("no supported worksheets", normalException.Message, StringComparison.OrdinalIgnoreCase);
-            Assert.Contains("no supported worksheets", explicitException.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.True(normal.WasLoadedFromLegacyXls);
+                Assert.Empty(normal.LegacyXlsUnsupportedSheets);
+                Assert.Empty(normal.LegacyXlsUnsupportedFeatures);
+                Assert.Equal("ChartOnly", Assert.Single(normal.LegacyXlsChartSheets).Name);
+                Assert.Equal("ChartOnly", Assert.Single(explicitLoad.LegacyXlsChartSheets).Name);
+
+                normal.Save(outputPath);
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(outputPath, false);
+                Assert.Single(spreadsheet.WorkbookPart!.ChartsheetParts);
+                Assert.Contains(spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>(), sheet => sheet.Name?.Value == "ChartOnly");
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+
+                using ExcelDocumentReader reader = ExcelDocumentReader.Open(outputPath);
+                Assert.Equal(1, reader.SheetCount);
+                Assert.Equal(new[] { "Sheet1" }, reader.GetSheetNames());
+                Assert.NotNull(reader.GetSheet(1));
+                Assert.Throws<ArgumentOutOfRangeException>(() => reader.GetSheet(2));
+                Assert.Throws<KeyNotFoundException>(() => reader.GetSheet("ChartOnly"));
+            } finally {
+                TryDelete(outputPath);
+            }
         }
 
         [Fact]
-        public void LegacyXls_LoadLegacyXlsWithReport_ReturnsReportWhenNoSupportedWorksheetsAreProjected() {
+        public void LegacyXls_LoadLegacyXlsWithReport_ReturnsDocumentForChartOnlyWorkbooks() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateChartOnlyWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound));
 
-            Assert.False(result.HasDocument);
-            Assert.NotNull(result.ProjectionException);
-            Assert.IsType<InvalidDataException>(result.ProjectionException);
+            Assert.True(result.HasDocument);
+            Assert.Null(result.ProjectionException);
             Assert.Equal(0, result.ImportReport.WorksheetCount);
-            Assert.Equal(1, result.ImportReport.UnsupportedSheetCount);
+            Assert.Equal(1, result.ImportReport.ChartSheetCount);
+            Assert.Equal(0, result.ImportReport.UnsupportedSheetCount);
             Assert.False(result.HasImportErrors);
-
-            InvalidOperationException documentException = Assert.Throws<InvalidOperationException>(() => result.Document);
-            Assert.Contains("No OfficeIMO Excel document", documentException.Message, StringComparison.Ordinal);
-            Assert.Same(result.ProjectionException, documentException.InnerException);
+            Assert.Equal("ChartOnly", Assert.Single(result.Document.LegacyXlsChartSheets).Name);
         }
 
         [Fact]

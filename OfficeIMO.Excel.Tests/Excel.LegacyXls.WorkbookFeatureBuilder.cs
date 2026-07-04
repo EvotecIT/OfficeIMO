@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0082, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x020b, BuildIndexPayload(firstRow: 0, rowAfterLast: 4, reservedRecordOffset: 1234, dbCellOffsets: new uint[] { 200, 240 }));
                 WriteRecord(stream, 0x001d, BuildSelectionPayload());
-                WriteRecord(stream, 0x0090, BuildSortPayload("Region", "Amount", "Date"));
+                WriteRecord(stream, 0x0090, BuildSortPayload("A2:A4", "B2:B4", "C2:C4"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -800,21 +800,182 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long dataBoundSheetPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ListTable"));
+                WriteRecord(stream, 0x00e0, BuildXfFillStylePayload(foregroundColorIndex: 0x000A));
+                WriteRecord(stream, 0x00e0, BuildXfFillStylePayload(foregroundColorIndex: 0x000D));
+                WriteRecord(stream, 0x00e0, BuildXfFillStylePayload(foregroundColorIndex: 0x0011));
+                WriteRecord(stream, 0x0293, BuildCustomStylePayload(styleFormatIndex: 0, "LegacyHeaderStyle"));
+                WriteRecord(stream, 0x0293, BuildCustomStylePayload(styleFormatIndex: 1, "LegacyDataStyle"));
+                WriteRecord(stream, 0x0293, BuildCustomStylePayload(styleFormatIndex: 2, "LegacyTotalStyle"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Name"));
                 WriteRecord(stream, 0x0204, BuildLabelPayload(0, 1, "Amount"));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(1, 0, "North"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 1, 0, EncodeRkInteger(125)));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(2, 0, "South"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(2, 1, 0, EncodeRkInteger(95)));
+                WriteRecord(stream, 0x0204, BuildLabelPayload(3, 0, "Total"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(3, 1, 0, EncodeRkInteger(220)));
                 WriteRecord(stream, (ushort)BiffRecordType.FeatHdr11, BuildFutureRecordPayload((ushort)BiffRecordType.FeatHdr11, 16));
-                WriteRecord(stream, (ushort)BiffRecordType.Feature11, BuildFutureRecordPayload((ushort)BiffRecordType.Feature11, 20));
-                WriteRecord(stream, (ushort)BiffRecordType.List12, BuildFutureRecordPayload((ushort)BiffRecordType.List12, 12));
-                WriteRecord(stream, (ushort)BiffRecordType.Feature12, BuildFutureRecordPayload((ushort)BiffRecordType.Feature12, 20));
+                WriteRecord(stream, (ushort)BiffRecordType.Feature11, BuildSimpleTableFeaturePayload(
+                    (ushort)BiffRecordType.Feature11,
+                    "LegacySales",
+                    firstRow: 0,
+                    lastRow: 3,
+                    firstColumn: 0,
+                    lastColumn: 1,
+                    idList: 7,
+                    hasHeader: true,
+                    hasTotalsRow: true,
+                    hasAutoFilter: true));
+                WriteRecord(stream, (ushort)BiffRecordType.List12, BuildList12BlockLevelPayload(
+                    idList: 7,
+                    headerStyleRecordIndex: 0,
+                    headerStyleName: "LegacyHeaderStyle",
+                    dataStyleRecordIndex: 1,
+                    dataStyleName: "LegacyDataStyle",
+                    totalStyleRecordIndex: 2,
+                    totalStyleName: "LegacyTotalStyle"));
+                WriteRecord(stream, (ushort)BiffRecordType.List12, BuildList12TableStylePayload(
+                    idList: 7,
+                    styleName: "TableStyleMedium4",
+                    showFirstColumn: true,
+                    showLastColumn: false,
+                    showRowStripes: true,
+                    showColumnStripes: true));
+                WriteRecord(stream, (ushort)BiffRecordType.List12, BuildList12DisplayNamePayload(
+                    idList: 7,
+                    displayName: "LegacySalesDisplay",
+                    comment: "Imported legacy table comment"));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
                 Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)dataBoundSheetPosition + 4), 4);
                 return bytes;
+            }
+
+            private static byte[] BuildSimpleTableFeaturePayload(
+                ushort recordType,
+                string tableName,
+                ushort firstRow,
+                ushort lastRow,
+                ushort firstColumn,
+                ushort lastColumn,
+                uint idList,
+                bool hasHeader,
+                bool hasTotalsRow,
+                bool hasAutoFilter) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, recordType);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                stream.WriteByte(0);
+                stream.Write(new byte[4], 0, 4);
+                WriteUInt16(stream, 1);
+                WriteUInt32(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, firstRow);
+                WriteUInt16(stream, lastRow);
+                WriteUInt16(stream, firstColumn);
+                WriteUInt16(stream, lastColumn);
+
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, idList);
+                WriteUInt32(stream, hasHeader ? 1U : 0U);
+                WriteUInt32(stream, hasTotalsRow ? 1U : 0U);
+                WriteUInt32(stream, checked((uint)(lastColumn - firstColumn + 2)));
+                WriteUInt32(stream, 64);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, hasAutoFilter ? 0x000B0002U : 0x000B0000U);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                WriteUInt32(stream, 0);
+                stream.Write(new byte[16], 0, 16);
+                WriteUnicodeString(stream, tableName);
+                WriteUInt16(stream, checked((ushort)(lastColumn - firstColumn + 1)));
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildXfFillStylePayload(ushort foregroundColorIndex) {
+                byte[] payload = new byte[20];
+                WriteUInt16(payload, 4, 0x0004);
+                WriteUInt16(payload, 8, 0x4000);
+                WriteUInt32(payload, 14, 1U << 26);
+                WriteUInt16(payload, 18, checked((ushort)(foregroundColorIndex | (0x0041 << 7))));
+                return payload;
+            }
+
+            private static byte[] BuildCustomStylePayload(ushort styleFormatIndex, string styleName) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, styleFormatIndex);
+                WriteUnicodeString(stream, styleName);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildList12BlockLevelPayload(
+                uint idList,
+                int headerStyleRecordIndex,
+                string headerStyleName,
+                int dataStyleRecordIndex,
+                string dataStyleName,
+                int totalStyleRecordIndex,
+                string totalStyleName) {
+                using var stream = new MemoryStream();
+                WriteFutureRecordHeader(stream, (ushort)BiffRecordType.List12);
+                WriteUInt16(stream, 0);
+                WriteUInt32(stream, idList);
+                WriteInt32(stream, 0);
+                WriteInt32(stream, headerStyleRecordIndex);
+                WriteInt32(stream, 0);
+                WriteInt32(stream, dataStyleRecordIndex);
+                WriteInt32(stream, 0);
+                WriteInt32(stream, totalStyleRecordIndex);
+                WriteInt32(stream, 0);
+                WriteInt32(stream, 0);
+                WriteInt32(stream, 0);
+                WriteUnicodeString(stream, headerStyleName);
+                WriteUnicodeString(stream, dataStyleName);
+                WriteUnicodeString(stream, totalStyleName);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildList12TableStylePayload(
+                uint idList,
+                string styleName,
+                bool showFirstColumn,
+                bool showLastColumn,
+                bool showRowStripes,
+                bool showColumnStripes) {
+                using var stream = new MemoryStream();
+                WriteFutureRecordHeader(stream, (ushort)BiffRecordType.List12);
+                WriteUInt16(stream, 1);
+                WriteUInt32(stream, idList);
+                ushort flags = 0;
+                if (showFirstColumn) flags |= 0x0001;
+                if (showLastColumn) flags |= 0x0002;
+                if (showRowStripes) flags |= 0x0004;
+                if (showColumnStripes) flags |= 0x0008;
+                WriteUInt16(stream, flags);
+                WriteUnicodeString(stream, styleName);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildList12DisplayNamePayload(uint idList, string displayName, string comment) {
+                using var stream = new MemoryStream();
+                WriteFutureRecordHeader(stream, (ushort)BiffRecordType.List12);
+                WriteUInt16(stream, 2);
+                WriteUInt32(stream, idList);
+                WriteUnicodeString(stream, displayName);
+                WriteUnicodeString(stream, comment);
+                return stream.ToArray();
             }
 
             internal static byte[] CreatePhase5PivotTableMetadataWorkbookStream() {
@@ -827,14 +988,18 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x00d5, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x00e3, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x00c5, BuildSxdbPayload());
+                WriteRecord(stream, 0x00c5, BuildSxdbDataItemPayload());
                 WriteRecord(stream, 0x0100, BuildSxFormulaPayload(cacheFieldIndex: -1));
+                WriteRecord(stream, 0x0100, BuildCalculatedFieldSxFormulaPayload());
+                WriteRecord(stream, 0x00f8, BuildSxFormulaTokenStreamPayload());
+                WriteRecord(stream, 0x00ef, BuildSxRulePayload());
                 WriteRecord(stream, 0x00c8, BuildSxNumPayload(42.5));
                 WriteRecord(stream, 0x00c9, BuildUInt16Payload(1));
                 WriteRecord(stream, 0x00ca, BuildUInt16Payload(0x0007));
                 WriteRecord(stream, 0x00cc, BuildSxStringPayload("East"));
                 WriteRecord(stream, 0x00ce, Array.Empty<byte>());
                 WriteRecord(stream, 0x00cf, Array.Empty<byte>());
-                WriteRecord(stream, 0x00f1, Array.Empty<byte>());
+                WriteRecord(stream, 0x00f1, BuildSxFiltPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -855,6 +1020,26 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0858, Array.Empty<byte>());
                 WriteRecord(stream, 0x0864, BuildSxAddlPayload());
                 WriteRecord(stream, 0x0864, BuildSxAddlEndPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)dataBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5PivotTableLineItemAxisSlotWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long dataBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "PivotSlots"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Pivot slots"));
+                WriteRecord(stream, 0x00b0, BuildSxViewPayload(rowFieldCount: 1, columnFieldCount: 2, rowLineCount: 4, columnLineCount: 8));
+                WriteRecord(stream, 0x00b5, BuildSxliRowAxisPayload());
+                WriteRecord(stream, 0x00b5, BuildSxliColumnAxisPayload());
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 byte[] bytes = stream.ToArray();
@@ -1245,6 +1430,66 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5InlineFillConditionalFormattingWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "InlineCfFill"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Score"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(15)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 1, 0, 1));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10, includeInlineFillFormatting: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5InlineFontConditionalFormattingWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "InlineCfFont"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Score"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(15)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 1, 0, 1));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10, includeInlineFontFormatting: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreatePhase5InlineFontAndFillConditionalFormattingWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long formattingBoundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "InlineCfBoth"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Score"));
+                WriteRecord(stream, 0x027e, BuildRkPayload(1, 0, 0, EncodeRkInteger(15)));
+                WriteRecord(stream, 0x01b0, BuildConditionalFormattingRangePayload(0, 0, 1, 0, 1));
+                WriteRecord(stream, 0x01b1, BuildCellIsGreaterThanConditionalFormattingRulePayload(10, includeInlineFontAndFillFormatting: true));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)formattingBoundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             internal static byte[] CreatePhase5ConditionalFormattingExtensionWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
@@ -1521,26 +1766,86 @@ namespace OfficeIMO.Tests {
                 ushort headerId = 0) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, ruleCount);
-                WriteUInt16(stream, headerId);
+                WriteUInt16(stream, checked((ushort)(headerId << 1)));
                 WriteCellRange(stream, firstRow, firstColumn, lastRow, lastColumn);
                 WriteUInt16(stream, 1);
                 WriteCellRange(stream, firstRow, firstColumn, lastRow, lastColumn);
                 return stream.ToArray();
             }
 
-            private static byte[] BuildCellIsGreaterThanConditionalFormattingRulePayload(ushort threshold, bool includeInlineFormatting = false) {
+            private static byte[] BuildCellIsGreaterThanConditionalFormattingRulePayload(
+                ushort threshold,
+                bool includeInlineFormatting = false,
+                bool includeInlineFillFormatting = false,
+                bool includeInlineFontFormatting = false,
+                bool includeInlineFontAndFillFormatting = false) {
                 byte[] formula = BuildPtgIntFormula(threshold);
                 using var stream = new MemoryStream();
                 stream.WriteByte(0x01);
                 stream.WriteByte(0x05);
                 WriteUInt16(stream, checked((ushort)formula.Length));
                 WriteUInt16(stream, 0);
-                if (includeInlineFormatting) {
+                if (includeInlineFontAndFillFormatting) {
+                    byte[] fontAndFill = BuildInlineDxfFontAndPatternPayload();
+                    stream.Write(fontAndFill, 0, fontAndFill.Length);
+                } else if (includeInlineFontFormatting) {
+                    byte[] font = BuildInlineDxfFontPayload();
+                    stream.Write(font, 0, font.Length);
+                } else if (includeInlineFillFormatting) {
+                    byte[] fill = BuildInlineDxfPatternPayload(pattern: 1, foregroundColorIndex: 5, backgroundColorIndex: 5);
+                    stream.Write(fill, 0, fill.Length);
+                } else if (includeInlineFormatting) {
                     stream.Write(new byte[] { 0x01, 0x00, 0x00, 0x00 }, 0, 4);
                 }
 
                 stream.Write(formula, 0, formula.Length);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildInlineDxfPatternPayload(byte pattern, ushort foregroundColorIndex, ushort backgroundColorIndex) {
+                using var stream = new MemoryStream();
+                WriteInlineDxfFlags(stream, 1UL << 29);
+                WriteInlineDxfPatternBody(stream, pattern, foregroundColorIndex, backgroundColorIndex);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildInlineDxfFontPayload() {
+                using var stream = new MemoryStream();
+                WriteInlineDxfFlags(stream, 1UL << 26);
+                WriteInlineDxfFontBody(stream, colorIndex: 2, bold: true, italic: true);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildInlineDxfFontAndPatternPayload() {
+                using var stream = new MemoryStream();
+                WriteInlineDxfFlags(stream, (1UL << 26) | (1UL << 29));
+                WriteInlineDxfFontBody(stream, colorIndex: 2, bold: true, italic: true);
+                WriteInlineDxfPatternBody(stream, pattern: 1, foregroundColorIndex: 5, backgroundColorIndex: 5);
+                return stream.ToArray();
+            }
+
+            private static void WriteInlineDxfFlags(Stream stream, ulong flags) {
+                for (int i = 0; i < 6; i++) {
+                    stream.WriteByte((byte)((flags >> (8 * i)) & 0xff));
+                }
+            }
+
+            private static void WriteInlineDxfFontBody(Stream stream, int colorIndex, bool bold, bool italic) {
+                byte[] font = new byte[118];
+                int stxpOffset = 64;
+                WriteUInt32(font, stxpOffset + 4, italic ? 0x00000002U : 0);
+                WriteUInt16(font, stxpOffset + 8, bold ? (ushort)0x02bc : (ushort)0x0190);
+                WriteUInt32(font, stxpOffset + 16, unchecked((uint)colorIndex));
+                WriteUInt32(font, stxpOffset + 24, 0);
+                WriteUInt32(font, stxpOffset + 36, 0);
+                stream.Write(font, 0, font.Length);
+            }
+
+            private static void WriteInlineDxfPatternBody(Stream stream, byte pattern, ushort foregroundColorIndex, ushort backgroundColorIndex) {
+                uint patternBits = ((uint)pattern << 10)
+                    | ((uint)(foregroundColorIndex & 0x7f) << 16)
+                    | ((uint)(backgroundColorIndex & 0x7f) << 23);
+                WriteUInt32(stream, patternBits);
             }
 
             private static byte[] BuildFormulaConditionalFormattingRulePayload() {
@@ -1581,6 +1886,13 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, priority);
                 stream.WriteByte((byte)(stopIfTrue ? 0x03 : 0x01));
                 stream.WriteByte((byte)(hasDxf ? 1 : 0));
+                if (hasDxf) {
+                    WriteUInt32(stream, 16);
+                    for (int i = 0; i < 16; i++) {
+                        stream.WriteByte(0);
+                    }
+                }
+
                 stream.WriteByte(16);
                 for (int i = 0; i < 16; i++) {
                     stream.WriteByte(0);
@@ -1862,8 +2174,8 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildDrawingGroupWithPngBlipStorePayload() {
                 byte[] drawingGroupData = BuildOfficeArtRecord(0xf006, instance: 0, version: 0x00, BuildDrawingGroupBlockPayload());
-                byte[] embeddedPng = BuildOfficeArtRecord(0xf01e, instance: 0x06, version: 0x00, new byte[] { 0x89, 0x50, 0x4e, 0x47 });
-                byte[] fbse = BuildOfficeArtRecord(0xf007, instance: 0x06, version: 0x02, BuildFbsePayload(0x06, 0x06, sizeBytes: 12, referenceCount: 1, embeddedPng));
+                byte[] embeddedPng = BuildOfficeArtRecord(0xf01e, instance: 0x06, version: 0x00, Png1x1Transparent);
+                byte[] fbse = BuildOfficeArtRecord(0xf007, instance: 0x06, version: 0x02, BuildFbsePayload(0x06, 0x06, sizeBytes: checked((uint)embeddedPng.Length), referenceCount: 1, embeddedPng));
                 byte[] bstore = BuildOfficeArtRecord(0xf001, instance: 1, version: 0x0f, fbse);
                 byte[] drawingGroupPayload = drawingGroupData.Concat(bstore).ToArray();
                 return BuildOfficeArtRecord(0xf000, instance: 2, version: 0x0f, drawingGroupPayload);
@@ -1872,11 +2184,39 @@ namespace OfficeIMO.Tests {
             private static byte[] BuildDrawingWithPictureShapePayload() {
                 byte[] drawingInfo = BuildOfficeArtRecord(0xf008, instance: 1, version: 0x00, BuildDrawingInfoPayload());
                 byte[] shape = BuildOfficeArtRecord(0xf00a, instance: 0x004b, version: 0x02, BuildShapePayload(0x00000400, 0x00000a02));
-                byte[] shapeProperties = BuildOfficeArtRecord(0xf00b, instance: 2, version: 0x03, BuildShapePropertiesPayload());
+                byte[] shapeProperties = BuildOfficeArtRecord(0xf00b, instance: 3, version: 0x03, BuildShapePropertiesPayload());
                 byte[] anchor = BuildOfficeArtRecord(0xf010, instance: 0, version: 0x00, BuildClientAnchorPayload());
                 byte[] childAnchor = BuildOfficeArtRecord(0xf00f, instance: 0, version: 0x00, BuildChildAnchorPayload());
                 byte[] shapeContainer = BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, shape.Concat(shapeProperties).Concat(anchor).Concat(childAnchor).ToArray());
                 return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, drawingInfo.Concat(shapeContainer).ToArray());
+            }
+
+            private static byte[] BuildHeaderFooterPicturePayload() {
+                byte[] drawing = BuildDrawingWithPictureShapePayload();
+                using var stream = new MemoryStream();
+                WriteFutureRecordHeader(stream, (ushort)BiffRecordType.HfPicture);
+                stream.WriteByte(0x01);
+                stream.WriteByte(0x00);
+                stream.Write(drawing, 0, drawing.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildOfficeArtClientTextboxPayload() {
+                return BuildOfficeArtRecord(0xf00d, instance: 0, version: 0x00, Array.Empty<byte>());
+            }
+
+            private static byte[] BuildSplitDrawingContainerPayload() {
+                byte[] drawingInfo = BuildOfficeArtRecord(0xf008, instance: 1, version: 0x00, BuildDrawingInfoPayload());
+                return BuildOfficeArtRecord(0xf002, instance: 1, version: 0x0f, drawingInfo, declaredPayloadLength: checked((uint)(drawingInfo.Length + 24)));
+            }
+
+            private static byte[] BuildSplitShapeContainerPayload() {
+                byte[] shape = BuildOfficeArtRecord(0xf00a, instance: 0x0001, version: 0x02, BuildShapePayload(0x00000400, 0x00000a02));
+                byte[] shapeProperties = BuildOfficeArtRecord(0xf00b, instance: 2, version: 0x03, BuildShapePropertiesPayload());
+                byte[] anchor = BuildOfficeArtRecord(0xf010, instance: 0, version: 0x00, BuildClientAnchorPayload());
+                byte[] clientData = BuildOfficeArtRecord(0xf011, instance: 0, version: 0x00, Array.Empty<byte>());
+                byte[] payload = shape.Concat(shapeProperties).Concat(anchor).Concat(clientData).ToArray();
+                return BuildOfficeArtRecord(0xf004, instance: 0, version: 0x0f, payload, declaredPayloadLength: checked((uint)(payload.Length + 16)));
             }
 
             private static byte[] BuildDrawingGroupBlockPayload() {
@@ -1929,6 +2269,8 @@ namespace OfficeIMO.Tests {
 
             private static byte[] BuildShapePropertiesPayload() {
                 using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x4104);
+                WriteUInt32(stream, 1);
                 WriteUInt16(stream, 0x00bf);
                 WriteUInt32(stream, 0x00000001);
                 WriteUInt16(stream, 0x8005);
@@ -1936,6 +2278,18 @@ namespace OfficeIMO.Tests {
                 stream.Write(new byte[] { 0x41, 0x42, 0x43, 0x44 }, 0, 4);
                 return stream.ToArray();
             }
+
+            private static readonly byte[] Png1x1Transparent = {
+                0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a,
+                0x00, 0x00, 0x00, 0x0d, 0x49, 0x48, 0x44, 0x52,
+                0x00, 0x00, 0x00, 0x01, 0x00, 0x00, 0x00, 0x01,
+                0x08, 0x06, 0x00, 0x00, 0x00, 0x1f, 0x15, 0xc4,
+                0x89, 0x00, 0x00, 0x00, 0x0a, 0x49, 0x44, 0x41,
+                0x54, 0x78, 0x9c, 0x63, 0x00, 0x01, 0x00, 0x00,
+                0x05, 0x00, 0x01, 0x0d, 0x0a, 0x2d, 0xb4, 0x00,
+                0x00, 0x00, 0x00, 0x49, 0x45, 0x4e, 0x44, 0xae,
+                0x42, 0x60, 0x82
+            };
 
             private static byte[] BuildClientAnchorPayload() {
                 using var stream = new MemoryStream();
@@ -1978,10 +2332,14 @@ namespace OfficeIMO.Tests {
             }
 
             private static byte[] BuildOfficeArtRecord(ushort recordType, ushort instance, byte version, byte[] payload) {
+                return BuildOfficeArtRecord(recordType, instance, version, payload, checked((uint)payload.Length));
+            }
+
+            private static byte[] BuildOfficeArtRecord(ushort recordType, ushort instance, byte version, byte[] payload, uint declaredPayloadLength) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, checked((ushort)((instance << 4) | (version & 0x0f))));
                 WriteUInt16(stream, recordType);
-                WriteUInt32(stream, checked((uint)payload.Length));
+                WriteUInt32(stream, declaredPayloadLength);
                 stream.Write(payload, 0, payload.Length);
                 return stream.ToArray();
             }
@@ -2823,7 +3181,11 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildSxViewPayload() {
+            private static byte[] BuildSxViewPayload(
+                ushort rowFieldCount = 2,
+                ushort columnFieldCount = 0,
+                ushort rowLineCount = 7,
+                ushort columnLineCount = 1) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 2);
                 WriteUInt16(stream, 10);
@@ -2837,12 +3199,12 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 0x0001);
                 WriteUInt16(stream, 0xffff);
                 WriteUInt16(stream, 5);
-                WriteUInt16(stream, 2);
-                WriteUInt16(stream, 0);
+                WriteUInt16(stream, rowFieldCount);
+                WriteUInt16(stream, columnFieldCount);
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 1);
-                WriteUInt16(stream, 7);
-                WriteUInt16(stream, 1);
+                WriteUInt16(stream, rowLineCount);
+                WriteUInt16(stream, columnLineCount);
                 WriteUInt16(stream, 0x020b);
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 10);
@@ -2889,6 +3251,44 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 0x0800);
                 WriteUInt16(stream, 0x7fff);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildSxliRowAxisPayload() {
+                using var stream = new MemoryStream();
+                WriteSxliItem(stream, 0, 0, 1, 0x0000, 0);
+                WriteSxliItem(stream, 0, 0, 1, 0x0000, 1);
+                WriteSxliItem(stream, 0, 0, 1, 0x0000, 2);
+                WriteSxliItem(stream, 0, 13, 1, 0x0a00, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxliColumnAxisPayload() {
+                using var stream = new MemoryStream();
+                WriteSxliItem(stream, 0, 0, 2, 0x1000, 0, 0);
+                WriteSxliItem(stream, 1, 0, 2, 0x1002, 0, 1);
+                WriteSxliItem(stream, 0, 0, 2, 0x1000, 1, 0);
+                WriteSxliItem(stream, 1, 0, 2, 0x1002, 1, 1);
+                WriteSxliItem(stream, 0, 0, 2, 0x1000, 2, 0);
+                WriteSxliItem(stream, 1, 0, 2, 0x1002, 2, 1);
+                WriteSxliItem(stream, 0, 13, 1, 0x1a01, 0, 0);
+                WriteSxliItem(stream, 0, 13, 1, 0x1a03, 0, 0);
+                return stream.ToArray();
+            }
+
+            private static void WriteSxliItem(
+                Stream stream,
+                ushort sameAsPreviousCount,
+                ushort itemType,
+                ushort entryCount,
+                ushort flags,
+                params ushort[] entrySlots) {
+                WriteUInt16(stream, sameAsPreviousCount);
+                WriteUInt16(stream, itemType);
+                WriteUInt16(stream, entryCount);
+                WriteUInt16(stream, flags);
+                foreach (ushort entrySlot in entrySlots) {
+                    WriteUInt16(stream, entrySlot);
+                }
             }
 
             private static byte[] BuildSxpiPayload() {
@@ -2950,6 +3350,58 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
+            private static byte[] BuildCalculatedFieldSxFormulaPayload() {
+                return new byte[] {
+                    0x1e, 0x14, 0xa0, 0x0a,
+                    0xff, 0xff, 0xff, 0xff,
+                    0x00, 0x00, 0xff, 0xff,
+                    0x00, 0x00, 0x00, 0x00,
+                    0x00, 0x00, 0x00, 0x00
+                };
+            }
+
+            private static byte[] BuildSxFormulaTokenStreamPayload() {
+                using var stream = new MemoryStream();
+                byte[] formulaTokens = {
+                    0x1e, 0x07, 0x00,
+                    0x1e, 0x08, 0x00,
+                    0x03
+                };
+                WriteUInt16(stream, checked((ushort)formulaTokens.Length));
+                stream.Write(formulaTokens, 0, formulaTokens.Length);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxRulePayload() {
+                using var stream = new MemoryStream();
+                stream.WriteByte(0);
+                stream.WriteByte(0xff);
+                WriteUInt16(stream, 0x0021);
+                WriteUInt16(stream, 2);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxFiltPayload() {
+                using var stream = new MemoryStream();
+                WriteSxFiltEntry(stream, axisFlags: 0x0001, fieldPosition: 0, fieldReferenceIndex: 0, selected: true, subtotalFlags: 0x0001, itemIndexCount: 1);
+                WriteSxFiltEntry(stream, axisFlags: 0x0008, fieldPosition: 0, fieldReferenceIndex: -2, selected: false, subtotalFlags: 0x0002, itemIndexCount: 0);
+                return stream.ToArray();
+            }
+
+            private static void WriteSxFiltEntry(
+                Stream stream,
+                ushort axisFlags,
+                short fieldPosition,
+                short fieldReferenceIndex,
+                bool selected,
+                ushort subtotalFlags,
+                ushort itemIndexCount) {
+                WriteUInt16(stream, checked((ushort)((axisFlags & 0x000F) | ((fieldPosition & 0x03FF) << 6))));
+                WriteUInt16(stream, checked((ushort)((fieldReferenceIndex & 0x03FF) | (selected ? 0x0400 : 0))));
+                WriteUInt16(stream, subtotalFlags);
+                WriteUInt16(stream, itemIndexCount);
+            }
+
             private static byte[] BuildSxdbPayload() {
                 using var stream = new MemoryStream();
                 WriteInt32(stream, 12);
@@ -2962,6 +3414,19 @@ namespace OfficeIMO.Tests {
                 WriteUInt16(stream, 1);
                 WriteUInt16(stream, 5);
                 WriteCompressedUnicodeStringNoCch(stream, "Excel");
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildSxdbDataItemPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 3);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 0xffff);
+                WriteUInt16(stream, 0xffff);
+                WriteUInt16(stream, 0);
+                WriteUInt16(stream, 13);
+                WriteCompressedUnicodeStringNoCch(stream, "Sum of Amount");
                 return stream.ToArray();
             }
 

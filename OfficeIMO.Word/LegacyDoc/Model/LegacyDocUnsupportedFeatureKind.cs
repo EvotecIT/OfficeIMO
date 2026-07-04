@@ -14,27 +14,27 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         OleObject,
 
         /// <summary>
-        /// ActiveX control storage was discovered in the OLE compound container.
+        /// ActiveX control storage was discovered in the OLE compound container. Current imports expose this as preserved compound metadata.
         /// </summary>
         ActiveXControl,
 
         /// <summary>
-        /// Embedded package payload storage or streams were discovered in the OLE compound container.
+        /// Embedded package payload storage or streams were discovered in the OLE compound container. Current imports expose this as preserved compound metadata.
         /// </summary>
         EmbeddedPackage,
 
         /// <summary>
-        /// Binary payload stream was discovered in the OLE compound container.
+        /// Binary payload stream was discovered in the OLE compound container. Current imports expose this as preserved compound metadata.
         /// </summary>
         BinaryData,
 
         /// <summary>
-        /// Fast-save or quick-save state was discovered in the FIB.
+        /// Fast-save state was discovered in the FIB.
         /// </summary>
         FastSave,
 
         /// <summary>
-        /// Picture payloads were indicated by the FIB.
+        /// Picture payloads were indicated by the FIB. Current imports expose this as preserved metadata.
         /// </summary>
         Picture,
 
@@ -59,12 +59,12 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Endnote,
 
         /// <summary>
-        /// Comment or annotation story text exists but is not projected yet.
+        /// Comment or annotation story text exists but does not have readable projection tables.
         /// </summary>
         Comment,
 
         /// <summary>
-        /// Revision tracking state exists but is not projected yet.
+        /// Revision tracking state exists but cannot be projected into the current document shape.
         /// </summary>
         RevisionTracking,
 

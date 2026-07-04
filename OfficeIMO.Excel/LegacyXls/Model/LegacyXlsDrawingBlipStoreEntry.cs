@@ -16,7 +16,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort? embeddedBlipRecordType,
             uint? embeddedBlipPayloadLength,
             int? embeddedBlipPayloadAvailableLength,
-            string? embeddedBlipPayloadSha256) {
+            string? embeddedBlipPayloadSha256,
+            byte[]? embeddedBlipPayloadBytes = null) {
             RecordInstance = recordInstance;
             RecordInstanceBlipTypeKind = TryGetBlipTypeKind(recordInstance);
             RecordInstanceBlipTypeName = GetBlipTypeName(recordInstance);
@@ -34,6 +35,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             EmbeddedBlipPayloadLength = embeddedBlipPayloadLength;
             EmbeddedBlipPayloadAvailableLength = embeddedBlipPayloadAvailableLength;
             EmbeddedBlipPayloadSha256 = embeddedBlipPayloadSha256;
+            EmbeddedBlipPayloadBytes = embeddedBlipPayloadBytes?.ToArray() ?? Array.Empty<byte>();
+            EmbeddedBlipContentType = GetEmbeddedBlipContentType(embeddedBlipRecordType, RecordInstanceBlipTypeKind, Win32BlipTypeKind, MacOsBlipTypeKind);
         }
 
         /// <summary>Gets the BLIP type value stored in the FBSE OfficeArt record instance field.</summary>
@@ -87,6 +90,18 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the SHA-256 hash of the embedded BLIP payload bytes, when available.</summary>
         public string? EmbeddedBlipPayloadSha256 { get; }
 
+        /// <summary>Gets a copy of importable embedded BLIP image bytes, when available.</summary>
+        public byte[] EmbeddedBlipPayloadBytes { get; }
+
+        /// <summary>Gets whether this entry carries importable embedded BLIP image bytes.</summary>
+        public bool HasEmbeddedBlipPayloadBytes => EmbeddedBlipPayloadBytes.Length > 0;
+
+        /// <summary>Gets the image content type inferred from the embedded BLIP record and BLIP type.</summary>
+        public string? EmbeddedBlipContentType { get; }
+
+        /// <summary>Gets whether this entry can be projected as an Open XML worksheet image.</summary>
+        public bool HasImportableImagePayload => HasEmbeddedBlipPayloadBytes && !string.IsNullOrWhiteSpace(EmbeddedBlipContentType);
+
         private static LegacyXlsDrawingBlipType? TryGetBlipTypeKind(ushort value) {
             return value switch {
                 0x00 => LegacyXlsDrawingBlipType.Error,
@@ -122,6 +137,44 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 0xF029 => "OfficeArtBlipTIFF",
                 0xF02A => "OfficeArtBlipJPEG",
                 _ => $"EmbeddedBlipRecordType:0x{recordType.Value:X4}"
+            };
+        }
+
+        private static string? GetEmbeddedBlipContentType(
+            ushort? embeddedRecordType,
+            LegacyXlsDrawingBlipType? recordInstanceType,
+            LegacyXlsDrawingBlipType? win32Type,
+            LegacyXlsDrawingBlipType? macOsType) {
+            LegacyXlsDrawingBlipType? type = GetBlipTypeFromEmbeddedRecord(embeddedRecordType)
+                ?? recordInstanceType
+                ?? win32Type
+                ?? macOsType;
+
+            return type switch {
+                LegacyXlsDrawingBlipType.Png => "image/png",
+                LegacyXlsDrawingBlipType.Jpeg => "image/jpeg",
+                LegacyXlsDrawingBlipType.CmykJpeg => "image/jpeg",
+                LegacyXlsDrawingBlipType.Dib => "image/bmp",
+                LegacyXlsDrawingBlipType.Tiff => "image/tiff",
+                LegacyXlsDrawingBlipType.Emf => "image/x-emf",
+                LegacyXlsDrawingBlipType.Wmf => "image/x-wmf",
+                _ => null
+            };
+        }
+
+        private static LegacyXlsDrawingBlipType? GetBlipTypeFromEmbeddedRecord(ushort? recordType) {
+            if (!recordType.HasValue) {
+                return null;
+            }
+
+            return recordType.Value switch {
+                0xF01A => LegacyXlsDrawingBlipType.Emf,
+                0xF01B => LegacyXlsDrawingBlipType.Wmf,
+                0xF01D => LegacyXlsDrawingBlipType.Jpeg,
+                0xF01E => LegacyXlsDrawingBlipType.Png,
+                0xF029 => LegacyXlsDrawingBlipType.Tiff,
+                0xF02A => LegacyXlsDrawingBlipType.CmykJpeg,
+                _ => null
             };
         }
     }

@@ -120,6 +120,7 @@ namespace OfficeIMO.Excel {
                 : new DocumentFormat.OpenXml.Spreadsheet.Font();
 
             mutate(candidate);
+            NormalizeFontChildOrder(candidate);
 
             var existing = fonts.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>()
                 .Select((font, index) => new { font, index })
@@ -182,9 +183,48 @@ namespace OfficeIMO.Excel {
         }
 
         private static void SetFontColor(DocumentFormat.OpenXml.Spreadsheet.Font font, string argb) {
-            font.Color = new DocumentFormat.OpenXml.Spreadsheet.Color {
+            SetFontColorElement(font, new DocumentFormat.OpenXml.Spreadsheet.Color {
                 Rgb = argb
-            };
+            });
+        }
+
+        private static void SetFontColorElement(DocumentFormat.OpenXml.Spreadsheet.Font font, DocumentFormat.OpenXml.Spreadsheet.Color color) {
+            foreach (DocumentFormat.OpenXml.Spreadsheet.Color existing in font.Elements<DocumentFormat.OpenXml.Spreadsheet.Color>().ToList()) {
+                existing.Remove();
+            }
+
+            font.AddChild((DocumentFormat.OpenXml.Spreadsheet.Color)color.CloneNode(true), true);
+        }
+
+        private static void NormalizeFontChildOrder(DocumentFormat.OpenXml.Spreadsheet.Font font) {
+            List<OpenXmlElement> children = font.ChildElements.Select(CloneNormalizedFontChild).ToList();
+            font.RemoveAllChildren();
+            foreach (OpenXmlElement child in children) {
+                font.AddChild(child, true);
+            }
+        }
+
+        private static OpenXmlElement CloneNormalizedFontChild(OpenXmlElement child) {
+            if (child is FontCharSet) {
+                return child.CloneNode(true);
+            }
+
+            if (IsSpreadsheetFontElement(child, "charset")
+                && byte.TryParse(child.GetAttribute("val", string.Empty).Value, NumberStyles.Integer, CultureInfo.InvariantCulture, out byte characterSet)) {
+                return new FontCharSet { Val = characterSet };
+            }
+
+            return child.CloneNode(true);
+        }
+
+        private static void SetFontSchemeElement(DocumentFormat.OpenXml.Spreadsheet.Font font, FontSchemeValues? scheme) {
+            foreach (FontScheme existing in font.Elements<FontScheme>().ToList()) {
+                existing.Remove();
+            }
+
+            if (scheme.HasValue) {
+                font.AddChild(new FontScheme { Val = scheme.Value }, true);
+            }
         }
 
         private static void SetFontName(DocumentFormat.OpenXml.Spreadsheet.Font font, string fontName) {
@@ -214,9 +254,7 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            var charset = new OpenXmlUnknownElement(string.Empty, "charset", "http://schemas.openxmlformats.org/spreadsheetml/2006/main");
-            charset.SetAttribute(new OpenXmlAttribute("val", string.Empty, characterSet.ToString(CultureInfo.InvariantCulture)));
-            font.AppendChild(charset);
+            font.AddChild(new FontCharSet { Val = characterSet }, true);
         }
 
         private static bool IsSpreadsheetFontElement(OpenXmlElement element, string localName) {

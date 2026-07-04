@@ -1,6 +1,7 @@
 ﻿# Legacy XLS Import Report
 
 Worksheets: 0
+Chart sheets: 0
 Unsupported sheets: 0
 Cells: 0
 Formula cells: 0
@@ -22,6 +23,8 @@ Data consolidation references: 0
 Data consolidation named sources: 0
 Pivot table records: 0
 Chart records: 0
+Chart sheet metadata records: 0
+Chart sheet future metadata records: 0
 Drawing records: 0
 Theme records: 0
 Drawing OfficeArt records: 0

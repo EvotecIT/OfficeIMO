@@ -4,8 +4,6 @@ using OfficeIMO.Shared;
 
 namespace OfficeIMO.Excel.LegacyXls.Compound {
     internal static class LegacyCompoundFeatureScanner {
-        private const string VbaProjectCode = "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED";
-        private const string OleObjectCode = "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED";
         private const string DigitalSignatureCode = "XLS-COMPOUND-FEATURE-DIGITAL-SIGNATURE-DIAGNOSED";
 
         internal static void AddPreserveOnlyFeatures(
@@ -27,11 +25,6 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                     entrySizes,
                     entryObjectTypes,
                     entryContentKinds));
-                AddFeature(workbook, options, new LegacyXlsUnsupportedFeature(
-                    LegacyXlsUnsupportedFeatureKind.VbaProject,
-                    VbaProjectCode,
-                    description,
-                    detailCode: "Compound:VbaProjectStorage"));
             }
 
             if (TryGetOleObjectEntries(
@@ -49,11 +42,6 @@ namespace OfficeIMO.Excel.LegacyXls.Compound {
                     entrySizes,
                     entryObjectTypes,
                     entryContentKinds));
-                AddFeature(workbook, options, new LegacyXlsUnsupportedFeature(
-                    LegacyXlsUnsupportedFeatureKind.OleObject,
-                    OleObjectCode,
-                    description,
-                    detailCode: "Compound:OleObjectStorage"));
             }
 
             if (TryGetDigitalSignatureEntries(

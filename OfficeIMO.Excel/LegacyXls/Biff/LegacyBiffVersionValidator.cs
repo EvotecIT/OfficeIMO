@@ -6,7 +6,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
     /// Validates BIFF BOF records before version-specific record layouts are interpreted.
     /// </summary>
     internal static class LegacyBiffVersionValidator {
-        private const ushort Biff8Version = 0x0600;
+        internal const ushort Biff5Version = 0x0500;
+        internal const ushort Biff8Version = 0x0600;
         private const ushort WorkbookGlobalsSubstream = 0x0005;
 
         internal static bool ValidateWorkbookGlobals(
@@ -61,7 +62,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
             ushort version = BiffRecordReader.ReadUInt16(payload, 0);
             ushort substreamType = BiffRecordReader.ReadUInt16(payload, 2);
-            if (version != Biff8Version) {
+            if (version != Biff8Version && version != Biff5Version) {
                 LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedBiffVersionFeature(offset, version, substreamType, sheetName);
                 unsupportedFeatures.Add(feature);
                 if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, payload.Length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {

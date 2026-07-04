@@ -6,6 +6,7 @@ using OfficeIMO.Reader;
 using OfficeIMO.Reader.Html;
 using OfficeIMO.Word;
 using System;
+using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Linq;
@@ -65,6 +66,90 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
+    public void DocumentReader_CanReadLegacyDocThroughWordEngine() {
+        string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents", "LegacyDocCorpus", "ComSimpleParagraphs.doc");
+
+        var chunks = DocumentReader.Read(path).ToList();
+        var result = DocumentReader.ReadDocument(path);
+
+        Assert.Equal(ReaderInputKind.Word, DocumentReader.DetectKind(path));
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Word, chunk.Kind));
+        Assert.Contains(chunks, chunk => !string.IsNullOrWhiteSpace(chunk.Markdown ?? chunk.Text));
+        Assert.Contains(chunks.SelectMany(chunk => chunk.Warnings ?? Array.Empty<string>()), warning =>
+            warning.Contains("Legacy DOC import diagnostic", StringComparison.OrdinalIgnoreCase));
+        Assert.Equal(ReaderInputKind.Word, result.Kind);
+        Assert.NotEmpty(result.Chunks);
+        Assert.Empty(result.Assets);
+    }
+
+    [Fact]
+    public void DocumentReader_CanReadLegacyXlsThroughExcelEngine() {
+        string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents", "LegacyXlsCorpus", "openpreserve-format-corpus", "valid.xls");
+
+        var chunks = DocumentReader.Read(path).ToList();
+        var result = DocumentReader.ReadDocument(path);
+
+        Assert.Equal(ReaderInputKind.Excel, DocumentReader.DetectKind(path));
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Excel, chunk.Kind));
+        Assert.Contains(chunks, chunk => chunk.Tables != null && chunk.Tables.Count > 0);
+        Assert.Equal(ReaderInputKind.Excel, result.Kind);
+        Assert.NotEmpty(result.Tables);
+        Assert.Empty(result.Assets);
+    }
+
+    [Fact]
+    public void DocumentReader_CanReadEncryptedLegacyXlsWithOpenPassword() {
+        string path = GetRepositoryPath("OfficeIMO.TestAssets", "Documents", "LegacyXlsDiagnosticCorpus", "excel-com-generated", "encrypted-password.xls");
+        var options = new ReaderOptions {
+            OpenPassword = "openpass",
+            ExcelSheetName = "Encrypted",
+            ExcelA1Range = "A1:B2"
+        };
+
+        var pathChunks = DocumentReader.Read(path, options).ToList();
+        using var stream = File.OpenRead(path);
+        var streamChunks = DocumentReader.Read(stream, "encrypted-password.xls", options).ToList();
+
+        AssertEncryptedLegacyXlsChunks(pathChunks);
+        AssertEncryptedLegacyXlsChunks(streamChunks);
+    }
+
+    [Fact]
+    public void DocumentReader_CanReadEncryptedXlsxWithOpenPassword() {
+        const string password = "openpass";
+        string sourcePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        string encryptedPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+        try {
+            using (var doc = ExcelDocument.Create(sourcePath)) {
+                var sheet = doc.AddWorkSheet("SecureData");
+                sheet.Cell(1, 1, "Name");
+                sheet.Cell(1, 2, "Value");
+                sheet.Cell(2, 1, "Token");
+                sheet.Cell(2, 2, 7);
+                doc.SaveEncrypted(encryptedPath, password);
+            }
+
+            var options = new ReaderOptions {
+                OpenPassword = password,
+                ExcelSheetName = "SecureData",
+                ExcelA1Range = "A1:B2"
+            };
+
+            var pathChunks = DocumentReader.Read(encryptedPath, options).ToList();
+            using var stream = File.OpenRead(encryptedPath);
+            var streamChunks = DocumentReader.Read(stream, "encrypted.xlsx", options).ToList();
+
+            AssertEncryptedXlsxChunks(pathChunks);
+            AssertEncryptedXlsxChunks(streamChunks);
+        } finally {
+            if (File.Exists(sourcePath)) File.Delete(sourcePath);
+            if (File.Exists(encryptedPath)) File.Delete(encryptedPath);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_CanReadPowerPoint() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".pptx");
         try {
@@ -82,6 +167,34 @@ public sealed class ReaderDocumentReaderTests {
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
+    }
+
+    private static void AssertEncryptedLegacyXlsChunks(IReadOnlyList<ReaderChunk> chunks) {
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Excel, chunk.Kind));
+        ReaderChunk chunk = Assert.Single(chunks, item => item.Tables != null && item.Tables.Count > 0);
+        Assert.Equal("Encrypted", chunk.Location.Sheet);
+        Assert.Contains("Secret", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("Synthetic", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("42", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.NotNull(chunk.Tables);
+        Assert.Equal(new[] { "Secret", "Amount" }, chunk.Tables![0].Columns);
+        Assert.Equal("Synthetic", chunk.Tables[0].Rows[0][0]);
+        Assert.Equal("42", chunk.Tables[0].Rows[0][1]);
+    }
+
+    private static void AssertEncryptedXlsxChunks(IReadOnlyList<ReaderChunk> chunks) {
+        Assert.NotEmpty(chunks);
+        Assert.All(chunks, chunk => Assert.Equal(ReaderInputKind.Excel, chunk.Kind));
+        ReaderChunk chunk = Assert.Single(chunks, item => item.Tables != null && item.Tables.Count > 0);
+        Assert.Equal("SecureData", chunk.Location.Sheet);
+        Assert.Contains("Name", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("Token", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.Contains("7", chunk.Markdown ?? chunk.Text, StringComparison.Ordinal);
+        Assert.NotNull(chunk.Tables);
+        Assert.Equal(new[] { "Name", "Value" }, chunk.Tables![0].Columns);
+        Assert.Equal("Token", chunk.Tables[0].Rows[0][0]);
+        Assert.Equal("7", chunk.Tables[0].Rows[0][1]);
     }
 
     [Fact]
@@ -1075,7 +1188,7 @@ public sealed class ReaderDocumentReaderTests {
     }
 
     [Fact]
-    public void DocumentReader_ReadPathDocumentsDetailed_SkipsUnsupportedLegacySingleFileWithoutComputingSourceHash() {
+    public void DocumentReader_ReadPathDocumentsDetailed_SkipsMalformedLegacyDocSingleFileWithoutComputingSourceHash() {
         var path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".doc");
 
         try {
@@ -1098,7 +1211,8 @@ public sealed class ReaderDocumentReaderTests {
             var document = result.Documents[0];
             Assert.False(document.Parsed);
             Assert.Null(document.SourceHash);
-            Assert.True((document.Warnings?.Any(w => w.Contains("unsupported", StringComparison.OrdinalIgnoreCase)) ?? false));
+            Assert.NotEmpty(document.Warnings ?? Array.Empty<string>());
+            Assert.All(document.Warnings!, warning => Assert.Contains("Skipped", warning, StringComparison.OrdinalIgnoreCase));
         } finally {
             if (File.Exists(path)) File.Delete(path);
         }
@@ -1457,6 +1571,20 @@ public sealed class ReaderDocumentReaderTests {
         } finally {
             if (Directory.Exists(folder)) Directory.Delete(folder, recursive: true);
         }
+    }
+
+    private static string GetRepositoryPath(params string[] parts) {
+        DirectoryInfo? directory = new DirectoryInfo(AppContext.BaseDirectory);
+        while (directory != null) {
+            string candidate = Path.Combine(new[] { directory.FullName }.Concat(parts).ToArray());
+            if (File.Exists(candidate) || Directory.Exists(candidate)) {
+                return candidate;
+            }
+
+            directory = directory.Parent;
+        }
+
+        throw new DirectoryNotFoundException("Could not locate repository path: " + Path.Combine(parts));
     }
 
     private static string NormalizeWhitespace(string text) {

@@ -1,4 +1,5 @@
 using OfficeIMO.Excel;
+using OfficeIMO.Excel.LegacyXls;
 using OfficeIMO.Markdown;
 using OfficeIMO.Pdf;
 using OfficeIMO.PowerPoint;
@@ -93,6 +94,7 @@ public static partial class DocumentReader {
 
     private static IEnumerable<ReaderChunk> ReadWord(string path, ReaderOptions opt, CancellationToken ct) {
         using var doc = WordDocument.Load(path, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
+        IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
         var chunks = doc.ExtractMarkdownChunks(
             markdownOptions: new WordToMarkdownOptions(),
             chunking: new WordMarkdownChunkingOptions { MaxChars = opt.MaxChars, IncludeFootnotes = opt.IncludeWordFootnotes },
@@ -113,7 +115,7 @@ public static partial class DocumentReader {
                 },
                 Text = c.Text,
                 Markdown = c.Markdown,
-                Warnings = c.Warnings
+                Warnings = CombineWarnings(c.Warnings, legacyWarnings)
             };
             outIndex++;
         }
@@ -123,6 +125,7 @@ public static partial class DocumentReader {
         // Copy input so we can open read-only without affecting caller's stream.
         using var ms = CopyToMemory(stream, ct);
         using var doc = WordDocument.Load(ms, readOnly: true, autoSave: false, openSettings: CreateOpenSettings(opt));
+        IReadOnlyList<string>? legacyWarnings = BuildLegacyWordWarnings(doc);
 
         var chunks = doc.ExtractMarkdownChunks(
             markdownOptions: new WordToMarkdownOptions(),
@@ -144,76 +147,83 @@ public static partial class DocumentReader {
                 },
                 Text = c.Text,
                 Markdown = c.Markdown,
-                Warnings = c.Warnings
+                Warnings = CombineWarnings(c.Warnings, legacyWarnings)
             };
             outIndex++;
         }
     }
 
     private static IEnumerable<ReaderChunk> ReadExcel(string path, ReaderOptions opt, CancellationToken ct) {
+        if (IsLegacyExcelExtension(path)) {
+            using var legacyDocument = LoadLegacyExcelForReader(path, opt);
+            using var legacyReader = legacyDocument.CreateReader();
+            IReadOnlyList<string>? legacyWarnings = BuildLegacyExcelWarnings(legacyDocument);
+            foreach (var chunk in ReadExcelChunks(legacyReader, path, opt, ct, legacyWarnings)) {
+                yield return chunk;
+            }
+            yield break;
+        }
+
+        if (!string.IsNullOrEmpty(opt.OpenPassword)) {
+            using var encryptedDocument = LoadOpenXmlExcelForReader(path, opt);
+            using var encryptedReader = encryptedDocument.CreateReader();
+            foreach (var chunk in ReadExcelChunks(encryptedReader, path, opt, ct, legacyWarnings: null)) {
+                yield return chunk;
+            }
+            yield break;
+        }
+
         // Use OpenSettings for basic OpenXML hardening (best-effort) and open from stream to avoid file handle collisions.
         using var fs = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
-        var openSettings = CreateOpenSettings(opt);
+        OpenSettings? openSettings = CreateOpenSettings(opt);
         using var openXml = openSettings == null
             ? SpreadsheetDocument.Open(fs, false)
             : SpreadsheetDocument.Open(fs, false, openSettings);
         using var reader = ExcelDocumentReader.Wrap(openXml);
-        var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
-
-        int outIndex = 0;
-        int tableIndex = 0;
-        foreach (var sheet in sheets) {
-            ct.ThrowIfCancellationRequested();
-
-            var chunks = reader.ExtractChunks(
-                sheetName: sheet,
-                a1Range: opt.ExcelA1Range,
-                extract: new ExcelExtractionExtensions.ExcelExtractOptions {
-                    HeadersInFirstRow = opt.ExcelHeadersInFirstRow,
-                    ChunkRows = opt.ExcelChunkRows,
-                    EmitMarkdownTable = true
-                },
-                chunking: new ExcelExtractChunkingOptions { MaxChars = opt.MaxChars, MaxTableRows = opt.MaxTableRows },
-                sourcePath: path,
-                cancellationToken: ct);
-
-            foreach (var c in chunks) {
-                ct.ThrowIfCancellationRequested();
-
-                IReadOnlyList<ReaderTable>? tables = null;
-                if (c.Tables != null && c.Tables.Count > 0) {
-                    tables = MapTables(c.Tables, c.Location, ref tableIndex);
-                }
-
-                yield return new ReaderChunk {
-                    Id = c.Id,
-                    Kind = ReaderInputKind.Excel,
-                    Location = new ReaderLocation {
-                        Path = c.Location.Path,
-                        Sheet = c.Location.Sheet,
-                        A1Range = c.Location.A1Range,
-                        BlockIndex = outIndex,
-                        SourceBlockIndex = c.Location.BlockIndex
-                    },
-                    Text = c.Text,
-                    Markdown = c.Markdown,
-                    Tables = tables,
-                    Warnings = c.Warnings
-                };
-                outIndex++;
-            }
+        foreach (var chunk in ReadExcelChunks(reader, path, opt, ct, legacyWarnings: null)) {
+            yield return chunk;
         }
     }
 
     private static IEnumerable<ReaderChunk> ReadExcel(Stream stream, string? sourceName, ReaderOptions opt, CancellationToken ct) {
         // Avoid exposing OpenXml types in the public API surface; internally we can wrap.
         using var ms = CopyToMemory(stream, ct);
-        var openSettings = CreateOpenSettings(opt);
+        OpenSettings? openSettings = CreateOpenSettings(opt);
+
+        if (IsLegacyExcelExtension(sourceName)) {
+            using var document = LoadLegacyExcelForReader(ms, opt);
+            using var reader = document.CreateReader();
+            IReadOnlyList<string>? legacyWarnings = BuildLegacyExcelWarnings(document);
+            foreach (var chunk in ReadExcelChunks(reader, sourceName, opt, ct, legacyWarnings)) {
+                yield return chunk;
+            }
+            yield break;
+        }
+
+        if (!string.IsNullOrEmpty(opt.OpenPassword)) {
+            using var document = LoadOpenXmlExcelForReader(ms, opt);
+            using var reader = document.CreateReader();
+            foreach (var chunk in ReadExcelChunks(reader, sourceName, opt, ct, legacyWarnings: null)) {
+                yield return chunk;
+            }
+            yield break;
+        }
+
         using var openXml = openSettings == null
             ? SpreadsheetDocument.Open(ms, false)
             : SpreadsheetDocument.Open(ms, false, openSettings);
-        using var reader = ExcelDocumentReader.Wrap(openXml);
+        using var wrappedReader = ExcelDocumentReader.Wrap(openXml);
+        foreach (var chunk in ReadExcelChunks(wrappedReader, sourceName, opt, ct, legacyWarnings: null)) {
+            yield return chunk;
+        }
+    }
 
+    private static IEnumerable<ReaderChunk> ReadExcelChunks(
+        ExcelDocumentReader reader,
+        string? sourceName,
+        ReaderOptions opt,
+        CancellationToken ct,
+        IReadOnlyList<string>? legacyWarnings) {
         var sheets = ResolveSheetNames(reader, opt.ExcelSheetName);
 
         int outIndex = 0;
@@ -245,7 +255,7 @@ public static partial class DocumentReader {
                     Id = c.Id,
                     Kind = ReaderInputKind.Excel,
                     Location = new ReaderLocation {
-                        Path = sourceName,
+                        Path = c.Location.Path,
                         Sheet = c.Location.Sheet,
                         A1Range = c.Location.A1Range,
                         BlockIndex = outIndex,
@@ -254,10 +264,154 @@ public static partial class DocumentReader {
                     Text = c.Text,
                     Markdown = c.Markdown,
                     Tables = tables,
-                    Warnings = c.Warnings
+                    Warnings = CombineWarnings(c.Warnings, legacyWarnings)
                 };
                 outIndex++;
             }
+        }
+    }
+
+    private static ExcelDocument LoadLegacyExcelForReader(string path, ReaderOptions opt) {
+        OpenSettings? openSettings = CreateOpenSettings(opt);
+        if (!string.IsNullOrEmpty(opt.OpenPassword)) {
+            return ExcelDocument.LoadLegacyXls(path, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true,
+                Password = opt.OpenPassword
+            });
+        }
+
+        return ExcelDocument.Load(path, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+    }
+
+    private static ExcelDocument LoadLegacyExcelForReader(Stream stream, ReaderOptions opt) {
+        OpenSettings? openSettings = CreateOpenSettings(opt);
+        if (!string.IsNullOrEmpty(opt.OpenPassword)) {
+            stream.Position = 0;
+            return ExcelDocument.LoadLegacyXls(stream, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true,
+                Password = opt.OpenPassword
+            });
+        }
+
+        stream.Position = 0;
+        return ExcelDocument.Load(stream, readOnly: true, autoSave: false, openSettings: openSettings);
+    }
+
+    private static ExcelDocument LoadOpenXmlExcelForReader(string path, ReaderOptions opt) {
+        OpenSettings? openSettings = CreateOpenSettings(opt);
+        try {
+            return ExcelDocument.Load(path, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+        } catch (Exception ex) when (ShouldRetryEncryptedExcelOpen(ex, opt)) {
+            try {
+                return ExcelDocument.LoadEncrypted(path, opt.OpenPassword!, readOnly: true, autoSave: false, log: null, openSettings: openSettings);
+            } catch {
+                ExceptionDispatchInfo.Capture(ex).Throw();
+                throw;
+            }
+        }
+    }
+
+    private static ExcelDocument LoadOpenXmlExcelForReader(Stream stream, ReaderOptions opt) {
+        OpenSettings? openSettings = CreateOpenSettings(opt);
+        stream.Position = 0;
+        try {
+            return ExcelDocument.Load(stream, readOnly: true, autoSave: false, openSettings: openSettings);
+        } catch (Exception ex) when (ShouldRetryEncryptedExcelOpen(ex, opt)) {
+            stream.Position = 0;
+            try {
+                return ExcelDocument.LoadEncrypted(stream, opt.OpenPassword!, readOnly: true, autoSave: false, openSettings: openSettings);
+            } catch {
+                ExceptionDispatchInfo.Capture(ex).Throw();
+                throw;
+            }
+        }
+    }
+
+    private static bool ShouldRetryEncryptedExcelOpen(Exception exception, ReaderOptions opt) {
+        return !string.IsNullOrEmpty(opt.OpenPassword)
+            && (exception is InvalidDataException
+                || exception is OpenXmlPackageException
+                || exception is IOException);
+    }
+
+    private static IReadOnlyList<string>? BuildLegacyWordWarnings(WordDocument document) {
+        if (!document.WasLoadedFromLegacyDoc) {
+            return null;
+        }
+
+        var warnings = new List<string>();
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyDocImportDiagnostics.Select(static diagnostic => "Legacy DOC import diagnostic: " + diagnostic),
+            maxItems: 8,
+            overflowMessage: "Additional legacy DOC import diagnostics were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyDocUnsupportedFeatures.Select(static feature => $"Legacy DOC unsupported feature: {feature.Code} ({feature.Kind}) - {feature.Description}"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy DOC unsupported features were omitted.");
+        return warnings.Count == 0 ? null : warnings;
+    }
+
+    private static IReadOnlyList<string>? BuildLegacyExcelWarnings(ExcelDocument document) {
+        if (!document.WasLoadedFromLegacyXls) {
+            return null;
+        }
+
+        var warnings = new List<string>();
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyXlsImportDiagnostics.Select(static diagnostic => "Legacy XLS import diagnostic: " + diagnostic),
+            maxItems: 8,
+            overflowMessage: "Additional legacy XLS import diagnostics were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyXlsUnsupportedFeatures.Select(static feature => $"Legacy XLS unsupported feature: {feature.Code} ({feature.Kind}) - {feature.Description}"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy XLS unsupported features were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyXlsUnsupportedSheets.Select(static sheet => $"Legacy XLS unsupported sheet: {sheet.Name} ({sheet.Kind}, {sheet.VisibilityName})"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy XLS unsupported sheets were omitted.");
+        return warnings.Count == 0 ? null : warnings;
+    }
+
+    private static IReadOnlyList<string>? CombineWarnings(IReadOnlyList<string>? primary, IReadOnlyList<string>? secondary) {
+        if (secondary == null || secondary.Count == 0) {
+            return primary;
+        }
+
+        var warnings = new List<string>();
+        AddWarnings(warnings, primary);
+        AddWarnings(warnings, secondary);
+        return warnings.Count == 0 ? null : warnings;
+    }
+
+    private static void AddWarnings(List<string> target, IEnumerable<string>? warnings) {
+        if (warnings == null) {
+            return;
+        }
+
+        foreach (string warning in warnings) {
+            if (!string.IsNullOrWhiteSpace(warning)) {
+                target.Add(warning);
+            }
+        }
+    }
+
+    private static void AddBoundedWarnings(List<string> target, IEnumerable<string> warnings, int maxItems, string overflowMessage) {
+        int count = 0;
+        foreach (string warning in warnings) {
+            if (count < maxItems && !string.IsNullOrWhiteSpace(warning)) {
+                target.Add(warning);
+            }
+
+            count++;
+        }
+
+        if (count > maxItems) {
+            target.Add($"{overflowMessage} ({count - maxItems} more)");
         }
     }
 

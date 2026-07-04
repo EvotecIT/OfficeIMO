@@ -6,8 +6,8 @@ using Xunit;
 namespace OfficeIMO.Tests {
     public partial class Excel {
         [Fact]
-        public void LegacyXls_Load_ReportsUnsupportedWorkbookBiffVersion() {
-            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedBiff5WorkbookStream();
+        public void LegacyXls_Load_AcceptsBiff5WorkbookGlobals() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorkbookGlobalsStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
@@ -16,47 +16,35 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
             Assert.Empty(workbook.Worksheets);
-            LegacyXlsUnsupportedFeature feature = Assert.Single(workbook.UnsupportedFeatures);
-            Assert.Equal(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion, feature.Kind);
-            Assert.Equal("XLS-BIFF-VERSION-UNSUPPORTED", feature.Code);
-            Assert.Equal("BiffVersion:BIFF5:WorkbookGlobals", feature.DetailCode);
-            Assert.Contains(workbook.Diagnostics, diagnostic =>
-                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
-                && diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED"
-                && diagnostic.DetailCode == "BiffVersion:BIFF5:WorkbookGlobals");
-            Assert.True(report.HasImportErrors);
-            Assert.True(report.HasUnsupportedFeatures);
-            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["UnsupportedBiffVersion|XLS-BIFF-VERSION-UNSUPPORTED|BiffVersion:BIFF5:WorkbookGlobals"]);
-            Assert.Equal(1, report.PreservedFeatureRecordCount);
-            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
+            Assert.Empty(workbook.UnsupportedFeatures);
+            Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED");
+            Assert.False(report.HasImportErrors);
+            Assert.False(report.HasUnsupportedFeatures);
+            Assert.False(report.UnsupportedFeaturesByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion));
+            Assert.Empty(report.UnsupportedFeaturesByDetail);
+            Assert.Equal(0, report.PreservedFeatureRecordCount);
+            Assert.False(report.PreservedFeatureRecordsByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion));
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
             Assert.Empty(report.UnsupportedProjectionGapsByKind);
-            Assert.Equal(1, report.FileFormatStates["WorkbookFormat:UnsupportedBiff"]);
+            Assert.Equal(1, report.FileFormatStates["WorkbookFormat:SupportedBiff8"]);
             Assert.Equal(1, report.FileFormatStates["Encryption:Missing"]);
-            Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Present"]);
+            Assert.Equal(1, report.FileFormatStates["UnsupportedBiffVersion:Missing"]);
             Assert.Equal(1, report.FileFormatStates["MalformedBof:Missing"]);
-            Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:WorkbookGlobals"]);
-            Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
-            Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
-            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|(workbook)"]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream["BIFF5|WorkbookGlobals"]);
+            Assert.Empty(report.FileFormatBlockers);
+            Assert.Empty(report.FileFormatBlockersByRecordType);
+            Assert.Empty(report.FileFormatBlockersByRecordName);
+            Assert.Empty(report.FileFormatBlockersByLocation);
+            Assert.False(report.UnsupportedBiffVersionsByVersion.ContainsKey("BIFF5"));
+            Assert.Empty(report.UnsupportedBiffVersionsBySubstream);
+            Assert.Empty(report.UnsupportedBiffVersionsByVersionAndSubstream);
             string markdown = report.ToMarkdown();
             Assert.Contains("File Format States", markdown);
-            Assert.Contains("File Format Blockers", markdown);
-            Assert.Contains("File Format Blockers By Record Type", markdown);
-            Assert.Contains("File Format Blockers By Record Name", markdown);
-            Assert.Contains("File Format Blockers By Location", markdown);
-            Assert.Contains("Unsupported BIFF Versions By Version", markdown);
-            Assert.Contains("Unsupported BIFF Versions By Substream", markdown);
-            Assert.Contains("Unsupported BIFF Versions By Version And Substream", markdown);
+            Assert.DoesNotContain("Unsupported BIFF Versions By Version", markdown);
         }
 
         [Fact]
-        public void LegacyXls_Load_ReportsUnsupportedWorksheetBiffVersion() {
-            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedWorksheetBiff5WorkbookStream();
+        public void LegacyXls_Load_AcceptsBiff5WorksheetSubstream() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateBiff5WorksheetWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
@@ -65,28 +53,24 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
             Assert.Equal("OldSheet", sheet.Name);
-            Assert.Empty(sheet.Cells);
-            LegacyXlsUnsupportedFeature feature = Assert.Single(workbook.UnsupportedFeatures);
-            Assert.Equal(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion, feature.Kind);
-            Assert.Equal("OldSheet", feature.SheetName);
-            Assert.Equal("BiffVersion:BIFF5:Worksheet", feature.DetailCode);
-            Assert.Contains(workbook.Diagnostics, diagnostic =>
-                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
-                && diagnostic.SheetName == "OldSheet"
-                && diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED"
-                && diagnostic.DetailCode == "BiffVersion:BIFF5:Worksheet");
+            LegacyXlsCell cell = Assert.Single(sheet.Cells);
+            Assert.Equal(1, cell.Row);
+            Assert.Equal(1, cell.Column);
+            Assert.Equal("ShouldNotImport", cell.Value);
+            Assert.Empty(workbook.UnsupportedFeatures);
+            Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED");
             LegacyXlsImportReport report = workbook.CreateImportReport();
-            Assert.Equal(1, report.PreservedFeatureRecordCount);
-            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
+            Assert.Equal(0, report.PreservedFeatureRecordCount);
+            Assert.False(report.PreservedFeatureRecordsByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion));
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
             Assert.Empty(report.UnsupportedProjectionGapsByKind);
-            Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:Worksheet"]);
-            Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
-            Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
-            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|OldSheet"]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["Worksheet"]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsByVersionAndSubstream["BIFF5|Worksheet"]);
+            Assert.Empty(report.FileFormatBlockers);
+            Assert.Empty(report.FileFormatBlockersByRecordType);
+            Assert.Empty(report.FileFormatBlockersByRecordName);
+            Assert.Empty(report.FileFormatBlockersByLocation);
+            Assert.False(report.UnsupportedBiffVersionsByVersion.ContainsKey("BIFF5"));
+            Assert.Empty(report.UnsupportedBiffVersionsBySubstream);
+            Assert.Empty(report.UnsupportedBiffVersionsByVersionAndSubstream);
         }
 
         [Theory]
@@ -150,7 +134,7 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            internal static byte[] CreateUnsupportedBiff5WorkbookStream() {
+            internal static byte[] CreateBiff5WorkbookGlobalsStream() {
                 return CreateUnsupportedBiffWorkbookStream(0x0500);
             }
 
@@ -161,7 +145,7 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            internal static byte[] CreateUnsupportedWorksheetBiff5WorkbookStream() {
+            internal static byte[] CreateBiff5WorksheetWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 long boundSheetPosition = stream.Position;

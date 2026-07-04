@@ -231,7 +231,7 @@ namespace OfficeIMO.Tests {
             Assert.True(result.ImportReport.DrawingObjectSubRecordsByName["FtCblsData"] >= 1);
             Assert.True(result.ImportReport.DrawingObjectSubRecordsByName["FtLbsData"] >= 1);
             Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Complete"] >= 1);
-            Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["Truncated"] >= 1);
+            Assert.True(result.ImportReport.DrawingObjectSubRecordsByCompleteness["RequiresContinuation"] >= 1);
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByLocation["(workbook)"]);
             Assert.Equal(1, result.ImportReport.DrawingBlipStoreEntriesByTypeAndLocation["(workbook)|Png"]);
@@ -241,7 +241,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["pib"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["BlipBooleanProperties"]);
             Assert.Equal(1, result.ImportReport.DrawingShapePropertiesByName["ShapeBooleanProperties"]);
-            Assert.Equal(2, result.ImportReport.DrawingShapePropertiesByName["wzName"]);
+            Assert.Equal(4, result.ImportReport.DrawingShapePropertiesByName["wzName"]);
             Assert.Equal(2, result.ImportReport.DrawingShapePropertiesByGroup["Blip"]);
             Assert.Equal(2, result.ImportReport.DrawingShapeBlipPropertiesByLocation["Objects"]);
             Assert.Equal(1, result.ImportReport.DrawingShapeBlipPropertiesByNameAndValue["pib;Value:0x00000001"]);
@@ -253,6 +253,8 @@ namespace OfficeIMO.Tests {
             Assert.False(result.ImportReport.DrawingShapePropertiesByGroup.ContainsKey("Unknown"));
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Chart 5"]);
             Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Picture 4"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:Rectangle 1"]);
+            Assert.Equal(1, result.ImportReport.DrawingShapeComplexPropertiesByText["wzName:TextBox 2"]);
             Assert.Equal(2, result.ImportReport.ChartGelFrameOfficeArtRecordsByType["OfficeArtFOPT"]);
             Assert.Equal(2, result.ImportReport.ChartGelFrameOfficeArtRecordsByType["EscherRecordType:0xF122"]);
             Assert.Equal(2, result.ImportReport.ChartGelFrameShapePropertyCounts["Properties:30"]);
@@ -300,9 +302,14 @@ namespace OfficeIMO.Tests {
                 property => property.PropertyName == "wzName" && property.ComplexText == "Chart 5");
             Assert.Contains(result.Workbook.DrawingRecords.SelectMany(record => record.ShapeProperties),
                 property => property.PropertyName == "wzName" && property.ComplexText == "Picture 4");
+            Assert.Contains(result.Workbook.DrawingRecords.SelectMany(record => record.ShapeProperties),
+                property => property.PropertyName == "wzName" && property.ComplexText == "Rectangle 1");
+            Assert.Contains(result.Workbook.DrawingRecords.SelectMany(record => record.ShapeProperties),
+                property => property.PropertyName == "wzName" && property.ComplexText == "TextBox 2");
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Picture" && record.HasObjectSubRecords);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Button" && record.HasObjectSubRecords);
             Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "Checkbox" && record.ObjectSubRecords.Any(subRecord => subRecord.SubRecordName == "FtCblsData"));
+            Assert.Contains(result.Workbook.DrawingRecords, record => record.ObjectTypeName == "DropdownList" && record.HasSupportedObjectMetadata);
         }
 
         [Fact]
@@ -478,25 +485,26 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(2, result.ImportReport.ConditionalFormattingsByFormulaPairState["Formula1:Present|Formula2:Present"]);
             Assert.Equal(6, result.ImportReport.ConditionalFormattingsByFormulaPairState["Formula1:Present|Formula2:Missing"]);
-            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByPriorityState["Present"]);
-            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByPriorityState["Missing"]);
-            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
-            Assert.Equal(4, result.ImportReport.ConditionalFormattingsByStopIfTrueState["Continue"]);
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingsByPriorityState["Present"]);
+            Assert.False(result.ImportReport.ConditionalFormattingsByPriorityState.ContainsKey("Missing"));
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingsByStopIfTrueState["StopIfTrue"]);
+            Assert.False(result.ImportReport.ConditionalFormattingsByStopIfTrueState.ContainsKey("Continue"));
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionRecordCount);
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionsBySheet["Conditions"]);
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionsByRecordType["0x087B"]);
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStopIfTrueStates["StopIfTrue"]);
-            Assert.Equal(4, result.ImportReport.ConditionalFormattingExtensionStates["Cf12:Missing|UnprojectedFormatting:Present|MatchedRule:Present|Priority:Present|StopIfTrue:StopIfTrue"]);
+            Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStates["Cf12:Missing|UnprojectedFormatting:Missing|MatchedRule:Present|Priority:Present|StopIfTrue:StopIfTrue"]);
             Assert.Equal(8, result.ImportReport.ConditionalFormattingExtensionStates.Values.Sum());
-            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedInlineDxfBytes:156"]);
-            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedInlineDxfBytes:152"]);
-            Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedInlineDxfBytes:38"]);
-            Assert.Equal(3, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["UnprojectedUnmatchedRule"]);
+            Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["ProjectedInlineDxfBytes:156"]);
+            Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["ProjectedInlineDxfBytes:152"]);
+            Assert.Equal(3, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["ProjectedInlineDxfBytes:38"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["NoDxfRequested"]);
             Assert.Equal(3, result.ImportReport.ConditionalFormattingExtensionInlineFormattingByteCounts["Bytes:38"]);
             Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionInlineFormattingByteCounts["Bytes:152"]);
             Assert.Equal(2, result.ImportReport.ConditionalFormattingExtensionInlineFormattingByteCounts["Bytes:156"]);
-            Assert.Equal(8, result.ImportReport.UnsupportedFeaturesByDetail["ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf"]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.ConditionalFormatting, result.ImportReport.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain("ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:Dxf", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("ConditionalFormatting|XLS-BIFF-FEATURE-CONDITIONAL-FORMATTING-UNSUPPORTED|ConditionalFormatting:CfEx", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
             Assert.Equal(1, result.ImportReport.WorksheetFeatureStates["DataValidations:0|ConditionalFormatting:8|AutoFilterCriteria:0|AutoFilterDropDowns:Missing"]);
 
             LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
@@ -507,10 +515,11 @@ namespace OfficeIMO.Tests {
                 Assert.False(extension.IsCf12);
                 Assert.True(extension.Priority.HasValue);
             });
-            Assert.Equal(4, sheet.ConditionalFormattingExtensions.Count(extension => extension.MatchedRule));
-            Assert.Equal(4, sheet.ConditionalFormattingExtensions.Count(extension => !extension.MatchedRule));
-            Assert.Equal(7, sheet.ConditionalFormattingExtensions.Count(extension => extension.HasUnprojectedFormatting));
-            Assert.Single(sheet.ConditionalFormattingExtensions, extension => !extension.HasUnprojectedFormatting);
+            Assert.Equal(8, sheet.ConditionalFormattingExtensions.Count(extension => extension.MatchedRule));
+            Assert.Empty(sheet.ConditionalFormattingExtensions.Where(extension => !extension.MatchedRule));
+            Assert.Empty(sheet.ConditionalFormattingExtensions.Where(extension => extension.HasUnprojectedFormatting));
+            Assert.Equal(7, sheet.ConditionalFormattingExtensions.Count(extension => extension.HasProjectedFormatting));
+            Assert.Single(sheet.ConditionalFormattingExtensions, extension => !extension.HasProjectedFormatting);
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.GreaterThan, "A2:A6", "50", null);
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.Between, "B2:B6", "10", "20");
             AssertConditionalFormatting(sheet, LegacyXlsConditionalFormattingType.CellIs, LegacyXlsConditionalFormattingOperator.NotBetween, "C2:C6", "5", "15");
@@ -550,8 +559,9 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
-            LegacyXlsUnsupportedSheet chartSheet = Assert.Single(result.Workbook.UnsupportedSheets, sheet => sheet.Name == "RevenueChart");
-            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, chartSheet.Kind);
+            Assert.DoesNotContain(result.Workbook.UnsupportedSheets, sheet => sheet.Name == "RevenueChart");
+            LegacyXlsChartSheet chartSheet = Assert.Single(result.Workbook.ChartSheets, sheet => sheet.Name == "RevenueChart");
+            Assert.Equal(0x02, chartSheet.SheetType);
             LegacyXlsChartRecord sheetPropertiesRecord = Assert.Single(result.Workbook.ChartRecords, record => record.RecordName == "ShtProps" && record.SheetName == "RevenueChart");
             Assert.NotNull(sheetPropertiesRecord.SheetProperties);
             Assert.Equal(0, sheetPropertiesRecord.SheetProperties!.Flags);
@@ -595,6 +605,38 @@ namespace OfficeIMO.Tests {
             Assert.False(queryTag.QueryTableTagRefreshEnabled);
             Assert.True(queryTag.QueryTableTagCacheInvalid);
             Assert.False(queryTag.QueryTableTagTensorEx);
+        }
+
+        [Fact]
+        public void LegacyXls_Corpus_OpenPreserve_PromotesPhoneticInfoMetadata() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsCorpus",
+                "openpreserve-format-corpus",
+                "valid.xls");
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PhoneticGuide);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.PhoneticGuide, result.ImportReport.UnsupportedFeaturesByKind.Keys);
+
+            LegacyXlsWorksheet[] phoneticWorksheets = result.Workbook.Worksheets
+                .Where(sheet => sheet.PhoneticSettings != null)
+                .ToArray();
+            Assert.NotEmpty(phoneticWorksheets);
+
+            int rangeCount = phoneticWorksheets.Sum(sheet => sheet.PhoneticSettings!.Ranges.Count);
+            Assert.Equal(phoneticWorksheets.Length, result.ImportReport.WorksheetPhoneticSettingsBySheet.Values.Sum());
+            Assert.Equal(phoneticWorksheets.Length, result.ImportReport.WorksheetPhoneticSettingsByType.Values.Sum());
+            Assert.Equal(phoneticWorksheets.Length, result.ImportReport.WorksheetPhoneticSettingsByAlignment.Values.Sum());
+            Assert.Equal(phoneticWorksheets.Length, result.ImportReport.WorksheetPhoneticSettingsByFontId.Values.Sum());
+            Assert.Equal(phoneticWorksheets.Length, result.ImportReport.WorksheetPhoneticSettingsByRangeCount.Values.Sum());
+            Assert.Equal(rangeCount, result.ImportReport.WorksheetPhoneticRangesBySheet.Values.Sum());
+            Assert.Equal(rangeCount, result.ImportReport.WorksheetPhoneticRangesBySheetAndRange.Values.Sum());
         }
 
         [Fact]
@@ -858,35 +900,126 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_DiagnosticCorpus_Biff5Workbook_ReportsUnsupportedVersionBlocker() {
+        public void LegacyXls_DiagnosticCorpus_EncryptedWorkbook_RejectsWrongPassword() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsDiagnosticCorpus",
+                "excel-com-generated",
+                "encrypted-password.xls");
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true,
+                Password = "wrongpass"
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.Empty(workbook.Worksheets);
+            Assert.Empty(workbook.UnsupportedFeatures);
+            Assert.Contains(workbook.Diagnostics, diagnostic =>
+                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
+                && diagnostic.Code == "XLS-BIFF-FILEPASS-PASSWORD-INVALID"
+                && diagnostic.DetailCode == "Encryption:FilePass:Rc4CryptoApi");
+            Assert.True(report.HasImportErrors);
+            Assert.Equal(0, report.UnsupportedFeatureCount);
+            Assert.Equal(1, report.ErrorCount);
+        }
+
+        [Fact]
+        public void LegacyXls_DiagnosticCorpus_EncryptedWorkbook_ImportsWithPassword() {
+            string workbookPath = Path.Combine(
+                GetTestsProjectRoot(),
+                "Documents",
+                "LegacyXlsDiagnosticCorpus",
+                "excel-com-generated",
+                "encrypted-password.xls");
+            string outputPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                    ReportUnsupportedRecords = true,
+                    Password = "openpass"
+                });
+                LegacyXlsWorkbook workbook = result.Workbook;
+                LegacyXlsImportReport report = result.ImportReport;
+
+                Assert.Equal(1, report.WorksheetCount);
+                Assert.Equal(0, report.UnsupportedFeatureCount);
+                Assert.Empty(workbook.UnsupportedFeatures);
+                Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+                Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
+                Assert.False(report.FileFormatBlockers.Keys.Any(key => key.Contains("EncryptedWorkbook", StringComparison.Ordinal)));
+
+                LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
+                Assert.Equal("Encrypted", sheet.Name);
+                Assert.Equal(4, sheet.Cells.Count);
+                Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Secret"));
+                Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 2 && Equals(cell.Value, "Amount"));
+                Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 1 && Equals(cell.Value, "Synthetic"));
+                Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && Equals(cell.Value, 42d));
+
+                using (ExcelDocument encryptedLoadDocument = ExcelDocument.LoadEncrypted(workbookPath, "openpass")) {
+                    Assert.True(encryptedLoadDocument.WasLoadedFromLegacyXls);
+                    Assert.Equal("Encrypted", encryptedLoadDocument.Sheets.Single().Name);
+                }
+
+                result.Document.Save(outputPath);
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(outputPath, false);
+                List<ValidationErrorInfo> errors = new OpenXmlValidator().Validate(spreadsheet).ToList();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                TryDelete(outputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_DiagnosticCorpus_Biff5Workbook_ImportsSimpleWorkbook() {
             string workbookPath = Path.Combine(
                 GetTestsProjectRoot(),
                 "Documents",
                 "LegacyXlsDiagnosticCorpus",
                 "excel-com-generated",
                 "biff5-workbook.xls");
+            string outputPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
 
-            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(workbookPath, new LegacyXlsImportOptions {
-                ReportUnsupportedRecords = true
-            });
-            LegacyXlsImportReport report = workbook.CreateImportReport();
+            try {
+                using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(workbookPath, new LegacyXlsImportOptions {
+                    ReportUnsupportedRecords = true
+                });
+                LegacyXlsWorkbook workbook = result.Workbook;
+                LegacyXlsImportReport report = result.ImportReport;
 
-            Assert.Empty(workbook.Worksheets);
-            Assert.Contains(workbook.Diagnostics, diagnostic =>
-                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
-                && diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED"
-                && diagnostic.DetailCode == "BiffVersion:BIFF5:WorkbookGlobals");
-            LegacyXlsUnsupportedFeature feature = Assert.Single(workbook.UnsupportedFeatures);
-            Assert.Equal(LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion, feature.Kind);
-            Assert.Equal("XLS-BIFF-VERSION-UNSUPPORTED", feature.Code);
-            Assert.True(report.HasImportErrors);
-            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.UnsupportedBiffVersion]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsByVersion["BIFF5"]);
-            Assert.Equal(1, report.UnsupportedBiffVersionsBySubstream["WorkbookGlobals"]);
-            Assert.Equal(1, report.FileFormatBlockers["UnsupportedBiffVersion|BiffVersion:BIFF5:WorkbookGlobals"]);
-            Assert.Equal(1, report.FileFormatBlockersByRecordType["UnsupportedBiffVersion|0x0809"]);
-            Assert.Equal(1, report.FileFormatBlockersByRecordName["UnsupportedBiffVersion|Record0x0809"]);
-            Assert.Equal(1, report.FileFormatBlockersByLocation["XLS-BIFF-VERSION-UNSUPPORTED|(workbook)"]);
+                Assert.Equal(1, report.WorksheetCount);
+                Assert.Equal(0, report.UnsupportedFeatureCount);
+                Assert.Empty(workbook.UnsupportedFeatures);
+                Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+                Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Warning);
+                Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-VERSION-UNSUPPORTED");
+                Assert.False(report.UnsupportedBiffVersionsByVersion.ContainsKey("BIFF5"));
+                Assert.False(report.FileFormatBlockers.Keys.Any(key => key.Contains("UnsupportedBiffVersion", StringComparison.Ordinal)));
+
+                LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
+                Assert.Equal("BIFF5", sheet.Name);
+                Assert.Equal(4, sheet.Cells.Count);
+                Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Legacy BIFF5 fixture"));
+                Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 1 && Equals(cell.Value, 21d));
+                Assert.Contains(sheet.Cells, cell => cell.Row == 2 && cell.Column == 2 && Equals(cell.Value, 42d));
+                Assert.Contains(sheet.Cells, cell => cell.Row == 3 && cell.Column == 1 && Equals(cell.Value, "Generated by Excel COM"));
+
+                result.Document.Save(outputPath);
+
+                using (ExcelDocument converted = ExcelDocument.Load(outputPath)) {
+                    Assert.False(converted.WasLoadedFromLegacyXls);
+                    Assert.Equal(1, converted.Sheets.Count);
+                }
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(outputPath, false);
+                List<ValidationErrorInfo> errors = new OpenXmlValidator().Validate(spreadsheet).ToList();
+                Assert.True(errors.Count == 0, FormatValidationErrors(errors));
+            } finally {
+                TryDelete(outputPath);
+            }
         }
 
         private static bool IsLegacyXlsCorpusBaselineUpdateRequested() {

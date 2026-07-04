@@ -226,8 +226,9 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
             Assert.Equal(2, legacy.Worksheets.Count);
-            LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(legacy.UnsupportedSheets);
-            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
+            LegacyXlsChartSheet chartSheet = Assert.Single(legacy.ChartSheets);
+            Assert.Equal("Chart1", chartSheet.Name);
+            Assert.Empty(legacy.UnsupportedSheets);
 
             LegacyXlsCell formula = Assert.Single(legacy.Worksheets[0].Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.True(formula.IsFormula);
@@ -257,8 +258,9 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(legacy.UnsupportedSheets);
-            Assert.Equal("Chart1", unsupportedSheet.Name);
+            Assert.Empty(legacy.UnsupportedSheets);
+            LegacyXlsChartSheet chartSheet = Assert.Single(legacy.ChartSheets);
+            Assert.Equal("Chart1", chartSheet.Name);
             LegacyXlsCell formula = Assert.Single(legacy.Worksheets[1].Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.True(formula.IsFormula);
             Assert.Equal("#REF!A1+5", formula.FormulaText);

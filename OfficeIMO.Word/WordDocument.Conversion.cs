@@ -71,13 +71,16 @@ namespace OfficeIMO.Word {
         }
 
         private static void EnsureWordLegacyConversionIsSafe(WordDocument document, WordDocumentConversionOptions options) {
+            int lossyFeatureCount = document.LegacyDocUnsupportedFeatures.Count
+                + document.LegacyDocPreservedFeatures.Count
+                + document.LegacyDocCompoundFeatures.Count;
             if (!document.WasLoadedFromLegacyDoc
                 || options.AllowLossyLegacyConversion
-                || document.LegacyDocUnsupportedFeatures.Count == 0) {
+                || lossyFeatureCount == 0) {
                 return;
             }
 
-            throw new NotSupportedException($"Legacy DOC conversion is blocked because the source contains {document.LegacyDocUnsupportedFeatures.Count} unsupported or preserve-only feature(s). Review LegacyDocUnsupportedFeatures or set WordDocumentConversionOptions.AllowLossyLegacyConversion when that loss is intentional.");
+            throw new NotSupportedException($"Legacy DOC conversion is blocked because the source contains {lossyFeatureCount} unsupported or preserve-only feature(s). Review LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures, or set WordDocumentConversionOptions.AllowLossyLegacyConversion when that loss is intentional.");
         }
 
         private static void ValidateWordConversionPaths(string sourcePath, string destinationPath, bool overwrite) {

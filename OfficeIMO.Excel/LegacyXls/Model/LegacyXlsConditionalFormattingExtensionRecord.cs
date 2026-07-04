@@ -99,7 +99,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public bool? StopIfTrue { get; }
 
         /// <summary>Gets whether the extension declares formatting bytes that are not fully projected yet.</summary>
-        public bool HasUnprojectedFormatting { get; }
+        public bool HasUnprojectedFormatting { get; private set; }
+
+        /// <summary>Gets whether extension formatting was projected onto the matched conditional-formatting rule.</summary>
+        public bool HasProjectedFormatting { get; private set; }
 
         /// <summary>Gets the decoded inline formatting byte count declared by the extension, when present.</summary>
         public int? InlineFormattingByteCount { get; }
@@ -109,6 +112,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         internal void MarkMatchedRule() {
             MatchedRule = true;
+        }
+
+        internal void MarkProjectedFormatting() {
+            HasProjectedFormatting = true;
+            HasUnprojectedFormatting = false;
         }
     }
 }

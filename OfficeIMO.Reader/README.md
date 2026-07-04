@@ -49,8 +49,8 @@ var folderChunks = DocumentReader.ReadFolder(
 
 Built-in and modular adapters can extract:
 
-- Word (`.docx`, `.docm`) as Markdown chunks.
-- Excel (`.xlsx`, `.xlsm`) as table chunks and optional Markdown previews.
+- Word (`.docx`, `.docm`, `.doc`) as Markdown chunks.
+- Excel (`.xlsx`, `.xlsm`, `.xls`) as table chunks and optional Markdown previews.
 - PowerPoint (`.pptx`, `.pptm`) as slide-aligned chunks, optionally including notes.
 - Markdown (`.md`, `.markdown`) as parser-aware heading chunks.
 - PDF, RTF, Visio, HTML, CSV/TSV, JSON, XML, YAML, EPUB, ZIP, and structured text through modular adapter packages.
