@@ -43,6 +43,7 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(directory);
             string sourceDocPath = Path.Combine(directory, "word-com-source.doc");
             string nativeDocPath = Path.Combine(directory, "officeimo-native.doc");
+            string convertedDocxPath = Path.Combine(directory, "officeimo-converted.docx");
 
             CreateLegacyDocViaWordCom(sourceDocPath);
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { sourceDocPath }, "The generated legacy DOC source did not open through desktop Word.");
@@ -57,8 +58,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "bold Word COM paragraph" && paragraph.Bold);
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "underlined red Word COM paragraph" && paragraph.Underline == UnderlineValues.Single);
 
-            result.Document.Save(nativeDocPath);
-            AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC output did not open through desktop Word.");
+            NotSupportedException blockedNativeSave = Assert.Throws<NotSupportedException>(() => result.Document.Save(nativeDocPath));
+            Assert.Contains("DOC-FAST-SAVE-PRESENT", blockedNativeSave.Message, StringComparison.Ordinal);
+
+            WordDocument.Convert(sourceDocPath, convertedDocxPath, new WordDocumentConversionOptions {
+                AllowLossyLegacyConversion = true
+            });
+            AssertDocumentsOpenViaWordComWhenAvailable(new[] { convertedDocxPath }, "The OfficeIMO converted DOCX output did not open through desktop Word.");
         }
 
         [Fact]
@@ -113,6 +119,36 @@ namespace OfficeIMO.Tests {
             }
 
             AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native legacy DOC endnote output did not open through desktop Word.");
+        }
+
+        [Fact]
+        public void LegacyDoc_ConvertGeneratedDocxToDocOpensInDesktopWordWhenRequested() {
+            if (GetType() != typeof(Word)) {
+                return;
+            }
+
+            if (!IsLegacyDocComValidationRequested()) {
+                return;
+            }
+
+            Assert.True(IsWindowsPlatform(), "Legacy DOC COM validation requires Windows.");
+            Assert.True(IsWordComAvailable(), "Legacy DOC COM validation requires Microsoft Word COM automation.");
+
+            string directory = Path.Combine(_directoryWithFiles, "LegacyDocCom", GetCurrentTargetFrameworkLabel());
+            Directory.CreateDirectory(directory);
+            string sourceDocxPath = Path.Combine(directory, "officeimo-source.docx");
+            string directDocPath = Path.Combine(directory, "officeimo-source-direct.doc");
+            string convertedDocPath = Path.Combine(directory, "officeimo-source-converted.doc");
+
+            using (WordDocument document = WordDocument.Create()) {
+                document.AddParagraph("OfficeIMO generated conversion paragraph");
+                document.Save(sourceDocxPath);
+                document.Save(directDocPath);
+            }
+
+            WordDocument.Convert(sourceDocxPath, convertedDocPath);
+
+            AssertDocumentsOpenViaWordComWhenAvailable(new[] { directDocPath, convertedDocPath }, "One or more OfficeIMO generated native DOC outputs did not open through desktop Word.");
         }
 
         [Fact]

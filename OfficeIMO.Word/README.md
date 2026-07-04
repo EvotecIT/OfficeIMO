@@ -3,7 +3,7 @@
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word)](https://www.nuget.org/packages/OfficeIMO.Word)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word)
 
-`OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, and saves `.docx` files, and can import supported legacy `.doc` files, without COM automation and without Microsoft Office installed.
+`OfficeIMO.Word` is the main Word document package in the OfficeIMO family. It creates, edits, inspects, converts, and saves `.docx` files, and can import and write supported legacy `.doc` files, without COM automation and without Microsoft Office installed.
 
 If OfficeIMO saves you time, please consider supporting the work through [GitHub Sponsors](https://github.com/sponsors/PrzemyslawKlys) or [PayPal](https://paypal.me/PrzemyslawKlys). PowerShell users should use [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice) for the PowerShell-facing experience.
 
@@ -39,6 +39,7 @@ document.Save();
 - Creates, loads, edits, saves, and appends `.docx` documents.
 - Opens supported Word 97-2003 `.doc` files through the normal `WordDocument.Load(...)` path and projects them into the regular OfficeIMO Word model.
 - Writes native `.doc` files for the currently supported simple-document subset, with preflight checks that block unsupported content before saving.
+- Converts supported `.doc` and `.docx` files with `WordDocument.Convert(...)`, using the same import diagnostics and save preflight as normal load/save workflows.
 - Works with paragraphs, runs, styles, sections, headers, footers, page numbers, tables, images, hyperlinks, bookmarks, fields, footnotes, endnotes, content controls, charts, shapes, and document protection.
 - Keeps Office automation out of the runtime path, making it suitable for services, scheduled jobs, CI, desktop apps, and automation hosts.
 - Provides fluent helpers for common authoring flows while keeping the lower-level Word object model available.
@@ -145,6 +146,9 @@ using OfficeIMO.Word.LegacyDoc;
 using WordDocument document = WordDocument.Load("legacy-input.doc");
 document.Save("converted-output.docx");
 
+WordDocument.Convert("legacy-input.doc", "converted-output.docx");
+WordDocument.Convert("openxml-input.docx", "legacy-output.doc");
+
 using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport("legacy-input.doc");
 if (result.HasDocument) {
     result.Document!.Save("converted-output.docx");
@@ -198,7 +202,11 @@ body/table-cell/header/footer/footnote/endnote paragraphs, richer
 content-control children, richer visual table style effects, deeper or richer
 nested table shapes,
 richer note body structures, and richer header/footer or section shapes are
-diagnosed or blocked rather than silently flattened.
+diagnosed or blocked rather than silently flattened. `WordDocument.Convert(...)`
+uses those same load and save paths and blocks legacy sources with unsupported
+or preserve-only content by default; set
+`WordDocumentConversionOptions.AllowLossyLegacyConversion` only when that loss
+has been reviewed and is intentional.
 
 ### Protection
 

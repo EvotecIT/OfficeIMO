@@ -127,10 +127,10 @@ namespace OfficeIMO.Excel {
             }
 
             if (value is float or double or decimal) {
-                return new ExcelCustomProperty(Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture));
+                return new ExcelCustomProperty(System.Convert.ToDouble(value, System.Globalization.CultureInfo.InvariantCulture));
             }
 
-            return new ExcelCustomProperty(Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+            return new ExcelCustomProperty(System.Convert.ToString(value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
         }
 
         private static bool TryConvertToInt32(object value, out int result) {

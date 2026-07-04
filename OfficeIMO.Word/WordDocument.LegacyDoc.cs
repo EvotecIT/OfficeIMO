@@ -2633,19 +2633,19 @@ namespace OfficeIMO.Word {
         private static bool TryCreateWordCustomProperty(LegacyDocDocumentPropertyValue property, out WordCustomProperty? wordProperty) {
             switch (property.Kind) {
                 case LegacyDocDocumentPropertyValueKind.Text:
-                    wordProperty = new WordCustomProperty(Convert.ToString(property.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
+                    wordProperty = new WordCustomProperty(System.Convert.ToString(property.Value, System.Globalization.CultureInfo.InvariantCulture) ?? string.Empty);
                     return true;
                 case LegacyDocDocumentPropertyValueKind.Boolean:
-                    wordProperty = new WordCustomProperty(Convert.ToBoolean(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    wordProperty = new WordCustomProperty(System.Convert.ToBoolean(property.Value, System.Globalization.CultureInfo.InvariantCulture));
                     return true;
                 case LegacyDocDocumentPropertyValueKind.DateTime:
-                    wordProperty = new WordCustomProperty(Convert.ToDateTime(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    wordProperty = new WordCustomProperty(System.Convert.ToDateTime(property.Value, System.Globalization.CultureInfo.InvariantCulture));
                     return true;
                 case LegacyDocDocumentPropertyValueKind.Integer:
-                    wordProperty = new WordCustomProperty(Convert.ToInt32(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    wordProperty = new WordCustomProperty(System.Convert.ToInt32(property.Value, System.Globalization.CultureInfo.InvariantCulture));
                     return true;
                 case LegacyDocDocumentPropertyValueKind.Number:
-                    wordProperty = new WordCustomProperty(Convert.ToDouble(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    wordProperty = new WordCustomProperty(System.Convert.ToDouble(property.Value, System.Globalization.CultureInfo.InvariantCulture));
                     return true;
                 default:
                     wordProperty = null;

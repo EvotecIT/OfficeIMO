@@ -36,6 +36,7 @@ namespace OfficeIMO.Tests {
             Directory.CreateDirectory(directory);
             string sourceXlsPath = Path.Combine(directory, "features.xls");
             string importedXlsxPath = Path.Combine(directory, "features.xlsx");
+            string convertedXlsxPath = Path.Combine(directory, "features.converted.xlsx");
 
             CreateLegacyXlsWorkbookViaExcelCom(sourceXlsPath);
             AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { sourceXlsPath }, "The generated legacy XLS workbook did not open through desktop Excel.");
@@ -77,7 +78,10 @@ namespace OfficeIMO.Tests {
 
             Directory.CreateDirectory(Path.GetDirectoryName(importedXlsxPath)!);
             result.Document.Save(importedXlsxPath, openExcel: false);
-            AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { importedXlsxPath }, "The imported XLSX workbook did not open through desktop Excel.");
+            ExcelDocument.Convert(sourceXlsPath, convertedXlsxPath, new ExcelDocumentConversionOptions {
+                AllowLossyLegacyConversion = true
+            });
+            AssertWorkbooksOpenViaExcelComWhenAvailable(new[] { importedXlsxPath, convertedXlsxPath }, "One or more imported or converted XLSX workbooks did not open through desktop Excel.");
         }
 
         [Fact]
