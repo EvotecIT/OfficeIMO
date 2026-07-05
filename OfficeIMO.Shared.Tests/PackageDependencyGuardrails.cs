@@ -52,6 +52,7 @@ public sealed class PackageDependencyGuardrailTests {
         "OfficeIMO.Drawing",
         "OfficeIMO.Excel",
         "OfficeIMO.Excel.Pdf",
+        "OfficeIMO.Markdown.Pdf",
         "OfficeIMO.Pdf",
         "OfficeIMO.PowerPoint",
         "OfficeIMO.PowerPoint.Pdf",
@@ -715,8 +716,7 @@ public sealed class PackageDependencyGuardrailTests {
 
             foreach (string sourceFile in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)) {
                 if (sourceFile.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
-                    sourceFile.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
-                    IsExcludedDocumentImageRenderingSourceFile(sourceFile)) {
+                    sourceFile.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)) {
                     continue;
                 }
 
@@ -731,11 +731,6 @@ public sealed class PackageDependencyGuardrailTests {
         }
 
         return source.Contains(forbiddenTerm, StringComparison.OrdinalIgnoreCase);
-    }
-
-    private static bool IsExcludedDocumentImageRenderingSourceFile(string sourceFile) {
-        string relativePath = GetRepositoryRelativePath(sourceFile);
-        return string.Equals(relativePath, "OfficeIMO.Visio/VisioDesktopValidator.cs", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<string> EnumerateDocumentImageRenderingProjectFiles() {

@@ -15,7 +15,23 @@ namespace OfficeIMO.Tests {
             new PowerPointImageFixtureBaseline(
                 "officeimo-powerpoint-image-dashboard",
                 CreateDashboardFixture,
-                new[] { "Executive Summary", "Revenue", "Retention", "North", "South", "East", "West" },
+                new[] {
+                    "Executive Summary",
+                    "Revenue",
+                    "$42M",
+                    "Retention",
+                    "96%",
+                    "Risk",
+                    "Low",
+                    "North",
+                    "12.4",
+                    "South",
+                    "9.8",
+                    "East",
+                    "11.6",
+                    "West",
+                    "8.2"
+                },
                 new[] {
                     OfficeColor.FromRgb(15, 23, 42),
                     OfficeColor.FromRgb(59, 130, 246),
@@ -28,7 +44,7 @@ namespace OfficeIMO.Tests {
             new PowerPointImageFixtureBaseline(
                 "officeimo-powerpoint-image-process-diagram",
                 CreateProcessDiagramFixture,
-                new[] { "Discovery", "Design", "Render", "Validate" },
+                new[] { "Discovery", "Design", "Render", "Validate", "OpenXML", "Drawing", "only" },
                 new[] {
                     OfficeColor.FromRgb(30, 64, 175),
                     OfficeColor.FromRgb(34, 197, 94),
@@ -75,10 +91,11 @@ namespace OfficeIMO.Tests {
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<svg", svgText, StringComparison.Ordinal);
+            string decodedSvgText = System.Net.WebUtility.HtmlDecode(svgText);
             string snapshotText = GetSnapshotPlainText(snapshot);
             foreach (string expectedText in baseline.ExpectedSvgTexts) {
                 Assert.Contains(expectedText, snapshotText, StringComparison.Ordinal);
-                Assert.Contains(expectedText, svgText, StringComparison.Ordinal);
+                Assert.Contains(expectedText, decodedSvgText, StringComparison.Ordinal);
             }
 
             foreach (OfficeColor expectedColor in baseline.ExpectedRasterColors) {
@@ -160,7 +177,7 @@ namespace OfficeIMO.Tests {
             AddConnector(slide, 162, 76, 10, 0);
             AddConnector(slide, 238, 76, 10, 0);
 
-            PowerPointTextBox note = slide.AddTextBoxPoints("OpenXML + Drawing only", 72, 120, 176, 20);
+            PowerPointTextBox note = slide.AddTextBoxPoints("OpenXML + Drawing only", 56, 120, 208, 20);
             note.FontSize = 12;
             note.Color = "0F172A";
 
