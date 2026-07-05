@@ -88,12 +88,13 @@ public static partial class OfficeSvgFormatting {
     private static void AppendSvgStipplePattern(StringBuilder builder, double x, double y, double width, double height, OfficeColor color, double step, double dotSize, OfficeStipplePattern pattern) {
         double size = Math.Max(1D, dotSize);
         double tileSize = Math.Max(step, size * pattern.Size);
+        string attributes = new StringBuilder().AppendPaintAttribute("fill", color).ToString();
         for (double tileY = y; tileY < y + height; tileY += tileSize) {
             for (double tileX = x; tileX < x + width; tileX += tileSize) {
                 for (int cellY = 0; cellY < pattern.Size; cellY++) {
                     for (int cellX = 0; cellX < pattern.Size; cellX++) {
                         if (pattern.IsFilled(cellX, cellY)) {
-                            AppendSvgHatchDot(builder, tileX + cellX * size, tileY + cellY * size, size, color);
+                            builder.AppendRectElement(tileX + cellX * size, tileY + cellY * size, size, size, attributes);
                         }
                     }
                 }

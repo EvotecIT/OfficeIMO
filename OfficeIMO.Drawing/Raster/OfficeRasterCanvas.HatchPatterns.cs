@@ -85,7 +85,7 @@ public sealed partial class OfficeRasterCanvas {
                 for (int cellY = 0; cellY < pattern.Size; cellY++) {
                     for (int cellX = 0; cellX < pattern.Size; cellX++) {
                         if (pattern.IsFilled(cellX, cellY)) {
-                            DrawHatchDot(tileX + cellX * size, tileY + cellY * size, size, color);
+                            FillRectangle(tileX + cellX * size, tileY + cellY * size, size, size, color);
                         }
                     }
                 }

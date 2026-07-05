@@ -247,9 +247,8 @@ namespace OfficeIMO.Tests {
 
             int sparsePixels = CountPaintedPixels(sparse);
             int denserPixels = CountPaintedPixels(denser);
-            Assert.InRange(sparsePixels, 16, 80);
-            Assert.InRange(denserPixels, sparsePixels + 1, 120);
-            Assert.True(denserPixels > sparsePixels);
+            Assert.Equal(16, sparsePixels);
+            Assert.Equal(32, denserPixels);
         }
 
         [Fact]

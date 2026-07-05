@@ -1983,9 +1983,11 @@ public partial class DrawingTests {
 
         string svg = builder.ToString();
         Assert.DoesNotContain("<line", svg, StringComparison.Ordinal);
-        Assert.Equal(8, CountOccurrences(svg, "<circle"));
+        Assert.DoesNotContain("<circle", svg, StringComparison.Ordinal);
+        Assert.Equal(8, CountOccurrences(svg, "<rect"));
         Assert.Contains("fill=\"#0AA01E\"", svg, StringComparison.Ordinal);
-        Assert.Contains("cx=\"2.5\" cy=\"2.5\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x=\"0\" y=\"0\" width=\"1\" height=\"1\"", svg, StringComparison.Ordinal);
+        Assert.Contains("x=\"2\" y=\"2\" width=\"1\" height=\"1\"", svg, StringComparison.Ordinal);
     }
 
     [Fact]
