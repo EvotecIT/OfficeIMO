@@ -714,13 +714,20 @@ public static class OfficeDrawingRasterRenderer {
             return gradient;
         }
 
+        var stops = new List<OfficeGradientStop>(gradient.Stops.Count);
+        for (int i = 0; i < gradient.Stops.Count; i++) {
+            OfficeGradientStop stop = gradient.Stops[i];
+            stops.Add(new OfficeGradientStop(
+                stop.Offset,
+                ApplyOpacity(stop.Color, opacity) ?? stop.Color));
+        }
+
         return new OfficeLinearGradient(
             gradient.StartX,
             gradient.StartY,
             gradient.EndX,
             gradient.EndY,
-            new OfficeGradientStop(gradient.Stops[0].Offset, ApplyOpacity(gradient.Stops[0].Color, opacity) ?? gradient.Stops[0].Color),
-            new OfficeGradientStop(gradient.Stops[1].Offset, ApplyOpacity(gradient.Stops[1].Color, opacity) ?? gradient.Stops[1].Color));
+            stops);
     }
 
     private static bool TryCreateShadowShape(OfficeDrawingShape drawingShape, out OfficeDrawingShape shadowDrawingShape) {

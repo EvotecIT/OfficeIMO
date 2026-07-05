@@ -112,6 +112,56 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportPreservesRichCommentBreaksAndNonRgbColors() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("CommentBreaks");
+                sheet.CellValue(2, 2, "Reviewed");
+                sheet.SetCommentRichText("B2", new[] {
+                    new ExcelRichTextRun("Line one"),
+                    new ExcelRichTextRun("line two") { Bold = true }
+                }, "Reviewer");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                X.Comment comment = worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<X.Comment>().Single();
+                List<X.Run> runs = comment.CommentText!.Elements<X.Run>().ToList();
+                comment.CommentText.InsertAfter(new X.Break(), runs[0]);
+                X.Color color = runs[1].RunProperties!.GetFirstChild<X.Color>() ?? runs[1].RunProperties!.AppendChild(new X.Color());
+                color.Rgb = null;
+                color.Indexed = 5U;
+                color.Tint = -0.25D;
+                worksheetPart.WorksheetCommentsPart.Comments!.Save();
+            }
+
+            using ExcelDocument loadedDocument = ExcelDocument.Load(filePath);
+            ExcelSheet loadedSheet = loadedDocument.Sheets.Single();
+            ExcelRange range = loadedSheet.Range("A1:F8");
+            var options = new ExcelImageExportOptions {
+                ShowGridlines = false,
+                ShowCommentBodies = true,
+                DefaultColumnWidthPixels = 92D,
+                DefaultRowHeightPixels = 28D
+            };
+
+            ExcelVisualCommentBody body = Assert.Single(range.CreateVisualSnapshot(options).CommentBodies);
+            string svg = range.ToSvg(options);
+
+            Assert.Equal("Line one\nline two", body.Text);
+            Assert.Equal("Line one\n", string.Concat(body.RichTextRuns.Take(2).Select(run => run.Text)));
+            Assert.Equal("line two", body.RichTextRuns[2].Text);
+            Assert.True(body.RichTextRuns[2].Bold);
+            Assert.StartsWith("FF", body.RichTextRuns[2].FontColorArgb, StringComparison.Ordinal);
+            string themedRunColor = "#" + body.RichTextRuns[2].FontColorArgb!.Substring(2);
+            Assert.NotEqual("#1F2937", themedRunColor);
+            Assert.Contains("Line one", svg, StringComparison.Ordinal);
+            Assert.Contains("line two", svg, StringComparison.Ordinal);
+            Assert.Contains(themedRunColor, svg, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportPlacesCommentBodyAwayFromChartWhenSpaceExists() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);

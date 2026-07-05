@@ -1317,7 +1317,16 @@ namespace OfficeIMO.Tests {
         public void OfficeDrawingRasterRenderer_AppliesFillOpacityToGradients() {
             OfficeDrawing drawing = new OfficeDrawing(32, 24);
             OfficeShape shape = OfficeShape.Rectangle(24, 16);
-            shape.FillGradient = OfficeLinearGradient.Horizontal(OfficeColor.Red, OfficeColor.Blue);
+            shape.FillGradient = new OfficeLinearGradient(
+                0,
+                0.5,
+                1,
+                0.5,
+                new[] {
+                    new OfficeGradientStop(0, OfficeColor.Red),
+                    new OfficeGradientStop(0.5, OfficeColor.Lime),
+                    new OfficeGradientStop(1, OfficeColor.Blue)
+                });
             shape.FillOpacity = 0.5D;
             drawing.AddShape(shape, 4, 4);
 
@@ -1325,7 +1334,8 @@ namespace OfficeIMO.Tests {
             OfficeColor middle = image.GetPixel(16, 12);
 
             Assert.InRange(middle.A, 100, 155);
-            Assert.True(middle.R > 20 || middle.B > 20);
+            Assert.True(middle.G > middle.R);
+            Assert.True(middle.G > middle.B);
         }
 
         [Fact]
