@@ -217,6 +217,26 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpans_PreservesTrimmedWhitespaceDelimiterOnlyRows()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name\tValue\n \t \nAlpha\t1\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions {
+                Delimiter = '\t',
+                SkipInitialRecords = 1,
+                TrimWhitespace = true
+            });
+
+        Assert.Equal(
+            new[] { "0:0:", "0:1:", "1:0:Alpha", "1:1:1" },
+            fields);
+    }
+
+    [Fact]
     public void ReadFieldSpans_DetectsDelimiterAfterSkippedMetadata()
     {
         var fields = new List<string>();
