@@ -41,7 +41,7 @@
       "status": "active",
       "goal": "Turn fixed-size slide PNG/SVG export into a polished renderer with real-world fixture confidence.",
       "nextSlices": [
-        "Add approved PNG/SVG baselines for representative authored decks.",
+        "Expand approved PNG/SVG fixture gates beyond the dashboard and process-diagram baselines.",
         "Expand placeholder, master/layout inheritance, grouped object, connector, chart, and table-style fidelity in focused slices.",
         "Promote reusable fixed-layout primitives to Drawing instead of duplicating them in the slide renderer."
       ]

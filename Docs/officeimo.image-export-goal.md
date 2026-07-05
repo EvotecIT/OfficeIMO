@@ -15,7 +15,7 @@ No product image export path may depend on external rendering products, Office a
 ## Current State
 
 - Excel has the strongest PNG/SVG export path: ranges, worksheets, workbook batches, visual baselines, diagnostics, and tracked fidelity gaps.
-- PowerPoint has a fixed-layout slide renderer with useful shape, picture, text, table, chart, and presentation batch coverage.
+- PowerPoint has a fixed-layout slide renderer with useful shape, picture, text, table, chart, presentation batch coverage, and first real-world fixture gates for dashboard and process-diagram slides.
 - Word has first-page PNG/SVG preview support and needs a real pagination model before multi-page export becomes production-grade.
 - PDF owns PDF stream/page/writer behavior and uses Drawing for shared image and visual helpers, but first-party PDF page-to-image rendering still needs an internal content rendering plan.
 - `OfficeIMO.Drawing` is the shared engine. Document packages should project source semantics into Drawing primitives, not grow private renderers.
@@ -24,7 +24,7 @@ No product image export path may depend on external rendering products, Office a
 
 1. Keep the no-external-renderer contract enforced in tests.
 2. Burn down Excel tracked visual-fidelity gaps while keeping Drawing reusable.
-3. Add PowerPoint real-world fixture baselines because slides map cleanly to fixed Drawing scenes.
+3. Expand PowerPoint real-world fixture baselines because slides map cleanly to fixed Drawing scenes.
 4. Build Word pagination in layers: paragraphs and tables, floating objects, then multi-page batch export.
 5. Design PDF page-to-image as a first-party renderer over the PDF logical/content model, not a wrapper around PDFium, Poppler, browser screenshots, or Office automation.
 6. Keep visual QA shared: approved PNG/SVG baselines, renderable/nonblank checks, and focused diagnostics for unsupported source features.
