@@ -65,6 +65,11 @@ public static class OfficeConditionalIconRenderer {
             case OfficeConditionalIconKind.QuarterFull:
                 DrawRasterQuarterPie(canvas, x, y, size, GetQuarterFillCount(kind), fill, stroke, strokeWidth);
                 break;
+            case OfficeConditionalIconKind.GreenFlag:
+            case OfficeConditionalIconKind.YellowFlag:
+            case OfficeConditionalIconKind.RedFlag:
+                DrawRasterFlag(canvas, x, y, size, fill, stroke, strokeWidth);
+                break;
             default:
                 IReadOnlyList<OfficePoint> points = CreateArrowPoints(x, y, size, kind);
                 canvas.FillPolygon(OffsetPoints(points, size * 0.055D, size * 0.065D), IconShadowColor);
@@ -129,6 +134,11 @@ public static class OfficeConditionalIconRenderer {
             case OfficeConditionalIconKind.QuarterFull:
                 AppendSvgQuarterPie(builder, x, y, size, GetQuarterFillCount(kind), fill, stroke, strokeWidth);
                 break;
+            case OfficeConditionalIconKind.GreenFlag:
+            case OfficeConditionalIconKind.YellowFlag:
+            case OfficeConditionalIconKind.RedFlag:
+                AppendSvgFlag(builder, x, y, size, fill, stroke, strokeWidth);
+                break;
             default:
                 IReadOnlyList<OfficePoint> points = CreateArrowPoints(x, y, size, kind);
                 var shadowAttributes = new StringBuilder()
@@ -154,6 +164,20 @@ public static class OfficeConditionalIconRenderer {
         canvas.FillEllipse(x, y, size, size, fill);
         canvas.FillEllipse(x + size * 0.18D, y + size * 0.14D, size * 0.44D, size * 0.26D, IconHighlightColor);
         canvas.DrawEllipse(x, y, size, size, stroke, strokeWidth);
+    }
+
+    private static void DrawRasterFlag(OfficeRasterCanvas canvas, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        double poleX = x + size * 0.24D;
+        double poleTop = y + size * 0.12D;
+        double poleBottom = y + size * 0.90D;
+        double poleWidth = Math.Max(1D, size * 0.105D);
+        IReadOnlyList<OfficePoint> points = CreateFlagPoints(x, y, size);
+        canvas.DrawLine(poleX + size * 0.055D, poleTop + size * 0.065D, poleX + size * 0.055D, poleBottom + size * 0.065D, IconShadowColor, poleWidth);
+        canvas.FillPolygon(OffsetPoints(points, size * 0.055D, size * 0.065D), IconShadowColor);
+        canvas.DrawLine(poleX, poleTop, poleX, poleBottom, stroke, poleWidth);
+        canvas.FillPolygon(points, fill);
+        canvas.DrawPolygon(points, stroke, strokeWidth);
+        canvas.FillPolygon(CreateFlagHighlightPoints(x, y, size), IconHighlightColor);
     }
 
     private static void DrawRasterRatingStar(OfficeRasterCanvas canvas, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
@@ -189,6 +213,29 @@ public static class OfficeConditionalIconRenderer {
             .ToString();
         builder.AppendCircleElement(x + size / 2D, y + size / 2D, size / 2D, attributes);
         builder.AppendEllipseElement(x + size * 0.4D, y + size * 0.27D, size * 0.22D, size * 0.13D, IconHighlightColor);
+    }
+
+    private static void AppendSvgFlag(StringBuilder builder, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
+        double poleX = x + size * 0.24D;
+        double poleTop = y + size * 0.12D;
+        double poleBottom = y + size * 0.90D;
+        double poleWidth = Math.Max(1D, size * 0.105D);
+        var shadowAttributes = new StringBuilder()
+            .AppendPaintAttribute("fill", IconShadowColor)
+            .ToString();
+        builder.AppendLineElement(poleX + size * 0.055D, poleTop + size * 0.065D, poleX + size * 0.055D, poleBottom + size * 0.065D, IconShadowColor, poleWidth, OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap.Round);
+        builder.AppendPolygonElement(OffsetPoints(CreateFlagPoints(x, y, size), size * 0.055D, size * 0.065D), shadowAttributes);
+        builder.AppendLineElement(poleX, poleTop, poleX, poleBottom, stroke, poleWidth, OfficeStrokeDashStyle.Solid, OfficeStrokeLineCap.Round);
+        var flagAttributes = new StringBuilder()
+            .AppendPaintAttribute("fill", fill)
+            .AppendPaintAttribute("stroke", stroke)
+            .AppendNumberAttribute("stroke-width", strokeWidth)
+            .AppendAttribute("stroke-linejoin", "round")
+            .ToString();
+        builder.AppendPolygonElement(CreateFlagPoints(x, y, size), flagAttributes);
+        builder.AppendPolygonElement(
+            CreateFlagHighlightPoints(x, y, size),
+            new StringBuilder().AppendPaintAttribute("fill", IconHighlightColor).ToString());
     }
 
     private static void AppendSvgRatingStar(StringBuilder builder, double x, double y, double size, OfficeColor fill, OfficeColor stroke, double strokeWidth) {
@@ -300,6 +347,23 @@ public static class OfficeConditionalIconRenderer {
         return points;
     }
 
+    private static IReadOnlyList<OfficePoint> CreateFlagPoints(double x, double y, double size) =>
+        new[] {
+            new OfficePoint(x + size * 0.25D, y + size * 0.14D),
+            new OfficePoint(x + size * 0.78D, y + size * 0.18D),
+            new OfficePoint(x + size * 0.68D, y + size * 0.38D),
+            new OfficePoint(x + size * 0.82D, y + size * 0.58D),
+            new OfficePoint(x + size * 0.25D, y + size * 0.52D)
+        };
+
+    private static IReadOnlyList<OfficePoint> CreateFlagHighlightPoints(double x, double y, double size) =>
+        new[] {
+            new OfficePoint(x + size * 0.32D, y + size * 0.20D),
+            new OfficePoint(x + size * 0.62D, y + size * 0.22D),
+            new OfficePoint(x + size * 0.56D, y + size * 0.31D),
+            new OfficePoint(x + size * 0.32D, y + size * 0.30D)
+        };
+
     private static IReadOnlyList<OfficePoint> CreateRatingStarPoints(double x, double y, double size) {
         const int pointCount = 10;
         double centerX = x + size * 0.5D;
@@ -365,9 +429,9 @@ public static class OfficeConditionalIconRenderer {
 
     private static OfficeColor GetFillColor(OfficeConditionalIconKind kind) =>
         kind switch {
-            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => OfficeColor.FromRgb(22, 163, 74),
+            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull or OfficeConditionalIconKind.GreenFlag => OfficeColor.FromRgb(22, 163, 74),
             OfficeConditionalIconKind.LightGreenCircle or OfficeConditionalIconKind.RatingFour or OfficeConditionalIconKind.QuarterThree => OfficeColor.FromRgb(132, 204, 22),
-            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle or OfficeConditionalIconKind.RatingThree or OfficeConditionalIconKind.QuarterTwo => OfficeColor.FromRgb(245, 158, 11),
+            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle or OfficeConditionalIconKind.RatingThree or OfficeConditionalIconKind.QuarterTwo or OfficeConditionalIconKind.YellowFlag => OfficeColor.FromRgb(245, 158, 11),
             OfficeConditionalIconKind.OrangeCircle or OfficeConditionalIconKind.RatingTwo or OfficeConditionalIconKind.QuarterOne => OfficeColor.FromRgb(249, 115, 22),
             OfficeConditionalIconKind.QuarterEmpty => OfficeColor.FromRgb(148, 163, 184),
             _ => OfficeColor.FromRgb(220, 38, 38)
@@ -375,9 +439,9 @@ public static class OfficeConditionalIconRenderer {
 
     private static OfficeColor GetStrokeColor(OfficeConditionalIconKind kind) =>
         kind switch {
-            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull => OfficeColor.FromRgb(21, 128, 61),
+            OfficeConditionalIconKind.GreenUpArrow or OfficeConditionalIconKind.GreenCheck or OfficeConditionalIconKind.GreenCircle or OfficeConditionalIconKind.RatingFive or OfficeConditionalIconKind.QuarterFull or OfficeConditionalIconKind.GreenFlag => OfficeColor.FromRgb(21, 128, 61),
             OfficeConditionalIconKind.LightGreenCircle or OfficeConditionalIconKind.RatingFour or OfficeConditionalIconKind.QuarterThree => OfficeColor.FromRgb(77, 124, 15),
-            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle or OfficeConditionalIconKind.RatingThree or OfficeConditionalIconKind.QuarterTwo => OfficeColor.FromRgb(180, 83, 9),
+            OfficeConditionalIconKind.YellowUpArrow or OfficeConditionalIconKind.YellowSideArrow or OfficeConditionalIconKind.YellowDownArrow or OfficeConditionalIconKind.YellowExclamation or OfficeConditionalIconKind.YellowCircle or OfficeConditionalIconKind.RatingThree or OfficeConditionalIconKind.QuarterTwo or OfficeConditionalIconKind.YellowFlag => OfficeColor.FromRgb(180, 83, 9),
             OfficeConditionalIconKind.OrangeCircle or OfficeConditionalIconKind.RatingTwo or OfficeConditionalIconKind.QuarterOne => OfficeColor.FromRgb(194, 65, 12),
             OfficeConditionalIconKind.QuarterEmpty => OfficeColor.FromRgb(100, 116, 139),
             _ => OfficeColor.FromRgb(185, 28, 28)

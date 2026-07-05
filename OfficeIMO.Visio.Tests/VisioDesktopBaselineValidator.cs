@@ -3,40 +3,22 @@ using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Runtime.InteropServices;
+using OfficeIMO.Visio;
 
-namespace OfficeIMO.Visio {
-    /// <summary>
-    /// Optional Microsoft Visio desktop validation using late-bound COM automation.
-    /// </summary>
-    public static class VisioDesktopValidator {
+namespace OfficeIMO.Tests {
+    internal static class VisioDesktopBaselineValidator {
         private const int VisOpenHidden = 64;
         private const int VisOpenMacrosDisabled = 128;
 
-        /// <summary>
-        /// Gets whether Microsoft Visio desktop automation is registered on this machine.
-        /// </summary>
-        public static bool IsAvailable() {
+        internal static bool IsAvailable() {
             return TryGetApplicationType(out _);
         }
 
-        /// <summary>
-        /// Opens a VSDX with Microsoft Visio desktop when available and reports whether Visio accepts it.
-        /// This is an optional Windows-only validation path; it does not add a compile-time Visio dependency.
-        /// </summary>
-        /// <param name="vsdxPath">Path to the VSDX package.</param>
-        /// <returns>Desktop validation result.</returns>
-        public static VisioDesktopValidationResult Validate(string vsdxPath) {
+        internal static VisioDesktopValidationResult Validate(string vsdxPath) {
             return Validate(vsdxPath, null);
         }
 
-        /// <summary>
-        /// Opens a VSDX with Microsoft Visio desktop when available, then optionally asks Visio
-        /// to save a round-tripped copy and export proof files.
-        /// </summary>
-        /// <param name="vsdxPath">Path to the VSDX package.</param>
-        /// <param name="options">Optional extra validation steps.</param>
-        /// <returns>Desktop validation result.</returns>
-        public static VisioDesktopValidationResult Validate(string vsdxPath, VisioDesktopValidationOptions? options) {
+        internal static VisioDesktopValidationResult Validate(string vsdxPath, VisioDesktopValidationOptions? options) {
             if (string.IsNullOrWhiteSpace(vsdxPath)) {
                 throw new ArgumentException("VSDX path cannot be null or whitespace.", nameof(vsdxPath));
             }
@@ -58,7 +40,6 @@ namespace OfficeIMO.Visio {
             object? documents = null;
             object? document = null;
             object? pages = null;
-            object? firstPage = null;
             string? version = null;
             List<string> issues = new();
             List<string> outputFiles = new();
@@ -111,7 +92,6 @@ namespace OfficeIMO.Visio {
                     version: version,
                     issues: new[] { $"Microsoft Visio could not open the file: {root.Message}" });
             } finally {
-                ReleaseComObject(firstPage);
                 TryInvokeMethod(document, "Close");
                 TryInvokeMethod(application, "Quit");
                 ReleaseComObject(pages);
@@ -307,5 +287,55 @@ namespace OfficeIMO.Visio {
                 // Best effort cleanup only.
             }
         }
+    }
+
+    internal sealed class VisioDesktopValidationOptions {
+        internal bool SaveCopy { get; set; }
+
+        internal string? SaveCopyPath { get; set; }
+
+        internal IList<VisioDesktopExportFormat> ExportFormats { get; } = new List<VisioDesktopExportFormat>();
+
+        internal string? ExportDirectory { get; set; }
+
+        internal string? ExportFileNamePrefix { get; set; }
+
+        internal static VisioDesktopValidationOptions RoundTripWithSvg() {
+            VisioDesktopValidationOptions options = new() {
+                SaveCopy = true
+            };
+            options.ExportFormats.Add(VisioDesktopExportFormat.Svg);
+            return options;
+        }
+    }
+
+    internal sealed class VisioDesktopValidationResult {
+        internal VisioDesktopValidationResult(bool isAvailable, bool isValid, string? version, IEnumerable<string> issues)
+            : this(isAvailable, isValid, version, issues, Array.Empty<string>()) {
+        }
+
+        internal VisioDesktopValidationResult(bool isAvailable, bool isValid, string? version, IEnumerable<string> issues, IEnumerable<string> outputFiles) {
+            IsAvailable = isAvailable;
+            IsValid = isValid;
+            Version = version;
+            Issues = issues.ToList().AsReadOnly();
+            OutputFiles = outputFiles.ToList().AsReadOnly();
+        }
+
+        internal bool IsAvailable { get; }
+
+        internal bool IsValid { get; }
+
+        internal string? Version { get; }
+
+        internal IReadOnlyList<string> Issues { get; }
+
+        internal IReadOnlyList<string> OutputFiles { get; }
+    }
+
+    internal enum VisioDesktopExportFormat {
+        Svg,
+        Png,
+        Pdf
     }
 }

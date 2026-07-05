@@ -28,7 +28,8 @@ dotnet run --project OfficeIMO.Examples/OfficeIMO.Examples.csproj -f net10.0 -- 
 - `--powerpoint-deck-plan`: generate a semantic deck-plan sample.
 - `--visio-showcase`: generate the curated Visio showcase set.
 - `--visio-native-preview`: add dependency-free native SVG and PNG previews to the Visio showcase.
-- `--visio-export` or `--visio-preview`: use Microsoft Visio desktop, when installed, to export preview artifacts.
+
+Desktop Visio preview switches are intentionally not exposed by the examples app. Microsoft Visio desktop comparison artifacts belong in the optional test/manual baseline lane, while runnable examples stay dependency-free.
 
 ## Output
 

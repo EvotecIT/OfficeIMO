@@ -71,11 +71,41 @@ namespace OfficeIMO.Excel {
                 body.AnchorX,
                 body.AnchorY,
                 body.Title,
-                body.Text);
+                body.Text,
+                CreateCommentBodyRichTextRuns(body));
 
         private static OfficeCalloutStyle CreateCommentBodyStyle(bool threaded) =>
             new OfficeCalloutStyle {
                 AccentColor = threaded ? ThreadedCommentIndicatorColor : LegacyCommentIndicatorColor
             };
+
+        private static IReadOnlyList<OfficeRichTextRun> CreateCommentBodyRichTextRuns(ExcelVisualCommentBody body) {
+            if (body.RichTextRuns.Count == 0) {
+                return Array.Empty<OfficeRichTextRun>();
+            }
+
+            OfficeCalloutStyle style = CreateCommentBodyStyle(body.Threaded);
+            var runs = new List<OfficeRichTextRun>(body.RichTextRuns.Count);
+            for (int i = 0; i < body.RichTextRuns.Count; i++) {
+                ExcelVisualTextRun run = body.RichTextRuns[i];
+                if (string.IsNullOrEmpty(run.Text)) {
+                    continue;
+                }
+
+                double fontSize = run.FontSize ?? style.TextFontSize;
+                OfficeColor color = ResolveArgb(run.FontColorArgb) ?? style.TextColor;
+                runs.Add(new OfficeRichTextRun(
+                    run.Text,
+                    fontSize,
+                    color,
+                    run.Bold,
+                    run.Italic,
+                    run.Underline,
+                    string.IsNullOrWhiteSpace(run.FontName) ? style.FontFamily : run.FontName,
+                    strikethrough: run.Strikethrough));
+            }
+
+            return runs.Count == 0 ? Array.Empty<OfficeRichTextRun>() : runs.AsReadOnly();
+        }
     }
 }

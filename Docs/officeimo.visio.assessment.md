@@ -292,7 +292,7 @@ Goal: the library can prove diagrams are visually good, not just XML-valid.
 Needed:
 
 - Native Visio COM validation on Windows agents or local optional test suite:
-  - open generated VSDX (initial optional late-bound helper added as `VisioDesktopValidator`)
+  - open generated VSDX from test/manual validation only; shipped `OfficeIMO.Visio` does not expose desktop automation
   - save-as VSDX (implemented as optional save-copy validation)
   - export SVG/PNG/PDF (implemented as optional export validation; SVG covered by test)
   - collect repair/open errors

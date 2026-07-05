@@ -37,7 +37,7 @@ namespace OfficeIMO.Tests {
                 return;
             }
 
-            if (!VisioDesktopValidator.IsAvailable()) {
+            if (!VisioDesktopBaselineValidator.IsAvailable()) {
                 if (IsRequired() || IsBaselineUpdateRequested()) {
                     throw new InvalidOperationException("Premium Visio visual baseline tests require Microsoft Visio desktop automation. Install Visio or unset OFFICEIMO_REQUIRE_VISIO_PREMIUM_BASELINES / OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES.");
                 }
@@ -65,7 +65,7 @@ namespace OfficeIMO.Tests {
                 options.ExportFormats.Add(VisioDesktopExportFormat.Png);
                 options.ExportFormats.Add(VisioDesktopExportFormat.Svg);
 
-                VisioDesktopValidationResult desktop = VisioDesktopValidator.Validate(result.FilePath, options);
+                VisioDesktopValidationResult desktop = VisioDesktopBaselineValidator.Validate(result.FilePath, options);
                 Assert.True(desktop.IsValid, string.Join(Environment.NewLine, desktop.Issues));
                 Assert.Equal(2, desktop.OutputFiles.Count);
 
@@ -476,8 +476,7 @@ namespace OfficeIMO.Tests {
 
         private static string FormatGalleryIssues(VisioGalleryResult result) {
             IEnumerable<string> issues = result.PackageIssues
-                .Concat(result.QualityIssues.Select(issue => issue.ToString()))
-                .Concat(result.DesktopValidation?.Issues ?? Array.Empty<string>());
+                .Concat(result.QualityIssues.Select(issue => issue.ToString()));
             return result.Name + Environment.NewLine + string.Join(Environment.NewLine, issues);
         }
 

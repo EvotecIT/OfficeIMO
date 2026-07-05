@@ -37,8 +37,7 @@ namespace OfficeIMO.Examples.Visio {
             foreach (VisioGalleryResult result in results.OrderBy(result => result.FilePath, StringComparer.OrdinalIgnoreCase)) {
                 if (!result.IsClean) {
                     IEnumerable<string> issues = result.PackageIssues
-                        .Concat(result.QualityIssues.Select(issue => issue.ToString()))
-                        .Concat(result.DesktopValidation?.Issues ?? Array.Empty<string>());
+                        .Concat(result.QualityIssues.Select(issue => issue.ToString()));
                     string message = string.Join(Environment.NewLine, issues.Select(issue => "      " + issue));
                     throw new InvalidOperationException($"Premium Visio example failed validation: {result.FilePath}{Environment.NewLine}{message}");
                 }

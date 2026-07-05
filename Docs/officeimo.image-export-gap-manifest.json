@@ -1,0 +1,85 @@
+{
+  "schemaVersion": 1,
+  "runtimeDependencyPolicy": "first-party-only",
+  "allowedRuntimeRenderingOwners": [
+    "OfficeIMO.Drawing",
+    "OfficeIMO.Excel",
+    "OfficeIMO.Word",
+    "OfficeIMO.PowerPoint",
+    "OfficeIMO.Pdf"
+  ],
+  "workstreams": [
+    {
+      "id": "drawing-engine",
+      "owner": "OfficeIMO.Drawing",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "active",
+      "goal": "Own shared raster, SVG, PNG, paths, strokes, fills, text layout, image projection, chart primitives, diagnostics, and visual-quality helpers.",
+      "nextSlices": [
+        "Promote reusable geometry, text, image, and chart behavior from document adapters when more than one package needs it.",
+        "Add dependency-free decoders only when a document adapter has a current visual contract that needs them.",
+        "Keep rendering diagnostics reusable without knowing document-specific source semantics."
+      ]
+    },
+    {
+      "id": "excel-premium-fidelity",
+      "owner": "OfficeIMO.Excel",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "active",
+      "goal": "Move Excel PNG/SVG export from strong foundation to production-grade visual fidelity while keeping source semantics in Excel and reusable rendering in Drawing.",
+      "nextSlices": [
+        "Burn down tracked visual-fidelity manifest items for comment bodies, conditional icons, pattern fills, rich text, sparklines, stacked text, and shape text.",
+        "Improve chart, image, object, and page-slicing parity through focused diagnostics and baselines.",
+        "Keep Excel PDF planning and Excel image snapshots aligned where they describe the same worksheet semantics."
+      ]
+    },
+    {
+      "id": "powerpoint-real-world-baselines",
+      "owner": "OfficeIMO.PowerPoint",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "active",
+      "goal": "Turn fixed-size slide PNG/SVG export into a polished renderer with real-world fixture confidence.",
+      "nextSlices": [
+        "Expand approved PNG/SVG fixture gates beyond the dashboard and process-diagram baselines.",
+        "Expand placeholder, master/layout inheritance, grouped object, connector, chart, and table-style fidelity in focused slices.",
+        "Promote reusable fixed-layout primitives to Drawing instead of duplicating them in the slide renderer."
+      ]
+    },
+    {
+      "id": "word-pagination",
+      "owner": "OfficeIMO.Word",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "planned",
+      "goal": "Move Word image export beyond first-page preview through a deliberate first-party pagination model.",
+      "nextSlices": [
+        "Separate page layout decisions from drawing emission so paragraphs, tables, headers, footers, and floating objects can produce page snapshots.",
+        "Add multi-page batch export only after page boundaries and overflow diagnostics are stable.",
+        "Keep Word-owned wrapping, sections, fields, and object anchoring separate from Drawing-owned pixels and vector primitives."
+      ]
+    },
+    {
+      "id": "pdf-page-image",
+      "owner": "OfficeIMO.Pdf",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "planned",
+      "goal": "Design PDF page-to-image as a first-party renderer over OfficeIMO PDF content/logical models.",
+      "nextSlices": [
+        "Inventory current PDF writer/readback content primitives and classify which can be replayed into Drawing.",
+        "Start with OfficeIMO-generated PDFs before attempting arbitrary PDF content streams.",
+        "Expose page-image APIs only after diagnostics can explain unsupported operators, fonts, images, transparency, forms, or annotations."
+      ]
+    },
+    {
+      "id": "visual-qa",
+      "owner": "OfficeIMO.Shared.Tests",
+      "runtimeDependencyPolicy": "first-party-only",
+      "status": "active",
+      "goal": "Keep visual proof shared and reviewable without making external comparison tools part of product rendering.",
+      "nextSlices": [
+        "Use Drawing-backed PNG decode/encode/diff helpers for approved baselines.",
+        "Keep optional desktop, Poppler, or other comparison tools out of product packages and clearly scoped to tests/manual review.",
+        "Require renderable/nonblank proof and stable diagnostics for every premium rendering slice."
+      ]
+    }
+  ]
+}

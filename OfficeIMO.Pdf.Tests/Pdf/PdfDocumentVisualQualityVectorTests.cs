@@ -274,6 +274,37 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_RendersMultiStopGradientUsingFinalStopAsPdfEndpoint() {
+        var shape = OfficeShape.Rectangle(90, 24);
+        shape.FillGradient = new OfficeLinearGradient(
+            0,
+            0.5,
+            1,
+            0.5,
+            new[] {
+                new OfficeGradientStop(0, OfficeColor.Red),
+                new OfficeGradientStop(0.5, OfficeColor.Lime),
+                new OfficeGradientStop(1, OfficeColor.Blue)
+            });
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("/C0 [1 0 0] /C1 [0 0 1]", content);
+        Assert.DoesNotContain("/C0 [1 0 0] /C1 [0 1 0]", content);
+    }
+
+    [Fact]
     public void VectorShape_RendersSharedLinearGradientInsideTransformGraphicsState() {
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);

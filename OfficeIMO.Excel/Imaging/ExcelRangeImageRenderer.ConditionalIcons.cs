@@ -63,6 +63,9 @@ namespace OfficeIMO.Excel {
                 ExcelConditionalIconKind.QuarterTwo => OfficeConditionalIconKind.QuarterTwo,
                 ExcelConditionalIconKind.QuarterThree => OfficeConditionalIconKind.QuarterThree,
                 ExcelConditionalIconKind.QuarterFull => OfficeConditionalIconKind.QuarterFull,
+                ExcelConditionalIconKind.GreenFlag => OfficeConditionalIconKind.GreenFlag,
+                ExcelConditionalIconKind.YellowFlag => OfficeConditionalIconKind.YellowFlag,
+                ExcelConditionalIconKind.RedFlag => OfficeConditionalIconKind.RedFlag,
                 _ => OfficeConditionalIconKind.RedCross
             };
 

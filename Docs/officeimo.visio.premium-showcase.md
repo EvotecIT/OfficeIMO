@@ -24,8 +24,8 @@ The showcase should prove that OfficeIMO.Visio can generate diagrams that are st
    - Treat this as a fast CI/review lane for OfficeIMO-authored geometry, not as a substitute for desktop Visio visual parity.
 
 3. **Desktop proof**
-   - Run `--visio-showcase --visio-preview` on a machine with Microsoft Visio.
-   - Open, round-trip, and export PNG/SVG previews through `VisioDesktopValidator`.
+   - Run the optional Visio desktop baseline tests/manual workflow on a machine with Microsoft Visio.
+   - Optional desktop round-trip and PNG/SVG preview checks live in the test/manual baseline suite, not the examples app or shipped `OfficeIMO.Visio` package.
    - Add preview files and gallery output as review artifacts.
    - Use the `Visio Showcase Artifacts` workflow through `workflow_dispatch` with `run_desktop_preview=true` on a `[self-hosted, Windows, Visio]` runner where Microsoft Visio desktop automation is registered.
 

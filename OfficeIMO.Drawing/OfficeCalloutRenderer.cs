@@ -190,11 +190,36 @@ public static class OfficeCalloutRenderer {
                 alignment: OfficeTextAlignment.Left,
                 fontFamily: style.FontFamily);
 
-            double bodyTop = y + titleHeight + (4D * scale);
-            double bodyHeight = Math.Max(1D, height - titleHeight - (padding * 1.4D));
-            OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
-                callout.Text,
-                bodyFontSize,
+        double bodyTop = y + titleHeight + (4D * scale);
+        double bodyHeight = Math.Max(1D, height - titleHeight - (padding * 1.4D));
+        if (callout.RichTextRuns.Count > 0) {
+            IReadOnlyList<OfficeRichTextRun> scaledRuns = ScaleRichTextRuns(callout.RichTextRuns, scale);
+            OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                scaledRuns,
+                textWidth,
+                bodyHeight,
+                style.LineHeightFactor,
+                (text, size, family) => canvas.MeasureText(text, size, family),
+                wrap: true,
+                shrinkToFit: false,
+                minimumFontSize: Math.Max(1D, scale),
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+            OfficeTextBlockRenderer.DrawRasterRichTextBlock(
+                canvas,
+                richLayout,
+                textX,
+                bodyTop,
+                textWidth,
+                bodyHeight,
+                OfficeTextAlignment.Left,
+                OfficeTextVerticalAlignment.Top,
+                centerLineInLineHeight: false);
+            return;
+        }
+
+        OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
+            callout.Text,
+            bodyFontSize,
                 textWidth,
                 bodyHeight,
                 style.LineHeightFactor,
@@ -368,6 +393,31 @@ public static class OfficeCalloutRenderer {
 
         double bodyTop = titleHeight + (4D * scale);
         double bodyHeight = Math.Max(1D, height - titleHeight - (padding * 1.4D));
+        if (callout.RichTextRuns.Count > 0) {
+            IReadOnlyList<OfficeRichTextRun> scaledRuns = ScaleRichTextRuns(callout.RichTextRuns, scale);
+            OfficeRichTextBlockLayout richLayout = OfficeTextLayoutEngine.LayoutRichTextBlock(
+                scaledRuns,
+                textWidth,
+                bodyHeight,
+                style.LineHeightFactor,
+                measureText,
+                wrap: true,
+                shrinkToFit: false,
+                minimumFontSize: Math.Max(1D, scale),
+                overflowBehavior: OfficeTextOverflowBehavior.Clip);
+            builder.AppendSvgRichTextBlock(
+                richLayout,
+                textX,
+                bodyTop,
+                textWidth,
+                bodyHeight,
+                OfficeTextAlignment.Left,
+                OfficeTextVerticalAlignment.Top,
+                centerLineInLineHeight: false);
+            builder.Append("</g>");
+            return;
+        }
+
         OfficeTextBlockLayout layout = OfficeTextLayoutEngine.LayoutTextBlock(
             callout.Text,
             bodyFontSize,
@@ -392,5 +442,28 @@ public static class OfficeCalloutRenderer {
             centerLineInLineHeight: false);
 
         builder.Append("</g>");
+    }
+
+    private static IReadOnlyList<OfficeRichTextRun> ScaleRichTextRuns(IReadOnlyList<OfficeRichTextRun> runs, double scale) {
+        if (runs.Count == 0 || Math.Abs(scale - 1D) < 0.000001D) {
+            return runs;
+        }
+
+        var scaled = new List<OfficeRichTextRun>(runs.Count);
+        for (int i = 0; i < runs.Count; i++) {
+            OfficeRichTextRun run = runs[i];
+            scaled.Add(new OfficeRichTextRun(
+                run.Text,
+                run.FontSize * scale,
+                run.Color,
+                run.Bold,
+                run.Italic,
+                run.Underline,
+                run.FontFamily,
+                run.Strikethrough,
+                run.BackgroundColor));
+        }
+
+        return scaled.AsReadOnly();
     }
 }

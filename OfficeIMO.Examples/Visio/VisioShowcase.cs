@@ -8,7 +8,7 @@ using OfficeIMO.Visio;
 
 namespace OfficeIMO.Examples.Visio {
     public static class VisioShowcase {
-        public static void Example_VisioShowcase(string folderPath, bool openVisio, bool exportPreviews, bool exportNativePreviews = false) {
+        public static void Example_VisioShowcase(string folderPath, bool openVisio, bool exportNativePreviews = false) {
             Console.WriteLine("[*] Visio - Showcase examples");
             string showcasePath = Path.Combine(folderPath, "Visio Showcase");
             PrepareShowcaseDirectory(showcasePath);
@@ -67,10 +67,6 @@ namespace OfficeIMO.Examples.Visio {
             ValidateGeneratedPackages(generatedFiles);
             IReadOnlyList<string> proofFiles = ExportStructuralProofFiles(showcasePath, generatedFiles);
             IReadOnlyList<string> previewFiles = Array.Empty<string>();
-            if (exportPreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_DESKTOP_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
-                previewFiles = ExportPreviewFiles(showcasePath, generatedFiles);
-            }
-
             if (exportNativePreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_NATIVE_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
                 previewFiles = previewFiles.Concat(ExportNativePreviewFiles(showcasePath, generatedFiles)).ToList();
             }
@@ -124,41 +120,6 @@ namespace OfficeIMO.Examples.Visio {
                 string message = string.Join(Environment.NewLine, issues.Select(issue => "      " + issue));
                 throw new InvalidOperationException($"Visio example failed package validation: {filePath}{Environment.NewLine}{message}");
             }
-        }
-
-        private static IReadOnlyList<string> ExportPreviewFiles(string showcasePath, IReadOnlyList<string> generatedFiles) {
-            if (!VisioDesktopValidator.IsAvailable()) {
-                Console.WriteLine("    Visio desktop preview export skipped: Microsoft Visio automation is not available.");
-                return Array.Empty<string>();
-            }
-
-            string previewPath = Path.Combine(showcasePath, "Preview");
-            Directory.CreateDirectory(previewPath);
-            List<string> previewFiles = new();
-
-            foreach (string filePath in generatedFiles) {
-                VisioDesktopValidationOptions options = new() {
-                    ExportDirectory = previewPath,
-                    ExportFileNamePrefix = CreatePreviewPrefix(filePath, showcasePath)
-                };
-                options.ExportFormats.Add(VisioDesktopExportFormat.Png);
-                options.ExportFormats.Add(VisioDesktopExportFormat.Svg);
-
-                VisioDesktopValidationResult result = VisioDesktopValidator.Validate(filePath, options);
-                if (!result.IsValid) {
-                    string message = string.Join(Environment.NewLine, result.Issues.Select(issue => "      " + issue));
-                    throw new InvalidOperationException($"Visio desktop preview export failed: {filePath}{Environment.NewLine}{message}");
-                }
-
-                foreach (string outputFile in result.OutputFiles) {
-                    previewFiles.Add(outputFile);
-                    Console.WriteLine($"    preview: {outputFile}");
-                }
-            }
-
-            string galleryPath = WritePreviewGallery(previewPath, previewFiles);
-            Console.WriteLine($"    gallery: {galleryPath}");
-            return previewFiles;
         }
 
         private static IReadOnlyList<string> ExportNativePreviewFiles(string showcasePath, IReadOnlyList<string> generatedFiles) {

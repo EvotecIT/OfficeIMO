@@ -77,11 +77,7 @@ namespace OfficeIMO.Visio {
             IReadOnlyList<VisioDiagramQualityIssue> qualityIssues = options.AnalyzeVisualQuality
                 ? document.AnalyzeVisualQuality(options.QualityOptions)
                 : Array.Empty<VisioDiagramQualityIssue>();
-            VisioDesktopValidationResult? desktopValidation = options.ValidateWithVisioDesktop
-                ? VisioDesktopValidator.Validate(filePath, options.DesktopValidationOptions)
-                : null;
-
-            return new VisioGalleryResult(scenario.Name, filePath, packageIssues, qualityIssues, desktopValidation, options.RequireVisioDesktop);
+            return new VisioGalleryResult(scenario.Name, filePath, packageIssues, qualityIssues);
         }
 
         private static VisioPremiumGalleryScenario FindScenario(string scenarioName) {

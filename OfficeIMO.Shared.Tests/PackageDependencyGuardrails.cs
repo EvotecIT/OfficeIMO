@@ -9,11 +9,91 @@ public sealed class PackageDependencyGuardrailTests {
     private const string CurrentMarkdigVersion = "1.3.2";
 
     private static readonly string[] ForbiddenRenderingPackageIds = [
+        "Aspose.Cells",
+        "Aspose.PDF",
+        "Aspose.Slides",
+        "Aspose.Words",
+        "Docnet.Core",
+        "GemBox.Document",
+        "GemBox.Pdf",
+        "GemBox.Presentation",
+        "GemBox.Spreadsheet",
+        "Magick.NET-Q16-AnyCPU",
+        "Magick.NET-Q8-AnyCPU",
+        "Microsoft.Office.Interop.Excel",
+        "Microsoft.Office.Interop.PowerPoint",
+        "Microsoft.Office.Interop.Visio",
+        "Microsoft.Office.Interop.Word",
+        "Microsoft.Playwright",
+        "PdfiumViewer",
+        "PDFiumSharp",
+        "PDFtoImage",
+        "PuppeteerSharp",
+        "Selenium.WebDriver",
         "SixLabors.ImageSharp",
         "SixLabors.Fonts",
+        "SkiaSharp.Extended",
         "SkiaSharp",
         "SkiaSharp.Views",
+        "Spire.Doc",
+        "Spire.PDF",
+        "Spire.Presentation",
+        "Spire.XLS",
+        "Syncfusion.DocIO.Net.Core",
+        "Syncfusion.EJ2.PdfViewer",
+        "Syncfusion.Pdf.Net.Core",
+        "Syncfusion.PdfToImageConverter.Net",
+        "Syncfusion.Presentation.Net.Core",
+        "Syncfusion.XlsIO.Net.Core",
         "System.Drawing.Common"
+    ];
+
+    private static readonly string[] DocumentImageRenderingRoots = [
+        "OfficeIMO.Drawing",
+        "OfficeIMO.Excel",
+        "OfficeIMO.Excel.Pdf",
+        "OfficeIMO.Markdown.Pdf",
+        "OfficeIMO.Pdf",
+        "OfficeIMO.PowerPoint",
+        "OfficeIMO.PowerPoint.Pdf",
+        "OfficeIMO.Shared",
+        "OfficeIMO.Visio",
+        "OfficeIMO.Word",
+        "OfficeIMO.Word.Pdf"
+    ];
+
+    private static readonly string[] ForbiddenDocumentImageRenderingPackageIds = [
+        ..ForbiddenRenderingPackageIds,
+        "Microsoft.Office.Interop.Visio",
+        "Microsoft.Web.WebView2"
+    ];
+
+    private static readonly string[] ForbiddenDocumentImageRenderingSourceTerms = [
+        "Aspose.",
+        "Excel.Application",
+        "GemBox.",
+        "ImageMagick.",
+        "LibreOffice",
+        "Microsoft.Office.Interop",
+        "Microsoft.Playwright",
+        "Microsoft.Web.WebView2",
+        "Pdfium",
+        "PDFium",
+        "pdftocairo",
+        "pdftoppm",
+        "Poppler",
+        "PowerPoint.Application",
+        "PuppeteerSharp",
+        "Selenium.",
+        "SixLabors.",
+        "SkiaSharp.",
+        "soffice",
+        "Spire.",
+        "Syncfusion.",
+        "System.Drawing.",
+        "using System.Drawing;",
+        "Visio.Application",
+        "Word.Application"
     ];
 
     [Fact]
@@ -92,6 +172,58 @@ public sealed class PackageDependencyGuardrailTests {
             .ToArray();
 
         Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void DocumentImageRenderingProjects_DoNotReferenceExternalRenderersOrAutomation() {
+        var offenders = EnumerateDocumentImageRenderingProjectFiles()
+            .SelectMany(projectPath => ProjectReferencesPackages(projectPath, ForbiddenDocumentImageRenderingPackageIds)
+                .Select(packageId => GetRepositoryRelativePath(projectPath) + " -> " + packageId))
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void DocumentImageRenderingPaths_StayFirstPartyAndDependencyFree() {
+        var sourceOffenders = new List<string>();
+        foreach (string sourceFile in EnumerateDocumentImageRenderingSourceFiles()) {
+            string source = File.ReadAllText(sourceFile);
+            foreach (string forbiddenTerm in ForbiddenDocumentImageRenderingSourceTerms) {
+                if (ContainsForbiddenDocumentImageRenderingSourceTerm(source, forbiddenTerm)) {
+                    sourceOffenders.Add(GetRepositoryRelativePath(sourceFile) + " -> " + forbiddenTerm);
+                }
+            }
+        }
+
+        Assert.Empty(sourceOffenders);
+    }
+
+    [Fact]
+    public void ImageExportGapManifest_StaysFirstPartyAndActionable() {
+        string manifestPath = GetRepositoryPath("Docs/officeimo.image-export-gap-manifest.json");
+        Assert.True(File.Exists(manifestPath), "Image export gap manifest is missing: " + manifestPath);
+
+        using JsonDocument document = JsonDocument.Parse(File.ReadAllText(manifestPath));
+        JsonElement root = document.RootElement;
+
+        Assert.Equal("first-party-only", root.GetProperty("runtimeDependencyPolicy").GetString());
+        JsonElement workstreams = root.GetProperty("workstreams");
+        Assert.True(workstreams.GetArrayLength() >= 5, "Image export goal should track the main document and QA workstreams.");
+
+        foreach (JsonElement workstream in workstreams.EnumerateArray()) {
+            string id = workstream.GetProperty("id").GetString() ?? string.Empty;
+            string owner = workstream.GetProperty("owner").GetString() ?? string.Empty;
+            string policy = workstream.GetProperty("runtimeDependencyPolicy").GetString() ?? string.Empty;
+            string status = workstream.GetProperty("status").GetString() ?? string.Empty;
+            JsonElement nextSlices = workstream.GetProperty("nextSlices");
+
+            Assert.False(string.IsNullOrWhiteSpace(id), "Every image export workstream needs an id.");
+            Assert.StartsWith("OfficeIMO.", owner, StringComparison.Ordinal);
+            Assert.Equal("first-party-only", policy);
+            Assert.Contains(status, new[] { "active", "planned" });
+            Assert.True(nextSlices.GetArrayLength() > 0, "Workstream '" + id + "' needs at least one next slice.");
+        }
     }
 
     [Fact]
@@ -575,6 +707,41 @@ public sealed class PackageDependencyGuardrailTests {
             .Where(static path => new FileInfo(path).Length > 0)
             .ToArray();
 
+    private static IEnumerable<string> EnumerateDocumentImageRenderingSourceFiles() {
+        foreach (string relativeRoot in DocumentImageRenderingRoots) {
+            string root = GetRepositoryPath(relativeRoot);
+            if (!Directory.Exists(root)) {
+                continue;
+            }
+
+            foreach (string sourceFile in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)) {
+                if (sourceFile.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                    sourceFile.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)) {
+                    continue;
+                }
+
+                yield return sourceFile;
+            }
+        }
+    }
+
+    private static bool ContainsForbiddenDocumentImageRenderingSourceTerm(string source, string forbiddenTerm) {
+        if (string.Equals(forbiddenTerm, "soffice", StringComparison.OrdinalIgnoreCase)) {
+            return Regex.IsMatch(source, @"(?<![A-Za-z0-9_])soffice(?:\.exe)?(?![A-Za-z0-9_])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        return source.Contains(forbiddenTerm, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static IEnumerable<string> EnumerateDocumentImageRenderingProjectFiles() {
+        foreach (string relativeRoot in DocumentImageRenderingRoots) {
+            string projectPath = GetRepositoryPath(relativeRoot + "/" + relativeRoot + ".csproj");
+            if (File.Exists(projectPath)) {
+                yield return projectPath;
+            }
+        }
+    }
+
     private static int CountJsonArrayEntries(string relativePath) {
         var path = GetRepositoryPath(relativePath);
         Assert.True(File.Exists(path), "Fixture file is missing: " + path);
@@ -650,7 +817,7 @@ public sealed class PackageDependencyGuardrailTests {
         return document
             .Descendants(ns + "PackageReference")
             .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
-            .Where(include => packageIds.Contains(include, StringComparer.Ordinal));
+            .Where(include => packageIds.Contains(include, StringComparer.OrdinalIgnoreCase));
     }
 
     private static string? GetPackageReferenceVersion(string projectPath, string packageId) {

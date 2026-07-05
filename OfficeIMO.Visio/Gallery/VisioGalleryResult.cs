@@ -9,15 +9,11 @@ namespace OfficeIMO.Visio {
             string name,
             string filePath,
             IReadOnlyList<string> packageIssues,
-            IReadOnlyList<VisioDiagramQualityIssue> qualityIssues,
-            VisioDesktopValidationResult? desktopValidation,
-            bool requireVisioDesktop) {
+            IReadOnlyList<VisioDiagramQualityIssue> qualityIssues) {
             Name = name;
             FilePath = filePath;
             PackageIssues = packageIssues;
             QualityIssues = qualityIssues;
-            DesktopValidation = desktopValidation;
-            RequireVisioDesktop = requireVisioDesktop;
         }
 
         /// <summary>Gallery sample name.</summary>
@@ -32,17 +28,8 @@ namespace OfficeIMO.Visio {
         /// <summary>Visual quality issues.</summary>
         public IReadOnlyList<VisioDiagramQualityIssue> QualityIssues { get; }
 
-        /// <summary>Optional Microsoft Visio desktop validation result.</summary>
-        public VisioDesktopValidationResult? DesktopValidation { get; }
-
-        /// <summary>Whether missing Microsoft Visio desktop automation is treated as a gallery issue.</summary>
-        public bool RequireVisioDesktop { get; }
-
-        /// <summary>Whether package, visual quality, and requested desktop validation all passed.</summary>
+        /// <summary>Whether package and visual quality checks passed.</summary>
         public bool IsClean => PackageIssues.Count == 0 &&
-                               QualityIssues.Count == 0 &&
-                               (DesktopValidation == null ||
-                                DesktopValidation.IsValid ||
-                                (!RequireVisioDesktop && !DesktopValidation.IsAvailable));
+                               QualityIssues.Count == 0;
     }
 }
