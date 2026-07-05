@@ -83,6 +83,11 @@ namespace OfficeIMO.Excel {
                 return true;
             }
 
+            if (name.IndexOf("Flag", StringComparison.OrdinalIgnoreCase) >= 0) {
+                family = ExcelConditionalIconFamily.Flags;
+                return true;
+            }
+
             if (name.IndexOf("Signs", StringComparison.OrdinalIgnoreCase) >= 0 ||
                 name.IndexOf("Symbols", StringComparison.OrdinalIgnoreCase) >= 0) {
                 family = ExcelConditionalIconFamily.Symbols;
@@ -253,6 +258,14 @@ namespace OfficeIMO.Excel {
                                 : ExcelConditionalIconKind.QuarterFull;
             }
 
+            if (family == ExcelConditionalIconFamily.Flags) {
+                return normalized == 0
+                    ? ExcelConditionalIconKind.RedFlag
+                    : normalized == 1
+                        ? ExcelConditionalIconKind.YellowFlag
+                        : ExcelConditionalIconKind.GreenFlag;
+            }
+
             return normalized == 0
                 ? ExcelConditionalIconKind.RedCross
                 : normalized == 1
@@ -265,7 +278,8 @@ namespace OfficeIMO.Excel {
             Arrows,
             Circles,
             Ratings,
-            Quarters
+            Quarters,
+            Flags
         }
     }
 }

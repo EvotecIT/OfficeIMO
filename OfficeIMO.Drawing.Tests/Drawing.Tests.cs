@@ -2074,12 +2074,15 @@ public partial class DrawingTests {
     public void OfficeConditionalIconRendererAppendsReusableSvgIcons() {
         var circleBuilder = new StringBuilder();
         var arrowBuilder = new StringBuilder();
+        var flagBuilder = new StringBuilder();
 
         OfficeConditionalIconRenderer.AppendSvg(circleBuilder, 1, 2, 16, OfficeConditionalIconKind.RedCircle, scale: 1D);
         OfficeConditionalIconRenderer.AppendSvg(arrowBuilder, 1, 2, 16, OfficeConditionalIconKind.GreenUpArrow, scale: 1D);
+        OfficeConditionalIconRenderer.AppendSvg(flagBuilder, 1, 2, 16, OfficeConditionalIconKind.GreenFlag, scale: 1D);
 
         string circleSvg = circleBuilder.ToString();
         string arrowSvg = arrowBuilder.ToString();
+        string flagSvg = flagBuilder.ToString();
         Assert.Contains("<circle", circleSvg, StringComparison.Ordinal);
         Assert.Contains("fill=\"#DC2626\"", circleSvg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#B91C1C\"", circleSvg, StringComparison.Ordinal);
@@ -2088,6 +2091,10 @@ public partial class DrawingTests {
         Assert.Contains("fill=\"#16A34A\"", arrowSvg, StringComparison.Ordinal);
         Assert.Contains("stroke=\"#15803D\"", arrowSvg, StringComparison.Ordinal);
         Assert.Contains("fill-opacity=", arrowSvg, StringComparison.Ordinal);
+        Assert.Contains("<polygon", flagSvg, StringComparison.Ordinal);
+        Assert.Contains("fill=\"#16A34A\"", flagSvg, StringComparison.Ordinal);
+        Assert.Contains("stroke=\"#15803D\"", flagSvg, StringComparison.Ordinal);
+        Assert.Contains("fill-opacity=", flagSvg, StringComparison.Ordinal);
     }
 
     [Fact]

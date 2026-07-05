@@ -375,16 +375,19 @@ namespace OfficeIMO.Tests {
             OfficeRasterImage arrow = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
             OfficeRasterImage rating = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
             OfficeRasterImage quarter = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
+            OfficeRasterImage flag = new OfficeRasterImage(24, 24, OfficeColor.Transparent);
 
             OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(circle), 3, 3, 18, OfficeConditionalIconKind.RedCircle, scale: 1D);
             OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(arrow), 3, 3, 18, OfficeConditionalIconKind.GreenUpArrow, scale: 1D);
             OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(rating), 3, 3, 18, OfficeConditionalIconKind.RatingFive, scale: 1D);
             OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(quarter), 3, 3, 18, OfficeConditionalIconKind.QuarterOne, scale: 1D);
+            OfficeConditionalIconRenderer.DrawRaster(new OfficeRasterCanvas(flag), 3, 3, 18, OfficeConditionalIconKind.GreenFlag, scale: 1D);
 
             Assert.True(CountPixelsNear(circle, OfficeColor.FromRgb(220, 38, 38)) > 40);
             Assert.True(CountPixelsNear(arrow, OfficeColor.FromRgb(22, 163, 74)) > 30);
             Assert.True(CountPixelsNear(rating, OfficeColor.FromRgb(22, 163, 74)) > 30);
             Assert.True(CountPixelsNear(quarter, OfficeColor.FromRgb(249, 115, 22)) > 20);
+            Assert.True(CountPixelsNear(flag, OfficeColor.FromRgb(22, 163, 74)) > 25);
             Assert.True(CountPixelsNearAlpha(circle, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
             Assert.True(CountPixelsNearAlpha(arrow, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
             Assert.True(CountPixelsNearAlpha(rating, OfficeColor.FromRgb(15, 23, 42), 8, 10, 70) > 0);
@@ -392,6 +395,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, arrow.GetPixel(0, 0).A);
             Assert.Equal(0, rating.GetPixel(0, 0).A);
             Assert.Equal(0, quarter.GetPixel(0, 0).A);
+            Assert.Equal(0, flag.GetPixel(0, 0).A);
         }
 
         [Fact]
@@ -400,11 +404,13 @@ namespace OfficeIMO.Tests {
 
             OfficeConditionalIconRenderer.AppendSvg(builder, 2, 3, 18, OfficeConditionalIconKind.RatingThree, scale: 1D);
             OfficeConditionalIconRenderer.AppendSvg(builder, 24, 3, 18, OfficeConditionalIconKind.QuarterTwo, scale: 1D);
+            OfficeConditionalIconRenderer.AppendSvg(builder, 46, 3, 18, OfficeConditionalIconKind.GreenFlag, scale: 1D);
             string svg = builder.ToString();
 
             Assert.DoesNotContain("<rect", svg, StringComparison.Ordinal);
-            Assert.True(CountOccurrences(svg, "<polygon") >= 3, svg);
+            Assert.True(CountOccurrences(svg, "<polygon") >= 6, svg);
             Assert.Contains("#F59E0B", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#16A34A", svg, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]

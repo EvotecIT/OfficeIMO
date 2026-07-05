@@ -414,7 +414,13 @@ namespace OfficeIMO.Excel {
         /// <summary>Three-quarter filled pie indicator.</summary>
         QuarterThree,
         /// <summary>Fully filled pie indicator.</summary>
-        QuarterFull
+        QuarterFull,
+        /// <summary>Green flag indicator.</summary>
+        GreenFlag,
+        /// <summary>Yellow flag indicator.</summary>
+        YellowFlag,
+        /// <summary>Red flag indicator.</summary>
+        RedFlag
     }
 
     /// <summary>
