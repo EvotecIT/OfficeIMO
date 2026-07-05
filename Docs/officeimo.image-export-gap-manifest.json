@@ -6,8 +6,7 @@
     "OfficeIMO.Excel",
     "OfficeIMO.Word",
     "OfficeIMO.PowerPoint",
-    "OfficeIMO.Pdf",
-    "OfficeIMO.Visio"
+    "OfficeIMO.Pdf"
   ],
   "workstreams": [
     {

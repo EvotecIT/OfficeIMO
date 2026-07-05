@@ -22,6 +22,7 @@ public sealed class PackageDependencyGuardrailTests {
         "Magick.NET-Q8-AnyCPU",
         "Microsoft.Office.Interop.Excel",
         "Microsoft.Office.Interop.PowerPoint",
+        "Microsoft.Office.Interop.Visio",
         "Microsoft.Office.Interop.Word",
         "Microsoft.Playwright",
         "PdfiumViewer",
@@ -54,15 +55,23 @@ public sealed class PackageDependencyGuardrailTests {
         "OfficeIMO.Pdf",
         "OfficeIMO.PowerPoint",
         "OfficeIMO.PowerPoint.Pdf",
-        "OfficeIMO.Visio",
+        "OfficeIMO.Shared",
         "OfficeIMO.Word",
         "OfficeIMO.Word.Pdf"
     ];
 
+    private static readonly string[] ForbiddenDocumentImageRenderingPackageIds = [
+        ..ForbiddenRenderingPackageIds,
+        "Microsoft.Office.Interop.Visio",
+        "Microsoft.Web.WebView2"
+    ];
+
     private static readonly string[] ForbiddenDocumentImageRenderingSourceTerms = [
         "Aspose.",
+        "Excel.Application",
         "GemBox.",
         "ImageMagick.",
+        "LibreOffice",
         "Microsoft.Office.Interop",
         "Microsoft.Playwright",
         "Microsoft.Web.WebView2",
@@ -71,13 +80,18 @@ public sealed class PackageDependencyGuardrailTests {
         "pdftocairo",
         "pdftoppm",
         "Poppler",
+        "PowerPoint.Application",
         "PuppeteerSharp",
         "Selenium.",
         "SixLabors.",
         "SkiaSharp.",
+        "soffice",
         "Spire.",
         "Syncfusion.",
-        "System.Drawing."
+        "System.Drawing.",
+        "using System.Drawing;",
+        "Visio.Application",
+        "Word.Application"
     ];
 
     [Fact]
@@ -152,6 +166,16 @@ public sealed class PackageDependencyGuardrailTests {
         var offenders = EnumerateProjectFiles()
             .Where(static projectPath => !IsNonProductionProject(projectPath))
             .SelectMany(projectPath => ProjectReferencesPackages(projectPath, ForbiddenRenderingPackageIds)
+                .Select(packageId => GetRepositoryRelativePath(projectPath) + " -> " + packageId))
+            .ToArray();
+
+        Assert.Empty(offenders);
+    }
+
+    [Fact]
+    public void DocumentImageRenderingProjects_DoNotReferenceExternalRenderersOrAutomation() {
+        var offenders = EnumerateDocumentImageRenderingProjectFiles()
+            .SelectMany(projectPath => ProjectReferencesPackages(projectPath, ForbiddenDocumentImageRenderingPackageIds)
                 .Select(packageId => GetRepositoryRelativePath(projectPath) + " -> " + packageId))
             .ToArray();
 
@@ -695,6 +719,15 @@ public sealed class PackageDependencyGuardrailTests {
                 }
 
                 yield return sourceFile;
+            }
+        }
+    }
+
+    private static IEnumerable<string> EnumerateDocumentImageRenderingProjectFiles() {
+        foreach (string relativeRoot in DocumentImageRenderingRoots) {
+            string projectPath = GetRepositoryPath(relativeRoot + "/" + relativeRoot + ".csproj");
+            if (File.Exists(projectPath)) {
+                yield return projectPath;
             }
         }
     }
