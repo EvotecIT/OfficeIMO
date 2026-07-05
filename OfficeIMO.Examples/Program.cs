@@ -64,15 +64,20 @@ namespace OfficeIMO.Examples {
         }
 
         private static void RunVisioShowcaseExamples(string folderPath, string[] args) {
-            bool exportPreviews = HasArgument(args, "--visio-export")
+            if (HasArgument(args, "--visio-export")
                 || HasArgument(args, "--visio-showcase-export")
-                || HasArgument(args, "--visio-preview");
+                || HasArgument(args, "--visio-preview")) {
+                throw new InvalidOperationException(
+                    "The Visio desktop preview switches were removed from OfficeIMO.Examples. " +
+                    "Use --visio-native-preview for dependency-free SVG/PNG previews, or run the Visio desktop baseline tests/manual workflow when Microsoft Visio comparison artifacts are needed.");
+            }
+
             bool exportNativePreviews = HasArgument(args, "--visio-native-preview")
                 || HasArgument(args, "--visio-native-export");
             bool openVisio = HasArgument(args, "--open-visio")
                 || HasArgument(args, "--visio-open");
 
-            Visio.VisioShowcase.Example_VisioShowcase(folderPath, openVisio, exportPreviews, exportNativePreviews);
+            Visio.VisioShowcase.Example_VisioShowcase(folderPath, openVisio, exportNativePreviews);
         }
 
         private static void RunPowerPointExamples(string folderPath) {

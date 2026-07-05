@@ -5,20 +5,20 @@ Date: 2026-05-31
 ## Evidence Reviewed
 
 - `dotnet build OfficeIMO.Examples\OfficeIMO.Examples.csproj -c Release --framework net8.0 --no-restore -nodeReuse:false -p:UseSharedCompilation=false`
-- `OfficeIMO.Examples\bin\Release\net8.0\OfficeIMO.Examples.exe --visio-showcase --visio-preview`
+- Historical desktop-preview evidence was generated before the examples app was made dependency-free. Current showcase preview proof uses `OfficeIMO.Examples\bin\Release\net8.0\OfficeIMO.Examples.exe --visio-showcase --visio-native-preview`; Microsoft Visio desktop comparison artifacts now belong in the optional test/manual baseline lane.
 - `OFFICEIMO_UPDATE_VISIO_PREMIUM_BASELINES=1 dotnet test OfficeIMO.Visio.Tests\OfficeIMO.Visio.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~VisioPremiumVisualBaseline" --logger "console;verbosity=minimal" /p:NoWarn=CS8600%3BCS8602%3BCS8604`
 - `dotnet test OfficeIMO.Visio.Tests\OfficeIMO.Visio.Tests.csproj -c Release --framework net8.0 --filter "FullyQualifiedName~VisioPremiumVisualBaseline" --logger "console;verbosity=minimal" /p:NoWarn=CS1591%3BCS8600%3BCS8602%3BCS8604`
 - Generated summary: `OfficeIMO.Examples\bin\Release\net8.0\Documents\Visio Showcase\showcase-summary.md`
-- Preview gallery: `OfficeIMO.Examples\bin\Release\net8.0\Documents\Visio Showcase\Preview\index.html`
+- Native preview gallery: `OfficeIMO.Examples\bin\Release\net8.0\Documents\Visio Showcase\Native Preview\index.html`
 - Approved premium baselines: `OfficeIMO.Visio.Tests\Visio\VisualBaselines\officeimo-visio-premium-*.png`, `.svg`, `.inspection.txt`, and `.stencil-profile.txt`
 
-The latest local showcase proof generated 26 VSDX files and 52 PNG/SVG preview files through the optional Visio Desktop export path.
+The current showcase proof path generates VSDX files plus native PNG/SVG preview files through OfficeIMO's dependency-free renderers. Historical Visio desktop export evidence remains useful only as optional manual/test baseline context.
 
 ## What Is Actually Done
 
 - The `OfficeIMO.Visio` package license text now matches the repository MIT license story.
 - `--visio-showcase` is wired as the main showcase smoke path and fails if no VSDX files are generated.
-- `--visio-showcase --visio-preview` exports reviewable PNG/SVG artifacts when Microsoft Visio is available.
+- `--visio-showcase --visio-native-preview` exports reviewable PNG/SVG artifacts through the dependency-free native renderer.
 - `--visio-premium` / `--premium-visio` generates a dedicated eight-diagram premium subset.
 - The eight-diagram premium set now lives in reusable `OfficeIMO.Visio.VisioPremiumGallery`; the example is a thin caller.
 - `VisioPremiumVisualBaselineTests` exports the eight premium diagrams through Microsoft Visio desktop, stores approved PNG/SVG artifacts, compares regenerated previews against the approved baseline, and writes expected/actual/diff PNG artifacts with pixel statistics when a PNG preview changes.

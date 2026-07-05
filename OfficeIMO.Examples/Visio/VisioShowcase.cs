@@ -8,7 +8,7 @@ using OfficeIMO.Visio;
 
 namespace OfficeIMO.Examples.Visio {
     public static class VisioShowcase {
-        public static void Example_VisioShowcase(string folderPath, bool openVisio, bool exportPreviews, bool exportNativePreviews = false) {
+        public static void Example_VisioShowcase(string folderPath, bool openVisio, bool exportNativePreviews = false) {
             Console.WriteLine("[*] Visio - Showcase examples");
             string showcasePath = Path.Combine(folderPath, "Visio Showcase");
             PrepareShowcaseDirectory(showcasePath);
@@ -67,7 +67,7 @@ namespace OfficeIMO.Examples.Visio {
             ValidateGeneratedPackages(generatedFiles);
             IReadOnlyList<string> proofFiles = ExportStructuralProofFiles(showcasePath, generatedFiles);
             IReadOnlyList<string> previewFiles = Array.Empty<string>();
-            if (exportPreviews || exportNativePreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_NATIVE_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
+            if (exportNativePreviews || string.Equals(Environment.GetEnvironmentVariable("OFFICEIMO_VISIO_NATIVE_SHOWCASE"), "1", StringComparison.OrdinalIgnoreCase)) {
                 previewFiles = previewFiles.Concat(ExportNativePreviewFiles(showcasePath, generatedFiles)).ToList();
             }
 
