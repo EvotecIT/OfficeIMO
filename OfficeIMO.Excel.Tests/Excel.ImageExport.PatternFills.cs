@@ -119,6 +119,28 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportClampsAcceptedGradientEndpointOffsets() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Gradients");
+            sheet.CellValue(1, 1, "Near");
+            sheet.SetColumnWidth(1, 18);
+            sheet.SetRowHeight(1, 42);
+            ApplyGradientFill(sheet, 1, 1, 0.0000005D, 0.5D, 0.9999995D);
+
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            string svg = range.ToSvg(new ExcelImageExportOptions { Scale = 2, ShowGridlines = false });
+
+            ExcelVisualCell cell = Assert.Single(snapshot.Cells);
+            Assert.False(cell.Style.FillGradientUnsupported);
+            Assert.Equal(0D, cell.Style.FillGradientStops[0].Offset);
+            Assert.Equal(1D, cell.Style.FillGradientStops[cell.Style.FillGradientStops.Count - 1].Offset);
+            Assert.Contains("offset=\"0%\" stop-color=\"#0000FF\"", svg, StringComparison.Ordinal);
+            Assert.Contains("offset=\"100%\" stop-color=\"#FF0000\"", svg, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportReportsUnsupportedGradientFill() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -217,6 +239,15 @@ namespace OfficeIMO.Tests {
                 new GradientStop(new Color { Rgb = middleArgb }) { Position = 0.5D },
                 new GradientStop(new Color { Rgb = endArgb }) { Position = 1D }) {
                 Degree = degree
+            }));
+        }
+
+        private static void ApplyGradientFill(ExcelSheet sheet, int row, int column, double startOffset, double middleOffset, double endOffset) {
+            ApplyFill(sheet, row, column, new Fill(new GradientFill(
+                new GradientStop(new Color { Rgb = "FF0000FF" }) { Position = startOffset },
+                new GradientStop(new Color { Rgb = "FF00FF00" }) { Position = middleOffset },
+                new GradientStop(new Color { Rgb = "FFFF0000" }) { Position = endOffset }) {
+                Degree = 0D
             }));
         }
 

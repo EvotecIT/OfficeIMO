@@ -45,7 +45,7 @@ internal static partial class PdfWriter {
             }
 
             var start = gradient.Stops[0].Color;
-            var end = gradient.Stops[1].Color;
+            var end = gradient.Stops[gradient.Stops.Count - 1].Color;
             double originX = localCoordinates ? 0D : xShape;
             double originY = localCoordinates ? 0D : bottomY;
             double x0 = originX + gradient.StartX * shape.Width;

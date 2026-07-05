@@ -30,6 +30,8 @@ namespace OfficeIMO.Excel.Utilities {
     }
 
     internal static class ExcelGradientFillResolver {
+        private const double EndpointTolerance = 0.000001D;
+
         internal static bool TryResolveSimpleLinearGradient(Fill? fill, WorkbookPart? workbookPart, out ExcelGradientFillInfo gradient) {
             gradient = default;
             GradientFill? gradientFill = fill?.GradientFill;
@@ -51,7 +53,7 @@ namespace OfficeIMO.Excel.Utilities {
             var resolvedStops = new List<ExcelGradientFillStopInfo>(stops.Length);
             double previousOffset = -1D;
             for (int i = 0; i < stops.Length; i++) {
-                double offset = stops[i].Position?.Value ?? 0D;
+                double offset = NormalizeEndpointOffset(stops[i].Position?.Value ?? 0D, i, stops.Length);
                 if (offset <= previousOffset) {
                     return false;
                 }
@@ -70,7 +72,19 @@ namespace OfficeIMO.Excel.Utilities {
         }
 
         private static bool IsEndpoint(GradientStop stop, double expected) =>
-            Math.Abs((stop.Position?.Value ?? 0D) - expected) <= 0.000001D;
+            Math.Abs((stop.Position?.Value ?? 0D) - expected) <= EndpointTolerance;
+
+        private static double NormalizeEndpointOffset(double offset, int index, int stopCount) {
+            if (index == 0 && Math.Abs(offset) <= EndpointTolerance) {
+                return 0D;
+            }
+
+            if (index == stopCount - 1 && Math.Abs(offset - 1D) <= EndpointTolerance) {
+                return 1D;
+            }
+
+            return offset;
+        }
 
         private static bool IsPathGradient(GradientFill gradientFill) {
             string? type = gradientFill.Type?.Value.ToString();
