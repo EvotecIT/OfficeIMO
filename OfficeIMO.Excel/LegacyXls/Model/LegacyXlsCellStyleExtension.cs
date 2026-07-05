@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
-    /// Preserve-only metadata for BIFF style extension records.
+    /// Metadata and projectable formatting facets from BIFF style extension records.
     /// </summary>
     public sealed class LegacyXlsCellStyleExtension {
         internal LegacyXlsCellStyleExtension(
@@ -23,6 +23,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleCategoryName: null,
                 builtInData: null,
                 styleName: null,
+                associatedStyleFormatIndex: null,
+                hasUnparsedStyleProperties: false,
                 xfRecordCount: null,
                 checksum: null,
                 properties,
@@ -40,6 +42,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string styleCategoryName,
             ushort builtInData,
             string? styleName,
+            ushort? associatedStyleFormatIndex,
+            bool hasUnparsedStyleProperties,
+            IReadOnlyList<LegacyXlsCellStyleExtensionProperty>? properties,
             int recordOffset,
             ushort recordType,
             int payloadLength)
@@ -56,9 +61,11 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleCategoryName,
                 builtInData,
                 styleName,
+                associatedStyleFormatIndex,
+                hasUnparsedStyleProperties,
                 xfRecordCount: null,
                 checksum: null,
-                properties: null,
+                properties,
                 recordOffset,
                 recordType,
                 payloadLength) {
@@ -84,6 +91,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 styleCategoryName: null,
                 builtInData: null,
                 styleName: null,
+                associatedStyleFormatIndex: null,
+                hasUnparsedStyleProperties: false,
                 xfRecordCount,
                 checksum,
                 properties: null,
@@ -105,6 +114,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             string? styleCategoryName,
             ushort? builtInData,
             string? styleName,
+            ushort? associatedStyleFormatIndex,
+            bool hasUnparsedStyleProperties,
             ushort? xfRecordCount,
             uint? checksum,
             IReadOnlyList<LegacyXlsCellStyleExtensionProperty>? properties,
@@ -131,6 +142,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             StyleCategoryName = styleCategoryName;
             BuiltInData = builtInData;
             StyleName = styleName;
+            AssociatedStyleFormatIndex = associatedStyleFormatIndex;
+            HasUnparsedStyleProperties = hasUnparsedStyleProperties;
             XfRecordCount = xfRecordCount;
             Checksum = checksum;
             Properties = properties == null
@@ -177,6 +190,12 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the extended style name when declared by the record.</summary>
         public string? StyleName { get; }
 
+        /// <summary>Gets the style XF index from the Style record associated with this StyleExt record, when known.</summary>
+        public ushort? AssociatedStyleFormatIndex { get; }
+
+        /// <summary>Gets whether the StyleExt record has trailing formatting properties that are not decoded yet.</summary>
+        public bool HasUnparsedStyleProperties { get; }
+
         /// <summary>Gets the XFCRC-declared number of XF records when declared by the record.</summary>
         public ushort? XfRecordCount { get; }
 
@@ -194,5 +213,115 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets the source BIFF record payload length in bytes.</summary>
         public int PayloadLength { get; }
+
+        /// <summary>Gets whether the parsed style extension is handled without known formatting loss.</summary>
+        internal bool IsFullyProjectable {
+            get {
+                if (IsXfCrc) {
+                    return XfRecordCount.HasValue && Checksum.HasValue;
+                }
+
+                if (IsXfExt && HasFormatIndex) {
+                    return Properties.All(IsProjectableProperty);
+                }
+
+                return HasProjectableStyleMetadata;
+            }
+        }
+
+        /// <summary>Gets whether the style extension carries at least one formatting facet that can be projected.</summary>
+        internal bool HasProjectableFormatting => !HasUnparsedStyleProperties
+            && Properties.Count > 0
+            && Properties.All(IsProjectableProperty)
+            && ((IsXfExt && HasFormatIndex) || (IsStyleExt && AssociatedStyleFormatIndex.HasValue));
+
+        /// <summary>Gets whether the extension formatting applies to the specified legacy XF index.</summary>
+        internal bool AppliesToFormatIndex(ushort styleIndex) {
+            if (IsXfExt && HasFormatIndex) {
+                return FormatIndex == styleIndex;
+            }
+
+            return IsStyleExt
+                && AssociatedStyleFormatIndex.HasValue
+                && AssociatedStyleFormatIndex.Value == styleIndex;
+        }
+
+        /// <summary>Gets whether the StyleExt record carries workbook style metadata that can be projected.</summary>
+        internal bool HasProjectableStyleMetadata => IsStyleExt
+            && !HasUnparsedStyleProperties
+            && !string.IsNullOrWhiteSpace(StyleName)
+            && Properties.All(IsProjectableProperty);
+
+        private bool IsXfExt => string.Equals(RecordName, "XfExt", StringComparison.Ordinal);
+
+        private bool IsStyleExt => string.Equals(RecordName, "StyleExt", StringComparison.Ordinal);
+
+        private bool IsXfCrc => string.Equals(RecordName, "XFCRC", StringComparison.Ordinal);
+
+        private static bool IsProjectableProperty(LegacyXlsCellStyleExtensionProperty property) {
+            if (property.UsesStyleXfPropMapping) {
+                return IsProjectableStyleXfProp(property);
+            }
+
+            if (property.PropertyType == 0x000E) {
+                return property.NumericValue == 0x0000
+                    || property.NumericValue == 0x0001
+                    || property.NumericValue == 0x0002
+                    || property.NumericValue == 0x00ff;
+            }
+
+            if (property.PropertyType == 0x000F) {
+                return property.NumericValue.HasValue;
+            }
+
+            if (property.PropertyType == 0x0004
+                || property.PropertyType == 0x0005
+                || property.PropertyType == 0x0007
+                || property.PropertyType == 0x0008
+                || property.PropertyType == 0x0009
+                || property.PropertyType == 0x000A
+                || property.PropertyType == 0x000B
+                || property.PropertyType == 0x000D) {
+                return property.ColorValue.HasValue
+                    && (property.ColorType == 0x0001 || property.ColorType == 0x0002 || property.ColorType == 0x0003);
+            }
+
+            return false;
+        }
+
+        private static bool IsProjectableStyleXfProp(LegacyXlsCellStyleExtensionProperty property) {
+            if (property.PropertyType == 0x0000) {
+                return property.NumericValue <= 0x0012;
+            }
+
+            if (property.PropertyType == 0x0012) {
+                return property.NumericValue <= 15;
+            }
+
+            if (property.PropertyType == 0x0025) {
+                return property.NumericValue == 0x0000
+                    || property.NumericValue == 0x0001
+                    || property.NumericValue == 0x0002
+                    || property.NumericValue == 0x00ff;
+            }
+
+            if (property.PropertyType == 0x0001
+                || property.PropertyType == 0x0002
+                || property.PropertyType == 0x0005) {
+                return HasProjectableColor(property);
+            }
+
+            if (property.PropertyType >= 0x0006 && property.PropertyType <= 0x000A) {
+                return HasProjectableColor(property)
+                    && property.BorderStyle <= 0x000D;
+            }
+
+            return false;
+        }
+
+        private static bool HasProjectableColor(LegacyXlsCellStyleExtensionProperty property) {
+            return property.ColorValue.HasValue
+                && (property.ColorType == 0x0001 || property.ColorType == 0x0002 || property.ColorType == 0x0003);
+        }
     }
 }

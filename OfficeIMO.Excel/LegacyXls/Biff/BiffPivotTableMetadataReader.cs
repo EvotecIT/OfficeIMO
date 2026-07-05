@@ -8,7 +8,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             string? sheetName,
             List<LegacyXlsPivotTableRecord> records,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            BiffPivotTableMetadataReaderState? state = null) {
+            BiffPivotTableMetadataReaderState? state = null,
+            IList<LegacyXlsFormulaTokenRecord>? formulaTokenRecords = null) {
             if (!BiffUnsupportedRecordDiagnostics.IsPivotTableRecord(record.Type)) {
                 return false;
             }
@@ -16,76 +17,121 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             LegacyXlsPivotTableRecord pivotRecord = CreateRecord(record, sheetName);
             records.Add(pivotRecord);
             try {
+                bool decodedMetadata = false;
                 state?.TryAttachGroupingRangeValue(record);
                 switch (record.Type) {
                     case 0x00B0:
                         ReadView(record, pivotRecord);
+                        state?.TrackView(pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00B1:
                         ReadField(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00B2:
                         ReadItem(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00B4:
                         ReadFieldIndexList(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00B5:
-                        ReadLineItems(record, pivotRecord);
+                        ReadLineItems(record, pivotRecord, state?.GetNextLineItemEntrySlotCount());
+                        decodedMetadata = true;
                         break;
                     case 0x00B6:
                         ReadPageItems(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00C1:
                         ReadDataItem(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00C5:
-                        ReadCacheProperties(record, pivotRecord);
+                        if (IsDataItemPayload(record.Payload)) {
+                            ReadDataItem(record, pivotRecord);
+                        } else {
+                            ReadCacheProperties(record, pivotRecord);
+                        }
+
+                        decodedMetadata = true;
                         break;
                     case 0x00C8:
                         ReadCacheItemNumber(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00C9:
                         ReadCacheItemBoolean(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00CA:
                         ReadCacheItemError(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00CB:
                         ReadCacheItemInteger(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00CC:
                         ReadCacheItemString(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00CD:
                         ReadCacheItemDateTime(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00CE:
                         pivotRecord.SetCacheItemEmpty();
+                        decodedMetadata = true;
                         break;
                     case 0x00D5:
                         ReadCacheStreamId(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00D7:
                         ReadGroupingRange(record, pivotRecord);
                         state?.TrackGroupingRange(record, pivotRecord);
+                        decodedMetadata = true;
+                        break;
+                    case 0x00EF:
+                        ReadRule(record, pivotRecord);
+                        decodedMetadata = true;
+                        break;
+                    case 0x00F1:
+                        ReadRuleFilters(record, pivotRecord);
+                        decodedMetadata = true;
+                        break;
+                    case 0x00F8:
+                        ReadFormula(record, pivotRecord, formulaTokenRecords);
+                        decodedMetadata = true;
                         break;
                     case 0x0100:
-                        ReadCalculatedItemFormula(record, pivotRecord);
+                        ReadCalculatedItemFormula(record, pivotRecord, formulaTokenRecords);
+                        decodedMetadata = true;
                         break;
                     case 0x00E3:
                         ReadCacheSourceType(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x00FF:
                         ReadExtendedPivotField(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x0802:
                         ReadQueryTableTag(record, pivotRecord);
+                        decodedMetadata = true;
                         break;
                     case 0x0864:
                         ReadAdditionalMetadata(record, pivotRecord);
                         state?.TrackAdditionalRecord(pivotRecord);
+                        decodedMetadata = true;
                         break;
+                }
+
+                if (decodedMetadata) {
+                    pivotRecord.MarkSupportedMetadata();
                 }
             } catch (InvalidDataException) {
                 // PivotTable import is currently preserve-only. Keep the typed record node,
@@ -207,7 +253,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             pivotRecord.SetFieldIndexList(fieldIndexes);
         }
 
-        private static void ReadLineItems(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+        private static void ReadLineItems(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord, int? axisEntrySlotCount) {
             byte[] payload = record.Payload;
             int offset = 0;
             var lineItems = new List<LegacyXlsPivotLineItem>();
@@ -225,7 +271,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                 ushort flags = BiffRecordReader.ReadUInt16(payload, offset + 6);
                 int entriesOffset = offset + 8;
-                int entriesLength = checked(entryCount * 2);
+                int entrySlotCount = GetLineItemEntrySlotCount(itemType, flags, entryCount, axisEntrySlotCount);
+                int entriesLength = checked(entrySlotCount * 2);
                 if (entriesOffset + entriesLength > payload.Length) {
                     throw new InvalidDataException("The SXLI payload contains a partial line entry array.");
                 }
@@ -245,11 +292,19 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     blockTotal: (flags & 0x0400) != 0,
                     grandTotal: (flags & 0x0800) != 0,
                     multiDataOnAxis: (flags & 0x1000) != 0,
-                    entryIndexes));
+                    entryIndexes,
+                    entrySlotCount));
                 offset = entriesOffset + entriesLength;
             }
 
             pivotRecord.SetLineItems(lineItems);
+        }
+
+        private static int GetLineItemEntrySlotCount(ushort itemType, ushort flags, short entryCount, int? axisEntrySlotCount) {
+            bool grandOrBlank = (flags & 0x0800) != 0 || itemType == (ushort)LegacyXlsPivotLineItemType.BlankLine;
+            return grandOrBlank && axisEntrySlotCount.HasValue
+                ? Math.Max(entryCount, axisEntrySlotCount.Value)
+                : entryCount;
         }
 
         private static void ReadPageItems(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
@@ -292,6 +347,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     kind = LegacyXlsPivotTableRecordKind.PageItem;
                     break;
                 case 0x00C1:
+                    kind = LegacyXlsPivotTableRecordKind.DataItem;
+                    break;
+                case 0x00C5 when IsDataItemPayload(record.Payload):
                     kind = LegacyXlsPivotTableRecordKind.DataItem;
                     break;
                 case 0x00C5:
@@ -422,6 +480,26 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 refreshedBy);
         }
 
+        private static bool IsDataItemPayload(byte[] payload) {
+            if (payload.Length < 14) {
+                return false;
+            }
+
+            ushort nameLength = BiffRecordReader.ReadUInt16(payload, 12);
+            if (nameLength == 0xffff || nameLength == 0) {
+                return payload.Length == 14;
+            }
+
+            int offset = 14;
+            try {
+                _ = BiffStringReader.ReadUnicodeStringNoCch(payload, ref offset, nameLength);
+            } catch (InvalidDataException) {
+                return false;
+            }
+
+            return offset == payload.Length;
+        }
+
         private static void ReadQueryTableTag(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
             byte[] payload = record.Payload;
             if (payload.Length < 19) {
@@ -459,6 +537,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         private static void ReadDataItem(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
             byte[] payload = record.Payload;
+            if (payload.Length == 2) {
+                pivotRecord.SetDataItemFieldIndex(BiffRecordReader.ReadInt16(payload, 0));
+                return;
+            }
+
             if (payload.Length < 14) {
                 throw new InvalidDataException("The SXDI payload is shorter than the fixed data item header.");
             }
@@ -571,15 +654,118 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             pivotRecord.SetGroupingRange(autoStart, autoEnd, (LegacyXlsPivotGroupingKind)groupingValue);
         }
 
-        private static void ReadCalculatedItemFormula(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+        private static void ReadRule(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
             byte[] payload = record.Payload;
-            if (payload.Length != 4) {
+            if (payload.Length != 6 && payload.Length != 10) {
+                throw new InvalidDataException("The SxRule payload length does not match the fixed rule header.");
+            }
+
+            byte fieldPosition = payload[0];
+            byte fieldIndex = payload[1];
+            ushort flags = BiffRecordReader.ReadUInt16(payload, 2);
+            ushort filterCount = BiffRecordReader.ReadUInt16(payload, 4);
+            byte? firstRow = null;
+            byte? lastRow = null;
+            byte? firstColumn = null;
+            byte? lastColumn = null;
+            if ((flags & 0x0100) != 0) {
+                if (payload.Length != 10) {
+                    throw new InvalidDataException("The SxRule payload declares a partial area without the four area bytes.");
+                }
+
+                firstRow = payload[6];
+                lastRow = payload[7];
+                firstColumn = payload[8];
+                lastColumn = payload[9];
+            } else if (payload.Length != 6) {
+                throw new InvalidDataException("The SxRule payload carries area bytes without the partial-area flag.");
+            }
+
+            pivotRecord.SetRule(fieldPosition, fieldIndex, flags, filterCount, firstRow, lastRow, firstColumn, lastColumn);
+        }
+
+        private static void ReadRuleFilters(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
+            byte[] payload = record.Payload;
+            if (payload.Length == 0 || (payload.Length % 8) != 0) {
+                throw new InvalidDataException("The SxFilt payload length does not match the rule-filter entry size.");
+            }
+
+            var filters = new LegacyXlsPivotRuleFilter[payload.Length / 8];
+            for (int i = 0; i < filters.Length; i++) {
+                int offset = i * 8;
+                ushort axisBits = BiffRecordReader.ReadUInt16(payload, offset);
+                ushort referenceBits = BiffRecordReader.ReadUInt16(payload, offset + 2);
+                filters[i] = new LegacyXlsPivotRuleFilter(
+                    axisFlags: (ushort)(axisBits & 0x000F),
+                    fieldPosition: SignExtend10((axisBits >> 6) & 0x03FF),
+                    fieldReferenceIndex: SignExtend10(referenceBits & 0x03FF),
+                    selected: (referenceBits & 0x0400) != 0,
+                    subtotalFlags: BiffRecordReader.ReadUInt16(payload, offset + 4),
+                    itemIndexCount: BiffRecordReader.ReadUInt16(payload, offset + 6));
+            }
+
+            pivotRecord.SetRuleFilters(filters);
+        }
+
+        private static short SignExtend10(int value) {
+            return (short)((value & 0x0200) != 0 ? value | unchecked((int)0xFFFFFC00) : value);
+        }
+
+        private static void ReadFormula(
+            BiffRecord record,
+            LegacyXlsPivotTableRecord pivotRecord,
+            IList<LegacyXlsFormulaTokenRecord>? formulaTokenRecords) {
+            byte[] payload = record.Payload;
+            if (payload.Length < 2) {
+                throw new InvalidDataException("The SxFmla payload is shorter than the parsed-expression length.");
+            }
+
+            ushort tokenByteCount = BiffRecordReader.ReadUInt16(payload, 0);
+            if (tokenByteCount == 0 || 2 + tokenByteCount > payload.Length) {
+                throw new InvalidDataException("The SxFmla parsed-expression length is outside the record payload.");
+            }
+
+            pivotRecord.SetCalculatedItemFormulaTokenStream(tokenByteCount, payload.Length - 2 - tokenByteCount);
+            if (formulaTokenRecords != null) {
+                BiffFormulaTokenScanner.ScanLengthPrefixed(
+                    payload,
+                    parsedFormulaOffset: 0,
+                    context: "PivotTableFormula",
+                    sheetName: pivotRecord.SheetName,
+                    cellReference: null,
+                    recordOffset: record.Offset,
+                    recordType: record.Type,
+                    records: formulaTokenRecords);
+            }
+        }
+
+        private static void ReadCalculatedItemFormula(
+            BiffRecord record,
+            LegacyXlsPivotTableRecord pivotRecord,
+            IList<LegacyXlsFormulaTokenRecord>? formulaTokenRecords) {
+            byte[] payload = record.Payload;
+            if (payload.Length == 4) {
+                pivotRecord.SetCalculatedItemFormula(
+                    BiffRecordReader.ReadUInt16(payload, 0),
+                    BiffRecordReader.ReadInt16(payload, 2));
+                return;
+            }
+
+            if (payload.Length == 0) {
                 throw new InvalidDataException("The SXFormula payload length does not match the cache-field index structure.");
             }
 
-            pivotRecord.SetCalculatedItemFormula(
-                BiffRecordReader.ReadUInt16(payload, 0),
-                BiffRecordReader.ReadInt16(payload, 2));
+            pivotRecord.SetCalculatedFieldFormulaTokenStream(payload.Length);
+            if (formulaTokenRecords != null) {
+                BiffFormulaTokenScanner.ScanTokens(
+                    payload,
+                    context: "PivotTableCalculatedFieldFormula",
+                    sheetName: pivotRecord.SheetName,
+                    cellReference: null,
+                    recordOffset: record.Offset,
+                    recordType: record.Type,
+                    records: formulaTokenRecords);
+            }
         }
 
         private static void ReadExtendedPivotField(BiffRecord record, LegacyXlsPivotTableRecord pivotRecord) {
@@ -643,6 +829,25 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private int _valueIndex;
         private int _additionalDepth;
         private int _additionalSequence;
+        private ushort? _rowLineEntrySlotCount;
+        private ushort? _columnLineEntrySlotCount;
+        private int _lineItemRecordIndex;
+
+        internal void TrackView(LegacyXlsPivotTableRecord pivotRecord) {
+            _rowLineEntrySlotCount = pivotRecord.ViewRowFieldCount;
+            _columnLineEntrySlotCount = pivotRecord.ViewColumnFieldCount;
+            _lineItemRecordIndex = 0;
+        }
+
+        internal int? GetNextLineItemEntrySlotCount() {
+            ushort? entrySlotCount = _lineItemRecordIndex == 0
+                ? _rowLineEntrySlotCount
+                : _lineItemRecordIndex == 1
+                    ? _columnLineEntrySlotCount
+                    : null;
+            _lineItemRecordIndex++;
+            return entrySlotCount;
+        }
 
         internal void TrackAdditionalRecord(LegacyXlsPivotTableRecord pivotRecord) {
             if (!pivotRecord.AdditionalClass.HasValue || !pivotRecord.AdditionalType.HasValue) {

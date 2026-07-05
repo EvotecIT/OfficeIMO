@@ -226,13 +226,16 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FORMULA-TOKENS-UNSUPPORTED");
             Assert.Equal(2, legacy.Worksheets.Count);
-            LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(legacy.UnsupportedSheets);
-            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
+            LegacyXlsChartSheet chartSheet = Assert.Single(legacy.ChartSheets);
+            Assert.Equal("Chart1", chartSheet.Name);
+            Assert.Empty(legacy.UnsupportedSheets);
 
             LegacyXlsCell formula = Assert.Single(legacy.Worksheets[0].Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.True(formula.IsFormula);
             Assert.Equal(15d, formula.Value);
             Assert.Equal("'Totals'!A1+5", formula.FormulaText);
+            LegacyXlsDefinedName scopedName = Assert.Single(legacy.DefinedNames, name => name.Name == "TotalsLocal");
+            Assert.Equal(2, scopedName.LocalSheetIndex);
 
             using ExcelDocument document = ExcelDocument.LoadLegacyXls(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
@@ -245,6 +248,9 @@ namespace OfficeIMO.Tests {
             WorksheetPart worksheetPart = (WorksheetPart)spreadsheet.WorkbookPart.GetPartById(dataSheet.Id!);
             Cell projectedFormula = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
             Assert.Equal("'Totals'!A1+5", projectedFormula.CellFormula!.Text);
+            DefinedName projectedScopedName = spreadsheet.WorkbookPart.Workbook.DefinedNames!.Elements<DefinedName>().Single(name => name.Name == "TotalsLocal");
+            Assert.Equal(2U, projectedScopedName.LocalSheetId!.Value);
+            Assert.Equal("'Totals'!$A$1", projectedScopedName.Text);
         }
 
         [Fact]
@@ -257,8 +263,9 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.DoesNotContain(legacy.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(legacy.UnsupportedSheets);
-            Assert.Equal("Chart1", unsupportedSheet.Name);
+            Assert.Empty(legacy.UnsupportedSheets);
+            LegacyXlsChartSheet chartSheet = Assert.Single(legacy.ChartSheets);
+            Assert.Equal("Chart1", chartSheet.Name);
             LegacyXlsCell formula = Assert.Single(legacy.Worksheets[1].Cells, cell => cell.Row == 1 && cell.Column == 1);
             Assert.True(formula.IsFormula);
             Assert.Equal("#REF!A1+5", formula.FormulaText);
@@ -1476,6 +1483,7 @@ namespace OfficeIMO.Tests {
                 long totalsBoundPosition = stream.Position;
                 WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Totals"));
                 WriteRecord(stream, 0x0017, BuildExternSheetPayload((0, 2, 2)));
+                WriteRecord(stream, 0x0018, BuildDefinedNamePayload("TotalsLocal", BuildNameRef3dFormula(0, 0, 0), localSheetIndex: 3, hidden: false, builtIn: false));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int dataSheetOffset = checked((int)stream.Position);

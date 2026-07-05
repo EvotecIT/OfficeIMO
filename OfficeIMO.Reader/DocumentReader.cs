@@ -29,8 +29,8 @@ namespace OfficeIMO.Reader;
 /// </remarks>
 public static partial class DocumentReader {
     private static readonly string[] DefaultFolderExtensions = {
-        ".docx", ".docm",
-        ".xlsx", ".xlsm",
+        ".docx", ".docm", ".doc",
+        ".xlsx", ".xlsm", ".xls",
         ".pptx", ".pptm",
         ".md", ".markdown",
         ".pdf",
@@ -41,9 +41,9 @@ public static partial class DocumentReader {
         new ReaderHandlerCapability {
             Id = "officeimo.reader.word",
             DisplayName = "Word Reader",
-            Description = "Built-in Word (.docx/.docm) chunk extractor.",
+            Description = "Built-in Word (.docx/.docm/.doc) chunk extractor.",
             Kind = ReaderInputKind.Word,
-            Extensions = new[] { ".docx", ".docm" },
+            Extensions = new[] { ".docx", ".docm", ".doc" },
             IsBuiltIn = true,
             SupportsPath = true,
             SupportsStream = true
@@ -51,9 +51,9 @@ public static partial class DocumentReader {
         new ReaderHandlerCapability {
             Id = "officeimo.reader.excel",
             DisplayName = "Excel Reader",
-            Description = "Built-in Excel (.xlsx/.xlsm) table and markdown extractor.",
+            Description = "Built-in Excel (.xlsx/.xlsm/.xls) table and markdown extractor.",
             Kind = ReaderInputKind.Excel,
-            Extensions = new[] { ".xlsx", ".xlsm" },
+            Extensions = new[] { ".xlsx", ".xlsm", ".xls" },
             IsBuiltIn = true,
             SupportsPath = true,
             SupportsStream = true
@@ -114,6 +114,18 @@ public static partial class DocumentReader {
         } catch (NotSupportedException) {
             return null;
         }
+    }
+
+    private static bool IsLegacyWordExtension(string? path) {
+        return string.Equals(NormalizeExtension(TryGetExtension(path ?? string.Empty)), ".doc", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLegacyExcelExtension(string? path) {
+        return string.Equals(NormalizeExtension(TryGetExtension(path ?? string.Empty)), ".xls", StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsLegacyBinaryOfficeExtension(string? path) {
+        return IsLegacyWordExtension(path) || IsLegacyExcelExtension(path);
     }
 
     /// <summary>
@@ -531,13 +543,13 @@ public static partial class DocumentReader {
         }
         if (extLower.Length == 0) return ReaderInputKind.Unknown;
         return extLower switch {
-            ".docx" or ".docm" => ReaderInputKind.Word,
-            ".xlsx" or ".xlsm" => ReaderInputKind.Excel,
+            ".docx" or ".docm" or ".doc" => ReaderInputKind.Word,
+            ".xlsx" or ".xlsm" or ".xls" => ReaderInputKind.Excel,
             ".pptx" or ".pptm" => ReaderInputKind.PowerPoint,
             ".md" or ".markdown" => ReaderInputKind.Markdown,
             ".pdf" => ReaderInputKind.Pdf,
             ".txt" or ".log" or ".csv" or ".tsv" or ".json" or ".xml" or ".yml" or ".yaml" => ReaderInputKind.Text,
-            ".doc" or ".xls" or ".ppt" => ReaderInputKind.Unknown, // Legacy binary formats are not supported.
+            ".ppt" => ReaderInputKind.Unknown, // Legacy binary PowerPoint is not supported.
             _ => ReaderInputKind.Unknown
         };
     }

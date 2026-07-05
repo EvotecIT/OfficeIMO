@@ -44,6 +44,10 @@ namespace OfficeIMO.Word {
                     return (int)Value;
                 }
 
+                if (Value is long value && value >= int.MinValue && value <= int.MaxValue) {
+                    return (int)value;
+                }
+
                 return null;
 
             }
@@ -86,6 +90,18 @@ namespace OfficeIMO.Word {
                 }
 
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Gets the value as binary data when the property type is <see cref="PropertyTypes.Binary"/>.
+        /// </summary>
+        /// <remarks>Returns <see langword="null"/> when the value is not binary data.</remarks>
+        public byte[]? Binary {
+            get {
+                return Value is byte[] value
+                    ? (byte[])value.Clone()
+                    : null;
             }
         }
 
@@ -145,6 +161,25 @@ namespace OfficeIMO.Word {
         }
 
         /// <summary>
+        /// Creates a 64-bit integer custom property.
+        /// </summary>
+        /// <param name="value">Integer value.</param>
+        public WordCustomProperty(long value) {
+            this.PropertyType = PropertyTypes.NumberInteger;
+            this.Value = value;
+        }
+
+        /// <summary>
+        /// Creates a binary custom property.
+        /// </summary>
+        /// <param name="value">Binary value.</param>
+        public WordCustomProperty(byte[] value) {
+            if (value == null) throw new ArgumentNullException(nameof(value));
+            this.PropertyType = PropertyTypes.Binary;
+            this.Value = (byte[])value.Clone();
+        }
+
+        /// <summary>
         /// Creates an empty custom property.
         /// </summary>
         public WordCustomProperty() { }
@@ -172,6 +207,12 @@ namespace OfficeIMO.Word {
                 } else if (customDocumentProperty.VTInt64 != null) {
                     this.Value = long.Parse(customDocumentProperty.VTInt64.Text);
                     this.PropertyType = PropertyTypes.NumberInteger;
+                } else if (customDocumentProperty.VTBlob != null) {
+                    this.Value = ParseBinaryProperty(customDocumentProperty.VTBlob.Text);
+                    this.PropertyType = PropertyTypes.Binary;
+                } else if (customDocumentProperty.VTOBlob != null) {
+                    this.Value = ParseBinaryProperty(customDocumentProperty.VTOBlob.Text);
+                    this.PropertyType = PropertyTypes.Binary;
                 } else if (customDocumentProperty.VTVector != null) {
                     this.Value = customDocumentProperty.VTVector;
                     this.PropertyType = PropertyTypes.Text;
@@ -188,6 +229,12 @@ namespace OfficeIMO.Word {
             } else {
                 Debug.WriteLine("This shouldn't really happen. It means customDocumentProperty is not available.");
             }
+        }
+
+        private static byte[] ParseBinaryProperty(string? text) {
+            return string.IsNullOrEmpty(text)
+                ? Array.Empty<byte>()
+                : Convert.FromBase64String(text);
         }
     }
 }

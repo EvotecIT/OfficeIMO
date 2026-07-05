@@ -1,3 +1,6 @@
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
+using DocumentFormat.OpenXml.Validation;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -45,7 +48,7 @@ namespace OfficeIMO.Tests {
             try {
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
 
-                Assert.Contains("unsupported or preserve-only", exception.Message, StringComparison.OrdinalIgnoreCase);
+                Assert.Contains("unsupported, preserve-only, or non-projected", exception.Message, StringComparison.OrdinalIgnoreCase);
                 Assert.False(File.Exists(blockedPath));
 
                 ExcelDocument.Convert(xlsPath, allowedPath, new ExcelDocumentConversionOptions {
@@ -58,6 +61,53 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Feature", header);
             } finally {
                 TryDelete(xlsPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_Convert_BlocksCompoundFeatureMetadataUnlessLossIsAllowed() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithOleObjectStorage(workbookStream);
+            string xlsPath = WriteTempWorkbook(compound, ".xls");
+            string blockedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+            string allowedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => ExcelDocument.Convert(xlsPath, blockedPath));
+
+                Assert.Contains(nameof(ExcelDocument.LegacyXlsCompoundFeatures), exception.Message, StringComparison.Ordinal);
+                Assert.False(File.Exists(blockedPath));
+
+                ExcelDocument.Convert(xlsPath, allowedPath, new ExcelDocumentConversionOptions {
+                    AllowLossyLegacyConversion = true
+                });
+
+                using ExcelDocument converted = ExcelDocument.Load(allowedPath);
+                Assert.False(converted.WasLoadedFromLegacyXls);
+                Assert.True(converted.Sheets[0].TryGetCellText(1, 1, out string? text));
+                Assert.Equal("Name", text);
+            } finally {
+                TryDelete(xlsPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_Convert_ProjectsChartSheetsWithoutLossyOverride() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateChartOnlyWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string xlsPath = WriteTempWorkbook(compound, ".xls");
+            string convertedPath = Path.Combine(_directoryWithFiles, Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                ExcelDocument.Convert(xlsPath, convertedPath);
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(convertedPath, false);
+                Assert.Single(spreadsheet.WorkbookPart!.ChartsheetParts);
+                Assert.Contains(spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>(), sheet => sheet.Name?.Value == "ChartOnly");
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
+            } finally {
+                TryDelete(xlsPath);
+                TryDelete(convertedPath);
             }
         }
     }

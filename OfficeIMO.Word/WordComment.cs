@@ -52,7 +52,7 @@ namespace OfficeIMO.Word {
         /// </summary>
         public string? Text {
             get {
-                return _paragraph.Text;
+                return string.Concat(_list.Select(paragraph => paragraph.Text));
             }
             set {
                 _paragraph.Text = value ?? string.Empty;

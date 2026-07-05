@@ -3,11 +3,13 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffTableStyleReader {
-        internal static bool TryRead(BiffRecord record, LegacyXlsWorkbook workbook, List<LegacyXlsImportDiagnostic> diagnostics) {
+        internal static bool TryRead(BiffRecord record, LegacyXlsWorkbook workbook, List<LegacyXlsImportDiagnostic> diagnostics, out bool projectable) {
+            projectable = false;
             switch ((BiffRecordType)record.Type) {
                 case BiffRecordType.TableStyles:
                     if (TryReadTableStyles(record, diagnostics, out LegacyXlsTableStyleCollection? collection)) {
                         workbook.MutableTableStyleCollections.Add(collection!);
+                        projectable = true;
                     }
 
                     return true;
@@ -15,6 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case BiffRecordType.TableStyle:
                     if (TryReadTableStyle(record, diagnostics, out LegacyXlsTableStyle? style)) {
                         workbook.MutableTableStyles.Add(style!);
+                        projectable = true;
                     }
 
                     return true;
@@ -22,6 +25,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 case BiffRecordType.TableStyleElement:
                     if (TryReadTableStyleElement(record, diagnostics, out LegacyXlsTableStyleElement? element)) {
                         workbook.AddTableStyleElement(element!);
+                        projectable = IsProjectableElementType(element!.ElementType);
                     }
 
                     return true;
@@ -179,6 +183,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 0x0000001B => "PageFieldValues",
                 _ => $"Unknown:0x{elementType:X8}"
             };
+        }
+
+        private static bool IsProjectableElementType(uint elementType) {
+            return elementType <= 0x0000001B;
         }
     }
 }

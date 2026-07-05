@@ -18,7 +18,8 @@ namespace OfficeIMO.Tests {
 
             LegacyXlsImportReport report = result.ImportReport;
             Assert.Equal(1, report.WorksheetCount);
-            Assert.Equal(3, report.UnsupportedSheetCount);
+            Assert.Equal(1, report.ChartSheetCount);
+            Assert.Equal(2, report.UnsupportedSheetCount);
             Assert.Equal(1, report.CellCount);
             Assert.Equal(0, report.FormulaCellCount);
             Assert.Equal(0, report.CommentCount);
@@ -26,29 +27,28 @@ namespace OfficeIMO.Tests {
             Assert.Equal(0, report.DataValidationCount);
             Assert.Equal(0, report.ConditionalFormattingCount);
             Assert.Equal(0, report.AutoFilterCriteriaCount);
-            Assert.Equal(3, report.UnsupportedFeatureCount);
-            Assert.Equal(1, report.PreservedFeatureRecordCount);
+            Assert.Equal(2, report.UnsupportedFeatureCount);
+            Assert.Equal(0, report.PreservedFeatureRecordCount);
             Assert.Equal(2, report.UnsupportedProjectionGapCount);
             Assert.False(report.HasImportErrors);
             Assert.True(report.HasUnsupportedFeatures);
             Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.MacroSheet]);
-            Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.VbaModuleSheet]);
             Assert.Equal(1, report.UnsupportedSheetsByType["0x01|MacroSheet"]);
-            Assert.Equal(1, report.UnsupportedSheetsByType["0x02|ChartSheet"]);
             Assert.Equal(1, report.UnsupportedSheetsByType["0x06|VbaModuleSheet"]);
             Assert.Equal(1, report.UnsupportedSheetsByName["Macro1"]);
-            Assert.Equal(1, report.UnsupportedSheetsByName["Chart1"]);
             Assert.Equal(1, report.UnsupportedSheetsByName["Module1"]);
+            Assert.Equal(1, report.ChartSheetsByType["0x02|ChartSheet"]);
+            Assert.Equal(1, report.ChartSheetsByName["Chart1"]);
             Assert.Equal(1, report.WorksheetsByVisibility["Visible"]);
-            Assert.Equal(3, report.UnsupportedSheetsByVisibility["Visible"]);
+            Assert.Equal(2, report.UnsupportedSheetsByVisibility["Visible"]);
+            Assert.Equal(1, report.ChartSheetsByVisibility["Visible"]);
             Assert.Equal(1, report.UnsupportedSheetsByKindAndVisibility["MacroSheet|Visible"]);
-            Assert.Equal(1, report.UnsupportedSheetsByKindAndVisibility["ChartSheet|Visible"]);
             Assert.Equal(1, report.UnsupportedSheetsByKindAndVisibility["VbaModuleSheet|Visible"]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.MacroSheet]);
-            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaModuleSheet]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.ChartSheet, report.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.ChartSheet, report.PreservedFeatureRecordsByKind.Keys);
             Assert.Equal(1, report.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.MacroSheet]);
             Assert.Equal(1, report.UnsupportedProjectionGapsByKind[LegacyXlsUnsupportedFeatureKind.VbaModuleSheet]);
             Assert.DoesNotContain(report.UnsupportedProjectionGapsByKind, entry => entry.Key == LegacyXlsUnsupportedFeatureKind.ChartSheet);
@@ -60,15 +60,16 @@ namespace OfficeIMO.Tests {
 
             string markdown = report.ToMarkdown();
             Assert.Contains("Worksheets: 1", markdown);
-            Assert.Contains("Unsupported sheets: 3", markdown);
+            Assert.Contains("Chart sheets: 1", markdown);
+            Assert.Contains("Unsupported sheets: 2", markdown);
             Assert.Contains("Unsupported projection gaps: 2", markdown);
             Assert.Contains("XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED", markdown);
             Assert.Contains("Unsupported Feature Record Types", markdown);
             Assert.Contains("Unsupported Feature Details", markdown);
-            Assert.Contains("Preserved Feature Records By Kind", markdown);
+            Assert.DoesNotContain("Preserved Feature Records By Kind", markdown);
             Assert.Contains("Unsupported Sheets By Kind", markdown);
             Assert.Contains("Unsupported Sheets By Visibility", markdown);
-            Assert.Contains("Sheet:ChartSheet", markdown);
+            Assert.Contains("Chart Sheets By Name", markdown);
         }
 
         [Fact]
@@ -83,14 +84,14 @@ namespace OfficeIMO.Tests {
 
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             Assert.Equal(1, report.WorksheetCount);
-            Assert.Equal(7, report.UnsupportedFeatureCount);
-            Assert.Equal(7, report.PreservedFeatureRecordCount);
-            Assert.Equal(5, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
-            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Equal(1, report.UnsupportedFeatureCount);
+            Assert.Equal(1, report.PreservedFeatureRecordCount);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.DrawingObject, report.UnsupportedFeaturesByKind.Keys);
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
-            Assert.Equal(5, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.Chart, report.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.DrawingObject, report.PreservedFeatureRecordsByKind.Keys);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.Chart, report.PreservedFeatureRecordsByKind.Keys);
             Assert.Equal(1, report.PivotTableRecordCount);
             LegacyXlsPivotTableRecord pivotRecord = Assert.Single(workbook.PivotTableRecords);
             Assert.Equal(LegacyXlsPivotTableRecordKind.View, pivotRecord.Kind);
@@ -165,7 +166,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(4, report.DrawingOfficeArtRecordsByContainerState["Container"]);
             Assert.Equal(7, report.DrawingOfficeArtRecordsByContainerState["Leaf"]);
             Assert.Equal(2, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:8"]);
-            Assert.Equal(2, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:16"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:16"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:22"]);
             Assert.Equal(1, report.DrawingOfficeArtRecordsByPayloadLength["PayloadLength:24"]);
             Assert.Equal(1, report.DrawingGroupBlocksByMaxShapeId["MaxShapeId:2048"]);
             Assert.Equal(1, report.DrawingGroupBlocksByDeclaredIdentifierClusterCount["DeclaredIdentifierClusters:2"]);
@@ -177,24 +179,29 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingGroupInfosByDrawingId["DrawingId:1"]);
             Assert.Equal(1, report.DrawingGroupInfosByShapeCount["Shapes:1"]);
             Assert.Equal(1, report.DrawingGroupInfosByLastShapeId["LastShapeId:1024"]);
-            Assert.Equal(2, report.DrawingShapePropertyCount);
+            Assert.Equal(3, report.DrawingShapePropertyCount);
+            Assert.Equal(1, report.DrawingShapePropertiesById["PropertyId:0x0104"]);
             Assert.Equal(1, report.DrawingShapePropertiesById["PropertyId:0x00BF"]);
             Assert.Equal(1, report.DrawingShapePropertiesById["PropertyId:0x0005"]);
+            Assert.Equal(1, report.DrawingShapePropertiesByName["pib"]);
             Assert.Equal(1, report.DrawingShapePropertiesByName["TextBooleanProperties"]);
             Assert.Equal(1, report.DrawingShapePropertiesByName["PropertyId:0x0005"]);
+            Assert.Equal(1, report.DrawingShapePropertiesByGroup["Blip"]);
             Assert.Equal(1, report.DrawingShapePropertiesByGroup["Text"]);
             Assert.Equal(1, report.DrawingShapePropertiesByGroup["Protection"]);
             Assert.Equal(1, report.DrawingShapePropertiesByFlagState["Simple"]);
+            Assert.Equal(1, report.DrawingShapePropertiesByFlagState["Blip"]);
             Assert.Equal(1, report.DrawingShapePropertiesByFlagState["Complex"]);
+            Assert.Equal(1, report.DrawingShapePropertiesByValue["PropertyId:0x0104;Value:0x00000001"]);
             Assert.Equal(1, report.DrawingShapePropertiesByValue["PropertyId:0x00BF;Value:0x00000001"]);
             Assert.Equal(1, report.DrawingShapeComplexPropertiesByDeclaredLength["PropertyId:0x0005;DeclaredBytes:4"]);
             Assert.Equal(1, report.DrawingShapeComplexPropertiesByAvailableLength["PropertyId:0x0005;AvailableBytes:4"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesByType["Png"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesByEmbeddedRecordType["OfficeArtBlipPNG"]);
-            Assert.Equal(1, report.DrawingBlipStoreEntriesBySize["SizeBytes:12"]);
+            Assert.Equal(1, report.DrawingBlipStoreEntriesBySize["SizeBytes:75"]);
             Assert.Equal(1, report.DrawingBlipStoreEntriesByReferenceCount["References:1"]);
-            Assert.Equal(1, report.DrawingPictureStates["PictureObjects:Present|BlipStore:Present|PictureBlipReferences:Missing|ReferencedBlips:None"]);
-            Assert.Equal(1, report.DrawingPictureCountStates["PictureObjects:1|BlipStoreEntries:1|PictureBlipReferences:0|PictureFrames:1|ObjectBlipParity:Balanced|ObjectFrameCoverage:Balanced|ReferencedBlips:None"]);
+            Assert.Equal(1, report.DrawingPictureStates["PictureObjects:Present|BlipStore:Present|PictureBlipReferences:Present|ReferencedBlips:Resolved"]);
+            Assert.Equal(1, report.DrawingPictureCountStates["PictureObjects:1|BlipStoreEntries:1|PictureBlipReferences:1|PictureFrames:1|ObjectBlipParity:Balanced|ObjectFrameCoverage:Balanced|ReferencedBlips:Resolved"]);
             Assert.Equal(1, report.DrawingShapeEntriesByType["PictureFrame"]);
             Assert.Equal(1, report.DrawingShapeEntriesById["ShapeId:1024"]);
             Assert.Equal(1, report.DrawingShapeEntriesByFlags["Flags:0x00000A02"]);
@@ -210,26 +217,27 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.DrawingRecordsByLocation["(workbook)"]);
             Assert.Equal(5, report.DrawingRecordsByLocation["FeatureMap"]);
             Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup", report.UnsupportedFeaturesByDetail.Keys);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:TextPropsStream"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:TextPropsStream", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream", report.UnsupportedFeaturesByDetail.Keys);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
+            Assert.DoesNotContain("Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart", report.UnsupportedFeaturesByDetail.Keys);
             Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawingGroup", report.PreservedFeatureRecordsByDetail.Keys);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:TextPropsStream"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj", report.PreservedFeatureRecordsByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:MsoDrawing", report.PreservedFeatureRecordsByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:ShapePropsStream", report.PreservedFeatureRecordsByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:TextPropsStream", report.PreservedFeatureRecordsByDetail.Keys);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:RichTextStream", report.PreservedFeatureRecordsByDetail.Keys);
             Assert.Equal(1, report.PreservedFeatureRecordsByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView"]);
+            Assert.DoesNotContain("Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart", report.PreservedFeatureRecordsByDetail.Keys);
             Assert.DoesNotContain(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:MsoDrawingGroup" && record.SheetName == null);
-            Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
-            Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:ShapePropsStream" && record.SheetName == "FeatureMap");
+            Assert.DoesNotContain(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:Obj" && record.SheetName == "FeatureMap");
+            Assert.DoesNotContain(workbook.PreservedFeatureRecords, record => record.DetailCode == "Drawing:ShapePropsStream" && record.SheetName == "FeatureMap");
             Assert.Contains(workbook.DrawingRecords, record => record.SheetName == "FeatureMap" && record.ObjectType == 0x0008 && record.ObjectTypeKind == LegacyXlsDrawingObjectType.Picture && record.ObjectTypeName == "Picture" && record.ObjectId == 1 && record.ObjectFlags == 0x4011 && record.IsObjectLocked && record.IsObjectPrintable);
             LegacyXlsDrawingRecord objectRecord = Assert.Single(workbook.DrawingRecords, record => record.RecordName == "Obj");
+            Assert.True(objectRecord.HasSupportedObjectMetadata);
             Assert.Equal(new[] { "FtCmo", "FtNts", "FtEnd" }, objectRecord.ObjectSubRecords.Select(subRecord => subRecord.SubRecordName).ToArray());
             LegacyXlsDrawingObjectSubRecord commonObjectSubRecord = objectRecord.ObjectSubRecords[0];
             Assert.Equal((ushort)0x0015, commonObjectSubRecord.SubRecordType);
@@ -244,7 +252,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal("OfficeArtDggContainer", drawingGroup.EscherRecordTypeName);
             Assert.Equal((ushort)2, drawingGroup.EscherRecordInstance);
             Assert.Equal((byte)0x0f, drawingGroup.EscherRecordVersion);
-            Assert.Equal((uint)96, drawingGroup.EscherPayloadLength);
+            Assert.Equal((uint)159, drawingGroup.EscherPayloadLength);
             Assert.Equal(new[] {
                 "OfficeArtDggContainer",
                 "OfficeArtFDGGBlock",
@@ -269,18 +277,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal((byte)0x06, blipEntry.MacOsBlipType);
             Assert.Equal(LegacyXlsDrawingBlipType.Png, blipEntry.MacOsBlipTypeKind);
             Assert.Equal("Png", blipEntry.MacOsBlipTypeName);
-            Assert.Equal((uint)12, blipEntry.SizeBytes);
+            Assert.Equal((uint)75, blipEntry.SizeBytes);
             Assert.Equal((uint)1, blipEntry.ReferenceCount);
             Assert.Equal((ushort)0xf01e, blipEntry.EmbeddedBlipRecordType);
             Assert.Equal("OfficeArtBlipPNG", blipEntry.EmbeddedBlipRecordTypeName);
-            Assert.Equal((uint)4, blipEntry.EmbeddedBlipPayloadLength);
+            Assert.Equal((uint)67, blipEntry.EmbeddedBlipPayloadLength);
+            Assert.Equal("image/png", blipEntry.EmbeddedBlipContentType);
+            Assert.True(blipEntry.HasEmbeddedBlipPayloadBytes);
             LegacyXlsDrawingRecord drawing = Assert.Single(workbook.DrawingRecords, record => record.RecordName == "MsoDrawing");
             Assert.Equal((ushort)0xf002, drawing.EscherRecordType);
             Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer, drawing.EscherRecordTypeKind);
             Assert.Equal("OfficeArtDgContainer", drawing.EscherRecordTypeName);
             Assert.Equal((ushort)1, drawing.EscherRecordInstance);
             Assert.Equal((byte)0x0f, drawing.EscherRecordVersion);
-            Assert.Equal((uint)114, drawing.EscherPayloadLength);
+            Assert.Equal((uint)120, drawing.EscherPayloadLength);
+            Assert.True(drawing.OfficeArtPayloadFullyTraversed);
+            Assert.True(drawing.HasSupportedOfficeArtMetadata);
             Assert.Equal(new[] {
                 "OfficeArtDgContainer",
                 "OfficeArtFDG",
@@ -294,9 +306,21 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)1, drawingInfo.DrawingId);
             Assert.Equal((uint)1, drawingInfo.ShapeCount);
             Assert.Equal((uint)1024, drawingInfo.LastShapeId);
-            Assert.Equal(2, drawing.ShapeProperties.Count);
-            LegacyXlsDrawingShapeProperty simpleProperty = drawing.ShapeProperties[0];
-            Assert.Equal(0, simpleProperty.Index);
+            Assert.Equal(3, drawing.ShapeProperties.Count);
+            LegacyXlsDrawingShapeProperty blipProperty = drawing.ShapeProperties[0];
+            Assert.Equal(0, blipProperty.Index);
+            Assert.Equal((ushort)0x4104, blipProperty.RawOperationId);
+            Assert.Equal((ushort)0x0104, blipProperty.PropertyId);
+            Assert.Equal("PropertyId:0x0104", blipProperty.PropertyIdKey);
+            Assert.Equal("pib", blipProperty.PropertyName);
+            Assert.Equal("Blip", blipProperty.PropertyGroupName);
+            Assert.True(blipProperty.IsBlipId);
+            Assert.False(blipProperty.IsComplex);
+            Assert.Equal((uint)1, blipProperty.Value);
+            Assert.Null(blipProperty.DeclaredComplexDataLength);
+            Assert.Null(blipProperty.AvailableComplexDataLength);
+            LegacyXlsDrawingShapeProperty simpleProperty = drawing.ShapeProperties[1];
+            Assert.Equal(1, simpleProperty.Index);
             Assert.Equal((ushort)0x00bf, simpleProperty.RawOperationId);
             Assert.Equal((ushort)0x00bf, simpleProperty.PropertyId);
             Assert.Equal("PropertyId:0x00BF", simpleProperty.PropertyIdKey);
@@ -307,8 +331,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal((uint)1, simpleProperty.Value);
             Assert.Null(simpleProperty.DeclaredComplexDataLength);
             Assert.Null(simpleProperty.AvailableComplexDataLength);
-            LegacyXlsDrawingShapeProperty complexProperty = drawing.ShapeProperties[1];
-            Assert.Equal(1, complexProperty.Index);
+            LegacyXlsDrawingShapeProperty complexProperty = drawing.ShapeProperties[2];
+            Assert.Equal(2, complexProperty.Index);
             Assert.Equal((ushort)0x8005, complexProperty.RawOperationId);
             Assert.Equal((ushort)0x0005, complexProperty.PropertyId);
             Assert.Equal("PropertyId:0x0005", complexProperty.PropertyName);
@@ -352,14 +376,17 @@ namespace OfficeIMO.Tests {
             LegacyXlsDrawingRecord shapeStream = Assert.Single(workbook.DrawingRecords, record => record.RecordName == "ShapePropsStream");
             Assert.Equal(LegacyXlsDrawingRecordKind.ShapePropertiesStream, shapeStream.Kind);
             Assert.True(shapeStream.HasFutureRecordHeader);
+            Assert.True(shapeStream.HasSupportedFutureDrawingStreamMetadata);
             Assert.Equal((ushort)0x08a3, shapeStream.FutureRecordHeader?.WrappedRecordType);
             Assert.False(shapeStream.FutureRecordHeader?.HasRange);
             Assert.Equal(5, shapeStream.FutureRecordHeader?.StreamByteCount);
             LegacyXlsDrawingRecord textStream = Assert.Single(workbook.DrawingRecords, record => record.RecordName == "TextPropsStream");
             Assert.Equal(LegacyXlsDrawingRecordKind.TextPropertiesStream, textStream.Kind);
             Assert.True(textStream.HasFutureRecordHeader);
+            Assert.True(textStream.HasSupportedFutureDrawingStreamMetadata);
             Assert.Equal((ushort)0x08a4, textStream.FutureRecordHeader?.WrappedRecordType);
             Assert.True(textStream.FutureRecordHeader?.HasRange);
+            Assert.True(textStream.FutureRecordHeader?.HasCompleteRangeReference);
             Assert.Equal((ushort)1, textStream.FutureRecordHeader?.FirstRow);
             Assert.Equal((ushort)2, textStream.FutureRecordHeader?.LastRow);
             Assert.Equal((ushort)0, textStream.FutureRecordHeader?.FirstColumn);
@@ -368,14 +395,15 @@ namespace OfficeIMO.Tests {
             LegacyXlsDrawingRecord richStream = Assert.Single(workbook.DrawingRecords, record => record.RecordName == "RichTextStream");
             Assert.Equal(LegacyXlsDrawingRecordKind.RichTextStream, richStream.Kind);
             Assert.True(richStream.HasFutureRecordHeader);
+            Assert.True(richStream.HasSupportedFutureDrawingStreamMetadata);
             Assert.Equal((ushort)0x08a5, richStream.FutureRecordHeader?.WrappedRecordType);
             Assert.False(richStream.FutureRecordHeader?.HasRange);
             Assert.Equal(4, richStream.FutureRecordHeader?.StreamByteCount);
-            Assert.Contains(workbook.PreservedFeatureRecords, record => record.DetailCode == "Chart:Chart" && record.RecordType == 0x1002);
-            Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "Chart:Chart");
+            Assert.DoesNotContain(workbook.PreservedFeatureRecords, record => record.DetailCode == "Chart:Chart" && record.RecordType == 0x1002);
+            Assert.DoesNotContain(workbook.Diagnostics, d => d.DetailCode == "Chart:Chart");
             Assert.Contains(workbook.Diagnostics, d => d.DetailCode == "PivotTable:SxView");
             string markdown = report.ToMarkdown();
-            Assert.Contains("Preserved feature records: 7", markdown);
+            Assert.Contains("Preserved feature records: 1", markdown);
             Assert.Contains("Pivot Table Records By Name", markdown);
             Assert.Contains("Chart Records By Name", markdown);
             Assert.Contains("Drawing Records By Name", markdown);
@@ -397,7 +425,7 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Drawing group blocks: 1", markdown);
             Assert.Contains("Drawing group infos: 1", markdown);
             Assert.Contains("Drawing identifier clusters: 1", markdown);
-            Assert.Contains("Drawing shape properties: 2", markdown);
+            Assert.Contains("Drawing shape properties: 3", markdown);
             Assert.Contains("Drawing OfficeArt Records By Type Name", markdown);
             Assert.Contains("Drawing Group Blocks By Max Shape Id", markdown);
             Assert.Contains("Drawing Group Infos By Shape Count", markdown);
@@ -417,10 +445,11 @@ namespace OfficeIMO.Tests {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5TableStyleMetadataWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
-            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
                 ReportUnsupportedRecords = true
             });
-            LegacyXlsImportReport report = workbook.CreateImportReport();
+            LegacyXlsWorkbook workbook = result.Workbook;
+            LegacyXlsImportReport report = result.ImportReport;
 
             Assert.DoesNotContain(workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
             LegacyXlsTableStyleCollection collection = Assert.Single(workbook.TableStyleCollections);
@@ -460,8 +489,61 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.TableStyleElementsByDifferentialFormatIndex["Dxf:3"]);
             Assert.Equal(1, report.TableStyleElementsByDifferentialFormatIndex["Dxf:4"]);
             Assert.Equal(1, report.TableStyleElementsByStripeSize["Size:2"]);
-            Assert.Equal(3, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
-            Assert.Equal(3, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.TableStyle]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.TableStyle, report.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.TableStyle, report.PreservedFeatureRecordsByKind.Keys);
+
+            DocumentFormat.OpenXml.Spreadsheet.TableStyles projectedTableStyles = result.Document.WorkbookPartRoot
+                .WorkbookStylesPart!
+                .Stylesheet!
+                .TableStyles!;
+            Assert.Equal("TableStyleMedium2", projectedTableStyles.DefaultTableStyle!.Value);
+            Assert.Equal("PivotStyleLight16", projectedTableStyles.DefaultPivotStyle!.Value);
+            Assert.Equal(1U, projectedTableStyles.Count!.Value);
+
+            DocumentFormat.OpenXml.Spreadsheet.TableStyle projectedStyle = Assert.Single(projectedTableStyles.Elements<DocumentFormat.OpenXml.Spreadsheet.TableStyle>());
+            Assert.Equal("OfficeIMO Custom", projectedStyle.Name!.Value);
+            Assert.True(projectedStyle.Table!.Value);
+            Assert.True(projectedStyle.Pivot!.Value);
+            Assert.Equal(2U, projectedStyle.Count!.Value);
+            Assert.Collection(
+                projectedStyle.Elements<DocumentFormat.OpenXml.Spreadsheet.TableStyleElement>(),
+                element => {
+                    Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.TableStyleValues.HeaderRow, element.Type!.Value);
+                    Assert.Equal(3U, element.FormatId!.Value);
+                },
+                element => {
+                    Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.TableStyleValues.FirstRowStripe, element.Type!.Value);
+                    Assert.Equal(2U, element.Size!.Value);
+                    Assert.Equal(4U, element.FormatId!.Value);
+                });
+        }
+
+        [Fact]
+        public void LegacyXls_ImportReport_ProjectsCustomTableStylesWithoutDefaults() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5CustomTableStyleOnlyWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Empty(result.Workbook.TableStyleCollections);
+            LegacyXlsTableStyle style = Assert.Single(result.Workbook.TableStyles);
+            Assert.Equal("OfficeIMO Custom Only", style.Name);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.TableStyle, result.ImportReport.UnsupportedFeaturesByKind.Keys);
+
+            DocumentFormat.OpenXml.Spreadsheet.TableStyles projectedTableStyles = result.Document.WorkbookPartRoot
+                .WorkbookStylesPart!
+                .Stylesheet!
+                .TableStyles!;
+            Assert.Equal(1U, projectedTableStyles.Count!.Value);
+
+            DocumentFormat.OpenXml.Spreadsheet.TableStyle projectedStyle = Assert.Single(projectedTableStyles.Elements<DocumentFormat.OpenXml.Spreadsheet.TableStyle>());
+            Assert.Equal("OfficeIMO Custom Only", projectedStyle.Name!.Value);
+            DocumentFormat.OpenXml.Spreadsheet.TableStyleElement projectedElement = Assert.Single(projectedStyle.Elements<DocumentFormat.OpenXml.Spreadsheet.TableStyleElement>());
+            Assert.Equal(DocumentFormat.OpenXml.Spreadsheet.TableStyleValues.HeaderRow, projectedElement.Type!.Value);
+            Assert.Equal(3U, projectedElement.FormatId!.Value);
         }
 
         [Theory]
@@ -590,20 +672,21 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = workbook.CreateImportReport();
 
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
-            Assert.Equal(28, workbook.PivotTableRecords.Count);
-            Assert.Equal(28, report.PivotTableRecordCount);
+            Assert.Equal(32, workbook.PivotTableRecords.Count);
+            Assert.Equal(32, report.PivotTableRecordCount);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.View]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Field]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.FieldIndexList]);
             Assert.Equal(2, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.LineItem]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.PageItem]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Item]);
-            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.DataItem]);
+            Assert.Equal(2, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.DataItem]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Cache]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.CacheStream]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.CacheSource]);
             Assert.Equal(8, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.CacheItem]);
-            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Formula]);
+            Assert.Equal(3, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Formula]);
+            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Rule]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Table]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.GroupingRange]);
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Filter]);
@@ -612,6 +695,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.PivotChart]);
             Assert.Equal(2, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.Additional]);
             Assert.DoesNotContain(report.PivotTableRecordsByKind, entry => entry.Key == LegacyXlsPivotTableRecordKind.PreserveOnly);
+            Assert.Equal(29, workbook.PivotTableRecords.Count(record => record.HasSupportedPivotTableMetadata));
+            Assert.Equal(3, workbook.PivotTableRecords.Count(record => !record.HasSupportedPivotTableMetadata));
+            Assert.Equal(6, report.FormulaTokenRecordCount);
+            Assert.Equal(3, report.FormulaTokensByContext["PivotTableFormula"]);
+            Assert.Equal(3, report.FormulaTokensByContext["PivotTableCalculatedFieldFormula"]);
+            Assert.Equal(3, report.FormulaTokensByContextAndSheet["PivotTableFormula|(workbook)"]);
+            Assert.Equal(3, report.FormulaTokensByContextAndSheet["PivotTableCalculatedFieldFormula|(workbook)"]);
+            Assert.Equal(3, report.FormulaTokensByName["PtgInt"]);
+            Assert.Equal(1, report.FormulaTokensByName["PtgAdd"]);
+            Assert.Equal(1, report.FormulaTokensByName["PtgLe"]);
+            Assert.Equal(1, report.FormulaTokensByName["FormulaToken0xFF"]);
+            Assert.Equal(2, report.FormulaTokensByContextAndOperandKind["PivotTableFormula|IntegerLiteral"]);
+            Assert.Equal(1, report.FormulaTokensByContextAndOperandKind["PivotTableCalculatedFieldFormula|IntegerLiteral"]);
+            Assert.Equal(1, report.FormulaTokensByNameAndOperandText["PtgInt|7"]);
+            Assert.Equal(1, report.FormulaTokensByNameAndOperandText["PtgInt|8"]);
+            Assert.Equal(1, report.FormulaTokensByNameAndOperandText["PtgInt|40980"]);
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
             Assert.Empty(report.UnsupportedProjectionGapsByKind);
             Assert.Empty(report.UnsupportedProjectionGapsByRecordType);
@@ -623,10 +722,12 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["Sxpi"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxvi"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxdi"]);
-            Assert.Equal(1, report.PivotTableRecordsByName["Sxdb"]);
+            Assert.Equal(2, report.PivotTableRecordsByName["Sxdb"]);
             Assert.Equal(1, report.PivotTableRecordsByName["SxStreamId"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxvs"]);
-            Assert.Equal(1, report.PivotTableRecordsByName["SxFormula"]);
+            Assert.Equal(2, report.PivotTableRecordsByName["SxFormula"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["SxFmla"]);
+            Assert.Equal(1, report.PivotTableRecordsByName["SxRule"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxnum"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxbool"]);
             Assert.Equal(1, report.PivotTableRecordsByName["Sxerr"]);
@@ -641,10 +742,11 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByName["SxVdEx"]);
             Assert.Equal(1, report.PivotTableRecordsByName["PivotChartBits"]);
             Assert.Equal(2, report.PivotTableRecordsByName["SxAddl"]);
-            Assert.Equal(13, report.PivotTableRecordsByLocation["(workbook)"]);
+            Assert.Equal(17, report.PivotTableRecordsByLocation["(workbook)"]);
             Assert.Equal(15, report.PivotTableRecordsByLocation["PivotMeta"]);
             Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["View|(workbook)"]);
-            Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["Formula|(workbook)"]);
+            Assert.Equal(2, report.PivotTableRecordsByKindAndLocation["DataItem|(workbook)"]);
+            Assert.Equal(3, report.PivotTableRecordsByKindAndLocation["Formula|(workbook)"]);
             Assert.Equal(5, report.PivotTableRecordsByKindAndLocation["CacheItem|(workbook)"]);
             Assert.Equal(3, report.PivotTableRecordsByKindAndLocation["CacheItem|PivotMeta"]);
             Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["Field|PivotMeta"]);
@@ -653,7 +755,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableRecordsByKindAndLocation["PageItem|PivotMeta"]);
             Assert.Equal(2, report.PivotTableRecordsByKindAndLocation["Additional|PivotMeta"]);
             Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxView|(workbook)"]);
-            Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxFormula|(workbook)"]);
+            Assert.Equal(2, report.PivotTableRecordsByNameAndLocation["Sxdb|(workbook)"]);
+            Assert.Equal(2, report.PivotTableRecordsByNameAndLocation["SxFormula|(workbook)"]);
+            Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxFmla|(workbook)"]);
+            Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxRule|(workbook)"]);
             Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["SxIvd|PivotMeta"]);
             Assert.Equal(2, report.PivotTableRecordsByNameAndLocation["Sxli|PivotMeta"]);
             Assert.Equal(1, report.PivotTableRecordsByNameAndLocation["Sxpi|PivotMeta"]);
@@ -685,6 +790,8 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableLineItemTypeKinds["GrandTotal"]);
             Assert.Equal(1, report.PivotTableLineItemEntryCounts["Entries:1"]);
             Assert.Equal(1, report.PivotTableLineItemEntryCounts["Entries:2"]);
+            Assert.Equal(1, report.PivotTableLineItemEntrySlotCounts["Slots:1;Entries:1"]);
+            Assert.Equal(1, report.PivotTableLineItemEntrySlotCounts["Slots:2;Entries:2"]);
             Assert.Equal(1, report.PivotTableLineItemEntryIndexes["EntryIndex:0"]);
             Assert.Equal(1, report.PivotTableLineItemEntryIndexes["EntryIndex:2"]);
             Assert.Equal(1, report.PivotTableLineItemEntryIndexes["BlankEntry"]);
@@ -704,6 +811,35 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableItemFlagStates["Hidden:False;HideDetail:True;Formula:False;Missing:False"]);
             Assert.Equal(1, report.PivotTableItemNames["East"]);
             Assert.Equal(1, report.PivotTableFormulaPayloadLengths["SxFormula|Bytes:4"]);
+            Assert.Equal(1, report.PivotTableFormulaPayloadLengths["SxFormula|Bytes:20"]);
+            Assert.Equal(1, report.PivotTableFormulaPayloadLengths["SxFmla|Bytes:9"]);
+            Assert.Equal(1, report.PivotTableFormulaPayloadKinds["Scope"]);
+            Assert.Equal(1, report.PivotTableFormulaPayloadKinds["FormulaTokens"]);
+            Assert.Equal(1, report.PivotTableFormulaPayloadKinds["CalculatedFieldFormulaTokens"]);
+            Assert.Equal(1, report.PivotTableFormulaTokenByteCounts["TokenBytes:7"]);
+            Assert.Equal(1, report.PivotTableCalculatedFieldFormulaTokenByteCounts["TokenBytes:20"]);
+            Assert.Equal(1, report.PivotTableFormulaTrailingByteCounts["TrailingBytes:0"]);
+            Assert.Equal(1, report.PivotTableRuleAxes["Row"]);
+            Assert.Equal(1, report.PivotTableRuleTypes["DataCells"]);
+            Assert.Equal(1, report.PivotTableRuleFieldReferences["FilteredFields"]);
+            Assert.Equal(1, report.PivotTableRuleFilterCounts["Filters:2"]);
+            Assert.Equal(1, report.PivotTableRuleOptionStates["Partial:False;DataOnly:False;LabelOnly:False;CacheBased:False"]);
+            Assert.Equal(1, report.PivotTableRuleFilterEntryCounts["Filters:2"]);
+            Assert.Equal(1, report.PivotTableRuleFilterAxes["Row"]);
+            Assert.Equal(1, report.PivotTableRuleFilterAxes["Data"]);
+            Assert.Equal(2, report.PivotTableRuleFilterFieldPositions["Position:0"]);
+            Assert.Equal(1, report.PivotTableRuleFilterFieldReferences["FieldIndex:0"]);
+            Assert.Equal(1, report.PivotTableRuleFilterFieldReferences["DataField"]);
+            Assert.Equal(1, report.PivotTableRuleFilterSelectedStates["Selected:True"]);
+            Assert.Equal(1, report.PivotTableRuleFilterSelectedStates["Selected:False"]);
+            Assert.Equal(1, report.PivotTableRuleFilterSubtotalFlags["Flags:0x0001"]);
+            Assert.Equal(1, report.PivotTableRuleFilterSubtotalFlags["Flags:0x0002"]);
+            Assert.Equal(1, report.PivotTableRuleFilterSubtotalFunctions["Data"]);
+            Assert.Equal(1, report.PivotTableRuleFilterSubtotalFunctions["Default"]);
+            Assert.Equal(1, report.PivotTableRuleFilterItemIndexCounts["Indexes:1"]);
+            Assert.Equal(1, report.PivotTableRuleFilterItemIndexCounts["Indexes:0"]);
+            Assert.Equal(1, report.PivotTableRuleFilterStates["Axis:Row|Position:0|Field:FieldIndex:0|Selected:True|Subtotals:0x0001|Indexes:1"]);
+            Assert.Equal(1, report.PivotTableRuleFilterStates["Axis:Data|Position:0|Field:DataField|Selected:False|Subtotals:0x0002|Indexes:0"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Number"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Integer"]);
             Assert.Equal(1, report.PivotTableCacheItemKinds["Boolean"]);
@@ -730,16 +866,22 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.PivotTableCachePropertyFlags["BackgroundQuery:False"]);
             Assert.Equal(1, report.PivotTableCachePropertyFlags["EnableRefresh:True"]);
             Assert.Equal(1, report.PivotTableCacheRefreshUserStates["HasRefreshUser"]);
-            Assert.Equal(1, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
-            Assert.Equal(1, report.PivotTableDataItemAggregationKinds["Sum"]);
+            Assert.Equal(2, report.PivotTableDataItemAggregations["AggregationFunction:0"]);
+            Assert.Equal(2, report.PivotTableDataItemAggregationKinds["Sum"]);
             Assert.Equal(1, report.PivotTableDataItemFieldIndexes["FieldIndex:2"]);
+            Assert.Equal(1, report.PivotTableDataItemFieldIndexes["FieldIndex:3"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationIds["DisplayCalculation:0"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculationIds["DisplayCalculation:7"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculations["Value"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculations["PercentOfGrandTotal"]);
+            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationReferenceStates["Value|Field:NoFieldReference|Item:NoItemReference"]);
             Assert.Equal(1, report.PivotTableDataItemDisplayCalculationReferenceStates["PercentOfGrandTotal|Field:NoFieldReference|Item:NoItemReference"]);
-            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationFieldIndexes["FieldIndex:-1"]);
-            Assert.Equal(1, report.PivotTableDataItemDisplayCalculationItemIndexes["ItemIndex:-1"]);
+            Assert.Equal(2, report.PivotTableDataItemDisplayCalculationFieldIndexes["FieldIndex:-1"]);
+            Assert.Equal(2, report.PivotTableDataItemDisplayCalculationItemIndexes["ItemIndex:-1"]);
+            Assert.Equal(1, report.PivotTableDataItemNumberFormats["NumberFormatId:0"]);
             Assert.Equal(1, report.PivotTableDataItemNumberFormats["NumberFormatId:14"]);
             Assert.Equal(1, report.PivotTableDataItemNames["Sales"]);
+            Assert.Equal(1, report.PivotTableDataItemNames["Sum of Amount"]);
             Assert.Equal(1, report.PivotTableGroupingKinds["Months"]);
             Assert.Equal(1, report.PivotTableGroupingBoundaryStates["AutoStart:True;AutoEnd:True"]);
             Assert.Equal(1, report.PivotTableGroupingCompletionStates["CompleteDateRange"]);
@@ -781,6 +923,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.CacheStream && record.RecordName == "SxStreamId" && record.SheetName == null);
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.CacheSource && record.RecordName == "Sxvs" && record.SheetName == null);
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Formula && record.RecordName == "SxFormula" && record.SheetName == null);
+            Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Formula && record.RecordName == "SxFmla" && record.SheetName == null);
+            Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Rule && record.RecordName == "SxRule" && record.SheetName == null);
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.CacheItem && record.RecordName == "Sxnum" && record.SheetName == null);
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Table && record.RecordName == "Sxtbl" && record.SheetName == null);
             Assert.Contains(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Filter && record.RecordName == "SxFilt" && record.SheetName == null);
@@ -840,6 +984,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsPivotLineItemType.Data, dataLineItem.ItemTypeKind);
             Assert.Equal("Data", dataLineItem.ItemTypeName);
             Assert.Equal(new short[] { 0, 2 }, dataLineItem.EntryIndexes);
+            Assert.Equal(2, dataLineItem.EntrySlotCount);
             Assert.False(dataLineItem.Subtotal);
             Assert.False(dataLineItem.GrandTotal);
             LegacyXlsPivotLineItem grandLineItem = Assert.Single(lineItemRecords[1].LineItems);
@@ -847,6 +992,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsPivotLineItemType.GrandTotal, grandLineItem.ItemTypeKind);
             Assert.Equal("GrandTotal", grandLineItem.ItemTypeName);
             Assert.Equal("BlankEntry", Assert.Single(grandLineItem.EntryIndexNames));
+            Assert.Equal(1, grandLineItem.EntrySlotCount);
             Assert.True(grandLineItem.GrandTotal);
 
             LegacyXlsPivotTableRecord pageItemRecord = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.PageItem);
@@ -902,7 +1048,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsPivotCacheItemKind.Empty, emptyItem.CacheItemKind);
             Assert.True(emptyItem.IsEmptyCacheItem);
 
-            LegacyXlsPivotTableRecord dataItem = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem);
+            LegacyXlsPivotTableRecord dataItem = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem && record.RecordName == "Sxdi");
             Assert.Null(dataItem.SheetName);
             Assert.Equal("Sxdi", dataItem.RecordName);
             Assert.Equal((short)2, dataItem.DataItemFieldIndex);
@@ -919,7 +1065,23 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)14, dataItem.NumberFormatId);
             Assert.Equal("Sales", dataItem.Name);
 
-            LegacyXlsPivotTableRecord cache = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "Sxdb");
+            LegacyXlsPivotTableRecord legacyDataItem = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.DataItem && record.RecordName == "Sxdb");
+            Assert.Null(legacyDataItem.SheetName);
+            Assert.Equal((short)3, legacyDataItem.DataItemFieldIndex);
+            Assert.Equal((short)0, legacyDataItem.AggregationFunction);
+            Assert.Equal(LegacyXlsPivotAggregationFunction.Sum, legacyDataItem.AggregationFunctionKind);
+            Assert.Equal("Sum", legacyDataItem.AggregationFunctionName);
+            Assert.Equal((short)0, legacyDataItem.DisplayCalculation);
+            Assert.Equal(LegacyXlsPivotDisplayCalculation.Value, legacyDataItem.DisplayCalculationKind);
+            Assert.Equal("Value", legacyDataItem.DisplayCalculationName);
+            Assert.Equal((short)-1, legacyDataItem.DisplayCalculationFieldIndex);
+            Assert.Equal("NoFieldReference", legacyDataItem.DisplayCalculationFieldReferenceName);
+            Assert.Equal((short)-1, legacyDataItem.DisplayCalculationItemIndex);
+            Assert.Equal("NoItemReference", legacyDataItem.DisplayCalculationItemReferenceName);
+            Assert.Equal((ushort)0, legacyDataItem.NumberFormatId);
+            Assert.Equal("Sum of Amount", legacyDataItem.Name);
+
+            LegacyXlsPivotTableRecord cache = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Cache && record.RecordName == "Sxdb");
             Assert.Equal((ushort)1, cache.CacheStreamId);
             Assert.Equal("0001", cache.CacheStreamName);
             Assert.Equal(12, cache.CacheRecordCount);
@@ -946,13 +1108,65 @@ namespace OfficeIMO.Tests {
             Assert.Equal(LegacyXlsPivotCacheSourceType.Sheet, cacheSource.CacheSourceTypeKind);
             Assert.Equal("Sheet", cacheSource.CacheSourceTypeName);
 
-            LegacyXlsPivotTableRecord formulaScope = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "SxFormula");
+            LegacyXlsPivotTableRecord formulaScope = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "SxFormula" && record.HasCalculatedItemFormulaScope);
             Assert.Equal(LegacyXlsPivotTableRecordKind.Formula, formulaScope.Kind);
             Assert.Equal((ushort)0, formulaScope.CalculatedItemFormulaReserved);
             Assert.Equal((short)-1, formulaScope.CalculatedItemFormulaCacheFieldIndex);
             Assert.True(formulaScope.HasCalculatedItemFormulaScope);
             Assert.True(formulaScope.CalculatedItemFormulaAppliesToAllCacheFields);
             Assert.Equal("AllCacheFields", formulaScope.CalculatedItemFormulaScopeName);
+            Assert.Equal("Scope", formulaScope.CalculatedItemFormulaPayloadKind);
+
+            LegacyXlsPivotTableRecord calculatedFieldFormula = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "SxFormula" && record.HasCalculatedFieldFormula);
+            Assert.Equal(LegacyXlsPivotTableRecordKind.Formula, calculatedFieldFormula.Kind);
+            Assert.Equal(20, calculatedFieldFormula.CalculatedFieldFormulaTokenByteCount);
+            Assert.False(calculatedFieldFormula.HasCalculatedItemFormulaScope);
+            Assert.Equal("CalculatedFieldFormulaTokens", calculatedFieldFormula.CalculatedItemFormulaPayloadKind);
+
+            LegacyXlsPivotTableRecord formulaTokens = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "SxFmla" && record.CalculatedItemFormulaTokenByteCount.HasValue);
+            Assert.Equal(LegacyXlsPivotTableRecordKind.Formula, formulaTokens.Kind);
+            Assert.Equal((ushort)7, formulaTokens.CalculatedItemFormulaTokenByteCount);
+            Assert.Equal(0, formulaTokens.CalculatedItemFormulaTrailingByteCount);
+            Assert.Equal("FormulaTokens", formulaTokens.CalculatedItemFormulaPayloadKind);
+            Assert.False(formulaTokens.HasCalculatedItemFormulaScope);
+
+            LegacyXlsPivotTableRecord rule = Assert.Single(workbook.PivotTableRecords, record => record.RecordName == "SxRule");
+            Assert.Equal(LegacyXlsPivotTableRecordKind.Rule, rule.Kind);
+            Assert.Equal((byte)0, rule.RuleFieldPosition);
+            Assert.Equal((byte)0xff, rule.RuleFieldIndex);
+            Assert.Equal("FilteredFields", rule.RuleFieldReferenceName);
+            Assert.Equal("Row", rule.RuleAxisName);
+            Assert.Equal((byte)0x02, rule.RuleType);
+            Assert.Equal("DataCells", rule.RuleTypeName);
+            Assert.Equal((byte)0, rule.RuleOptionFlags);
+            Assert.False(rule.RulePartialArea);
+            Assert.False(rule.RuleDataOnly);
+            Assert.False(rule.RuleLabelOnly);
+            Assert.False(rule.RuleCacheBased);
+            Assert.Equal((ushort)2, rule.RuleFilterCount);
+
+            LegacyXlsPivotTableRecord filter = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.Filter);
+            Assert.Null(filter.SheetName);
+            Assert.Equal("SxFilt", filter.RecordName);
+            Assert.Equal(2, filter.RuleFilters.Count);
+            LegacyXlsPivotRuleFilter rowFilter = filter.RuleFilters[0];
+            Assert.Equal("Row", rowFilter.AxisName);
+            Assert.Equal((short)0, rowFilter.FieldPosition);
+            Assert.Equal((short)0, rowFilter.FieldReferenceIndex);
+            Assert.Equal("FieldIndex:0", rowFilter.FieldReferenceName);
+            Assert.True(rowFilter.Selected);
+            Assert.Equal((ushort)0x0001, rowFilter.SubtotalFlags);
+            Assert.Equal("Data", Assert.Single(rowFilter.SubtotalFunctionNames));
+            Assert.Equal((ushort)1, rowFilter.ItemIndexCount);
+            LegacyXlsPivotRuleFilter dataFilter = filter.RuleFilters[1];
+            Assert.Equal("Data", dataFilter.AxisName);
+            Assert.Equal((short)0, dataFilter.FieldPosition);
+            Assert.Equal((short)-2, dataFilter.FieldReferenceIndex);
+            Assert.Equal("DataField", dataFilter.FieldReferenceName);
+            Assert.False(dataFilter.Selected);
+            Assert.Equal((ushort)0x0002, dataFilter.SubtotalFlags);
+            Assert.Equal("Default", Assert.Single(dataFilter.SubtotalFunctionNames));
+            Assert.Equal((ushort)0, dataFilter.ItemIndexCount);
 
             LegacyXlsPivotTableRecord grouping = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.GroupingRange);
             Assert.Equal("PivotMeta", grouping.SheetName);
@@ -1003,11 +1217,25 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, additionalEnd.AdditionalClassDepthBefore);
             Assert.Equal(0, additionalEnd.AdditionalClassDepthAfter);
             Assert.Equal("EndClass", additionalEnd.AdditionalClassTransition);
-            Assert.Equal(28, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
-            Assert.Equal(28, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.True(view.HasSupportedPivotTableMetadata);
+            Assert.True(field.HasSupportedPivotTableMetadata);
+            Assert.True(dataItem.HasSupportedPivotTableMetadata);
+            Assert.True(legacyDataItem.HasSupportedPivotTableMetadata);
+            Assert.True(cache.HasSupportedPivotTableMetadata);
+            Assert.True(filter.HasSupportedPivotTableMetadata);
+            Assert.True(additional.HasSupportedPivotTableMetadata);
+            Assert.Equal(3, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(3, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.PivotTable]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:Sxtbl"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxFormat"]);
+            Assert.Equal(1, report.UnsupportedFeaturesByDetail["PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:PivotChartBits"]);
+            Assert.DoesNotContain("PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxView", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:Sxdb", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxFilt", report.UnsupportedFeaturesByDetail.Keys);
+            Assert.DoesNotContain("PivotTable|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED|PivotTable:SxAddl", report.UnsupportedFeaturesByDetail.Keys);
 
             string markdown = report.ToMarkdown();
-            Assert.Contains("Pivot table records: 28", markdown);
+            Assert.Contains("Pivot table records: 32", markdown);
             Assert.Contains("Pivot Table Records By Kind", markdown);
             Assert.Contains("Pivot Table Records By Location", markdown);
             Assert.Contains("Pivot Table Records By Kind And Location", markdown);
@@ -1028,6 +1256,13 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Item Type Kinds", markdown);
             Assert.Contains("CacheItem:1", markdown);
             Assert.Contains("Pivot Table Formula Payload Lengths", markdown);
+            Assert.Contains("SxFmla\\|Bytes:9", markdown);
+            Assert.Contains("Pivot Table Formula Payload Kinds", markdown);
+            Assert.Contains("FormulaTokens", markdown);
+            Assert.Contains("Pivot Table Formula Token Byte Counts", markdown);
+            Assert.Contains("TokenBytes:7", markdown);
+            Assert.Contains("Pivot Table Formula Trailing Byte Counts", markdown);
+            Assert.Contains("TrailingBytes:0", markdown);
             Assert.Contains("Pivot Table Cache Item Kinds", markdown);
             Assert.Contains("Pivot Table Cache Stream Names", markdown);
             Assert.Contains("SxStreamId\\|0001", markdown);
@@ -1051,6 +1286,12 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Pivot Table Data Item Display Calculation Item Indexes", markdown);
             Assert.Contains("Pivot Table Data Item Number Formats", markdown);
             Assert.Contains("Pivot Table Data Item Names", markdown);
+            Assert.Contains("Sum of Amount", markdown);
+            Assert.Contains("Pivot Table Rule Filter Entry Counts", markdown);
+            Assert.Contains("Pivot Table Rule Filter States", markdown);
+            Assert.Contains("Pivot Table Calculated Field Formula Token Byte Counts", markdown);
+            Assert.Contains("CalculatedFieldFormulaTokens", markdown);
+            Assert.Contains("Axis:Row\\|Position:0\\|Field:FieldIndex:0\\|Selected:True\\|Subtotals:0x0001\\|Indexes:1", markdown);
             Assert.Contains("Pivot Table Grouping Kinds", markdown);
             Assert.Contains("Pivot Table Grouping Boundary States", markdown);
             Assert.Contains("Pivot Table Grouping Date Ranges", markdown);
@@ -1071,6 +1312,86 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Unsupported projection gaps: 0", markdown);
             Assert.Contains("SxVdEx", markdown);
             Assert.Contains("SxAddl", markdown);
+        }
+
+        [Fact]
+        public void LegacyXls_ImportReport_DecodesAxisWidthPivotTableLineItems() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5PivotTableLineItemAxisSlotWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+            LegacyXlsImportReport report = workbook.CreateImportReport();
+
+            Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
+            Assert.Equal(0, report.UnsupportedFeatureCount);
+            Assert.False(report.HasUnsupportedFeatures);
+            Assert.Equal(3, workbook.PivotTableRecords.Count);
+            Assert.Equal(3, report.PivotTableRecordCount);
+            Assert.Equal(1, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.View]);
+            Assert.Equal(2, report.PivotTableRecordsByKind[LegacyXlsPivotTableRecordKind.LineItem]);
+            Assert.Equal(1, report.PivotTableRecordsByName["SxView"]);
+            Assert.Equal(2, report.PivotTableRecordsByName["Sxli"]);
+            Assert.Equal(3, report.PivotTableRecordsByLocation["PivotSlots"]);
+            Assert.Equal(1, report.PivotTableViewFieldCounts["Fields:5;Rows:1;Columns:2;Pages:1;Data:1"]);
+            Assert.Equal(1, report.PivotTableViewLineCounts["Rows:4;Columns:8"]);
+            Assert.Equal(1, report.PivotTableLineItemCounts["LineItems:4"]);
+            Assert.Equal(1, report.PivotTableLineItemCounts["LineItems:8"]);
+            Assert.Equal(9, report.PivotTableLineItemTypes["LineItemType:0"]);
+            Assert.Equal(3, report.PivotTableLineItemTypes["LineItemType:13"]);
+            Assert.Equal(6, report.PivotTableLineItemEntryCounts["Entries:1"]);
+            Assert.Equal(6, report.PivotTableLineItemEntryCounts["Entries:2"]);
+            Assert.Equal(4, report.PivotTableLineItemEntrySlotCounts["Slots:1;Entries:1"]);
+            Assert.Equal(6, report.PivotTableLineItemEntrySlotCounts["Slots:2;Entries:2"]);
+            Assert.Equal(2, report.PivotTableLineItemEntrySlotCounts["Slots:2;Entries:1"]);
+            Assert.Equal(9, report.PivotTableLineItemEntryIndexes["EntryIndex:0"]);
+            Assert.Equal(6, report.PivotTableLineItemEntryIndexes["EntryIndex:1"]);
+            Assert.Equal(3, report.PivotTableLineItemEntryIndexes["EntryIndex:2"]);
+            Assert.Equal(3, report.PivotTableLineItemFlagStates["Subtotal:False;Block:False;Grand:False;MultiDataName:False;MultiDataOnAxis:False"]);
+            Assert.Equal(6, report.PivotTableLineItemFlagStates["Subtotal:False;Block:False;Grand:False;MultiDataName:False;MultiDataOnAxis:True"]);
+            Assert.Equal(1, report.PivotTableLineItemFlagStates["Subtotal:True;Block:False;Grand:True;MultiDataName:False;MultiDataOnAxis:False"]);
+            Assert.Equal(2, report.PivotTableLineItemFlagStates["Subtotal:True;Block:False;Grand:True;MultiDataName:True;MultiDataOnAxis:True"]);
+
+            LegacyXlsPivotTableRecord view = Assert.Single(workbook.PivotTableRecords, record => record.Kind == LegacyXlsPivotTableRecordKind.View);
+            Assert.Equal("PivotSlots", view.SheetName);
+            Assert.Equal((ushort)1, view.ViewRowFieldCount);
+            Assert.Equal((ushort)2, view.ViewColumnFieldCount);
+            Assert.Equal((ushort)4, view.ViewRowLineCount);
+            Assert.Equal((ushort)8, view.ViewColumnLineCount);
+            Assert.True(view.HasSupportedPivotTableMetadata);
+
+            LegacyXlsPivotTableRecord[] lineItemRecords = workbook.PivotTableRecords
+                .Where(record => record.Kind == LegacyXlsPivotTableRecordKind.LineItem)
+                .ToArray();
+            Assert.Equal(2, lineItemRecords.Length);
+            Assert.Equal(4, lineItemRecords[0].LineItems.Count);
+            Assert.Equal(8, lineItemRecords[1].LineItems.Count);
+            Assert.All(lineItemRecords, record => Assert.True(record.HasSupportedPivotTableMetadata));
+
+            LegacyXlsPivotLineItem rowGrandTotal = lineItemRecords[0].LineItems[3];
+            Assert.Equal(LegacyXlsPivotLineItemType.GrandTotal, rowGrandTotal.ItemTypeKind);
+            Assert.Equal(new short[] { 0 }, rowGrandTotal.EntryIndexes);
+            Assert.Equal(1, rowGrandTotal.EntrySlotCount);
+
+            LegacyXlsPivotLineItem firstColumnGrandTotal = lineItemRecords[1].LineItems[6];
+            Assert.Equal(LegacyXlsPivotLineItemType.GrandTotal, firstColumnGrandTotal.ItemTypeKind);
+            Assert.Equal(new short[] { 0 }, firstColumnGrandTotal.EntryIndexes);
+            Assert.Equal(2, firstColumnGrandTotal.EntrySlotCount);
+            Assert.True(firstColumnGrandTotal.GrandTotal);
+            Assert.True(firstColumnGrandTotal.MultiDataOnAxis);
+
+            LegacyXlsPivotLineItem secondColumnGrandTotal = lineItemRecords[1].LineItems[7];
+            Assert.Equal(LegacyXlsPivotLineItemType.GrandTotal, secondColumnGrandTotal.ItemTypeKind);
+            Assert.Equal(new short[] { 0 }, secondColumnGrandTotal.EntryIndexes);
+            Assert.Equal(2, secondColumnGrandTotal.EntrySlotCount);
+            Assert.True(secondColumnGrandTotal.GrandTotal);
+            Assert.True(secondColumnGrandTotal.MultiDataOnAxis);
+
+            string markdown = report.ToMarkdown();
+            Assert.Contains("Pivot Table Line Item Entry Slot Counts", markdown);
+            Assert.Contains("Slots:2;Entries:1", markdown);
+            Assert.Contains("Unsupported features: 0", markdown);
         }
 
         [Fact]
@@ -1120,7 +1441,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_ImportReport_ScansUnsupportedChartSheetSubstreams() {
+        public void LegacyXls_ImportReport_ScansChartSheetSubstreamsAsSupportedMetadata() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ChartSheetSubstreamWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
@@ -1132,50 +1453,55 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(workbook.Diagnostics, d => d.Severity == LegacyXlsDiagnosticSeverity.Error);
             LegacyXlsWorksheet sheet = Assert.Single(workbook.Worksheets);
             Assert.Equal("Data", sheet.Name);
-            LegacyXlsUnsupportedSheet unsupportedSheet = Assert.Single(workbook.UnsupportedSheets);
-            Assert.Equal("ChartOnly", unsupportedSheet.Name);
-            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, unsupportedSheet.Kind);
-            Assert.Equal(1, unsupportedSheet.ChartTextObjectCount);
-            Assert.Equal(43, unsupportedSheet.ChartRecordCount);
-            Assert.Equal(4, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
-            Assert.Equal(10, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Axis]);
-            Assert.Equal(3, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Series]);
-            Assert.Equal(9, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Formatting]);
-            Assert.Equal(3, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Layout]);
-            Assert.Equal(5, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.ChartType]);
-            Assert.Equal(6, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Text]);
-            Assert.Equal(3, unsupportedSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.FutureMetadata]);
-            Assert.Equal(1, unsupportedSheet.ChartRecordsByChartType["Scatter"]);
-            Assert.Equal(44, report.UnsupportedFeatureCount);
-            Assert.Equal(44, report.PreservedFeatureRecordCount);
+            Assert.Empty(workbook.UnsupportedSheets);
+            LegacyXlsChartSheet chartSheet = Assert.Single(workbook.ChartSheets);
+            Assert.Equal("ChartOnly", chartSheet.Name);
+            Assert.Equal(0x02, chartSheet.SheetType);
+            Assert.Equal(1, chartSheet.ChartTextObjectCount);
+            Assert.Equal(43, chartSheet.ChartRecordCount);
+            Assert.Equal(4, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Container]);
+            Assert.Equal(10, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Axis]);
+            Assert.Equal(3, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Series]);
+            Assert.Equal(9, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Formatting]);
+            Assert.Equal(3, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Layout]);
+            Assert.Equal(5, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.ChartType]);
+            Assert.Equal(6, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.Text]);
+            Assert.Equal(3, chartSheet.ChartRecordsByKind[LegacyXlsChartRecordKind.FutureMetadata]);
+            Assert.Equal(1, chartSheet.ChartRecordsByChartType["Scatter"]);
+            Assert.Equal(0, report.UnsupportedFeatureCount);
+            Assert.Equal(0, report.PreservedFeatureRecordCount);
             Assert.Equal(0, report.UnsupportedProjectionGapCount);
-            Assert.Equal(1, report.UnsupportedSheetsByKind[LegacyXlsUnsupportedSheetKind.ChartSheet]);
-            Assert.Equal(1, report.UnsupportedSheetsByType["0x02|ChartSheet"]);
-            Assert.Equal(1, report.UnsupportedSheetsByName["ChartOnly"]);
-            Assert.Equal(1, report.UnsupportedSheetMetadataRecordCount);
-            Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
-            Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
-            Assert.Equal(1, report.UnsupportedChartSheetChartRecordCounts["ChartRecords:43"]);
-            Assert.Equal(1, report.UnsupportedChartSheetChartRecordCountsBySheet["Sheet:ChartOnly;ChartRecords:43"]);
-            Assert.Equal(4, report.UnsupportedChartSheetChartRecordKinds["Container"]);
-            Assert.Equal(10, report.UnsupportedChartSheetChartRecordKinds["Axis"]);
-            Assert.Equal(3, report.UnsupportedChartSheetChartRecordKinds["Series"]);
-            Assert.Equal(9, report.UnsupportedChartSheetChartRecordKinds["Formatting"]);
-            Assert.Equal(3, report.UnsupportedChartSheetChartRecordKinds["Layout"]);
-            Assert.Equal(5, report.UnsupportedChartSheetChartRecordKinds["ChartType"]);
-            Assert.Equal(6, report.UnsupportedChartSheetChartRecordKinds["Text"]);
-            Assert.Equal(3, report.UnsupportedChartSheetChartRecordKinds["FutureMetadata"]);
-            Assert.Equal(1, report.UnsupportedChartSheetChartTypes["Scatter"]);
-            Assert.Equal(10, report.UnsupportedChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:Axis"]);
-            Assert.Equal(5, report.UnsupportedChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:ChartType"]);
-            Assert.Equal(1, report.UnsupportedChartSheetChartTypesBySheet["Sheet:ChartOnly;ChartType:Scatter"]);
-            Assert.Equal(1, report.UnsupportedChartSheetStates["PrintSize:Missing|TextObjects:Present|ChartRecords:Present|ChartTypes:Present"]);
+            Assert.Equal(1, report.ChartSheetCount);
+            Assert.Equal(1, report.ChartSheetsByType["0x02|ChartSheet"]);
+            Assert.Equal(1, report.ChartSheetsByName["ChartOnly"]);
+            Assert.Equal(1, report.ChartSheetsByVisibility["Visible"]);
+            Assert.Equal(1, report.ChartSheetMetadataRecordCount);
+            Assert.Equal(1, report.ChartSheetMetadataRecordsByKind["ChartTextObject"]);
+            Assert.Equal(1, report.ChartSheetTextObjectCounts["TextObjects:1"]);
+            Assert.Equal(1, report.ChartSheetChartRecordCounts["ChartRecords:43"]);
+            Assert.Equal(1, report.ChartSheetChartRecordCountsBySheet["Sheet:ChartOnly;ChartRecords:43"]);
+            Assert.Equal(4, report.ChartSheetChartRecordKinds["Container"]);
+            Assert.Equal(10, report.ChartSheetChartRecordKinds["Axis"]);
+            Assert.Equal(3, report.ChartSheetChartRecordKinds["Series"]);
+            Assert.Equal(9, report.ChartSheetChartRecordKinds["Formatting"]);
+            Assert.Equal(3, report.ChartSheetChartRecordKinds["Layout"]);
+            Assert.Equal(5, report.ChartSheetChartRecordKinds["ChartType"]);
+            Assert.Equal(6, report.ChartSheetChartRecordKinds["Text"]);
+            Assert.Equal(3, report.ChartSheetChartRecordKinds["FutureMetadata"]);
+            Assert.Equal(1, report.ChartSheetChartTypes["Scatter"]);
+            Assert.Equal(10, report.ChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:Axis"]);
+            Assert.Equal(5, report.ChartSheetChartRecordKindsBySheet["Sheet:ChartOnly;Kind:ChartType"]);
+            Assert.Equal(1, report.ChartSheetChartTypesBySheet["Sheet:ChartOnly;ChartType:Scatter"]);
+            Assert.Equal(1, report.ChartSheetStates["PrintSize:Missing|TextObjects:Present|ChartRecords:Present|ChartTypes:Present"]);
             Assert.Empty(report.UnsupportedChartSheetPrintSizes);
             Assert.Empty(report.UnsupportedChartSheetPrintSizeKinds);
-            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
-            Assert.Equal(43, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.ChartSheet]);
-            Assert.Equal(43, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Chart]);
+            Assert.Empty(report.UnsupportedChartSheetTextObjectCounts);
+            Assert.Empty(report.UnsupportedChartSheetChartRecordCounts);
+            Assert.Empty(report.UnsupportedChartSheetStates);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.ChartSheet, report.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.ChartSheet, report.PreservedFeatureRecordsByKind.Keys);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.Chart, report.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.Chart, report.PreservedFeatureRecordsByKind.Keys);
             Assert.Empty(report.UnsupportedProjectionGapsByKind);
             Assert.Empty(report.UnsupportedProjectionGapsByDetail);
             Assert.Equal(43, report.ChartRecordCount);
@@ -1354,90 +1680,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Unknown:0", textObjectRecord.TextObject.VerticalAlignmentName);
             Assert.Equal("None", textObjectRecord.TextObject.RotationName);
             Assert.Equal(2, textObjectRecord.TextObject.FormulaByteCount);
-            Assert.Equal(43, report.UnsupportedFeaturesByLocation["XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Begin"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFrtInfo"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:StartBlock"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:CatLab"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:EndBlock"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Units"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:DataFormat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Ifmt"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:LineFormat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Frame"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AreaFormat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:MarkerFormat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:PieFormat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AttachedLabel"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFormat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Axis"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ValueRange"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:CatSerRange"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Tick"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AxesUsed"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Series"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:SIIndex"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Scatter"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:DefaultText"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Text"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:FontX"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ObjectLink"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Legend"]);
-            Assert.Equal(3, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AxisLineFormat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AxcExt"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Dat"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Pos"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:BRAI"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:PlotGrowth"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:GelFrame"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:BopPopCustom"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Fbi2"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart3d"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart3DBarShape"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:End"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Begin"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFrtInfo"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:StartBlock"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:CatLab"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:EndBlock"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Units"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:DataFormat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Ifmt"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:LineFormat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Frame"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AreaFormat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:MarkerFormat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:PieFormat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AttachedLabel"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ChartFormat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Axis"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ValueRange"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:CatSerRange"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Tick"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AxesUsed"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Series"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:SIIndex"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Scatter"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:DefaultText"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Text"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:FontX"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:ObjectLink"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Legend"]);
-            Assert.Equal(3, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AxisLineFormat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:AxcExt"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Dat"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Pos"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:BRAI"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:PlotGrowth"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:GelFrame"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:BopPopCustom"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Fbi2"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart3d"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:Chart3DBarShape"]);
-            Assert.Equal(1, report.PreservedFeatureRecordsByDetail["Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|Chart:End"]);
-            Assert.Contains(workbook.PreservedFeatureRecords, record => record.SheetName == "ChartOnly" && record.DetailCode == "Chart:Chart");
+            Assert.DoesNotContain("XLS-BIFF-FEATURE-CHART-UNSUPPORTED|ChartOnly", report.UnsupportedFeaturesByLocation.Keys);
+            Assert.DoesNotContain(report.UnsupportedFeaturesByDetail.Keys, key => key.StartsWith("Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|", StringComparison.Ordinal));
+            Assert.DoesNotContain(report.PreservedFeatureRecordsByDetail.Keys, key => key.StartsWith("Chart|XLS-BIFF-FEATURE-CHART-UNSUPPORTED|", StringComparison.Ordinal));
+            Assert.DoesNotContain(workbook.PreservedFeatureRecords, record => record.SheetName == "ChartOnly" && record.DetailCode.StartsWith("Chart:", StringComparison.Ordinal));
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Begin" && record.ContainerDepthBefore == 0 && record.ContainerDepthAfter == 1 && record.ContainerTransition == "Begin");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "ChartFrtInfo" && record.Kind == LegacyXlsChartRecordKind.FutureMetadata);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "StartBlock" && record.Kind == LegacyXlsChartRecordKind.FutureMetadata);
@@ -1530,10 +1776,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "Scatter" && record.Kind == LegacyXlsChartRecordKind.ChartType && record.ChartTypeName == "Scatter" && record.ScatterOptions != null && record.ScatterOptions.BubbleSizeRatio == 150 && record.ScatterOptions.BubbleSizeRepresentation == 0x0002 && record.ScatterOptions.BubbleSizeRepresentationName == "Width" && record.ScatterOptions.HasKnownBubbleSizeRepresentation && record.ScatterOptions.HasValidBubbleSizeRatio && record.ScatterOptions.Flags == 0x0007 && record.ScatterOptions.IsBubbleChart && record.ScatterOptions.ShowNegativeBubbles && record.ScatterOptions.HasShadow);
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.RecordName == "End" && record.ContainerDepthBefore == 1 && record.ContainerDepthAfter == 0 && record.ContainerTransition == "End");
             Assert.Contains(workbook.ChartRecords, record => record.SheetName == "ChartOnly" && record.ChartTypeName == "Scatter");
-            Assert.Contains(workbook.Diagnostics, d => d.SheetName == "ChartOnly" && d.DetailCode == "Chart:Chart");
+            Assert.DoesNotContain(workbook.Diagnostics, d => d.SheetName == "ChartOnly" && d.DetailCode != null && d.DetailCode.StartsWith("Chart:", StringComparison.Ordinal));
+            Assert.DoesNotContain(workbook.Diagnostics, d => d.SheetName == "ChartOnly" && d.DetailCode == "Sheet:ChartSheet");
             string markdown = report.ToMarkdown();
             Assert.Contains("Chart Records By Rectangle", markdown);
-            Assert.Contains("Unsupported Chart Sheet States", markdown);
+            Assert.Contains("Chart Sheet States", markdown);
             Assert.Contains("Chart Records By Name And Payload Length", markdown);
             Assert.Contains("Chart Workbook States", markdown);
             Assert.Contains("Chart Records By Container Depth Before", markdown);
@@ -1606,9 +1853,9 @@ namespace OfficeIMO.Tests {
             Assert.Contains("Chart Frame Types", markdown);
             Assert.Contains("Chart Frame Auto States", markdown);
             Assert.Contains("Chart PlotGrowth Factors", markdown);
-            Assert.Contains("Unsupported Chart Sheet Chart Record Counts", markdown);
-            Assert.Contains("Unsupported Chart Sheet Chart Record Kinds", markdown);
-            Assert.Contains("Unsupported Chart Sheet Chart Types", markdown);
+            Assert.Contains("Chart Sheet Chart Record Counts", markdown);
+            Assert.Contains("Chart Sheet Chart Record Kinds", markdown);
+            Assert.Contains("Chart Sheet Chart Types", markdown);
         }
 
         [Fact]
@@ -2049,6 +2296,8 @@ namespace OfficeIMO.Tests {
             Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "Layout", chartRecords));
 
             LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal(LegacyXlsChartRecordKind.Layout, record.Kind);
+            Assert.True(record.HasSupportedChartMetadata);
             LegacyXlsChartLayout12? layout = record.Layout12;
             Assert.NotNull(layout);
             Assert.Equal(0x12345678u, layout!.Checksum);
@@ -2448,6 +2697,8 @@ namespace OfficeIMO.Tests {
             Assert.True(BiffChartMetadataReader.TryRead(chartRecord, "XmlTokens", chartRecords));
 
             LegacyXlsChartRecord record = Assert.Single(chartRecords);
+            Assert.Equal(LegacyXlsChartRecordKind.Extension, record.Kind);
+            Assert.True(record.HasSupportedChartMetadata);
             LegacyXlsChartXmlTokenChain? chain = record.XmlTokenChain;
             Assert.NotNull(chain);
             Assert.Equal(8u, chain!.DeclaredByteCount);
@@ -2664,7 +2915,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_Load_ReportsVbaProjectStorageAsPreserveOnly() {
+        public void LegacyXls_Load_ReportsVbaProjectStorageAsSupportedCompoundMetadata() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithVbaProjectStorage(workbookStream);
 
@@ -2674,11 +2925,9 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasImportErrors);
             Assert.Single(result.Document.Sheets);
-            LegacyXlsUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.VbaProject);
-            Assert.Equal("XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED", feature.Code);
-            Assert.Contains("_VBA_PROJECT_CUR", feature.Description);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED");
-            Assert.True(result.ImportReport.HasUnsupportedFeatures);
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.VbaProject);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED");
+            Assert.False(result.ImportReport.HasUnsupportedFeatures);
             LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
             Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, compoundRecord.Kind);
             Assert.Contains("_VBA_PROJECT_CUR", compoundRecord.Entries);
@@ -2710,9 +2959,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleCount["Modules:0"]);
             Assert.Equal(1, result.ImportReport.CompoundVbaProjectsByModuleByteCount["Bytes:0"]);
             Assert.Equal(1, result.ImportReport.VbaProjectWorkbookStates["BiffMarker:Missing|NoMacrosMarker:Missing|CompoundProject:Present|Modules:Missing"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.VbaProject]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["VbaProject|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED|Compound:VbaProjectStorage"]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.VbaProject, result.ImportReport.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain("XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED", result.ImportReport.UnsupportedFeaturesByCode.Keys);
+            Assert.DoesNotContain("VbaProject|XLS-COMPOUND-FEATURE-VBA-PROJECT-PRESERVED|Compound:VbaProjectStorage", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("VbaProject", markdown);
             Assert.Contains("Compound Feature Entries By Name", markdown);
@@ -2842,7 +3091,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_Load_ReportsOleObjectStorageAsPreserveOnly() {
+        public void LegacyXls_Load_ReportsOleObjectStorageAsSupportedCompoundMetadata() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithOleObjectStorage(workbookStream);
 
@@ -2852,11 +3101,9 @@ namespace OfficeIMO.Tests {
 
             Assert.False(result.HasImportErrors);
             Assert.Single(result.Document.Sheets);
-            LegacyXlsUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.OleObject);
-            Assert.Equal("XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED", feature.Code);
-            Assert.Contains("ObjectPool", feature.Description);
-            Assert.Contains(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED");
-            Assert.True(result.ImportReport.HasUnsupportedFeatures);
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.OleObject);
+            Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED");
+            Assert.False(result.ImportReport.HasUnsupportedFeatures);
             LegacyXlsCompoundFeatureRecord compoundRecord = Assert.Single(result.Workbook.CompoundFeatureRecords);
             Assert.Equal(LegacyXlsCompoundFeatureRecordKind.OleObject, compoundRecord.Kind);
             Assert.Contains("ObjectPool", compoundRecord.Entries);
@@ -2868,9 +3115,9 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByName["ObjectPool"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByRole["OleObjectPoolStorage"]);
             Assert.Equal(1, result.ImportReport.CompoundFeatureEntriesByKindAndRole["OleObject|OleObjectPoolStorage"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.OleObject]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED"]);
-            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByDetail["OleObject|XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED|Compound:OleObjectStorage"]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.OleObject, result.ImportReport.UnsupportedFeaturesByKind.Keys);
+            Assert.DoesNotContain("XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED", result.ImportReport.UnsupportedFeaturesByCode.Keys);
+            Assert.DoesNotContain("OleObject|XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED|Compound:OleObjectStorage", result.ImportReport.UnsupportedFeaturesByDetail.Keys);
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("OleObject", markdown);
             Assert.Contains("Compound Feature Entries By Name", markdown);

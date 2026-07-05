@@ -36,6 +36,14 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets whether the future-record header carries a cell range reference.</summary>
         public bool HasRange => (Flags & 0x0001) != 0;
 
+        /// <summary>Gets whether all range fields declared by the future-record flags were decoded.</summary>
+        public bool HasCompleteRangeReference =>
+            !HasRange
+            || (FirstRow.HasValue
+                && LastRow.HasValue
+                && FirstColumn.HasValue
+                && LastColumn.HasValue);
+
         /// <summary>Gets the zero-based first row of the attached range, when present.</summary>
         public ushort? FirstRow { get; }
 

@@ -44,6 +44,46 @@ namespace OfficeIMO.Word {
             return new WordComment(document, cmt, cmtEx);
         }
 
+        internal static WordComment Create(WordDocument document, string author, string initials, IReadOnlyList<Paragraph> paragraphs, WordComment? parent = null) {
+            if (paragraphs == null) throw new ArgumentNullException(nameof(paragraphs));
+
+            var comments = GetCommentsPart(document);
+            var commentsEx = GetCommentsExPart(document);
+            var paraId = GetNewParaId(commentsEx, comments);
+            Comment cmt = new Comment() {
+                Id = GetNewId(document),
+                Author = author,
+                Initials = initials,
+                Date = System.DateTime.Now
+            };
+
+            if (paragraphs.Count == 0) {
+                cmt.AppendChild(new Paragraph(new Run(new Text(string.Empty))) {
+                    ParagraphId = paraId
+                });
+            } else {
+                for (int index = 0; index < paragraphs.Count; index++) {
+                    Paragraph paragraph = (Paragraph)paragraphs[index].CloneNode(true);
+                    if (index == 0) {
+                        paragraph.ParagraphId = paraId;
+                    }
+                    cmt.AppendChild(paragraph);
+                }
+            }
+
+            comments.AppendChild(cmt);
+            comments.Save();
+
+            CommentEx cmtEx = new CommentEx() { ParaId = paraId };
+            if (parent != null) {
+                cmtEx.ParaIdParent = EnsureCommentParaId(parent, comments, commentsEx);
+            }
+            commentsEx.AppendChild(cmtEx);
+            commentsEx.Save();
+
+            return new WordComment(document, cmt, cmtEx);
+        }
+
 
         /// <summary>
         /// Retrieves all comments from the provided document.

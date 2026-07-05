@@ -5,6 +5,8 @@ namespace OfficeIMO.Word {
     public partial class WordDocument {
         private LegacyDocImportDiagnostic[] _legacyDocImportDiagnostics = Array.Empty<LegacyDocImportDiagnostic>();
         private LegacyDocUnsupportedFeature[] _legacyDocUnsupportedFeatures = Array.Empty<LegacyDocUnsupportedFeature>();
+        private LegacyDocPreservedFeature[] _legacyDocPreservedFeatures = Array.Empty<LegacyDocPreservedFeature>();
+        private LegacyDocCompoundFeature[] _legacyDocCompoundFeatures = Array.Empty<LegacyDocCompoundFeature>();
         private string? _legacyDocSourcePath;
 
         /// <summary>
@@ -27,10 +29,22 @@ namespace OfficeIMO.Word {
         /// </summary>
         public IReadOnlyList<LegacyDocUnsupportedFeature> LegacyDocUnsupportedFeatures => _legacyDocUnsupportedFeatures;
 
+        /// <summary>
+        /// Gets preserve-only non-compound feature metadata discovered while importing the legacy `.doc` document.
+        /// </summary>
+        public IReadOnlyList<LegacyDocPreservedFeature> LegacyDocPreservedFeatures => _legacyDocPreservedFeatures;
+
+        /// <summary>
+        /// Gets preserve-only compound storage discovered while importing the legacy `.doc` document.
+        /// </summary>
+        public IReadOnlyList<LegacyDocCompoundFeature> LegacyDocCompoundFeatures => _legacyDocCompoundFeatures;
+
         internal void MarkLoadedFromLegacyDoc(string? sourcePath, LegacyDocDocument document, bool attachSourcePathForSave = false) {
             WasLoadedFromLegacyDoc = true;
             _legacyDocSourcePath = sourcePath;
             _legacyDocImportDiagnostics = document.Diagnostics.ToArray();
+            _legacyDocPreservedFeatures = document.PreservedFeatures.ToArray();
+            _legacyDocCompoundFeatures = document.CompoundFeatures.ToArray();
             _legacyDocUnsupportedFeatures = document.UnsupportedFeatures.ToArray();
             FilePath = attachSourcePathForSave && sourcePath != null
                 ? sourcePath

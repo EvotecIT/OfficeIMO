@@ -108,10 +108,14 @@ namespace OfficeIMO.Tests {
             Assert.Contains("External References By Sheet Table State", markdown);
             Assert.Contains("External Cell Caches By Cell Range", markdown);
             Assert.Contains("External Cached Cells By Value Kind", markdown);
-            Assert.Contains(workbook.UnsupportedFeatures, feature =>
+            Assert.DoesNotContain(workbook.UnsupportedFeatures, feature =>
                 feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference
                 && feature.DetailCode == "ExternalReference:ExternalWorkbook"
                 && feature.RecordType == 0x01ae);
+            Assert.DoesNotContain(workbook.Diagnostics, diagnostic =>
+                diagnostic.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED"
+                && diagnostic.DetailCode == "ExternalReference:ExternalWorkbook"
+                && diagnostic.RecordType == 0x01ae);
             Assert.DoesNotContain(workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0059 || feature.RecordType == 0x005a);
         }
 

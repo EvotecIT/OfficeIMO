@@ -23,6 +23,7 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         private readonly List<LegacyXlsDataConsolidationName> _dataConsolidationNames = new();
         private readonly List<LegacyXlsPivotTableRecord> _pivotTableRecords = new();
         private readonly List<LegacyXlsChartRecord> _chartRecords = new();
+        private readonly List<LegacyXlsChartSheet> _chartSheets = new();
         private readonly List<LegacyXlsDrawingRecord> _drawingRecords = new();
         private readonly List<LegacyXlsThemeRecord> _themeRecords = new();
         private readonly List<LegacyXlsDifferentialFormat> _differentialFormats = new();
@@ -114,12 +115,17 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         public IReadOnlyList<LegacyXlsChartRecord> ChartRecords => _chartRecords;
 
         /// <summary>
+        /// Gets legacy chart sheets decoded from chart-sheet substreams.
+        /// </summary>
+        public IReadOnlyList<LegacyXlsChartSheet> ChartSheets => _chartSheets;
+
+        /// <summary>
         /// Gets preserve-only drawing and object BIFF records discovered during import.
         /// </summary>
         public IReadOnlyList<LegacyXlsDrawingRecord> DrawingRecords => _drawingRecords;
 
         /// <summary>
-        /// Gets preserve-only workbook Theme records discovered during import.
+        /// Gets workbook Theme records discovered during import.
         /// </summary>
         public IReadOnlyList<LegacyXlsThemeRecord> ThemeRecords => _themeRecords;
 
@@ -348,6 +354,8 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal List<LegacyXlsPivotTableRecord> MutablePivotTableRecords => _pivotTableRecords;
 
         internal List<LegacyXlsChartRecord> MutableChartRecords => _chartRecords;
+
+        internal List<LegacyXlsChartSheet> MutableChartSheets => _chartSheets;
 
         internal List<LegacyXlsDrawingRecord> MutableDrawingRecords => _drawingRecords;
 

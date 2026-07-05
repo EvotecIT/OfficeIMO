@@ -70,12 +70,16 @@ namespace OfficeIMO.Excel {
                 return;
             }
 
-            int unsupportedCount = document.LegacyXlsUnsupportedFeatures.Count + document.LegacyXlsUnsupportedSheets.Count;
-            if (unsupportedCount == 0) {
+            int lossyFeatureCount = document.LegacyXlsUnsupportedFeatures.Count
+                + document.LegacyXlsUnsupportedSheets.Count
+                + document.LegacyXlsCompoundFeatures.Count(feature =>
+                    feature.Kind == LegacyXls.Model.LegacyXlsCompoundFeatureRecordKind.VbaProject
+                    || feature.Kind == LegacyXls.Model.LegacyXlsCompoundFeatureRecordKind.OleObject);
+            if (lossyFeatureCount == 0) {
                 return;
             }
 
-            throw new NotSupportedException($"Legacy XLS conversion is blocked because the source contains {unsupportedCount} unsupported or preserve-only feature(s). Review LegacyXlsUnsupportedFeatures and LegacyXlsUnsupportedSheets or set ExcelDocumentConversionOptions.AllowLossyLegacyConversion when that loss is intentional.");
+            throw new NotSupportedException($"Legacy XLS conversion is blocked because the source contains {lossyFeatureCount} unsupported, preserve-only, or non-projected feature(s). Review LegacyXlsUnsupportedFeatures, LegacyXlsUnsupportedSheets, LegacyXlsChartSheets, and LegacyXlsCompoundFeatures or set ExcelDocumentConversionOptions.AllowLossyLegacyConversion when that loss is intentional.");
         }
 
         private static void ValidateExcelConversionPaths(string sourcePath, string destinationPath, bool overwrite) {

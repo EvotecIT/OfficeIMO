@@ -2,6 +2,12 @@ using OfficeIMO.Excel.LegacyXls.Model;
 
 namespace OfficeIMO.Excel.LegacyXls.Biff {
     internal static class BiffConditionalFormattingReader {
+        private const int CfExFIsCf12Offset = 12;
+        private const int CfExNIdOffset = 16;
+        private const int CfExNonCf12Offset = 18;
+        private const int CfExNonCf12FixedSize = 8;
+        private const int DxfN12ByteCountSize = 4;
+
         internal static bool TryReadHeader(byte[] payload, out ushort ruleCount, out ushort headerId, out IReadOnlyList<string> ranges) {
             ruleCount = 0;
             headerId = 0;
@@ -11,7 +17,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             ushort ccf = BiffRecordReader.ReadUInt16(payload, 0);
-            headerId = BiffRecordReader.ReadUInt16(payload, 2);
+            headerId = (ushort)(BiffRecordReader.ReadUInt16(payload, 2) >> 1);
             if (ccf == 0 || ccf > 1024) {
                 return false;
             }
@@ -93,25 +99,30 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             priority = null;
             stopIfTrue = false;
             hasUnprojectedFormatting = false;
-            if (payload.Length < 14 || BiffRecordReader.ReadUInt16(payload, 0) != (ushort)BiffRecordType.CfEx) {
+            if (payload.Length < CfExNonCf12Offset || BiffRecordReader.ReadUInt16(payload, 0) != (ushort)BiffRecordType.CfEx) {
                 return false;
             }
 
-            isCf12 = BiffRecordReader.ReadUInt32(payload, 12) != 0;
+            isCf12 = BiffRecordReader.ReadUInt32(payload, CfExFIsCf12Offset) != 0;
             ushort? parsedHeaderId = null;
             ushort? parsedRuleIndex = null;
             bool? parsedStopIfTrue = null;
             int? inlineFormattingByteCount = null;
-            if (!isCf12 && payload.Length >= 43) {
-                parsedHeaderId = BiffRecordReader.ReadUInt16(payload, 16);
-                int contentOffset = 18;
+            if (!isCf12 && payload.Length >= CfExNonCf12Offset + CfExNonCf12FixedSize) {
+                parsedHeaderId = BiffRecordReader.ReadUInt16(payload, CfExNIdOffset);
+                int contentOffset = CfExNonCf12Offset;
                 parsedRuleIndex = BiffRecordReader.ReadUInt16(payload, contentOffset);
                 priority = BiffRecordReader.ReadUInt16(payload, contentOffset + 4);
                 byte flags = payload[contentOffset + 6];
                 parsedStopIfTrue = (flags & 0x02) != 0;
-                hasUnprojectedFormatting = payload[contentOffset + 7] != 0;
-                if (hasUnprojectedFormatting && payload.Length > contentOffset + 8) {
-                    inlineFormattingByteCount = payload[contentOffset + 8];
+                bool hasInlineFormatting = payload[contentOffset + 7] != 0;
+                if (hasInlineFormatting) {
+                    int dxfOffset = contentOffset + CfExNonCf12FixedSize;
+                    hasUnprojectedFormatting = true;
+                    if (dxfOffset + DxfN12ByteCountSize <= payload.Length) {
+                        uint byteCount = BiffRecordReader.ReadUInt32(payload, dxfOffset);
+                        inlineFormattingByteCount = checked((int)byteCount);
+                    }
                 }
             }
 
@@ -141,17 +152,21 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
         internal static bool TryReadRule(
             byte[] payload,
+            LegacyXlsWorkbook workbook,
+            int recordOffset,
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
             IReadOnlyList<string?> definedNames,
             IReadOnlyList<string> ranges,
             out LegacyXlsConditionalFormatting? conditionalFormatting) {
-            return TryReadRule(payload, externSheets, externalReferences, sheetNames, definedNames, ranges, out conditionalFormatting, out _);
+            return TryReadRule(payload, workbook, recordOffset, externSheets, externalReferences, sheetNames, definedNames, ranges, out conditionalFormatting, out _);
         }
 
         internal static bool TryReadRule(
             byte[] payload,
+            LegacyXlsWorkbook workbook,
+            int recordOffset,
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
@@ -159,11 +174,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<string> ranges,
             out LegacyXlsConditionalFormatting? conditionalFormatting,
             out BiffFormulaReadFailure? formulaFailure) {
-            return TryReadRule(payload, externSheets, externalReferences, sheetNames, definedNames, ranges, out conditionalFormatting, out formulaFailure, out _);
+            return TryReadRule(payload, workbook, recordOffset, externSheets, externalReferences, sheetNames, definedNames, ranges, out conditionalFormatting, out formulaFailure, out _);
         }
 
         internal static bool TryReadRule(
             byte[] payload,
+            LegacyXlsWorkbook workbook,
+            int recordOffset,
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
@@ -188,7 +205,20 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 return false;
             }
 
-            hasInlineFormatting = formulaStart > 6;
+            bool containsInlineFormatting = formulaStart > 6;
+            LegacyXlsDifferentialFormat? differentialFormat = null;
+            if (containsInlineFormatting
+                && !BiffInlineDifferentialFormatReader.TryReadDxfN(
+                    payload,
+                    6,
+                    formulaStart - 6,
+                    workbook,
+                    (ushort)BiffRecordType.Cf,
+                    recordOffset,
+                    out differentialFormat)) {
+                hasInlineFormatting = true;
+            }
+
             BiffFormulaAnchor.TryGetFirstRangeAnchor(ranges, out int formulaRow, out int formulaColumn);
             if (!TryReadFormula(payload, formulaStart, formula1Length, formulaRow, formulaColumn, externSheets, externalReferences, sheetNames, definedNames, out string? formula1, out formulaFailure)) {
                 return false;
@@ -215,7 +245,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     @operator,
                     formula1!,
                     string.IsNullOrWhiteSpace(formula2) ? null : formula2,
-                    ranges);
+                    ranges,
+                    differentialFormat: differentialFormat);
                 return true;
             }
 
@@ -229,7 +260,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     null,
                     formula1!,
                     null,
-                    ranges);
+                    ranges,
+                    differentialFormat: differentialFormat);
                 return true;
             }
 

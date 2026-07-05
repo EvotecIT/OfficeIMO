@@ -22,12 +22,20 @@ public static partial class DocumentReader {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
+        if (IsLegacyBinaryOfficeExtension(path)) {
+            return Array.Empty<OfficeDocumentAsset>();
+        }
+
         using var stream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete);
         return ReadOpenXmlImageAssets(stream, path, kind, opt, cancellationToken);
     }
 
     private static IReadOnlyList<OfficeDocumentAsset> ReadOpenXmlImageAssets(Stream stream, string sourceName, ReaderInputKind kind, ReaderOptions opt, CancellationToken cancellationToken) {
         if (kind != ReaderInputKind.Word && kind != ReaderInputKind.PowerPoint && kind != ReaderInputKind.Excel) {
+            return Array.Empty<OfficeDocumentAsset>();
+        }
+
+        if (IsLegacyBinaryOfficeExtension(sourceName)) {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
@@ -51,13 +59,22 @@ public static partial class DocumentReader {
                 : PresentationDocument.Open(stream, false, openSettings);
             CollectPowerPointImageAssets(document, sourceName, opt, assets, payloadCache, ref totalPayloadBytes, cancellationToken);
         } else if (kind == ReaderInputKind.Excel) {
-            using SpreadsheetDocument document = openSettings == null
-                ? SpreadsheetDocument.Open(stream, false)
-                : SpreadsheetDocument.Open(stream, false, openSettings);
-            CollectExcelImageAssets(document, sourceName, opt, assets, payloadCache, ref totalPayloadBytes, cancellationToken);
+            try {
+                using SpreadsheetDocument document = openSettings == null
+                    ? SpreadsheetDocument.Open(stream, false)
+                    : SpreadsheetDocument.Open(stream, false, openSettings);
+                CollectExcelImageAssets(document, sourceName, opt, assets, payloadCache, ref totalPayloadBytes, cancellationToken);
+            } catch (Exception exception) when (ShouldSkipExcelImageAssetsAfterPasswordedOpenFailure(exception, opt)) {
+                return Array.Empty<OfficeDocumentAsset>();
+            }
         }
 
         return assets.Count == 0 ? Array.Empty<OfficeDocumentAsset>() : assets;
+    }
+
+    private static bool ShouldSkipExcelImageAssetsAfterPasswordedOpenFailure(Exception exception, ReaderOptions opt) {
+        return !string.IsNullOrEmpty(opt.OpenPassword)
+            && (exception is OpenXmlPackageException || exception is FileFormatException);
     }
 
     private static void CollectWordImageAssets(WordprocessingDocument document, string sourceName, ReaderOptions opt, List<OfficeDocumentAsset> assets, Dictionary<Uri, OpenXmlImagePayload> payloadCache, ref long totalPayloadBytes, CancellationToken cancellationToken) {

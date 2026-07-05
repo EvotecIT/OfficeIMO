@@ -324,6 +324,129 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_XorPasswordVerifier_MatchesKnownExcelVector() {
+            Assert.Equal(0x9A0A, BiffXorObfuscation.CreatePasswordVerifier("VelvetSweatshop"));
+        }
+
+        [Fact]
+        public void LegacyXls_XorPasswordHelpers_TruncateLongPasswordsBeforeDerivingKeys() {
+            string maxLengthPassword = "123456789012345";
+            string longPassword = maxLengthPassword + "67890";
+
+            Assert.Equal(BiffXorObfuscation.CreateXorKey(maxLengthPassword), BiffXorObfuscation.CreateXorKey(longPassword));
+            Assert.Equal(BiffXorObfuscation.CreatePasswordVerifier(maxLengthPassword), BiffXorObfuscation.CreatePasswordVerifier(longPassword));
+            Assert.Equal(
+                BiffXorObfuscation.ObfuscateWorkbookStream(Array.Empty<byte>(), maxLengthPassword),
+                BiffXorObfuscation.ObfuscateWorkbookStream(Array.Empty<byte>(), longPassword));
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ImportsXorObfuscatedWorkbookWithPassword() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateXorObfuscatedWorkbookStream("openpass");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true,
+                Password = "openpass"
+            });
+
+            Assert.True(result.HasDocument);
+            Assert.False(result.HasImportErrors);
+            Assert.Equal(1, result.ImportReport.WorksheetCount);
+            Assert.Equal(0, result.ImportReport.UnsupportedFeatureCount);
+            Assert.Empty(result.Workbook.UnsupportedFeatures);
+            Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Code.StartsWith("XLS-BIFF-FILEPASS", StringComparison.Ordinal));
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.Equal("XorSheet", sheet.Name);
+            Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "XOR secret"));
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell projectedCell = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
+            Assert.Equal(CellValues.SharedString, projectedCell.DataType!.Value);
+            int sharedStringIndex = int.Parse(projectedCell.CellValue!.Text, CultureInfo.InvariantCulture);
+            Assert.Equal("XOR secret", spreadsheet.WorkbookPart.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>().ElementAt(sharedStringIndex).InnerText);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_RejectsXorObfuscatedWorkbookWithWrongPassword() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateXorObfuscatedWorkbookStream("openpass");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true,
+                Password = "wrongpass"
+            });
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+
+            Assert.Empty(legacy.Worksheets);
+            Assert.Empty(legacy.UnsupportedFeatures);
+            Assert.Contains(legacy.Diagnostics, diagnostic =>
+                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
+                && diagnostic.Code == "XLS-BIFF-FILEPASS-PASSWORD-INVALID"
+                && diagnostic.DetailCode == "Encryption:FilePass:XorObfuscation");
+            Assert.True(report.HasImportErrors);
+            Assert.Equal(0, report.UnsupportedFeatureCount);
+            Assert.Equal(1, report.ErrorCount);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ImportsRc4EncryptedWorkbookWithPassword() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream("openpass");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true,
+                Password = "openpass"
+            });
+
+            Assert.True(result.HasDocument);
+            Assert.False(result.HasImportErrors);
+            Assert.Equal(1, result.ImportReport.WorksheetCount);
+            Assert.Equal(0, result.ImportReport.UnsupportedFeatureCount);
+            Assert.Empty(result.Workbook.UnsupportedFeatures);
+            Assert.DoesNotContain(result.Workbook.Diagnostics, diagnostic => diagnostic.Code.StartsWith("XLS-BIFF-FILEPASS", StringComparison.Ordinal));
+
+            LegacyXlsWorksheet sheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.Equal("Rc4Sheet", sheet.Name);
+            Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "RC4 secret"));
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            Cell projectedCell = worksheetPart.Worksheet.Descendants<Cell>().Single(cell => cell.CellReference!.Value == "A1");
+            Assert.Equal(CellValues.SharedString, projectedCell.DataType!.Value);
+            int sharedStringIndex = int.Parse(projectedCell.CellValue!.Text, CultureInfo.InvariantCulture);
+            Assert.Equal("RC4 secret", spreadsheet.WorkbookPart.SharedStringTablePart!.SharedStringTable.Elements<SharedStringItem>().ElementAt(sharedStringIndex).InnerText);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_RejectsRc4EncryptedWorkbookWithWrongPassword() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream("openpass");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true,
+                Password = "wrongpass"
+            });
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+
+            Assert.Empty(legacy.Worksheets);
+            Assert.Empty(legacy.UnsupportedFeatures);
+            Assert.Contains(legacy.Diagnostics, diagnostic =>
+                diagnostic.Severity == LegacyXlsDiagnosticSeverity.Error
+                && diagnostic.Code == "XLS-BIFF-FILEPASS-PASSWORD-INVALID"
+                && diagnostic.DetailCode == "Encryption:FilePass:Rc4");
+            Assert.True(report.HasImportErrors);
+            Assert.Equal(0, report.UnsupportedFeatureCount);
+            Assert.Equal(1, report.ErrorCount);
+        }
+
+        [Fact]
         public void LegacyXls_LoadLegacyXlsWithReport_ReturnsReportWhenLegacyWorkbookHasNoSheets() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEncryptedWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -345,7 +468,7 @@ namespace OfficeIMO.Tests {
 
         [Fact]
         public void LegacyXls_Load_ReportsRc4EncryptedWorkbookMethod() {
-            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream();
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMalformedRc4EncryptedWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
             LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound);
@@ -426,8 +549,11 @@ namespace OfficeIMO.Tests {
             Assert.Contains(legacy.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.TypeLibraryGuid && record.HasMatchingFutureRecordHeader);
             Assert.Contains(legacy.FutureMetadataRecords, record => record.Kind == LegacyXlsWorkbookMetadataKind.HeaderFooter && record.HasMatchingFutureRecordHeader);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DbQueryExt");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && feature.DetailCode == "PivotTable:Sxvs");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DbQueryExt");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PivotTable && feature.DetailCode == "PivotTable:Sxvs");
+            LegacyXlsPivotTableRecord cacheSourceRecord = Assert.Single(legacy.PivotTableRecords, record => record.RecordName == "Sxvs");
+            Assert.Equal(LegacyXlsPivotTableRecordKind.CacheSource, cacheSourceRecord.Kind);
+            Assert.True(cacheSourceRecord.HasSupportedPivotTableMetadata);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.FeatureExtension && feature.DetailCode == "FeatureExtension:Feat");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting && feature.DetailCode == "ConditionalFormatting:Dxf");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableStyle && feature.DetailCode == "TableStyle:TableStyles");
@@ -436,9 +562,14 @@ namespace OfficeIMO.Tests {
             Assert.Equal(124226U, themeRecord.ThemeVersion);
             Assert.Equal("Default", themeRecord.ThemeVersionName);
             Assert.False(themeRecord.HasThemeBytes);
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme && feature.DetailCode == "Theme:Theme" && feature.RecordType == 0x0896);
+            Assert.True(themeRecord.IsDefaultThemeMarker);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme && feature.DetailCode == "Theme:Theme" && feature.RecordType == 0x0896);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:ShapePropsStream");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart && feature.DetailCode == "Chart:CrtLayout12");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Chart && feature.DetailCode == "Chart:CrtLayout12");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.PhoneticGuide);
+            LegacyXlsChartRecord layoutRecord = Assert.Single(legacy.ChartRecords, record => record.RecordName == "CrtLayout12");
+            Assert.Equal(LegacyXlsChartRecordKind.Layout, layoutRecord.Kind);
+            Assert.True(layoutRecord.HasSupportedChartMetadata);
             Assert.Contains(legacy.Worksheets, sheet => sheet.PhoneticSettings != null);
             Assert.Contains(legacy.Worksheets.SelectMany(sheet => sheet.MetadataRecords), record => record.Kind == LegacyXlsWorksheetMetadataKind.PhoneticSettings && record.RecordType == (ushort)BiffRecordType.PhoneticInfo);
             Assert.Equal(legacy.UnsupportedFeatures.Count, legacy.PreservedFeatureRecords.Count);
@@ -485,7 +616,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, report.ExternalQueryConnectionsByHtmlFormat["HtmlFormat:0x0003"]);
             Assert.Equal(1, report.ExternalQueryConnectionsByVersionTriplet["Edit:3;Refreshed:2;RefreshableMin:1"]);
             Assert.Equal(1, report.ExternalQueryConnectionsBySourceSpecificFlags["Flags:0x010A"]);
-            Assert.Equal(1, report.UnsupportedFeaturesByDetail["ExternalReference|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED|ExternalReference:DbQueryExt"]);
+            Assert.DoesNotContain("ExternalReference|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED|ExternalReference:DbQueryExt", report.UnsupportedFeaturesByDetail.Keys);
             Assert.Equal(1, report.ThemeRecordsByVersion["Default"]);
             Assert.Equal(1, report.ThemeRecordsByRawVersion["Version:124226"]);
             Assert.Equal(1, report.ThemeRecordsByContentState["NoEmbeddedThemeBytes"]);
@@ -493,6 +624,42 @@ namespace OfficeIMO.Tests {
             Assert.Contains("External query connections: 1", markdown, StringComparison.Ordinal);
             Assert.Contains("External Query Connections By Source Type", markdown, StringComparison.Ordinal);
             Assert.Contains("Preserved Feature Records By Kind", markdown, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void LegacyXls_LoadLegacyXls_ProjectsExternalQueryConnectionMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateKnownPreserveOnlyExtensionWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature =>
+                feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference
+                && feature.DetailCode == "ExternalReference:DbQueryExt");
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            OpenXmlPart connectionPart = Assert.Single(
+                spreadsheet.WorkbookPart!.Parts.Select(part => part.OpenXmlPart),
+                part => part.ContentType.IndexOf("connections", StringComparison.OrdinalIgnoreCase) >= 0);
+
+            using Stream connectionStream = connectionPart.GetStream(FileMode.Open, FileAccess.Read);
+            using var reader = new StreamReader(connectionStream);
+            string connectionXml = reader.ReadToEnd();
+            Assert.Contains("<connections", connectionXml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("count=\"1\"", connectionXml, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("name=\"LegacyXlsQuery1\"", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("type=\"5\"", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("refreshedVersion=\"2\"", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("minRefreshableVersion=\"1\"", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("interval=\"15\"", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("Legacy XLS DBQueryExt metadata", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("Source=OleDb", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("Flags=MaintainConnection,NewQuery,SourceIsXml", connectionXml, StringComparison.Ordinal);
+            Assert.Contains("QueryOptions=TextWizardQuery,TableNames", connectionXml, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -508,7 +675,7 @@ namespace OfficeIMO.Tests {
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.UnsupportedRecord);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.Formula && feature.DetailCode == "Formula:Array");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.WorksheetProtection);
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:HFPicture");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:HFPicture");
             Assert.Equal(legacy.UnsupportedFeatures.Count, legacy.PreservedFeatureRecords.Count);
             LegacyXlsWorksheet sheet = Assert.Single(legacy.Worksheets);
             Assert.NotNull(sheet.Protection);
@@ -518,14 +685,90 @@ namespace OfficeIMO.Tests {
             LegacyXlsImportReport report = legacy.CreateImportReport();
             Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.Formula]);
             Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.WorksheetProtection, report.UnsupportedFeaturesByKind.Keys);
-            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.DrawingObject, report.UnsupportedFeaturesByKind.Keys);
             Assert.Equal(1, report.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.Formula]);
             Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.WorksheetProtection, report.PreservedFeatureRecordsByKind.Keys);
             Assert.Equal(1, report.DrawingRecordsByKind[LegacyXlsDrawingRecordKind.HeaderFooterPicture]);
             Assert.Equal(1, report.DrawingRecordsByName["HFPicture"]);
+            Assert.Equal(1, report.DrawingHeaderFooterPictureHeaderStates["Complete"]);
+            Assert.Equal(1, report.DrawingHeaderFooterPictureDrawingKinds["Drawing"]);
+            Assert.Equal(1, report.DrawingHeaderFooterPictureContinuationStates["First"]);
             Assert.Equal(1, report.WorksheetProtectionObjectStates["Protected"]);
             Assert.Equal(1, report.WorksheetProtectionScenarioStates["Protected"]);
             Assert.Equal(1, report.UnsupportedFeaturesByDetail["Formula|XLS-BIFF-FEATURE-FORMULA-UNSUPPORTED|Formula:Array"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:HFPicture", report.UnsupportedFeaturesByDetail.Keys);
+            LegacyXlsDrawingRecord headerFooterPicture = Assert.Single(legacy.DrawingRecords, record => record.Kind == LegacyXlsDrawingRecordKind.HeaderFooterPicture);
+            Assert.True(headerFooterPicture.HasHeaderFooterPicture);
+            Assert.True(headerFooterPicture.HasSupportedHeaderFooterPictureMetadata);
+            Assert.True(headerFooterPicture.OfficeArtPayloadFullyTraversed);
+            Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer, headerFooterPicture.EscherRecordTypeKind);
+            Assert.Equal("Drawing", headerFooterPicture.HeaderFooterPicture?.DrawingKindName);
+            Assert.Equal("First", headerFooterPicture.HeaderFooterPicture?.ContinuationState);
+            Assert.Equal(new[] {
+                "OfficeArtDgContainer",
+                "OfficeArtFDG",
+                "OfficeArtSpContainer",
+                "OfficeArtFSP",
+                "OfficeArtFOPT",
+                "OfficeArtFClientAnchor",
+                "OfficeArtChildAnchor"
+            }, headerFooterPicture.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
+        }
+
+        [Fact]
+        public void LegacyXls_LoadLegacyXls_ProjectsHeaderFooterPictureBlipToOpenXmlHeaderImage() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateHeaderFooterPictureImageWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsDrawingBlipStoreEntry blip = Assert.Single(result.Workbook.DrawingRecords.SelectMany(record => record.BlipStoreEntries));
+            Assert.True(blip.HasImportableImagePayload);
+            Assert.Equal("image/png", blip.EmbeddedBlipContentType);
+            Assert.DoesNotContain(result.UnsupportedFeatures, feature =>
+                feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject
+                && feature.DetailCode == "Drawing:HFPicture");
+
+            ExcelSheet.HeaderFooterSnapshot headerFooter = result.Document.Sheets.Single().GetHeaderFooter();
+            Assert.True(headerFooter.HeaderHasPicturePlaceholder);
+            Assert.NotNull(headerFooter.HeaderCenterImage);
+            Assert.Equal(HeaderFooterPosition.Center, headerFooter.HeaderCenterImage!.Position);
+            Assert.Equal("image/png", headerFooter.HeaderCenterImage.ContentType);
+            Assert.Equal(blip.EmbeddedBlipPayloadBytes, headerFooter.HeaderCenterImage.Bytes);
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+            VmlDrawingPart vmlPart = Assert.Single(worksheetPart.VmlDrawingParts);
+            ImagePart imagePart = Assert.Single(vmlPart.ImageParts);
+            Assert.Equal("image/png", imagePart.ContentType);
+            using var imageStream = new MemoryStream();
+            imagePart.GetStream().CopyTo(imageStream);
+            Assert.Equal(blip.EmbeddedBlipPayloadBytes, imageStream.ToArray());
+        }
+
+        [Fact]
+        public void LegacyXls_Load_KeepsEmptyHeaderFooterPictureUnsupported() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEmptyHeaderFooterPictureWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject && feature.DetailCode == "Drawing:HFPicture");
+            LegacyXlsDrawingRecord headerFooterPicture = Assert.Single(legacy.DrawingRecords, record => record.Kind == LegacyXlsDrawingRecordKind.HeaderFooterPicture);
+            Assert.True(headerFooterPicture.HasHeaderFooterPicture);
+            Assert.False(headerFooterPicture.HasSupportedHeaderFooterPictureMetadata);
+            Assert.Empty(headerFooterPicture.OfficeArtRecords);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.DrawingObject]);
+            Assert.Equal(1, report.DrawingHeaderFooterPictureHeaderStates["MismatchedFutureRecordHeader"]);
+            Assert.Equal(1, report.DrawingHeaderFooterPictureDrawingByteCounts["DrawingBytes:0"]);
         }
 
         [Fact]
@@ -551,7 +794,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_Load_PreservesChartSheetPrintSizeMetadata() {
+        public void LegacyXls_Load_DecodesChartSheetPrintSizeMetadata() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateUnsupportedChartSheetWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
@@ -559,8 +802,8 @@ namespace OfficeIMO.Tests {
                 ReportUnsupportedRecords = true
             });
 
-            LegacyXlsUnsupportedSheet chartSheet = Assert.Single(legacy.UnsupportedSheets);
-            Assert.Equal(LegacyXlsUnsupportedSheetKind.ChartSheet, chartSheet.Kind);
+            Assert.Empty(legacy.UnsupportedSheets);
+            LegacyXlsChartSheet chartSheet = Assert.Single(legacy.ChartSheets);
             Assert.Equal("Chart1", chartSheet.Name);
             Assert.Equal((ushort)2, chartSheet.ChartPrintSize);
             Assert.Equal(LegacyXlsChartPrintSize.FitPage, chartSheet.ChartPrintSizeKind);
@@ -570,30 +813,271 @@ namespace OfficeIMO.Tests {
             Assert.Empty(chartSheet.ChartRecordsByKind);
             Assert.Empty(chartSheet.ChartRecordsByChartType);
             Assert.Equal(2, chartSheet.MetadataRecords.Count);
-            LegacyXlsUnsupportedSheetMetadataRecord printSizeMetadata = Assert.Single(chartSheet.MetadataRecords, metadata => metadata.Kind == LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize);
+            LegacyXlsChartSheetMetadataRecord printSizeMetadata = Assert.Single(chartSheet.MetadataRecords, metadata => metadata.Kind == LegacyXlsChartSheetMetadataKind.ChartPrintSize);
             Assert.Equal((ushort)BiffRecordType.PrintSize, printSizeMetadata.RecordType);
-            LegacyXlsUnsupportedSheetMetadataRecord textObjectMetadata = Assert.Single(chartSheet.MetadataRecords, metadata => metadata.Kind == LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject);
+            LegacyXlsChartSheetMetadataRecord textObjectMetadata = Assert.Single(chartSheet.MetadataRecords, metadata => metadata.Kind == LegacyXlsChartSheetMetadataKind.ChartTextObject);
             Assert.Equal((ushort)BiffRecordType.Txo, textObjectMetadata.RecordType);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.PrintSize);
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Txo);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ChartSheet);
 
             LegacyXlsImportReport report = new LegacyXlsImportReport(legacy);
-            Assert.Equal(2, report.UnsupportedSheetMetadataRecordCount);
-            Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartPrintSize]);
-            Assert.Equal(1, report.UnsupportedSheetMetadataRecordsByKind[LegacyXlsUnsupportedSheetMetadataKind.ChartTextObject]);
-            Assert.Equal(1, report.UnsupportedChartSheetPrintSizes["PrintSize:2"]);
-            Assert.Equal(1, report.UnsupportedChartSheetPrintSizeKinds["FitPage"]);
-            Assert.Equal(1, report.UnsupportedChartSheetTextObjectCounts["TextObjects:1"]);
-            Assert.Equal(1, report.UnsupportedChartSheetStates["PrintSize:Present|TextObjects:Present|ChartRecords:Missing|ChartTypes:Missing"]);
+            Assert.Equal(1, report.ChartSheetCount);
+            Assert.Equal(2, report.ChartSheetMetadataRecordCount);
+            Assert.Equal(1, report.ChartSheetMetadataRecordsByKind["ChartPrintSize"]);
+            Assert.Equal(1, report.ChartSheetMetadataRecordsByKind["ChartTextObject"]);
+            Assert.Equal(1, report.ChartSheetPrintSizes["PrintSize:2"]);
+            Assert.Equal(1, report.ChartSheetPrintSizeKinds["FitPage"]);
+            Assert.Equal(1, report.ChartSheetTextObjectCounts["TextObjects:1"]);
+            Assert.Equal(1, report.ChartSheetStates["PrintSize:Present|TextObjects:Present|ChartRecords:Missing|ChartTypes:Missing"]);
+            Assert.Equal(0, report.UnsupportedSheetMetadataRecordCount);
+            Assert.Empty(report.UnsupportedChartSheetPrintSizes);
             Assert.Empty(report.UnsupportedChartSheetChartRecordCounts);
             Assert.Empty(report.UnsupportedChartSheetChartRecordKinds);
             Assert.Empty(report.UnsupportedChartSheetChartTypes);
             string markdown = report.ToMarkdown();
-            Assert.Contains("Unsupported sheet metadata records: 2", markdown);
-            Assert.Contains("Unsupported Chart Sheet Print Sizes", markdown);
-            Assert.Contains("Unsupported Chart Sheet Print Size Kinds", markdown);
-            Assert.Contains("Unsupported Chart Sheet Text Object Counts", markdown);
-            Assert.Contains("Unsupported Chart Sheet States", markdown);
+            Assert.Contains("Chart sheet metadata records: 2", markdown);
+            Assert.Contains("Chart Sheet Print Sizes", markdown);
+            Assert.Contains("Chart Sheet Print Size Kinds", markdown);
+            Assert.Contains("Chart Sheet Text Object Counts", markdown);
+            Assert.Contains("Chart Sheet States", markdown);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_DecodesWorksheetTextObjectContinuePayload() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetTextObjectWorkbookStream("Legacy box");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsDrawingRecord textObjectRecord = Assert.Single(
+                legacy.DrawingRecords,
+                record => record.Kind == LegacyXlsDrawingRecordKind.TextObject);
+            Assert.NotNull(textObjectRecord.TextObject);
+            Assert.Equal("Legacy box", textObjectRecord.TextObject!.Text);
+            Assert.True(textObjectRecord.TextObject.HasDecodedText);
+            LegacyXlsCommentFormattingRun formattingRun = Assert.Single(textObjectRecord.TextObject.FormattingRuns);
+            Assert.Equal((ushort)0, formattingRun.StartCharacter);
+            Assert.Equal((ushort)0, formattingRun.FontIndex);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Txo);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
+                diagnostic.Code == "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED"
+                && diagnostic.RecordType == (ushort)BiffRecordType.Txo);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DrawingTextObjectFlags["TextInContinueRecords:Present"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["FormattingRunsInContinueRecords:Present"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["DecodedText:Present"]);
+            Assert.Equal(1, report.DrawingTextObjectFlags["DecodedFormattingRuns:1"]);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_SupportsOfficeArtClientTextboxDrawingMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetClientTextboxDrawingWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
+            LegacyXlsDrawingRecord drawing = Assert.Single(legacy.DrawingRecords);
+            Assert.Equal(LegacyXlsDrawingRecordKind.Drawing, drawing.Kind);
+            Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtFClientTextbox, drawing.EscherRecordTypeKind);
+            Assert.True(drawing.HasSupportedOfficeArtClientTextboxMetadata);
+            Assert.True(drawing.HasSupportedDrawingMetadata);
+            Assert.True(drawing.OfficeArtPayloadFullyTraversed);
+            LegacyXlsDrawingOfficeArtRecord officeArtRecord = Assert.Single(drawing.OfficeArtRecords);
+            Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtFClientTextbox, officeArtRecord.RecordTypeKind);
+            Assert.False(officeArtRecord.IsContainer);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.DrawingObject, report.UnsupportedFeaturesByKind.Keys);
+            Assert.Equal(1, report.DrawingRecordsByName["MsoDrawing"]);
+            Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtFClientTextbox"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtFClientTextbox"]);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_SupportsContinuedMsoDrawingOfficeArtMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetContinuedDrawingWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
+            LegacyXlsDrawingRecord drawing = Assert.Single(legacy.DrawingRecords, record => record.RecordName == "MsoDrawing");
+            Assert.True(drawing.HasSupportedOfficeArtMetadata);
+            Assert.True(drawing.HasSupportedDrawingMetadata);
+            Assert.True(drawing.OfficeArtPayloadFullyTraversed);
+            Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer, drawing.EscherRecordTypeKind);
+            Assert.Equal(new[] {
+                "OfficeArtDgContainer",
+                "OfficeArtFDG",
+                "OfficeArtSpContainer",
+                "OfficeArtFSP",
+                "OfficeArtFOPT",
+                "OfficeArtFClientAnchor",
+                "OfficeArtChildAnchor"
+            }, drawing.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.DrawingObject, report.UnsupportedFeaturesByKind.Keys);
+            Assert.Equal(1, report.DrawingRecordsByName["MsoDrawing"]);
+            Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDgContainer"]);
+            Assert.Equal(1, report.DrawingShapeEntriesByType["PictureFrame"]);
+            Assert.Equal(1, report.DrawingAnchorEntriesByRange["R2C1:R4C3"]);
+        }
+
+        [Fact]
+        public void LegacyXls_LoadLegacyXls_ProjectsWorksheetPictureBlipToOpenXmlImage() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5PreserveOnlyFeatureDetailsWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsDrawingBlipStoreEntry blip = Assert.Single(result.Workbook.DrawingRecords.SelectMany(record => record.BlipStoreEntries));
+            Assert.True(blip.HasImportableImagePayload);
+            Assert.Equal("image/png", blip.EmbeddedBlipContentType);
+            Assert.Equal(new byte[] { 0x89, 0x50, 0x4e, 0x47 }, blip.EmbeddedBlipPayloadBytes.Take(4).ToArray());
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts, part => part.DrawingsPart != null);
+            DrawingsPart drawingsPart = worksheetPart.DrawingsPart!;
+            ImagePart imagePart = Assert.Single(drawingsPart.ImageParts);
+            Assert.Equal("image/png", imagePart.ContentType);
+            using var imageStream = new MemoryStream();
+            imagePart.GetStream().CopyTo(imageStream);
+            Assert.Equal(blip.EmbeddedBlipPayloadBytes, imageStream.ToArray());
+            Assert.Single(drawingsPart.WorksheetDrawing!.Elements<DocumentFormat.OpenXml.Drawing.Spreadsheet.TwoCellAnchor>());
+        }
+
+        [Fact]
+        public void LegacyXls_Load_SupportsSplitMsoDrawingContainerMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetSplitDrawingContainerWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
+            LegacyXlsDrawingRecord drawing = Assert.Single(legacy.DrawingRecords, record => record.RecordName == "MsoDrawing");
+            Assert.True(drawing.HasSupportedPartialOfficeArtContainerMetadata);
+            Assert.True(drawing.HasSupportedDrawingMetadata);
+            Assert.False(drawing.OfficeArtPayloadFullyTraversed);
+            Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtDgContainer, drawing.EscherRecordTypeKind);
+            Assert.Equal(new[] {
+                "OfficeArtDgContainer",
+                "OfficeArtFDG"
+            }, drawing.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
+            LegacyXlsDrawingGroupInfo drawingGroupInfo = Assert.Single(drawing.DrawingGroupInfos);
+            Assert.Equal(1, drawingGroupInfo.DrawingId);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.DrawingObject, report.UnsupportedFeaturesByKind.Keys);
+            Assert.Equal(1, report.DrawingRecordsByName["MsoDrawing"]);
+            Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtDgContainer"]);
+            Assert.Equal(1, report.DrawingOfficeArtRecordsByTypeName["OfficeArtFDG"]);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_SupportsSplitMsoDrawingShapeContainerMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetSplitShapeContainerWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.DrawingObject);
+            LegacyXlsDrawingRecord drawing = Assert.Single(legacy.DrawingRecords, record => record.RecordName == "MsoDrawing");
+            Assert.True(drawing.HasSupportedPartialOfficeArtContainerMetadata);
+            Assert.True(drawing.HasSupportedDrawingMetadata);
+            Assert.False(drawing.OfficeArtPayloadFullyTraversed);
+            Assert.Equal(LegacyXlsDrawingEscherRecordType.OfficeArtSpContainer, drawing.EscherRecordTypeKind);
+            Assert.Equal(new[] {
+                "OfficeArtSpContainer",
+                "OfficeArtFSP",
+                "OfficeArtFOPT",
+                "OfficeArtFClientAnchor",
+                "OfficeArtFClientData"
+            }, drawing.OfficeArtRecords.Select(record => record.RecordTypeName).ToArray());
+            LegacyXlsDrawingShape shape = Assert.Single(drawing.ShapeEntries);
+            Assert.Equal("Rectangle", shape.ShapeTypeName);
+            Assert.Single(drawing.AnchorEntries);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.DrawingObject, report.UnsupportedFeaturesByKind.Keys);
+            Assert.Equal(1, report.DrawingRecordsByName["MsoDrawing"]);
+            Assert.Equal(1, report.DrawingRecordsByEscherRecordTypeName["OfficeArtSpContainer"]);
+            Assert.Equal(1, report.DrawingShapeEntriesByType["Rectangle"]);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_SupportsDecodedWorksheetObjectMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetObjectWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsDrawingRecord objectRecord = Assert.Single(legacy.DrawingRecords, record => record.Kind == LegacyXlsDrawingRecordKind.Object);
+            Assert.True(objectRecord.HasSupportedObjectMetadata);
+            Assert.Equal(LegacyXlsDrawingObjectType.Picture, objectRecord.ObjectTypeKind);
+            Assert.Equal((ushort)1, objectRecord.ObjectId);
+            Assert.Equal((ushort)0x4011, objectRecord.ObjectFlags);
+            Assert.Equal(new[] { "FtCmo", "FtEnd" }, objectRecord.ObjectSubRecords.Select(subRecord => subRecord.SubRecordName).ToArray());
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Obj);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
+                diagnostic.Code == "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED"
+                && diagnostic.RecordType == (ushort)BiffRecordType.Obj);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DrawingRecordsByObjectTypeName["Picture"]);
+            Assert.Equal(1, report.DrawingObjectSubRecordsByName["FtCmo"]);
+            Assert.Equal(1, report.DrawingObjectSubRecordsByName["FtEnd"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj", report.UnsupportedFeaturesByDetail.Keys);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_SupportsContinuedListObjectMetadata() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateWorksheetListObjectWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            LegacyXlsWorkbook legacy = LegacyXlsWorkbook.Load(compound, new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsDrawingRecord objectRecord = Assert.Single(legacy.DrawingRecords, record => record.Kind == LegacyXlsDrawingRecordKind.Object);
+            Assert.True(objectRecord.HasSupportedObjectMetadata);
+            Assert.Equal(LegacyXlsDrawingObjectType.DropdownList, objectRecord.ObjectTypeKind);
+            Assert.Equal(new[] { "FtCmo", "FtSbs", "FtLbsData" }, objectRecord.ObjectSubRecords.Select(subRecord => subRecord.SubRecordName).ToArray());
+
+            LegacyXlsDrawingObjectSubRecord listData = Assert.Single(objectRecord.ObjectSubRecords, subRecord => subRecord.SubRecordName == "FtLbsData");
+            Assert.False(listData.IsComplete);
+            Assert.True(listData.RequiresContinuation);
+            Assert.True(listData.HasSupportedPayload);
+            Assert.Equal("RequiresContinuation", listData.CompletionState);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.RecordType == (ushort)BiffRecordType.Obj);
+            Assert.DoesNotContain(legacy.Diagnostics, diagnostic =>
+                diagnostic.Code == "XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED"
+                && diagnostic.RecordType == (ushort)BiffRecordType.Obj);
+
+            LegacyXlsImportReport report = legacy.CreateImportReport();
+            Assert.Equal(1, report.DrawingRecordsByObjectTypeName["DropdownList"]);
+            Assert.Equal(1, report.DrawingObjectSubRecordsByName["FtLbsData"]);
+            Assert.Equal(1, report.DrawingObjectSubRecordsByCompleteness["RequiresContinuation"]);
+            Assert.DoesNotContain("DrawingObject|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED|Drawing:Obj", report.UnsupportedFeaturesByDetail.Keys);
         }
 
         [Fact]
@@ -929,8 +1413,8 @@ namespace OfficeIMO.Tests {
             Assert.True(xfExtension.HasFormatIndex);
             Assert.Equal((ushort)4, xfExtension.FormatIndex);
             Assert.True(xfExtension.HasExtensionCount);
-            Assert.Equal((ushort)4, xfExtension.ExtensionCount);
-            Assert.Equal(4, xfExtension.Properties.Count);
+            Assert.Equal((ushort)5, xfExtension.ExtensionCount);
+            Assert.Equal(5, xfExtension.Properties.Count);
             Assert.Equal((ushort)0x000e, xfExtension.Properties[0].PropertyType);
             Assert.Equal("FontScheme", xfExtension.Properties[0].PropertyTypeName);
             Assert.Equal(2, xfExtension.Properties[0].DataByteCount);
@@ -949,11 +1433,19 @@ namespace OfficeIMO.Tests {
             Assert.Equal((ushort)0x000d, xfExtension.Properties[3].PropertyType);
             Assert.Equal("TextColor", xfExtension.Properties[3].PropertyTypeName);
             Assert.Equal(16, xfExtension.Properties[3].DataByteCount);
-            Assert.Equal((ushort)0x0002, xfExtension.Properties[3].ColorType);
-            Assert.Equal("Rgb", xfExtension.Properties[3].ColorTypeName);
-            Assert.Equal((short)-100, xfExtension.Properties[3].ColorTintShade);
-            Assert.Equal(0xff336699U, xfExtension.Properties[3].ColorValue);
-            Assert.Equal("0xFF336699", xfExtension.Properties[3].ColorValueHex);
+            Assert.Equal((ushort)0x0003, xfExtension.Properties[3].ColorType);
+            Assert.Equal("Theme", xfExtension.Properties[3].ColorTypeName);
+            Assert.Equal((short)0, xfExtension.Properties[3].ColorTintShade);
+            Assert.Equal(0x00000000U, xfExtension.Properties[3].ColorValue);
+            Assert.Equal("0x00000000", xfExtension.Properties[3].ColorValueHex);
+            Assert.Equal((ushort)0x0004, xfExtension.Properties[4].PropertyType);
+            Assert.Equal("FillForegroundColor", xfExtension.Properties[4].PropertyTypeName);
+            Assert.Equal(16, xfExtension.Properties[4].DataByteCount);
+            Assert.Equal((ushort)0x0003, xfExtension.Properties[4].ColorType);
+            Assert.Equal("Theme", xfExtension.Properties[4].ColorTypeName);
+            Assert.Equal((short)13106, xfExtension.Properties[4].ColorTintShade);
+            Assert.Equal(0x00000004U, xfExtension.Properties[4].ColorValue);
+            Assert.Equal("0x00000004", xfExtension.Properties[4].ColorValueHex);
             LegacyXlsCellStyleExtension styleExtension = Assert.Single(legacy.CellStyleExtensions, extension => extension.RecordType == 0x0892);
             Assert.Equal("StyleExt", styleExtension.RecordName);
             Assert.False(styleExtension.HasFormatIndex);
@@ -965,6 +1457,38 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Custom", styleExtension.StyleCategoryName);
             Assert.Equal((ushort)0xffff, styleExtension.BuiltInData.GetValueOrDefault());
             Assert.Equal("OfficeIMO Accent", styleExtension.StyleName);
+            Assert.Equal(6, styleExtension.Properties.Count);
+            Assert.Equal((ushort)0x0000, styleExtension.Properties[0].PropertyType);
+            Assert.Equal("FillPattern", styleExtension.Properties[0].PropertyTypeName);
+            Assert.Equal((ushort)1, styleExtension.Properties[0].NumericValue);
+            Assert.Equal("Solid", styleExtension.Properties[0].NumericValueName);
+            Assert.Equal((ushort)0x0001, styleExtension.Properties[1].PropertyType);
+            Assert.Equal("FillForegroundColor", styleExtension.Properties[1].PropertyTypeName);
+            Assert.Equal((ushort)0x0003, styleExtension.Properties[1].ColorType);
+            Assert.Equal("Theme", styleExtension.Properties[1].ColorTypeName);
+            Assert.Equal((short)13106, styleExtension.Properties[1].ColorTintShade);
+            Assert.Equal(0x00000004U, styleExtension.Properties[1].ColorValue);
+            Assert.Equal((ushort)0x0002, styleExtension.Properties[2].PropertyType);
+            Assert.Equal("FillBackgroundColor", styleExtension.Properties[2].PropertyTypeName);
+            Assert.Equal((ushort)0x0002, styleExtension.Properties[2].ColorType);
+            Assert.Equal("Rgb", styleExtension.Properties[2].ColorTypeName);
+            Assert.Equal("0xFF00AA00", styleExtension.Properties[2].ColorValueHex);
+            Assert.Equal((ushort)0x0005, styleExtension.Properties[3].PropertyType);
+            Assert.Equal("TextColor", styleExtension.Properties[3].PropertyTypeName);
+            Assert.Equal((ushort)0x0003, styleExtension.Properties[3].ColorType);
+            Assert.Equal("Theme", styleExtension.Properties[3].ColorTypeName);
+            Assert.Equal(0x00000000U, styleExtension.Properties[3].ColorValue);
+            Assert.Equal((ushort)0x0006, styleExtension.Properties[4].PropertyType);
+            Assert.Equal("TopBorder", styleExtension.Properties[4].PropertyTypeName);
+            Assert.Equal((ushort)0x0002, styleExtension.Properties[4].ColorType);
+            Assert.Equal("Rgb", styleExtension.Properties[4].ColorTypeName);
+            Assert.Equal("0xFF0066FF", styleExtension.Properties[4].ColorValueHex);
+            Assert.Equal((ushort)1, styleExtension.Properties[4].BorderStyle);
+            Assert.Equal("Thin", styleExtension.Properties[4].BorderStyleName);
+            Assert.Equal((ushort)0x0025, styleExtension.Properties[5].PropertyType);
+            Assert.Equal("FontScheme", styleExtension.Properties[5].PropertyTypeName);
+            Assert.Equal((ushort)2, styleExtension.Properties[5].NumericValue);
+            Assert.Equal("Minor", styleExtension.Properties[5].NumericValueName);
             LegacyXlsCellStyle builtInStyle = legacy.CellStyles[0];
             Assert.True(builtInStyle.IsBuiltIn);
             Assert.Equal(0, builtInStyle.StyleFormatIndex);
@@ -1052,7 +1576,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByRecordName["XfExt"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByRecordName["StyleExt"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByFormatIndex["FormatIndex:4"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByExtensionCount["Extensions:4"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByExtensionCount["Extensions:5"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleCategory["Custom"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleFlags["BuiltIn:False;Hidden:False;Custom:False"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionsByStyleName["OfficeIMO Accent"]);
@@ -1061,31 +1585,52 @@ namespace OfficeIMO.Tests {
             Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000E"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000F"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x000D"]);
-            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByName["FontScheme"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x0004"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x0000"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x0001"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x0002"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x0005"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x0006"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByType["0x0025"]);
+            Assert.Equal(3, reportResult.ImportReport.CellStyleExtensionPropertiesByName["FontScheme"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["Indentation"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["TextColor"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByName["TextColor"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByName["FillForegroundColor"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["FillPattern"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["FillBackgroundColor"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByName["TopBorder"]);
             Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:2"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:1"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:16"]);
+            Assert.Equal(3, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:1"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:16"]);
+            Assert.Equal(3, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:8"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByDataByteCount["Bytes:10"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValue["FontScheme:1"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValue["FontScheme:2"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValue["FontScheme:2"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValue["Indentation:3"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValue["FillPattern:1"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValueName["FontScheme:Major"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValueName["FontScheme:Minor"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValueName["FontScheme:Minor"]);
             Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByNumericValueName["Indentation:Indent:3"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorType["TextColor:Rgb"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorTintShade["TextColor:TintShade:-100"]);
-            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorValue["TextColor:0xFF336699"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByColorType["TextColor:Theme"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByColorType["FillForegroundColor:Theme"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorType["FillBackgroundColor:Rgb"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorType["TopBorder:Rgb"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByColorTintShade["TextColor:TintShade:0"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByColorTintShade["FillForegroundColor:TintShade:13106"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByColorValue["TextColor:0x00000000"]);
+            Assert.Equal(2, reportResult.ImportReport.CellStyleExtensionPropertiesByColorValue["FillForegroundColor:0x00000004"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorValue["FillBackgroundColor:0xFF00AA00"]);
+            Assert.Equal(1, reportResult.ImportReport.CellStyleExtensionPropertiesByColorValue["TopBorder:0xFF0066FF"]);
             Assert.DoesNotContain(reportResult.Workbook.UnsupportedFeatures, feature => feature.RecordType == 0x0293);
-            Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087c);
-            Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087d);
-            Assert.Contains(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x0892);
-            Assert.Contains(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x087c);
-            Assert.Contains(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x087d);
-            Assert.Contains(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x0892);
-            Assert.Contains(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:XFCRC");
-            Assert.Contains(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:XfExt");
-            Assert.Contains(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:StyleExt");
+            Assert.DoesNotContain(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087c);
+            Assert.DoesNotContain(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x087d);
+            Assert.DoesNotContain(reportResult.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && feature.RecordType == 0x0892);
+            Assert.DoesNotContain(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x087c);
+            Assert.DoesNotContain(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x087d);
+            Assert.DoesNotContain(reportResult.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.StyleExtension && record.RecordType == 0x0892);
+            Assert.DoesNotContain(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:XFCRC");
+            Assert.DoesNotContain(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:XfExt");
+            Assert.DoesNotContain(reportResult.Workbook.Diagnostics, diagnostic => diagnostic.Code == "XLS-BIFF-FEATURE-STYLE-EXTENSION-UNSUPPORTED" && diagnostic.DetailCode == "StyleExtension:StyleExt");
             Assert.Contains("Cell style records: 2", reportResult.ImportReport.ToMarkdown());
             Assert.Contains("Cell style extension records: 3", reportResult.ImportReport.ToMarkdown());
             Assert.Contains("Cell Style Extensions By Record Name", reportResult.ImportReport.ToMarkdown());
@@ -1106,6 +1651,23 @@ namespace OfficeIMO.Tests {
             WorksheetPart worksheetPart = workbookPart.WorksheetParts.Single();
             Dictionary<string, Cell> cells = worksheetPart.Worksheet.Descendants<Cell>()
                 .ToDictionary(cell => cell.CellReference!.Value!);
+            Stylesheet savedStyles = workbookPart.WorkbookStylesPart!.Stylesheet!;
+            CellStyle projectedCellStyle = Assert.Single(savedStyles.CellStyles!.Elements<CellStyle>(),
+                style => string.Equals(style.Name?.Value, "OfficeIMO Accent", StringComparison.Ordinal));
+            Assert.NotNull(projectedCellStyle.FormatId);
+            Assert.NotEqual(0U, projectedCellStyle.FormatId!.Value);
+            CellFormat projectedCellStyleFormat = savedStyles.CellStyleFormats!.Elements<CellFormat>().ElementAt((int)projectedCellStyle.FormatId.Value);
+            Assert.NotEqual(0U, projectedCellStyleFormat.FillId!.Value);
+            Fill projectedCellStyleFill = savedStyles.Fills!.Elements<Fill>().ElementAt((int)projectedCellStyleFormat.FillId.Value);
+            Assert.Equal(PatternValues.Solid, projectedCellStyleFill.PatternFill!.PatternType!.Value);
+            Assert.Equal(4U, projectedCellStyleFill.PatternFill.ForegroundColor!.Theme!.Value);
+            Assert.Equal("FF00AA00", projectedCellStyleFill.PatternFill.BackgroundColor!.Rgb!.Value);
+            DocumentFormat.OpenXml.Spreadsheet.Font projectedCellStyleFont = savedStyles.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAt((int)projectedCellStyleFormat.FontId!.Value);
+            Assert.Equal(1U, projectedCellStyleFont.Color!.Theme!.Value);
+            Assert.Equal(FontSchemeValues.Minor, projectedCellStyleFont.FontScheme!.Val!.Value);
+            Border projectedCellStyleBorder = savedStyles.Borders!.Elements<Border>().ElementAt((int)projectedCellStyleFormat.BorderId!.Value);
+            Assert.Equal(BorderStyleValues.Thin, projectedCellStyleBorder.TopBorder!.Style!.Value);
+            Assert.Equal("FFFF6600", projectedCellStyleBorder.TopBorder.Color!.Rgb!.Value);
 
             Cell amountCell = cells["A1"];
             Assert.Equal("12.345", amountCell.CellValue!.Text);
@@ -1156,14 +1718,25 @@ namespace OfficeIMO.Tests {
             CellFormat fillFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fillCell.StyleIndex!.Value);
             Fill projectedFill = workbookPart.WorkbookStylesPart.Stylesheet.Fills!.Elements<Fill>().ElementAt((int)fillFormat.FillId!.Value);
             Assert.Equal(PatternValues.Solid, projectedFill.PatternFill!.PatternType!.Value);
-            Assert.Equal("FFABCDEF", projectedFill.PatternFill.ForegroundColor!.Rgb!.Value);
+            Assert.Equal(4U, projectedFill.PatternFill.ForegroundColor!.Theme!.Value);
+            Assert.NotNull(projectedFill.PatternFill.ForegroundColor.Tint);
+            Assert.InRange(projectedFill.PatternFill.ForegroundColor.Tint!.Value, 0.3999D, 0.4001D);
+            DocumentFormat.OpenXml.Spreadsheet.Font fillFont = workbookPart.WorkbookStylesPart.Stylesheet.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAt((int)fillFormat.FontId!.Value);
+            Assert.Equal(1U, fillFont.Color!.Theme!.Value);
+            Assert.Null(fillFont.Color.Rgb);
+            Assert.Null(fillFont.Color.Tint);
+            Assert.Equal(FontSchemeValues.Minor, fillFont.FontScheme!.Val!.Value);
+            Assert.True(fillFormat.ApplyAlignment!.Value);
+            Assert.Equal(3U, fillFormat.Alignment!.Indent!.Value);
 
             Cell blankFillCell = cells["F1"];
             Assert.Null(blankFillCell.CellValue);
             Assert.NotNull(blankFillCell.StyleIndex);
             CellFormat blankFillFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)blankFillCell.StyleIndex!.Value);
             Fill projectedBlankFill = workbookPart.WorkbookStylesPart.Stylesheet.Fills!.Elements<Fill>().ElementAt((int)blankFillFormat.FillId!.Value);
-            Assert.Equal("FFABCDEF", projectedBlankFill.PatternFill!.ForegroundColor!.Rgb!.Value);
+            Assert.Equal(4U, projectedBlankFill.PatternFill!.ForegroundColor!.Theme!.Value);
+            Assert.NotNull(projectedBlankFill.PatternFill.ForegroundColor.Tint);
+            Assert.InRange(projectedBlankFill.PatternFill.ForegroundColor.Tint!.Value, 0.3999D, 0.4001D);
 
             Cell patternCell = cells["H1"];
             Assert.NotNull(patternCell.StyleIndex);
@@ -1226,7 +1799,9 @@ namespace OfficeIMO.Tests {
             CellFormat columnFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)columnSnapshot.StyleIndex.Value);
             Fill columnFill = workbookPart.WorkbookStylesPart.Stylesheet.Fills!.Elements<Fill>().ElementAt((int)columnFormat.FillId!.Value);
             Assert.Equal(PatternValues.Solid, columnFill.PatternFill!.PatternType!.Value);
-            Assert.Equal("FFABCDEF", columnFill.PatternFill.ForegroundColor!.Rgb!.Value);
+            Assert.Equal(4U, columnFill.PatternFill.ForegroundColor!.Theme!.Value);
+            Assert.NotNull(columnFill.PatternFill.ForegroundColor.Tint);
+            Assert.InRange(columnFill.PatternFill.ForegroundColor.Tint!.Value, 0.3999D, 0.4001D);
 
             ExcelColumnSnapshot fontColumnSnapshot = Assert.Single(columnSnapshots, column => column.StartIndex == 12);
             CellFormat fontColumnFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fontColumnSnapshot.StyleIndex!.Value);
@@ -1250,6 +1825,48 @@ namespace OfficeIMO.Tests {
             CellFormat fontRowFormat = workbookPart.WorkbookStylesPart.Stylesheet.CellFormats!.Elements<CellFormat>().ElementAt((int)fontRowSnapshot.StyleIndex!.Value);
             DocumentFormat.OpenXml.Spreadsheet.Font fontRowFont = workbookPart.WorkbookStylesPart.Stylesheet.Fonts!.Elements<DocumentFormat.OpenXml.Spreadsheet.Font>().ElementAt((int)fontRowFormat.FontId!.Value);
             Assert.Equal(VerticalAlignmentRunValues.Subscript, fontRowFont.VerticalTextAlignment!.Val!.Value);
+        }
+
+        [Fact]
+        public void LegacyXls_LoadLegacyXls_ProjectsEmbeddedThemePackage() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateEmbeddedThemeWorkbookStream("OfficeIMO Legacy Theme");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsThemeRecord themeRecord = Assert.Single(result.Workbook.ThemeRecords);
+            Assert.True(themeRecord.HasThemeBytes);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature =>
+                feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme
+                && feature.RecordType == (ushort)BiffRecordType.Theme);
+
+            ExcelWorkbookThemeInfo projectedTheme = result.Document.GetWorkbookTheme(includeXml: true);
+            Assert.True(projectedTheme.HasTheme);
+            Assert.Equal("OfficeIMO Legacy Theme", projectedTheme.Name);
+            Assert.Contains("OfficeIMO Legacy Theme", projectedTheme.Xml, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void LegacyXls_LoadLegacyXls_ProjectsDefaultThemeMarkerWithoutUnsupportedFeature() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateDefaultThemeWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            LegacyXlsThemeRecord themeRecord = Assert.Single(result.Workbook.ThemeRecords);
+            Assert.True(themeRecord.IsDefaultThemeMarker);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature =>
+                feature.Kind == LegacyXlsUnsupportedFeatureKind.Theme
+                && feature.RecordType == (ushort)BiffRecordType.Theme);
+            Assert.DoesNotContain(LegacyXlsUnsupportedFeatureKind.Theme, result.ImportReport.UnsupportedFeaturesByKind.Keys);
+
+            ExcelWorkbookThemeInfo projectedTheme = result.Document.GetWorkbookTheme(includeXml: true);
+            Assert.True(projectedTheme.HasTheme);
+            Assert.False(string.IsNullOrWhiteSpace(projectedTheme.Xml));
         }
 
         [Fact]
@@ -1279,6 +1896,175 @@ namespace OfficeIMO.Tests {
                 byte[] bytes = stream.ToArray();
                 byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
                 Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateWorksheetTextObjectWorkbookStream(string text) {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "TextBox"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x01b6, BuildWorksheetTxoPayload(text.Length, formattingRunBytes: 16));
+                WriteRecord(stream, 0x003c, BuildCompressedTextContinuePayload(text));
+                WriteRecord(stream, 0x003c, BuildTxoFormattingRunContinuePayload(startCharacter: 0, fontIndex: 0));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
+                Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateWorksheetClientTextboxDrawingWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "TextBox"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x00ec, BuildOfficeArtClientTextboxPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
+                Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateWorksheetContinuedDrawingWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Drawing"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] drawingPayload = BuildDrawingWithPictureShapePayload();
+                const int firstPayloadLength = 16;
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x00ec, drawingPayload.Take(firstPayloadLength).ToArray());
+                WriteRecord(stream, 0x003c, drawingPayload.Skip(firstPayloadLength).ToArray());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
+                Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateWorksheetSplitDrawingContainerWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Drawing"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x00ec, BuildSplitDrawingContainerPayload());
+                WriteRecord(stream, 0x005d, BuildObjectPayload(0x0005, 1));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
+                Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateWorksheetSplitShapeContainerWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Shape"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x00ec, BuildSplitShapeContainerPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
+                Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateWorksheetObjectWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Object"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x005d, BuildWorksheetObjectPayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
+                Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateWorksheetListObjectWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "ListObj"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x005d, BuildWorksheetListObjectPayload());
+                WriteRecord(stream, 0x003c, new byte[] { 0x00, 0x00, 0x00, 0x00 });
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                byte[] offsetBytes = BitConverter.GetBytes(sheetOffset);
+                Buffer.BlockCopy(offsetBytes, 0, bytes, checked((int)boundSheetPosition + 4), offsetBytes.Length);
+                return bytes;
+            }
+
+            internal static byte[] CreateEmbeddedThemeWorkbookStream(string themeName) {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Theme"));
+                WriteRecord(stream, (ushort)BiffRecordType.Theme, BuildThemePayload(202300, BuildThemePackage(themeName)));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Theme"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateDefaultThemeWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Theme"));
+                WriteRecord(stream, (ushort)BiffRecordType.Theme, BuildThemePayload(124226));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Theme"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
                 return bytes;
             }
 
@@ -1344,12 +2130,57 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            internal static byte[] CreateRc4EncryptedWorkbookStream() {
+            internal static byte[] CreateMalformedRc4EncryptedWorkbookStream() {
                 using var stream = new MemoryStream();
                 WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
                 WriteRecord(stream, 0x002f, new byte[] { 0x01, 0x00 });
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
                 return stream.ToArray();
+            }
+
+            internal static byte[] CreateRc4EncryptedWorkbookStream(string password) {
+                byte[] salt = {
+                    0x10, 0x22, 0x34, 0x46, 0x58, 0x6A, 0x7C, 0x8E,
+                    0x90, 0xA2, 0xB4, 0xC6, 0xD8, 0xEA, 0xFC, 0x0E
+                };
+                byte[] verifier = {
+                    0xA5, 0x5A, 0x19, 0x91, 0x28, 0x82, 0x37, 0x73,
+                    0x46, 0x64, 0x55, 0x99, 0xAB, 0xBA, 0xCD, 0xDC
+                };
+
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x002f, BiffRc4Encryption.CreateFilePassPayload(password, salt, verifier));
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "Rc4Sheet"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "RC4 secret"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return BiffRc4Encryption.EncryptWorkbookStream(bytes, password, salt);
+            }
+
+            internal static byte[] CreateXorObfuscatedWorkbookStream(string password) {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x002f, BuildXorFilePassPayload(password));
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "XorSheet"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "XOR secret"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return BiffXorObfuscation.ObfuscateWorkbookStream(bytes, password);
             }
 
             internal static byte[] CreateEncryptedWorkbookWithUnreadablePayloadStream() {
@@ -1361,6 +2192,14 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x087d, new byte[12]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildXorFilePassPayload(string password) {
+                byte[] payload = new byte[6];
+                Buffer.BlockCopy(BitConverter.GetBytes((ushort)0x0000), 0, payload, 0, 2);
+                Buffer.BlockCopy(BitConverter.GetBytes(BiffXorObfuscation.CreateXorKey(password)), 0, payload, 2, 2);
+                Buffer.BlockCopy(BitConverter.GetBytes(BiffXorObfuscation.CreatePasswordVerifier(password)), 0, payload, 4, 2);
+                return payload;
             }
 
             internal static byte[] CreateUnsupportedFeatureWorkbookStream() {
@@ -1450,6 +2289,25 @@ namespace OfficeIMO.Tests {
                 return bytes;
             }
 
+            internal static byte[] CreatePhase5CustomTableStyleOnlyWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "TableStyleOnly"));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyle, BuildTableStylePayload("OfficeIMO Custom Only", appliesToTables: true, appliesToPivotTables: false, declaredElementCount: 1));
+                WriteRecord(stream, (ushort)BiffRecordType.TableStyleElement, BuildTableStyleElementPayload(0x00000001, 0, 3));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Custom style metadata"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
             private static byte[] BuildTableStylesPayload(uint totalStyleCount, string defaultTableStyleName, string defaultPivotStyleName) {
                 using var stream = new MemoryStream();
                 WriteFutureRecordHeader(stream, (ushort)BiffRecordType.TableStyles);
@@ -1514,6 +2372,44 @@ namespace OfficeIMO.Tests {
                 WriteRecord(stream, 0x0221, new byte[16]);
                 WriteRecord(stream, 0x0063, new byte[] { 0x01, 0x00 });
                 WriteRecord(stream, 0x00dd, new byte[] { 0x01, 0x00 });
+                WriteRecord(stream, 0x0866, BuildHeaderFooterPicturePayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateHeaderFooterPictureImageWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "HFPicture"));
+                WriteRecord(stream, 0x00eb, BuildDrawingGroupWithPngBlipStorePayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Imported"));
+                WriteRecord(stream, 0x0014, BuildUnicodeStringPayload("&C&G"));
+                WriteRecord(stream, 0x0866, BuildHeaderFooterPicturePayload());
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                byte[] bytes = stream.ToArray();
+                Buffer.BlockCopy(BitConverter.GetBytes(sheetOffset), 0, bytes, checked((int)boundSheetPosition + 4), 4);
+                return bytes;
+            }
+
+            internal static byte[] CreateEmptyHeaderFooterPictureWorkbookStream() {
+                using var stream = new MemoryStream();
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x05, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                long boundSheetPosition = stream.Position;
+                WriteRecord(stream, 0x0085, BuildBoundSheetPayload(0, "HFPicture"));
+                WriteRecord(stream, 0x000a, Array.Empty<byte>());
+
+                int sheetOffset = checked((int)stream.Position);
+                WriteRecord(stream, 0x0809, new byte[] { 0x00, 0x06, 0x10, 0x00, 0xdb, 0x0b, 0xcc, 0x07 });
+                WriteRecord(stream, 0x0204, BuildLabelPayload(0, 0, "Preserve"));
                 WriteRecord(stream, 0x0866, new byte[14]);
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
@@ -1682,8 +2578,16 @@ namespace OfficeIMO.Tests {
                     BuildXfExtProperty(0x000e, 0x0001),
                     BuildXfExtByteProperty(0x000e, 0x02),
                     BuildXfExtProperty(0x000f, 0x0003),
-                    BuildXfExtFullColorProperty(0x000d, colorType: 0x0002, tintShade: -100, colorValue: 0xff336699)));
-                WriteRecord(stream, 0x0892, BuildStyleExtPayload("OfficeIMO Accent"));
+                    BuildXfExtFullColorProperty(0x000d, colorType: 0x0003, tintShade: 0, colorValue: 0x00000000),
+                    BuildXfExtFullColorProperty(0x0004, colorType: 0x0003, tintShade: 13106, colorValue: 0x00000004)));
+                WriteRecord(stream, 0x0892, BuildStyleExtPayload(
+                    "OfficeIMO Accent",
+                    BuildStyleXfPropByteProperty(0x0000, 0x01),
+                    BuildStyleXfPropColorProperty(0x0001, colorType: 0x0003, indexedOrThemeValue: 0x04, tintShade: 13106, colorValue: 0),
+                    BuildStyleXfPropColorProperty(0x0002, colorType: 0x0002, indexedOrThemeValue: 0xff, tintShade: 0, colorValue: 0xff00aa00),
+                    BuildStyleXfPropColorProperty(0x0005, colorType: 0x0003, indexedOrThemeValue: 0x00, tintShade: 0, colorValue: 0),
+                    BuildStyleXfPropBorderProperty(0x0006, colorType: 0x0002, indexedOrThemeValue: 0xff, tintShade: 0, colorValue: 0xff0066ff, borderStyle: 1),
+                    BuildStyleXfPropByteProperty(0x0025, 0x02)));
                 WriteRecord(stream, 0x000a, Array.Empty<byte>());
 
                 int sheetOffset = checked((int)stream.Position);
@@ -1983,6 +2887,70 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
+            private static byte[] BuildWorksheetTxoPayload(int textLength, ushort formattingRunBytes) {
+                byte[] payload = new byte[16];
+                WriteUInt16(payload, 0, 0);
+                WriteUInt16(payload, 2, 0);
+                WriteUInt16(payload, 10, checked((ushort)textLength));
+                WriteUInt16(payload, 12, formattingRunBytes);
+                WriteUInt16(payload, 14, 0);
+                return payload;
+            }
+
+            private static byte[] BuildCompressedTextContinuePayload(string text) {
+                if (text == null) {
+                    throw new ArgumentNullException(nameof(text));
+                }
+
+                byte[] payload = new byte[checked(text.Length + 1)];
+                payload[0] = 0;
+                for (int i = 0; i < text.Length; i++) {
+                    payload[i + 1] = checked((byte)text[i]);
+                }
+
+                return payload;
+            }
+
+            private static byte[] BuildTxoFormattingRunContinuePayload(ushort startCharacter, ushort fontIndex) {
+                byte[] payload = new byte[16];
+                WriteUInt16(payload, 0, startCharacter);
+                WriteUInt16(payload, 2, fontIndex);
+                WriteUInt16(payload, 8, 0xffff);
+                return payload;
+            }
+
+            private static byte[] BuildWorksheetObjectPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0015);
+                WriteUInt16(stream, 18);
+                WriteUInt16(stream, (ushort)LegacyXlsDrawingObjectType.Picture);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0x4011);
+                stream.Write(new byte[12], 0, 12);
+                WriteUInt16(stream, 0x0000);
+                WriteUInt16(stream, 0);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildWorksheetListObjectPayload() {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, 0x0015);
+                WriteUInt16(stream, 18);
+                WriteUInt16(stream, (ushort)LegacyXlsDrawingObjectType.DropdownList);
+                WriteUInt16(stream, 1);
+                WriteUInt16(stream, 0x2101);
+                stream.Write(new byte[12], 0, 12);
+
+                WriteUInt16(stream, 0x000c);
+                WriteUInt16(stream, 20);
+                stream.Write(new byte[20], 0, 20);
+
+                WriteUInt16(stream, 0x0013);
+                WriteUInt16(stream, 8174);
+                stream.Write(new byte[20], 0, 20);
+                return stream.ToArray();
+            }
+
             private static byte[] BuildXfCrcPayload(ushort xfRecordCount, uint checksum) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0x087c);
@@ -2038,7 +3006,7 @@ namespace OfficeIMO.Tests {
                 return stream.ToArray();
             }
 
-            private static byte[] BuildStyleExtPayload(string name) {
+            private static byte[] BuildStyleExtPayload(string name, params byte[][] properties) {
                 using var stream = new MemoryStream();
                 WriteUInt16(stream, 0x0892);
                 WriteUInt16(stream, 0);
@@ -2050,6 +3018,45 @@ namespace OfficeIMO.Tests {
                 byte[] nameBytes = Encoding.Unicode.GetBytes(name);
                 WriteUInt16(stream, checked((ushort)name.Length));
                 stream.Write(nameBytes, 0, nameBytes.Length);
+                if (properties.Length > 0) {
+                    WriteUInt16(stream, 0);
+                    WriteUInt16(stream, checked((ushort)properties.Length));
+                    foreach (byte[] property in properties) {
+                        stream.Write(property, 0, property.Length);
+                    }
+                }
+
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildStyleXfPropByteProperty(ushort propertyType, byte value) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, propertyType);
+                WriteUInt16(stream, 5);
+                stream.WriteByte(value);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildStyleXfPropColorProperty(ushort propertyType, byte colorType, byte indexedOrThemeValue, short tintShade, uint colorValue) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, propertyType);
+                WriteUInt16(stream, 12);
+                stream.WriteByte(checked((byte)((colorType << 1) | 0x01)));
+                stream.WriteByte(indexedOrThemeValue);
+                WriteUInt16(stream, unchecked((ushort)tintShade));
+                WriteUInt32(stream, colorValue);
+                return stream.ToArray();
+            }
+
+            private static byte[] BuildStyleXfPropBorderProperty(ushort propertyType, byte colorType, byte indexedOrThemeValue, short tintShade, uint colorValue, ushort borderStyle) {
+                using var stream = new MemoryStream();
+                WriteUInt16(stream, propertyType);
+                WriteUInt16(stream, 14);
+                stream.WriteByte(checked((byte)((colorType << 1) | 0x01)));
+                stream.WriteByte(indexedOrThemeValue);
+                WriteUInt16(stream, unchecked((ushort)tintShade));
+                WriteUInt32(stream, colorValue);
+                WriteUInt16(stream, borderStyle);
                 return stream.ToArray();
             }
 
@@ -2063,6 +3070,23 @@ namespace OfficeIMO.Tests {
                 byte[] payload = themeBytes ?? Array.Empty<byte>();
                 stream.Write(payload, 0, payload.Length);
                 return stream.ToArray();
+            }
+
+            private static byte[] BuildThemePackage(string themeName) {
+                using var workbookStream = new MemoryStream();
+                using var document = OfficeIMO.Excel.ExcelDocument.Create(workbookStream, autoSave: false);
+                document.ResetWorkbookTheme(themeName);
+                string themeXml = document.GetWorkbookThemeXml()!;
+
+                using var packageStream = new MemoryStream();
+                using (var archive = new System.IO.Compression.ZipArchive(packageStream, System.IO.Compression.ZipArchiveMode.Create, leaveOpen: true)) {
+                    System.IO.Compression.ZipArchiveEntry entry = archive.CreateEntry("theme/theme/theme1.xml");
+                    using Stream entryStream = entry.Open();
+                    using var writer = new StreamWriter(entryStream, Encoding.UTF8);
+                    writer.Write(themeXml);
+                }
+
+                return packageStream.ToArray();
             }
 
             private static byte[] BuildFutureRecordPayload(ushort recordType, int payloadLength) {

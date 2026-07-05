@@ -45,6 +45,16 @@ namespace OfficeIMO.Word.LegacyDoc {
         public IReadOnlyList<LegacyDocUnsupportedFeature> UnsupportedFeatures => LegacyDocument.UnsupportedFeatures;
 
         /// <summary>
+        /// Gets preserve-only non-compound feature metadata discovered while importing the legacy document.
+        /// </summary>
+        public IReadOnlyList<LegacyDocPreservedFeature> PreservedFeatures => LegacyDocument.PreservedFeatures;
+
+        /// <summary>
+        /// Gets preserve-only compound storage discovered while importing the legacy document.
+        /// </summary>
+        public IReadOnlyList<LegacyDocCompoundFeature> CompoundFeatures => LegacyDocument.CompoundFeatures;
+
+        /// <summary>
         /// Gets a compact import report for corpus baselines and preflight checks.
         /// </summary>
         public LegacyDocImportReport ImportReport => LegacyDocument.CreateImportReport();

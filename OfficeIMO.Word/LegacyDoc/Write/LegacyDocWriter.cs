@@ -107,7 +107,10 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
         }
 
         private static void ThrowIfUnsupportedLegacyDocImportState(WordDocument document) {
-            if (!document.WasLoadedFromLegacyDoc || document.LegacyDocUnsupportedFeatures.Count == 0) {
+            if (!document.WasLoadedFromLegacyDoc
+                || (document.LegacyDocUnsupportedFeatures.Count == 0
+                    && document.LegacyDocPreservedFeatures.Count == 0
+                    && document.LegacyDocCompoundFeatures.Count == 0)) {
                 return;
             }
 
@@ -115,6 +118,8 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ", ",
                 document.LegacyDocUnsupportedFeatures
                     .Select(feature => feature.Code)
+                    .Concat(document.LegacyDocPreservedFeatures.Select(feature => feature.Code))
+                    .Concat(document.LegacyDocCompoundFeatures.Select(feature => feature.Code))
                     .Where(code => !string.IsNullOrWhiteSpace(code))
                     .Distinct(StringComparer.Ordinal)
                     .Take(5));
@@ -122,7 +127,7 @@ namespace OfficeIMO.Word.LegacyDoc.Write {
                 ? "unsupported or preserve-only features"
                 : $"unsupported or preserve-only features ({codes})";
 
-            throw new NotSupportedException($"Native DOC saving is blocked because this document was imported from a legacy DOC with {detail}. Save as DOCX after reviewing LegacyDocUnsupportedFeatures, or remove and recreate the unsupported content before saving as DOC.");
+            throw new NotSupportedException($"Native DOC saving is blocked because this document was imported from a legacy DOC with {detail}. Save as DOCX after reviewing LegacyDocUnsupportedFeatures, LegacyDocPreservedFeatures, and LegacyDocCompoundFeatures, or remove and recreate the unsupported content before saving as DOC.");
         }
 
         private static byte[] PadToRegularOleStream(byte[] bytes) {

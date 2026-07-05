@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
             var sectionFormats = new List<(WordSection Section, LegacyDocSectionFormat Format)> {
                 (section, legacyDocument.SectionFormat)
             };
-            LegacyDocNoteProjection notes = LegacyDocNoteProjection.Create(legacyDocument.Footnotes, legacyDocument.Endnotes, legacyDocument.StyleSheet);
+            LegacyDocNoteProjection notes = LegacyDocNoteProjection.Create(legacyDocument.Footnotes, legacyDocument.Endnotes, legacyDocument.Comments, legacyDocument.StyleSheet);
 
             if (legacyDocument.BodyBlocks.Count == 0) {
                 section.AddParagraph();
@@ -131,11 +131,48 @@ namespace OfficeIMO.Word {
 
             ApplyLegacyDocDocumentOptions(document, legacyDocument);
             AddLegacyDocHeaderFooterStories(document, legacyDocument.HeaderFooterStories, legacyDocument.StyleSheet);
+            AddLegacyDocTextBoxStories(document, legacyDocument.TextBoxStories, notes);
             document.MarkLoadedFromLegacyDoc(sourcePath, legacyDocument, attachSourcePathForSave);
             return document;
         }
 
+        private static void AddLegacyDocTextBoxStories(WordDocument document, IReadOnlyList<LegacyDocTextBoxStory> textBoxStories, LegacyDocNoteProjection notes) {
+            foreach (LegacyDocTextBoxStory story in textBoxStories) {
+                if (story.IsHeaderFooterTextBox) {
+                    continue;
+                }
+
+                WordTextBox textBox = document.AddTextBox(story.Text);
+                if (story.Runs.Count == 0 && story.Bookmarks.Count == 0) {
+                    continue;
+                }
+
+                TextBoxContent? content = textBox.Content;
+                Paragraph? paragraph = content?.Elements<Paragraph>().FirstOrDefault();
+                if (paragraph == null) {
+                    continue;
+                }
+
+                foreach (OpenXmlElement child in paragraph.ChildElements.Where(child => child is not ParagraphProperties).ToArray()) {
+                    child.Remove();
+                }
+
+                var textBoxParagraph = new WordParagraph(document, paragraph, newRun: false);
+                LegacyDocBookmarkProjection bookmarks = LegacyDocBookmarkProjection.Create(story.Bookmarks, story.StartCharacter, story.EndCharacter);
+                AddLegacyDocRuns(textBoxParagraph, story.Runs, notes, bookmarks);
+                bookmarks.EmitRemaining(paragraph);
+            }
+        }
+
         private static void ApplyLegacyDocDocumentOptions(WordDocument document, LegacyDocDocument legacyDocument) {
+            if (legacyDocument.RevisionMarkingEnabled || legacyDocument.LockedRevisionTrackingEnabled) {
+                document.Settings.TrackRevisions = true;
+            }
+
+            if (legacyDocument.LockedRevisionTrackingEnabled) {
+                ApplyLegacyDocLockedRevisionTracking(document);
+            }
+
             if (!legacyDocument.DifferentOddAndEvenPages) {
                 return;
             }
@@ -143,6 +180,22 @@ namespace OfficeIMO.Word {
             foreach (WordSection section in document.Sections) {
                 section.DifferentOddAndEvenPages = true;
             }
+        }
+
+        private static void ApplyLegacyDocLockedRevisionTracking(WordDocument document) {
+            Settings? settings = document._wordprocessingDocument.MainDocumentPart?.DocumentSettingsPart?.Settings;
+            if (settings == null) {
+                return;
+            }
+
+            DocumentProtection? protection = settings.Elements<DocumentProtection>().FirstOrDefault();
+            if (protection == null) {
+                protection = new DocumentProtection();
+                settings.Append(protection);
+            }
+
+            protection.Edit = DocumentProtectionValues.TrackedChanges;
+            protection.Enforcement = true;
         }
 
         private static void AddLegacyDocHeaderFooterStories(WordDocument document, IReadOnlyList<LegacyDocHeaderFooterStory> stories, LegacyDocStyleSheet styleSheet) {
@@ -980,6 +1033,8 @@ namespace OfficeIMO.Word {
                     ApplyLegacyDocRunFormatting(tabRun, legacyRun);
                 } else if (character == LegacyDocFootnoteReader.FootnoteReferenceCharacter) {
                     AddLegacyDocNoteReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
+                } else if (character == LegacyDocCommentReader.CommentReferenceCharacter) {
+                    AddLegacyDocCommentReference(paragraph, notes, GetLegacyDocRunCharacterPosition(legacyRun, index));
                 } else {
                     AddLegacyDocBreak(paragraph, legacyRun, GetLegacyDocBreakType(character));
                 }
@@ -1013,6 +1068,39 @@ namespace OfficeIMO.Word {
             } else if (notes.TryGetEndnote(characterPosition.Value, out LegacyDocEndnote? endnote)) {
                 AddLegacyDocEndnoteReference(paragraph, endnote!, notes.StyleSheet);
             }
+        }
+
+        private static void AddLegacyDocCommentReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition) {
+            if (characterPosition == null
+                || !notes.TryGetComment(characterPosition.Value, out LegacyDocComment? comment)
+                || comment!.Paragraphs.Count == 0) {
+                return;
+            }
+
+            WordComment wordComment = CreateLegacyDocComment(paragraph._document, comment, notes.StyleSheet);
+            Run anchorRun = paragraph._paragraph.Elements<Run>().LastOrDefault()
+                ?? paragraph._paragraph.AppendChild(new Run());
+            paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchorRun);
+            var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchorRun);
+            paragraph._paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), commentEnd);
+        }
+
+        private static WordComment CreateLegacyDocComment(WordDocument document, LegacyDocComment comment, LegacyDocStyleSheet styleSheet) {
+            var paragraphs = new List<Paragraph>(comment.ParagraphRuns.Count);
+            foreach (LegacyDocNoteParagraph sourceParagraph in comment.ParagraphRuns) {
+                var targetParagraph = new Paragraph();
+                var wrapper = new WordParagraph(document, targetParagraph, newRun: false);
+                ReplaceLegacyDocNoteParagraphRuns(
+                    wrapper,
+                    sourceParagraph,
+                    keepNoteReferenceMark: false,
+                    LegacyDocNoteProjection.Empty,
+                    LegacyDocBookmarkProjection.Create(sourceParagraph.Bookmarks, sourceParagraph.StartCharacter, sourceParagraph.EndCharacter));
+                ApplyLegacyDocParagraphFormatting(wrapper, sourceParagraph.Format, styleSheet);
+                paragraphs.Add(targetParagraph);
+            }
+
+            return WordComment.Create(document, comment.Author, comment.Initials, paragraphs);
         }
 
         private static void AddLegacyDocFootnoteReference(WordParagraph paragraph, LegacyDocFootnote footnote, LegacyDocStyleSheet styleSheet) {
@@ -1119,17 +1207,20 @@ namespace OfficeIMO.Word {
         private sealed class LegacyDocNoteProjection {
             private readonly IReadOnlyDictionary<int, LegacyDocFootnote> _footnotesByReferencePosition;
             private readonly IReadOnlyDictionary<int, LegacyDocEndnote> _endnotesByReferencePosition;
+            private readonly IReadOnlyDictionary<int, LegacyDocComment> _commentsByReferencePosition;
 
             private LegacyDocNoteProjection(
                 IReadOnlyDictionary<int, LegacyDocFootnote> footnotesByReferencePosition,
                 IReadOnlyDictionary<int, LegacyDocEndnote> endnotesByReferencePosition,
+                IReadOnlyDictionary<int, LegacyDocComment> commentsByReferencePosition,
                 LegacyDocStyleSheet styleSheet) {
                 _footnotesByReferencePosition = footnotesByReferencePosition;
                 _endnotesByReferencePosition = endnotesByReferencePosition;
+                _commentsByReferencePosition = commentsByReferencePosition;
                 StyleSheet = styleSheet;
             }
 
-            internal static LegacyDocNoteProjection Create(IReadOnlyList<LegacyDocFootnote> footnotes, IReadOnlyList<LegacyDocEndnote> endnotes, LegacyDocStyleSheet styleSheet) {
+            internal static LegacyDocNoteProjection Create(IReadOnlyList<LegacyDocFootnote> footnotes, IReadOnlyList<LegacyDocEndnote> endnotes, IReadOnlyList<LegacyDocComment> comments, LegacyDocStyleSheet styleSheet) {
                 return new LegacyDocNoteProjection(
                     footnotes
                         .GroupBy(footnote => footnote.ReferenceCharacterPosition)
@@ -1137,12 +1228,16 @@ namespace OfficeIMO.Word {
                     endnotes
                         .GroupBy(endnote => endnote.ReferenceCharacterPosition)
                         .ToDictionary(group => group.Key, group => group.First()),
+                    comments
+                        .GroupBy(comment => comment.ReferenceCharacterPosition)
+                        .ToDictionary(group => group.Key, group => group.First()),
                     styleSheet);
             }
 
             internal static LegacyDocNoteProjection Empty { get; } = new LegacyDocNoteProjection(
                 new Dictionary<int, LegacyDocFootnote>(),
                 new Dictionary<int, LegacyDocEndnote>(),
+                new Dictionary<int, LegacyDocComment>(),
                 LegacyDocStyleSheet.Empty);
 
             internal LegacyDocStyleSheet StyleSheet { get; }
@@ -1153,6 +1248,10 @@ namespace OfficeIMO.Word {
 
             internal bool TryGetEndnote(int referenceCharacterPosition, out LegacyDocEndnote? endnote) {
                 return _endnotesByReferencePosition.TryGetValue(referenceCharacterPosition, out endnote);
+            }
+
+            internal bool TryGetComment(int referenceCharacterPosition, out LegacyDocComment? comment) {
+                return _commentsByReferencePosition.TryGetValue(referenceCharacterPosition, out comment);
             }
         }
 
@@ -1171,7 +1270,8 @@ namespace OfficeIMO.Word {
                 || character == LegacyDocSpecialCharacters.TextWrappingBreak
                 || character == LegacyDocSpecialCharacters.PageBreak
                 || character == LegacyDocSpecialCharacters.ColumnBreak
-                || character == LegacyDocFootnoteReader.FootnoteReferenceCharacter;
+                || character == LegacyDocFootnoteReader.FootnoteReferenceCharacter
+                || character == LegacyDocCommentReader.CommentReferenceCharacter;
         }
 
         private static bool IsLegacyDocFieldResultSpecialRunCharacter(char character) {
@@ -2642,11 +2742,24 @@ namespace OfficeIMO.Word {
                     wordProperty = new WordCustomProperty(System.Convert.ToDateTime(property.Value, System.Globalization.CultureInfo.InvariantCulture));
                     return true;
                 case LegacyDocDocumentPropertyValueKind.Integer:
-                    wordProperty = new WordCustomProperty(System.Convert.ToInt32(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    if (property.Value is long integer64) {
+                        wordProperty = new WordCustomProperty(integer64);
+                    } else {
+                        wordProperty = new WordCustomProperty(System.Convert.ToInt32(property.Value, System.Globalization.CultureInfo.InvariantCulture));
+                    }
+
                     return true;
                 case LegacyDocDocumentPropertyValueKind.Number:
                     wordProperty = new WordCustomProperty(System.Convert.ToDouble(property.Value, System.Globalization.CultureInfo.InvariantCulture));
                     return true;
+                case LegacyDocDocumentPropertyValueKind.Binary:
+                    if (property.Value is byte[] bytes) {
+                        wordProperty = new WordCustomProperty(bytes);
+                        return true;
+                    }
+
+                    wordProperty = null;
+                    return false;
                 default:
                     wordProperty = null;
                     return false;

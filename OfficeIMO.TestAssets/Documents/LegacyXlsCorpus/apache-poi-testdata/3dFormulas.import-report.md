@@ -1,6 +1,7 @@
 ﻿# Legacy XLS Import Report
 
 Worksheets: 3
+Chart sheets: 0
 Unsupported sheets: 0
 Cells: 14
 Formula cells: 6
@@ -22,6 +23,8 @@ Data consolidation references: 0
 Data consolidation named sources: 0
 Pivot table records: 5
 Chart records: 0
+Chart sheet metadata records: 0
+Chart sheet future metadata records: 0
 Drawing records: 0
 Theme records: 0
 Drawing OfficeArt records: 0
@@ -50,17 +53,11 @@ Worksheet metadata records: 15
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 5
+Unsupported features: 0
 Unsupported projection gaps: 0
-Preserved feature records: 5
+Preserved feature records: 0
 Errors: 0
 Warnings: 0
-
-## Diagnostics By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 5 |
 
 ## Formula Tokens By Name
 
@@ -245,43 +242,6 @@ Warnings: 0
 | --- | --- |
 | Missing | 3 |
 
-## Unsupported Features By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 5 |
-
-## Unsupported Features By Kind
-
-| Key | Count |
-| --- | --- |
-| PivotTable | 5 |
-
-## Unsupported Feature Record Types
-
-| Key | Count |
-| --- | --- |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 3 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-
-## Unsupported Feature Details
-
-| Key | Count |
-| --- | --- |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 3 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-
-## Unsupported Feature Locations
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|S2 | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Sh3 | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Sheet1 | 1 |
-
 ## File Format States
 
 | Key | Count |
@@ -402,6 +362,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | View:Missing\|Cache:Missing\|CacheSource:Missing\|CacheItems:Missing\|Fields:Missing\|Items:Missing\|DataItems:Present\|Grouping:Present\|Formulas:Missing\|Additional:Missing\|Locations:WorkbookAndSheets | 1 |
+
+## Pivot Table Data Item Field Indexes
+
+| Key | Count |
+| --- | --- |
+| FieldIndex:0 | 1 |
 
 ## Pivot Table Grouping Kinds
 
@@ -537,17 +503,3 @@ Warnings: 0
 | RowBlockIndex | 3 |
 | Selection | 3 |
 | SheetOptions | 3 |
-
-## Preserved Feature Records By Kind
-
-| Key | Count |
-| --- | --- |
-| PivotTable | 5 |
-
-## Preserved Feature Record Details
-
-| Key | Count |
-| --- | --- |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 3 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |

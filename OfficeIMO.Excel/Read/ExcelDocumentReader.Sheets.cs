@@ -19,6 +19,10 @@ namespace OfficeIMO.Excel {
             Sheet? sheet = null;
             int currentIndex = 0;
             foreach (var candidate in wb.Sheets!.Elements<Sheet>()) {
+                if (!TryGetWorksheetPart(candidate, out _)) {
+                    continue;
+                }
+
                 currentIndex++;
                 if (currentIndex == index) {
                     sheet = candidate;
@@ -27,8 +31,11 @@ namespace OfficeIMO.Excel {
             }
 
             if (sheet is null) throw new ArgumentOutOfRangeException(nameof(index));
-            var wsPart = (WorksheetPart)WorkbookPartRoot.GetPartById(sheet.Id!);
-            return new ExcelSheetReader(sheet.Name!, wsPart, _sst, _styles, _opt, _dateSystem, _owns);
+            if (!TryGetWorksheetPart(sheet, out WorksheetPart? wsPart)) {
+                throw new ArgumentOutOfRangeException(nameof(index));
+            }
+
+            return new ExcelSheetReader(sheet.Name!, wsPart!, _sst, _styles, _opt, _dateSystem, _owns);
         }
 
         /// <summary>
@@ -41,8 +48,10 @@ namespace OfficeIMO.Excel {
                 }
 
                 int count = 0;
-                foreach (var _ in WorkbookRoot.Sheets!.Elements<Sheet>()) {
-                    count++;
+                foreach (var sheet in WorkbookRoot.Sheets!.Elements<Sheet>()) {
+                    if (TryGetWorksheetPart(sheet, out _)) {
+                        count++;
+                    }
                 }
 
                 return count;

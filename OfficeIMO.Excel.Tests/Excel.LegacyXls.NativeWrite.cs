@@ -157,7 +157,29 @@ namespace OfficeIMO.Tests {
             try {
                 using ExcelDocument document = ExcelDocument.Load(sourcePath);
                 Assert.True(document.WasLoadedFromLegacyXls);
-                Assert.NotEmpty(document.LegacyXlsUnsupportedFeatures);
+                Assert.Empty(document.LegacyXlsUnsupportedFeatures);
+                Assert.NotEmpty(document.LegacyXlsChartSheets);
+
+                NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
+                Assert.Contains(nameof(ExcelSaveOptions.AllowLossyLegacyXlsSave), exception.Message);
+                Assert.False(File.Exists(xlsOutputPath));
+            } finally {
+                TryDelete(xlsOutputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NativeSave_BlocksImportedCompoundFeaturesWithoutExplicitOptIn() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateMinimalWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFileWithVbaProjectStorage(workbookStream);
+            string xlsOutputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xls");
+
+            try {
+                using ExcelDocument document = ExcelDocument.Load(new MemoryStream(compound));
+                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.Empty(document.LegacyXlsUnsupportedFeatures);
+                LegacyXlsCompoundFeatureRecord feature = Assert.Single(document.LegacyXlsCompoundFeatures);
+                Assert.Equal(LegacyXlsCompoundFeatureRecordKind.VbaProject, feature.Kind);
 
                 NotSupportedException exception = Assert.Throws<NotSupportedException>(() => document.Save(xlsOutputPath));
                 Assert.Contains(nameof(ExcelSaveOptions.AllowLossyLegacyXlsSave), exception.Message);

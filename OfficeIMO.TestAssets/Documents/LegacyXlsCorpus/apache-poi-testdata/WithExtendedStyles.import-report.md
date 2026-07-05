@@ -1,6 +1,7 @@
 ﻿# Legacy XLS Import Report
 
 Worksheets: 3
+Chart sheets: 0
 Unsupported sheets: 0
 Cells: 4
 Formula cells: 0
@@ -22,6 +23,8 @@ Data consolidation references: 0
 Data consolidation named sources: 0
 Pivot table records: 2
 Chart records: 0
+Chart sheet metadata records: 0
+Chart sheet future metadata records: 0
 Drawing records: 4
 Theme records: 0
 Drawing OfficeArt records: 22
@@ -50,19 +53,11 @@ Worksheet metadata records: 12
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 6
+Unsupported features: 0
 Unsupported projection gaps: 0
-Preserved feature records: 5
+Preserved feature records: 0
 Errors: 0
 Warnings: 0
-
-## Diagnostics By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 2 |
-| XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED | 1 |
 
 ## Worksheets By Visibility
 
@@ -99,49 +94,6 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Missing | 3 |
-
-## Unsupported Features By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 3 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 2 |
-| XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED | 1 |
-
-## Unsupported Features By Kind
-
-| Key | Count |
-| --- | --- |
-| DrawingObject | 3 |
-| OleObject | 1 |
-| PivotTable | 2 |
-
-## Unsupported Feature Record Types
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 3 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-
-## Unsupported Feature Details
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 3 |
-| OleObject\|XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED\|Compound:OleObjectStorage | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-
-## Unsupported Feature Locations
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Sheet1 | 1 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Sheet2 | 1 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Sheet3 | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
-| XLS-COMPOUND-FEATURE-OLE-OBJECT-PRESERVED\|(workbook) | 1 |
 
 ## File Format States
 
@@ -192,6 +144,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | View:Missing\|Cache:Missing\|CacheSource:Missing\|CacheItems:Missing\|Fields:Missing\|Items:Missing\|DataItems:Present\|Grouping:Missing\|Formulas:Missing\|Additional:Missing\|Locations:WorkbookOnly | 1 |
+
+## Pivot Table Data Item Field Indexes
+
+| Key | Count |
+| --- | --- |
+| FieldIndex:0 | 1 |
 
 ## Pivot Table Extended Field States
 
@@ -557,18 +515,3 @@ Warnings: 0
 | OutlineLevels | 3 |
 | Selection | 3 |
 | SheetOptions | 3 |
-
-## Preserved Feature Records By Kind
-
-| Key | Count |
-| --- | --- |
-| DrawingObject | 3 |
-| PivotTable | 2 |
-
-## Preserved Feature Record Details
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 3 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |

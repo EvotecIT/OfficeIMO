@@ -12,7 +12,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             ushort textCharacterCount,
             ushort formattingRunByteCount,
             ushort emptyFontIndex,
-            int formulaByteCount) {
+            int formulaByteCount,
+            string? text = null,
+            IReadOnlyList<LegacyXlsCommentFormattingRun>? formattingRuns = null) {
             if (formulaByteCount < 0) {
                 throw new ArgumentOutOfRangeException(nameof(formulaByteCount));
             }
@@ -31,6 +33,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             FormattingRunByteCount = formattingRunByteCount;
             EmptyFontIndex = emptyFontIndex;
             FormulaByteCount = formulaByteCount;
+            Text = text;
+            FormattingRuns = formattingRuns == null
+                ? Array.Empty<LegacyXlsCommentFormattingRun>()
+                : formattingRuns.ToArray();
         }
 
         /// <summary>Gets the raw TxO option bitfield.</summary>
@@ -75,11 +81,37 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the number of bytes available for the optional TxO formula field.</summary>
         public int FormulaByteCount { get; }
 
+        /// <summary>Gets decoded TxO text from following Continue records when available.</summary>
+        public string? Text { get; }
+
+        /// <summary>Gets a value indicating whether text from following Continue records was decoded.</summary>
+        public bool HasDecodedText => Text != null;
+
+        /// <summary>Gets decoded formatting runs from following Continue records when available.</summary>
+        public IReadOnlyList<LegacyXlsCommentFormattingRun> FormattingRuns { get; }
+
         /// <summary>Gets whether this TxO declares text payload in following Continue records.</summary>
         public bool HasTextInContinueRecords => TextCharacterCount > 0;
 
         /// <summary>Gets whether this TxO declares formatting-run payload in following Continue records.</summary>
         public bool HasFormattingRunsInContinueRecords => FormattingRunByteCount > 0;
+
+        /// <summary>
+        /// Creates a copy that includes decoded Continue-record text and formatting runs.
+        /// </summary>
+        internal LegacyXlsDrawingTextObject WithDecodedText(
+            string text,
+            IReadOnlyList<LegacyXlsCommentFormattingRun>? formattingRuns) {
+            return new LegacyXlsDrawingTextObject(
+                RawOptions,
+                Rotation,
+                TextCharacterCount,
+                FormattingRunByteCount,
+                EmptyFontIndex,
+                FormulaByteCount,
+                text,
+                formattingRuns);
+        }
 
         private static string GetHorizontalAlignmentName(ushort value) {
             return value switch {

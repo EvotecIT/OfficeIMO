@@ -84,6 +84,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     return true;
 
                 case BiffRecordType.InterfaceHdr:
+                    if (record.Payload.Length == 0) {
+                        workbook.AddMetadataRecord(LegacyXlsWorkbookMetadataKind.InterfaceCodePage, record.Offset, record.Type);
+                        return true;
+                    }
+
                     if (TryReadUInt16(record, diagnostics, out ushort interfaceCodePage)) {
                         workbook.SetUserInterfaceCodePage(interfaceCodePage);
                     }
@@ -328,7 +333,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private static bool TryReadWriteAccess(BiffRecord record, List<LegacyXlsImportDiagnostic> diagnostics, out string? userName) {
             try {
                 int offset = 0;
-                string value = BiffStringReader.ReadUnicodeString(record.Payload, ref offset).TrimEnd('\0', ' ');
+                string value = ReadUnicodeOrShortByteString(record.Payload, ref offset).TrimEnd('\0', ' ');
                 userName = string.IsNullOrWhiteSpace(value) ? null : value;
                 return true;
             } catch (InvalidDataException ex) {
@@ -340,6 +345,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     recordType: record.Type));
                 userName = null;
                 return false;
+            }
+        }
+
+        private static string ReadUnicodeOrShortByteString(byte[] payload, ref int offset) {
+            int originalOffset = offset;
+            try {
+                return BiffStringReader.ReadUnicodeString(payload, ref offset);
+            } catch (InvalidDataException) {
+                offset = originalOffset;
+                return BiffStringReader.ReadShortByteString(payload, ref offset);
             }
         }
 

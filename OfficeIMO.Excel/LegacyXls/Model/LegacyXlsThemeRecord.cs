@@ -1,6 +1,6 @@
 namespace OfficeIMO.Excel.LegacyXls.Model {
     /// <summary>
-    /// Describes a preserve-only BIFF Theme record discovered during legacy XLS import.
+    /// Describes a BIFF Theme record discovered during legacy XLS import.
     /// </summary>
     public sealed class LegacyXlsThemeRecord {
         private readonly byte[] _themeBytes;
@@ -48,6 +48,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
 
         /// <summary>Gets whether the Theme record carries embedded theme content bytes.</summary>
         public bool HasThemeBytes => _themeBytes.Length > 0;
+
+        /// <summary>Gets whether the record declares the built-in default theme without embedded theme package bytes.</summary>
+        public bool IsDefaultThemeMarker => !HasThemeBytes && ThemeVersion == 124226U;
 
         /// <summary>Gets the number of embedded theme content bytes preserved from the Theme record.</summary>
         public int ThemeByteCount => _themeBytes.Length;

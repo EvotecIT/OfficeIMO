@@ -112,7 +112,14 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     && BiffUnsupportedRecordDiagnostics.IsPreserveOnlyFeatureRecord(type)) {
                     byte[] payload = new byte[length];
                     Buffer.BlockCopy(workbookStream, payloadOffset, payload, 0, length);
-                    BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, drawingRecords);
+                    bool isSupportedDrawingMetadata = false;
+                    bool isSupportedChartMetadata = false;
+                    bool isSupportedPivotTableMetadata = false;
+                    if (BiffDrawingMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, out LegacyXlsDrawingRecord? drawingRecord)) {
+                        drawingRecords.Add(drawingRecord!);
+                        isSupportedDrawingMetadata = drawingRecord!.HasSupportedDrawingMetadata;
+                    }
+
                     int chartRecordCountBefore = chartRecords.Count;
                     var chartRecord = new BiffRecord(type, offset, payload);
                     if (BiffChartMetadataReader.TryRead(chartRecord, sheet.Name, chartRecords, chartMetadataState, externSheets, externalReferences, sheetNames, definedNames)
@@ -120,21 +127,29 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         && chartRecords.Count > chartRecordCountBefore) {
                         BiffChartMetadataReader.ScanFormulaTokens(chartRecord, sheet.Name, formulaTokenRecords);
                         sheet.AddChartRecord(chartRecords[chartRecords.Count - 1]);
+                        isSupportedChartMetadata = chartRecords[chartRecords.Count - 1].HasSupportedChartMetadata;
                     }
 
-                    BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics, pivotTableMetadataState);
+                    int pivotTableRecordCountBefore = pivotTableRecords.Count;
+                    if (BiffPivotTableMetadataReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, pivotTableRecords, diagnostics, pivotTableMetadataState, formulaTokenRecords)
+                        && pivotTableRecords.Count > pivotTableRecordCountBefore) {
+                        isSupportedPivotTableMetadata = pivotTableRecords[pivotTableRecords.Count - 1].HasSupportedPivotTableMetadata;
+                    }
+
                     if (BiffExternalQueryConnectionReader.TryRead(new BiffRecord(type, offset, payload), sheet.Name, diagnostics, out LegacyXlsExternalQueryConnection? externalQueryConnection)) {
                         externalQueryConnections.Add(externalQueryConnection!);
                     }
 
-                    LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
-                    unsupportedFeatures.Add(feature);
-                    if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
-                        preservedFeatureRecords.Add(preservedRecord!);
-                    }
+                    if (!isSupportedDrawingMetadata && !isSupportedChartMetadata && !isSupportedPivotTableMetadata) {
+                        LegacyXlsUnsupportedFeature feature = BiffUnsupportedRecordDiagnostics.CreateUnsupportedRecordFeature(type, offset, sheet.Name);
+                        unsupportedFeatures.Add(feature);
+                        if (BiffUnsupportedRecordDiagnostics.TryCreatePreservedFeatureRecord(feature, length, out LegacyXlsPreservedFeatureRecord? preservedRecord)) {
+                            preservedFeatureRecords.Add(preservedRecord!);
+                        }
 
-                    if (options.ReportUnsupportedRecords) {
-                        BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(diagnostics, type, offset, sheet.Name);
+                        if (options.ReportUnsupportedRecords) {
+                            BiffUnsupportedRecordDiagnostics.AddUnsupportedRecordDiagnostic(diagnostics, type, offset, sheet.Name);
+                        }
                     }
                 }
 

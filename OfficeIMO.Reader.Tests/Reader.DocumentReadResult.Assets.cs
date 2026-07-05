@@ -284,6 +284,31 @@ public sealed class ReaderDocumentReadResultAssetTests {
     }
 
     [Fact]
+    public void DocumentReader_ReadDocument_EmitsPlainExcelImageAssetsWhenOpenPasswordOptionIsSet() {
+        string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+        byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");
+        try {
+            using (ExcelDocument document = ExcelDocument.Create(path)) {
+                ExcelSheet sheet = document.AddWorkSheet("Images");
+                sheet.Cell(1, 1, "Plain workbook");
+                sheet.AddImage(1, 1, png, "image/png", widthPixels: 12, heightPixels: 10, name: "Logo", altText: "Plain logo");
+                document.Save();
+            }
+
+            OfficeDocumentReadResult result = DocumentReader.ReadDocument(path, new ReaderOptions {
+                ExcelSheetName = "Images",
+                OpenPassword = "not-used-for-plaintext"
+            });
+
+            OfficeDocumentAsset asset = Assert.Single(result.Assets);
+            Assert.Equal("Plain logo", asset.AltText);
+            Assert.Equal("Images", asset.Location.Sheet);
+        } finally {
+            if (File.Exists(path)) File.Delete(path);
+        }
+    }
+
+    [Fact]
     public void DocumentReader_ReadDocument_SharesPayloadForDuplicateExcelRelationshipPlacements() {
         string path = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
         byte[] png = Convert.FromBase64String("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGMAAQAABQABDQottAAAAABJRU5ErkJggg==");

@@ -344,7 +344,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Loads a password-encrypted Office Open XML workbook.
+        /// Loads a password-encrypted Office Open XML workbook or legacy binary `.xls` workbook.
         /// </summary>
         /// <param name="filePath">Path to the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
@@ -359,6 +359,10 @@ namespace OfficeIMO.Excel {
             EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(filePath)) {
+                return LoadEncryptedLegacyXls(filePath, password);
             }
 
             var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
@@ -477,7 +481,7 @@ namespace OfficeIMO.Excel {
         }
 
         /// <summary>
-        /// Asynchronously loads a password-encrypted Office Open XML workbook.
+        /// Asynchronously loads a password-encrypted Office Open XML workbook or legacy binary `.xls` workbook.
         /// </summary>
         /// <param name="filePath">Path to the encrypted workbook.</param>
         /// <param name="password">Password used to decrypt the workbook package.</param>
@@ -491,6 +495,10 @@ namespace OfficeIMO.Excel {
             EnsureEncryptedLoadDoesNotAutoSave(autoSave, openSettings);
             if (!File.Exists(filePath)) {
                 throw new FileNotFoundException($"File '{filePath}' doesn't exist.", filePath);
+            }
+
+            if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(filePath)) {
+                return LoadEncryptedLegacyXls(filePath, password);
             }
 
             var encryptedBytes = await ReadAllBytesCompatAsync(filePath, CancellationToken.None).ConfigureAwait(false);
@@ -554,6 +562,14 @@ namespace OfficeIMO.Excel {
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+        }
+
+        private static ExcelDocument LoadEncryptedLegacyXls(string filePath, string password) {
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(filePath, new LegacyXlsImportOptions {
+                Password = password,
+                ReportUnsupportedRecords = true
+            });
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
         }
 
         private static void EnsureEncryptedLoadDoesNotAutoSave(bool autoSave, OpenSettings? openSettings) {

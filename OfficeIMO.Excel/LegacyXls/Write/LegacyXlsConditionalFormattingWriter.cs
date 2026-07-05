@@ -98,7 +98,7 @@ namespace OfficeIMO.Excel.LegacyXls.Write {
             CellRange enclosingRange = GetEnclosingRange(ranges);
             using var stream = new MemoryStream();
             WriteUInt16(stream, checked((ushort)payloads.Count));
-            WriteUInt16(stream, headerId);
+            WriteUInt16(stream, checked((ushort)(headerId << 1)));
             WriteCellRange(stream, enclosingRange);
             WriteUInt16(stream, checked((ushort)ranges.Count));
             foreach (CellRange range in ranges) {

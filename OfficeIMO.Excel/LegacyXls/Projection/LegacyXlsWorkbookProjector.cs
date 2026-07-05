@@ -5,7 +5,7 @@ using OfficeIMO.Excel.LegacyXls.Model;
 using System.Globalization;
 
 namespace OfficeIMO.Excel.LegacyXls.Projection {
-    internal static class LegacyXlsWorkbookProjector {
+    internal static partial class LegacyXlsWorkbookProjector {
         private const string ExternalLinkPathRelationshipType = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/externalLinkPath";
 
         internal static ExcelDocument ToExcelDocument(LegacyXlsWorkbook workbook) {
@@ -13,18 +13,23 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             var packageStream = new MemoryStream();
             ExcelDocument document = ExcelDocument.Create(packageStream, autoSave: false);
-            if (workbook.Worksheets.Count == 0) {
+            if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
                 document.AddWorkSheet("Sheet1");
             }
 
-            foreach (LegacyXlsWorksheet legacySheet in workbook.Worksheets) {
-                ExcelSheet sheet = document.AddWorkSheet(legacySheet.Name);
-                ProjectWorksheet(workbook, legacySheet, sheet);
+            foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook)) {
+                if (sheetEntry.Worksheet != null) {
+                    ExcelSheet sheet = document.AddWorkSheet(sheetEntry.Worksheet.Name);
+                    ProjectWorksheet(workbook, sheetEntry.Worksheet, sheet);
+                } else if (sheetEntry.ChartSheet != null) {
+                    ProjectChartSheet(sheetEntry.ChartSheet, document);
+                }
             }
 
             ProjectDefinedNames(workbook, document);
             ProjectAutoFilters(workbook, document);
             ProjectExternalReferences(workbook, document);
+            ProjectExternalQueryConnections(workbook, document);
             ProjectDocumentProperties(workbook, document);
             ProjectWorkbookOptions(workbook, document);
             ProjectCodeNames(workbook, document);
@@ -33,6 +38,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             ProjectWorkbookWindow(workbook, document);
             ProjectWriteReservation(workbook, document);
             ProjectTableStyles(workbook, document);
+            ProjectCellStyles(workbook, document);
+            ProjectWorkbookTheme(workbook, document);
 
             if (workbook.Protection?.IsProtected == true || workbook.WindowsLocked.HasValue) {
                 document.ProtectWorkbook(new ExcelWorkbookProtectionOptions {
@@ -50,27 +57,204 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             return document;
         }
 
+        private static IReadOnlyList<LegacyXlsSheetProjectionEntry> EnumerateSheetsInWorkbookOrder(LegacyXlsWorkbook workbook) {
+            var sheets = new List<LegacyXlsSheetProjectionEntry>(workbook.Worksheets.Count + workbook.ChartSheets.Count);
+            foreach (LegacyXlsWorksheet worksheet in workbook.Worksheets) {
+                sheets.Add(new LegacyXlsSheetProjectionEntry(worksheet.StreamOffset, worksheet, null));
+            }
+
+            foreach (LegacyXlsChartSheet chartSheet in workbook.ChartSheets) {
+                sheets.Add(new LegacyXlsSheetProjectionEntry(chartSheet.StreamOffset, null, chartSheet));
+            }
+
+            sheets.Sort((left, right) => left.StreamOffset.CompareTo(right.StreamOffset));
+            return sheets;
+        }
+
+        private readonly struct LegacyXlsSheetProjectionEntry {
+            internal LegacyXlsSheetProjectionEntry(int streamOffset, LegacyXlsWorksheet? worksheet, LegacyXlsChartSheet? chartSheet) {
+                StreamOffset = streamOffset;
+                Worksheet = worksheet;
+                ChartSheet = chartSheet;
+            }
+
+            internal int StreamOffset { get; }
+
+            internal LegacyXlsWorksheet? Worksheet { get; }
+
+            internal LegacyXlsChartSheet? ChartSheet { get; }
+        }
+
+        private static void ProjectWorkbookTheme(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            foreach (LegacyXlsThemeRecord themeRecord in workbook.ThemeRecords.Reverse()) {
+                if (LegacyXlsThemePackageReader.TryExtractThemeXml(themeRecord, out string? themeXml)
+                    && !string.IsNullOrWhiteSpace(themeXml)) {
+                    document.SetWorkbookThemeXml(themeXml!);
+                    return;
+                }
+            }
+
+            if (workbook.ThemeRecords.Any(themeRecord => themeRecord.IsDefaultThemeMarker)) {
+                document.EnsureWorkbookThemeAndStyles();
+            }
+        }
+
         private static void ProjectTableStyles(LegacyXlsWorkbook workbook, ExcelDocument document) {
             LegacyXlsTableStyleCollection? collection = workbook.TableStyleCollections.LastOrDefault();
-            if (collection == null
-                || (string.IsNullOrWhiteSpace(collection.DefaultTableStyleName)
-                    && string.IsNullOrWhiteSpace(collection.DefaultPivotStyleName))) {
+            bool hasCustomStyles = workbook.TableStyles.Count > 0;
+            bool hasDefaultStyleNames = collection != null
+                && (!string.IsNullOrWhiteSpace(collection.DefaultTableStyleName)
+                    || !string.IsNullOrWhiteSpace(collection.DefaultPivotStyleName));
+            if (!hasCustomStyles && !hasDefaultStyleNames) {
                 return;
             }
 
             document.EnsureWorkbookThemeAndStyles();
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             TableStyles tableStyles = stylesheet.TableStyles ??= new TableStyles();
-            if (!string.IsNullOrWhiteSpace(collection.DefaultTableStyleName)) {
-                tableStyles.DefaultTableStyle = collection.DefaultTableStyleName;
+            string? defaultTableStyleName = collection?.DefaultTableStyleName;
+            if (!string.IsNullOrWhiteSpace(defaultTableStyleName)) {
+                tableStyles.DefaultTableStyle = defaultTableStyleName;
             }
 
-            if (!string.IsNullOrWhiteSpace(collection.DefaultPivotStyleName)) {
-                tableStyles.DefaultPivotStyle = collection.DefaultPivotStyleName;
+            string? defaultPivotStyleName = collection?.DefaultPivotStyleName;
+            if (!string.IsNullOrWhiteSpace(defaultPivotStyleName)) {
+                tableStyles.DefaultPivotStyle = defaultPivotStyleName;
+            }
+
+            tableStyles.RemoveAllChildren<DocumentFormat.OpenXml.Spreadsheet.TableStyle>();
+            foreach (LegacyXlsTableStyle legacyStyle in workbook.TableStyles) {
+                DocumentFormat.OpenXml.Spreadsheet.TableStyle? tableStyle = ProjectTableStyle(legacyStyle);
+                if (tableStyle != null) {
+                    tableStyles.Append(tableStyle);
+                }
             }
 
             tableStyles.Count = checked((uint)tableStyles.Elements<DocumentFormat.OpenXml.Spreadsheet.TableStyle>().Count());
             stylesheet.Save();
+        }
+
+        private static DocumentFormat.OpenXml.Spreadsheet.TableStyle? ProjectTableStyle(LegacyXlsTableStyle legacyStyle) {
+            if (string.IsNullOrWhiteSpace(legacyStyle.Name)) {
+                return null;
+            }
+
+            var tableStyle = new DocumentFormat.OpenXml.Spreadsheet.TableStyle {
+                Name = legacyStyle.Name,
+                Table = legacyStyle.AppliesToTables,
+                Pivot = legacyStyle.AppliesToPivotTables
+            };
+
+            foreach (LegacyXlsTableStyleElement legacyElement in legacyStyle.Elements) {
+                if (!TryMapTableStyleElementType(legacyElement.ElementType, out TableStyleValues elementType)) {
+                    return null;
+                }
+
+                var element = new TableStyleElement {
+                    Type = elementType,
+                    FormatId = legacyElement.DifferentialFormatIndex
+                };
+                if (legacyElement.StripeSize != 0) {
+                    element.Size = legacyElement.StripeSize;
+                }
+
+                tableStyle.Append(element);
+            }
+
+            tableStyle.Count = checked((uint)tableStyle.Elements<TableStyleElement>().Count());
+            return tableStyle;
+        }
+
+        private static bool TryMapTableStyleElementType(uint value, out TableStyleValues type) {
+            switch (value) {
+                case 0x00000000:
+                    type = TableStyleValues.WholeTable;
+                    return true;
+                case 0x00000001:
+                    type = TableStyleValues.HeaderRow;
+                    return true;
+                case 0x00000002:
+                    type = TableStyleValues.TotalRow;
+                    return true;
+                case 0x00000003:
+                    type = TableStyleValues.FirstColumn;
+                    return true;
+                case 0x00000004:
+                    type = TableStyleValues.LastColumn;
+                    return true;
+                case 0x00000005:
+                    type = TableStyleValues.FirstRowStripe;
+                    return true;
+                case 0x00000006:
+                    type = TableStyleValues.SecondRowStripe;
+                    return true;
+                case 0x00000007:
+                    type = TableStyleValues.FirstColumnStripe;
+                    return true;
+                case 0x00000008:
+                    type = TableStyleValues.SecondColumnStripe;
+                    return true;
+                case 0x00000009:
+                    type = TableStyleValues.FirstHeaderCell;
+                    return true;
+                case 0x0000000A:
+                    type = TableStyleValues.LastHeaderCell;
+                    return true;
+                case 0x0000000B:
+                    type = TableStyleValues.FirstTotalCell;
+                    return true;
+                case 0x0000000C:
+                    type = TableStyleValues.LastTotalCell;
+                    return true;
+                case 0x0000000D:
+                    type = TableStyleValues.FirstSubtotalColumn;
+                    return true;
+                case 0x0000000E:
+                    type = TableStyleValues.SecondSubtotalColumn;
+                    return true;
+                case 0x0000000F:
+                    type = TableStyleValues.ThirdSubtotalColumn;
+                    return true;
+                case 0x00000010:
+                    type = TableStyleValues.FirstSubtotalRow;
+                    return true;
+                case 0x00000011:
+                    type = TableStyleValues.SecondSubtotalRow;
+                    return true;
+                case 0x00000012:
+                    type = TableStyleValues.ThirdSubtotalRow;
+                    return true;
+                case 0x00000013:
+                    type = TableStyleValues.BlankRow;
+                    return true;
+                case 0x00000014:
+                    type = TableStyleValues.FirstColumnSubheading;
+                    return true;
+                case 0x00000015:
+                    type = TableStyleValues.SecondColumnSubheading;
+                    return true;
+                case 0x00000016:
+                    type = TableStyleValues.ThirdColumnSubheading;
+                    return true;
+                case 0x00000017:
+                    type = TableStyleValues.FirstRowSubheading;
+                    return true;
+                case 0x00000018:
+                    type = TableStyleValues.SecondRowSubheading;
+                    return true;
+                case 0x00000019:
+                    type = TableStyleValues.ThirdRowSubheading;
+                    return true;
+                case 0x0000001A:
+                    type = TableStyleValues.PageFieldLabels;
+                    return true;
+                case 0x0000001B:
+                    type = TableStyleValues.PageFieldValues;
+                    return true;
+                default:
+                    type = default;
+                    return false;
+            }
         }
 
         private static void ProjectWriteReservation(LegacyXlsWorkbook workbook, ExcelDocument document) {
@@ -476,13 +660,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 foreach (LegacyXlsCell cell in legacySheet.Cells) {
                     LegacyXlsCellFormat? format = workbook.GetEffectiveCellFormat(cell.StyleIndex);
                     if (cell.Kind == LegacyXlsCellValueKind.Blank) {
-                        ApplyNumberFormat(currentSheet, cell, format);
-                        ApplyFont(currentSheet, workbook, cell, format);
-                        ApplyFill(currentSheet, workbook, cell, format);
-                        ApplyAlignment(currentSheet, cell, format);
-                        ApplyBorder(currentSheet, workbook, cell, format);
-                        ApplyProtection(currentSheet, cell, format);
-                        ApplyQuotePrefix(currentSheet, cell, format);
+                        ApplyCellFormat(currentSheet, workbook, cell, format);
                         continue;
                     }
 
@@ -501,13 +679,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                         currentSheet.CellFormula(cell.Row, cell.Column, cell.FormulaText!);
                     }
 
-                    ApplyNumberFormat(currentSheet, cell, format);
-                    ApplyFont(currentSheet, workbook, cell, format);
-                    ApplyFill(currentSheet, workbook, cell, format);
-                    ApplyAlignment(currentSheet, cell, format);
-                    ApplyBorder(currentSheet, workbook, cell, format);
-                    ApplyProtection(currentSheet, cell, format);
-                    ApplyQuotePrefix(currentSheet, cell, format);
+                    ApplyCellFormat(currentSheet, workbook, cell, format);
                 }
 
                 foreach (LegacyXlsArrayFormulaRecord arrayFormula in legacySheet.ArrayFormulaRecords) {
@@ -701,6 +873,8 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
             });
 
+            ProjectTableDefinitions(workbook, legacySheet, sheet);
+
             foreach (LegacyXlsComment comment in legacySheet.Comments) {
                 ExcelCommentAnchor? anchor = ToCommentAnchor(comment.Anchor);
                 if (TryCreateCommentRichTextRuns(workbook, comment, out IReadOnlyList<ExcelRichTextRun> richTextRuns)) {
@@ -743,12 +917,117 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             ProjectDataConsolidation(workbook, legacySheet, sheet);
             ProjectScenarios(legacySheet, sheet);
             ProjectPageBreaks(legacySheet, sheet);
+            ProjectWorksheetImages(workbook, legacySheet, sheet);
+            ProjectHeaderFooterImages(workbook, legacySheet, sheet);
 
             if (legacySheet.Visibility == 2) {
                 sheet.SetVeryHidden(true);
             } else if (legacySheet.Visibility != 0) {
                 sheet.SetHidden(true);
             }
+        }
+
+        private static void ProjectTableDefinitions(LegacyXlsWorkbook workbook, LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
+            if (legacySheet.TableDefinitions.Count == 0) {
+                return;
+            }
+
+            OfficeIMO.Excel.TableStyle style = ResolveDefaultTableStyle(workbook);
+            foreach (LegacyXlsTableDefinition tableDefinition in legacySheet.TableDefinitions) {
+                sheet.AddTable(
+                    tableDefinition.Range,
+                    tableDefinition.HasHeaderRow,
+                    tableDefinition.Name,
+                    style,
+                    tableDefinition.HasAutoFilter);
+                ApplyTableDefinitionTotals(sheet, tableDefinition);
+                ApplyTableDefinitionMetadata(sheet, tableDefinition);
+                ApplyTableBlockLevelFormatting(workbook, sheet, tableDefinition);
+            }
+        }
+
+        private static void ApplyTableDefinitionTotals(ExcelSheet sheet, LegacyXlsTableDefinition tableDefinition) {
+            if (!tableDefinition.HasTotalsRow) {
+                return;
+            }
+
+            Table? table = sheet.WorksheetPart.TableDefinitionParts
+                .FirstOrDefault(part => string.Equals(part.Table?.Name?.Value, tableDefinition.Name, StringComparison.OrdinalIgnoreCase))
+                ?.Table;
+            if (table == null) {
+                return;
+            }
+
+            table.TotalsRowShown = true;
+            table.TotalsRowCount = tableDefinition.TotalRowCount;
+            table.Save();
+        }
+
+        private static void ApplyTableDefinitionMetadata(ExcelSheet sheet, LegacyXlsTableDefinition tableDefinition) {
+            if (string.IsNullOrWhiteSpace(tableDefinition.StyleName)
+                && string.IsNullOrWhiteSpace(tableDefinition.DisplayName)
+                && string.IsNullOrWhiteSpace(tableDefinition.Comment)
+                && !tableDefinition.ShowFirstColumn.HasValue
+                && !tableDefinition.ShowLastColumn.HasValue
+                && !tableDefinition.ShowRowStripes.HasValue
+                && !tableDefinition.ShowColumnStripes.HasValue) {
+                return;
+            }
+
+            Table? table = sheet.WorksheetPart.TableDefinitionParts
+                .Select(part => part.Table)
+                .FirstOrDefault(candidate => string.Equals(candidate?.Name?.Value, tableDefinition.Name, StringComparison.OrdinalIgnoreCase));
+            if (table == null) {
+                return;
+            }
+
+            if (!string.IsNullOrWhiteSpace(tableDefinition.DisplayName)) {
+                table.Name = tableDefinition.DisplayName;
+                table.DisplayName = tableDefinition.DisplayName;
+            }
+
+            if (!string.IsNullOrWhiteSpace(tableDefinition.Comment)) {
+                table.Comment = tableDefinition.Comment;
+            }
+
+            if (!string.IsNullOrWhiteSpace(tableDefinition.StyleName)
+                || tableDefinition.ShowFirstColumn.HasValue
+                || tableDefinition.ShowLastColumn.HasValue
+                || tableDefinition.ShowRowStripes.HasValue
+                || tableDefinition.ShowColumnStripes.HasValue) {
+                TableStyleInfo styleInfo = table.TableStyleInfo ?? table.AppendChild(new TableStyleInfo());
+                if (!string.IsNullOrWhiteSpace(tableDefinition.StyleName)) {
+                    styleInfo.Name = tableDefinition.StyleName;
+                }
+
+                if (tableDefinition.ShowFirstColumn.HasValue) {
+                    styleInfo.ShowFirstColumn = tableDefinition.ShowFirstColumn.Value;
+                }
+
+                if (tableDefinition.ShowLastColumn.HasValue) {
+                    styleInfo.ShowLastColumn = tableDefinition.ShowLastColumn.Value;
+                }
+
+                if (tableDefinition.ShowRowStripes.HasValue) {
+                    styleInfo.ShowRowStripes = tableDefinition.ShowRowStripes.Value;
+                }
+
+                if (tableDefinition.ShowColumnStripes.HasValue) {
+                    styleInfo.ShowColumnStripes = tableDefinition.ShowColumnStripes.Value;
+                }
+            }
+
+            table.Save();
+        }
+
+        private static OfficeIMO.Excel.TableStyle ResolveDefaultTableStyle(LegacyXlsWorkbook workbook) {
+            string? defaultTableStyleName = workbook.TableStyleCollections.LastOrDefault()?.DefaultTableStyleName;
+            if (!string.IsNullOrWhiteSpace(defaultTableStyleName)
+                && Enum.TryParse(defaultTableStyleName, ignoreCase: true, out OfficeIMO.Excel.TableStyle tableStyle)) {
+                return tableStyle;
+            }
+
+            return OfficeIMO.Excel.TableStyle.TableStyleMedium2;
         }
 
         private static void ProjectProtectedRanges(LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
@@ -1003,7 +1282,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectSortSettings(ExcelSheet sheet, LegacyXlsSortSettings? sortSettings) {
-            if (sortSettings == null || sortSettings.CustomListIndex != 0) {
+            if (sortSettings == null) {
                 return;
             }
 
@@ -1276,10 +1555,18 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectDefinedNames(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
-                ExcelSheet? scope = definedName.LocalSheetIndex.HasValue && definedName.LocalSheetIndex.Value < document.Sheets.Count
-                    ? document.Sheets[definedName.LocalSheetIndex.Value]
+                ExcelSheet? scope = definedName.LocalSheetIndex.HasValue
+                    && worksheetIndexByProjectedSheetIndex.TryGetValue(definedName.LocalSheetIndex.Value, out int worksheetIndex)
+                    && worksheetIndex < document.Sheets.Count
+                    ? document.Sheets[worksheetIndex]
                     : null;
+                if (definedName.LocalSheetIndex.HasValue && scope == null) {
+                    AppendRawDefinedName(document, definedName);
+                    continue;
+                }
+
                 if (scope != null
                     && string.Equals(definedName.Name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase)
                     && TryParsePrintTitles(definedName.Reference, scope, out int? firstRow, out int? lastRow, out int? firstColumn, out int? lastColumn)) {
@@ -1329,6 +1616,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectAutoFilters(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
             for (int i = 0; i < workbook.Worksheets.Count && i < document.Sheets.Count; i++) {
                 LegacyXlsWorksheet legacySheet = workbook.Worksheets[i];
                 if (legacySheet.AutoFilterCriteria.Count == 0) {
@@ -1336,7 +1624,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 ExcelSheet sheet = document.Sheets[i];
-                if (!TryGetAutoFilterRange(workbook, sheet, i, out string autoFilterRange)) {
+                if (!TryGetAutoFilterRange(workbook, sheet, i, worksheetIndexByProjectedSheetIndex, out string autoFilterRange)) {
                     continue;
                 }
 
@@ -1344,10 +1632,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static bool TryGetAutoFilterRange(LegacyXlsWorkbook workbook, ExcelSheet sheet, int sheetIndex, out string autoFilterRange) {
+        private static bool TryGetAutoFilterRange(
+            LegacyXlsWorkbook workbook,
+            ExcelSheet sheet,
+            int worksheetIndex,
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex,
+            out string autoFilterRange) {
             autoFilterRange = string.Empty;
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
-                if (definedName.LocalSheetIndex == sheetIndex
+                if (definedName.LocalSheetIndex.HasValue
+                    && worksheetIndexByProjectedSheetIndex.TryGetValue(definedName.LocalSheetIndex.Value, out int scopedWorksheetIndex)
+                    && scopedWorksheetIndex == worksheetIndex
                     && string.Equals(definedName.Name, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
                     && TryParseScopedRange(definedName.Reference, sheet, out autoFilterRange)) {
                     return true;
@@ -1355,6 +1650,21 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             return false;
+        }
+
+        private static IReadOnlyDictionary<int, int> CreateWorksheetIndexByProjectedSheetIndex(LegacyXlsWorkbook workbook) {
+            var result = new Dictionary<int, int>();
+            int projectedSheetIndex = 0;
+            int worksheetIndex = 0;
+            foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook)) {
+                if (sheetEntry.Worksheet != null) {
+                    result[projectedSheetIndex] = worksheetIndex++;
+                }
+
+                projectedSheetIndex++;
+            }
+
+            return result;
         }
 
         private static void ProjectExternalReferences(LegacyXlsWorkbook workbook, ExcelDocument document) {
@@ -1840,6 +2150,21 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             sheet.FormatCell(cell.Row, cell.Column, format.NumberFormatCode);
+        }
+
+        private static void ApplyCellFormat(
+            ExcelSheet sheet,
+            LegacyXlsWorkbook workbook,
+            LegacyXlsCell cell,
+            LegacyXlsCellFormat? format) {
+            if (format == null) {
+                return;
+            }
+
+            uint styleIndex = sheet.GetOrCreateLegacyCellFormatStyleIndex(workbook, format);
+            if (styleIndex != 0U) {
+                sheet.SetCellStyleIndex(cell.Row, cell.Column, styleIndex, save: false);
+            }
         }
 
         private static void ApplyFont(

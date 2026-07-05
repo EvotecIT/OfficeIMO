@@ -35,6 +35,11 @@ public sealed class ReaderOptions {
     public int? MaxOpenXmlImageAssets { get; set; } = DefaultMaxOpenXmlImageAssets;
 
     /// <summary>
+    /// Optional password used to open encrypted Office files when the selected reader engine supports decryption.
+    /// </summary>
+    public string? OpenPassword { get; set; }
+
+    /// <summary>
     /// OpenXML security: maximum placements emitted for one image relationship.
     /// When null, no per-relationship placement limit is enforced.
     /// </summary>

@@ -9,6 +9,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         BookBool = 0x00DA,
         BookExt = 0x0863,
         BuiltInFnGroupCount = 0x009C,
+        DbCell = 0x00D7,
         Cf = 0x01B1,
         Cf12 = 0x087A,
         CfEx = 0x087B,
@@ -54,6 +55,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         FeatHdr = 0x0867,
         Feat = 0x0868,
         FileSharing = 0x005B,
+        FileLock = 0x0195,
         FilePass = 0x002F,
         FilterMode = 0x009B,
         Font = 0x0031,
@@ -76,6 +78,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Index = 0x020B,
         InterfaceEnd = 0x00E2,
         InterfaceHdr = 0x00E1,
+        Gcw = 0x00AB,
         Label = 0x0204,
         LabelSst = 0x00FD,
         LeftMargin = 0x0026,
@@ -124,6 +127,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         HfPicture = 0x0866,
         ObjProtect = 0x0063,
         Rk = 0x027E,
+        RrdHead = 0x0138,
+        RrdInfo = 0x0139,
         ScenarioProtect = 0x00DD,
         Sst = 0x00FC,
         String = 0x0207,
@@ -144,6 +149,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         TopMargin = 0x0028,
         Txo = 0x01B6,
         Uncalced = 0x005E,
+        UsrExcl = 0x0194,
         CrtLayout12A = 0x08A7,
         UsesElfs = 0x0160,
         VCenter = 0x0084,
@@ -157,6 +163,10 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         Crn = 0x005A,
         XfCrc = 0x087C,
         XfExt = 0x087D,
-        Xf = 0x00E0
+        Xf = 0x00E0,
+        UsesBiff5BookStream = 0x00BF,
+        UsesBiff5WorkbookGlobals = 0x00C0,
+        WriteProtect = 0x0086,
+        Workspace = 0x00C1
     }
 }

@@ -87,6 +87,9 @@ namespace OfficeIMO.Word {
                     if (value is int i) {
                         newProp.VTInt32 = new VTInt32(i.ToString(CultureInfo.InvariantCulture));
                         propSet = true;
+                    } else if (value is long l) {
+                        newProp.VTInt64 = new VTInt64(l.ToString(CultureInfo.InvariantCulture));
+                        propSet = true;
                     }
 
                     break;
@@ -114,6 +117,12 @@ namespace OfficeIMO.Word {
 
                     break;
 
+                case PropertyTypes.Binary:
+                    newProp.VTBlob = new VTBlob(Convert.ToBase64String(GetBinaryValue(value)));
+                    propSet = true;
+
+                    break;
+
                 default:
                     if (value is bool) {
                         // Must be lowercase.
@@ -127,6 +136,12 @@ namespace OfficeIMO.Word {
                         propSet = true;
                     } else if (value is int i2) {
                         newProp.VTInt32 = new VTInt32(i2.ToString(CultureInfo.InvariantCulture));
+                        propSet = true;
+                    } else if (value is long l2) {
+                        newProp.VTInt64 = new VTInt64(l2.ToString(CultureInfo.InvariantCulture));
+                        propSet = true;
+                    } else if (value is byte[] bytes) {
+                        newProp.VTBlob = new VTBlob(Convert.ToBase64String(bytes));
                         propSet = true;
                     } else if (value is DateTime dt) {
                         newProp.VTFileTime = new VTFileTime(string.Format(CultureInfo.InvariantCulture, "{0:s}Z", dt));
@@ -147,6 +162,12 @@ namespace OfficeIMO.Word {
             newProp.FormatId = "{D5CDD505-2E9C-101B-9397-08002B2CF9AE}";
             newProp.Name = name;
             return newProp;
+        }
+
+        private static byte[] GetBinaryValue(object value) {
+            return value is byte[] bytes
+                ? bytes
+                : Convert.FromBase64String(Convert.ToString(value, CultureInfo.InvariantCulture) ?? string.Empty);
         }
 
         private void Add(string name, CustomDocumentProperty newProp) {

@@ -43,6 +43,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the BIFF record payload length in bytes.</summary>
         public int PayloadLength { get; }
 
+        /// <summary>Gets whether the importer decoded supported metadata from this PivotTable BIFF record.</summary>
+        public bool HasSupportedPivotTableMetadata { get; private set; }
+
         /// <summary>Gets the pivot field index for an SXDI data item, when decoded.</summary>
         public short? DataItemFieldIndex { get; private set; }
 
@@ -301,6 +304,63 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets a stable calculated-item formula scope name derived from SXFormula.</summary>
         public string? CalculatedItemFormulaScopeName { get; private set; }
 
+        /// <summary>Gets the parsed-expression byte count for a calculated-field SXFormula token stream, when decoded.</summary>
+        public int? CalculatedFieldFormulaTokenByteCount { get; private set; }
+
+        /// <summary>Gets whether a calculated-field SXFormula token stream was decoded.</summary>
+        public bool HasCalculatedFieldFormula => CalculatedFieldFormulaTokenByteCount.HasValue;
+
+        /// <summary>Gets the zero-based axis position referenced by an SxRule record.</summary>
+        public byte? RuleFieldPosition { get; private set; }
+
+        /// <summary>Gets the pivot, cache, or data-field index referenced by an SxRule record.</summary>
+        public byte? RuleFieldIndex { get; private set; }
+
+        /// <summary>Gets a stable field-reference name for an SxRule record.</summary>
+        public string? RuleFieldReferenceName { get; private set; }
+
+        /// <summary>Gets the decoded axis name from an SxRule record.</summary>
+        public string? RuleAxisName { get; private set; }
+
+        /// <summary>Gets the raw PivotTable rule area type from an SxRule record.</summary>
+        public byte? RuleType { get; private set; }
+
+        /// <summary>Gets the decoded PivotTable rule area type name from an SxRule record.</summary>
+        public string? RuleTypeName { get; private set; }
+
+        /// <summary>Gets the raw SxRule option flags byte.</summary>
+        public byte? RuleOptionFlags { get; private set; }
+
+        /// <summary>Gets whether an SxRule covers only part of the referenced area.</summary>
+        public bool? RulePartialArea { get; private set; }
+
+        /// <summary>Gets whether an SxRule targets data cells only.</summary>
+        public bool? RuleDataOnly { get; private set; }
+
+        /// <summary>Gets whether an SxRule targets labels only.</summary>
+        public bool? RuleLabelOnly { get; private set; }
+
+        /// <summary>Gets whether an SxRule references cache fields rather than view fields.</summary>
+        public bool? RuleCacheBased { get; private set; }
+
+        /// <summary>Gets the number of SxFilt records following an SxRule record.</summary>
+        public ushort? RuleFilterCount { get; private set; }
+
+        /// <summary>Gets the optional partial-area row and column bounds from an SxRule record.</summary>
+        public string? RulePartialAreaRange { get; private set; }
+
+        /// <summary>Gets decoded PivotTable rule filters from an SxFilt record.</summary>
+        public IReadOnlyList<LegacyXlsPivotRuleFilter> RuleFilters { get; private set; } = Array.Empty<LegacyXlsPivotRuleFilter>();
+
+        /// <summary>Gets the parsed-expression byte count for an SXFormula token stream, when decoded.</summary>
+        public ushort? CalculatedItemFormulaTokenByteCount { get; private set; }
+
+        /// <summary>Gets the byte count after the SXFormula parsed-expression token stream, when present.</summary>
+        public int? CalculatedItemFormulaTrailingByteCount { get; private set; }
+
+        /// <summary>Gets a stable SXFormula payload classification, when decoded.</summary>
+        public string? CalculatedItemFormulaPayloadKind { get; private set; }
+
         /// <summary>Gets whether an SXVDEx record requests showing all items.</summary>
         public bool? ShowAllItems { get; private set; }
 
@@ -424,6 +484,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the trailing unused QsiSXTag field value.</summary>
         public ushort? QueryTableTagUnused { get; private set; }
 
+        internal void MarkSupportedMetadata() {
+            HasSupportedPivotTableMetadata = true;
+        }
+
         internal void SetDataItem(
             short dataItemFieldIndex,
             short aggregationFunction,
@@ -449,6 +513,10 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
                 : $"ItemIndex:{displayCalculationItemIndex}";
             NumberFormatId = numberFormatId;
             Name = name;
+        }
+
+        internal void SetDataItemFieldIndex(short dataItemFieldIndex) {
+            DataItemFieldIndex = dataItemFieldIndex;
         }
 
         internal void SetCacheStream(ushort streamId) {
@@ -615,6 +683,64 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             CalculatedItemFormulaScopeName = cacheFieldIndex == -1
                 ? "AllCacheFields"
                 : $"CacheField:{cacheFieldIndex}";
+            CalculatedItemFormulaPayloadKind = "Scope";
+        }
+
+        internal void SetRule(
+            byte fieldPosition,
+            byte fieldIndex,
+            ushort flags,
+            ushort filterCount,
+            byte? firstRow,
+            byte? lastRow,
+            byte? firstColumn,
+            byte? lastColumn) {
+            RuleFieldPosition = fieldPosition;
+            RuleFieldIndex = fieldIndex;
+            RuleAxisName = GetAxisName((ushort)(flags & 0x000F));
+            RuleType = (byte)((flags >> 4) & 0x000F);
+            RuleTypeName = GetRuleTypeName(RuleType.Value);
+            RuleOptionFlags = (byte)((flags >> 8) & 0x00FF);
+            RulePartialArea = (flags & 0x0100) != 0;
+            RuleDataOnly = (flags & 0x0200) != 0;
+            RuleLabelOnly = (flags & 0x0400) != 0;
+            RuleCacheBased = (flags & 0x4000) != 0;
+            RuleFilterCount = filterCount;
+            RuleFieldReferenceName = fieldIndex == 0xFE
+                ? "DataField"
+                : fieldIndex == 0xFF
+                    ? "FilteredFields"
+                    : RuleCacheBased == true
+                        ? $"CacheField:{fieldIndex}"
+                        : $"PivotField:{fieldIndex}";
+            RulePartialAreaRange = firstRow.HasValue
+                ? $"Rows:{firstRow.Value}-{lastRow!.Value};Columns:{firstColumn!.Value}-{lastColumn!.Value}"
+                : null;
+        }
+
+        internal void SetRuleFilters(IReadOnlyList<LegacyXlsPivotRuleFilter> filters) {
+            RuleFilters = filters ?? throw new ArgumentNullException(nameof(filters));
+        }
+
+        internal void SetCalculatedItemFormulaTokenStream(ushort tokenByteCount, int trailingByteCount) {
+            if (trailingByteCount < 0) {
+                throw new ArgumentOutOfRangeException(nameof(trailingByteCount));
+            }
+
+            CalculatedItemFormulaTokenByteCount = tokenByteCount;
+            CalculatedItemFormulaTrailingByteCount = trailingByteCount;
+            CalculatedItemFormulaPayloadKind = trailingByteCount == 0
+                ? "FormulaTokens"
+                : "FormulaTokensWithTrailingData";
+        }
+
+        internal void SetCalculatedFieldFormulaTokenStream(int tokenByteCount) {
+            if (tokenByteCount <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(tokenByteCount));
+            }
+
+            CalculatedFieldFormulaTokenByteCount = tokenByteCount;
+            CalculatedItemFormulaPayloadKind = "CalculatedFieldFormulaTokens";
         }
 
         internal void SetGroupingNumericValue(int valueIndex, double value) {
@@ -778,6 +904,27 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
             }
 
             return string.Join("+", names);
+        }
+
+        private static string GetRuleTypeName(byte value) {
+            switch (value) {
+                case 0x0:
+                    return "None";
+                case 0x1:
+                    return "FieldArea";
+                case 0x2:
+                    return "DataCells";
+                case 0x3:
+                    return "EntireView";
+                case 0x4:
+                    return "TopLeft";
+                case 0x5:
+                    return "FieldCaption";
+                case 0x6:
+                    return "TopRight";
+                default:
+                    return $"RuleType:0x{value:X1}";
+            }
         }
 
         private static string FormatRange(ushort firstRow, ushort lastRow, ushort firstColumn, ushort lastColumn) {

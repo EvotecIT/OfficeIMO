@@ -4,6 +4,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
         Boolean,
         DateTime,
         Integer,
-        Number
+        Number,
+        Binary
     }
 }

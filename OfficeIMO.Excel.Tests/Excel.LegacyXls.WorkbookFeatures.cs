@@ -414,9 +414,9 @@ namespace OfficeIMO.Tests {
             Assert.True(sortSettings.CaseSensitive);
             Assert.Equal(3, sortSettings.CustomListIndex);
             Assert.True(sortSettings.UsePhoneticInformation);
-            Assert.Equal("Region", sortSettings.Key1);
-            Assert.Equal("Amount", sortSettings.Key2);
-            Assert.Equal("Date", sortSettings.Key3);
+            Assert.Equal("A2:A4", sortSettings.Key1);
+            Assert.Equal("B2:B4", sortSettings.Key2);
+            Assert.Equal("C2:C4", sortSettings.Key3);
             LegacyXlsUnsupportedFeature unsupportedSort = Assert.Single(result.UnsupportedFeatures);
             Assert.Equal(LegacyXlsUnsupportedFeatureKind.WorksheetSort, unsupportedSort.Kind);
             Assert.Equal("XLS-BIFF-FEATURE-WORKSHEET-SORT-CUSTOM-LIST-UNSUPPORTED", unsupportedSort.Code);
@@ -442,7 +442,19 @@ namespace OfficeIMO.Tests {
             Assert.Null(projectedSelection.Pane);
             Assert.Equal("B3", projectedSelection.ActiveCell!.Value);
             Assert.Equal("B3:C4", projectedSelection.SequenceOfReferences!.InnerText);
-            Assert.Null(worksheetPart.Worksheet.GetFirstChild<SortState>());
+            SortState projectedSort = Assert.IsType<SortState>(worksheetPart.Worksheet.GetFirstChild<SortState>());
+            Assert.Equal("A2:C4", projectedSort.Reference!.Value);
+            Assert.True(projectedSort.ColumnSort!.Value);
+            Assert.True(projectedSort.CaseSensitive!.Value);
+            Assert.Equal(SortMethodValues.PinYin, projectedSort.SortMethod!.Value);
+            SortCondition[] projectedConditions = projectedSort.Elements<SortCondition>().ToArray();
+            Assert.Equal(3, projectedConditions.Length);
+            Assert.Equal("A2:A4", projectedConditions[0].Reference!.Value);
+            Assert.True(projectedConditions[0].Descending!.Value);
+            Assert.Equal("B2:B4", projectedConditions[1].Reference!.Value);
+            Assert.Null(projectedConditions[1].Descending);
+            Assert.Equal("C2:C4", projectedConditions[2].Reference!.Value);
+            Assert.True(projectedConditions[2].Descending!.Value);
         }
 
         [Fact]
@@ -1119,21 +1131,23 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Data", sheet.Name);
             Assert.Contains(sheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Imported"));
             Assert.Contains(legacy.UnsupportedSheets, sheet => sheet.Name == "Macro1" && sheet.Kind == LegacyXlsUnsupportedSheetKind.MacroSheet && sheet.SheetType == 0x01);
-            Assert.Contains(legacy.UnsupportedSheets, sheet => sheet.Name == "Chart1" && sheet.Kind == LegacyXlsUnsupportedSheetKind.ChartSheet && sheet.SheetType == 0x02);
             Assert.Contains(legacy.UnsupportedSheets, sheet => sheet.Name == "Module1" && sheet.Kind == LegacyXlsUnsupportedSheetKind.VbaModuleSheet && sheet.SheetType == 0x06);
+            LegacyXlsChartSheet chartSheet = Assert.Single(legacy.ChartSheets);
+            Assert.Equal("Chart1", chartSheet.Name);
+            Assert.Equal(0x02, chartSheet.SheetType);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.MacroSheet && feature.SheetName == "Macro1" && feature.RecordType == 0x0085);
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ChartSheet && feature.SheetName == "Chart1" && feature.RecordType == 0x0085);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.VbaModuleSheet && feature.SheetName == "Module1" && feature.RecordType == 0x0085);
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:MacroSheet");
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:ChartSheet");
             Assert.Contains(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:VbaModuleSheet");
-            Assert.Contains(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.ChartSheet && record.SheetName == "Chart1" && record.RecordType == 0x0085);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ChartSheet);
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.DetailCode == "Sheet:ChartSheet");
+            Assert.DoesNotContain(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.ChartSheet);
             Assert.DoesNotContain(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.MacroSheet);
             Assert.DoesNotContain(legacy.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.VbaModuleSheet);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-MACRO-SHEET-UNSUPPORTED" && d.SheetName == "Macro1" && d.RecordType == 0x0085);
-            Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED" && d.SheetName == "Chart1" && d.RecordType == 0x0085);
             Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-VBA-MODULE-SHEET-UNSUPPORTED" && d.SheetName == "Module1" && d.RecordType == 0x0085);
-            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "Sheet:ChartSheet");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.DetailCode == "Sheet:ChartSheet");
         }
 
         [Fact]
@@ -1309,10 +1323,10 @@ namespace OfficeIMO.Tests {
             Assert.Equal(3, report.ExternalNamesByIconState["Missing"]);
             Assert.Equal(2, report.ExternalNamesByFlagShape["Body:ExternalDefinedName|BuiltIn:Missing|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
             Assert.Equal(1, report.ExternalNamesByFlagShape["Body:ExternalDefinedName|BuiltIn:Present|Advise:Missing|Picture:Missing|Ole:Missing|OleLink:Missing|Icon:Missing"]);
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
-            Assert.Contains(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:ExternalWorkbook");
-            Assert.Contains(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01ae);
-            Assert.Contains(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:ExternalWorkbook");
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x01ae && feature.Description.Contains("C:\\Data\\Budget.xls", StringComparison.Ordinal));
+            Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:ExternalWorkbook");
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.Code == "XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED" && d.RecordType == 0x01ae);
+            Assert.DoesNotContain(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:ExternalWorkbook");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.DetailCode == "ExternalReference:DConRef");
             Assert.DoesNotContain(legacy.Diagnostics, d => d.DetailCode == "ExternalReference:DConRef");
             Assert.DoesNotContain(legacy.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ExternalReference && feature.RecordType == 0x0023);
@@ -2228,6 +2242,116 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_Load_ProjectsInlineConditionalFormattingFill() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5InlineFillConditionalFormattingWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            Assert.Equal(LegacyXlsConditionalFormattingType.CellIs, conditionalFormatting.Type);
+            Assert.Equal(LegacyXlsConditionalFormattingOperator.GreaterThan, conditionalFormatting.Operator);
+            Assert.NotNull(conditionalFormatting.DifferentialFormat);
+            Assert.Equal((byte)1, conditionalFormatting.DifferentialFormat!.FillPattern);
+            Assert.Equal("FFFFFF00", conditionalFormatting.DifferentialFormat.FillForegroundColor);
+            Assert.Equal("FFFFFF00", conditionalFormatting.DifferentialFormat.FillBackgroundColor);
+            Assert.Equal((ushort)BiffRecordType.Cf, conditionalFormatting.DifferentialFormat.RecordType);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Pattern:1"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Foreground:FFFFFF00"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Background:FFFFFF00"]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.First();
+            ConditionalFormattingRule rule = Assert.Single(Assert.Single(worksheetPart.Worksheet.Elements<ConditionalFormatting>()).Elements<ConditionalFormattingRule>());
+            Assert.Equal(0U, rule.FormatId!.Value);
+            DifferentialFormat dxf = Assert.Single(spreadsheet.WorkbookPart.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>());
+            Fill fill = Assert.Single(dxf.Elements<Fill>());
+            PatternFill patternFill = fill.PatternFill!;
+            Assert.Equal(PatternValues.Solid, patternFill.PatternType!.Value);
+            Assert.Equal("FFFFFF00", patternFill.ForegroundColor!.Rgb!.Value);
+            Assert.Equal("FFFFFF00", patternFill.BackgroundColor!.Rgb!.Value);
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ProjectsInlineConditionalFormattingFont() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5InlineFontConditionalFormattingWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
+            LegacyXlsDifferentialFormat differentialFormat = conditionalFormatting.DifferentialFormat!;
+            Assert.Equal("FFFF0000", differentialFormat.FontColor);
+            Assert.True(differentialFormat.FontBold);
+            Assert.True(differentialFormat.FontItalic);
+            Assert.Null(differentialFormat.FillPattern);
+            Assert.Equal((ushort)BiffRecordType.Cf, differentialFormat.RecordType);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Color:FFFF0000"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Bold"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Italic"]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            DifferentialFormat dxf = Assert.Single(spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>());
+            Font font = Assert.Single(dxf.Elements<Font>());
+            Assert.Equal("FFFF0000", Assert.Single(font.Elements<Color>()).Rgb!.Value);
+            Assert.Single(font.Elements<Bold>());
+            Assert.Single(font.Elements<Italic>());
+            Assert.Empty(dxf.Elements<Fill>());
+        }
+
+        [Fact]
+        public void LegacyXls_Load_ProjectsInlineConditionalFormattingFontAndFill() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5InlineFontAndFillConditionalFormattingWorkbookStream();
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+
+            using LegacyXlsLoadResult result = ExcelDocument.LoadLegacyXlsWithReport(new MemoryStream(compound), new LegacyXlsImportOptions {
+                ReportUnsupportedRecords = true
+            });
+
+            Assert.False(result.HasImportErrors);
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsDifferentialFormat differentialFormat = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings).DifferentialFormat!;
+            Assert.Equal("FFFF0000", differentialFormat.FontColor);
+            Assert.True(differentialFormat.FontBold);
+            Assert.True(differentialFormat.FontItalic);
+            Assert.Equal((byte)1, differentialFormat.FillPattern);
+            Assert.Equal("FFFFFF00", differentialFormat.FillForegroundColor);
+            Assert.Equal("FFFFFF00", differentialFormat.FillBackgroundColor);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFont["Color:FFFF0000"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Background:FFFFFF00"]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
+
+            using var packageStream = new MemoryStream();
+            result.Document.Save(packageStream);
+            packageStream.Position = 0;
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(packageStream, false);
+            DifferentialFormat dxf = Assert.Single(spreadsheet.WorkbookPart!.WorkbookStylesPart!.Stylesheet!.DifferentialFormats!.Elements<DifferentialFormat>());
+            Assert.Single(dxf.Elements<Font>());
+            Fill fill = Assert.Single(dxf.Elements<Fill>());
+            Assert.Equal("FFFFFF00", fill.PatternFill!.ForegroundColor!.Rgb!.Value);
+            Assert.Equal("FFFFFF00", fill.PatternFill.BackgroundColor!.Rgb!.Value);
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsConditionalFormattingExtensionPriorityAndStopIfTrue() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5ConditionalFormattingExtensionWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -2333,7 +2457,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void LegacyXls_Load_ReportsTableDefinitionRecordsAsPreserveOnly() {
+        public void LegacyXls_Load_ProjectsSimpleTableDefinitionRecords() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreatePhase5TableDefinitionFeatureWorkbookStream();
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
 
@@ -2342,20 +2466,74 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.False(result.HasImportErrors);
-            Assert.True(result.HasUnsupportedFeatures);
-            Assert.Equal("ListTable", Assert.Single(result.Workbook.Worksheets).Name);
-            Assert.Contains(result.Workbook.Worksheets[0].Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Name"));
-            Assert.Equal(4, result.Workbook.UnsupportedFeatures.Count(feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableDefinition));
-            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:FeatHdr11");
-            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:Feature11");
-            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:List12");
-            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.Code == "XLS-BIFF-FEATURE-TABLE-DEFINITION-UNSUPPORTED" && feature.DetailCode == "TableDefinition:Feature12");
+            Assert.False(result.HasUnsupportedFeatures);
+            LegacyXlsWorksheet legacySheet = Assert.Single(result.Workbook.Worksheets);
+            Assert.Equal("ListTable", legacySheet.Name);
+            Assert.Contains(legacySheet.Cells, cell => cell.Row == 1 && cell.Column == 1 && Equals(cell.Value, "Name"));
+            LegacyXlsTableDefinition tableDefinition = Assert.Single(legacySheet.TableDefinitions);
+            Assert.Equal("LegacySales", tableDefinition.Name);
+            Assert.Equal("A1:B4", tableDefinition.Range);
+            Assert.True(tableDefinition.HasHeaderRow);
+            Assert.True(tableDefinition.HasTotalsRow);
+            Assert.Equal(1U, tableDefinition.TotalRowCount);
+            Assert.True(tableDefinition.HasAutoFilter);
+            Assert.Equal("TableStyleMedium4", tableDefinition.StyleName);
+            Assert.Equal("LegacySalesDisplay", tableDefinition.DisplayName);
+            Assert.Equal("Imported legacy table comment", tableDefinition.Comment);
+            LegacyXlsTableBlockLevelFormatting blockLevelFormatting = Assert.IsType<LegacyXlsTableBlockLevelFormatting>(tableDefinition.BlockLevelFormatting);
+            Assert.Equal(0, blockLevelFormatting.HeaderStyleRecordIndex);
+            Assert.Equal("LegacyHeaderStyle", blockLevelFormatting.HeaderStyleName);
+            Assert.Equal(1, blockLevelFormatting.DataStyleRecordIndex);
+            Assert.Equal("LegacyDataStyle", blockLevelFormatting.DataStyleName);
+            Assert.Equal(2, blockLevelFormatting.TotalStyleRecordIndex);
+            Assert.Equal("LegacyTotalStyle", blockLevelFormatting.TotalStyleName);
+            Assert.True(tableDefinition.ShowFirstColumn);
+            Assert.False(tableDefinition.ShowLastColumn);
+            Assert.True(tableDefinition.ShowRowStripes);
+            Assert.True(tableDefinition.ShowColumnStripes);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.TableDefinition);
             Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.FeatureExtension);
-            Assert.Equal(4, result.Workbook.PreservedFeatureRecords.Count(record => record.Kind == LegacyXlsUnsupportedFeatureKind.TableDefinition));
-            Assert.Equal(4, result.ImportReport.UnsupportedFeaturesByKind[LegacyXlsUnsupportedFeatureKind.TableDefinition]);
-            Assert.Equal(4, result.ImportReport.PreservedFeatureRecordsByKind[LegacyXlsUnsupportedFeatureKind.TableDefinition]);
+            Assert.DoesNotContain(result.Workbook.PreservedFeatureRecords, record => record.Kind == LegacyXlsUnsupportedFeatureKind.TableDefinition);
+            Assert.False(result.ImportReport.UnsupportedFeaturesByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.TableDefinition));
+            Assert.False(result.ImportReport.PreservedFeatureRecordsByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.TableDefinition));
             Assert.False(result.ImportReport.UnsupportedProjectionGapsByKind.ContainsKey(LegacyXlsUnsupportedFeatureKind.TableDefinition));
-            Assert.Contains("TableDefinition:Feature11", result.ImportReport.ToMarkdown());
+
+            using var output = new MemoryStream();
+            result.Document.Save(output);
+            using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(new MemoryStream(output.ToArray()), false);
+            WorksheetPart worksheetPart = Assert.Single(spreadsheet.WorkbookPart!.WorksheetParts);
+            TableDefinitionPart tablePart = Assert.Single(worksheetPart.TableDefinitionParts);
+            Table table = tablePart.Table!;
+            Assert.Equal("LegacySalesDisplay", table.Name?.Value);
+            Assert.Equal("LegacySalesDisplay", table.DisplayName?.Value);
+            Assert.Equal("Imported legacy table comment", table.Comment?.Value);
+            Assert.Equal("A1:B4", table.Reference?.Value);
+            Assert.Equal(1U, table.HeaderRowCount?.Value);
+            Assert.True(table.TotalsRowShown?.Value);
+            Assert.Equal(1U, table.TotalsRowCount?.Value);
+            Assert.NotNull(table.GetFirstChild<AutoFilter>());
+            TableStyleInfo styleInfo = table.TableStyleInfo!;
+            Assert.Equal("TableStyleMedium4", styleInfo.Name?.Value);
+            Assert.True(styleInfo.ShowFirstColumn?.Value);
+            Assert.False(styleInfo.ShowLastColumn?.Value);
+            Assert.True(styleInfo.ShowRowStripes?.Value);
+            Assert.True(styleInfo.ShowColumnStripes?.Value);
+            TableColumns columns = table.TableColumns!;
+            Assert.Equal(2U, columns.Count?.Value);
+            Assert.Equal(new[] { "Name", "Amount" }, columns.Elements<TableColumn>().Select(column => column.Name?.Value).ToArray());
+            Dictionary<string, uint?> styleIndexes = worksheetPart.Worksheet.Descendants<Cell>()
+                .Where(cell => cell.CellReference?.Value is "A1" or "B1" or "A2" or "B2" or "A3" or "B3" or "A4" or "B4")
+                .ToDictionary(cell => cell.CellReference!.Value!, cell => cell.StyleIndex?.Value);
+            Assert.True(styleIndexes["A1"] > 0U);
+            Assert.Equal(styleIndexes["A1"], styleIndexes["B1"]);
+            Assert.True(styleIndexes["A2"] > 0U);
+            Assert.Equal(styleIndexes["A2"], styleIndexes["B2"]);
+            Assert.Equal(styleIndexes["A2"], styleIndexes["A3"]);
+            Assert.Equal(styleIndexes["B2"], styleIndexes["B3"]);
+            Assert.True(styleIndexes["A4"] > 0U);
+            Assert.Equal(styleIndexes["A4"], styleIndexes["B4"]);
+            Assert.NotEqual(styleIndexes["A1"], styleIndexes["A2"]);
+            Assert.NotEqual(styleIndexes["A2"], styleIndexes["A4"]);
         }
 
         [Fact]
@@ -2368,11 +2546,12 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.False(result.HasImportErrors);
-            Assert.True(result.HasUnsupportedFeatures);
+            Assert.False(result.HasUnsupportedFeatures);
             Assert.Equal(1, result.ImportReport.DifferentialFormatCount);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByRecordType["RecordType:0x088D"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["FillOnly"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByFill["Background:FFFFFF00"]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
             Assert.Empty(result.ImportReport.DifferentialFormatsByFont);
             LegacyXlsDifferentialFormat format = Assert.Single(result.Workbook.DifferentialFormats);
             Assert.Equal(0, format.Index);
@@ -2380,7 +2559,7 @@ namespace OfficeIMO.Tests {
             Assert.Null(format.FillForegroundColor);
             Assert.Equal("FFFFFF00", format.FillBackgroundColor);
             Assert.Equal(0x088d, format.RecordType);
-            Assert.Contains(result.Workbook.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Dxf");
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.DetailCode == "ConditionalFormatting:Dxf");
         }
 
         [Fact]
@@ -2393,7 +2572,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.False(result.HasImportErrors);
-            Assert.True(result.HasUnsupportedFeatures);
+            Assert.False(result.HasUnsupportedFeatures);
             LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
             Assert.NotNull(conditionalFormatting.DifferentialFormat);
             Assert.Equal("FFFFFF00", conditionalFormatting.DifferentialFormat!.FillBackgroundColor);
@@ -2403,7 +2582,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFormatState["Present"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingsByDifferentialFill["Background:FFFFFF00"]);
             Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionInlineFormattingByteCounts["Bytes:16"]);
-            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["ProjectedSingleDxf"]);
+            Assert.Equal(1, result.ImportReport.ConditionalFormattingExtensionDxfProjectionStates["ProjectedInlineDxfBytes:16"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["FillOnly"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByFill["Background:FFFFFF00"]);
 
@@ -2458,7 +2637,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.False(result.HasImportErrors);
-            Assert.True(result.HasUnsupportedFeatures);
+            Assert.False(result.HasUnsupportedFeatures);
             LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
             Assert.NotNull(conditionalFormatting.DifferentialFormat);
             Assert.Equal("FFFF0000", conditionalFormatting.DifferentialFormat!.FontColor);
@@ -2473,6 +2652,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByFont["Color:FFFF0000"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByFont["Bold"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByFont["Italic"]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("Differential Formats By Content State", markdown);
             Assert.Contains("Differential Formats By Font", markdown);
@@ -2501,7 +2681,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.False(result.HasImportErrors);
-            Assert.True(result.HasUnsupportedFeatures);
+            Assert.False(result.HasUnsupportedFeatures);
             LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
             Assert.NotNull(conditionalFormatting.DifferentialFormat);
             Assert.NotNull(conditionalFormatting.DifferentialFormat!.Border);
@@ -2517,6 +2697,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["BorderOnly"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByBorder["Top:Style:1"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByBorder["Top:Color:FF336699"]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("Differential Formats By Border", markdown);
             Assert.Contains("Conditional Formatting By Differential Border", markdown);
@@ -2544,7 +2725,7 @@ namespace OfficeIMO.Tests {
             });
 
             Assert.False(result.HasImportErrors);
-            Assert.True(result.HasUnsupportedFeatures);
+            Assert.False(result.HasUnsupportedFeatures);
             LegacyXlsConditionalFormatting conditionalFormatting = Assert.Single(Assert.Single(result.Workbook.Worksheets).ConditionalFormattings);
             Assert.NotNull(conditionalFormatting.DifferentialFormat);
             LegacyXlsDifferentialFormat differentialFormat = conditionalFormatting.DifferentialFormat!;
@@ -2557,6 +2738,7 @@ namespace OfficeIMO.Tests {
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByContentState["NumberFormatOnly"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByNumberFormat["Id:164"]);
             Assert.Equal(1, result.ImportReport.DifferentialFormatsByNumberFormat["Code:$#,##0.00"]);
+            Assert.DoesNotContain(result.Workbook.UnsupportedFeatures, feature => feature.Kind == LegacyXlsUnsupportedFeatureKind.ConditionalFormatting);
             string markdown = result.ImportReport.ToMarkdown();
             Assert.Contains("Differential Formats By Number Format", markdown);
             Assert.Contains("Conditional Formatting By Differential Number Format", markdown);

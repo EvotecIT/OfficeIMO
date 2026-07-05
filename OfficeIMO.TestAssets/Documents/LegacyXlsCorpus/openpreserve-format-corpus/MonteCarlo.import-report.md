@@ -1,7 +1,8 @@
 ﻿# Legacy XLS Import Report
 
 Worksheets: 7
-Unsupported sheets: 4
+Chart sheets: 4
+Unsupported sheets: 0
 Cells: 6098
 Formula cells: 1254
 Comments: 0
@@ -22,13 +23,15 @@ Data consolidation references: 0
 Data consolidation named sources: 0
 Pivot table records: 27
 Chart records: 1134
+Chart sheet metadata records: 8
+Chart sheet future metadata records: 0
 Drawing records: 46
 Theme records: 0
-Drawing OfficeArt records: 38
+Drawing OfficeArt records: 152
 Drawing group blocks: 1
-Drawing group infos: 1
+Drawing group infos: 11
 Drawing identifier clusters: 25
-Drawing shape properties: 43
+Drawing shape properties: 103
 Differential formats: 0
 Table style collection records: 0
 Table style definitions: 0
@@ -48,24 +51,13 @@ Workbook metadata records: 17
 Workbook future metadata records: 0
 Worksheet metadata records: 41
 Worksheet future metadata records: 0
-Unsupported sheet metadata records: 8
+Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 1209
+Unsupported features: 0
 Unsupported projection gaps: 0
-Preserved feature records: 1209
+Preserved feature records: 0
 Errors: 0
 Warnings: 0
-
-## Diagnostics By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1134 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 41 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
 
 ## Formula Tokens By Name
 
@@ -397,6 +389,37 @@ Warnings: 0
 | Index:4 | 10 |
 | Index:5 | 10 |
 
+## Worksheet Phonetic Settings By Sheet
+
+| Key | Count |
+| --- | --- |
+| graphs1 | 1 |
+| graphs2 | 1 |
+
+## Worksheet Phonetic Settings By Type
+
+| Key | Count |
+| --- | --- |
+| FullWidthKatakana | 2 |
+
+## Worksheet Phonetic Settings By Alignment
+
+| Key | Count |
+| --- | --- |
+| Center | 2 |
+
+## Worksheet Phonetic Settings By Font Id
+
+| Key | Count |
+| --- | --- |
+| Font:0 | 2 |
+
+## Worksheet Phonetic Settings By Range Count
+
+| Key | Count |
+| --- | --- |
+| Ranges:0 | 2 |
+
 ## Worksheets By Visibility
 
 | Key | Count |
@@ -433,157 +456,6 @@ Warnings: 0
 | --- | --- |
 | Missing | 7 |
 
-## Unsupported Features By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED | 4 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED | 1134 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 41 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED | 1 |
-| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 27 |
-
-## Unsupported Features By Kind
-
-| Key | Count |
-| --- | --- |
-| Chart | 1134 |
-| ChartSheet | 4 |
-| DrawingObject | 41 |
-| ExternalReference | 1 |
-| PhoneticGuide | 2 |
-| PivotTable | 27 |
-
-## Unsupported Feature Record Types
-
-| Key | Count |
-| --- | --- |
-| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|0x0085 | 4 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1001 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1002 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1003 | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1006 | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1007 | 48 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1009 | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x100A | 48 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x100B | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x100D | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1014 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1015 | 4 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x101B | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x101D | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x101E | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x101F | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1022 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1024 | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1025 | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1026 | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1027 | 20 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1032 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1033 | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1034 | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1035 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1041 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1044 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1045 | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1046 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x104F | 52 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1051 | 136 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x105D | 12 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x105F | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1060 | 22 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1064 | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|0x1065 | 24 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 14 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 23 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x01B6 | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|0x01AE | 1 |
-| PhoneticGuide\|XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|0x00ED | 2 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 25 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-
-## Unsupported Feature Details
-
-| Key | Count |
-| --- | --- |
-| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|Sheet:ChartSheet | 4 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AreaFormat | 48 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AttachedLabel | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxesUsed | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Axis | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:BRAI | 136 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart3DBarShape | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:End | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Fbi | 22 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Legend | 4 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:LineFormat | 48 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:MarkerFormat | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ObjectLink | 20 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PieFormat | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotArea | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 52 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SBaseRef | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Scatter | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerFmt | 12 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Series | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerToCrt | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ShtProps | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SIIndex | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 16 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 23 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 14 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |
-| PhoneticGuide\|XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|PhoneticGuide:PhoneticInfo | 2 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 25 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-
-## Unsupported Feature Locations
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|LBMAQ_PF_CHART | 1 |
-| XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|LBMAQ_RAIN_CHART | 1 |
-| XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|ZPFCUM_CHART | 1 |
-| XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|ZRAINCUM_CHART | 1 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|graphs1 | 355 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|graphs2 | 212 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|LBMAQ_PF_CHART | 178 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|LBMAQ_RAIN_CHART | 177 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|ZPFCUM_CHART | 115 |
-| XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|ZRAINCUM_CHART | 97 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs1 | 14 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|graphs2 | 14 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|LBMAQ_PF_CHART | 3 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|LBMAQ_RAIN_CHART | 3 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|LB_MAQU_PF | 1 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|ZPFCUM_CHART | 3 |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|ZRAINCUM_CHART | 3 |
-| XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|(workbook) | 1 |
-| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|graphs1 | 1 |
-| XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|graphs2 | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|LB_MAQU_PF | 3 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|LB_MAQU_RAIN | 3 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|RangeTable | 1 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZPFCUM | 9 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|ZRAINCUM | 9 |
-
 ## File Format States
 
 | Key | Count |
@@ -594,19 +466,13 @@ Warnings: 0
 | UnsupportedBiffVersion:Missing | 1 |
 | WorkbookFormat:SupportedBiff8 | 1 |
 
-## Unsupported Sheets By Kind
-
-| Key | Count |
-| --- | --- |
-| ChartSheet | 4 |
-
-## Unsupported Sheets By Type
+## Chart Sheets By Type
 
 | Key | Count |
 | --- | --- |
 | 0x02\|ChartSheet | 4 |
 
-## Unsupported Sheets By Name
+## Chart Sheets By Name
 
 | Key | Count |
 | --- | --- |
@@ -615,37 +481,38 @@ Warnings: 0
 | ZPFCUM_CHART | 1 |
 | ZRAINCUM_CHART | 1 |
 
-## Unsupported Sheets By Visibility
+## Chart Sheets By Visibility
 
 | Key | Count |
 | --- | --- |
 | Visible | 4 |
 
-## Unsupported Sheets By Kind And Visibility
+## Chart Sheet Metadata Records By Kind
 
 | Key | Count |
 | --- | --- |
-| ChartSheet\|Visible | 4 |
+| ChartPrintSize | 4 |
+| ChartTextObject | 4 |
 
-## Unsupported Chart Sheet Print Sizes
+## Chart Sheet Print Sizes
 
 | Key | Count |
 | --- | --- |
 | PrintSize:3 | 4 |
 
-## Unsupported Chart Sheet Print Size Kinds
+## Chart Sheet Print Size Kinds
 
 | Key | Count |
 | --- | --- |
 | DefinedInChartRecord | 4 |
 
-## Unsupported Chart Sheet Text Object Counts
+## Chart Sheet Text Object Counts
 
 | Key | Count |
 | --- | --- |
 | TextObjects:1 | 4 |
 
-## Unsupported Chart Sheet Chart Record Counts
+## Chart Sheet Chart Record Counts
 
 | Key | Count |
 | --- | --- |
@@ -654,7 +521,7 @@ Warnings: 0
 | ChartRecords:178 | 1 |
 | ChartRecords:97 | 1 |
 
-## Unsupported Chart Sheet Chart Record Counts By Sheet
+## Chart Sheet Chart Record Counts By Sheet
 
 | Key | Count |
 | --- | --- |
@@ -663,7 +530,7 @@ Warnings: 0
 | Sheet:ZPFCUM_CHART;ChartRecords:115 | 1 |
 | Sheet:ZRAINCUM_CHART;ChartRecords:97 | 1 |
 
-## Unsupported Chart Sheet Chart Record Kinds
+## Chart Sheet Chart Record Kinds
 
 | Key | Count |
 | --- | --- |
@@ -675,7 +542,7 @@ Warnings: 0
 | Series | 104 |
 | Text | 77 |
 
-## Unsupported Chart Sheet Chart Record Kinds By Sheet
+## Chart Sheet Chart Record Kinds By Sheet
 
 | Key | Count |
 | --- | --- |
@@ -708,14 +575,14 @@ Warnings: 0
 | Sheet:ZRAINCUM_CHART;Kind:Series | 16 |
 | Sheet:ZRAINCUM_CHART;Kind:Text | 18 |
 
-## Unsupported Chart Sheet Chart Types
+## Chart Sheet Chart Types
 
 | Key | Count |
 | --- | --- |
 | Scatter | 4 |
 | ThreeDimensionalBarShape | 20 |
 
-## Unsupported Chart Sheet Chart Types By Sheet
+## Chart Sheet Chart Types By Sheet
 
 | Key | Count |
 | --- | --- |
@@ -728,7 +595,7 @@ Warnings: 0
 | Sheet:ZRAINCUM_CHART;ChartType:Scatter | 1 |
 | Sheet:ZRAINCUM_CHART;ChartType:ThreeDimensionalBarShape | 2 |
 
-## Unsupported Chart Sheet States
+## Chart Sheet States
 
 | Key | Count |
 | --- | --- |
@@ -965,6 +832,12 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | View:Missing\|Cache:Missing\|CacheSource:Missing\|CacheItems:Missing\|Fields:Missing\|Items:Missing\|DataItems:Present\|Grouping:Present\|Formulas:Missing\|Additional:Missing\|Locations:WorkbookAndSheets | 1 |
+
+## Pivot Table Data Item Field Indexes
+
+| Key | Count |
+| --- | --- |
+| FieldIndex:0 | 1 |
 
 ## Pivot Table Grouping Kinds
 
@@ -2104,6 +1977,10 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| DecodedFormattingRuns:0 | 4 |
+| DecodedFormattingRuns:1 | 4 |
+| DecodedText:Missing | 4 |
+| DecodedText:Present | 4 |
 | FormattingRunsInContinueRecords:Present | 8 |
 | JustifyLastLine:False | 8 |
 | LockedText:True | 8 |
@@ -2133,17 +2010,18 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | EscherRecordType:0xF000 | 1 |
-| EscherRecordType:0xF002 | 1 |
-| EscherRecordType:0xF003 | 1 |
-| EscherRecordType:0xF004 | 5 |
+| EscherRecordType:0xF002 | 11 |
+| EscherRecordType:0xF003 | 13 |
+| EscherRecordType:0xF004 | 25 |
 | EscherRecordType:0xF006 | 1 |
-| EscherRecordType:0xF008 | 1 |
-| EscherRecordType:0xF009 | 1 |
-| EscherRecordType:0xF00A | 5 |
-| EscherRecordType:0xF00B | 5 |
+| EscherRecordType:0xF008 | 11 |
+| EscherRecordType:0xF009 | 13 |
+| EscherRecordType:0xF00A | 25 |
+| EscherRecordType:0xF00B | 15 |
 | EscherRecordType:0xF00D | 8 |
 | EscherRecordType:0xF00F | 4 |
-| EscherRecordType:0xF011 | 4 |
+| EscherRecordType:0xF010 | 10 |
+| EscherRecordType:0xF011 | 14 |
 | EscherRecordType:0xF11E | 1 |
 
 ## Drawing OfficeArt Records By Type Name
@@ -2151,50 +2029,61 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | OfficeArtChildAnchor | 4 |
-| OfficeArtDgContainer | 1 |
+| OfficeArtDgContainer | 11 |
 | OfficeArtDggContainer | 1 |
-| OfficeArtFClientData | 4 |
+| OfficeArtFClientAnchor | 10 |
+| OfficeArtFClientData | 14 |
 | OfficeArtFClientTextbox | 8 |
-| OfficeArtFDG | 1 |
+| OfficeArtFDG | 11 |
 | OfficeArtFDGGBlock | 1 |
-| OfficeArtFOPT | 5 |
-| OfficeArtFSP | 5 |
-| OfficeArtFSPGR | 1 |
-| OfficeArtSpContainer | 5 |
-| OfficeArtSpgrContainer | 1 |
+| OfficeArtFOPT | 15 |
+| OfficeArtFSP | 25 |
+| OfficeArtFSPGR | 13 |
+| OfficeArtSpContainer | 25 |
+| OfficeArtSpgrContainer | 13 |
 | OfficeArtSplitMenuColorContainer | 1 |
 
 ## Drawing OfficeArt Records By Depth
 
 | Key | Count |
 | --- | --- |
-| Depth:0 | 14 |
-| Depth:1 | 21 |
-| Depth:2 | 1 |
-| Depth:3 | 2 |
+| Depth:0 | 24 |
+| Depth:1 | 41 |
+| Depth:2 | 21 |
+| Depth:3 | 56 |
+| Depth:4 | 10 |
 
 ## Drawing OfficeArt Records By Container State
 
 | Key | Count |
 | --- | --- |
-| Container | 8 |
-| Leaf | 30 |
+| Container | 50 |
+| Leaf | 102 |
 
 ## Drawing OfficeArt Records By Payload Length
 
 | Key | Count |
 | --- | --- |
-| PayloadLength:0 | 12 |
+| PayloadLength:0 | 22 |
+| PayloadLength:108 | 8 |
 | PayloadLength:116 | 4 |
-| PayloadLength:16 | 6 |
-| PayloadLength:18 | 1 |
+| PayloadLength:12 | 2 |
+| PayloadLength:16 | 18 |
+| PayloadLength:164 | 8 |
+| PayloadLength:18 | 11 |
+| PayloadLength:188 | 8 |
 | PayloadLength:216 | 1 |
 | PayloadLength:274 | 1 |
-| PayloadLength:40 | 1 |
+| PayloadLength:350 | 2 |
+| PayloadLength:40 | 11 |
+| PayloadLength:406 | 2 |
+| PayloadLength:42 | 8 |
+| PayloadLength:430 | 2 |
 | PayloadLength:48 | 1 |
 | PayloadLength:60 | 4 |
 | PayloadLength:72 | 1 |
-| PayloadLength:8 | 6 |
+| PayloadLength:8 | 36 |
+| PayloadLength:94 | 2 |
 
 ## Drawing Group Blocks By Max Shape Id
 
@@ -2255,123 +2144,209 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
+| DrawingId:1 | 1 |
+| DrawingId:10 | 1 |
+| DrawingId:13 | 1 |
+| DrawingId:14 | 1 |
+| DrawingId:15 | 1 |
+| DrawingId:2 | 1 |
+| DrawingId:3 | 1 |
+| DrawingId:4 | 1 |
 | DrawingId:5 | 1 |
+| DrawingId:6 | 1 |
+| DrawingId:9 | 1 |
 
 ## Drawing Group Infos By Shape Count
 
 | Key | Count |
 | --- | --- |
 | Shapes:1 | 1 |
+| Shapes:2 | 8 |
+| Shapes:4 | 2 |
 
 ## Drawing Group Infos By Last Shape Id
 
 | Key | Count |
 | --- | --- |
+| LastShapeId:1025 | 1 |
+| LastShapeId:11265 | 1 |
+| LastShapeId:12293 | 1 |
+| LastShapeId:15361 | 1 |
+| LastShapeId:16385 | 1 |
+| LastShapeId:19460 | 1 |
+| LastShapeId:20481 | 1 |
+| LastShapeId:21505 | 1 |
+| LastShapeId:5121 | 1 |
 | LastShapeId:6145 | 1 |
+| LastShapeId:7169 | 1 |
 
 ## Drawing Shape Properties By Id
 
 | Key | Count |
 | --- | --- |
-| PropertyId:0x007F | 4 |
-| PropertyId:0x00BF | 5 |
-| PropertyId:0x0181 | 5 |
+| PropertyId:0x007F | 6 |
+| PropertyId:0x0080 | 8 |
+| PropertyId:0x00BF | 13 |
+| PropertyId:0x0181 | 13 |
 | PropertyId:0x0183 | 4 |
-| PropertyId:0x01BF | 4 |
-| PropertyId:0x01C0 | 5 |
+| PropertyId:0x01BF | 12 |
+| PropertyId:0x01C0 | 13 |
 | PropertyId:0x01CB | 4 |
-| PropertyId:0x01FF | 4 |
+| PropertyId:0x01FF | 12 |
 | PropertyId:0x023F | 4 |
-| PropertyId:0x03BF | 4 |
+| PropertyId:0x03BF | 14 |
 
 ## Drawing Shape Properties By Name
 
 | Key | Count |
 | --- | --- |
 | fillBackColor | 4 |
-| fillColor | 5 |
-| FillStyleBooleanProperties | 4 |
-| GroupShapeBooleanProperties | 4 |
-| lineColor | 5 |
-| LineStyleBooleanProperties | 4 |
+| fillColor | 13 |
+| FillStyleBooleanProperties | 12 |
+| GroupShapeBooleanProperties | 14 |
+| lineColor | 13 |
+| LineStyleBooleanProperties | 12 |
 | lineWidth | 4 |
-| ProtectionBooleanProperties | 4 |
+| PropertyId:0x0080 | 8 |
+| ProtectionBooleanProperties | 6 |
 | ShadowStyleBooleanProperties | 4 |
-| TextBooleanProperties | 5 |
+| TextBooleanProperties | 13 |
 
 ## Drawing Shape Properties By Group
 
 | Key | Count |
 | --- | --- |
-| Fill | 13 |
-| GroupShape | 4 |
-| Line | 13 |
-| Protection | 4 |
+| Fill | 29 |
+| GroupShape | 14 |
+| Line | 29 |
+| Protection | 6 |
 | Shadow | 4 |
-| Text | 5 |
+| Text | 21 |
 
 ## Drawing Shape Properties By Flag State
 
 | Key | Count |
 | --- | --- |
-| Simple | 43 |
+| Simple | 103 |
 
 ## Drawing Shape Properties By Value
 
 | Key | Count |
 | --- | --- |
+| PropertyId:0x007F;Value:0x00040004 | 2 |
 | PropertyId:0x007F;Value:0x01040104 | 4 |
+| PropertyId:0x0080;Value:0x00F0226C | 1 |
+| PropertyId:0x0080;Value:0x00F02294 | 1 |
+| PropertyId:0x0080;Value:0x00F042F4 | 1 |
+| PropertyId:0x0080;Value:0x00F0468C | 1 |
+| PropertyId:0x0080;Value:0x00F054B0 | 1 |
+| PropertyId:0x0080;Value:0x00F05BEC | 1 |
+| PropertyId:0x0080;Value:0x00F06044 | 1 |
+| PropertyId:0x0080;Value:0x00F06620 | 1 |
 | PropertyId:0x00BF;Value:0x00080008 | 5 |
-| PropertyId:0x0181;Value:0x08000009 | 1 |
+| PropertyId:0x00BF;Value:0x000A000A | 8 |
+| PropertyId:0x0181;Value:0x08000009 | 9 |
 | PropertyId:0x0181;Value:0x0800004E | 4 |
 | PropertyId:0x0183;Value:0x0800004D | 4 |
-| PropertyId:0x01BF;Value:0x00110000 | 4 |
-| PropertyId:0x01C0;Value:0x08000040 | 1 |
+| PropertyId:0x01BF;Value:0x00110000 | 12 |
+| PropertyId:0x01C0;Value:0x08000040 | 9 |
 | PropertyId:0x01C0;Value:0x0800004D | 4 |
 | PropertyId:0x01CB;Value:0x00000001 | 4 |
-| PropertyId:0x01FF;Value:0x00080000 | 4 |
+| PropertyId:0x01FF;Value:0x00080000 | 12 |
 | PropertyId:0x023F;Value:0x00020000 | 4 |
-| PropertyId:0x03BF;Value:0x00080000 | 4 |
+| PropertyId:0x03BF;Value:0x00080000 | 14 |
 
 ## Drawing Shape Entries By Type
 
 | Key | Count |
 | --- | --- |
 | HostControl | 4 |
-| NotPrimitive | 1 |
+| NotPrimitive | 13 |
+| TextBox | 8 |
 
 ## Drawing Shape Entries By Id
 
 | Key | Count |
 | --- | --- |
+| ShapeId:1024 | 1 |
+| ShapeId:1025 | 1 |
+| ShapeId:11264 | 1 |
+| ShapeId:11265 | 1 |
+| ShapeId:12288 | 1 |
 | ShapeId:12291 | 1 |
 | ShapeId:12292 | 1 |
+| ShapeId:12293 | 1 |
+| ShapeId:15360 | 1 |
+| ShapeId:15361 | 1 |
+| ShapeId:16384 | 1 |
+| ShapeId:16385 | 1 |
+| ShapeId:19456 | 1 |
 | ShapeId:19457 | 1 |
 | ShapeId:19458 | 1 |
+| ShapeId:19460 | 1 |
+| ShapeId:20480 | 1 |
+| ShapeId:20481 | 1 |
+| ShapeId:21504 | 1 |
+| ShapeId:21505 | 1 |
+| ShapeId:5120 | 1 |
+| ShapeId:5121 | 1 |
 | ShapeId:6144 | 1 |
+| ShapeId:7168 | 1 |
+| ShapeId:7169 | 1 |
 
 ## Drawing Shape Entries By Flags
 
 | Key | Count |
 | --- | --- |
-| Flags:0x00000005 | 1 |
+| Flags:0x00000005 | 11 |
+| Flags:0x00000201 | 2 |
+| Flags:0x00000A00 | 8 |
 | Flags:0x00000A02 | 4 |
 
 ## Drawing Shape Entries By Reserved State
 
 | Key | Count |
 | --- | --- |
-| ReservedClear | 5 |
+| ReservedClear | 25 |
 
 ## Drawing Shape Entries By Flag Name
 
 | Key | Count |
 | --- | --- |
 | Child | 4 |
-| Group | 1 |
-| HaveAnchor | 4 |
-| HaveShapeType | 4 |
-| Patriarch | 1 |
+| Group | 13 |
+| HaveAnchor | 14 |
+| HaveShapeType | 12 |
+| Patriarch | 11 |
+
+## Drawing Anchor Entries By Range
+
+| Key | Count |
+| --- | --- |
+| R0C0:R39C9 | 1 |
+| R0C0:R50C10 | 1 |
+| R1403C1565:R1661C2440 | 1 |
+| R1406C1560:R1662C2427 | 1 |
+| R1663C1964:R1930C2680 | 1 |
+| R1664C1966:R1934C2688 | 1 |
+| R573C1383:R811C2015 | 2 |
+| R848C1285:R1086C2114 | 1 |
+| R854C1290:R1084C2114 | 1 |
+
+## Drawing Anchor Entries By Offset
+
+| Key | Count |
+| --- | --- |
+| StartDx:0;StartDy:0;EndDx:0;EndDy:0 | 8 |
+| StartDx:0;StartDy:0;EndDx:176;EndDy:75 | 1 |
+| StartDx:0;StartDy:0;EndDx:384;EndDy:15 | 1 |
+
+## Drawing Anchor Entries By Flags
+
+| Key | Count |
+| --- | --- |
+| Flags:0x0000 | 2 |
+| Flags:0x0002 | 8 |
 
 ## Drawing Child Anchor Entries By Rectangle
 
@@ -2453,70 +2428,3 @@ Warnings: 0
 | RowBlockIndex | 7 |
 | Selection | 7 |
 | SheetOptions | 7 |
-
-## Unsupported Sheet Metadata Records By Kind
-
-| Key | Count |
-| --- | --- |
-| ChartPrintSize | 4 |
-| ChartTextObject | 4 |
-
-## Preserved Feature Records By Kind
-
-| Key | Count |
-| --- | --- |
-| Chart | 1134 |
-| ChartSheet | 4 |
-| DrawingObject | 41 |
-| ExternalReference | 1 |
-| PhoneticGuide | 2 |
-| PivotTable | 27 |
-
-## Preserved Feature Record Details
-
-| Key | Count |
-| --- | --- |
-| ChartSheet\|XLS-BIFF-FEATURE-CHART-SHEET-UNSUPPORTED\|Sheet:ChartSheet | 4 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AreaFormat | 48 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AttachedLabel | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:AxesUsed | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Axis | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Begin | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:BRAI | 136 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Chart3DBarShape | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormat | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ChartFormatLink | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DataFormat | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:DefaultText | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:End | 156 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Fbi | 22 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:FontX | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Frame | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Legend | 4 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:LineFormat | 48 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:MarkerFormat | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ObjectLink | 20 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PieFormat | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotArea | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:PlotGrowth | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Pos | 52 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SBaseRef | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Scatter | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerFmt | 12 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Series | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SerToCrt | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ShtProps | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:SIIndex | 24 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Text | 40 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Tick | 16 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:Units | 8 |
-| Chart\|XLS-BIFF-FEATURE-CHART-UNSUPPORTED\|Chart:ValueRange | 16 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 23 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 14 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:TxO | 4 |
-| ExternalReference\|XLS-BIFF-FEATURE-EXTERNAL-REFERENCE-UNSUPPORTED\|ExternalReference:ExternalWorkbook | 1 |
-| PhoneticGuide\|XLS-BIFF-FEATURE-PHONETIC-GUIDE-UNSUPPORTED\|PhoneticGuide:PhoneticInfo | 2 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 25 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |

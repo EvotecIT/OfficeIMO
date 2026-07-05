@@ -13,10 +13,40 @@ namespace OfficeIMO.Word.LegacyDoc {
             ParagraphCount = document.Paragraphs.Count;
             CharacterCount = document.Text.Length;
             DocumentPropertyCount = document.DocumentProperties.Count;
+            PreservedFeatureCount = document.PreservedFeatures.Count;
+            CompoundFeatureCount = document.CompoundFeatures.Count;
             UnsupportedFeatureCount = document.UnsupportedFeatures.Count;
             DiagnosticCount = document.Diagnostics.Count;
             ErrorCount = document.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Error);
             WarningCount = document.Diagnostics.Count(diagnostic => diagnostic.Severity == LegacyDocDiagnosticSeverity.Warning);
+            PreservedFeatures = document.PreservedFeatures.ToArray();
+            PreservedFeaturesByCode = document.PreservedFeatures
+                .GroupBy(feature => feature.Code)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+            PreservedFeaturesByKind = document.PreservedFeatures
+                .GroupBy(feature => feature.Kind)
+                .OrderBy(group => group.Key)
+                .ToDictionary(group => group.Key, group => group.Count());
+            PreservedFeaturesByDetail = document.PreservedFeatures
+                .Select(GetPreservedFeatureDetailKey)
+                .GroupBy(key => key, StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+            CompoundFeatures = document.CompoundFeatures.ToArray();
+            CompoundFeaturesByCode = document.CompoundFeatures
+                .GroupBy(feature => feature.Code)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+            CompoundFeaturesByKind = document.CompoundFeatures
+                .GroupBy(feature => feature.Kind)
+                .OrderBy(group => group.Key)
+                .ToDictionary(group => group.Key, group => group.Count());
+            CompoundFeaturesByDetail = document.CompoundFeatures
+                .Select(GetCompoundFeatureDetailKey)
+                .GroupBy(key => key, StringComparer.Ordinal)
+                .OrderBy(group => group.Key, StringComparer.Ordinal)
+                .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
             UnsupportedFeatures = document.UnsupportedFeatures.ToArray();
             UnsupportedFeaturesByCode = document.UnsupportedFeatures
                 .GroupBy(feature => feature.Code)
@@ -46,6 +76,12 @@ namespace OfficeIMO.Word.LegacyDoc {
         /// <summary>Gets the number of projected built-in, application, and custom document properties.</summary>
         public int DocumentPropertyCount { get; }
 
+        /// <summary>Gets the number of preserved non-compound feature families discovered while importing.</summary>
+        public int PreservedFeatureCount { get; }
+
+        /// <summary>Gets the number of preserved compound storage feature families discovered while importing.</summary>
+        public int CompoundFeatureCount { get; }
+
         /// <summary>Gets the number of unsupported or preserve-only features discovered while importing.</summary>
         public int UnsupportedFeatureCount { get; }
 
@@ -60,6 +96,30 @@ namespace OfficeIMO.Word.LegacyDoc {
 
         /// <summary>Gets diagnostics grouped by code.</summary>
         public IReadOnlyDictionary<string, int> DiagnosticsByCode { get; }
+
+        /// <summary>Gets preserved non-compound feature families discovered while importing.</summary>
+        public IReadOnlyList<LegacyDocPreservedFeature> PreservedFeatures { get; }
+
+        /// <summary>Gets preserved features grouped by stable code.</summary>
+        public IReadOnlyDictionary<string, int> PreservedFeaturesByCode { get; }
+
+        /// <summary>Gets preserved features grouped by structured feature category.</summary>
+        public IReadOnlyDictionary<LegacyDocPreservedFeatureKind, int> PreservedFeaturesByKind { get; }
+
+        /// <summary>Gets preserved features grouped by stable kind, code, and detail key.</summary>
+        public IReadOnlyDictionary<string, int> PreservedFeaturesByDetail { get; }
+
+        /// <summary>Gets preserved compound storage feature families discovered while importing.</summary>
+        public IReadOnlyList<LegacyDocCompoundFeature> CompoundFeatures { get; }
+
+        /// <summary>Gets preserved compound features grouped by stable code.</summary>
+        public IReadOnlyDictionary<string, int> CompoundFeaturesByCode { get; }
+
+        /// <summary>Gets preserved compound features grouped by structured feature category.</summary>
+        public IReadOnlyDictionary<LegacyDocCompoundFeatureKind, int> CompoundFeaturesByKind { get; }
+
+        /// <summary>Gets preserved compound features grouped by stable kind, code, and detail key.</summary>
+        public IReadOnlyDictionary<string, int> CompoundFeaturesByDetail { get; }
 
         /// <summary>Gets unsupported or preserve-only features discovered while importing.</summary>
         public IReadOnlyList<LegacyDocUnsupportedFeature> UnsupportedFeatures { get; }
@@ -85,10 +145,34 @@ namespace OfficeIMO.Word.LegacyDoc {
             builder.AppendLine($"| Paragraphs | {ParagraphCount} |");
             builder.AppendLine($"| Characters | {CharacterCount} |");
             builder.AppendLine($"| Document properties | {DocumentPropertyCount} |");
+            builder.AppendLine($"| Preserved features | {PreservedFeatureCount} |");
+            builder.AppendLine($"| Preserved compound features | {CompoundFeatureCount} |");
             builder.AppendLine($"| Unsupported features | {UnsupportedFeatureCount} |");
             builder.AppendLine($"| Diagnostics | {DiagnosticCount} |");
             builder.AppendLine($"| Errors | {ErrorCount} |");
             builder.AppendLine($"| Warnings | {WarningCount} |");
+
+            if (PreservedFeatures.Count > 0) {
+                builder.AppendLine();
+                builder.AppendLine("## Preserved Features");
+                builder.AppendLine();
+                builder.AppendLine("| Kind | Code | Detail |");
+                builder.AppendLine("| --- | --- | --- |");
+                foreach (LegacyDocPreservedFeature feature in PreservedFeatures) {
+                    builder.AppendLine($"| {feature.Kind} | {feature.Code} | {feature.DetailCode} |");
+                }
+            }
+
+            if (CompoundFeatures.Count > 0) {
+                builder.AppendLine();
+                builder.AppendLine("## Preserved Compound Features");
+                builder.AppendLine();
+                builder.AppendLine("| Kind | Code | Detail | Entry | Entries | Bytes |");
+                builder.AppendLine("| --- | --- | --- | --- | ---: | ---: |");
+                foreach (LegacyDocCompoundFeature feature in CompoundFeatures) {
+                    builder.AppendLine($"| {feature.Kind} | {feature.Code} | {feature.DetailCode} | {feature.EntryPath ?? string.Empty} | {feature.EntryCount} | {feature.TotalBytes} |");
+                }
+            }
 
             if (UnsupportedFeatures.Count > 0) {
                 builder.AppendLine();
@@ -120,6 +204,22 @@ namespace OfficeIMO.Word.LegacyDoc {
                 feature.Kind.ToString(),
                 feature.Code,
                 feature.DetailCode ?? string.Empty
+            });
+        }
+
+        private static string GetPreservedFeatureDetailKey(LegacyDocPreservedFeature feature) {
+            return string.Join("|", new[] {
+                feature.Kind.ToString(),
+                feature.Code,
+                feature.DetailCode
+            });
+        }
+
+        private static string GetCompoundFeatureDetailKey(LegacyDocCompoundFeature feature) {
+            return string.Join("|", new[] {
+                feature.Kind.ToString(),
+                feature.Code,
+                feature.DetailCode
             });
         }
     }

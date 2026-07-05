@@ -58,8 +58,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "bold Word COM paragraph" && paragraph.Bold);
             Assert.Contains(result.Document.Paragraphs, paragraph => paragraph.Text == "underlined red Word COM paragraph" && paragraph.Underline == UnderlineValues.Single);
 
-            NotSupportedException blockedNativeSave = Assert.Throws<NotSupportedException>(() => result.Document.Save(nativeDocPath));
-            Assert.Contains("DOC-FAST-SAVE-PRESENT", blockedNativeSave.Message, StringComparison.Ordinal);
+            result.Document.Save(nativeDocPath);
+            AssertDocumentsOpenViaWordComWhenAvailable(new[] { nativeDocPath }, "The OfficeIMO native DOC output did not open through desktop Word.");
 
             WordDocument.Convert(sourceDocPath, convertedDocxPath, new WordDocumentConversionOptions {
                 AllowLossyLegacyConversion = true

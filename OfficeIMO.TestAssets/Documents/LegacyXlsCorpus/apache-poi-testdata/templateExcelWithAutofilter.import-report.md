@@ -1,6 +1,7 @@
 ﻿# Legacy XLS Import Report
 
 Worksheets: 1
+Chart sheets: 0
 Unsupported sheets: 0
 Cells: 4
 Formula cells: 0
@@ -22,13 +23,15 @@ Data consolidation references: 0
 Data consolidation named sources: 0
 Pivot table records: 4
 Chart records: 0
+Chart sheet metadata records: 0
+Chart sheet future metadata records: 0
 Drawing records: 9
 Theme records: 0
-Drawing OfficeArt records: 19
+Drawing OfficeArt records: 30
 Drawing group blocks: 1
-Drawing group infos: 0
+Drawing group infos: 1
 Drawing identifier clusters: 1
-Drawing shape properties: 18
+Drawing shape properties: 23
 Differential formats: 0
 Table style collection records: 0
 Table style definitions: 0
@@ -50,18 +53,11 @@ Worksheet metadata records: 6
 Worksheet future metadata records: 0
 Unsupported sheet metadata records: 0
 Unsupported sheet future metadata records: 0
-Unsupported features: 12
+Unsupported features: 0
 Unsupported projection gaps: 0
-Preserved feature records: 12
+Preserved feature records: 0
 Errors: 0
 Warnings: 0
-
-## Diagnostics By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 8 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 4 |
 
 ## Formula Tokens By Name
 
@@ -189,50 +185,6 @@ Warnings: 0
 | --- | --- |
 | Missing | 1 |
 
-## Unsupported Features By Code
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED | 8 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED | 4 |
-
-## Unsupported Features By Kind
-
-| Key | Count |
-| --- | --- |
-| DrawingObject | 8 |
-| PivotTable | 4 |
-
-## Unsupported Feature Record Types
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x005D | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|0x00EC | 4 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00C1 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00D7 | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00EF | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|0x00FF | 1 |
-
-## Unsupported Feature Details
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRule | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |
-
-## Unsupported Feature Locations
-
-| Key | Count |
-| --- | --- |
-| XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Initial sheet | 8 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|(workbook) | 2 |
-| XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|Initial sheet | 2 |
-
 ## File Format States
 
 | Key | Count |
@@ -352,6 +304,42 @@ Warnings: 0
 | --- | --- |
 | View:Missing\|Cache:Missing\|CacheSource:Missing\|CacheItems:Missing\|Fields:Missing\|Items:Missing\|DataItems:Present\|Grouping:Present\|Formulas:Missing\|Additional:Missing\|Locations:WorkbookAndSheets | 1 |
 
+## Pivot Table Rule Axes
+
+| Key | Count |
+| --- | --- |
+| Row+Column+Page | 1 |
+
+## Pivot Table Rule Types
+
+| Key | Count |
+| --- | --- |
+| EntireView | 1 |
+
+## Pivot Table Rule Field References
+
+| Key | Count |
+| --- | --- |
+| PivotField:0 | 1 |
+
+## Pivot Table Rule Filter Counts
+
+| Key | Count |
+| --- | --- |
+| Filters:0 | 1 |
+
+## Pivot Table Rule Option States
+
+| Key | Count |
+| --- | --- |
+| Partial:False;DataOnly:False;LabelOnly:False;CacheBased:False | 1 |
+
+## Pivot Table Data Item Field Indexes
+
+| Key | Count |
+| --- | --- |
+| FieldIndex:0 | 1 |
+
 ## Pivot Table Grouping Kinds
 
 | Key | Count |
@@ -464,7 +452,7 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | Complete | 8 |
-| Truncated | 4 |
+| RequiresContinuation | 4 |
 
 ## Drawing Records By Escher Record Type
 
@@ -487,53 +475,66 @@ Warnings: 0
 | Key | Count |
 | --- | --- |
 | EscherRecordType:0xF000 | 1 |
-| EscherRecordType:0xF004 | 3 |
+| EscherRecordType:0xF002 | 1 |
+| EscherRecordType:0xF003 | 1 |
+| EscherRecordType:0xF004 | 5 |
 | EscherRecordType:0xF006 | 1 |
-| EscherRecordType:0xF00A | 3 |
-| EscherRecordType:0xF00B | 4 |
-| EscherRecordType:0xF010 | 3 |
-| EscherRecordType:0xF011 | 3 |
+| EscherRecordType:0xF008 | 1 |
+| EscherRecordType:0xF009 | 1 |
+| EscherRecordType:0xF00A | 5 |
+| EscherRecordType:0xF00B | 5 |
+| EscherRecordType:0xF010 | 4 |
+| EscherRecordType:0xF011 | 4 |
 | EscherRecordType:0xF11E | 1 |
 
 ## Drawing OfficeArt Records By Type Name
 
 | Key | Count |
 | --- | --- |
+| OfficeArtDgContainer | 1 |
 | OfficeArtDggContainer | 1 |
-| OfficeArtFClientAnchor | 3 |
-| OfficeArtFClientData | 3 |
+| OfficeArtFClientAnchor | 4 |
+| OfficeArtFClientData | 4 |
+| OfficeArtFDG | 1 |
 | OfficeArtFDGGBlock | 1 |
-| OfficeArtFOPT | 4 |
-| OfficeArtFSP | 3 |
-| OfficeArtSpContainer | 3 |
+| OfficeArtFOPT | 5 |
+| OfficeArtFSP | 5 |
+| OfficeArtFSPGR | 1 |
+| OfficeArtSpContainer | 5 |
+| OfficeArtSpgrContainer | 1 |
 | OfficeArtSplitMenuColorContainer | 1 |
 
 ## Drawing OfficeArt Records By Depth
 
 | Key | Count |
 | --- | --- |
-| Depth:0 | 4 |
-| Depth:1 | 15 |
+| Depth:0 | 5 |
+| Depth:1 | 17 |
+| Depth:2 | 2 |
+| Depth:3 | 6 |
 
 ## Drawing OfficeArt Records By Container State
 
 | Key | Count |
 | --- | --- |
-| Container | 4 |
-| Leaf | 15 |
+| Container | 8 |
+| Leaf | 22 |
 
 ## Drawing OfficeArt Records By Payload Length
 
 | Key | Count |
 | --- | --- |
-| PayloadLength:0 | 3 |
-| PayloadLength:16 | 1 |
-| PayloadLength:18 | 4 |
+| PayloadLength:0 | 4 |
+| PayloadLength:16 | 2 |
+| PayloadLength:18 | 5 |
 | PayloadLength:24 | 1 |
-| PayloadLength:30 | 3 |
-| PayloadLength:8 | 3 |
+| PayloadLength:30 | 4 |
+| PayloadLength:40 | 1 |
+| PayloadLength:432 | 1 |
+| PayloadLength:456 | 1 |
+| PayloadLength:8 | 6 |
 | PayloadLength:82 | 1 |
-| PayloadLength:88 | 3 |
+| PayloadLength:88 | 4 |
 
 ## Drawing Group Blocks By Max Shape Id
 
@@ -577,68 +578,89 @@ Warnings: 0
 | --- | --- |
 | CurrentShapeId:5 | 1 |
 
+## Drawing Group Infos By Drawing Id
+
+| Key | Count |
+| --- | --- |
+| DrawingId:1 | 1 |
+
+## Drawing Group Infos By Shape Count
+
+| Key | Count |
+| --- | --- |
+| Shapes:5 | 1 |
+
+## Drawing Group Infos By Last Shape Id
+
+| Key | Count |
+| --- | --- |
+| LastShapeId:1028 | 1 |
+
 ## Drawing Shape Properties By Id
 
 | Key | Count |
 | --- | --- |
-| PropertyId:0x007F | 3 |
-| PropertyId:0x00BF | 4 |
+| PropertyId:0x007F | 4 |
+| PropertyId:0x00BF | 5 |
 | PropertyId:0x0181 | 1 |
-| PropertyId:0x01BF | 3 |
+| PropertyId:0x01BF | 4 |
 | PropertyId:0x01C0 | 1 |
-| PropertyId:0x01FF | 3 |
-| PropertyId:0x03BF | 3 |
+| PropertyId:0x01FF | 4 |
+| PropertyId:0x03BF | 4 |
 
 ## Drawing Shape Properties By Name
 
 | Key | Count |
 | --- | --- |
 | fillColor | 1 |
-| FillStyleBooleanProperties | 3 |
-| GroupShapeBooleanProperties | 3 |
+| FillStyleBooleanProperties | 4 |
+| GroupShapeBooleanProperties | 4 |
 | lineColor | 1 |
-| LineStyleBooleanProperties | 3 |
-| ProtectionBooleanProperties | 3 |
-| TextBooleanProperties | 4 |
+| LineStyleBooleanProperties | 4 |
+| ProtectionBooleanProperties | 4 |
+| TextBooleanProperties | 5 |
 
 ## Drawing Shape Properties By Group
 
 | Key | Count |
 | --- | --- |
-| Fill | 4 |
-| GroupShape | 3 |
-| Line | 4 |
-| Protection | 3 |
-| Text | 4 |
+| Fill | 5 |
+| GroupShape | 4 |
+| Line | 5 |
+| Protection | 4 |
+| Text | 5 |
 
 ## Drawing Shape Properties By Flag State
 
 | Key | Count |
 | --- | --- |
-| Simple | 18 |
+| Simple | 23 |
 
 ## Drawing Shape Properties By Value
 
 | Key | Count |
 | --- | --- |
-| PropertyId:0x007F;Value:0x01040104 | 3 |
-| PropertyId:0x00BF;Value:0x00080008 | 4 |
+| PropertyId:0x007F;Value:0x01040104 | 4 |
+| PropertyId:0x00BF;Value:0x00080008 | 5 |
 | PropertyId:0x0181;Value:0x08000009 | 1 |
-| PropertyId:0x01BF;Value:0x00010000 | 3 |
+| PropertyId:0x01BF;Value:0x00010000 | 4 |
 | PropertyId:0x01C0;Value:0x08000040 | 1 |
-| PropertyId:0x01FF;Value:0x00080000 | 3 |
-| PropertyId:0x03BF;Value:0x000A0000 | 3 |
+| PropertyId:0x01FF;Value:0x00080000 | 4 |
+| PropertyId:0x03BF;Value:0x000A0000 | 4 |
 
 ## Drawing Shape Entries By Type
 
 | Key | Count |
 | --- | --- |
-| HostControl | 3 |
+| HostControl | 4 |
+| NotPrimitive | 1 |
 
 ## Drawing Shape Entries By Id
 
 | Key | Count |
 | --- | --- |
+| ShapeId:1024 | 1 |
+| ShapeId:1025 | 1 |
 | ShapeId:1026 | 1 |
 | ShapeId:1027 | 1 |
 | ShapeId:1028 | 1 |
@@ -647,25 +669,29 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Flags:0x00000A00 | 3 |
+| Flags:0x00000005 | 1 |
+| Flags:0x00000A00 | 4 |
 
 ## Drawing Shape Entries By Reserved State
 
 | Key | Count |
 | --- | --- |
-| ReservedClear | 3 |
+| ReservedClear | 5 |
 
 ## Drawing Shape Entries By Flag Name
 
 | Key | Count |
 | --- | --- |
-| HaveAnchor | 3 |
-| HaveShapeType | 3 |
+| Group | 1 |
+| HaveAnchor | 4 |
+| HaveShapeType | 4 |
+| Patriarch | 1 |
 
 ## Drawing Anchor Entries By Range
 
 | Key | Count |
 | --- | --- |
+| R0C0:R1C1 | 1 |
 | R0C1:R1C2 | 1 |
 | R0C2:R1C3 | 1 |
 | R0C3:R1C4 | 1 |
@@ -674,13 +700,13 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| StartDx:0;StartDy:0;EndDx:0;EndDy:0 | 3 |
+| StartDx:0;StartDy:0;EndDx:0;EndDy:0 | 4 |
 
 ## Drawing Anchor Entries By Flags
 
 | Key | Count |
 | --- | --- |
-| Flags:0x0001 | 3 |
+| Flags:0x0001 | 4 |
 
 ## Drawing Records By Location
 
@@ -795,21 +821,3 @@ Warnings: 0
 | RowBlockIndex | 1 |
 | Selection | 1 |
 | SheetOptions | 1 |
-
-## Preserved Feature Records By Kind
-
-| Key | Count |
-| --- | --- |
-| DrawingObject | 8 |
-| PivotTable | 4 |
-
-## Preserved Feature Record Details
-
-| Key | Count |
-| --- | --- |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:MsoDrawing | 4 |
-| DrawingObject\|XLS-BIFF-FEATURE-DRAWING-UNSUPPORTED\|Drawing:Obj | 4 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:Sxdi | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRng | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxRule | 1 |
-| PivotTable\|XLS-BIFF-FEATURE-PIVOT-TABLE-UNSUPPORTED\|PivotTable:SxVdEx | 1 |

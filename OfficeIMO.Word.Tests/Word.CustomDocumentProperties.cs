@@ -1,5 +1,8 @@
 ﻿using System;
 using System.IO;
+using System.Linq;
+using DocumentFormat.OpenXml.CustomProperties;
+using DocumentFormat.OpenXml.Packaging;
 using OfficeIMO.Word;
 using Xunit;
 
@@ -151,6 +154,30 @@ namespace OfficeIMO.Tests {
                 Assert.True((int)document.CustomDocumentProperties["TestDifferentWayNumber"].Value == 15);
 
                 document.Save(false);
+            }
+        }
+
+        [Fact]
+        public void Test_WordCustomDocumentProperties_RoundTripBinaryValue() {
+            string filePath = Path.Combine(_directoryWithFiles, "WordCustomDocumentProperties.Binary.docx");
+            byte[] payload = { 0x00, 0x01, 0x42, 0x80, 0xff };
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                document.AddParagraph("Binary custom property");
+                document.CustomDocumentProperties.Add("BinaryPayload", new WordCustomProperty(payload));
+                document.Save(false);
+            }
+
+            using (WordprocessingDocument package = WordprocessingDocument.Open(filePath, false)) {
+                CustomDocumentProperty binary = package.CustomFilePropertiesPart!.Properties!.Elements<CustomDocumentProperty>().First(property => property.Name == "BinaryPayload");
+                Assert.NotNull(binary.VTBlob);
+                Assert.Equal(Convert.ToBase64String(payload), binary.VTBlob!.Text);
+            }
+
+            using (WordDocument document = WordDocument.Load(filePath)) {
+                WordCustomProperty property = document.CustomDocumentProperties["BinaryPayload"];
+                Assert.Equal(PropertyTypes.Binary, property.PropertyType);
+                Assert.Equal(payload, property.Binary);
             }
         }
     }

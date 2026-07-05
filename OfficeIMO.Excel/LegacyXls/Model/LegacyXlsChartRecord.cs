@@ -176,6 +176,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         /// <summary>Gets the shallow chart record category.</summary>
         public LegacyXlsChartRecordKind Kind { get; }
 
+        /// <summary>Gets whether this chart record has decoded metadata that can be reported without treating the record itself as unsupported.</summary>
+        public bool HasSupportedChartMetadata => Kind != LegacyXlsChartRecordKind.PreserveOnly;
+
         /// <summary>Gets the BIFF record name.</summary>
         public string RecordName { get; }
 

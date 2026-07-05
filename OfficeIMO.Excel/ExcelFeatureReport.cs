@@ -667,6 +667,14 @@ namespace OfficeIMO.Excel {
             Add(features, "Compatibility", "Legacy XLS unsupported sheets", ExcelFeatureSupportLevel.Unsupported, _legacyXlsUnsupportedSheets.Length, null,
                 "Some legacy XLS sheet entries were discovered but not projected as normal worksheets and are not written to the converted .xlsx package.",
                 _legacyXlsUnsupportedSheets.Select(FormatLegacyXlsUnsupportedSheet).ToArray());
+
+            Add(features, "Compatibility", "Legacy XLS chart sheets", ExcelFeatureSupportLevel.Preserved, _legacyXlsChartSheets.Length, null,
+                "Legacy XLS chart sheets are decoded as import metadata, but are not projected as normal worksheets or written by native XLS save.",
+                _legacyXlsChartSheets.Select(FormatLegacyXlsChartSheet).ToArray());
+
+            Add(features, "Compatibility", "Legacy XLS compound features", ExcelFeatureSupportLevel.Preserved, _legacyXlsCompoundFeatures.Length, null,
+                "Legacy XLS compound-container features are decoded as import metadata, but are not projected into the normal workbook package or written by native XLS save.",
+                _legacyXlsCompoundFeatures.Select(FormatLegacyXlsCompoundFeature).ToArray());
         }
 
         private static string FormatLegacyXlsDiagnostic(LegacyXlsImportDiagnostic diagnostic) {
@@ -683,6 +691,14 @@ namespace OfficeIMO.Excel {
 
         private static string FormatLegacyXlsUnsupportedSheet(LegacyXlsUnsupportedSheet sheet) {
             return $"{sheet.Name}: {sheet.Kind} ({sheet.VisibilityName})";
+        }
+
+        private static string FormatLegacyXlsChartSheet(LegacyXlsChartSheet sheet) {
+            return $"{sheet.Name}: ChartSheet ({sheet.VisibilityName})";
+        }
+
+        private static string FormatLegacyXlsCompoundFeature(LegacyXlsCompoundFeatureRecord feature) {
+            return $"{feature.Kind}: Entries:{feature.Entries.Count}";
         }
 
         private static void Add(List<ExcelFeatureFinding> features, string category, string name, ExcelFeatureSupportLevel supportLevel, int count,
