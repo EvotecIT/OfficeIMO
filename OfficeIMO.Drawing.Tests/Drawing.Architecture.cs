@@ -65,13 +65,44 @@ public class DrawingArchitectureTests {
     [Fact]
     public void ProductionProjectsDoNotReferenceThirdPartyImageRenderingPackages() {
         string[] bannedPackages = {
-            "System.Drawing.Common",
-            "SixLabors.ImageSharp",
-            "SkiaSharp",
+            "Aspose.Cells",
+            "Aspose.PDF",
+            "Aspose.Slides",
+            "Aspose.Words",
+            "Docnet.Core",
+            "GemBox.Document",
+            "GemBox.Pdf",
+            "GemBox.Presentation",
+            "GemBox.Spreadsheet",
             "Magick.NET-Q8-AnyCPU",
             "Magick.NET-Q16-AnyCPU",
+            "Microsoft.Office.Interop.Excel",
+            "Microsoft.Office.Interop.PowerPoint",
+            "Microsoft.Office.Interop.Word",
+            "Microsoft.Playwright",
+            "PdfiumViewer",
+            "PDFiumSharp",
+            "PDFtoImage",
+            "PuppeteerSharp",
+            "Selenium.WebDriver",
+            "System.Drawing.Common",
+            "SixLabors.ImageSharp",
+            "SixLabors.Fonts",
+            "SkiaSharp",
+            "SkiaSharp.Extended",
+            "SkiaSharp.Views",
+            "Spire.Doc",
+            "Spire.PDF",
+            "Spire.Presentation",
+            "Spire.XLS",
             "Svg.Skia",
-            "Svg"
+            "Svg",
+            "Syncfusion.DocIO.Net.Core",
+            "Syncfusion.EJ2.PdfViewer",
+            "Syncfusion.Pdf.Net.Core",
+            "Syncfusion.PdfToImageConverter.Net",
+            "Syncfusion.Presentation.Net.Core",
+            "Syncfusion.XlsIO.Net.Core"
         };
 
         foreach (string projectPath in Directory.GetFiles(RepositoryRoot, "OfficeIMO.*.csproj", SearchOption.AllDirectories)) {
@@ -92,6 +123,19 @@ public class DrawingArchitectureTests {
     [Fact]
     public void ImageRenderingOwnerCodeDoesNotUseSystemDrawingOrExternalImageNamespaces() {
         string[] bannedSourceTokens = {
+            "Aspose.",
+            "GemBox.",
+            "ImageMagick.",
+            "Microsoft.Office.Interop",
+            "Microsoft.Playwright",
+            "Microsoft.Web.WebView2",
+            "Pdfium",
+            "PDFium",
+            "pdftocairo",
+            "pdftoppm",
+            "Poppler",
+            "PuppeteerSharp",
+            "Selenium.",
             "using System.Drawing",
             "System.Drawing.",
             "using SixLabors.",
@@ -99,7 +143,8 @@ public class DrawingArchitectureTests {
             "using SkiaSharp",
             "SkiaSharp.",
             "using ImageMagick",
-            "ImageMagick."
+            "Spire.",
+            "Syncfusion."
         };
 
         foreach (string filePath in EnumerateImageRenderingOwnerSource()) {
