@@ -236,12 +236,33 @@ namespace OfficeIMO.Tests {
             return builder.ToString();
         }
 
-        public sealed record PowerPointImageFixtureBaseline(
-            string Name,
-            Func<PowerPointPresentation> CreatePresentation,
-            IReadOnlyList<string> ExpectedSvgTexts,
-            IReadOnlyList<OfficeColor> ExpectedRasterColors,
-            int ExpectedMinimumDrawingElements,
-            int ExpectedMinimumNonBackgroundPixels);
+        public sealed class PowerPointImageFixtureBaseline {
+            public PowerPointImageFixtureBaseline(
+                string name,
+                Func<PowerPointPresentation> createPresentation,
+                IReadOnlyList<string> expectedSvgTexts,
+                IReadOnlyList<OfficeColor> expectedRasterColors,
+                int expectedMinimumDrawingElements,
+                int expectedMinimumNonBackgroundPixels) {
+                Name = name;
+                CreatePresentation = createPresentation;
+                ExpectedSvgTexts = expectedSvgTexts;
+                ExpectedRasterColors = expectedRasterColors;
+                ExpectedMinimumDrawingElements = expectedMinimumDrawingElements;
+                ExpectedMinimumNonBackgroundPixels = expectedMinimumNonBackgroundPixels;
+            }
+
+            public string Name { get; }
+
+            public Func<PowerPointPresentation> CreatePresentation { get; }
+
+            public IReadOnlyList<string> ExpectedSvgTexts { get; }
+
+            public IReadOnlyList<OfficeColor> ExpectedRasterColors { get; }
+
+            public int ExpectedMinimumDrawingElements { get; }
+
+            public int ExpectedMinimumNonBackgroundPixels { get; }
+        }
     }
 }
