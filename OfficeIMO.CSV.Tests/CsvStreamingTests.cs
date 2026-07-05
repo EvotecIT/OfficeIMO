@@ -200,6 +200,23 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpans_DoesNotEmitTrimmedWhitespaceOnlyLines()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name,Value\n   \t  \nAlpha,1\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions {
+                SkipInitialRecords = 1,
+                TrimWhitespace = true
+            });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:1" }, fields);
+    }
+
+    [Fact]
     public void ReadFieldSpans_DetectsDelimiterAfterSkippedMetadata()
     {
         var fields = new List<string>();

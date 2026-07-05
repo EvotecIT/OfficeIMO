@@ -147,7 +147,10 @@ internal sealed class CsvLineReader
         }
 
         var lineLength = newlineIndex - segmentStart;
-        fieldCount = VisitUnquotedFieldSpans(segmentStart, newlineIndex, delimiter, trim, allowEmpty || lineLength != 0, emitFields, recordIndex, ref fieldVisitor, out var firstFieldLength);
+        var emitNonEmptyRecord = allowEmpty || (trim
+            ? HasNonWhitespace(segmentStart, newlineIndex)
+            : lineLength != 0);
+        fieldCount = VisitUnquotedFieldSpans(segmentStart, newlineIndex, delimiter, trim, emitNonEmptyRecord, emitFields, recordIndex, ref fieldVisitor, out var firstFieldLength);
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = newlineIndex;
         if (endsAtReaderEnd)
@@ -250,6 +253,19 @@ internal sealed class CsvLineReader
     }
 
 #if NET8_0_OR_GREATER
+    private bool HasNonWhitespace(int start, int end)
+    {
+        for (var i = start; i < end; i++)
+        {
+            if (!char.IsWhiteSpace(_buffer[i]))
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
     private int VisitUnquotedFieldSpans<TVisitor>(
         int start,
         int end,
