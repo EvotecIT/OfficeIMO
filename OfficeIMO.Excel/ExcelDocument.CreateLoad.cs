@@ -362,10 +362,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(filePath)) {
-                return LoadLegacyXls(filePath, new LegacyXlsImportOptions {
-                    Password = password,
-                    ReportUnsupportedRecords = true
-                });
+                return LoadEncryptedLegacyXls(filePath, password);
             }
 
             var encryptedBytes = ReadAllBytesCompatAsync(filePath, CancellationToken.None).GetAwaiter().GetResult();
@@ -501,10 +498,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (ExcelDocumentLoadRouting.HasLegacyXlsExtension(filePath)) {
-                return LoadLegacyXls(filePath, new LegacyXlsImportOptions {
-                    Password = password,
-                    ReportUnsupportedRecords = true
-                });
+                return LoadEncryptedLegacyXls(filePath, password);
             }
 
             var encryptedBytes = await ReadAllBytesCompatAsync(filePath, CancellationToken.None).ConfigureAwait(false);
@@ -568,6 +562,14 @@ namespace OfficeIMO.Excel {
             var encryptedBytes = await ReadAllBytesAsync(stream, cancellationToken).ConfigureAwait(false);
             var packageBytes = OfficeEncryption.DecryptPackage(encryptedBytes, password);
             return LoadFromByteArray(packageBytes, readOnly, autoSave: false, filePath: null, log: null, openSettings, preferFilePathOnFallback: false);
+        }
+
+        private static ExcelDocument LoadEncryptedLegacyXls(string filePath, string password) {
+            LegacyXlsWorkbook workbook = LegacyXlsWorkbook.Load(filePath, new LegacyXlsImportOptions {
+                Password = password,
+                ReportUnsupportedRecords = true
+            });
+            return ProjectLoadedLegacyXlsWorkbook(workbook, sourcePath: null);
         }
 
         private static void EnsureEncryptedLoadDoesNotAutoSave(bool autoSave, OpenSettings? openSettings) {

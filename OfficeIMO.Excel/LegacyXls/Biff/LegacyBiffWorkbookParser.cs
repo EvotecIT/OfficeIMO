@@ -10,12 +10,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             var numberFormatsById = new Dictionary<ushort, string>();
             var externSheets = new List<BiffExternSheetReference>();
             var boundSheetNames = new List<string>();
-            var boundSheetProjectedWorksheetIndexes = new List<int?>();
+            var boundSheetProjectedSheetIndexes = new List<int?>();
             var definedNameTable = new List<string?>();
             LegacyXlsExternalReference? currentExternalReference = null;
             LegacyXlsExternalCellCache? currentExternalCellCache = null;
             var chartMetadataState = new BiffChartMetadataReaderState();
             var pivotTableMetadataState = new BiffPivotTableMetadataReaderState();
+            int nextProjectedSheetIndex = 0;
 
             if (!LegacyBiffVersionValidator.ValidateWorkbookGlobals(records, workbook)) {
                 return workbook;
@@ -52,13 +53,13 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
 
                     if (sheet != null && sheet.SheetType == 0) {
-                        boundSheetProjectedWorksheetIndexes.Add(workbook.MutableWorksheets.Count);
+                        boundSheetProjectedSheetIndexes.Add(nextProjectedSheetIndex++);
                         workbook.MutableWorksheets.Add(sheet);
                     } else if (sheet != null && sheet.SheetType == 0x02) {
-                        boundSheetProjectedWorksheetIndexes.Add(null);
+                        boundSheetProjectedSheetIndexes.Add(nextProjectedSheetIndex++);
                         workbook.MutableChartSheets.Add(ToChartSheet(sheet));
                     } else if (sheet != null) {
-                        boundSheetProjectedWorksheetIndexes.Add(null);
+                        boundSheetProjectedSheetIndexes.Add(null);
                         LegacyXlsUnsupportedSheet unsupportedSheet = ToUnsupportedSheet(sheet, ToUnsupportedSheetKind(sheet.SheetType));
                         workbook.MutableUnsupportedSheets.Add(unsupportedSheet);
                         AddUnsupportedSheetFeature(workbook, record, unsupportedSheet);
@@ -82,7 +83,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 } else if (record.Type == (ushort)BiffRecordType.Format) {
                     ReadFormat(record, workbook, numberFormatsById, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Lbl) {
-                    ReadDefinedName(record, workbook, externSheets, workbook.ExternalReferences, boundSheetNames, boundSheetProjectedWorksheetIndexes, definedNameTable, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics);
+                    ReadDefinedName(record, workbook, externSheets, workbook.ExternalReferences, boundSheetNames, boundSheetProjectedSheetIndexes, definedNameTable, workbook.MutableFormulaTokenRecords, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Palette) {
                     ReadPalette(record, workbook, workbook.MutableDiagnostics);
                 } else if (record.Type == (ushort)BiffRecordType.Password) {
@@ -608,7 +609,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             IReadOnlyList<BiffExternSheetReference> externSheets,
             IReadOnlyList<LegacyXlsExternalReference> externalReferences,
             IReadOnlyList<string> sheetNames,
-            IReadOnlyList<int?> boundSheetProjectedWorksheetIndexes,
+            IReadOnlyList<int?> boundSheetProjectedSheetIndexes,
             List<string?> definedNameTable,
             List<LegacyXlsFormulaTokenRecord> formulaTokenRecords,
             List<LegacyXlsImportDiagnostic> diagnostics) {
@@ -687,7 +688,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                 int? localSheetIndex = null;
                 if (oneBasedSheetIndex != 0) {
                     int boundSheetIndex = oneBasedSheetIndex - 1;
-                    if (boundSheetIndex < 0 || boundSheetIndex >= boundSheetProjectedWorksheetIndexes.Count) {
+                    if (boundSheetIndex < 0 || boundSheetIndex >= boundSheetProjectedSheetIndexes.Count) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Warning,
                             "XLS-BIFF-LBL-SCOPE-INVALID",
@@ -697,7 +698,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                         return;
                     }
 
-                    localSheetIndex = boundSheetProjectedWorksheetIndexes[boundSheetIndex];
+                    localSheetIndex = boundSheetProjectedSheetIndexes[boundSheetIndex];
                     if (!localSheetIndex.HasValue) {
                         diagnostics.Add(new LegacyXlsImportDiagnostic(
                             LegacyXlsDiagnosticSeverity.Info,
@@ -709,7 +710,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     }
                 }
 
-                if (localSheetIndex.HasValue && (localSheetIndex.Value < 0 || localSheetIndex.Value >= workbook.Worksheets.Count)) {
+                int projectedSheetCount = workbook.Worksheets.Count + workbook.ChartSheets.Count;
+                if (localSheetIndex.HasValue && (localSheetIndex.Value < 0 || localSheetIndex.Value >= projectedSheetCount)) {
                     diagnostics.Add(new LegacyXlsImportDiagnostic(
                         LegacyXlsDiagnosticSeverity.Warning,
                         "XLS-BIFF-LBL-SCOPE-INVALID",

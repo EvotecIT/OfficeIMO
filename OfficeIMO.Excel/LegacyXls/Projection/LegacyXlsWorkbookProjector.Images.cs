@@ -43,7 +43,12 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
         private static void ProjectHeaderFooterImages(LegacyXlsWorkbook workbook, LegacyXlsWorksheet legacySheet, ExcelSheet sheet) {
             LegacyXlsPageSetup? pageSetup = legacySheet.PageSetup;
-            if (pageSetup == null || !TryGetSingleHeaderFooterImagePlacement(pageSetup, out HeaderFooterImagePlacement placement)) {
+            if (pageSetup == null) {
+                return;
+            }
+
+            IReadOnlyList<HeaderFooterImagePlacement> placements = GetHeaderFooterImagePlacements(pageSetup);
+            if (placements.Count == 0) {
                 return;
             }
 
@@ -56,29 +61,29 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 return;
             }
 
-            LegacyXlsDrawingBlipStoreEntry? image = null;
-            int imageCount = 0;
-            foreach (LegacyXlsDrawingRecord drawing in workbook.DrawingRecords.Where(record =>
+            IReadOnlyList<LegacyXlsDrawingBlipStoreEntry> images = workbook.DrawingRecords.Where(record =>
                 record.Kind == LegacyXlsDrawingRecordKind.HeaderFooterPicture
                 && string.Equals(record.SheetName, legacySheet.Name, StringComparison.Ordinal)
                 && record.HasSupportedHeaderFooterPictureMetadata
-                && IsPictureDrawing(record))) {
-                LegacyXlsDrawingBlipStoreEntry? candidate = TryResolveImage(drawing, imageStore);
-                if (candidate?.EmbeddedBlipContentType == null || candidate.EmbeddedBlipPayloadBytes.Length == 0) {
-                    continue;
-                }
-
-                image = candidate;
-                imageCount++;
-                if (imageCount > 1) {
-                    return;
-                }
-            }
-
-            if (image == null || imageCount != 1) {
+                && IsPictureDrawing(record))
+                .Select(drawing => TryResolveImage(drawing, imageStore))
+                .Where(image => image?.EmbeddedBlipContentType != null && image.EmbeddedBlipPayloadBytes.Length > 0)
+                .Cast<LegacyXlsDrawingBlipStoreEntry>()
+                .ToArray();
+            if (images.Count == 0) {
                 return;
             }
 
+            int projectionCount = Math.Min(placements.Count, images.Count);
+            for (int i = 0; i < projectionCount; i++) {
+                ProjectHeaderFooterImage(sheet, placements[i], images[i]);
+            }
+        }
+
+        private static void ProjectHeaderFooterImage(
+            ExcelSheet sheet,
+            HeaderFooterImagePlacement placement,
+            LegacyXlsDrawingBlipStoreEntry image) {
             if (placement.IsHeader) {
                 sheet.SetHeaderImage(placement.Position, image.EmbeddedBlipPayloadBytes, image.EmbeddedBlipContentType!);
             } else {
@@ -86,42 +91,37 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static bool TryGetSingleHeaderFooterImagePlacement(LegacyXlsPageSetup pageSetup, out HeaderFooterImagePlacement placement) {
-            placement = default;
-            int count = 0;
-            AddHeaderFooterImagePlacements(pageSetup.HeaderText, isHeader: true, ref placement, ref count);
-            AddHeaderFooterImagePlacements(pageSetup.FooterText, isHeader: false, ref placement, ref count);
-
-            return count == 1;
+        private static IReadOnlyList<HeaderFooterImagePlacement> GetHeaderFooterImagePlacements(LegacyXlsPageSetup pageSetup) {
+            var placements = new List<HeaderFooterImagePlacement>();
+            AddHeaderFooterImagePlacements(pageSetup.HeaderText, isHeader: true, placements);
+            AddHeaderFooterImagePlacements(pageSetup.FooterText, isHeader: false, placements);
+            return placements;
         }
 
         private static void AddHeaderFooterImagePlacements(
             string? text,
             bool isHeader,
-            ref HeaderFooterImagePlacement placement,
-            ref int count) {
+            List<HeaderFooterImagePlacement> placements) {
             if (string.IsNullOrEmpty(text)) {
                 return;
             }
 
             (string? Left, string? Center, string? Right) sections = SplitHeaderFooterText(text);
-            AddHeaderFooterImagePlacement(sections.Left, isHeader, HeaderFooterPosition.Left, ref placement, ref count);
-            AddHeaderFooterImagePlacement(sections.Center, isHeader, HeaderFooterPosition.Center, ref placement, ref count);
-            AddHeaderFooterImagePlacement(sections.Right, isHeader, HeaderFooterPosition.Right, ref placement, ref count);
+            AddHeaderFooterImagePlacement(sections.Left, isHeader, HeaderFooterPosition.Left, placements);
+            AddHeaderFooterImagePlacement(sections.Center, isHeader, HeaderFooterPosition.Center, placements);
+            AddHeaderFooterImagePlacement(sections.Right, isHeader, HeaderFooterPosition.Right, placements);
         }
 
         private static void AddHeaderFooterImagePlacement(
             string? sectionText,
             bool isHeader,
             HeaderFooterPosition position,
-            ref HeaderFooterImagePlacement placement,
-            ref int count) {
+            List<HeaderFooterImagePlacement> placements) {
             if (string.IsNullOrEmpty(sectionText) || sectionText!.IndexOf("&G", StringComparison.Ordinal) < 0) {
                 return;
             }
 
-            placement = new HeaderFooterImagePlacement(isHeader, position);
-            count++;
+            placements.Add(new HeaderFooterImagePlacement(isHeader, position));
         }
 
         private static bool IsPictureDrawing(LegacyXlsDrawingRecord drawing) {

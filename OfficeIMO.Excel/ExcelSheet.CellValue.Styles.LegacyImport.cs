@@ -679,22 +679,65 @@ namespace OfficeIMO.Excel {
             CellFormat candidate,
             LegacyXlsWorkbook workbook,
             LegacyXlsCellFormat format) {
-            foreach (LegacyXlsCellStyleExtension extension in workbook.CellStyleExtensions.Where(extension =>
-                extension.HasProjectableFormatting && AppliesToEffectiveLegacyFormat(extension, format))) {
+            LegacyXlsCellFormat? directFormat = workbook.GetCellFormat(format.StyleIndex);
+            foreach (LegacyXlsCellStyleExtension extension in workbook.CellStyleExtensions.Where(extension => extension.HasProjectableFormatting)) {
+                bool appliesToDirectFormat = extension.AppliesToFormatIndex(format.StyleIndex);
+                bool appliesToParentFormat = !appliesToDirectFormat
+                    && !format.IsStyle
+                    && format.ParentStyleIndex != format.StyleIndex
+                    && extension.AppliesToFormatIndex(format.ParentStyleIndex);
+                if (!appliesToDirectFormat && !appliesToParentFormat) {
+                    continue;
+                }
+
                 foreach (LegacyXlsCellStyleExtensionProperty property in extension.Properties) {
+                    if (appliesToParentFormat && !ShouldApplyInheritedLegacyCellStyleExtensionProperty(property, directFormat ?? format)) {
+                        continue;
+                    }
+
                     ApplyLegacyCellStyleExtensionProperty(stylesheet, candidate, workbook, property);
                 }
             }
         }
 
-        private static bool AppliesToEffectiveLegacyFormat(LegacyXlsCellStyleExtension extension, LegacyXlsCellFormat format) {
-            if (extension.AppliesToFormatIndex(format.StyleIndex)) {
-                return true;
+        private static bool ShouldApplyInheritedLegacyCellStyleExtensionProperty(
+            LegacyXlsCellStyleExtensionProperty property,
+            LegacyXlsCellFormat directFormat) {
+            return GetLegacyCellStyleExtensionFacet(property) switch {
+                LegacyCellStyleExtensionFacet.Font => !directFormat.ApplyFont,
+                LegacyCellStyleExtensionFacet.Fill => !directFormat.ApplyFill,
+                LegacyCellStyleExtensionFacet.Border => !directFormat.ApplyBorder,
+                LegacyCellStyleExtensionFacet.Alignment => !directFormat.ApplyAlignment,
+                _ => true
+            };
+        }
+
+        private static LegacyCellStyleExtensionFacet GetLegacyCellStyleExtensionFacet(LegacyXlsCellStyleExtensionProperty property) {
+            if (property.UsesStyleXfPropMapping) {
+                return property.PropertyType switch {
+                    0x0000 or 0x0001 or 0x0002 => LegacyCellStyleExtensionFacet.Fill,
+                    0x0005 or 0x0025 => LegacyCellStyleExtensionFacet.Font,
+                    0x0006 or 0x0007 or 0x0008 or 0x0009 or 0x000A => LegacyCellStyleExtensionFacet.Border,
+                    0x0012 => LegacyCellStyleExtensionFacet.Alignment,
+                    _ => LegacyCellStyleExtensionFacet.Other
+                };
             }
 
-            return !format.IsStyle
-                && format.ParentStyleIndex != format.StyleIndex
-                && extension.AppliesToFormatIndex(format.ParentStyleIndex);
+            return property.PropertyType switch {
+                0x0004 or 0x0005 => LegacyCellStyleExtensionFacet.Fill,
+                0x0007 or 0x0008 or 0x0009 or 0x000A or 0x000B => LegacyCellStyleExtensionFacet.Border,
+                0x000D or 0x000E => LegacyCellStyleExtensionFacet.Font,
+                0x000F => LegacyCellStyleExtensionFacet.Alignment,
+                _ => LegacyCellStyleExtensionFacet.Other
+            };
+        }
+
+        private enum LegacyCellStyleExtensionFacet {
+            Other,
+            Font,
+            Fill,
+            Border,
+            Alignment
         }
 
         private static void ApplyLegacyCellStyleExtensionProperty(

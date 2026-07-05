@@ -54,6 +54,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_NormalLoad_LoadEncryptedPathDoesNotBindPlainSaveToEncryptedSource() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream("openpass");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string sourcePath = WriteTempWorkbook(compound, ".xls");
+
+            try {
+                using ExcelDocument document = ExcelDocument.LoadEncrypted(sourcePath, "openpass");
+
+                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.Equal(string.Empty, document.FilePath);
+                Assert.Equal("Rc4Sheet", document.Sheets.Single().Name);
+                Assert.Throws<InvalidOperationException>(() => document.Save());
+            } finally {
+                TryDelete(sourcePath);
+            }
+        }
+
+        [Fact]
         public async Task LegacyXls_NormalLoad_LoadEncryptedAsyncPathRoutesLegacyXls() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream("openpass");
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
@@ -63,6 +81,7 @@ namespace OfficeIMO.Tests {
                 using ExcelDocument document = await ExcelDocument.LoadEncryptedAsync(sourcePath, "openpass");
 
                 Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.Equal(string.Empty, document.FilePath);
                 Assert.Equal("Rc4Sheet", document.Sheets.Single().Name);
                 Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
                 Assert.Equal("RC4 secret", value);

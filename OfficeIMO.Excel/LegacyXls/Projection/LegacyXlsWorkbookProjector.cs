@@ -1555,10 +1555,18 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectDefinedNames(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
-                ExcelSheet? scope = definedName.LocalSheetIndex.HasValue && definedName.LocalSheetIndex.Value < document.Sheets.Count
-                    ? document.Sheets[definedName.LocalSheetIndex.Value]
+                ExcelSheet? scope = definedName.LocalSheetIndex.HasValue
+                    && worksheetIndexByProjectedSheetIndex.TryGetValue(definedName.LocalSheetIndex.Value, out int worksheetIndex)
+                    && worksheetIndex < document.Sheets.Count
+                    ? document.Sheets[worksheetIndex]
                     : null;
+                if (definedName.LocalSheetIndex.HasValue && scope == null) {
+                    AppendRawDefinedName(document, definedName);
+                    continue;
+                }
+
                 if (scope != null
                     && string.Equals(definedName.Name, "_xlnm.Print_Titles", StringComparison.OrdinalIgnoreCase)
                     && TryParsePrintTitles(definedName.Reference, scope, out int? firstRow, out int? lastRow, out int? firstColumn, out int? lastColumn)) {
@@ -1608,6 +1616,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
         }
 
         private static void ProjectAutoFilters(LegacyXlsWorkbook workbook, ExcelDocument document) {
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex = CreateWorksheetIndexByProjectedSheetIndex(workbook);
             for (int i = 0; i < workbook.Worksheets.Count && i < document.Sheets.Count; i++) {
                 LegacyXlsWorksheet legacySheet = workbook.Worksheets[i];
                 if (legacySheet.AutoFilterCriteria.Count == 0) {
@@ -1615,7 +1624,7 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
                 }
 
                 ExcelSheet sheet = document.Sheets[i];
-                if (!TryGetAutoFilterRange(workbook, sheet, i, out string autoFilterRange)) {
+                if (!TryGetAutoFilterRange(workbook, sheet, i, worksheetIndexByProjectedSheetIndex, out string autoFilterRange)) {
                     continue;
                 }
 
@@ -1623,10 +1632,17 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
         }
 
-        private static bool TryGetAutoFilterRange(LegacyXlsWorkbook workbook, ExcelSheet sheet, int sheetIndex, out string autoFilterRange) {
+        private static bool TryGetAutoFilterRange(
+            LegacyXlsWorkbook workbook,
+            ExcelSheet sheet,
+            int worksheetIndex,
+            IReadOnlyDictionary<int, int> worksheetIndexByProjectedSheetIndex,
+            out string autoFilterRange) {
             autoFilterRange = string.Empty;
             foreach (LegacyXlsDefinedName definedName in workbook.DefinedNames) {
-                if (definedName.LocalSheetIndex == sheetIndex
+                if (definedName.LocalSheetIndex.HasValue
+                    && worksheetIndexByProjectedSheetIndex.TryGetValue(definedName.LocalSheetIndex.Value, out int scopedWorksheetIndex)
+                    && scopedWorksheetIndex == worksheetIndex
                     && string.Equals(definedName.Name, "_FilterDatabase", StringComparison.OrdinalIgnoreCase)
                     && TryParseScopedRange(definedName.Reference, sheet, out autoFilterRange)) {
                     return true;
@@ -1634,6 +1650,21 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             return false;
+        }
+
+        private static IReadOnlyDictionary<int, int> CreateWorksheetIndexByProjectedSheetIndex(LegacyXlsWorkbook workbook) {
+            var result = new Dictionary<int, int>();
+            int projectedSheetIndex = 0;
+            int worksheetIndex = 0;
+            foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook)) {
+                if (sheetEntry.Worksheet != null) {
+                    result[projectedSheetIndex] = worksheetIndex++;
+                }
+
+                projectedSheetIndex++;
+            }
+
+            return result;
         }
 
         private static void ProjectExternalReferences(LegacyXlsWorkbook workbook, ExcelDocument document) {
