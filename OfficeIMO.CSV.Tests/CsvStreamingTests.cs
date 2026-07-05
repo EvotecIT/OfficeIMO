@@ -136,6 +136,89 @@ public class CsvStreamingTests
         Assert.Equal(new[] { "Alpha", "1" }, records[1]);
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void ReadFieldSpans_CanSkipInitialRecords()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("metadata\nName,Value\nAlpha,1\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(
+            new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" },
+            fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_ReadsWideUnquotedRecords()
+    {
+        var headers = string.Join(",", Enumerable.Range(0, 12).Select(index => $"H{index}"));
+        var values = Enumerable.Range(0, 12).Select(index => new string((char)('A' + index), 40) + index).ToArray();
+        var fields = new List<string>();
+        using var reader = new StringReader(headers + "\n" + string.Join(",", values) + "\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(
+            values.Select((value, index) => $"0:{index}:{value}").ToArray(),
+            fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_FallsBackForQuotedMultilineRecords()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name,Note\nAlpha,\"one\ntwo\"\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:one\ntwo" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_DoesNotEmitSkippedBlankLines()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name,Value\n\nAlpha,1\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:1" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_DetectsDelimiterAfterSkippedMetadata()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("metadata,with,commas\nName;Value\nAlpha;1\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        Assert.Equal(
+            new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" },
+            fields);
+    }
+#endif
+
     [Fact]
     public void LoadFromStream_InMemoryMode_ParsesRows()
     {

@@ -208,6 +208,32 @@ internal static class CsvWriter
         WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
+    internal static void WriteRecordBufferedDefault(
+        TextWriter writer,
+        StringBuilder buffer,
+        string?[] values,
+        char delimiter,
+        string newLine)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedTextDefault(buffer, values[i], delimiter);
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
     internal static void WriteRecordBufferedAlwaysQuoted(
         TextWriter writer,
         StringBuilder buffer,
@@ -230,6 +256,32 @@ internal static class CsvWriter
             }
 
             AppendAlwaysQuotedValue(buffer, values[i], culture);
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void WriteRecordBufferedAlwaysQuoted(
+        TextWriter writer,
+        StringBuilder buffer,
+        string?[] values,
+        char delimiter,
+        string newLine)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendAlwaysQuotedTextValue(buffer, values[i]);
         }
 
         WriteBufferedRecordLine(writer, buffer, newLine);
@@ -355,21 +407,21 @@ internal static class CsvWriter
 
     private static bool IsKnownCsvSafeSpanFormattedValue(object value)
     {
-        return value is byte
+        return value is decimal
+            or int
+            or DateTime
+            or double
+            or long
+            or DateTimeOffset
+            or Guid
+            or TimeSpan
+            or float
+            or byte
             or sbyte
             or short
             or ushort
-            or int
             or uint
-            or long
-            or ulong
-            or float
-            or double
-            or decimal
-            or DateTime
-            or DateTimeOffset
-            or TimeSpan
-            or Guid;
+            or ulong;
     }
 
     private static void WriteBufferedRecordLine(TextWriter writer, StringBuilder buffer, string newLine)
@@ -380,10 +432,19 @@ internal static class CsvWriter
             writer.WriteLine(buffer);
             return;
         }
-#endif
+
+        writer.Write(buffer);
+        writer.Write(newLine);
+#else
+        if (string.Equals(newLine, writer.NewLine, StringComparison.Ordinal))
+        {
+            writer.WriteLine(buffer.ToString());
+            return;
+        }
 
         buffer.Append(newLine);
-        writer.Write(buffer);
+        writer.Write(buffer.ToString());
+#endif
     }
 
     private static void AppendEscapedValue(
@@ -529,6 +590,18 @@ internal static class CsvWriter
 #endif
 
         AppendQuotedText(buffer, FormatValue(value, culture));
+    }
+
+    private static void AppendAlwaysQuotedTextValue(StringBuilder buffer, string? value)
+    {
+        buffer.Append('"');
+        if (value == null)
+        {
+            buffer.Append('"');
+            return;
+        }
+
+        AppendQuotedText(buffer, value);
     }
 
     private static void AppendQuotedText(StringBuilder buffer, string text)
@@ -734,33 +807,69 @@ internal static class CsvWriter
 
     private static void WriteEscapedDefault(StringBuilder writer, string text, char delimiter)
     {
-        if (!NeedsQuotes(text, delimiter))
+        var specialIndex = IndexOfCsvSpecial(text, delimiter);
+        if (specialIndex < 0)
         {
             writer.Append(text);
             return;
         }
 
         writer.Append('"');
-        if (text.IndexOf('"') < 0)
+        if (text.IndexOf('"', specialIndex) < 0)
         {
             writer.Append(text);
             writer.Append('"');
             return;
         }
 
-        foreach (var ch in text)
+        var segmentStart = 0;
+        for (var i = specialIndex; i < text.Length; i++)
         {
-            if (ch == '\"')
+            if (text[i] == '"')
             {
+                writer.Append(text, segmentStart, i - segmentStart);
                 writer.Append("\"\"");
-            }
-            else
-            {
-                writer.Append(ch);
+                segmentStart = i + 1;
             }
         }
 
+        if (segmentStart < text.Length)
+        {
+            writer.Append(text, segmentStart, text.Length - segmentStart);
+        }
+
         writer.Append('"');
+    }
+
+    private static void AppendEscapedTextDefault(StringBuilder writer, string? text, char delimiter)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        WriteEscapedDefault(writer, text, delimiter);
+    }
+
+    private static int IndexOfCsvSpecial(string text, char delimiter)
+    {
+#if NET8_0_OR_GREATER
+        if (delimiter == ',')
+        {
+            return text.AsSpan().IndexOfAny(DefaultCommaQuoteCharacters);
+        }
+#endif
+
+        for (var i = 0; i < text.Length; i++)
+        {
+            var ch = text[i];
+            if (ch == '"' || ch == '\n' || ch == '\r' || ch == delimiter)
+            {
+                return i;
+            }
+        }
+
+        return -1;
     }
 
 #if NET6_0_OR_GREATER
