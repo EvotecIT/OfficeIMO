@@ -19,6 +19,8 @@ public sealed class CsvObjectWriter : IDisposable
     private readonly bool _leaveOpen;
     private readonly StringBuilder _rowBuffer = new(1024);
     private IReadOnlyList<string>? _columns;
+    private Func<object, object?[], bool>? _propertyProjector;
+    private object?[]? _propertyValues;
     private bool _disposed;
 
     /// <summary>
@@ -63,9 +65,29 @@ public sealed class CsvObjectWriter : IDisposable
             throw new InvalidOperationException("Data rows cannot contain null entries.");
         }
 
+        if (_columns != null &&
+            _propertyProjector != null &&
+            _propertyValues != null &&
+            _propertyProjector(item, _propertyValues))
+        {
+            WriteBuffered(_propertyValues);
+            return;
+        }
+
         var itemColumns = ObjectDataHelpers.GetColumnNames(item);
-        EnsureColumns(itemColumns, requireOrder: !ObjectDataHelpers.IsDictionaryLike(item));
+        var dictionaryLike = ObjectDataHelpers.IsDictionaryLike(item);
+        EnsureColumns(itemColumns, requireOrder: !dictionaryLike);
         var columns = _columns!;
+
+        if (!dictionaryLike &&
+            ObjectDataHelpers.TryCreatePropertyProjector(item, columns, out var projector))
+        {
+            _propertyProjector = projector;
+            _propertyValues = new object?[columns.Count];
+            projector!(item, _propertyValues);
+            WriteBuffered(_propertyValues);
+            return;
+        }
 
         var values = new object?[columns.Count];
         for (var i = 0; i < columns.Count; i++)
@@ -133,6 +155,84 @@ public sealed class CsvObjectWriter : IDisposable
         EnsureColumns(columns);
 
         WriteBuffered(values);
+    }
+
+    /// <summary>
+    /// Writes one already-projected row using the column order that was established by a previous row.
+    /// </summary>
+    /// <param name="values">Values in the same order as the established CSV columns.</param>
+    /// <remarks>
+    /// Use this only when the caller already owns schema validation and can guarantee stable column order.
+    /// The method still validates that the row width matches the established header.
+    /// </remarks>
+    public void WriteTrustedRow(object?[] values)
+    {
+        ThrowIfDisposed();
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(values);
+#else
+        if (values == null)
+        {
+            throw new ArgumentNullException(nameof(values));
+        }
+#endif
+
+        if (_columns == null)
+        {
+            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+        }
+
+        if (values.Length != _columns.Count)
+        {
+            throw new CsvException($"Row contains {values.Length} values but header defines {_columns.Count} columns.");
+        }
+
+        WriteBuffered(values);
+    }
+
+    /// <summary>
+    /// Writes one already-formatted text row using the column order that was established by a previous row.
+    /// </summary>
+    /// <param name="values">Text values in the same order as the established CSV columns.</param>
+    /// <remarks>
+    /// Use this only when the caller already owns schema validation and culture-aware value formatting.
+    /// The method still applies CSV escaping and validates that the row width matches the established header.
+    /// </remarks>
+    public void WriteTrustedTextRow(string?[] values)
+    {
+        ThrowIfDisposed();
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(values);
+#else
+        if (values == null)
+        {
+            throw new ArgumentNullException(nameof(values));
+        }
+#endif
+
+        if (_columns == null)
+        {
+            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+        }
+
+        if (values.Length != _columns.Count)
+        {
+            throw new CsvException($"Row contains {values.Length} values but header defines {_columns.Count} columns.");
+        }
+
+        if (_useDefaultWritePath)
+        {
+            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        if (_useAlwaysQuotedWritePath)
+        {
+            CsvWriter.WriteRecordBufferedAlwaysQuoted(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
     }
 
     /// <summary>

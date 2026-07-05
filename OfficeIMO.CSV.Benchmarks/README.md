@@ -5,9 +5,9 @@ This project compares raw .NET CSV paths without PowerShell object overhead. Use
 ## Run
 
 ```powershell
-dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter *CsvBenchmarks*
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter *Csv*Benchmarks*
 ```
 
-The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV streaming/in-memory reads, CsvHelper typed record writing, CsvHelper projected-row writing, CsvHelper raw field reads, and CsvHelper typed record reads.
+The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV reusable reads, OfficeIMO.CSV field-span reads, CsvHelper typed/projected writes, CsvHelper raw/typed reads, and Sylvan raw/string/span field reads.
 
-CsvHelper is a benchmark-only dependency in this project. It should not be added to `OfficeIMO.CSV` unless a future design decision intentionally changes the runtime dependency model.
+CsvHelper and Sylvan.Data.Csv are benchmark-only dependencies in this project. They should not be added to `OfficeIMO.CSV` unless a future design decision intentionally changes the runtime dependency model.

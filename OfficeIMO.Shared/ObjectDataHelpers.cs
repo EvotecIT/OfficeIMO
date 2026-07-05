@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using System.Linq.Expressions;
 using System.Reflection;
 
 namespace OfficeIMO.Shared;
@@ -130,6 +131,31 @@ internal static class ObjectDataHelpers
         return GetPropertyPlan(item.GetType()).TryGetValue(item, column, out var propertyValue) ? propertyValue : null;
     }
 
+    /// <summary>
+    /// Creates a reusable projector for a fixed CLR object type and column order.
+    /// </summary>
+#if NET5_0_OR_GREATER
+    [System.Diagnostics.CodeAnalysis.RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
+#endif
+    internal static bool TryCreatePropertyProjector(object item, IReadOnlyList<string> columns, out Func<object, object?[], bool>? projector)
+    {
+#if NET6_0_OR_GREATER
+        ArgumentNullException.ThrowIfNull(item);
+        ArgumentNullException.ThrowIfNull(columns);
+#else
+        if (item == null) throw new ArgumentNullException(nameof(item));
+        if (columns == null) throw new ArgumentNullException(nameof(columns));
+#endif
+
+        projector = null;
+        if (IsDictionaryLike(item))
+        {
+            return false;
+        }
+
+        return GetPropertyPlan(item.GetType()).TryCreateProjector(columns, out projector);
+    }
+
     private static ObjectPropertyPlan GetPropertyPlan(Type type) => PropertyPlans.GetOrAdd(type, CreatePropertyPlan);
 
     private static ObjectPropertyPlan CreatePropertyPlan(Type type)
@@ -140,17 +166,19 @@ internal static class ObjectDataHelpers
             .OrderBy(static p => p.MetadataToken)
             .ToArray();
 
-        return new ObjectPropertyPlan(properties);
+        return new ObjectPropertyPlan(type, properties);
     }
 
     private sealed class ObjectPropertyPlan
     {
         private readonly Dictionary<string, PropertyInfo> _propertiesByName;
+        private readonly Type _type;
 
-        public ObjectPropertyPlan(IReadOnlyList<PropertyInfo> properties)
+        public ObjectPropertyPlan(Type type, IReadOnlyList<PropertyInfo> properties)
         {
             var columnNames = new string[properties.Count];
             _propertiesByName = new Dictionary<string, PropertyInfo>(properties.Count, StringComparer.Ordinal);
+            _type = type;
             for (var i = 0; i < properties.Count; i++)
             {
                 var property = properties[i];
@@ -173,6 +201,69 @@ internal static class ObjectDataHelpers
 
             value = null;
             return false;
+        }
+
+        public bool TryCreateProjector(IReadOnlyList<string> columns, out Func<object, object?[], bool>? projector)
+        {
+            var accessors = new Func<object, object?>[columns.Count];
+            for (var i = 0; i < columns.Count; i++)
+            {
+                if (!_propertiesByName.TryGetValue(columns[i], out var property))
+                {
+                    projector = null;
+                    return false;
+                }
+
+                accessors[i] = CreateAccessor(property);
+            }
+
+            projector = CreateProjector(_type, accessors);
+            return true;
+        }
+
+        private static Func<object, object?[], bool> CreateProjector(Type type, Func<object, object?>[] accessors)
+        {
+            return (item, values) =>
+            {
+                if (item == null || item.GetType() != type)
+                {
+                    return false;
+                }
+
+#if NET6_0_OR_GREATER
+                ArgumentNullException.ThrowIfNull(values);
+#else
+                if (values == null) throw new ArgumentNullException(nameof(values));
+#endif
+
+                if (values.Length != accessors.Length)
+                {
+                    throw new ArgumentException("Value buffer length must match the projector column count.", nameof(values));
+                }
+
+                for (var i = 0; i < accessors.Length; i++)
+                {
+                    values[i] = accessors[i](item);
+                }
+
+                return true;
+            };
+        }
+
+        private static Func<object, object?> CreateAccessor(PropertyInfo property)
+        {
+#if NET5_0_OR_GREATER
+            if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
+            {
+                var item = Expression.Parameter(typeof(object), "item");
+                var typedItem = Expression.Convert(item, property.DeclaringType!);
+                var value = Expression.Property(typedItem, property);
+                var boxedValue = Expression.Convert(value, typeof(object));
+                return Expression.Lambda<Func<object, object?>>(boxedValue, item).Compile();
+            }
+#endif
+
+            return property.GetValue;
         }
     }
 }
