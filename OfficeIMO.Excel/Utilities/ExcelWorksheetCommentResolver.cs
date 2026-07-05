@@ -38,6 +38,7 @@ namespace OfficeIMO.Excel.Utilities {
                 map[reference!] = new ExcelCommentSnapshot {
                     Author = string.IsNullOrWhiteSpace(author) ? null : author,
                     Text = ExtractCommentText(comment.CommentText),
+                    RichTextRuns = ExtractCommentRuns(comment.CommentText),
                 };
             }
 
@@ -142,6 +143,43 @@ namespace OfficeIMO.Excel.Utilities {
             }
 
             return NormalizeMultilineText(builder.ToString());
+        }
+
+        private static IReadOnlyList<ExcelRichTextRun> ExtractCommentRuns(CommentText? commentText) {
+            if (commentText == null) {
+                return Array.Empty<ExcelRichTextRun>();
+            }
+
+            var runs = new List<ExcelRichTextRun>();
+            foreach (Run run in commentText.Elements<Run>()) {
+                RunProperties? properties = run.RunProperties;
+                runs.Add(new ExcelRichTextRun(run.Text?.Text ?? string.Empty) {
+                    Bold = properties?.GetFirstChild<Bold>() != null,
+                    Italic = properties?.GetFirstChild<Italic>() != null,
+                    Underline = properties?.GetFirstChild<Underline>() != null,
+                    Strikethrough = properties?.GetFirstChild<Strike>() != null,
+                    UnderlineStyle = ExcelRichTextRun.GetUnderlineStyle(properties),
+                    FontColor = properties?.GetFirstChild<Color>()?.Rgb?.Value,
+                    FontName = properties?.GetFirstChild<RunFont>()?.Val?.Value,
+                    FontSize = properties?.GetFirstChild<FontSize>()?.Val?.Value,
+                    VerticalTextAlignment = ExcelRichTextRun.GetVerticalTextAlignment(properties),
+                    Outline = properties?.GetFirstChild<Outline>() != null,
+                    Shadow = properties?.GetFirstChild<Shadow>() != null,
+                    Condense = properties?.GetFirstChild<Condense>() != null,
+                    Extend = properties?.GetFirstChild<Extend>() != null,
+                    FontFamily = ExcelRichTextRun.GetFontFamily(properties),
+                    FontCharacterSet = ExcelRichTextRun.GetFontCharacterSet(properties)
+                });
+            }
+
+            if (runs.Count == 0) {
+                string plainText = ExtractCommentText(commentText);
+                if (!string.IsNullOrEmpty(plainText)) {
+                    runs.Add(new ExcelRichTextRun(plainText));
+                }
+            }
+
+            return runs.Count == 0 ? Array.Empty<ExcelRichTextRun>() : runs.AsReadOnly();
         }
 
         private static string? NullIfWhiteSpace(string? value) {

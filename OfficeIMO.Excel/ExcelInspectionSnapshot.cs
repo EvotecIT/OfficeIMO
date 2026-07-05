@@ -438,6 +438,11 @@ namespace OfficeIMO.Excel {
         /// Comment text content.
         /// </summary>
         public string Text { get; internal set; } = string.Empty;
+
+        /// <summary>
+        /// Rich text runs for the comment body, when present.
+        /// </summary>
+        public IReadOnlyList<ExcelRichTextRun> RichTextRuns { get; internal set; } = Array.Empty<ExcelRichTextRun>();
     }
 
     /// <summary>

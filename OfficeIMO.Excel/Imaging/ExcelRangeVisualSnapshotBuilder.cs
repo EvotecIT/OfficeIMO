@@ -708,6 +708,7 @@ namespace OfficeIMO.Excel {
                         snapshotHeight,
                         pair.Value.Author,
                         pair.Value.Text,
+                        BuildRichTextRuns(pair.Value.RichTextRuns),
                         bodyObstacles,
                         out ExcelVisualCommentBody body)) {
                         bodies.Add(body);
@@ -749,6 +750,7 @@ namespace OfficeIMO.Excel {
                         snapshotHeight,
                         ResolveThreadedCommentTitle(pair.Value),
                         FormatThreadedCommentBody(pair.Value),
+                        Array.Empty<ExcelVisualTextRun>(),
                         bodyObstacles,
                         out ExcelVisualCommentBody body)) {
                         bodies.Add(body);
@@ -811,6 +813,7 @@ namespace OfficeIMO.Excel {
             double snapshotHeight,
             string? title,
             string? text,
+            IReadOnlyList<ExcelVisualTextRun>? richTextRuns,
             IReadOnlyList<ExcelVisualBounds> bodyObstacles,
             out ExcelVisualCommentBody body) {
             body = null!;
@@ -841,6 +844,7 @@ namespace OfficeIMO.Excel {
                 indicator.Threaded,
                 resolvedTitle,
                 resolvedText,
+                richTextRuns,
                 indicator.Source);
             return true;
         }

@@ -1,3 +1,6 @@
+using System;
+using System.Collections.Generic;
+
 namespace OfficeIMO.Drawing;
 
 /// <summary>
@@ -24,6 +27,31 @@ public sealed class OfficeCallout {
         AnchorY = anchorY;
         Title = title ?? string.Empty;
         Text = text ?? string.Empty;
+        RichTextRuns = Array.Empty<OfficeRichTextRun>();
+    }
+
+    /// <summary>
+    /// Creates a callout with absolute coordinates and optional rich body text runs.
+    /// </summary>
+    public OfficeCallout(
+        double x,
+        double y,
+        double width,
+        double height,
+        double anchorX,
+        double anchorY,
+        string? title,
+        string? text,
+        IReadOnlyList<OfficeRichTextRun>? richTextRuns) {
+        X = x;
+        Y = y;
+        Width = width;
+        Height = height;
+        AnchorX = anchorX;
+        AnchorY = anchorY;
+        Title = title ?? string.Empty;
+        Text = text ?? string.Empty;
+        RichTextRuns = richTextRuns ?? Array.Empty<OfficeRichTextRun>();
     }
 
     /// <summary>X position in CSS pixels before renderer scale is applied.</summary>
@@ -49,4 +77,7 @@ public sealed class OfficeCallout {
 
     /// <summary>Body text.</summary>
     public string Text { get; }
+
+    /// <summary>Optional styled body text runs. Empty means render <see cref="Text"/> as plain text.</summary>
+    public IReadOnlyList<OfficeRichTextRun> RichTextRuns { get; }
 }

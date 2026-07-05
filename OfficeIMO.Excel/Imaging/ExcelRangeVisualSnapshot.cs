@@ -479,6 +479,7 @@ namespace OfficeIMO.Excel {
             bool threaded,
             string title,
             string text,
+            IReadOnlyList<ExcelVisualTextRun>? richTextRuns,
             string source) {
             Row = row;
             Column = column;
@@ -491,6 +492,7 @@ namespace OfficeIMO.Excel {
             Threaded = threaded;
             Title = title ?? string.Empty;
             Text = text ?? string.Empty;
+            RichTextRuns = richTextRuns ?? Array.Empty<ExcelVisualTextRun>();
             Source = source ?? string.Empty;
         }
 
@@ -526,6 +528,9 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Plain text body rendered inside the callout.</summary>
         public string Text { get; }
+
+        /// <summary>Optional rich body text runs rendered inside the callout.</summary>
+        public IReadOnlyList<ExcelVisualTextRun> RichTextRuns { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }
