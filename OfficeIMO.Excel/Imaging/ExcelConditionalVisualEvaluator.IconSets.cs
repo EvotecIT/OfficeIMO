@@ -38,7 +38,7 @@ namespace OfficeIMO.Excel {
                 double min = values.Min();
                 double max = values.Max();
                 foreach (ConditionalNumericCell candidate in candidates) {
-                    int index = ResolveIconIndex(candidate.Value, min, max, iconCount, rule.IconSetThresholds);
+                    int index = ResolveIconIndex(candidate.Value, values, min, max, iconCount, rule.IconSetThresholds);
                     if (rule.IconSetReverse) {
                         index = (iconCount - 1) - index;
                     }
@@ -111,10 +111,10 @@ namespace OfficeIMO.Excel {
             return true;
         }
 
-        private static int ResolveIconIndex(double value, double min, double max, int iconCount, IReadOnlyList<ExcelConditionalIconSetThreshold> thresholds) {
+        private static int ResolveIconIndex(double value, IReadOnlyList<double> values, double min, double max, int iconCount, IReadOnlyList<ExcelConditionalIconSetThreshold> thresholds) {
             int resolved = 0;
             for (int i = 1; i < iconCount; i++) {
-                double threshold = ResolveIconThreshold(min, max, iconCount, thresholds, i);
+                double threshold = ResolveIconThreshold(values, min, max, iconCount, thresholds, i);
                 ExcelConditionalIconSetThreshold? thresholdInfo = thresholds.Count == iconCount && i < thresholds.Count
                     ? thresholds[i]
                     : null;
@@ -129,7 +129,7 @@ namespace OfficeIMO.Excel {
             return Math.Max(0, Math.Min(iconCount - 1, resolved));
         }
 
-        private static double ResolveIconThreshold(double min, double max, int iconCount, IReadOnlyList<ExcelConditionalIconSetThreshold> thresholds, int index) {
+        private static double ResolveIconThreshold(IReadOnlyList<double> values, double min, double max, int iconCount, IReadOnlyList<ExcelConditionalIconSetThreshold> thresholds, int index) {
             if (thresholds.Count == iconCount && index < thresholds.Count) {
                 ExcelConditionalIconSetThreshold threshold = thresholds[index];
                 if (string.Equals(threshold.Type, "num", StringComparison.OrdinalIgnoreCase) ||
@@ -143,6 +143,11 @@ namespace OfficeIMO.Excel {
                     string.Equals(threshold.Type, "Percent", StringComparison.OrdinalIgnoreCase)) &&
                     double.TryParse(threshold.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double percent)) {
                     return min + ((max - min) * Math.Max(0D, Math.Min(100D, percent)) / 100D);
+                }
+
+                if (string.Equals(threshold.Type, "percentile", StringComparison.OrdinalIgnoreCase) &&
+                    double.TryParse(threshold.Value, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out double percentile)) {
+                    return ExcelConditionalFormatThresholds.CalculatePercentile(values, Math.Max(0D, Math.Min(100D, percentile)));
                 }
             }
 
