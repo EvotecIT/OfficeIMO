@@ -39,6 +39,10 @@ public static partial class DocumentReader {
             return Array.Empty<OfficeDocumentAsset>();
         }
 
+        if (kind == ReaderInputKind.Excel && !string.IsNullOrEmpty(opt.OpenPassword)) {
+            return Array.Empty<OfficeDocumentAsset>();
+        }
+
         cancellationToken.ThrowIfCancellationRequested();
         if (stream.CanSeek) {
             stream.Position = 0;

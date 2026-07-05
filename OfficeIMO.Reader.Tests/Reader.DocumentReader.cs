@@ -140,9 +140,16 @@ public sealed class ReaderDocumentReaderTests {
             var pathChunks = DocumentReader.Read(encryptedPath, options).ToList();
             using var stream = File.OpenRead(encryptedPath);
             var streamChunks = DocumentReader.Read(stream, "encrypted.xlsx", options).ToList();
+            OfficeDocumentReadResult pathResult = DocumentReader.ReadDocument(encryptedPath, options);
+            using var resultStream = File.OpenRead(encryptedPath);
+            OfficeDocumentReadResult streamResult = DocumentReader.ReadDocument(resultStream, "encrypted.xlsx", options);
 
             AssertEncryptedXlsxChunks(pathChunks);
             AssertEncryptedXlsxChunks(streamChunks);
+            AssertEncryptedXlsxChunks(pathResult.Chunks);
+            AssertEncryptedXlsxChunks(streamResult.Chunks);
+            Assert.Empty(pathResult.Assets);
+            Assert.Empty(streamResult.Assets);
         } finally {
             if (File.Exists(sourcePath)) File.Delete(sourcePath);
             if (File.Exists(encryptedPath)) File.Delete(encryptedPath);

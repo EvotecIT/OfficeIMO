@@ -328,7 +328,7 @@ namespace OfficeIMO.Word.LegacyDoc.Model {
                     reportDiagnostic);
             }
 
-            if (fib.CcpHdrTxbx > 0 && !TextBoxStories.Any(story => story.IsHeaderFooterTextBox)) {
+            if (fib.CcpHdrTxbx > 0) {
                 AddUnsupportedStoryFeatureIfPresent(
                     fib.CcpHdrTxbx,
                     LegacyDocUnsupportedFeatureKind.TextBox,

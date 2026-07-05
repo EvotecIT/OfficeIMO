@@ -680,11 +680,21 @@ namespace OfficeIMO.Excel {
             LegacyXlsWorkbook workbook,
             LegacyXlsCellFormat format) {
             foreach (LegacyXlsCellStyleExtension extension in workbook.CellStyleExtensions.Where(extension =>
-                extension.HasProjectableFormatting && extension.AppliesToFormatIndex(format.StyleIndex))) {
+                extension.HasProjectableFormatting && AppliesToEffectiveLegacyFormat(extension, format))) {
                 foreach (LegacyXlsCellStyleExtensionProperty property in extension.Properties) {
                     ApplyLegacyCellStyleExtensionProperty(stylesheet, candidate, workbook, property);
                 }
             }
+        }
+
+        private static bool AppliesToEffectiveLegacyFormat(LegacyXlsCellStyleExtension extension, LegacyXlsCellFormat format) {
+            if (extension.AppliesToFormatIndex(format.StyleIndex)) {
+                return true;
+            }
+
+            return !format.IsStyle
+                && format.ParentStyleIndex != format.StyleIndex
+                && extension.AppliesToFormatIndex(format.ParentStyleIndex);
         }
 
         private static void ApplyLegacyCellStyleExtensionProperty(

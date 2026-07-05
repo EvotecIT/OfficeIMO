@@ -350,6 +350,16 @@ public static partial class DocumentReader {
             document.LegacyDocUnsupportedFeatures.Select(static feature => $"Legacy DOC unsupported feature: {feature.Code} ({feature.Kind}) - {feature.Description}"),
             maxItems: 8,
             overflowMessage: "Additional legacy DOC unsupported features were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyDocPreservedFeatures.Select(static feature => $"Legacy DOC preserved feature: {feature.Code} ({feature.Kind}) - {feature.Description}"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy DOC preserved features were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyDocCompoundFeatures.Select(static feature => $"Legacy DOC compound feature: {feature.Code} ({feature.Kind}) - {feature.Description}"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy DOC compound features were omitted.");
         return warnings.Count == 0 ? null : warnings;
     }
 
@@ -374,6 +384,16 @@ public static partial class DocumentReader {
             document.LegacyXlsUnsupportedSheets.Select(static sheet => $"Legacy XLS unsupported sheet: {sheet.Name} ({sheet.Kind}, {sheet.VisibilityName})"),
             maxItems: 8,
             overflowMessage: "Additional legacy XLS unsupported sheets were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyXlsChartSheets.Select(static sheet => $"Legacy XLS chart sheet: {sheet.Name} ({sheet.VisibilityName})"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy XLS chart sheets were omitted.");
+        AddBoundedWarnings(
+            warnings,
+            document.LegacyXlsCompoundFeatures.Select(static feature => $"Legacy XLS compound feature: {feature.Kind} - entries: {feature.Entries.Count}"),
+            maxItems: 8,
+            overflowMessage: "Additional legacy XLS compound features were omitted.");
         return warnings.Count == 0 ? null : warnings;
     }
 

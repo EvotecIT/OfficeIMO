@@ -81,12 +81,14 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             document.EnsureWorkbookThemeAndStyles();
             Stylesheet stylesheet = document.WorkbookPartRoot.WorkbookStylesPart!.Stylesheet!;
             TableStyles tableStyles = stylesheet.TableStyles ??= new TableStyles();
-            if (!string.IsNullOrWhiteSpace(collection?.DefaultTableStyleName)) {
-                tableStyles.DefaultTableStyle = collection.DefaultTableStyleName;
+            string? defaultTableStyleName = collection?.DefaultTableStyleName;
+            if (!string.IsNullOrWhiteSpace(defaultTableStyleName)) {
+                tableStyles.DefaultTableStyle = defaultTableStyleName;
             }
 
-            if (!string.IsNullOrWhiteSpace(collection?.DefaultPivotStyleName)) {
-                tableStyles.DefaultPivotStyle = collection.DefaultPivotStyleName;
+            string? defaultPivotStyleName = collection?.DefaultPivotStyleName;
+            if (!string.IsNullOrWhiteSpace(defaultPivotStyleName)) {
+                tableStyles.DefaultPivotStyle = defaultPivotStyleName;
             }
 
             tableStyles.RemoveAllChildren<DocumentFormat.OpenXml.Spreadsheet.TableStyle>();

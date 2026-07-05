@@ -138,6 +138,10 @@ namespace OfficeIMO.Word {
 
         private static void AddLegacyDocTextBoxStories(WordDocument document, IReadOnlyList<LegacyDocTextBoxStory> textBoxStories, LegacyDocNoteProjection notes) {
             foreach (LegacyDocTextBoxStory story in textBoxStories) {
+                if (story.IsHeaderFooterTextBox) {
+                    continue;
+                }
+
                 WordTextBox textBox = document.AddTextBox(story.Text);
                 if (story.Runs.Count == 0 && story.Bookmarks.Count == 0) {
                     continue;
@@ -1069,14 +1073,15 @@ namespace OfficeIMO.Word {
         private static void AddLegacyDocCommentReference(WordParagraph paragraph, LegacyDocNoteProjection notes, int? characterPosition) {
             if (characterPosition == null
                 || !notes.TryGetComment(characterPosition.Value, out LegacyDocComment? comment)
-                || comment!.Paragraphs.Count == 0
-                || !paragraph._paragraph.Elements<Run>().Any()) {
+                || comment!.Paragraphs.Count == 0) {
                 return;
             }
 
             WordComment wordComment = CreateLegacyDocComment(paragraph._document, comment, notes.StyleSheet);
-            paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, paragraph._paragraph.GetFirstChild<Run>());
-            var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, paragraph._paragraph.Elements<Run>().Last());
+            Run anchorRun = paragraph._paragraph.Elements<Run>().FirstOrDefault()
+                ?? paragraph._paragraph.AppendChild(new Run());
+            paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchorRun);
+            var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchorRun);
             paragraph._paragraph.InsertAfter(new Run(new CommentReference { Id = wordComment.Id }), commentEnd);
         }
 

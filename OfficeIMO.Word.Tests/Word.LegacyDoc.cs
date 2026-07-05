@@ -1716,14 +1716,15 @@ namespace OfficeIMO.Tests {
             result.EnsureNoImportErrors();
             Assert.True(result.HasDocument);
             Assert.Equal("Body story", Assert.Single(result.Document.Paragraphs, paragraph => paragraph.Text == "Body story").Text);
-            Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.TextBox);
+            LegacyDocUnsupportedFeature feature = Assert.Single(result.UnsupportedFeatures, item => item.Kind == LegacyDocUnsupportedFeatureKind.TextBox);
+            Assert.Equal("DOC-HEADER-TEXTBOX-STORIES-PRESENT", feature.Code);
             Assert.False(result.ImportReport.UnsupportedFeaturesByCode.ContainsKey("DOC-TEXTBOX-STORIES-PRESENT"));
-            Assert.False(result.ImportReport.UnsupportedFeaturesByCode.ContainsKey("DOC-HEADER-TEXTBOX-STORIES-PRESENT"));
+            Assert.Equal(1, result.ImportReport.UnsupportedFeaturesByCode["DOC-HEADER-TEXTBOX-STORIES-PRESENT"]);
 
             WordTextBox[] textBoxes = result.Document.TextBoxes.ToArray();
-            Assert.Equal(2, textBoxes.Length);
-            Assert.Contains(textBoxes, textBox => textBox.Paragraphs.Any(paragraph => paragraph.Text.Contains("Body text box", StringComparison.Ordinal)));
-            Assert.Contains(textBoxes, textBox => textBox.Paragraphs.Any(paragraph => paragraph.Text.Contains("Header text box", StringComparison.Ordinal)));
+            WordTextBox textBox = Assert.Single(textBoxes);
+            Assert.Contains(textBox.Paragraphs, paragraph => paragraph.Text.Contains("Body text box", StringComparison.Ordinal));
+            Assert.DoesNotContain(textBoxes, item => item.Paragraphs.Any(paragraph => paragraph.Text.Contains("Header text box", StringComparison.Ordinal)));
         }
 
         [Fact]
@@ -1800,6 +1801,32 @@ namespace OfficeIMO.Tests {
                 Assert.Equal("Projected comment", reloadedComment.Text);
                 Assert.Equal("LD", reloadedComment.Initials);
                 Assert.Equal("Legacy DOC", reloadedComment.Author);
+            } finally {
+                DeleteIfExists(docxPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyDoc_LoadLegacyDocWithReport_ProjectsLeadingCommentStory() {
+            byte[] docBytes = LegacyDocTestBuilder.CreateSimpleDocWithLeadingCommentStory("Body with leading comment", "Leading comment");
+            string docxPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".docx");
+
+            try {
+                using LegacyDocLoadResult result = WordDocument.LoadLegacyDocWithReport(new MemoryStream(docBytes));
+
+                result.EnsureNoImportErrors();
+                Assert.True(result.HasDocument);
+                Assert.Contains(result.Document.Sections[0].Paragraphs, paragraph => paragraph.Text == "Body with leading comment");
+                Assert.DoesNotContain(result.UnsupportedFeatures, feature => feature.Kind == LegacyDocUnsupportedFeatureKind.Comment);
+
+                WordComment comment = Assert.Single(result.Document.Comments);
+                Assert.Equal("Leading comment", comment.Text);
+
+                result.Document.Save(docxPath);
+
+                using WordDocument reloaded = WordDocument.Load(docxPath);
+                WordComment reloadedComment = Assert.Single(reloaded.Comments);
+                Assert.Equal("Leading comment", reloadedComment.Text);
             } finally {
                 DeleteIfExists(docxPath);
             }
@@ -12483,6 +12510,40 @@ namespace OfficeIMO.Tests {
                 byte[] tableStream = CreateTableStream(text.Length);
                 int fcPlcfandRef = tableStream.Length;
                 byte[] commentReferencePlc = CreateCommentReferencePlc(bodyText.Length, "LD");
+                Array.Resize(ref tableStream, tableStream.Length + commentReferencePlc.Length);
+                Buffer.BlockCopy(commentReferencePlc, 0, tableStream, fcPlcfandRef, commentReferencePlc.Length);
+
+                int fcPlcfandTxt = tableStream.Length;
+                byte[] commentTextPlc = CreateCommentTextPlc(commentStory.Length);
+                Array.Resize(ref tableStream, tableStream.Length + commentTextPlc.Length);
+                Buffer.BlockCopy(commentTextPlc, 0, tableStream, fcPlcfandTxt, commentTextPlc.Length);
+
+                byte[] wordDocumentStream = CreateWordDocumentStream(
+                    text,
+                    ccpAtn: commentStory.Length,
+                    fcPlcfandRef: fcPlcfandRef,
+                    lcbPlcfandRef: commentReferencePlc.Length,
+                    fcPlcfandTxt: fcPlcfandTxt,
+                    lcbPlcfandTxt: commentTextPlc.Length,
+                    ccpTextOverride: documentText.Length);
+
+                using var package = new MemoryStream();
+                using (RootStorage root = RootStorage.Create(package, Version.V3, StorageModeFlags.LeaveOpen)) {
+                    WriteStream(root, "WordDocument", wordDocumentStream);
+                    WriteStream(root, "1Table", tableStream);
+                }
+
+                return package.ToArray();
+            }
+
+            internal static byte[] CreateSimpleDocWithLeadingCommentStory(string bodyText, string commentText) {
+                string documentText = "\u0005" + bodyText + "\r";
+                string commentStory = commentText + "\r";
+                string text = documentText + commentStory;
+
+                byte[] tableStream = CreateTableStream(text.Length);
+                int fcPlcfandRef = tableStream.Length;
+                byte[] commentReferencePlc = CreateCommentReferencePlc(0, "LD");
                 Array.Resize(ref tableStream, tableStream.Length + commentReferencePlc.Length);
                 Buffer.BlockCopy(commentReferencePlc, 0, tableStream, fcPlcfandRef, commentReferencePlc.Length);
 
