@@ -49,7 +49,11 @@ namespace OfficeIMO.Tests {
             ExcelSheet sheet = document.AddWorkSheet("CommentBody");
             sheet.CellValue(1, 1, "Name");
             sheet.CellValue(2, 2, "Reviewed");
-            sheet.SetComment("B2", "Needs design review before this range is sent to leadership.", "Reviewer");
+            sheet.SetCommentRichText("B2", new[] {
+                new ExcelRichTextRun("Needs ") { FontColor = "C00000", Bold = true },
+                new ExcelRichTextRun("design review") { Italic = true, Underline = true, FontColor = "2563EB" },
+                new ExcelRichTextRun(" before this range is sent to leadership.")
+            }, "Reviewer");
 
             ExcelImageExportOptions options = new ExcelImageExportOptions {
                 ShowGridlines = false,
@@ -72,13 +76,22 @@ namespace OfficeIMO.Tests {
             Assert.True(body.AnchorX < body.X, "Comment body should be placed to the right of the annotated cell in this fixture.");
             Assert.Equal("Reviewer", body.Title);
             Assert.Contains("Needs design review", body.Text, StringComparison.Ordinal);
+            Assert.Equal(3, body.RichTextRuns.Count);
+            Assert.True(body.RichTextRuns[0].Bold);
+            Assert.True(body.RichTextRuns[1].Italic);
+            Assert.True(body.RichTextRuns[1].Underline);
             Assert.Single(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation);
             Assert.Single(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentBodyApproximation);
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.CellCommentUnsupported);
             Assert.Contains("Reviewer", svg, StringComparison.Ordinal);
-            Assert.Contains("Needs design review", svg, StringComparison.Ordinal);
+            Assert.Contains("Needs ", svg, StringComparison.Ordinal);
+            Assert.Contains("design review", svg, StringComparison.Ordinal);
             Assert.Contains("font-weight=\"700\"", svg, StringComparison.Ordinal);
+            Assert.Contains("font-style=\"italic\"", svg, StringComparison.Ordinal);
+            Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);
+            Assert.Contains("#C00000", svg, StringComparison.Ordinal);
+            Assert.Contains("#2563EB", svg, StringComparison.Ordinal);
             Assert.Contains("text-anchor=\"start\"", svg, StringComparison.Ordinal);
             Assert.Contains("#FFFBE6", svg, StringComparison.Ordinal);
             Assert.Contains("#FFF2CC", svg, StringComparison.Ordinal);
@@ -88,6 +101,7 @@ namespace OfficeIMO.Tests {
             Assert.NotNull(rendered);
             Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(255, 251, 230)) > 100);
             Assert.True(CountPixelsNear(rendered!, OfficeColor.FromRgb(255, 242, 204)) > 50);
+            Assert.True(CountBlueTextPixels(rendered!) > 0, "Expected the rich blue comment run to render into PNG output.");
             OfficeColor pointerPixel = rendered!.GetPixel((int)Math.Round((body.AnchorX + body.X) / 2D), (int)Math.Round(body.Y + 14D));
             Assert.True(
                 pointerPixel.A >= 248 &&
@@ -95,6 +109,56 @@ namespace OfficeIMO.Tests {
                 pointerPixel.G >= 150 &&
                 pointerPixel.B <= 240,
                 $"Expected an anchored comment-body pointer pixel, but got {pointerPixel.A},{pointerPixel.R},{pointerPixel.G},{pointerPixel.B}.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportPreservesRichCommentBreaksAndNonRgbColors() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("CommentBreaks");
+                sheet.CellValue(2, 2, "Reviewed");
+                sheet.SetCommentRichText("B2", new[] {
+                    new ExcelRichTextRun("Line one"),
+                    new ExcelRichTextRun("line two") { Bold = true }
+                }, "Reviewer");
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                WorksheetPart worksheetPart = spreadsheet.WorkbookPart!.WorksheetParts.Single();
+                X.Comment comment = worksheetPart.WorksheetCommentsPart!.Comments!.CommentList!.Elements<X.Comment>().Single();
+                List<X.Run> runs = comment.CommentText!.Elements<X.Run>().ToList();
+                comment.CommentText.InsertAfter(new X.Break(), runs[0]);
+                X.Color color = runs[1].RunProperties!.GetFirstChild<X.Color>() ?? runs[1].RunProperties!.AppendChild(new X.Color());
+                color.Rgb = null;
+                color.Indexed = 5U;
+                color.Tint = -0.25D;
+                worksheetPart.WorksheetCommentsPart.Comments!.Save();
+            }
+
+            using ExcelDocument loadedDocument = ExcelDocument.Load(filePath);
+            ExcelSheet loadedSheet = loadedDocument.Sheets.Single();
+            ExcelRange range = loadedSheet.Range("A1:F8");
+            var options = new ExcelImageExportOptions {
+                ShowGridlines = false,
+                ShowCommentBodies = true,
+                DefaultColumnWidthPixels = 92D,
+                DefaultRowHeightPixels = 28D
+            };
+
+            ExcelVisualCommentBody body = Assert.Single(range.CreateVisualSnapshot(options).CommentBodies);
+            string svg = range.ToSvg(options);
+
+            Assert.Equal("Line one\nline two", body.Text);
+            Assert.Equal("Line one\n", string.Concat(body.RichTextRuns.Take(2).Select(run => run.Text)));
+            Assert.Equal("line two", body.RichTextRuns[2].Text);
+            Assert.True(body.RichTextRuns[2].Bold);
+            Assert.StartsWith("FF", body.RichTextRuns[2].FontColorArgb, StringComparison.Ordinal);
+            string themedRunColor = "#" + body.RichTextRuns[2].FontColorArgb!.Substring(2);
+            Assert.NotEqual("#1F2937", themedRunColor);
+            Assert.Contains("Line one", svg, StringComparison.Ordinal);
+            Assert.Contains("line two", svg, StringComparison.Ordinal);
+            Assert.Contains(themedRunColor, svg, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -1413,6 +1477,24 @@ namespace OfficeIMO.Tests {
                         Math.Abs(color.G - expected.G) <= 8 &&
                         Math.Abs(color.B - expected.B) <= 8 &&
                         color.A >= 248) {
+                        count++;
+                    }
+                }
+            }
+
+            return count;
+        }
+
+        private static int CountBlueTextPixels(OfficeRasterImage image) {
+            int count = 0;
+            for (int y = 0; y < image.Height; y++) {
+                for (int x = 0; x < image.Width; x++) {
+                    OfficeColor color = image.GetPixel(x, y);
+                    if (color.A >= 248 &&
+                        color.B > color.R + 35 &&
+                        color.B > color.G + 15 &&
+                        color.R < 120 &&
+                        color.G < 170) {
                         count++;
                     }
                 }

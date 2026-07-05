@@ -176,7 +176,7 @@ namespace OfficeIMO.Excel {
             return fallback;
         }
 
-        private static double CalculatePercentile(IReadOnlyList<double> values, double percentile) {
+        internal static double CalculatePercentile(IReadOnlyList<double> values, double percentile) {
             if (values.Count == 0) {
                 return 0D;
             }

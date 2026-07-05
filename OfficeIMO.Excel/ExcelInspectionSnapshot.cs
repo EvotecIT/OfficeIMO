@@ -438,6 +438,11 @@ namespace OfficeIMO.Excel {
         /// Comment text content.
         /// </summary>
         public string Text { get; internal set; } = string.Empty;
+
+        /// <summary>
+        /// Rich text runs for the comment body, when present.
+        /// </summary>
+        public IReadOnlyList<ExcelRichTextRun> RichTextRuns { get; internal set; } = Array.Empty<ExcelRichTextRun>();
     }
 
     /// <summary>
@@ -923,6 +928,11 @@ namespace OfficeIMO.Excel {
         public string? FillGradientEndColorArgb { get; internal set; }
 
         /// <summary>
+        /// Linear gradient fill stops in offset order, when directly resolvable.
+        /// </summary>
+        public IReadOnlyList<ExcelGradientFillStopSnapshot> FillGradientStops { get; internal set; } = Array.Empty<ExcelGradientFillStopSnapshot>();
+
+        /// <summary>
         /// Simple linear gradient angle in degrees, when directly resolvable.
         /// </summary>
         public double? FillGradientDegree { get; internal set; }
@@ -952,6 +962,7 @@ namespace OfficeIMO.Excel {
             FillGradientUnsupported ||
             FillGradientStartColorArgb != null ||
             FillGradientEndColorArgb != null ||
+            FillGradientStops.Count > 0 ||
             FillGradientDegree.HasValue ||
             FontSize.HasValue ||
             NumberFormatId != 0U ||
@@ -995,6 +1006,22 @@ namespace OfficeIMO.Excel {
             string value = argb!.Trim();
             return value.Length == 8 ? value.Substring(2) : value.Length == 6 ? value : null;
         }
+    }
+
+    /// <summary>
+    /// Resolved Excel linear gradient stop metadata.
+    /// </summary>
+    public sealed class ExcelGradientFillStopSnapshot {
+        internal ExcelGradientFillStopSnapshot(double offset, string colorArgb) {
+            Offset = offset;
+            ColorArgb = colorArgb;
+        }
+
+        /// <summary>Gradient stop offset between 0 and 1.</summary>
+        public double Offset { get; }
+
+        /// <summary>Gradient stop color in ARGB hexadecimal form.</summary>
+        public string ColorArgb { get; }
     }
 
     /// <summary>

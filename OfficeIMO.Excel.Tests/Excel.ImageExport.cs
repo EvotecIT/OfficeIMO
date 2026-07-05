@@ -810,6 +810,42 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportHonorsConditionalIconSetPercentileThresholds() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using (ExcelDocument document = ExcelDocument.Create(filePath)) {
+                ExcelSheet sheet = document.AddWorkSheet("IconPercentiles");
+                sheet.CellValue(1, 1, 1);
+                sheet.CellValue(2, 1, 2);
+                sheet.CellValue(3, 1, 3);
+                sheet.CellValue(4, 1, 100);
+                sheet.AddConditionalIconSet("A1:A4", IconSetValues.ThreeTrafficLights1, showValue: true, reverseIconOrder: false);
+                document.Save(false);
+            }
+
+            using (SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(filePath, true)) {
+                Worksheet worksheet = spreadsheet.WorkbookPart!.WorksheetParts.First().Worksheet;
+                IconSet iconSet = worksheet.Elements<ConditionalFormatting>().First().Elements<ConditionalFormattingRule>().First().GetFirstChild<IconSet>()!;
+                ConditionalFormatValueObject[] thresholds = iconSet.Elements<ConditionalFormatValueObject>().ToArray();
+                thresholds[1].Type = ConditionalFormatValueObjectValues.Percentile;
+                thresholds[1].Val = "50";
+                thresholds[2].Type = ConditionalFormatValueObjectValues.Percentile;
+                thresholds[2].Val = "90";
+                worksheet.Save();
+            }
+
+            using (ExcelDocument document = ExcelDocument.Load(filePath)) {
+                ExcelSheet sheet = document.Sheets.Single();
+                ExcelRangeVisualSnapshot snapshot = sheet.Range("A1:A4").CreateVisualSnapshot();
+
+                ExcelConditionalFormattingInfo info = Assert.Single(sheet.GetConditionalFormattingRules("A1:A4"));
+                Assert.Equal("percentile", info.IconSetThresholds[1].Type, ignoreCase: true);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.RedCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.YellowCircle);
+                Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 4 && icon.Kind == ExcelConditionalIconKind.GreenCircle);
+            }
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportHonorsConditionalDataBarHiddenValues() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using (ExcelDocument document = ExcelDocument.Create(filePath)) {
@@ -971,6 +1007,38 @@ namespace OfficeIMO.Tests {
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
             ExcelVisualConditionalIcon finalIcon = snapshot.ConditionalIcons.Single(icon => icon.Row == 5 && icon.Column == 1);
             Assert.True(CountGreenIconPixels(rendered!, finalIcon) > 4, "Expected visible green conditional-formatting arrow pixels.");
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportRendersFlagIconConditionalSetsWithSharedDrawingIcons() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("FlagIcons");
+            for (int row = 1; row <= 3; row++) {
+                sheet.CellValue(row, 1, row);
+                sheet.SetRowHeight(row, 24);
+            }
+
+            sheet.SetColumnWidth(1, 12);
+            sheet.AddConditionalIconSet("A1:A3", IconSetValues.ThreeFlags, showValue: true, reverseIconOrder: false);
+
+            ExcelRange range = sheet.Range("A1:A3");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot();
+            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+
+            Assert.Equal(3, snapshot.ConditionalIcons.Count);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 1 && icon.Kind == ExcelConditionalIconKind.RedFlag);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 2 && icon.Kind == ExcelConditionalIconKind.YellowFlag);
+            Assert.Contains(snapshot.ConditionalIcons, icon => icon.Row == 3 && icon.Kind == ExcelConditionalIconKind.GreenFlag);
+            Assert.Contains("#16A34A", svg, StringComparison.Ordinal);
+            Assert.DoesNotContain(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetUnsupported);
+            OfficeImageExportDiagnostic diagnostic = Assert.Single(png.Diagnostics, item => item.Code == ExcelImageExportDiagnosticCodes.ConditionalIconSetApproximation);
+            Assert.Equal(OfficeImageExportDiagnosticSeverity.Info, diagnostic.Severity);
+            Assert.Equal("FlagIcons!A1:A3", diagnostic.Source);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            ExcelVisualConditionalIcon finalIcon = snapshot.ConditionalIcons.Single(icon => icon.Row == 3 && icon.Column == 1);
+            Assert.True(CountGreenIconPixels(rendered!, finalIcon) > 4, "Expected visible green conditional-formatting flag pixels.");
         }
 
         [Fact]

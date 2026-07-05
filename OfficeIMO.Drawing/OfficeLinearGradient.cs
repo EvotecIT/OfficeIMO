@@ -26,6 +26,25 @@ public sealed class OfficeLinearGradient {
 
     /// <summary>Creates a two-stop linear gradient.</summary>
     public OfficeLinearGradient(double startX, double startY, double endX, double endY, OfficeGradientStop start, OfficeGradientStop end) {
+        ValidateCoordinates(startX, startY, endX, endY);
+        StartX = startX;
+        StartY = startY;
+        EndX = endX;
+        EndY = endY;
+        Stops = ValidateStops(new[] { start, end });
+    }
+
+    /// <summary>Creates a linear gradient with two or more ordered stops.</summary>
+    public OfficeLinearGradient(double startX, double startY, double endX, double endY, IReadOnlyList<OfficeGradientStop> stops) {
+        ValidateCoordinates(startX, startY, endX, endY);
+        StartX = startX;
+        StartY = startY;
+        EndX = endX;
+        EndY = endY;
+        Stops = ValidateStops(stops);
+    }
+
+    private static void ValidateCoordinates(double startX, double startY, double endX, double endY) {
         ValidateNormalized(startX, nameof(startX));
         ValidateNormalized(startY, nameof(startY));
         ValidateNormalized(endX, nameof(endX));
@@ -34,20 +53,6 @@ public sealed class OfficeLinearGradient {
         if (startX.Equals(endX) && startY.Equals(endY)) {
             throw new ArgumentException("Linear gradient start and end points must be different.");
         }
-
-        if (!start.Offset.Equals(0D)) {
-            throw new ArgumentException("The first linear gradient stop must use offset 0.", nameof(start));
-        }
-
-        if (!end.Offset.Equals(1D)) {
-            throw new ArgumentException("The second linear gradient stop must use offset 1.", nameof(end));
-        }
-
-        StartX = startX;
-        StartY = startY;
-        EndX = endX;
-        EndY = endY;
-        Stops = new ReadOnlyCollection<OfficeGradientStop>(new List<OfficeGradientStop> { start, end });
     }
 
     /// <summary>Creates a horizontal left-to-right gradient.</summary>
@@ -70,6 +75,21 @@ public sealed class OfficeLinearGradient {
     /// <param name="degrees">Clockwise angle in degrees where 0 is left-to-right in local coordinates.</param>
     /// <returns>A gradient with endpoints clamped to the normalized drawing rectangle.</returns>
     public static OfficeLinearGradient FromAngle(OfficeColor startColor, OfficeColor endColor, double degrees) {
+        return FromAngle(
+            new[] {
+                new OfficeGradientStop(0D, startColor),
+                new OfficeGradientStop(1D, endColor)
+            },
+            degrees);
+    }
+
+    /// <summary>
+    /// Creates a gradient with ordered stops projected through the normalized drawing rectangle at the supplied angle.
+    /// </summary>
+    /// <param name="stops">Gradient stops. The first stop must be offset 0 and the last stop must be offset 1.</param>
+    /// <param name="degrees">Clockwise angle in degrees where 0 is left-to-right in local coordinates.</param>
+    /// <returns>A gradient with endpoints clamped to the normalized drawing rectangle.</returns>
+    public static OfficeLinearGradient FromAngle(IReadOnlyList<OfficeGradientStop> stops, double degrees) {
         if (double.IsNaN(degrees) || double.IsInfinity(degrees)) {
             throw new ArgumentOutOfRangeException(nameof(degrees), "Linear gradient angle must be finite.");
         }
@@ -79,7 +99,7 @@ public sealed class OfficeLinearGradient {
         double dy = Math.Sin(radians);
         double divisor = Math.Max(Math.Abs(dx), Math.Abs(dy));
         if (divisor <= double.Epsilon) {
-            return Horizontal(startColor, endColor);
+            return new OfficeLinearGradient(0, 0.5, 1, 0.5, stops);
         }
 
         double half = 0.5D / divisor;
@@ -88,12 +108,39 @@ public sealed class OfficeLinearGradient {
             ClampUnit(0.5D - (dy * half)),
             ClampUnit(0.5D + (dx * half)),
             ClampUnit(0.5D + (dy * half)),
-            new OfficeGradientStop(0D, startColor),
-            new OfficeGradientStop(1D, endColor));
+            stops);
     }
 
     /// <summary>Creates a detached copy.</summary>
-    public OfficeLinearGradient Clone() => new OfficeLinearGradient(StartX, StartY, EndX, EndY, Stops[0], Stops[1]);
+    public OfficeLinearGradient Clone() => new OfficeLinearGradient(StartX, StartY, EndX, EndY, Stops);
+
+    private static IReadOnlyList<OfficeGradientStop> ValidateStops(IReadOnlyList<OfficeGradientStop>? stops) {
+        if (stops == null || stops.Count < 2) {
+            throw new ArgumentException("A linear gradient needs at least two stops.", nameof(stops));
+        }
+
+        if (!stops[0].Offset.Equals(0D)) {
+            throw new ArgumentException("The first linear gradient stop must use offset 0.", nameof(stops));
+        }
+
+        if (!stops[stops.Count - 1].Offset.Equals(1D)) {
+            throw new ArgumentException("The last linear gradient stop must use offset 1.", nameof(stops));
+        }
+
+        var copy = new List<OfficeGradientStop>(stops.Count);
+        double previous = -1D;
+        for (int i = 0; i < stops.Count; i++) {
+            OfficeGradientStop stop = stops[i];
+            if (stop.Offset <= previous) {
+                throw new ArgumentException("Linear gradient stops must be in strictly increasing offset order.", nameof(stops));
+            }
+
+            copy.Add(stop);
+            previous = stop.Offset;
+        }
+
+        return new ReadOnlyCollection<OfficeGradientStop>(copy);
+    }
 
     private static double NormalizeDegrees(double degree) {
         double normalized = degree % 360D;

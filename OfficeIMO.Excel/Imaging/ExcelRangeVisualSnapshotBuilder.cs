@@ -441,6 +441,7 @@ namespace OfficeIMO.Excel {
                 FillGradientUnsupported = fillColorArgb == null && style.FillGradientUnsupported,
                 FillGradientStartColorArgb = fillColorArgb == null ? style.FillGradientStartColorArgb : null,
                 FillGradientEndColorArgb = fillColorArgb == null ? style.FillGradientEndColorArgb : null,
+                FillGradientStops = fillColorArgb == null ? style.FillGradientStops : Array.Empty<ExcelGradientFillStopSnapshot>(),
                 FillGradientDegree = fillColorArgb == null ? style.FillGradientDegree : null,
                 Border = style.Border,
                 HorizontalAlignment = style.HorizontalAlignment,
@@ -707,6 +708,7 @@ namespace OfficeIMO.Excel {
                         snapshotHeight,
                         pair.Value.Author,
                         pair.Value.Text,
+                        BuildRichTextRuns(pair.Value.RichTextRuns),
                         bodyObstacles,
                         out ExcelVisualCommentBody body)) {
                         bodies.Add(body);
@@ -748,6 +750,7 @@ namespace OfficeIMO.Excel {
                         snapshotHeight,
                         ResolveThreadedCommentTitle(pair.Value),
                         FormatThreadedCommentBody(pair.Value),
+                        Array.Empty<ExcelVisualTextRun>(),
                         bodyObstacles,
                         out ExcelVisualCommentBody body)) {
                         bodies.Add(body);
@@ -810,6 +813,7 @@ namespace OfficeIMO.Excel {
             double snapshotHeight,
             string? title,
             string? text,
+            IReadOnlyList<ExcelVisualTextRun>? richTextRuns,
             IReadOnlyList<ExcelVisualBounds> bodyObstacles,
             out ExcelVisualCommentBody body) {
             body = null!;
@@ -840,6 +844,7 @@ namespace OfficeIMO.Excel {
                 indicator.Threaded,
                 resolvedTitle,
                 resolvedText,
+                richTextRuns,
                 indicator.Source);
             return true;
         }

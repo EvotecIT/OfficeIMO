@@ -99,6 +99,21 @@ namespace OfficeIMO.Excel {
             ?? OfficeColor.FromRgba(background.R, background.G, background.B, 180);
 
         private static OfficeLinearGradient? CreateLinearGradient(ExcelCellStyleSnapshot style) {
+            if (style.FillGradientStops.Count >= 2) {
+                var stops = new List<OfficeGradientStop>(style.FillGradientStops.Count);
+                for (int i = 0; i < style.FillGradientStops.Count; i++) {
+                    ExcelGradientFillStopSnapshot stop = style.FillGradientStops[i];
+                    OfficeColor? color = ResolveArgb(stop.ColorArgb);
+                    if (!color.HasValue) {
+                        return null;
+                    }
+
+                    stops.Add(new OfficeGradientStop(stop.Offset, color.Value));
+                }
+
+                return OfficeLinearGradient.FromAngle(stops, style.FillGradientDegree ?? 0D);
+            }
+
             if (style.FillGradientStartColorArgb == null || style.FillGradientEndColorArgb == null) {
                 return null;
             }
