@@ -1598,10 +1598,21 @@ public partial class DrawingTests {
     }
 
     [Fact]
-    public void OfficeLinearGradientStoresReusableTwoStopFillIntent() {
+    public void OfficeLinearGradientStoresReusableFillIntent() {
         var gradient = OfficeLinearGradient.DiagonalDown(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
+        var multiStop = new OfficeLinearGradient(
+            0,
+            0.5,
+            1,
+            0.5,
+            new[] {
+                new OfficeGradientStop(0, OfficeColor.Red),
+                new OfficeGradientStop(0.5, OfficeColor.Lime),
+                new OfficeGradientStop(1, OfficeColor.Blue)
+            });
 
         OfficeLinearGradient clone = gradient.Clone();
+        OfficeLinearGradient multiStopClone = multiStop.Clone();
 
         Assert.Equal(0, clone.StartX);
         Assert.Equal(0, clone.StartY);
@@ -1609,11 +1620,14 @@ public partial class DrawingTests {
         Assert.Equal(1, clone.EndY);
         Assert.Equal(new OfficeGradientStop(0, OfficeColor.SteelBlue), clone.Stops[0]);
         Assert.Equal(new OfficeGradientStop(1, OfficeColor.WhiteSmoke), clone.Stops[1]);
+        Assert.Equal(3, multiStopClone.Stops.Count);
+        Assert.Equal(new OfficeGradientStop(0.5, OfficeColor.Lime), multiStopClone.Stops[1]);
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeGradientStop(double.NaN, OfficeColor.Black));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeLinearGradient(-0.1, 0, 1, 1, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 0, 0, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0.25, OfficeColor.Black), new OfficeGradientStop(1, OfficeColor.White)));
         Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0.75, OfficeColor.White)));
+        Assert.Throws<ArgumentException>(() => new OfficeLinearGradient(0, 0, 1, 1, new[] { new OfficeGradientStop(0, OfficeColor.Black), new OfficeGradientStop(0, OfficeColor.White), new OfficeGradientStop(1, OfficeColor.Red) }));
     }
 
     [Theory]

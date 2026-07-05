@@ -213,6 +213,31 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void OfficeRasterCanvas_FillsMultiStopLinearGradientRectangle() {
+            OfficeRasterImage image = new OfficeRasterImage(41, 10, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);
+            var gradient = new OfficeLinearGradient(
+                0,
+                0.5,
+                1,
+                0.5,
+                new[] {
+                    new OfficeGradientStop(0D, OfficeColor.Red),
+                    new OfficeGradientStop(0.5D, OfficeColor.Lime),
+                    new OfficeGradientStop(1D, OfficeColor.Blue)
+                });
+
+            canvas.FillLinearGradientRectangle(0, 0, image.Width, image.Height, gradient);
+
+            OfficeColor left = image.GetPixel(1, 5);
+            OfficeColor middle = image.GetPixel(20, 5);
+            OfficeColor right = image.GetPixel(39, 5);
+            Assert.True(left.R > left.G && left.R > left.B, $"Expected left gradient edge to be red-ish, got {left}.");
+            Assert.True(middle.G > 220 && middle.R < 40 && middle.B < 40, $"Expected middle gradient stop to be green, got {middle}.");
+            Assert.True(right.B > right.R && right.B > right.G, $"Expected right gradient edge to be blue-ish, got {right}.");
+        }
+
+        [Fact]
         public void OfficeRasterCanvas_IgnoresRectanglesFullyOutsideCanvas() {
             OfficeRasterImage image = new OfficeRasterImage(6, 6, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new OfficeRasterCanvas(image);

@@ -441,6 +441,7 @@ namespace OfficeIMO.Excel {
                 FillGradientUnsupported = fillColorArgb == null && style.FillGradientUnsupported,
                 FillGradientStartColorArgb = fillColorArgb == null ? style.FillGradientStartColorArgb : null,
                 FillGradientEndColorArgb = fillColorArgb == null ? style.FillGradientEndColorArgb : null,
+                FillGradientStops = fillColorArgb == null ? style.FillGradientStops : Array.Empty<ExcelGradientFillStopSnapshot>(),
                 FillGradientDegree = fillColorArgb == null ? style.FillGradientDegree : null,
                 Border = style.Border,
                 HorizontalAlignment = style.HorizontalAlignment,
