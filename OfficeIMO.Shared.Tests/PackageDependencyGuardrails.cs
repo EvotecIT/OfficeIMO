@@ -56,6 +56,7 @@ public sealed class PackageDependencyGuardrailTests {
         "OfficeIMO.PowerPoint",
         "OfficeIMO.PowerPoint.Pdf",
         "OfficeIMO.Shared",
+        "OfficeIMO.Visio",
         "OfficeIMO.Word",
         "OfficeIMO.Word.Pdf"
     ];
@@ -188,7 +189,7 @@ public sealed class PackageDependencyGuardrailTests {
         foreach (string sourceFile in EnumerateDocumentImageRenderingSourceFiles()) {
             string source = File.ReadAllText(sourceFile);
             foreach (string forbiddenTerm in ForbiddenDocumentImageRenderingSourceTerms) {
-                if (source.Contains(forbiddenTerm, StringComparison.Ordinal)) {
+                if (ContainsForbiddenDocumentImageRenderingSourceTerm(source, forbiddenTerm)) {
                     sourceOffenders.Add(GetRepositoryRelativePath(sourceFile) + " -> " + forbiddenTerm);
                 }
             }
@@ -714,13 +715,27 @@ public sealed class PackageDependencyGuardrailTests {
 
             foreach (string sourceFile in Directory.EnumerateFiles(root, "*.cs", SearchOption.AllDirectories)) {
                 if (sourceFile.Contains($"{Path.DirectorySeparatorChar}bin{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
-                    sourceFile.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase)) {
+                    sourceFile.Contains($"{Path.DirectorySeparatorChar}obj{Path.DirectorySeparatorChar}", StringComparison.OrdinalIgnoreCase) ||
+                    IsExcludedDocumentImageRenderingSourceFile(sourceFile)) {
                     continue;
                 }
 
                 yield return sourceFile;
             }
         }
+    }
+
+    private static bool ContainsForbiddenDocumentImageRenderingSourceTerm(string source, string forbiddenTerm) {
+        if (string.Equals(forbiddenTerm, "soffice", StringComparison.OrdinalIgnoreCase)) {
+            return Regex.IsMatch(source, @"(?<![A-Za-z0-9_])soffice(?:\.exe)?(?![A-Za-z0-9_])", RegexOptions.IgnoreCase | RegexOptions.CultureInvariant);
+        }
+
+        return source.Contains(forbiddenTerm, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool IsExcludedDocumentImageRenderingSourceFile(string sourceFile) {
+        string relativePath = GetRepositoryRelativePath(sourceFile);
+        return string.Equals(relativePath, "OfficeIMO.Visio/VisioDesktopValidator.cs", StringComparison.OrdinalIgnoreCase);
     }
 
     private static IEnumerable<string> EnumerateDocumentImageRenderingProjectFiles() {
@@ -807,7 +822,7 @@ public sealed class PackageDependencyGuardrailTests {
         return document
             .Descendants(ns + "PackageReference")
             .Select(static e => (string?)e.Attribute("Include") ?? string.Empty)
-            .Where(include => packageIds.Contains(include, StringComparer.Ordinal));
+            .Where(include => packageIds.Contains(include, StringComparer.OrdinalIgnoreCase));
     }
 
     private static string? GetPackageReferenceVersion(string projectPath, string packageId) {

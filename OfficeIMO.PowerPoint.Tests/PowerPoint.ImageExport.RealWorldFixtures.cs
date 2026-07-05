@@ -78,6 +78,7 @@ namespace OfficeIMO.Tests {
             string snapshotText = GetSnapshotPlainText(snapshot);
             foreach (string expectedText in baseline.ExpectedSvgTexts) {
                 Assert.Contains(expectedText, snapshotText, StringComparison.Ordinal);
+                Assert.Contains(expectedText, svgText, StringComparison.Ordinal);
             }
 
             foreach (OfficeColor expectedColor in baseline.ExpectedRasterColors) {
@@ -95,7 +96,7 @@ namespace OfficeIMO.Tests {
             PowerPointSlide slide = presentation.Slides[0];
             slide.BackgroundColor = "FFFFFF";
 
-            PowerPointTextBox title = slide.AddTextBoxPoints("Executive Summary", 18, 12, 190, 22);
+            PowerPointTextBox title = slide.AddTextBoxPoints("Executive Summary", 18, 12, 260, 24);
             title.FontSize = 18;
             title.Color = "0F172A";
 
@@ -155,9 +156,9 @@ namespace OfficeIMO.Tests {
             AddProcessNode(slide, "Render", "EA580C", 172, 58);
             AddProcessNode(slide, "Validate", "A855F7", 248, 58);
 
-            AddConnector(slide, 78, 76, 18, 0);
-            AddConnector(slide, 154, 76, 18, 0);
-            AddConnector(slide, 230, 76, 18, 0);
+            AddConnector(slide, 86, 76, 10, 0);
+            AddConnector(slide, 162, 76, 10, 0);
+            AddConnector(slide, 238, 76, 10, 0);
 
             PowerPointTextBox note = slide.AddTextBoxPoints("OpenXML + Drawing only", 72, 120, 176, 20);
             note.FontSize = 12;
@@ -187,12 +188,12 @@ namespace OfficeIMO.Tests {
         }
 
         private static void AddProcessNode(PowerPointSlide slide, string label, string color, double left, double top) {
-            PowerPointAutoShape node = slide.AddShapePoints(A.ShapeTypeValues.RoundRectangle, left, top, 54, 36);
+            PowerPointAutoShape node = slide.AddShapePoints(A.ShapeTypeValues.RoundRectangle, left, top, 66, 36);
             node.FillColor = color;
             node.OutlineColor = "0F172A";
             node.OutlineWidthPoints = 1D;
 
-            PowerPointTextBox text = slide.AddTextBoxPoints(label, left + 5, top + 11, 44, 12);
+            PowerPointTextBox text = slide.AddTextBoxPoints(label, left + 4, top + 11, 58, 12);
             text.FontSize = 8;
             text.Color = "FFFFFF";
         }
