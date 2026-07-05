@@ -329,6 +329,18 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void LegacyXls_XorPasswordHelpers_TruncateLongPasswordsBeforeDerivingKeys() {
+            string maxLengthPassword = "123456789012345";
+            string longPassword = maxLengthPassword + "67890";
+
+            Assert.Equal(BiffXorObfuscation.CreateXorKey(maxLengthPassword), BiffXorObfuscation.CreateXorKey(longPassword));
+            Assert.Equal(BiffXorObfuscation.CreatePasswordVerifier(maxLengthPassword), BiffXorObfuscation.CreatePasswordVerifier(longPassword));
+            Assert.Equal(
+                BiffXorObfuscation.ObfuscateWorkbookStream(Array.Empty<byte>(), maxLengthPassword),
+                BiffXorObfuscation.ObfuscateWorkbookStream(Array.Empty<byte>(), longPassword));
+        }
+
+        [Fact]
         public void LegacyXls_Load_ImportsXorObfuscatedWorkbookWithPassword() {
             byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateXorObfuscatedWorkbookStream("openpass");
             byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);

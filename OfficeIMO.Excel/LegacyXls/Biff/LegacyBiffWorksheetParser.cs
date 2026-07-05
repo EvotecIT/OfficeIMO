@@ -230,12 +230,16 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
 
                         if (!commentState.TryReadContinue(payload)
                             && !drawingTextObjectState.TryReadContinue(payload)) {
-                            drawingContinuationState.TryReadContinue(
+                            if (drawingContinuationState.TryReadContinue(
                                 payload,
                                 unsupportedFeatures,
                                 preservedFeatureRecords,
                                 diagnostics,
-                                options.ReportUnsupportedRecords);
+                                options.ReportUnsupportedRecords,
+                                out BiffRecord? assembledDrawingRecord)
+                                && assembledDrawingRecord.HasValue) {
+                                commentState.TryReadDrawingAnchors(assembledDrawingRecord.Value, out _);
+                            }
                         }
 
                         break;
@@ -645,14 +649,29 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                                 break;
                             }
 
+                            var record = new BiffRecord(type, offset, payload);
+                            if (BiffDrawingContinuationImportState.RequiresContinuation(record)
+                                && drawingContinuationState.TryReadDrawing(
+                                    record,
+                                    unsupportedFeatures,
+                                    preservedFeatureRecords,
+                                    diagnostics,
+                                    options.ReportUnsupportedRecords)) {
+                                if (type == (ushort)BiffRecordType.Drawing) {
+                                    commentState.TryReadDrawingAnchors(record, out _);
+                                }
+
+                                break;
+                            }
+
                             if (type == (ushort)BiffRecordType.Drawing
-                                && commentState.TryReadDrawingAnchors(new BiffRecord(type, offset, payload), out LegacyXlsDrawingRecord? commentDrawingRecord)) {
+                                && commentState.TryReadDrawingAnchors(record, out LegacyXlsDrawingRecord? commentDrawingRecord)) {
                                 drawingRecords.Add(commentDrawingRecord!);
                                 break;
                             }
 
                             if (drawingContinuationState.TryReadDrawing(
-                                new BiffRecord(type, offset, payload),
+                                record,
                                 unsupportedFeatures,
                                 preservedFeatureRecords,
                                 diagnostics,
@@ -661,7 +680,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                             }
 
                             if (BiffTableDefinitionReader.IsTableDefinitionRecord(type)
-                                && BiffTableDefinitionReader.TryRead(new BiffRecord(type, offset, payload), sheet, diagnostics, out bool tableDefinitionProjectable)) {
+                                && BiffTableDefinitionReader.TryRead(record, sheet, diagnostics, out bool tableDefinitionProjectable)) {
                                 if (!tableDefinitionProjectable) {
                                     AddUnsupportedFeature(unsupportedFeatures, preservedFeatureRecords, diagnostics, options, type, offset, sheet.Name, payload.Length);
                                 }

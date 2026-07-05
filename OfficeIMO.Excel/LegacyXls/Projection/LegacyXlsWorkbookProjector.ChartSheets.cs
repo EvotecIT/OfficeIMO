@@ -11,45 +11,38 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
     internal static partial class LegacyXlsWorkbookProjector {
         private const string ChartGraphicDataUri = "http://schemas.openxmlformats.org/drawingml/2006/chart";
 
-        private static void ProjectChartSheets(LegacyXlsWorkbook workbook, ExcelDocument document) {
-            if (workbook.ChartSheets.Count == 0) {
-                return;
-            }
-
+        private static void ProjectChartSheet(LegacyXlsChartSheet chartSheet, ExcelDocument document) {
             WorkbookPart workbookPart = document.WorkbookPartRoot;
             Workbook workbookRoot = workbookPart.Workbook ?? throw new InvalidOperationException("Workbook part is missing a workbook root.");
             Sheets sheets = workbookRoot.Sheets ?? workbookRoot.AppendChild(new Sheets());
             uint nextSheetId = GetNextSheetId(sheets);
 
-            foreach (LegacyXlsChartSheet chartSheet in workbook.ChartSheets) {
-                ChartsheetPart chartsheetPart = workbookPart.AddNewPart<ChartsheetPart>();
-                DrawingsPart drawingsPart = chartsheetPart.AddNewPart<DrawingsPart>();
-                ChartPart chartPart = drawingsPart.AddNewPart<ChartPart>();
-                chartPart.ChartSpace = CreateChartSheetChartSpace(chartSheet);
-                chartPart.ChartSpace.Save();
+            ChartsheetPart chartsheetPart = workbookPart.AddNewPart<ChartsheetPart>();
+            DrawingsPart drawingsPart = chartsheetPart.AddNewPart<DrawingsPart>();
+            ChartPart chartPart = drawingsPart.AddNewPart<ChartPart>();
+            chartPart.ChartSpace = CreateChartSheetChartSpace(chartSheet);
+            chartPart.ChartSpace.Save();
 
-                string chartRelationshipId = drawingsPart.GetIdOfPart(chartPart);
-                drawingsPart.WorksheetDrawing = CreateChartSheetDrawing(chartSheet, chartRelationshipId);
-                drawingsPart.WorksheetDrawing.Save();
+            string chartRelationshipId = drawingsPart.GetIdOfPart(chartPart);
+            drawingsPart.WorksheetDrawing = CreateChartSheetDrawing(chartSheet, chartRelationshipId);
+            drawingsPart.WorksheetDrawing.Save();
 
-                string drawingRelationshipId = chartsheetPart.GetIdOfPart(drawingsPart);
-                chartsheetPart.Chartsheet = CreateChartsheet(chartSheet, drawingRelationshipId);
-                chartsheetPart.Chartsheet.Save();
+            string drawingRelationshipId = chartsheetPart.GetIdOfPart(drawingsPart);
+            chartsheetPart.Chartsheet = CreateChartsheet(chartSheet, drawingRelationshipId);
+            chartsheetPart.Chartsheet.Save();
 
-                var sheet = new Sheet {
-                    Id = workbookPart.GetIdOfPart(chartsheetPart),
-                    SheetId = nextSheetId++,
-                    Name = chartSheet.Name
-                };
+            var sheet = new Sheet {
+                Id = workbookPart.GetIdOfPart(chartsheetPart),
+                SheetId = nextSheetId,
+                Name = chartSheet.Name
+            };
 
-                SheetStateValues? state = ToSheetState(chartSheet.VisibilityKind);
-                if (state.HasValue) {
-                    sheet.State = state.Value;
-                }
-
-                sheets.Append(sheet);
+            SheetStateValues? state = ToSheetState(chartSheet.VisibilityKind);
+            if (state.HasValue) {
+                sheet.State = state.Value;
             }
 
+            sheets.Append(sheet);
             workbookPart.Workbook.Save();
         }
 

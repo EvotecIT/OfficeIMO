@@ -1078,7 +1078,7 @@ namespace OfficeIMO.Word {
             }
 
             WordComment wordComment = CreateLegacyDocComment(paragraph._document, comment, notes.StyleSheet);
-            Run anchorRun = paragraph._paragraph.Elements<Run>().FirstOrDefault()
+            Run anchorRun = paragraph._paragraph.Elements<Run>().LastOrDefault()
                 ?? paragraph._paragraph.AppendChild(new Run());
             paragraph._paragraph.InsertBefore(new CommentRangeStart { Id = wordComment.Id }, anchorRun);
             var commentEnd = paragraph._paragraph.InsertAfter(new CommentRangeEnd { Id = wordComment.Id }, anchorRun);

@@ -54,6 +54,24 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public async Task LegacyXls_NormalLoad_LoadEncryptedAsyncPathRoutesLegacyXls() {
+            byte[] workbookStream = LegacyXlsTestWorkbookBuilder.CreateRc4EncryptedWorkbookStream("openpass");
+            byte[] compound = LegacyXlsCompoundTestBuilder.CreateWorkbookCompoundFile(workbookStream);
+            string sourcePath = WriteTempWorkbook(compound, ".xls");
+
+            try {
+                using ExcelDocument document = await ExcelDocument.LoadEncryptedAsync(sourcePath, "openpass");
+
+                Assert.True(document.WasLoadedFromLegacyXls);
+                Assert.Equal("Rc4Sheet", document.Sheets.Single().Name);
+                Assert.True(document.Sheets[0].TryGetCellText(1, 1, out string? value));
+                Assert.Equal("RC4 secret", value);
+            } finally {
+                TryDelete(sourcePath);
+            }
+        }
+
+        [Fact]
         public void LegacyXls_NormalLoad_StreamProjectsToExcelDocumentAndSavesOpenXmlStream() {
             byte[] compound = CreateMinimalLegacyXlsCompound();
 
@@ -406,15 +424,40 @@ namespace OfficeIMO.Tests {
 
                 using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(outputPath, false);
                 Assert.Single(spreadsheet.WorkbookPart!.ChartsheetParts);
-                Assert.Contains(spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>(), sheet => sheet.Name?.Value == "ChartOnly");
+                Assert.Equal(new[] { "ChartOnly" }, spreadsheet.WorkbookPart.Workbook.Sheets!.Elements<Sheet>().Select(sheet => sheet.Name?.Value).ToArray());
                 Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
 
                 using ExcelDocumentReader reader = ExcelDocumentReader.Open(outputPath);
-                Assert.Equal(1, reader.SheetCount);
-                Assert.Equal(new[] { "Sheet1" }, reader.GetSheetNames());
-                Assert.NotNull(reader.GetSheet(1));
-                Assert.Throws<ArgumentOutOfRangeException>(() => reader.GetSheet(2));
+                Assert.Equal(0, reader.SheetCount);
+                Assert.Empty(reader.GetSheetNames());
+                Assert.Throws<ArgumentOutOfRangeException>(() => reader.GetSheet(1));
                 Assert.Throws<KeyNotFoundException>(() => reader.GetSheet("ChartOnly"));
+            } finally {
+                TryDelete(outputPath);
+            }
+        }
+
+        [Fact]
+        public void LegacyXls_NormalLoad_PreservesMixedWorksheetAndChartSheetOrder() {
+            var workbook = new LegacyXlsWorkbook();
+            workbook.MutableWorksheets.Add(new LegacyXlsWorksheet("DataBefore", streamOffset: 100, visibility: 0x00, sheetType: 0x00));
+            workbook.MutableChartSheets.Add(new LegacyXlsChartSheet("ChartBetween", streamOffset: 200, visibility: 0x00, sheetType: 0x02));
+            workbook.MutableWorksheets.Add(new LegacyXlsWorksheet("DataAfter", streamOffset: 300, visibility: 0x00, sheetType: 0x00));
+
+            string outputPath = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N") + ".xlsx");
+
+            try {
+                using (ExcelDocument document = workbook.ToExcelDocument()) {
+                    document.Save(outputPath);
+                }
+
+                using SpreadsheetDocument spreadsheet = SpreadsheetDocument.Open(outputPath, false);
+                Assert.Equal(
+                    new[] { "DataBefore", "ChartBetween", "DataAfter" },
+                    spreadsheet.WorkbookPart!.Workbook.Sheets!.Elements<Sheet>().Select(sheet => sheet.Name?.Value).ToArray());
+                Assert.Single(spreadsheet.WorkbookPart.ChartsheetParts);
+                Assert.Equal(2, spreadsheet.WorkbookPart.WorksheetParts.Count());
+                Assert.Empty(new OpenXmlValidator().Validate(spreadsheet));
             } finally {
                 TryDelete(outputPath);
             }

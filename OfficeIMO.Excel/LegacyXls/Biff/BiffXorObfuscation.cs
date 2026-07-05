@@ -173,8 +173,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         }
 
         private static byte[] GetSingleBytePassword(string password) {
-            byte[] bytes = new byte[password.Length];
-            for (int i = 0; i < password.Length; i++) {
+            int length = Math.Min(password.Length, MaxPasswordLength);
+            byte[] bytes = new byte[length];
+            for (int i = 0; i < length; i++) {
                 char ch = password[i];
                 bytes[i] = ch <= 0xFF ? (byte)ch : (byte)'?';
             }

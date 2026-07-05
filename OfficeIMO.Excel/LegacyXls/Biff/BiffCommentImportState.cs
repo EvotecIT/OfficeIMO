@@ -13,6 +13,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         private readonly Dictionary<ushort, CommentObjectInfo> _objectInfos = new();
         private readonly Queue<LegacyXlsDrawingAnchor> _pendingAnchors = new();
         private readonly Queue<PendingDrawingRecord> _pendingDrawingRecords = new();
+        private readonly HashSet<int> _drawingAnchorRecordOffsets = new();
         private readonly HashSet<ushort> _imported = new();
         private PendingTextObject? _pendingTextObject;
         private ushort? _pendingCommentObjectId;
@@ -52,6 +53,11 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
         internal bool TryReadDrawingAnchors(BiffRecord record, out LegacyXlsDrawingRecord? drawingRecord) {
             drawingRecord = null;
             if (BiffDrawingMetadataReader.TryRead(record, _sheet.Name, out LegacyXlsDrawingRecord? parsedRecord) && parsedRecord!.AnchorEntries.Count > 0) {
+                if (!_drawingAnchorRecordOffsets.Add(record.Offset)) {
+                    drawingRecord = parsedRecord;
+                    return false;
+                }
+
                 drawingRecord = parsedRecord;
                 foreach (LegacyXlsDrawingAnchor anchor in parsedRecord.AnchorEntries) {
                     _pendingAnchors.Enqueue(anchor);

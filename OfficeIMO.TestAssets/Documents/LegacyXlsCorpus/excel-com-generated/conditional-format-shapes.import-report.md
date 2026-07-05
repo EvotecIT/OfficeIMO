@@ -171,8 +171,7 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Missing | 1 |
-| Present | 7 |
+| Present | 8 |
 
 ## Conditional Formatting By Differential Fill
 
@@ -187,10 +186,10 @@ Warnings: 0
 
 | Key | Count |
 | --- | --- |
-| Bold | 2 |
+| Bold | 3 |
 | Color:FF0000FF | 1 |
 | Color:FFFF0000 | 1 |
-| NotItalic | 2 |
+| NotItalic | 3 |
 
 ## Conditional Formatting Extensions By Sheet
 

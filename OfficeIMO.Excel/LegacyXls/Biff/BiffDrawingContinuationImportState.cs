@@ -60,7 +60,9 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             List<LegacyXlsUnsupportedFeature> unsupportedFeatures,
             List<LegacyXlsPreservedFeatureRecord> preservedFeatureRecords,
             List<LegacyXlsImportDiagnostic> diagnostics,
-            bool reportDiagnostics) {
+            bool reportDiagnostics,
+            out BiffRecord? assembledRecord) {
+            assembledRecord = null;
             if (_pendingDrawing == null) {
                 return false;
             }
@@ -71,8 +73,8 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             byte[] assembledPayload = _pendingDrawing.GetAssembledPayload();
-            var assembledRecord = new BiffRecord(_pendingDrawing.RecordType, _pendingDrawing.RecordOffset, assembledPayload);
-            if (BiffDrawingMetadataReader.TryRead(assembledRecord, _sheetName, out LegacyXlsDrawingRecord? drawingRecord)) {
+            var completedRecord = new BiffRecord(_pendingDrawing.RecordType, _pendingDrawing.RecordOffset, assembledPayload);
+            if (BiffDrawingMetadataReader.TryRead(completedRecord, _sheetName, out LegacyXlsDrawingRecord? drawingRecord)) {
                 _drawingRecords[_pendingDrawing.DrawingRecordIndex] = drawingRecord!;
                 if (!drawingRecord!.HasSupportedDrawingMetadata) {
                     AddUnsupportedFeature(
@@ -95,6 +97,7 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
                     assembledPayload.Length);
             }
 
+            assembledRecord = completedRecord;
             _pendingDrawing = null;
             return true;
         }
@@ -121,6 +124,12 @@ namespace OfficeIMO.Excel.LegacyXls.Biff {
             }
 
             _pendingDrawing = null;
+        }
+
+        internal static bool RequiresContinuation(BiffRecord record) {
+            return record.Type == (ushort)BiffRecordType.Drawing
+                && TryGetRequiredPayloadLength(record.Payload, out int requiredPayloadLength)
+                && requiredPayloadLength > record.Payload.Length;
         }
 
         private static bool TryGetRequiredPayloadLength(byte[] payload, out int requiredPayloadLength) {

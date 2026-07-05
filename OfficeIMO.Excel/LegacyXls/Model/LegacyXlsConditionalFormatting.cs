@@ -73,7 +73,9 @@ namespace OfficeIMO.Excel.LegacyXls.Model {
         internal void ApplyExtension(int? priority, bool stopIfTrue, LegacyXlsDifferentialFormat? differentialFormat) {
             Priority = priority;
             StopIfTrue = stopIfTrue;
-            DifferentialFormat = differentialFormat;
+            if (differentialFormat != null) {
+                DifferentialFormat = differentialFormat;
+            }
         }
     }
 

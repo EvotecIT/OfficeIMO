@@ -13,16 +13,19 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
 
             var packageStream = new MemoryStream();
             ExcelDocument document = ExcelDocument.Create(packageStream, autoSave: false);
-            if (workbook.Worksheets.Count == 0) {
+            if (workbook.Worksheets.Count == 0 && workbook.ChartSheets.Count == 0) {
                 document.AddWorkSheet("Sheet1");
             }
 
-            foreach (LegacyXlsWorksheet legacySheet in workbook.Worksheets) {
-                ExcelSheet sheet = document.AddWorkSheet(legacySheet.Name);
-                ProjectWorksheet(workbook, legacySheet, sheet);
+            foreach (LegacyXlsSheetProjectionEntry sheetEntry in EnumerateSheetsInWorkbookOrder(workbook)) {
+                if (sheetEntry.Worksheet != null) {
+                    ExcelSheet sheet = document.AddWorkSheet(sheetEntry.Worksheet.Name);
+                    ProjectWorksheet(workbook, sheetEntry.Worksheet, sheet);
+                } else if (sheetEntry.ChartSheet != null) {
+                    ProjectChartSheet(sheetEntry.ChartSheet, document);
+                }
             }
 
-            ProjectChartSheets(workbook, document);
             ProjectDefinedNames(workbook, document);
             ProjectAutoFilters(workbook, document);
             ProjectExternalReferences(workbook, document);
@@ -52,6 +55,34 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             ProjectWorkbookRevisionProtection(workbook, document);
 
             return document;
+        }
+
+        private static IReadOnlyList<LegacyXlsSheetProjectionEntry> EnumerateSheetsInWorkbookOrder(LegacyXlsWorkbook workbook) {
+            var sheets = new List<LegacyXlsSheetProjectionEntry>(workbook.Worksheets.Count + workbook.ChartSheets.Count);
+            foreach (LegacyXlsWorksheet worksheet in workbook.Worksheets) {
+                sheets.Add(new LegacyXlsSheetProjectionEntry(worksheet.StreamOffset, worksheet, null));
+            }
+
+            foreach (LegacyXlsChartSheet chartSheet in workbook.ChartSheets) {
+                sheets.Add(new LegacyXlsSheetProjectionEntry(chartSheet.StreamOffset, null, chartSheet));
+            }
+
+            sheets.Sort((left, right) => left.StreamOffset.CompareTo(right.StreamOffset));
+            return sheets;
+        }
+
+        private readonly struct LegacyXlsSheetProjectionEntry {
+            internal LegacyXlsSheetProjectionEntry(int streamOffset, LegacyXlsWorksheet? worksheet, LegacyXlsChartSheet? chartSheet) {
+                StreamOffset = streamOffset;
+                Worksheet = worksheet;
+                ChartSheet = chartSheet;
+            }
+
+            internal int StreamOffset { get; }
+
+            internal LegacyXlsWorksheet? Worksheet { get; }
+
+            internal LegacyXlsChartSheet? ChartSheet { get; }
         }
 
         private static void ProjectWorkbookTheme(LegacyXlsWorkbook workbook, ExcelDocument document) {
@@ -921,14 +952,15 @@ namespace OfficeIMO.Excel.LegacyXls.Projection {
             }
 
             Table? table = sheet.WorksheetPart.TableDefinitionParts
-                .Select(part => part.Table)
-                .FirstOrDefault(candidate => string.Equals(candidate?.Name?.Value, tableDefinition.Name, StringComparison.OrdinalIgnoreCase));
+                .FirstOrDefault(part => string.Equals(part.Table?.Name?.Value, tableDefinition.Name, StringComparison.OrdinalIgnoreCase))
+                ?.Table;
             if (table == null) {
                 return;
             }
 
             table.TotalsRowShown = true;
             table.TotalsRowCount = tableDefinition.TotalRowCount;
+            table.Save();
         }
 
         private static void ApplyTableDefinitionMetadata(ExcelSheet sheet, LegacyXlsTableDefinition tableDefinition) {
