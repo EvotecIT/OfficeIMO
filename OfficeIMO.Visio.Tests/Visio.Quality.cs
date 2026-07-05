@@ -330,7 +330,6 @@ namespace OfficeIMO.Tests {
 
             Assert.Equal(18, results.Count);
             Assert.All(results, result => Assert.True(File.Exists(result.FilePath), result.FilePath));
-            Assert.All(results, result => Assert.Null(result.DesktopValidation));
             Assert.All(results, result => Assert.Empty(result.PackageIssues));
             Assert.All(results, result => Assert.Empty(result.QualityIssues.Select(issue => issue.ToString())));
 
@@ -464,36 +463,6 @@ namespace OfficeIMO.Tests {
             VisioStencilProfile networkSegmentationProfile = loadedNetworkSegmentation.CreateStencilProfile();
             Assert.Contains("Network", networkSegmentationProfile.StencilCatalogs);
             Assert.Contains(networkSegmentationProfile.Usages, usage => usage.StencilId == "net.firewall" && usage.Count == 1);
-        }
-
-        [Fact]
-        public void GalleryDesktopValidationCanBeOptionalWhenVisioIsMissing() {
-            if (VisioDesktopValidator.IsAvailable()) {
-                return;
-            }
-
-            string optionalFolderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Gallery-OptionalDesktop-" + Guid.NewGuid());
-            IReadOnlyList<VisioGalleryResult> optionalResults = VisioGallery.Create(optionalFolderPath, new VisioGalleryOptions {
-                ValidatePackage = false,
-                AnalyzeVisualQuality = false,
-                ValidateWithVisioDesktop = true
-            });
-
-            Assert.All(optionalResults, result => Assert.NotNull(result.DesktopValidation));
-            Assert.All(optionalResults, result => Assert.False(result.DesktopValidation!.IsAvailable));
-            Assert.All(optionalResults, result => Assert.True(result.IsClean));
-
-            string strictFolderPath = Path.Combine(Path.GetTempPath(), "OfficeIMO-Visio-Gallery-StrictDesktop-" + Guid.NewGuid());
-            IReadOnlyList<VisioGalleryResult> strictResults = VisioGallery.Create(strictFolderPath, new VisioGalleryOptions {
-                ValidatePackage = false,
-                AnalyzeVisualQuality = false,
-                ValidateWithVisioDesktop = true,
-                RequireVisioDesktop = true
-            });
-
-            Assert.All(strictResults, result => Assert.NotNull(result.DesktopValidation));
-            Assert.All(strictResults, result => Assert.False(result.DesktopValidation!.IsAvailable));
-            Assert.All(strictResults, result => Assert.False(result.IsClean));
         }
     }
 }

@@ -18,7 +18,7 @@ namespace OfficeIMO.Tests {
             page.Shapes.Add(new VisioShape("1", 1, 1, 2, 1, "Start"));
             document.Save();
 
-            VisioDesktopValidationResult result = VisioDesktopValidator.Validate(filePath);
+            VisioDesktopValidationResult result = VisioDesktopBaselineValidator.Validate(filePath);
 
             if (!result.IsAvailable) {
                 Assert.False(result.IsValid);
@@ -55,7 +55,7 @@ namespace OfficeIMO.Tests {
             options.ExportDirectory = directory;
             options.ExportFileNamePrefix = "proof";
 
-            VisioDesktopValidationResult result = VisioDesktopValidator.Validate(filePath, options);
+            VisioDesktopValidationResult result = VisioDesktopBaselineValidator.Validate(filePath, options);
 
             if (!result.IsAvailable) {
                 Assert.False(result.IsValid);
@@ -76,7 +76,7 @@ namespace OfficeIMO.Tests {
         public void DesktopValidatorRejectsMissingPathBeforeAutomation() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".vsdx");
 
-            Assert.Throws<FileNotFoundException>(() => VisioDesktopValidator.Validate(filePath));
+            Assert.Throws<FileNotFoundException>(() => VisioDesktopBaselineValidator.Validate(filePath));
         }
 
         private static bool IsDesktopValidationRequested() =>
