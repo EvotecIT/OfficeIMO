@@ -36,57 +36,38 @@ namespace OfficeIMO.Word.Pdf {
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (string styleId in new[] { "Heading1", "Heading2", "Heading3", "Heading4", "Heading5", "Heading6", "Heading7", "Heading8", "Heading9" }) {
                 string? familyName = ResolveNativeParagraphStyleFontFamily(document, styleId);
-                if (string.IsNullOrWhiteSpace(familyName) || !registeredFamilies.Add(NormalizeNativeFontFamily(familyName!))) {
+                if (!PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, NormalizeNativeFontFamily, out string trimmedFamilyName)) {
                     continue;
                 }
 
-                PdfCore.PdfStandardFont slot = SelectNativeAdditionalFontSlot(familyName!, registeredFontSlots);
+                PdfCore.PdfStandardFont slot = SelectNativeAdditionalFontSlot(trimmedFamilyName, pdfOptions, registeredFontSlots);
                 bool slotAlreadyEmbedded = pdfOptions.HasEmbeddedStandardFontFamily(slot);
                 if (!slotAlreadyEmbedded) {
-                    pdfOptions.RegisterOfficeFontFamily(familyName, slot, embedSystemFont: true);
+                    pdfOptions.RegisterOfficeFontFamily(trimmedFamilyName, slot, embedSystemFont: true);
                 }
 
                 if (slotAlreadyEmbedded || pdfOptions.HasEmbeddedStandardFontFamily(slot)) {
                     registeredFontSlots.Add(slot);
-                    nativeFontMap.Register(familyName!, slot);
+                    nativeFontMap.Register(trimmedFamilyName, slot);
                     continue;
                 }
 
-                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
-                    nativeFontMap.Register(familyName!, PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont));
+                if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont mappedFont)) {
+                    PdfCore.PdfStandardFont mappedFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
+                    registeredFontSlots.Add(mappedFamily);
+                    nativeFontMap.Register(trimmedFamilyName, mappedFamily);
                 }
             }
         }
 
-        private static PdfCore.PdfStandardFont SelectNativeAdditionalFontSlot(string familyName, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
-            if (TrySelectNativeAdditionalFontSlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont fontSlot)) {
+        private static PdfCore.PdfStandardFont SelectNativeAdditionalFontSlot(string familyName, PdfCore.PdfOptions pdfOptions, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
+            if (PdfCore.PdfOptions.TrySelectAvailableFontFamilySlot(familyName, registeredFontSlots, out PdfCore.PdfStandardFont fontSlot)) {
                 return fontSlot;
             }
 
             return PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)
                 ? PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont)
                 : PdfCore.PdfStandardFont.Helvetica;
-        }
-
-        private static bool TrySelectNativeAdditionalFontSlot(string familyName, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, out PdfCore.PdfStandardFont fontSlot) {
-            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfCore.PdfStandardFont mappedFont)) {
-                PdfCore.PdfStandardFont mappedFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
-                if (!registeredFontSlots.Contains(mappedFamily)) {
-                    fontSlot = mappedFamily;
-                    return true;
-                }
-            }
-
-            foreach (PdfCore.PdfStandardFont candidate in new[] { PdfCore.PdfStandardFont.TimesRoman, PdfCore.PdfStandardFont.Courier, PdfCore.PdfStandardFont.Helvetica }) {
-                PdfCore.PdfStandardFont family = PdfCore.PdfStandardFontMapper.GetFontFamily(candidate);
-                if (!registeredFontSlots.Contains(family)) {
-                    fontSlot = family;
-                    return true;
-                }
-            }
-
-            fontSlot = PdfCore.PdfStandardFont.Helvetica;
-            return false;
         }
 
         private static string? ResolveNativeParagraphStyleFontFamily(WordDocument? document, string? styleId) {

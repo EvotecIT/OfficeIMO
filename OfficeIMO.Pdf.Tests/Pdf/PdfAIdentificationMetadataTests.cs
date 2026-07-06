@@ -104,6 +104,29 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
+    public void PdfAFluentHelper_MapsToArchivalGroundworkDefaults() {
+        var defaultOptions = new PdfOptions().UsePdfA();
+        PdfOptions defaultClone = defaultOptions.Clone();
+
+        Assert.Equal(PdfComplianceProfile.None, defaultClone.ComplianceProfile);
+        Assert.Equal(PdfFileVersion.Pdf17, defaultClone.FileVersion);
+        Assert.Equal(3, defaultClone.PdfAIdentification!.Part);
+        Assert.Equal("B", defaultClone.PdfAIdentification.Conformance);
+        Assert.Equal(PdfOutputIntentPolicy.SrgbIec6196621, defaultClone.OutputIntent!.Policy);
+
+        var options = new PdfOptions().UsePdfA(PdfComplianceProfile.PdfA3A, "pl-PL");
+        PdfOptions clone = options.Clone();
+
+        Assert.Same(options, options.UsePdfA(PdfComplianceProfile.PdfA3A, "pl-PL"));
+        Assert.True(clone.IncludeXmpMetadata);
+        Assert.True(clone.IncludeStandardFontToUnicodeMaps);
+        Assert.Equal(3, clone.PdfAIdentification!.Part);
+        Assert.Equal("A", clone.PdfAIdentification.Conformance);
+        Assert.Equal(PdfTaggedStructureMode.CatalogMarkers, clone.TaggedStructureMode);
+        Assert.Equal("pl-PL", clone.Language);
+    }
+
+    [Fact]
     public void PdfA4GroundworkHelper_EmitsPdf20ArchivalPrerequisitesWithoutFormalProfile() {
         var options = new PdfOptions()
             .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA4F, "en-US");
@@ -299,6 +322,24 @@ public class PdfAIdentificationMetadataTests {
     }
 
     [Fact]
+    public void FacturXFluentHelper_AcceptsTextFallbackEnum() {
+        byte[] invoiceXml = CreateCiiXml();
+        var options = new PdfOptions()
+            .UseFacturX(invoiceXml, textFallbacks: PdfTextFallbackFeatures.None);
+
+        PdfOptions clone = options.Clone();
+
+        Assert.Equal(PdfComplianceProfile.None, clone.ComplianceProfile);
+        Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
+        Assert.True(clone.IncludeStandardFontToUnicodeMaps);
+        Assert.Equal(3, clone.PdfAIdentification!.Part);
+        Assert.Equal("B", clone.PdfAIdentification.Conformance);
+        Assert.Equal("EN 16931", clone.ElectronicInvoiceMetadata!.ConformanceLevel);
+        Assert.Equal("factur-x.xml", Assert.Single(clone.EmbeddedFiles).FileName);
+        Assert.False(clone.HasEmbeddedStandardFontFamily(PdfStandardFont.Helvetica));
+    }
+
+    [Fact]
     public void PdfUaIdentification_CanBeEmittedInXmpWithoutFormalComplianceProfile() {
         var options = new PdfOptions()
             .SetPdfUaIdentification(PdfUaIdentification.PdfUa1());
@@ -379,6 +420,21 @@ public class PdfAIdentificationMetadataTests {
         Assert.True(info.HasTaggedContent);
         Assert.Equal("en-GB", info.CatalogLanguage);
         Assert.True(info.ViewerPreferences!.GetBoolean("DisplayDocTitle"));
+    }
+
+    [Fact]
+    public void PdfUaFluentHelper_MapsToAccessibilityGroundworkDefaults() {
+        var options = new PdfOptions().UsePdfUa(language: "pl-PL");
+        PdfOptions clone = options.Clone();
+
+        Assert.Equal(PdfComplianceProfile.None, clone.ComplianceProfile);
+        Assert.Equal(PdfFileVersion.Pdf17, clone.FileVersion);
+        Assert.True(clone.IncludeXmpMetadata);
+        Assert.True(clone.IncludeStandardFontToUnicodeMaps);
+        Assert.Equal(1, clone.PdfUaIdentification!.Part);
+        Assert.Equal(PdfTaggedStructureMode.CatalogMarkers, clone.TaggedStructureMode);
+        Assert.Equal("pl-PL", clone.Language);
+        Assert.True(clone.ViewerPreferences!.DisplayDocTitle);
     }
 
     [Fact]

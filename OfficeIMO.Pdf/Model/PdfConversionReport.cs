@@ -46,11 +46,39 @@ public sealed class PdfConversionReport {
         }
     }
 
+    /// <summary>True when at least one error-severity warning was recorded.</summary>
+    public bool HasErrors => Warnings.Any(static warning => warning.Severity == PdfConversionWarningSeverity.Error);
+
     /// <summary>
     /// Builds a stable count summary for proof packs, logs, wrapper routing, and user-facing diagnostics.
     /// </summary>
     public PdfConversionReportSummary Summarize() {
         return new PdfConversionReportSummary(Warnings);
+    }
+
+    /// <summary>
+    /// Throws when the report contains any conversion warning; otherwise returns the current report for fluent checks.
+    /// </summary>
+    public PdfConversionReport RequireNoWarnings() {
+        if (HasWarnings) {
+            throw new InvalidOperationException(CreateFailureMessage("PDF conversion produced warnings.", Warnings));
+        }
+
+        return this;
+    }
+
+    /// <summary>
+    /// Throws when the report contains error-severity conversion warnings; otherwise returns the current report for fluent checks.
+    /// </summary>
+    public PdfConversionReport RequireNoErrorWarnings() {
+        PdfConversionWarning[] errors = Warnings
+            .Where(static warning => warning.Severity == PdfConversionWarningSeverity.Error)
+            .ToArray();
+        if (errors.Length > 0) {
+            throw new InvalidOperationException(CreateFailureMessage("PDF conversion produced error warnings.", errors));
+        }
+
+        return this;
     }
 
     /// <summary>Adds one warning to the report.</summary>
@@ -114,5 +142,13 @@ public sealed class PdfConversionReport {
 
     internal void ClearLinkedReports() {
         _linkedReports.Clear();
+    }
+
+    private static string CreateFailureMessage(string message, IReadOnlyList<PdfConversionWarning> warnings) {
+        if (warnings.Count == 0) {
+            return message;
+        }
+
+        return message + " First warning: " + warnings[0].ToString();
     }
 }

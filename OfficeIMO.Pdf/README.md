@@ -242,7 +242,7 @@ PdfDocument.Open("application-form.pdf")
 using OfficeIMO.Pdf;
 
 PdfDocument document = PdfDocument.Create(new PdfOptions()
-        .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
+        .UsePdfA(PdfComplianceProfile.PdfA3B))
     .Paragraph(paragraph => paragraph.Text("Groundwork can be assessed before a formal claim."));
 
 PdfComplianceProofReport proof = document.AssessComplianceProof(
@@ -253,6 +253,40 @@ if (!proof.CanClaimConformance) {
     Console.WriteLine(proof.ProofStatus);
     Console.WriteLine(proof.ExternalProofSummary);
 }
+```
+
+### Choose converter-friendly text fallbacks
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Word;
+using OfficeIMO.Word.Pdf;
+
+using var document = WordDocument.Load("proposal.docx");
+
+var options = new PdfSaveOptions {
+    TextFallbacks = PdfTextFallbackFeatures.Default,
+    AllowSystemFontEmbedding = true
+}.UseProfile(PdfExportProfile.PrintReady);
+
+var result = document.ToPdfDocumentResult(options);
+result.ConversionReport.RequireNoErrorWarnings();
+result.Save("proposal.pdf");
+```
+
+The Markdown, Word, Excel, and PowerPoint PDF adapters expose the same `TextFallbacks` enum. Use `PdfTextFallbackFeatures.None` when strict standard-font output is preferred, or `AllowSystemFontEmbedding = true` when the converter may embed installed host fonts for Unicode, symbols, and emoji.
+
+### Add e-invoice groundwork
+
+```csharp
+using OfficeIMO.Pdf;
+
+byte[] invoiceXml = File.ReadAllBytes("factur-x.xml");
+
+PdfDocument.Create(new PdfOptions()
+        .UseFacturX(invoiceXml, textFallbacks: PdfTextFallbackFeatures.DocumentFont))
+    .Paragraph("Invoice preview")
+    .Save("invoice.pdf");
 ```
 
 ### Page setup, watermarks, and metadata

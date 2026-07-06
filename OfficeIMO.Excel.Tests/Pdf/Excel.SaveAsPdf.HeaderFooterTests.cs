@@ -117,7 +117,7 @@ public partial class Excel {
         Assert.Contains("1 0 0 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0 0 1 rg", rawPdf, StringComparison.Ordinal);
         Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
-        Assert.Contains("Times-Italic", rawPdf, StringComparison.Ordinal);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Times-Italic", "TimesNewRoman-Italic", "LiberationSerif-Italic", "DejaVuSerif-Italic");
         Assert.Contains(" 18 Tf", rawPdf, StringComparison.Ordinal);
         Assert.Contains(" 10 Tf", rawPdf, StringComparison.Ordinal);
         Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
@@ -154,8 +154,40 @@ public partial class Excel {
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
         Assert.Matches("Helvetica-Bold|Arial-Bold|Aptos-Bold|Calibri-Bold|LiberationSans-Bold|DejaVuSans-Bold", rawPdf);
-        Assert.Contains("Courier-Oblique", rawPdf, StringComparison.Ordinal);
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier-Oblique", "Consolas-Italic", "LiberationMono-Italic", "DejaVuSansMono-Italic");
         Assert.DoesNotContain(options.Warnings, warning => warning.Feature == "WorksheetHeaderFooterFormatting");
+    }
+
+    [Fact]
+    public void SaveAsPdf_ExcelWorkbook_DoesNotReserve_Escaped_HeaderFooter_Font_Tokens() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterEscapedFontToken.xlsx");
+
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 0,
+            PageSize = new PdfCore.PageSize(420, 320),
+            Margins = PdfCore.PageMargins.Uniform(54),
+            AllowSystemFontEmbedding = true
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "EscapedFontToken")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "EscapedHeaderFooterBody");
+            sheet.SetHeaderFooter(headerCenter: "&&\"Times New Roman\" Literal Header");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("\"Times New Roman\" Literal Header", text);
+        Assert.Contains("EscapedHeaderFooterBody", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.DoesNotContain("TimesNewRoman", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Times-Roman", rawPdf, StringComparison.Ordinal);
     }
 
     [Fact]

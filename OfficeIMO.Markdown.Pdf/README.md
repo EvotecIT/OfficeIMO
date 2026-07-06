@@ -86,6 +86,7 @@ markdown.SaveAsPdf("incident-review.pdf", new MarkdownPdfSaveOptions {
 
 ```csharp
 using OfficeIMO.Markdown.Pdf;
+using OfficeIMO.Pdf;
 
 var options = new MarkdownPdfSaveOptions {
     BaseDirectory = Path.GetDirectoryName(Path.GetFullPath("Docs/status.md")),
@@ -145,7 +146,10 @@ using OfficeIMO.Markdown.Pdf;
 var options = new MarkdownPdfSaveOptions {
     RemoteImageResolver = null,
     IncludeDataUriImages = true
-};
+}.UseProfile(PdfExportProfile.Faithful);
+
+options.TextFallbacks = PdfTextFallbackFeatures.Default;
+options.AllowSystemFontEmbedding = true;
 
 var result = MarkdownPdfConverter.TrySaveFileAsPdf("README.md", "README.pdf", options);
 if (!result.Succeeded) {
@@ -157,6 +161,8 @@ if (!result.Succeeded) {
 foreach (var warning in options.ConversionReport.Warnings) {
     Console.WriteLine($"{warning.Source}: {warning.Message}");
 }
+
+options.ConversionReport.RequireNoErrorWarnings();
 ```
 
 ## What it maps
@@ -165,6 +171,7 @@ foreach (var warning in options.ConversionReport.Warnings) {
 - PDF metadata from options, YAML front matter, or the first heading.
 - Paragraphs, rich inline formatting, links, lists, task lists, tables, code blocks, semantic fenced blocks, callouts, details, definition lists, block quotes, footnotes, and generated table-of-contents blocks.
 - Visual themes for readable document rhythm, page treatment, links, code blocks, panels, tables, and checklist rows.
+- Profile presets through `MarkdownPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
 - Conversion warnings through `MarkdownPdfSaveOptions.Warnings` and `MarkdownPdfSaveOptions.ConversionReport`.
 
 ## Visual themes

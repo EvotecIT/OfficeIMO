@@ -53,10 +53,40 @@ public sealed class PdfEmbeddedFontFallbackSet {
     /// <returns>The supplied options for fluent chaining.</returns>
     public PdfOptions RegisterFonts(PdfOptions options) {
         Guard.NotNull(options, nameof(options));
+        RegisterFonts(options, _fontSlots);
+        return options;
+    }
+
+    internal PdfOptions RegisterFonts(PdfOptions options, IReadOnlyList<PdfStandardFont> fontSlots) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(fontSlots, nameof(fontSlots));
+        if (fontSlots.Count != _candidates.Count) {
+            throw new ArgumentException("Embedded font fallback candidates and font slots must have the same number of entries.", nameof(fontSlots));
+        }
+
         for (int index = 0; index < _candidates.Count; index++) {
             PdfEmbeddedFontFallbackCandidate candidate = _candidates[index];
             options.RegisterFontFamily(
-                _fontSlots[index],
+                NormalizeFontSlot(fontSlots[index]),
+                new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
+        }
+
+        return options;
+    }
+
+    internal PdfOptions RegisterFonts(PdfOptions options, IReadOnlyDictionary<int, PdfStandardFont> fontSlots) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(fontSlots, nameof(fontSlots));
+
+        foreach (KeyValuePair<int, PdfStandardFont> entry in fontSlots) {
+            int candidateIndex = entry.Key;
+            if (candidateIndex < 0 || candidateIndex >= _candidates.Count) {
+                throw new ArgumentException("Embedded font fallback font slots contain an unknown candidate index.", nameof(fontSlots));
+            }
+
+            PdfEmbeddedFontFallbackCandidate candidate = _candidates[candidateIndex];
+            options.RegisterFontFamily(
+                NormalizeFontSlot(entry.Value),
                 new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
         }
 

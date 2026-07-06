@@ -47,6 +47,52 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfConversionReport_RequireNoWarningsReturnsReportWhenClean() {
+        var report = new PdfConversionReport();
+
+        PdfConversionReport returned = report.RequireNoWarnings();
+
+        Assert.Same(report, returned);
+        Assert.Same(report, report.RequireNoErrorWarnings());
+        Assert.False(report.HasErrors);
+    }
+
+    [Fact]
+    public void PdfConversionReport_RequireNoWarningsFailsOnAnySeverity() {
+        var report = new PdfConversionReport();
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "DecorativeFallback",
+            "test",
+            "Decorative content was simplified.",
+            PdfConversionWarningSeverity.Information));
+
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => report.RequireNoWarnings());
+
+        Assert.Contains("PDF conversion produced warnings.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("DecorativeFallback", exception.Message, StringComparison.Ordinal);
+        Assert.False(report.HasErrors);
+        Assert.Same(report, report.RequireNoErrorWarnings());
+    }
+
+    [Fact]
+    public void PdfConversionReport_RequireNoErrorWarningsFailsOnlyOnErrors() {
+        var report = new PdfConversionReport();
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "FormulaValueMissing",
+            "test",
+            "Formula value was unavailable.",
+            PdfConversionWarningSeverity.Error));
+
+        Assert.True(report.HasErrors);
+        InvalidOperationException exception = Assert.Throws<InvalidOperationException>(() => report.RequireNoErrorWarnings());
+
+        Assert.Contains("PDF conversion produced error warnings.", exception.Message, StringComparison.Ordinal);
+        Assert.Contains("FormulaValueMissing", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PdfDocumentConversionResult_SummaryUsesCapturedConversionReportSnapshot() {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(

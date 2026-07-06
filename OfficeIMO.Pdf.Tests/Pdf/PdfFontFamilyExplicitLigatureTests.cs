@@ -92,6 +92,48 @@ public class PdfFontFamilyExplicitLigatureTests {
     }
 
     [Fact]
+    public void TextShapingModeLatinLigatures_PreservesCoveredLigatureSpanWhenFallbackSplitsAdjacentRun() {
+        string? primaryFontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        string? fallbackFontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (primaryFontPath == null || fallbackFontPath == null) {
+            return;
+        }
+
+        byte[] primaryFontBytes = File.ReadAllBytes(primaryFontPath);
+        byte[] fallbackFontBytes = File.ReadAllBytes(fallbackFontPath);
+        PdfOpenTypeCffFontProgram primaryFont = PdfOpenTypeCffFontProgram.Parse(primaryFontBytes, "OfficeIMO Source Serif CFF");
+        PdfTrueTypeFontProgram fallbackFont = PdfTrueTypeFontProgram.Parse(fallbackFontBytes, "OfficeIMO Fallback Font");
+        Assert.True(primaryFont.TryGetGlyphId(0xFB03, out int ffiGlyphId));
+
+        int? fallbackScalar = FindFallbackOnlyScalar(primaryFont, fallbackFont);
+        if (!fallbackScalar.HasValue) {
+            return;
+        }
+
+        string fallbackText = char.ConvertFromUtf32(fallbackScalar.Value);
+        var fallbackSet = new PdfEmbeddedFontFallbackSet(
+            new[] { new PdfEmbeddedFontFallbackCandidate("OfficeIMO Fallback Font", fallbackFontBytes) },
+            new[] { PdfStandardFont.TimesRoman });
+        var options = new PdfOptions {
+                CompressContentStreams = false,
+                CompressEmbeddedFonts = false
+            }
+            .SetTextShapingMode(PdfTextShapingMode.LatinLigatures)
+            .EmbedStandardFont(PdfStandardFont.Helvetica, primaryFontBytes, "OfficeIMO Source Serif CFF")
+            .RegisterEmbeddedFontFallbacks(fallbackSet);
+
+        byte[] bytes = PdfDocument.Create(options)
+            .Paragraph(paragraph => paragraph.Text("office" + fallbackText))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(bytes);
+        string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.Contains(ffiGlyphId.ToString("X4", CultureInfo.InvariantCulture), raw, StringComparison.Ordinal);
+        Assert.Contains("office" + fallbackText, extracted, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void TextShapingModeLatinLigatures_StillReportsUncoveredOpenTypeLigatureDiagnostics() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
@@ -126,5 +168,29 @@ public class PdfFontFamilyExplicitLigatureTests {
         }
 
         return sb.Append('>').ToString();
+    }
+
+    private static int? FindFallbackOnlyScalar(PdfOpenTypeCffFontProgram primaryFont, PdfTrueTypeFontProgram fallbackFont) {
+        int[] candidates = {
+            0x0416,
+            0x042F,
+            0x05D0,
+            0x03A9,
+            0x0141,
+            0x0119,
+            0x20AC,
+            0x2192,
+            0x4E00
+        };
+
+        foreach (int scalar in candidates) {
+            if ((!primaryFont.TryGetGlyphId(scalar, out int primaryGlyphId) || primaryGlyphId <= 0) &&
+                fallbackFont.TryGetGlyphId(scalar, out int fallbackGlyphId) &&
+                fallbackGlyphId > 0) {
+                return scalar;
+            }
+        }
+
+        return null;
     }
 }

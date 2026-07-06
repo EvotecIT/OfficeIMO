@@ -24,6 +24,12 @@ namespace OfficeIMO.Word.Pdf {
         public bool AllowSystemFontEmbedding { get; set; }
 
         /// <summary>
+        /// Built-in generated-text fallback groups applied by the Word PDF converter when system font embedding is allowed.
+        /// Defaults to the recommended preset, but no host font files are embedded unless <see cref="AllowSystemFontEmbedding"/> is true.
+        /// </summary>
+        public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
+
+        /// <summary>
         /// Optional page size in PDF points. The supplied geometry is preserved unless <see cref="Orientation"/> is also set.
         /// </summary>
         public PdfCore.PageSize? PageSize { get; set; }
@@ -95,6 +101,34 @@ namespace OfficeIMO.Word.Pdf {
         /// Defaults to false to preserve strict fidelity.
         /// </summary>
         public bool DefaultTableBorders { get; set; } = false;
+
+        /// <summary>
+        /// Applies a high-level export profile by setting the Word PDF options that correspond to that profile.
+        /// </summary>
+        public PdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+            switch (profile) {
+                case PdfCore.PdfExportProfile.Faithful:
+                    IncludePageNumbers = true;
+                    DefaultTableBorders = false;
+                    break;
+                case PdfCore.PdfExportProfile.Lightweight:
+                    IncludePageNumbers = false;
+                    DefaultTableBorders = false;
+                    break;
+                case PdfCore.PdfExportProfile.PrintReady:
+                    IncludePageNumbers = true;
+                    DefaultTableBorders = true;
+                    break;
+                case PdfCore.PdfExportProfile.TextOnly:
+                    IncludePageNumbers = false;
+                    DefaultTableBorders = false;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");
+            }
+
+            return this;
+        }
 
         internal void ResetExportState() {
             Warnings.Clear();

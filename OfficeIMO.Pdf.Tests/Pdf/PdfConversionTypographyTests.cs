@@ -91,7 +91,7 @@ public sealed class PdfConversionTypographyTests {
         ArgumentException exception = Assert.ThrowsAny<ArgumentException>(() => ("# Missing Glyph\n\nUnsupported " + unsupportedScalar).SaveAsPdf(options));
 
         Assert.True(IsMissingEmbeddedGlyphFailure(exception));
-        Assert.Contains((string?)exception.Data["code"], new[] { "missing-embedded-font-glyph", "unsupported-text-glyph" });
+        Assert.Contains((string?)exception.Data["code"], new[] { "missing-embedded-font-glyph", "missing-embedded-font-fallback-glyph", "unsupported-text-glyph" });
         Assert.Equal("U+10FFFF", exception.Data["codePoint"]);
     }
 

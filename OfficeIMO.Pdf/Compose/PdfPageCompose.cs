@@ -273,6 +273,10 @@ public class PdfPageCompose {
     public PdfPageCompose UseFontFamily(PdfEmbeddedFontFamily fontFamily) { Options.UseFontFamily(fontFamily); return this; }
     /// <summary>Registers a planned embedded-font fallback set for generated rich text runs on this composed page or section.</summary>
     public PdfPageCompose RegisterEmbeddedFontFallbacks(PdfEmbeddedFontFallbackSet fallbackSet) { Options.RegisterEmbeddedFontFallbacks(fallbackSet); return this; }
+    /// <summary>Applies OfficeIMO's built-in generated-text fallback groups for this composed page or section.</summary>
+    public PdfPageCompose UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) { Options.UseTextFallbacks(features); return this; }
+    /// <summary>Registers generated-text fallback fonts from installed system font families without requiring callers to choose PDF font slots.</summary>
+    public PdfPageCompose UseEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) { Options.UseEmbeddedFontFallbacksFromSystem(familyNames, maxFallbackFonts); return this; }
     /// <summary>Uses caller-supplied TrueType font files for this composed page or section.</summary>
     public PdfPageCompose UseFontFamily(string familyName, byte[] regular, byte[]? bold = null, byte[]? italic = null, byte[]? boldItalic = null) { Options.UseFontFamily(familyName, regular, bold, italic, boldItalic); return this; }
     /// <summary>Uses caller-supplied TrueType font files for this composed page or section.</summary>

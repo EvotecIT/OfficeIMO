@@ -61,7 +61,7 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
-    public void PanelParagraph_KeepTogetherRejectsContentTallerThanContentArea() {
+    public void PanelParagraph_KeepTogetherSplitsContentTallerThanContentArea() {
         var options = new PdfOptions {
             PageWidth = 320,
             PageHeight = 170,
@@ -74,15 +74,15 @@ public partial class PdfDocumentVisualQualityTests {
         };
         string longText = string.Join(" ", Enumerable.Range(1, 180).Select(i => "panel" + i.ToString("000")));
 
-        var exception = Assert.Throws<ArgumentException>(() =>
-            PdfDocument.Create(options)
-                .PanelParagraph(p => p.Text(longText), new PanelStyle {
-                    KeepTogether = true,
-                    PaddingY = 8
-                })
-                .ToBytes());
+        byte[] bytes = PdfDocument.Create(options)
+            .PanelParagraph(p => p.Text(longText), new PanelStyle {
+                KeepTogether = true,
+                PaddingY = 8
+            })
+            .ToBytes();
 
-        Assert.Contains("Panel height exceeds the available page content height.", exception.Message, StringComparison.Ordinal);
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        Assert.True(pdf.NumberOfPages > 1);
     }
 
 

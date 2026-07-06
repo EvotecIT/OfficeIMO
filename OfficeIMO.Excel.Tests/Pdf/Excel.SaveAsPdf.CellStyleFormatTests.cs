@@ -55,7 +55,7 @@ public partial class Excel {
         Assert.Contains("PlainCell", text);
 
         string rawPdf = Encoding.ASCII.GetString(bytes);
-        AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier", "Consolas");
+        AssertRawPdfContainsAnyBaseFont(rawPdf, "Courier", "Consolas", "LiberationMono", "DejaVuSansMono");
         Assert.Contains("0.067 0.133 0.2 rg", rawPdf, StringComparison.Ordinal);
         Assert.Contains("0.867 0.933 1 rg", rawPdf, StringComparison.Ordinal);
     }

@@ -596,6 +596,18 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Applies OfficeIMO's built-in generated-text fallback groups.</summary>
+    public PdfDocument UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) {
+        _options.UseTextFallbacks(features);
+        return this;
+    }
+
+    /// <summary>Registers generated-text fallback fonts from installed system font families without requiring callers to choose PDF font slots.</summary>
+    public PdfDocument UseEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) {
+        _options.UseEmbeddedFontFallbacksFromSystem(familyNames, maxFallbackFonts);
+        return this;
+    }
+
     /// <summary>Uses caller-supplied TrueType font files as the generated document's default font family.</summary>
     public PdfDocument UseFontFamily(
         string familyName,
