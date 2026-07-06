@@ -1,4 +1,5 @@
 using AngleSharp.Dom;
+using DocumentFormat.OpenXml.Wordprocessing;
 using System.Globalization;
 using System.Threading;
 
@@ -123,6 +124,19 @@ namespace OfficeIMO.Word.Html {
             }
 
             currentParagraph.AddComment(options.HtmlCommentAuthor, options.HtmlCommentInitials, text!);
+            HideLastCommentReference(currentParagraph);
+        }
+
+        private static void HideLastCommentReference(WordParagraph paragraph) {
+            Run? referenceRun = paragraph._paragraph
+                .Elements<Run>()
+                .LastOrDefault(run => run.Elements<CommentReference>().Any());
+            if (referenceRun == null) {
+                return;
+            }
+
+            referenceRun.RunProperties ??= new RunProperties();
+            referenceRun.RunProperties.Vanish = new Vanish();
         }
     }
 }

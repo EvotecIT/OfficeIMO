@@ -234,6 +234,8 @@ namespace OfficeIMO.Word {
 
         private static void AppendVisibleText(StringBuilder builder, OpenXmlElement element) {
             switch (element) {
+                case Run run when IsHiddenRun(run):
+                    return;
                 case Text text:
                     builder.Append(text.Text);
                     return;
@@ -272,6 +274,11 @@ namespace OfficeIMO.Word {
             foreach (OpenXmlElement child in element.ChildElements) {
                 AppendVisibleText(builder, child);
             }
+        }
+
+        private static bool IsHiddenRun(Run run) {
+            Vanish? vanish = run.RunProperties?.GetFirstChild<Vanish>();
+            return vanish != null && (vanish.Val == null || vanish.Val.Value);
         }
 
         private static bool TryAppendMathText(StringBuilder builder, OpenXmlElement element) {

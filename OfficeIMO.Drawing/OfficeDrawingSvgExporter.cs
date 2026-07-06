@@ -215,11 +215,16 @@ public static class OfficeDrawingSvgExporter {
             glowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
             glowShape.StrokeStartMarker = null;
             glowShape.StrokeEndMarker = null;
-            glowShape.StrokeOpacity = glow.Opacity * (0.08D + (layers - i + 1) * 0.07D);
+            glowShape.StrokeOpacity = ComputeGlowLayerOpacity(glow.Opacity, layers - i + 1);
             glowShapes.Add(new OfficeDrawingShape(glowShape, drawingShape.X, drawingShape.Y));
         }
 
         return glowShapes;
+    }
+
+    private static double ComputeGlowLayerOpacity(double opacity, int layerDepth) {
+        double clamped = opacity < 0D ? 0D : opacity > 1D ? 1D : opacity;
+        return 1D - Math.Pow(1D - clamped, layerDepth + 1);
     }
 
     private static IReadOnlyList<OfficeDrawingShape> CreateShadowShapes(OfficeDrawingShape drawingShape) {
