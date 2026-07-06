@@ -23,18 +23,40 @@ internal readonly struct PdfPageClipPath {
 
         PdfPageClipPath active = activeClipPath.Value;
         if (!active.IsRectangle || !clipPath.IsRectangle) {
-            return active.IsRectangle ? clipPath : active;
+            if (active.IsRectangle) {
+                return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
+                    ? clipPath.WithBounds(intersection)
+                    : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+            }
+
+            if (clipPath.IsRectangle) {
+                return IntersectClipBounds(active, clipPath, out PdfPageClipPath intersection)
+                    ? active.WithBounds(intersection)
+                    : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+            }
+
+            return active;
         }
 
-        double left = Math.Max(active.X, clipPath.X);
-        double top = Math.Max(active.Y, clipPath.Y);
-        double right = Math.Min(active.X + active.Width, clipPath.X + clipPath.Width);
-        double bottom = Math.Min(active.Y + active.Height, clipPath.Y + clipPath.Height);
+        return IntersectClipBounds(active, clipPath, out PdfPageClipPath rectangleIntersection)
+            ? rectangleIntersection
+            : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
+    }
+
+    private static bool IntersectClipBounds(PdfPageClipPath first, PdfPageClipPath second, out PdfPageClipPath intersection) {
+        double left = Math.Max(first.X, second.X);
+        double top = Math.Max(first.Y, second.Y);
+        double right = Math.Min(first.X + first.Width, second.X + second.Width);
+        double bottom = Math.Min(first.Y + first.Height, second.Y + second.Height);
         double width = right - left;
         double height = bottom - top;
-        return width > 0D && height > 0D
-            ? Rectangle(left, top, width, height)
-            : Rectangle(left, top, 0D, 0D);
+        if (width <= 0D || height <= 0D) {
+            intersection = default;
+            return false;
+        }
+
+        intersection = Rectangle(left, top, width, height);
+        return true;
     }
 
     public static bool TryCreatePath(IReadOnlyList<OfficePathCommand> commands, OfficeFillRule fillRule, out PdfPageClipPath clipPath) {
@@ -98,6 +120,9 @@ internal readonly struct PdfPageClipPath {
     public OfficeFillRule FillRule { get; }
 
     public IReadOnlyList<OfficePathCommand> Commands { get; }
+
+    private PdfPageClipPath WithBounds(PdfPageClipPath bounds) =>
+        new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, IsRectangle, FillRule, Commands);
 
     public OfficeClipPath? ToOfficeClipPath(double primitiveX, double primitiveY) {
         if (!NearlyEqual(X, primitiveX) || !NearlyEqual(Y, primitiveY) || Width <= 0D || Height <= 0D) {

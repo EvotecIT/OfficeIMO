@@ -911,11 +911,22 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        double x = Clamp(rawX, 0D, drawing.Width);
-        double y = Clamp(rawY, 0D, drawing.Height);
+        double x = rawX;
+        double y = rawY;
         double clippedRight = Math.Min(rawX + width, drawing.Width);
         double clippedBottom = Math.Min(rawY + height, drawing.Height);
-        double baselineY = Clamp(pageHeight - span.Y, 0D, drawing.Height);
+        double baselineY = pageHeight - span.Y;
+        if (!span.ClipPath.HasValue &&
+            (rawX < 0D || rawY < 0D || rawX + width > drawing.Width || rawY + height > drawing.Height)) {
+            PdfPageClipPath pageClip = PdfPageClipPath.Rectangle(0D, 0D, drawing.Width, drawing.Height);
+            if (TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY, pageClip)) {
+                return;
+            }
+        }
+
+        x = Clamp(rawX, 0D, drawing.Width);
+        y = Clamp(rawY, 0D, drawing.Height);
+        baselineY = Clamp(baselineY, 0D, drawing.Height);
         width = Math.Max(1D, clippedRight - x);
         height = Math.Max(1D, clippedBottom - y);
         if (TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY)) {
@@ -936,12 +947,13 @@ public sealed partial class PdfReadPage {
             wrapText: false);
     }
 
-    private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY) {
-        if (!span.ClipPath.HasValue) {
+    private static bool TryAddClippedTextSpan(OfficeDrawing drawing, PdfTextSpan span, double x, double y, double width, double height, double baselineY, PdfPageClipPath? overrideClipPath = null) {
+        PdfPageClipPath? activeClipPath = overrideClipPath ?? span.ClipPath;
+        if (!activeClipPath.HasValue) {
             return false;
         }
 
-        PdfPageClipPath clip = span.ClipPath.Value;
+        PdfPageClipPath clip = activeClipPath.Value;
         if (clip.Width <= 0D || clip.Height <= 0D) {
             return true;
         }
@@ -970,20 +982,24 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
-        double innerWidth = Math.Max(clip.Width, localX + width);
-        double innerHeight = Math.Max(clip.Height, localY + height);
+        double textX = Math.Max(0D, localX);
+        double textY = Math.Max(0D, localY);
+        double textWidth = Math.Max(1D, width + Math.Min(0D, localX));
+        double textHeight = Math.Max(1D, height + Math.Min(0D, localY));
+        double innerWidth = Math.Max(clip.Width, textX + textWidth);
+        double innerHeight = Math.Max(clip.Height, textY + textHeight);
         var innerDrawing = new OfficeDrawing(innerWidth, innerHeight);
         innerDrawing.AddText(
             span.Text,
-            localX,
-            localY,
-            width,
-            height,
+            textX,
+            textY,
+            textWidth,
+            textHeight,
             ToOfficeFontInfo(span.BaseFont, span.FontSize),
             span.Color ?? OfficeColor.Black,
             rotationDegrees: -span.RotationDegrees,
-            rotationCenterX: x - clip.X,
-            rotationCenterY: baselineY - clip.Y,
+            rotationCenterX: Math.Max(0D, x - clip.X),
+            rotationCenterY: Math.Max(0D, baselineY - clip.Y),
             wrapText: false);
         drawing.AddClippedDrawing(innerDrawing, clip.X, clip.Y, officeClipPath);
         return true;
