@@ -399,13 +399,12 @@ internal static partial class PdfWriter {
                                 consumed += spacingBefore;
                             }
 
-                            if (panelStyle.KeepTogether) {
-                                double textHeight = heights.Sum();
-                                double panelHeight = panelStyle.PaddingY + textHeight + panelStyle.PaddingY;
-                                double availableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
-                                if (panelHeight > availableHeight + 0.001) {
-                                    throw new ArgumentException("Panel height exceeds the available page content height.");
-                                }
+                            double keepTogetherTextHeight = heights.Sum();
+                            double keepTogetherPanelHeight = panelStyle.PaddingY + keepTogetherTextHeight + panelStyle.PaddingY;
+                            double keepTogetherAvailableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                            bool keepPanelTogether = panelStyle.KeepTogether && keepTogetherPanelHeight <= keepTogetherAvailableHeight + 0.001;
+                            if (keepPanelTogether) {
+                                double panelHeight = keepTogetherPanelHeight;
 
                                 if (panelHeight > remain && consumed > 0) break;
                                 if (panelHeight > remain && consumed == 0) { remain = 0; break; }

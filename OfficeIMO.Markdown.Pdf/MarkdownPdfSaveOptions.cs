@@ -17,6 +17,12 @@ public sealed class MarkdownPdfSaveOptions {
     /// <summary>Optional Markdown default font family used by the first-party PDF engine.</summary>
     public string? FontFamily { get; set; }
 
+    /// <summary>
+    /// When true and the converter creates the PDF options, applies OfficeIMO's default document, monospace, symbol, and emoji text fallbacks.
+    /// Set to false only when exact standard-font output is required.
+    /// </summary>
+    public bool UseDefaultTextFallbacks { get; set; } = true;
+
     /// <summary>Markdown reader options used by string and file overloads.</summary>
     public MarkdownReaderOptions? ReaderOptions { get; set; }
 

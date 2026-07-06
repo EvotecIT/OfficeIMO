@@ -66,6 +66,55 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_SaveAsPdf_LongBlockquotePanelSplitsAcrossPages() {
+        string markdown = string.Join("\n", Enumerable.Range(1, 24).Select(index => "> QuoteLine" + index.ToString()));
+        var options = new MarkdownPdfSaveOptions {
+            PdfOptions = new PdfCore.PdfOptions {
+                PageWidth = 180,
+                PageHeight = 130,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20,
+                DefaultFont = PdfCore.PdfStandardFont.Helvetica,
+                DefaultFontSize = 10
+            }
+        };
+
+        byte[] pdfBytes = markdown.SaveAsPdf(options);
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(pdfBytes));
+        string text = PdfCore.PdfReadDocument.Load(pdfBytes).ExtractText();
+
+        Assert.True(pdf.NumberOfPages > 1);
+        Assert.Contains("QuoteLine1", text, StringComparison.Ordinal);
+        Assert.Contains("QuoteLine24", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Markdown_SaveAsPdf_DefaultTextFallbacksCoverCommonSymbolsWhenAvailable() {
+        const string symbol = "\u26A0";
+        PdfCore.PdfEmbeddedFontFallbackSet? fallbackSet = new PdfCore.PdfOptions()
+            .UseTextFallbacks()
+            .EmbeddedFontFallbacks;
+        if (fallbackSet == null ||
+            !fallbackSet.PlanText(symbol).IsFullyCovered) {
+            return;
+        }
+
+        var options = new MarkdownPdfSaveOptions();
+        string markdown = "> Status " + symbol + " marker";
+
+        byte[] pdf = markdown.SaveAsPdf(options);
+        string text = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.Contains("Status", text, StringComparison.Ordinal);
+        Assert.Contains("marker", text, StringComparison.Ordinal);
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "unsupported-text-glyph");
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "missing-embedded-font-fallback-glyph");
+    }
+
+    [Fact]
     public void MarkdownDoc_SaveAsPdf_Renders_SoftBreak_As_Space() {
         var markdown = MarkdownDoc.Create();
         markdown.Add(new ParagraphBlock(new InlineSequence()

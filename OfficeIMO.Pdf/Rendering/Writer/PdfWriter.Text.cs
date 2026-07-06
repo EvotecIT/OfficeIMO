@@ -1225,100 +1225,6 @@ internal static partial class PdfWriter {
     private static bool IsLongTokenDelimiterBreakChar(char value) =>
         Array.IndexOf(LongTokenDelimiterBreakChars, value) >= 0;
 
-    private static System.Collections.Generic.IReadOnlyList<TextRun> NormalizeFallbackRuns(System.Collections.Generic.IEnumerable<TextRun> runs, PdfStandardFont baseFont, PdfOptions? options) {
-        Guard.NotNull(runs, nameof(runs));
-        PdfEmbeddedFontFallbackSet? fallbackSet = options?.EmbeddedFontFallbacksSnapshot;
-        if (fallbackSet == null) {
-            return runs as System.Collections.Generic.IReadOnlyList<TextRun> ?? runs.ToArray();
-        }
-
-        var normalized = new System.Collections.Generic.List<TextRun>();
-        foreach (TextRun run in runs) {
-            if (CanWriteRunWithSelectedFont(run, baseFont, options)) {
-                normalized.Add(run);
-                continue;
-            }
-
-            PdfTextShapingMode shapingMode = options?.TextShapingModeSnapshot ?? PdfTextShapingMode.UnicodeScalar;
-            if (fallbackSet.TryPlanTextRuns(run.Text, out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns, styleTemplate: run, shapingMode: shapingMode) ||
-                TryPlanFallbackRunsPreservingSelectedFont(run, baseFont, options, fallbackSet, out plannedRuns)) {
-                normalized.AddRange(plannedRuns);
-            } else {
-                normalized.Add(run);
-            }
-        }
-
-        return normalized;
-    }
-
-    private static bool TryPlanFallbackRunsPreservingSelectedFont(
-        TextRun run,
-        PdfStandardFont baseFont,
-        PdfOptions? options,
-        PdfEmbeddedFontFallbackSet fallbackSet,
-        out System.Collections.Generic.IReadOnlyList<TextRun> plannedRuns) {
-        plannedRuns = Array.Empty<TextRun>();
-        string text = run.Text ?? string.Empty;
-        if (text.Length == 0 || IsLayoutControlRun(run)) {
-            plannedRuns = new[] { run };
-            return true;
-        }
-
-        PdfStandardFont fontForRun = ResolveFontForRun(run, baseFont);
-        var runs = new System.Collections.Generic.List<TextRun>();
-        int selectedStart = -1;
-
-        void FlushSelected(int endIndex) {
-            if (selectedStart < 0 || endIndex <= selectedStart) {
-                return;
-            }
-
-            runs.Add(CreateStyledTextRun(text.Substring(selectedStart, endIndex - selectedStart), run, run.Font));
-            selectedStart = -1;
-        }
-
-        for (int index = 0; index < text.Length;) {
-            int scalarStart = index;
-            int scalar = ReadScalar(text, ref index);
-            if (scalar == '\n' || scalar == '\r' || scalar == '\t') {
-                FlushSelected(scalarStart);
-                if (scalar == '\t') {
-                    runs.Add(TextRun.Tab(run.TabLeader, run.TabAlignment));
-                } else {
-                    runs.Add(TextRun.LineBreak());
-                    if (scalar == '\r' && index < text.Length && text[index] == '\n') {
-                        index++;
-                    }
-                }
-
-                continue;
-            }
-
-            if (TryGetSelectedTextLength(text, scalarStart, fontForRun, options, out int selectedLength)) {
-                if (selectedStart < 0) {
-                    selectedStart = scalarStart;
-                }
-
-                index = scalarStart + selectedLength;
-                continue;
-            }
-
-            FlushSelected(scalarStart);
-            string scalarText = text.Substring(scalarStart, index - scalarStart);
-            PdfTextShapingMode shapingMode = options?.TextShapingModeSnapshot ?? PdfTextShapingMode.UnicodeScalar;
-            if (!fallbackSet.TryPlanTextRuns(scalarText, out System.Collections.Generic.IReadOnlyList<TextRun> fallbackRuns, styleTemplate: run, shapingMode: shapingMode)) {
-                plannedRuns = Array.Empty<TextRun>();
-                return false;
-            }
-
-            runs.AddRange(fallbackRuns);
-        }
-
-        FlushSelected(text.Length);
-        plannedRuns = runs.AsReadOnly();
-        return true;
-    }
-
     private static TextRun CreateStyledTextRun(string text, TextRun styleTemplate, PdfStandardFont? font) {
         bool keepLink = !string.IsNullOrWhiteSpace(text) &&
             (styleTemplate.LinkUri != null || styleTemplate.LinkDestinationName != null);
@@ -1346,6 +1252,10 @@ internal static partial class PdfWriter {
         }
 
         PdfStandardFont fontForRun = ResolveFontForRun(run, baseFont);
+        return CanWriteTextWithSelectedFont(text, fontForRun, options);
+    }
+
+    private static bool CanWriteTextWithSelectedFont(string text, PdfStandardFont fontForRun, PdfOptions? options) {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
@@ -1370,25 +1280,6 @@ internal static partial class PdfWriter {
                 : run.Italic
                     ? ChooseItalic(runBaseFont)
                     : runBaseFont;
-    }
-
-    private static bool TryGetSelectedTextLength(string text, int index, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
-        if (options != null &&
-            options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
-            fontProgram != null) {
-            return TryGetCoveredTextLength(text, index, fontProgram, options.TextShapingModeSnapshot, out length);
-        }
-
-        if (options != null &&
-            options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
-            cffFontProgram != null) {
-            return TryGetCoveredTextLength(text, index, cffFontProgram, options.TextShapingModeSnapshot, out length);
-        }
-
-        int endIndex = index;
-        _ = ReadScalar(text, ref endIndex);
-        length = endIndex - index;
-        return PdfWinAnsiEncoding.CanEncode(text.Substring(index, length), out _);
     }
 
     private static bool CanWriteWithEmbeddedFont(string text, PdfTrueTypeFontProgram fontProgram, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {

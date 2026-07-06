@@ -75,14 +75,18 @@ public static partial class MarkdownPdfConverterExtensions {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
         pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Markdown.Pdf");
 
-        if (!string.IsNullOrWhiteSpace(options.FontFamily)) {
+        bool hasExplicitFontFamily = !string.IsNullOrWhiteSpace(options.FontFamily);
+        if (hasExplicitFontFamily) {
             pdfOptions.TryUseOfficeFontFamily(options.FontFamily);
-        } else if (options.PdfOptions == null) {
-            pdfOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
         }
 
-        if (options.PdfOptions == null) {
-            pdfOptions.TryRegisterDefaultDocumentMonospaceFontFallback();
+        if (options.PdfOptions == null && options.UseDefaultTextFallbacks) {
+            PdfCore.PdfTextFallbackFeatures fallbackFeatures = PdfCore.PdfTextFallbackFeatures.Default;
+            if (hasExplicitFontFamily) {
+                fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
+            }
+
+            pdfOptions.UseTextFallbacks(fallbackFeatures);
         }
 
         if (options.CreateOutlineFromHeadings) {

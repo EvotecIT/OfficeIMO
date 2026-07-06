@@ -44,7 +44,7 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            HashSet<PdfCore.PdfStandardFont> registeredFontSlots = CreateRegisteredFontSlots(pdfOptions, preserveConfiguredFontSlots);
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
                 ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
                 if (styles == null) {
@@ -62,40 +62,9 @@ namespace OfficeIMO.Excel.Pdf {
         }
 
         private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
-            if (string.IsNullOrWhiteSpace(familyName)) {
-                return;
+            if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
+                pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, embedSystemFont: true, out _);
             }
-
-            string trimmedFamilyName = familyName!.Trim();
-            if (!registeredFamilies.Add(trimmedFamilyName)) {
-                return;
-            }
-
-            if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont standardFont)) {
-                PdfCore.PdfStandardFont fontFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(standardFont);
-                if (registeredFontSlots.Add(fontFamily)) {
-                    pdfOptions.RegisterOfficeFontFamily(trimmedFamilyName, fontFamily);
-                }
-            }
-        }
-
-        private static HashSet<PdfCore.PdfStandardFont> CreateRegisteredFontSlots(PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots) {
-            var registeredFontSlots = new HashSet<PdfCore.PdfStandardFont>();
-            if (preserveConfiguredFontSlots) {
-                AddRegisteredFontSlot(registeredFontSlots, pdfOptions.DefaultFont);
-                AddRegisteredFontSlot(registeredFontSlots, pdfOptions.HeaderFont);
-                AddRegisteredFontSlot(registeredFontSlots, pdfOptions.FooterFont);
-            }
-
-            foreach (PdfCore.PdfStandardFont embeddedFont in pdfOptions.EmbeddedFonts.Keys) {
-                AddRegisteredFontSlot(registeredFontSlots, embeddedFont);
-            }
-
-            return registeredFontSlots;
-        }
-
-        private static void AddRegisteredFontSlot(HashSet<PdfCore.PdfStandardFont> registeredFontSlots, PdfCore.PdfStandardFont font) {
-            registeredFontSlots.Add(PdfCore.PdfStandardFontMapper.GetFontFamily(font));
         }
 
         private static IReadOnlyList<WorksheetPdfExportPlan> BuildWorksheetExportPlans(ExcelDocument document, ExcelDocumentReader reader, IReadOnlyList<string> sheetNames, ExcelPdfSaveOptions options, bool hasExplicitSheetSelection, PdfCore.PdfStandardFont defaultFontFamily) {

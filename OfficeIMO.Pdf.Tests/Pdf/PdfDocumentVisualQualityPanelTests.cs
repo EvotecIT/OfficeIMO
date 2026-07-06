@@ -252,6 +252,42 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void PanelParagraph_KeepTogetherOversizedContentSplitsAcrossPages() {
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 180,
+                PageHeight = 130,
+                MarginLeft = 20,
+                MarginRight = 20,
+                MarginTop = 20,
+                MarginBottom = 20,
+                DefaultFont = PdfStandardFont.Helvetica,
+                DefaultFontSize = 10
+            })
+            .PanelParagraph(paragraph => {
+                for (int index = 1; index <= 16; index++) {
+                    if (index > 1) {
+                        paragraph.LineBreak();
+                    }
+
+                    paragraph.Text("PanelLine" + index.ToString(CultureInfo.InvariantCulture));
+                }
+            }, new PanelStyle {
+                KeepTogether = true,
+                PaddingY = 6,
+                BorderWidth = 0.5,
+                SpacingAfter = 0
+            })
+            .ToBytes();
+
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = PdfReadDocument.Load(bytes).ExtractText();
+
+        Assert.True(pdf.NumberOfPages > 1);
+        Assert.Contains("PanelLine1", text, StringComparison.Ordinal);
+        Assert.Contains("PanelLine16", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void PanelParagraph_RejectsVerticalPaddingThatCannotFitFirstLine() {
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfOptions {

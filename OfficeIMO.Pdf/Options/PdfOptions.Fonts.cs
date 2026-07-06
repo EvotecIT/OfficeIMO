@@ -6,6 +6,11 @@ namespace OfficeIMO.Pdf;
 public sealed partial class PdfOptions {
     private static readonly char[] OfficeFontFamilySeparators = { ',', ';' };
     private static readonly char[] OfficeFontFamilyTrimChars = { ' ', '\t', '"', '\'' };
+    private static readonly PdfStandardFont[] AdditionalFontFamilySlotPreference = {
+        PdfStandardFont.TimesRoman,
+        PdfStandardFont.Courier,
+        PdfStandardFont.Helvetica
+    };
     private PdfEmbeddedFontFallbackSet? _embeddedFontFallbacks;
 
     /// <summary>
@@ -78,6 +83,105 @@ public sealed partial class PdfOptions {
     public bool HasEmbeddedStandardFontFamily(PdfStandardFont font) {
         Guard.StandardFont(font, nameof(font), "PDF embedded font lookup must target one of the supported standard PDF fonts.");
         return _embeddedFonts != null && _embeddedFonts.ContainsKey(PdfStandardFontMapper.GetFontFamily(font));
+    }
+
+    internal HashSet<PdfStandardFont> CreateRegisteredFontFamilySlots(bool includeDocumentFontSlots) {
+        var registeredFontSlots = new HashSet<PdfStandardFont>();
+        if (includeDocumentFontSlots) {
+            AddRegisteredFontFamilySlot(registeredFontSlots, DefaultFont);
+            AddRegisteredFontFamilySlot(registeredFontSlots, HeaderFont);
+            AddRegisteredFontFamilySlot(registeredFontSlots, FooterFont);
+        }
+
+        foreach (PdfStandardFont embeddedFont in EmbeddedFonts.Keys) {
+            AddRegisteredFontFamilySlot(registeredFontSlots, embeddedFont);
+        }
+
+        return registeredFontSlots;
+    }
+
+    internal static void AddRegisteredFontFamilySlot(HashSet<PdfStandardFont> registeredFontSlots, PdfStandardFont font) {
+        Guard.NotNull(registeredFontSlots, nameof(registeredFontSlots));
+        registeredFontSlots.Add(PdfStandardFontMapper.GetFontFamily(font));
+    }
+
+    internal static bool TryAddOfficeFontFamilyKey(
+        string? familyName,
+        HashSet<string> registeredFamilies,
+        Func<string, string>? normalizeKey,
+        out string trimmedFamilyName) {
+        Guard.NotNull(registeredFamilies, nameof(registeredFamilies));
+        trimmedFamilyName = string.Empty;
+        if (string.IsNullOrWhiteSpace(familyName)) {
+            return false;
+        }
+
+        trimmedFamilyName = familyName!.Trim();
+        string key = normalizeKey == null ? trimmedFamilyName : normalizeKey(trimmedFamilyName);
+        return registeredFamilies.Add(key);
+    }
+
+    internal bool TryRegisterMappedOfficeFontFamily(
+        string familyName,
+        HashSet<PdfStandardFont> registeredFontSlots,
+        bool embedSystemFont,
+        out PdfStandardFont fontFamily) {
+        Guard.NotNull(registeredFontSlots, nameof(registeredFontSlots));
+        fontFamily = PdfStandardFont.Helvetica;
+        if (!PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfStandardFont standardFont)) {
+            return false;
+        }
+
+        fontFamily = PdfStandardFontMapper.GetFontFamily(standardFont);
+        if (registeredFontSlots.Add(fontFamily)) {
+            RegisterOfficeFontFamily(familyName, fontFamily, embedSystemFont);
+        }
+
+        return true;
+    }
+
+    internal static bool TrySelectAvailableFontFamilySlot(string familyName, HashSet<PdfStandardFont> registeredFontSlots, out PdfStandardFont fontSlot) {
+        Guard.NotNull(registeredFontSlots, nameof(registeredFontSlots));
+        if (PdfStandardFontMapper.TryMapFontFamily(familyName, out PdfStandardFont mappedFont)) {
+            PdfStandardFont mappedFamily = PdfStandardFontMapper.GetFontFamily(mappedFont);
+            if (!registeredFontSlots.Contains(mappedFamily)) {
+                fontSlot = mappedFamily;
+                return true;
+            }
+        }
+
+        foreach (PdfStandardFont candidate in AdditionalFontFamilySlotPreference) {
+            PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(candidate);
+            if (!registeredFontSlots.Contains(family)) {
+                fontSlot = family;
+                return true;
+            }
+        }
+
+        fontSlot = PdfStandardFont.Helvetica;
+        return false;
+    }
+
+    internal IEnumerable<PdfStandardFont> GetAvailableEmbeddedFallbackFontSlots(int count, IEnumerable<PdfStandardFont> reservedFontSlots) {
+        Guard.NotNull(reservedFontSlots, nameof(reservedFontSlots));
+        var reservedSlots = CreateRegisteredFontFamilySlots(includeDocumentFontSlots: true);
+        foreach (PdfStandardFont slot in reservedFontSlots) {
+            AddRegisteredFontFamilySlot(reservedSlots, slot);
+        }
+
+        foreach (PdfStandardFont slot in AdditionalFontFamilySlotPreference) {
+            PdfStandardFont family = PdfStandardFontMapper.GetFontFamily(slot);
+            if (reservedSlots.Contains(family) ||
+                HasEmbeddedStandardFontFamily(family)) {
+                continue;
+            }
+
+            yield return family;
+            count--;
+            if (count == 0) {
+                yield break;
+            }
+        }
     }
 
     private bool TryUseOfficeFontFamilyCore(string? familyName, bool embedSystemFont, bool requireEmbeddedFont) {
