@@ -39,9 +39,126 @@ internal static partial class CsvParser
         Span<TextQuoteAwareFieldSpan> fields = stackalloc TextQuoteAwareFieldSpan[TextQuoteAwareFieldSpanCapacity];
         var fieldStart = recordStart;
         var quoteCount = 0;
-        var index = recordStart;
-        var end = text.Length - 32;
+        return ContinueTextQuoteAwareRecordFieldSpansAvx2(
+            text,
+            delimiter,
+            allowEmpty,
+            emitFields,
+            recordIndex,
+            recordStart,
+            recordStart,
+            ref fieldStart,
+            ref quoteCount,
+            fields,
+            ref fieldCount,
+            ref position,
+            ref fieldVisitor,
+            ref scratch,
+            out firstFieldLength);
+    }
 
+    private static bool TryReadTextQuoteAwareRecordFieldSpansAvx2FromCurrentChunk<TVisitor>(
+        ReadOnlySpan<char> text,
+        char delimiter,
+        bool allowEmpty,
+        bool emitFields,
+        int recordIndex,
+        int recordStart,
+        int chunkStart,
+        uint delimiterMask,
+        uint quoteMask,
+        uint carriageReturnMask,
+        uint lineFeedMask,
+        ref int position,
+        ref TVisitor fieldVisitor,
+        ref char[]? scratch,
+        out int fieldCount,
+        out int firstFieldLength)
+        where TVisitor : struct, ICsvFieldSpanVisitor
+    {
+        fieldCount = 0;
+        firstFieldLength = 0;
+        if (!Avx2.IsSupported || delimiter > byte.MaxValue)
+        {
+            return false;
+        }
+
+        Span<TextQuoteAwareFieldSpan> fields = stackalloc TextQuoteAwareFieldSpan[TextQuoteAwareFieldSpanCapacity];
+        var fieldStart = recordStart;
+        var quoteCount = 0;
+        var specialMask = delimiterMask | quoteMask | carriageReturnMask | lineFeedMask;
+        if (!ProcessTextQuoteAwareMask(
+            text,
+            specialMask,
+            delimiterMask,
+            quoteMask,
+            carriageReturnMask,
+            lineFeedMask,
+            chunkStart,
+            ref fieldStart,
+            ref quoteCount,
+            fields,
+            ref fieldCount,
+            out var recordEnd,
+            out var nextPosition))
+        {
+            return false;
+        }
+
+        if (recordEnd >= 0)
+        {
+            return CompleteTextQuoteAwareRecord(
+                text,
+                fields.Slice(0, fieldCount),
+                allowEmpty,
+                emitFields,
+                recordIndex,
+                recordStart,
+                nextPosition,
+                ref position,
+                ref fieldVisitor,
+                ref scratch,
+                out firstFieldLength);
+        }
+
+        return ContinueTextQuoteAwareRecordFieldSpansAvx2(
+            text,
+            delimiter,
+            allowEmpty,
+            emitFields,
+            recordIndex,
+            recordStart,
+            chunkStart + 32,
+            ref fieldStart,
+            ref quoteCount,
+            fields,
+            ref fieldCount,
+            ref position,
+            ref fieldVisitor,
+            ref scratch,
+            out firstFieldLength);
+    }
+
+    private static bool ContinueTextQuoteAwareRecordFieldSpansAvx2<TVisitor>(
+        ReadOnlySpan<char> text,
+        char delimiter,
+        bool allowEmpty,
+        bool emitFields,
+        int recordIndex,
+        int recordStart,
+        int index,
+        ref int fieldStart,
+        ref int quoteCount,
+        Span<TextQuoteAwareFieldSpan> fields,
+        ref int fieldCount,
+        ref int position,
+        ref TVisitor fieldVisitor,
+        ref char[]? scratch,
+        out int firstFieldLength)
+        where TVisitor : struct, ICsvFieldSpanVisitor
+    {
+        firstFieldLength = 0;
+        var end = text.Length - 32;
         var delimiterVector = Vector256.Create((byte)delimiter);
         var quoteVector = Vector256.Create((byte)'"');
         var carriageReturnVector = Vector256.Create((byte)'\r');

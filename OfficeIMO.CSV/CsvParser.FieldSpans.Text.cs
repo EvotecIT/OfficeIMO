@@ -252,13 +252,18 @@ internal static partial class CsvParser
                 {
                     encounteredQuote = true;
                     if (delimiterCount <= 2 &&
-                        TryReadTextQuoteAwareRecordFieldSpansAvx2(
+                        TryReadTextQuoteAwareRecordFieldSpansAvx2FromCurrentChunk(
                             text,
                             delimiter,
                             allowEmpty,
                             emitFields,
                             recordIndex,
                             start,
+                            pos,
+                            delimiterMask,
+                            quoteMask,
+                            carriageReturnMask,
+                            lineFeedMask,
                             ref position,
                             ref fieldVisitor,
                             ref scratch,
