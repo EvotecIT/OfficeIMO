@@ -50,12 +50,12 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return width;
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
         }
 
-        return ShapeText(text!, shapingMode).TotalAdvanceWidth1000 * fontSize / 1000D;
+        return ShapeText(text!, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).TotalAdvanceWidth1000 * fontSize / 1000D;
     }
 
     public double GetAscender(double fontSize) =>
@@ -79,9 +79,14 @@ internal sealed partial class PdfTrueTypeFontProgram {
         return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
     }
 
-    public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
         Guard.NotNull(text, nameof(text));
-        return ShapeText(text, shapingMode).ToGlyphHex();
+        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider)).ToGlyphHex();
+    }
+
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IPdfTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder) {
+        Guard.NotNull(text, nameof(text));
+        return ShapeText(text, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder)).ToGlyphHex();
     }
 
     internal PdfGlyphRun ShapeText(string text) {
@@ -96,6 +101,10 @@ internal sealed partial class PdfTrueTypeFontProgram {
 
     internal PdfGlyphRun ShapeText(string text, PdfTextShapingOptions options) {
         Guard.NotNull(text, nameof(text));
+        if (PdfExternalTextShaper.TryShapeText(text, this, options, out PdfGlyphRun glyphRun)) {
+            return glyphRun;
+        }
+
         return PdfUnicodeScalarTextShaper.Instance.ShapeText(text, this, options);
     }
 

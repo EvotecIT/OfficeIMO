@@ -84,6 +84,46 @@ public class RtfPdfConverterTests {
     }
 
     [Fact]
+    public void RtfDocument_ToPdfDocumentResult_ReturnsPdfDocumentAndReportSnapshot() {
+        RtfDocument document = RtfDocument.Create();
+        document.AddHeader().AddParagraph("Skipped header");
+        RtfParagraph paragraph = document.AddParagraph();
+        paragraph.AddText("Visible ");
+        paragraph.AddText("Hidden").SetHidden();
+        paragraph.AddFootnote("1", "Skipped note");
+        document.AddTable(1, 1).Rows[0].Cells[0].AddParagraph("Skipped table");
+        document.AddImage(RtfImageFormat.Emf, new byte[] { 0x01, 0x02, 0x03 });
+
+        var options = new RtfPdfSaveOptions {
+            IncludeHeaderFooters = false,
+            IncludeNotes = false,
+            IncludeTables = false
+        };
+
+        PdfCore.PdfDocumentConversionResult result = document.ToPdfDocumentResult(options);
+        PdfCore.PdfDocument processed = result.Document.AppendMetadataRevision(title: "Processed RTF PDF");
+
+        options.ConversionReport.Clear();
+
+        Assert.True(result.HasWarnings);
+        Assert.Contains(result.Warnings, warning => warning.Converter == "OfficeIMO.Rtf.Pdf" && warning.Code == "HeaderFooterSkipped");
+        Assert.Contains(result.Warnings, warning => warning.Code == "HiddenTextSkipped");
+        Assert.Contains(result.Warnings, warning => warning.Code == "NotesSkipped");
+        Assert.Contains(result.Warnings, warning => warning.Code == "TableSkipped");
+        PdfCore.PdfConversionWarning imageWarning = Assert.Single(result.Warnings, warning => warning.Code == "UnsupportedImage");
+        Assert.Equal("Emf", imageWarning.Details["Format"]);
+        Assert.False(options.ConversionReport.HasWarnings);
+        Assert.Equal("Processed RTF PDF", processed.Inspect().Metadata.Title);
+
+        string text = PdfCore.PdfReadDocument.Load(result.ToBytes()).ExtractText();
+        Assert.Contains("Visible", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Hidden", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Skipped note", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Skipped table", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("Skipped header", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RtfDocument_ToPdfDocument_Renders_Tables() {
         RtfDocument document = RtfDocument.Create();
         RtfTable table = document.AddTable(2, 2);

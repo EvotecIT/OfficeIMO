@@ -56,8 +56,9 @@ public static partial class PdfFormFiller {
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         int? acroFormQuadding = ReadFieldQuadding(objects, acroForm, null);
         PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
+        string? acroFormDefaultAppearance = TryReadText(objects, acroForm, "DA");
         for (int i = 0; i < fields.Items.Count; i++) {
-            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, acroFormDefaultResources, null, fieldValues, options, remaining, new HashSet<int>(), ref nextObjectNumber);
+            FillField(objects, fields.Items[i], null, null, 0, acroFormQuadding, null, acroFormDefaultResources, acroFormDefaultAppearance, null, fieldValues, options, remaining, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (remaining.Count > 0) {
@@ -290,10 +291,11 @@ public static partial class PdfFormFiller {
 
         int nextObjectNumber = objects.Keys.Count == 0 ? 1 : objects.Keys.Max() + 1;
         PdfDictionary? acroFormDefaultResources = TryReadDefaultResources(objects, acroForm);
+        string? acroFormDefaultAppearance = TryReadText(objects, acroForm, "DA");
         var widgets = new Dictionary<int, FlattenWidgetState>();
         var removableObjects = new HashSet<int>();
         for (int i = 0; i < fields.Items.Count; i++) {
-            CollectFlattenWidgets(objects, fields.Items[i], null, 0, null, acroFormDefaultResources, null, null, null, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
+            CollectFlattenWidgets(objects, fields.Items[i], null, 0, null, acroFormDefaultResources, acroFormDefaultAppearance, null, null, null, null, options, widgets, removableObjects, new HashSet<int>(), ref nextObjectNumber);
         }
 
         if (widgets.Count == 0) {

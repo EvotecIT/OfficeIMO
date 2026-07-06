@@ -80,6 +80,7 @@ public sealed partial class PdfLogicalDocument {
         IReadOnlyList<PdfFormField> formFields,
         string? acroFormDefaultAppearance,
         int? acroFormQuadding,
+        PdfAcroFormXfaInfo? acroFormXfa,
         bool? acroFormNeedAppearances,
         int? acroFormSignatureFlags,
         PdfDocumentSecurityInfo security,
@@ -103,6 +104,7 @@ public sealed partial class PdfLogicalDocument {
         FormFields = formFields;
         AcroFormDefaultAppearance = acroFormDefaultAppearance;
         AcroFormQuadding = acroFormQuadding;
+        AcroFormXfa = acroFormXfa;
         AcroFormNeedAppearances = acroFormNeedAppearances;
         AcroFormSignatureFlags = acroFormSignatureFlags;
         Security = security;
@@ -173,6 +175,12 @@ public sealed partial class PdfLogicalDocument {
 
     /// <summary>Common AcroForm default text alignment inferred from /Q quadding.</summary>
     public PdfFormFieldTextAlignment AcroFormTextAlignment => ToTextAlignment(AcroFormQuadding);
+
+    /// <summary>AcroForm XFA packet metadata when /AcroForm /XFA is present.</summary>
+    public PdfAcroFormXfaInfo? AcroFormXfa { get; }
+
+    /// <summary>True when the AcroForm contains an XFA packet entry.</summary>
+    public bool HasAcroFormXfa => AcroFormXfa is not null;
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }
@@ -978,6 +986,7 @@ public sealed partial class PdfLogicalDocument {
             formFields,
             document.AcroFormDefaultAppearance,
             document.AcroFormQuadding,
+            document.AcroFormXfa,
             document.AcroFormNeedAppearances,
             document.AcroFormSignatureFlags,
             document.Security,

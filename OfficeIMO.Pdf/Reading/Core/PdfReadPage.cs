@@ -170,7 +170,40 @@ public sealed partial class PdfReadPage {
             TryGetString(annotation.Items.TryGetValue("T", out var titleObject) ? titleObject : null, out string? title);
             TryGetString(annotation.Items.TryGetValue("M", out var modifiedObject) ? modifiedObject : null, out string? modified);
             IReadOnlyList<double> color = ReadNumberArray(annotation.Items.TryGetValue("C", out var colorObject) ? colorObject : null);
-            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color));
+            ReadFreeTextAppearanceMetadata(
+                annotation,
+                subtype!,
+                out string? defaultAppearance,
+                out string? defaultStyle,
+                out string? richContents,
+                out string? richContentsPlainText,
+                out double? effectiveFontSize,
+                out PdfColor? effectiveTextColor,
+                out PdfAlign? effectiveTextAlign);
+            ReadAnnotationVisualStyleMetadata(
+                annotation,
+                subtype!,
+                rect.X2 - rect.X1,
+                rect.Y2 - rect.Y1,
+                out IReadOnlyList<double> interiorColor,
+                out double? opacity,
+                out double? borderWidth,
+                out string? borderStyle,
+                out IReadOnlyList<double> borderDashPattern,
+                out string? borderEffectStyle,
+                out double? borderEffectIntensity,
+                out IReadOnlyList<double> rectangleDifferences,
+                out IReadOnlyList<double> calloutLine,
+                out string? calloutLineEnding,
+                out string? lineStartEnding,
+                out string? lineEndEnding);
+            ReadAnnotationPathGeometryMetadata(
+                annotation,
+                out IReadOnlyList<double> quadPoints,
+                out IReadOnlyList<double> lineCoordinates,
+                out IReadOnlyList<double> vertices,
+                out IReadOnlyList<IReadOnlyList<double>> inkList);
+            result.Add(new PdfAnnotation(objectNumber, null, subtype!, contents, rect.X1, rect.Y1, rect.X2, rect.Y2, hasNormalAppearance, actionType, additionalActions, chainedActions, flags, name, title, modified, color, defaultAppearance, defaultStyle, richContents, richContentsPlainText, effectiveFontSize, effectiveTextColor, effectiveTextAlign, interiorColor, opacity, borderWidth, borderStyle, borderDashPattern, borderEffectStyle, borderEffectIntensity, rectangleDifferences, calloutLine, calloutLineEnding, lineStartEnding, lineEndEnding, quadPoints, lineCoordinates, vertices, inkList));
         }
 
         return result.Count == 0 ? Array.Empty<PdfAnnotation>() : result.AsReadOnly();
@@ -623,6 +656,54 @@ public sealed partial class PdfReadPage {
         }
 
         return null;
+    }
+
+    private void ReadFreeTextAppearanceMetadata(
+        PdfDictionary annotation,
+        string subtype,
+        out string? defaultAppearance,
+        out string? defaultStyle,
+        out string? richContents,
+        out string? richContentsPlainText,
+        out double? effectiveFontSize,
+        out PdfColor? effectiveTextColor,
+        out PdfAlign? effectiveTextAlign) {
+        defaultAppearance = null;
+        defaultStyle = null;
+        richContents = null;
+        richContentsPlainText = null;
+        effectiveFontSize = null;
+        effectiveTextColor = null;
+        effectiveTextAlign = null;
+        if (!string.Equals(subtype, "FreeText", StringComparison.Ordinal)) {
+            return;
+        }
+
+        TryGetString(annotation.Items.TryGetValue("DA", out PdfObject? defaultAppearanceObject) ? defaultAppearanceObject : null, out defaultAppearance);
+        TryGetString(annotation.Items.TryGetValue("DS", out PdfObject? defaultStyleObject) ? defaultStyleObject : null, out defaultStyle);
+        TryGetString(annotation.Items.TryGetValue("RC", out PdfObject? richContentsObject) ? richContentsObject : null, out richContents);
+        richContentsPlainText = PdfFreeTextStyleParser.ExtractPlainText(richContents);
+        PdfFreeTextDefaultStyle parsedDefaultStyle = PdfFreeTextStyleParser.ParseDefaultStyle(defaultStyle);
+        effectiveFontSize = PdfDefaultAppearanceParser.TryReadFontSize(defaultAppearance, out double defaultAppearanceFontSize)
+            ? defaultAppearanceFontSize
+            : parsedDefaultStyle.FontSize;
+        effectiveTextColor = PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out PdfColor defaultAppearanceTextColor)
+            ? defaultAppearanceTextColor
+            : parsedDefaultStyle.TextColor;
+        effectiveTextAlign = TryReadFreeTextAlignment(annotation, parsedDefaultStyle.TextAlign);
+    }
+
+    private PdfAlign? TryReadFreeTextAlignment(PdfDictionary annotation, PdfAlign? defaultAlignment) {
+        int? alignment = TryReadInteger(annotation.Items.TryGetValue("Q", out PdfObject? alignmentObject) ? alignmentObject : null);
+        if (!alignment.HasValue) {
+            return defaultAlignment;
+        }
+
+        return alignment.Value == 1
+            ? PdfAlign.Center
+            : alignment.Value == 2
+                ? PdfAlign.Right
+                : PdfAlign.Left;
     }
 
     private IReadOnlyList<double> ReadNumberArray(PdfObject? obj) {

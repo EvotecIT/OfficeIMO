@@ -17,6 +17,22 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
+    /// Combines generated-document compliance readiness for the configured profile with external validator evidence.
+    /// </summary>
+    public PdfComplianceProofReport AssessComplianceProof(IEnumerable<PdfExternalValidationResult>? externalValidations = null) =>
+        AssessComplianceProof(_options.ComplianceProfile, externalValidations);
+
+    /// <summary>
+    /// Combines generated-document compliance readiness for a formal profile with external validator evidence.
+    /// </summary>
+    /// <param name="profile">Compliance profile to assess without enabling formal profile generation.</param>
+    /// <param name="externalValidations">Optional external validator results to combine with OfficeIMO.Pdf readiness evidence.</param>
+    public PdfComplianceProofReport AssessComplianceProof(PdfComplianceProfile profile, IEnumerable<PdfExternalValidationResult>? externalValidations = null) {
+        PdfComplianceReadinessReport readiness = AssessCompliance(profile);
+        return PdfComplianceAnalyzer.AssessProof(readiness, externalValidations);
+    }
+
+    /// <summary>
     /// Renders the document into a PDF byte array in memory.
     /// </summary>
     public byte[] ToBytes() {

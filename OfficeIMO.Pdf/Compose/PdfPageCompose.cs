@@ -277,6 +277,8 @@ public class PdfPageCompose {
     public PdfPageCompose UseFontFamily(string familyName, byte[] regular, byte[]? bold = null, byte[]? italic = null, byte[]? boldItalic = null) { Options.UseFontFamily(familyName, regular, bold, italic, boldItalic); return this; }
     /// <summary>Uses caller-supplied TrueType font files for this composed page or section.</summary>
     public PdfPageCompose UseFontFamily(string familyName, string regularPath, string? boldPath = null, string? italicPath = null, string? boldItalicPath = null) { Options.UseFontFamily(familyName, regularPath, boldPath, italicPath, boldItalicPath); return this; }
+    /// <summary>Sets or clears the page-scoped generated text line-break callback used for long unspaced tokens.</summary>
+    public PdfPageCompose TextLineBreaks(PdfTextLineBreakCallback? callback) { Options.SetTextLineBreaks(callback); return this; }
     /// <summary>Sets or clears the page-scoped generated text hyphenation callback used for long unspaced tokens.</summary>
     public PdfPageCompose TextHyphenation(PdfTextHyphenationCallback? callback) { Options.SetTextHyphenation(callback); return this; }
     /// <summary>Configures default text style for the page.</summary>

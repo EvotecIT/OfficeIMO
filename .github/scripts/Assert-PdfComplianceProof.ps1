@@ -19,6 +19,75 @@ function Assert-Condition {
     }
 }
 
+function Get-ExpectedProductProofValidators {
+    param(
+        [Parameter(Mandatory = $true)]
+        [string] $Profile
+    )
+
+    switch ($Profile) {
+        'PdfA3B' { return @('VeraPdf') }
+        'PdfUa1' { return @('PdfUaValidator') }
+        'FacturX' { return @('VeraPdf', 'Mustang') }
+        'Zugferd' { return @('VeraPdf', 'Mustang') }
+        default { throw "No expected external validator contract is defined for product proof profile $Profile." }
+    }
+}
+
+function Assert-ProductProofContractProfile {
+    param(
+        [Parameter(Mandatory = $true)]
+        $Entry,
+
+        [Parameter(Mandatory = $true)]
+        [string] $ExpectedProfile,
+
+        [Parameter(Mandatory = $true)]
+        [string] $SourceName
+    )
+
+    $validProductProofStatuses = @('Missing', 'NotRun', 'Passed', 'Failed', 'Error')
+    $expectedValidators = @(Get-ExpectedProductProofValidators -Profile $ExpectedProfile)
+    $requiredExternalValidators = @($Entry.requiredExternalValidators)
+    $externalValidatorProofs = @($Entry.externalValidatorProofs)
+
+    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($Entry.displayName)) -Message "Product proof contract row $ExpectedProfile in $SourceName is missing displayName."
+    Assert-Condition -Condition ($Entry.PSObject.Properties.Name -contains 'hasRequiredExternalValidation') -Message "Product proof contract row $ExpectedProfile in $SourceName is missing hasRequiredExternalValidation."
+    Assert-Condition -Condition ($Entry.PSObject.Properties.Name -contains 'canClaimConformance') -Message "Product proof contract row $ExpectedProfile in $SourceName is missing canClaimConformance."
+    Assert-Condition -Condition ($Entry.PSObject.Properties.Name -contains 'failedExternalValidationCount') -Message "Product proof contract row $ExpectedProfile in $SourceName is missing failedExternalValidationCount."
+    Assert-Condition -Condition ($requiredExternalValidators.Count -eq $expectedValidators.Count) -Message "Product proof contract row $ExpectedProfile in $SourceName has $($requiredExternalValidators.Count) required validators, expected $($expectedValidators.Count)."
+    Assert-Condition -Condition ($externalValidatorProofs.Count -eq $expectedValidators.Count) -Message "Product proof contract row $ExpectedProfile in $SourceName has $($externalValidatorProofs.Count) external validator proof rows, expected $($expectedValidators.Count)."
+
+    foreach ($expectedValidator in $expectedValidators) {
+        Assert-Condition -Condition ($requiredExternalValidators -contains $expectedValidator) -Message "Product proof contract row $ExpectedProfile in $SourceName is missing required validator $expectedValidator."
+
+        $validatorProof = @($externalValidatorProofs | Where-Object { $_.validatorKind -eq $expectedValidator })
+        Assert-Condition -Condition ($validatorProof.Count -eq 1) -Message "Product proof contract row $ExpectedProfile in $SourceName must contain one $expectedValidator validator proof row."
+
+        $row = $validatorProof[0]
+        $status = [string] $row.status
+        Assert-Condition -Condition ($validProductProofStatuses -contains $status) -Message "Product proof contract row $ExpectedProfile in $SourceName has invalid $expectedValidator status $status."
+        Assert-Condition -Condition ($row.PSObject.Properties.Name -contains 'isSatisfied') -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator proof is missing isSatisfied."
+        Assert-Condition -Condition ($row.PSObject.Properties.Name -contains 'blocksConformanceClaim') -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator proof is missing blocksConformanceClaim."
+        Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($row.validatorName)) -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator proof is missing validatorName."
+        Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($row.diagnostic)) -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator proof is missing diagnostic."
+        Assert-Condition -Condition ($row.PSObject.Properties.Name -contains 'profile') -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator proof is missing profile."
+        Assert-Condition -Condition ($row.PSObject.Properties.Name -contains 'exitCode') -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator proof is missing exitCode."
+
+        if ($status -eq 'Passed') {
+            Assert-Condition -Condition ($row.isSatisfied -eq $true) -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator passed proof must be satisfied."
+            Assert-Condition -Condition ($row.blocksConformanceClaim -eq $false) -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator passed proof must not block a claim."
+        } else {
+            Assert-Condition -Condition ($row.isSatisfied -eq $false) -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator non-passing proof must not be satisfied."
+            Assert-Condition -Condition ($row.blocksConformanceClaim -eq $true) -Message "Product proof contract row $ExpectedProfile in $SourceName $expectedValidator non-passing proof must block a claim."
+        }
+    }
+
+    Assert-Condition -Condition ($Entry.hasRequiredExternalValidation -eq $false) -Message "Product proof contract row $ExpectedProfile in $SourceName must not have required external validation in groundwork proof."
+    Assert-Condition -Condition ($Entry.canClaimConformance -eq $false) -Message "Product proof contract row $ExpectedProfile in $SourceName must not claim conformance."
+    Assert-Condition -Condition (@($Entry.missingExternalValidators).Count -ge 1) -Message "Product proof contract row $ExpectedProfile in $SourceName must list missing or blocking external validators."
+}
+
 $resolvedProofPath = Resolve-Path -LiteralPath $ProofPath
 $jsonPath = Join-Path $resolvedProofPath 'proof.json'
 $indexPath = Join-Path $resolvedProofPath 'index.md'
@@ -45,8 +114,8 @@ Assert-Condition -Condition ($proof.contract.formalProfilesFailClosed -eq $true)
 Assert-Condition -Condition ($proof.contract.generatedPdfsAreGroundworkFixtures -eq $true) -Message 'Proof contract must mark generated PDFs as groundwork fixtures.'
 Assert-Condition -Condition ($proof.contract.externalValidationRequiredForClaims -eq $true) -Message 'Proof contract must require external validation for claims.'
 Assert-Condition -Condition ($null -ne $proof.productProofContract) -Message 'Missing productProofContract in proof.json.'
-Assert-Condition -Condition ($proof.productProofContract.schemaVersion -eq 2) -Message 'Unexpected productProofContract schema version in proof.json.'
-Assert-Condition -Condition ($productProofContractFile.schemaVersion -eq 2) -Message 'Unexpected officeimo-profile-proof-contract.json schema version.'
+Assert-Condition -Condition ($proof.productProofContract.schemaVersion -eq 3) -Message 'Unexpected productProofContract schema version in proof.json.'
+Assert-Condition -Condition ($productProofContractFile.schemaVersion -eq 3) -Message 'Unexpected officeimo-profile-proof-contract.json schema version.'
 Assert-Condition -Condition ([string] $proof.productProofContract.generatedBy -eq [string] $productProofContractFile.generatedBy) -Message 'Product proof contract generatedBy mismatch.'
 Assert-Condition -Condition ([string] $proof.productProofContract.externalEvidenceMode -eq 'NoExternalValidationInjected') -Message 'Unexpected product proof contract externalEvidenceMode in proof.json.'
 Assert-Condition -Condition ([string] $productProofContractFile.externalEvidenceMode -eq 'NoExternalValidationInjected') -Message 'Unexpected externalEvidenceMode in officeimo-profile-proof-contract.json.'
@@ -138,10 +207,8 @@ foreach ($expectedProductProfile in $expectedProductProfiles) {
     $fileEntry = @($productProofFileProfiles | Where-Object { $_.profile -eq $expectedProductProfile })
     Assert-Condition -Condition ($entry.Count -eq 1) -Message "Missing product proof contract row $expectedProductProfile in proof.json."
     Assert-Condition -Condition ($fileEntry.Count -eq 1) -Message "Missing product proof contract row $expectedProductProfile in officeimo-profile-proof-contract.json."
-    Assert-Condition -Condition (-not [string]::IsNullOrWhiteSpace($entry[0].displayName)) -Message "Product proof contract row $expectedProductProfile is missing displayName."
-    Assert-Condition -Condition ($entry[0].hasRequiredExternalValidation -eq $false) -Message "Product proof contract row $expectedProductProfile must not have required external validation in groundwork proof."
-    Assert-Condition -Condition ($entry[0].canClaimConformance -eq $false) -Message "Product proof contract row $expectedProductProfile must not claim conformance."
-    Assert-Condition -Condition (@($entry[0].missingExternalValidators).Count -ge 1) -Message "Product proof contract row $expectedProductProfile must list missing external validators."
+    Assert-ProductProofContractProfile -Entry $entry[0] -ExpectedProfile $expectedProductProfile -SourceName 'proof.json'
+    Assert-ProductProofContractProfile -Entry $fileEntry[0] -ExpectedProfile $expectedProductProfile -SourceName 'officeimo-profile-proof-contract.json'
 }
 
 Write-Host "PDF compliance proof is valid: $resolvedProofPath"

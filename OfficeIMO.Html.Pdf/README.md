@@ -128,8 +128,10 @@ PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult("packet.pdf", opt
 File.WriteAllText("packet-review.html", result.Html);
 
 Console.WriteLine($"Rendered {result.Summary.RenderedPageCount} page(s)");
+Console.WriteLine($"Outlines: {result.Summary.RenderedOutlineCount}/{result.Summary.OutlineCount}");
 Console.WriteLine($"Tables: {result.Summary.TableCount}");
 Console.WriteLine($"Links: {result.Summary.LinkCount}");
+Console.WriteLine($"Potentially unsafe actions: {result.Summary.PotentiallyUnsafeActionCount}");
 ```
 
 ### Convert an already-loaded logical PDF
@@ -154,7 +156,7 @@ File.WriteAllText("statement.html", html);
 - Semantic HTML to PDF: HTML -> `OfficeIMO.Markdown.Html` -> `MarkdownDoc` -> `OfficeIMO.Markdown.Pdf` -> `OfficeIMO.Pdf`.
 - Document HTML to PDF: HTML -> `OfficeIMO.Word.Html` -> `WordDocument` -> `OfficeIMO.Word.Pdf` -> `OfficeIMO.Pdf`.
 - Semantic PDF to HTML: PDF -> `OfficeIMO.Pdf` logical model -> structured HTML.
-- Positioned review PDF to HTML: PDF -> `OfficeIMO.Pdf` logical model -> page wrappers with positioned text/table/link/form hints.
+- Positioned review PDF to HTML: PDF -> `OfficeIMO.Pdf` logical model -> page wrappers with positioned text/table/link/form hints and inert outline navigation.
 
 Profile contract APIs expose stable identifiers, intended use, fidelity guarantees, diagnostics, and unsupported scope for wrappers, manifests, UI selectors, and product docs.
 

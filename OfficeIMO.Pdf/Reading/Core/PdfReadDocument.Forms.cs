@@ -57,6 +57,109 @@ public sealed partial class PdfReadDocument {
         return (int)number.Value;
     }
 
+    private PdfAcroFormXfaInfo? ExtractAcroFormXfaInfo() {
+        PdfDictionary? acroForm = GetAcroFormDictionary();
+        if (acroForm is null ||
+            !acroForm.Items.TryGetValue("XFA", out var xfaObject)) {
+            return null;
+        }
+
+        int? objectNumber = xfaObject is PdfReference reference ? reference.ObjectNumber : null;
+        PdfObject? resolved = ResolveObject(xfaObject);
+        if (resolved is null || resolved is PdfNull) {
+            return null;
+        }
+
+        return BuildAcroFormXfaInfo(resolved, objectNumber);
+    }
+
+    private PdfAcroFormXfaInfo BuildAcroFormXfaInfo(PdfObject xfaObject, int? objectNumber) {
+        if (xfaObject is PdfArray array) {
+            var packetNames = new List<string>();
+            int streamCount = 0;
+            int stringCount = 0;
+            int dictionaryCount = 0;
+            int totalPayloadBytes = 0;
+
+            for (int i = 0; i < array.Items.Count; i++) {
+                PdfObject? item = ResolveObject(array.Items[i]);
+                if (item is PdfStringObj packetName &&
+                    i + 1 < array.Items.Count) {
+                    packetNames.Add(packetName.Value);
+                    AddXfaPayloadStats(ResolveObject(array.Items[i + 1]), ref streamCount, ref stringCount, ref dictionaryCount, ref totalPayloadBytes);
+                    i++;
+                    continue;
+                }
+
+                AddXfaPayloadStats(item, ref streamCount, ref stringCount, ref dictionaryCount, ref totalPayloadBytes);
+            }
+
+            return new PdfAcroFormXfaInfo(
+                "array",
+                objectNumber,
+                packetNames.Count,
+                packetNames.AsReadOnly(),
+                streamCount,
+                stringCount,
+                dictionaryCount,
+                totalPayloadBytes,
+                ContainsXfaPacket(packetNames, "template"),
+                ContainsXfaPacket(packetNames, "datasets"));
+        }
+
+        int directStreamCount = 0;
+        int directStringCount = 0;
+        int directDictionaryCount = 0;
+        int directPayloadBytes = 0;
+        AddXfaPayloadStats(xfaObject, ref directStreamCount, ref directStringCount, ref directDictionaryCount, ref directPayloadBytes);
+
+        return new PdfAcroFormXfaInfo(
+            GetXfaObjectKind(xfaObject),
+            objectNumber,
+            0,
+            Array.Empty<string>(),
+            directStreamCount,
+            directStringCount,
+            directDictionaryCount,
+            directPayloadBytes,
+            false,
+            false);
+    }
+
+    private static void AddXfaPayloadStats(PdfObject? value, ref int streamCount, ref int stringCount, ref int dictionaryCount, ref int totalPayloadBytes) {
+        if (value is PdfStream stream) {
+            streamCount++;
+            totalPayloadBytes += stream.Data.Length;
+        } else if (value is PdfStringObj text) {
+            stringCount++;
+            totalPayloadBytes += text.RawBytes.Length;
+        } else if (value is PdfDictionary) {
+            dictionaryCount++;
+        }
+    }
+
+    private static bool ContainsXfaPacket(List<string> packetNames, string packetName) {
+        for (int i = 0; i < packetNames.Count; i++) {
+            if (string.Equals(packetNames[i], packetName, StringComparison.OrdinalIgnoreCase)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string GetXfaObjectKind(PdfObject value) {
+        if (value is PdfStream) return "stream";
+        if (value is PdfStringObj) return "string";
+        if (value is PdfDictionary) return "dictionary";
+        if (value is PdfArray) return "array";
+        if (value is PdfName) return "name";
+        if (value is PdfNumber) return "number";
+        if (value is PdfBoolean) return "boolean";
+        if (value is PdfNull) return "null";
+        return "unknown";
+    }
+
     private PdfDictionary? GetAcroFormDictionary() {
         PdfDictionary? catalog = FindCatalog();
         if (catalog is null ||

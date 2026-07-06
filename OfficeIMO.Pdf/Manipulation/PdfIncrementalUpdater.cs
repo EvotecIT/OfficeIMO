@@ -11,7 +11,15 @@ public static partial class PdfIncrementalUpdater {
     /// </summary>
     public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(byte[] pdf) {
         Guard.NotNull(pdf, nameof(pdf));
-        return BuildAppendOnlyMutationReport(PdfSyntax.ReadDocumentSecurityInfo(pdf), fieldNames: null);
+        return AnalyzeAppendOnlyMutation(PdfSyntax.ReadDocumentSecurityInfo(pdf));
+    }
+
+    /// <summary>
+    /// Analyzes append-only mutation support from already-read PDF security and revision markers.
+    /// </summary>
+    public static PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(PdfDocumentSecurityInfo security) {
+        Guard.NotNull(security, nameof(security));
+        return BuildAppendOnlyMutationReport(security, fieldNames: null);
     }
 
     /// <summary>Analyzes append-only mutation support for a readable PDF stream.</summary>

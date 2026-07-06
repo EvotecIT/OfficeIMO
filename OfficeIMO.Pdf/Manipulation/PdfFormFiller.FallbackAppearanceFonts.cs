@@ -233,7 +233,7 @@ public static partial class PdfFormFiller {
 
         public IReadOnlyList<PdfFontEmbeddingDiagnostic> AnalyzeFullFontEmbedding(string source) {
             if (_cffFont != null) {
-                return PdfFontDiagnostics.AnalyzeOpenTypeCffFullFontEmbedding(_cffFont, source);
+                return PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(_cffFont, source);
             }
 
             return Array.Empty<PdfFontEmbeddingDiagnostic>();

@@ -63,10 +63,11 @@ internal static partial class PdfWriter {
                 } else if (pendingFont.Options.TryGetEmbeddedStandardOpenTypeCffFontProgramForGeneration(pendingFont.Font, out PdfEmbeddedFont? _, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
                     cffFontProgram != null) {
                     requiresPdf16FileVersion = true;
+                    PdfOpenTypeCffCompactFontFile compactFontFile = cffFontProgram.BuildCompactOpenTypeFontFilePlan();
                     pendingFont.Options.AddFontDiagnostics(
                         pendingFont.Font,
-                        PdfFontDiagnostics.AnalyzeOpenTypeCffFullFontEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font));
-                    byte[] fontData = cffFontProgram.BuildFullOpenTypeFontFile();
+                        PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(cffFontProgram, "embedded-font:" + pendingFont.Font, compactFontFile));
+                    byte[] fontData = compactFontFile.Data;
                     string fontFileExtraEntries = "/Subtype /OpenType /Length1 " + fontData.Length.ToString(CultureInfo.InvariantCulture);
                     int fontFileId = pendingFont.Options.CompressEmbeddedFonts
                         ? AddFlateStreamObject(objects, fontData, fontFileExtraEntries)

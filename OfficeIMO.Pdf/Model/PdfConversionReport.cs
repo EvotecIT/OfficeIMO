@@ -46,6 +46,13 @@ public sealed class PdfConversionReport {
         }
     }
 
+    /// <summary>
+    /// Builds a stable count summary for proof packs, logs, wrapper routing, and user-facing diagnostics.
+    /// </summary>
+    public PdfConversionReportSummary Summarize() {
+        return new PdfConversionReportSummary(Warnings);
+    }
+
     /// <summary>Adds one warning to the report.</summary>
     public void Add(PdfConversionWarning warning) {
         Guard.NotNull(warning, nameof(warning));

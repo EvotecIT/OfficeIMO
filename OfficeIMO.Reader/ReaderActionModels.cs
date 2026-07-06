@@ -45,6 +45,9 @@ public sealed class ReaderActionSummary {
     /// <summary>True when the action was found through a chained action path.</summary>
     public bool IsChainedAction { get; set; }
 
+    /// <summary>True when the action type can execute script, launch external content, submit/import data, or play rich media.</summary>
+    public bool IsPotentiallyUnsafe { get; set; }
+
     /// <summary>One-based destination page number for safe navigation actions, when known.</summary>
     public int? DestinationPageNumber { get; set; }
 

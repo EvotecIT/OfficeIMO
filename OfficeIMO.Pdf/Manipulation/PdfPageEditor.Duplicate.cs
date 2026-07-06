@@ -39,7 +39,8 @@ public static partial class PdfPageEditor {
             }
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
+        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered.ToArray(), catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>

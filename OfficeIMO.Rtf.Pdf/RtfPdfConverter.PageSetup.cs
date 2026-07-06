@@ -110,7 +110,19 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void ApplyHeaderFooters(RtfDocument document, PdfCore.PdfOptions options, RtfPdfSaveOptions saveOptions) {
-        if (!saveOptions.IncludeHeaderFooters || document.HeaderFooters.Count == 0) {
+        if (document.HeaderFooters.Count == 0) {
+            return;
+        }
+
+        if (!saveOptions.IncludeHeaderFooters) {
+            AddConversionWarning(
+                saveOptions,
+                "HeaderFooterSkipped",
+                "HeaderFooter",
+                "RTF header and footer text was skipped because IncludeHeaderFooters is false.",
+                new Dictionary<string, string> {
+                    ["Count"] = document.HeaderFooters.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                });
             return;
         }
 

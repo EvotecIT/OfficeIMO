@@ -1,6 +1,6 @@
 namespace OfficeIMO.Pdf;
 
-/// <summary>Preview of text and annotations that intersect requested redaction rectangles.</summary>
+/// <summary>Preview of text, image placements, and annotations that intersect requested redaction rectangles.</summary>
 public sealed class PdfRedactionPlan {
     internal PdfRedactionPlan(
         PdfDocumentPreflight preflight,
@@ -19,7 +19,7 @@ public sealed class PdfRedactionPlan {
     /// <summary>Requested redaction areas.</summary>
     public IReadOnlyList<PdfRedactionArea> Areas { get; }
 
-    /// <summary>Text blocks and annotations intersecting the requested areas.</summary>
+    /// <summary>Text blocks, image placements, and annotations intersecting the requested areas.</summary>
     public IReadOnlyList<PdfRedactionMatch> Matches { get; }
 
     /// <summary>Diagnostics and warnings for the plan.</summary>

@@ -4,6 +4,7 @@ public sealed partial class PdfDocumentPreflight {
     private IReadOnlyList<string>? _securityDiagnostics;
     private IReadOnlyList<string>? _signatureMutationDiagnostics;
     private IReadOnlyList<string>? _appendOnlyMutationDiagnostics;
+    private PdfAppendOnlyMutationReport? _appendOnlyMutationReport;
 
     /// <summary>Human-readable security, signature, and revision diagnostics derived from the lightweight probe.</summary>
     public IReadOnlyList<string> SecurityDiagnostics {
@@ -104,6 +105,27 @@ public sealed partial class PdfDocumentPreflight {
 
     /// <summary>True when the current OfficeIMO.Pdf writer can safely attempt append-only mutation for this input.</summary>
     public bool CanAppendOnlyMutate => RequiresAppendOnlyMutation && AppendOnlyMutationDiagnostics.Count == 0;
+
+    /// <summary>Append-only mutation policy derived from the same security markers used by the incremental updater.</summary>
+    public PdfAppendOnlyMutationReport AppendOnlyMutationReport {
+        get {
+            if (_appendOnlyMutationReport is not null) {
+                return _appendOnlyMutationReport;
+            }
+
+            _appendOnlyMutationReport = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(Probe.Security);
+            return _appendOnlyMutationReport;
+        }
+    }
+
+    /// <summary>True when OfficeIMO.Pdf can append a metadata-only revision to this input.</summary>
+    public bool CanAppendMetadataRevision => AppendOnlyMutationReport.CanAppendMetadata;
+
+    /// <summary>True when OfficeIMO.Pdf can append simple AcroForm field-value revisions to this input.</summary>
+    public bool CanAppendFormFieldRevision => AppendOnlyMutationReport.CanAppendFormFields;
+
+    /// <summary>True when OfficeIMO.Pdf can append an external-signature placeholder revision to this input.</summary>
+    public bool CanPrepareExternalSignatureRevision => AppendOnlyMutationReport.CanPrepareExternalSignature;
 
     /// <summary>Human-readable diagnostics explaining why append-only mutation cannot be attempted yet.</summary>
     public IReadOnlyList<string> AppendOnlyMutationDiagnostics {

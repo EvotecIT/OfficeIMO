@@ -10,8 +10,20 @@ public enum PdfPreflightCapability {
     /// <summary>Image XObject extraction operations.</summary>
     ExtractImages,
 
+    /// <summary>Embedded-file and associated-file attachment extraction operations.</summary>
+    ExtractAttachments,
+
     /// <summary>Page-level rewrite operations such as extract, split, merge, import, edit, stamp, and metadata updates.</summary>
     ManipulatePages,
+
+    /// <summary>Append-only metadata revision updates that preserve the existing PDF bytes.</summary>
+    AppendMetadataRevision,
+
+    /// <summary>Append-only AcroForm field-value revision updates that preserve the existing PDF bytes.</summary>
+    AppendFormFieldRevision,
+
+    /// <summary>Append-only external-signature placeholder revision preparation.</summary>
+    PrepareExternalSignatureRevision,
 
     /// <summary>Simple AcroForm value updates for named text, choice, or button fields.</summary>
     FillSimpleFormFields,

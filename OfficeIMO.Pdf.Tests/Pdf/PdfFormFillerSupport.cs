@@ -401,7 +401,7 @@ public partial class PdfFormFillerTests {
             "<< /FT /Ch /T (Country) /V [(PL) /US] /Ff 2097152 /Opt [[(PL) (Poland)] [(DE) (Germany)] [/US (United States)]] /Kids [8 0 R] >>",
             "endobj",
             "8 0 obj",
-            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 220 122] /F 4 >>",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 70 220 142] /F 4 >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
@@ -505,6 +505,41 @@ public partial class PdfFormFillerTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildRichTextWidgetFormPdfWithoutAppearance() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] /DA (/Helv 12 Tf 0.2 0 0.2 rg) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (RichName) /Ff 33554432 /V (Rich styled text) /RV (<body><p>Rich <b>bold</b> <span style=\"font-style:italic; text-decoration:underline; color:#0066cc; font-size:10pt\">styled</span></p></body>) /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 220 128] /F 4 /MK << /BC [0.2 0.4 0.8] /BG [0.95 0.98 1] >> /BS << /S /D /W 1 /D [3 2] >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildRightAlignedChildTextWidgetFormPdf() {
         string pdf = string.Join("\n", new[] {
             "%PDF-1.4",
@@ -531,6 +566,184 @@ public partial class PdfFormFillerTests {
             "endobj",
             "8 0 obj",
             "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /T (Name) /Rect [20 100 180 120] /F 4 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTextWidgetFormPdfWithDefaultAppearance(string defaultAppearance) {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (Name) /V (OfficeIMO) /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 180 120] /F 4 /DA (" + defaultAppearance + ") >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTextWidgetFormPdfWithWidgetAppearanceStyle(string widgetEntries) {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (Name) /V (OfficeIMO) /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 180 120] /F 4" + widgetEntries + " >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTextWidgetFormPdfWithAcroFormDefaultAppearance(string defaultAppearance) {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] /DA (" + defaultAppearance + ") >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (Name) /V (OfficeIMO) /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 180 120] /F 4 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildTextWidgetFormPdfWithAcroFormDefaultAppearanceFontResource(string defaultAppearance) {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] /DA (" + defaultAppearance + ") /DR << /Font << /F1 6 0 R >> >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (Name) /V (OfficeIMO) /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 100 180 120] /F 4 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildMultilineTextWidgetFormPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [8 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [7 0 R] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /FT /Tx /T (Notes) /Ff 4096 /V () /Kids [8 0 R] >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Type /Annot /Subtype /Widget /Parent 7 0 R /Rect [20 60 90 132] /F 4 >>",
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",

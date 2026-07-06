@@ -16,6 +16,13 @@ public static partial class RtfPdfConverterExtensions {
         return RtfPdfConverter.Convert(document, options);
     }
 
+    /// <summary>Converts an RTF document to PDF and returns the generated document with a snapshot of conversion diagnostics.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this RtfDocument document, RtfPdfSaveOptions? options = null) {
+        RtfPdfSaveOptions exportOptions = options ?? new RtfPdfSaveOptions();
+        PdfCore.PdfDocument pdf = document.ToPdfDocument(exportOptions);
+        return new PdfCore.PdfDocumentConversionResult(pdf, exportOptions.ConversionReport);
+    }
+
     /// <summary>Reads an RTF string and converts it to a first-party OfficeIMO PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
         if (rtf == null) {
@@ -23,6 +30,15 @@ public static partial class RtfPdfConverterExtensions {
         }
 
         return RtfDocument.Read(rtf, readOptions).Document.ToPdfDocument(options);
+    }
+
+    /// <summary>Reads an RTF string, converts it to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this string rtf, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+        if (rtf == null) {
+            throw new ArgumentNullException(nameof(rtf));
+        }
+
+        return RtfDocument.Read(rtf, readOptions).Document.ToPdfDocumentResult(options);
     }
 
     /// <summary>Reads source RTF bytes and converts them to a first-party OfficeIMO PDF document model.</summary>
@@ -34,6 +50,15 @@ public static partial class RtfPdfConverterExtensions {
         return RtfDocument.Load(rtfBytes, readOptions).Document.ToPdfDocument(options);
     }
 
+    /// <summary>Reads source RTF bytes, converts them to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this byte[] rtfBytes, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null) {
+        if (rtfBytes == null) {
+            throw new ArgumentNullException(nameof(rtfBytes));
+        }
+
+        return RtfDocument.Load(rtfBytes, readOptions).Document.ToPdfDocumentResult(options);
+    }
+
     /// <summary>Reads an RTF stream from the current position and converts it to a first-party OfficeIMO PDF document model.</summary>
     public static PdfCore.PdfDocument ToPdfDocument(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
         if (rtfStream == null) {
@@ -41,6 +66,15 @@ public static partial class RtfPdfConverterExtensions {
         }
 
         return RtfDocument.Load(rtfStream, readOptions, encoding).Document.ToPdfDocument(options);
+    }
+
+    /// <summary>Reads an RTF stream, converts it to PDF, and returns the generated document with a snapshot of conversion diagnostics.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this Stream rtfStream, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+        if (rtfStream == null) {
+            throw new ArgumentNullException(nameof(rtfStream));
+        }
+
+        return RtfDocument.Load(rtfStream, readOptions, encoding).Document.ToPdfDocumentResult(options);
     }
 
     /// <summary>Saves an RTF document as PDF at the specified path.</summary>

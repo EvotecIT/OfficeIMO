@@ -198,6 +198,18 @@ public sealed class ReaderChunkDiagnostics {
     /// <summary>Average table detection confidence in the selected scope, when tables are present.</summary>
     public double? AverageTableConfidence { get; set; }
 
+    /// <summary>Number of logical tables whose confidence is below the reader's high-confidence threshold.</summary>
+    public int LowConfidenceTableCount { get; set; }
+
+    /// <summary>Number of numeric-looking table columns in the selected scope.</summary>
+    public int NumericTableColumnCount { get; set; }
+
+    /// <summary>Number of inferred fallback table column names in the selected scope.</summary>
+    public int FallbackTableColumnNameCount { get; set; }
+
+    /// <summary>Number of expected table cells that were empty or unavailable in the selected scope.</summary>
+    public int MissingTableCellCount { get; set; }
+
     /// <summary>Number of logical images in the selected scope.</summary>
     public int ImageCount { get; set; }
 
@@ -207,8 +219,41 @@ public sealed class ReaderChunkDiagnostics {
     /// <summary>Ratio of images with placement geometry to all images in the selected scope.</summary>
     public double ImageGeometryCoverage { get; set; }
 
+    /// <summary>Number of logical images in the selected scope whose primary placement is not axis-aligned.</summary>
+    public int ImageNonAxisAlignedCount { get; set; }
+
+    /// <summary>Ratio of non-axis-aligned image placements to all images with placement geometry in the selected scope.</summary>
+    public double ImageNonAxisAlignedCoverage { get; set; }
+
     /// <summary>Number of logical link annotations in the selected scope.</summary>
     public int LinkCount { get; set; }
+
+    /// <summary>True when the source exposes readable XMP metadata.</summary>
+    public bool HasXmpMetadata { get; set; }
+
+    /// <summary>Number of readable output intents in the source document catalog.</summary>
+    public int OutputIntentCount { get; set; }
+
+    /// <summary>Number of readable embedded or associated file attachments in the source document.</summary>
+    public int AttachmentCount { get; set; }
+
+    /// <summary>True when the source exposes tagged PDF structure metadata.</summary>
+    public bool HasTaggedContent { get; set; }
+
+    /// <summary>Number of readable tagged PDF structure elements in the source document.</summary>
+    public int TaggedStructureElementCount { get; set; }
+
+    /// <summary>Number of readable tagged PDF marked-content references in the source document.</summary>
+    public int TaggedMarkedContentReferenceCount { get; set; }
+
+    /// <summary>Number of readable optional-content groups/layers in the source document catalog.</summary>
+    public int OptionalContentGroupCount { get; set; }
+
+    /// <summary>Number of optional-content groups/layers initially hidden by the default configuration.</summary>
+    public int OptionalContentInitiallyHiddenCount { get; set; }
+
+    /// <summary>Number of optional-content groups/layers locked by the default configuration.</summary>
+    public int OptionalContentLockedCount { get; set; }
 
     /// <summary>True when the source exposes a readable document open action.</summary>
     public bool HasOpenAction { get; set; }
@@ -224,6 +269,21 @@ public sealed class ReaderChunkDiagnostics {
 
     /// <summary>True when the source exposes active catalog, selected page, or selected annotation actions.</summary>
     public bool HasActiveContent { get; set; }
+
+    /// <summary>Number of selected actions whose type can execute script, launch external content, submit/import data, or play rich media.</summary>
+    public int PotentiallyUnsafeActionCount { get; set; }
+
+    /// <summary>Number of selected JavaScript actions.</summary>
+    public int JavaScriptActionCount { get; set; }
+
+    /// <summary>Number of selected launch actions.</summary>
+    public int LaunchActionCount { get; set; }
+
+    /// <summary>Number of selected form submission actions.</summary>
+    public int SubmitFormActionCount { get; set; }
+
+    /// <summary>Number of selected import-data actions.</summary>
+    public int ImportDataActionCount { get; set; }
 
     /// <summary>Number of active catalog-level actions in the loaded source document.</summary>
     public int CatalogActionCount { get; set; }

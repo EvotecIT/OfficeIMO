@@ -52,7 +52,8 @@ public static partial class PdfPageExtractor {
         ValidatePageNumbers(selected, document.Pages.Count, nameof(pageNumbers));
 
         var pageObjectNumbers = selected.Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber).ToArray();
-        return ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw));
+        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
+        return ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>
@@ -244,7 +245,8 @@ public static partial class PdfPageExtractor {
             }
         }
 
-        return ExtractPages(objects, document.Metadata, pageObjectNumbers.ToArray(), catalogState: ExtractCatalogRewriteState(objects, trailerRaw));
+        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
+        return ExtractPages(objects, document.Metadata, pageObjectNumbers.ToArray(), catalogState: ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>
@@ -324,10 +326,11 @@ public static partial class PdfPageExtractor {
         var (objects, trailerRaw) = PdfSyntax.ParseObjects(pdf, options);
         var document = PdfReadDocument.Load(pdf, options);
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
+        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
         var result = new List<byte[]>(document.Pages.Count);
 
         foreach (var page in document.Pages) {
-            result.Add(ExtractPages(objects, document.Metadata, new[] { page.ObjectNumber }, catalogState: catalogState));
+            result.Add(ExtractPages(objects, document.Metadata, new[] { page.ObjectNumber }, catalogState: catalogState, fileVersion: fileVersion));
         }
 
         return result;
@@ -378,6 +381,7 @@ public static partial class PdfPageExtractor {
         var document = PdfReadDocument.Load(pdf, options);
         ValidatePageRanges(ranges, document.Pages.Count, nameof(pageRanges));
         var catalogState = ExtractCatalogRewriteState(objects, trailerRaw);
+        PdfFileVersion fileVersion = GetSourceFileVersion(pdf);
         var result = new List<byte[]>(ranges.Length);
 
         foreach (var range in ranges) {
@@ -385,7 +389,7 @@ public static partial class PdfPageExtractor {
                 .Range(range.FirstPage, range.PageCount)
                 .Select(pageNumber => document.Pages[pageNumber - 1].ObjectNumber)
                 .ToArray();
-            result.Add(ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: catalogState));
+            result.Add(ExtractPages(objects, document.Metadata, pageObjectNumbers, catalogState: catalogState, fileVersion: fileVersion));
         }
 
         return result;

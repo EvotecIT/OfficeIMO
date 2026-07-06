@@ -9,6 +9,8 @@ public class PdfFormFieldStyle {
     private string? _mappingName;
     private PdfFormFieldTextAlignment? _textAlignment;
     private int? _maxLength;
+    private double[]? _borderDashPattern;
+    private PdfFormFieldBorderStyle _borderStyle = PdfFormFieldBorderStyle.Solid;
 
     /// <summary>Background fill color. Set to null for transparent field appearance streams.</summary>
     public PdfColor? BackgroundColor { get; set; } = PdfColor.White;
@@ -94,6 +96,60 @@ public class PdfFormFieldStyle {
         }
     }
 
+    /// <summary>Border rendering style for generated field dictionaries and appearance streams.</summary>
+    public PdfFormFieldBorderStyle BorderStyle {
+        get => _borderStyle;
+        set {
+            switch (value) {
+                case PdfFormFieldBorderStyle.Solid:
+                case PdfFormFieldBorderStyle.Dashed:
+                case PdfFormFieldBorderStyle.Underline:
+                case PdfFormFieldBorderStyle.Beveled:
+                case PdfFormFieldBorderStyle.Inset:
+                    _borderStyle = value;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(value), value, "PDF form field border style must be Solid, Dashed, Underline, Beveled, or Inset.");
+            }
+        }
+    }
+
+    /// <summary>Optional border dash pattern emitted into generated appearance streams. Null or empty output means a solid border.</summary>
+    public IReadOnlyList<double>? BorderDashPattern {
+        get => _borderDashPattern;
+        set {
+            if (value == null) {
+                _borderDashPattern = null;
+                return;
+            }
+
+            if (value.Count == 0) {
+                throw new ArgumentException("PDF form field border dash pattern must contain at least one value.", nameof(value));
+            }
+
+            var copy = new double[value.Count];
+            bool hasPositiveSegment = false;
+            for (int i = 0; i < value.Count; i++) {
+                double segment = value[i];
+                if (segment < 0 || double.IsNaN(segment) || double.IsInfinity(segment)) {
+                    throw new ArgumentOutOfRangeException(nameof(value), segment, "PDF form field border dash pattern values must be non-negative finite numbers.");
+                }
+
+                if (segment > 0D) {
+                    hasPositiveSegment = true;
+                }
+
+                copy[i] = segment;
+            }
+
+            if (!hasPositiveSegment) {
+                throw new ArgumentException("PDF form field border dash pattern must contain at least one positive value.", nameof(value));
+            }
+
+            _borderDashPattern = copy;
+        }
+    }
+
     /// <summary>Alternate field name emitted as AcroForm /TU metadata for accessibility-oriented field descriptions.</summary>
     public string? AlternateName {
         get => _alternateName;
@@ -118,8 +174,10 @@ public class PdfFormFieldStyle {
             BackgroundColor = BackgroundColor,
             BorderColor = BorderColor,
             BorderWidth = BorderWidth,
+            BorderStyle = BorderStyle,
             TextColor = TextColor,
             MarkColor = MarkColor,
+            BorderDashPattern = _borderDashPattern == null ? null : (double[])_borderDashPattern.Clone(),
             IsReadOnly = IsReadOnly,
             IsRequired = IsRequired,
             IsNoExport = IsNoExport,

@@ -376,10 +376,150 @@ public class PdfDocumentWorkflowTests {
 
         Assert.Equal(3, document.Inspect().PageCount);
         Assert.Equal("Workflow source", document.Inspect().Metadata.Title);
+        Assert.Equal("Workflow source", document.Read.DocumentInfo().Metadata.Title);
+        Assert.Equal("Workflow source", document.Read.Metadata().Title);
+        Assert.Equal(3, document.Read.Pages().Count);
+        Assert.Equal(2, document.Read.Page(2)?.PageNumber);
+        Assert.Null(document.Read.Page(4));
+        Assert.False(document.Read.Security().HasEncryption);
+        Assert.False(document.Read.Security().HasSignatures);
+        Assert.Equal(document.Inspect().HeaderVersion, document.Read.HeaderVersion());
+        Assert.Equal(document.Inspect().EffectiveVersion, document.Read.EffectiveVersion());
+        Assert.False(document.Read.IsPdf20OrLater());
+        Assert.True(document.Read.TryDocumentInfo().Succeeded);
+        Assert.True(document.Read.TryMetadata().Succeeded);
+        Assert.True(document.Read.TryPages().Succeeded);
+        Assert.True(document.Read.TrySecurity().Succeeded);
         Assert.Equal(PdfTextExtractor.ExtractAllText(source), document.Read.Text());
         Assert.Equal(PdfTextExtractor.ExtractTextByPage(source), document.Read.TextByPage());
         Assert.True(document.Preflight().CanRead);
         Assert.True(document.Preflight().CanRewrite);
+
+        PdfSignatureValidationReport unsignedSignatures = document.ValidateSignatures();
+        PdfAppendOnlyMutationReport unsignedMutation = document.AnalyzeAppendOnlyMutation();
+
+        Assert.False(unsignedSignatures.HasSignatures);
+        Assert.Equal("Unsigned", unsignedSignatures.ProofStatus);
+        Assert.True(unsignedMutation.CanAppendMetadata);
+        Assert.True(unsignedMutation.CanPrepareExternalSignature);
+    }
+
+    [Fact]
+    public void Open_ExposesCatalogMetadataThroughFluentReader() {
+        byte[] source = PdfDocument.Create(new PdfOptions()
+                .SetSrgbOutputIntent()
+                .SetPdfAIdentification(3, "B")
+                .SetPdfUaIdentification())
+            .TaggedPdfCatalogMarkers()
+            .Language("en-US")
+            .Meta(title: "Reader catalog metadata", author: "OfficeIMO", subject: "Reader inspection", keywords: "xmp, intent")
+            .Paragraph(paragraph => paragraph.Text("Reader catalog metadata workflow"))
+            .ToBytes();
+
+        using PdfDocument document = PdfDocument.Open(source);
+
+        PdfXmpMetadataInfo xmp = Assert.IsType<PdfXmpMetadataInfo>(document.Read.XmpMetadata());
+        Assert.True(xmp.IsWellFormedXml);
+        Assert.Equal("Reader catalog metadata", xmp.Title);
+        Assert.Equal("OfficeIMO", xmp.Creator);
+        Assert.Equal(3, xmp.PdfAPart);
+        Assert.Equal("B", xmp.PdfAConformance);
+        Assert.Equal(1, xmp.PdfUaPart);
+        Assert.True(document.Read.TryXmpMetadata().Succeeded);
+
+        PdfOutputIntentInfo outputIntent = Assert.Single(document.Read.OutputIntents());
+        Assert.Equal("GTS_PDFA1", outputIntent.Subtype);
+        Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, outputIntent.OutputConditionIdentifier);
+        Assert.True(outputIntent.HasDestinationOutputProfile);
+        Assert.Single(document.Read.OutputIntentsBySubtype("GTS_PDFA1"));
+        Assert.Single(document.Read.OutputIntentsByOutputConditionIdentifier(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier));
+        Assert.Empty(document.Read.OutputIntentsBySubtype("GTS_PDFX"));
+        Assert.True(document.Read.TryOutputIntents().Succeeded);
+        Assert.True(document.Read.TryOutputIntentsBySubtype("GTS_PDFA1").Succeeded);
+        Assert.True(document.Read.TryOutputIntentsByOutputConditionIdentifier(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier).Succeeded);
+
+        PdfTaggedContentInfo tagged = Assert.IsType<PdfTaggedContentInfo>(document.Read.TaggedContent());
+        Assert.True(tagged.Marked);
+        Assert.Contains("Document", tagged.StructureTypes);
+        Assert.Contains("P", tagged.StructureTypes);
+        Assert.True(document.Read.TryTaggedContent().Succeeded);
+    }
+
+    [Fact]
+    public void Open_ExposesOptionalContentAndAttachmentMetadataThroughFluentReader() {
+        using PdfDocument optionalContentDocument = PdfDocument.Open(PdfOptionalContentSupport.BuildOptionalContentMetadataPdf());
+
+        PdfOptionalContentProperties optionalContent = Assert.IsType<PdfOptionalContentProperties>(optionalContentDocument.Read.OptionalContent());
+        Assert.Equal("Default layers", optionalContent.DefaultConfigurationName);
+        Assert.Equal(2, optionalContent.GroupCount);
+
+        IReadOnlyList<PdfOptionalContentGroup> groups = optionalContentDocument.Read.OptionalContentGroups();
+        Assert.Equal(new[] { "Print layer", "Hidden layer" }, groups.Select(group => group.Name).ToArray());
+        PdfOptionalContentGroup printLayer = Assert.Single(optionalContentDocument.Read.OptionalContentGroupsByName("Print layer"));
+        Assert.Equal("Print layer", printLayer.Name);
+        Assert.Empty(optionalContentDocument.Read.OptionalContentGroupsByName("Missing"));
+        Assert.True(optionalContentDocument.Read.TryOptionalContent().Succeeded);
+        Assert.True(optionalContentDocument.Read.TryOptionalContentGroups().Succeeded);
+        Assert.True(optionalContentDocument.Read.TryOptionalContentGroupsByName("Hidden layer").Succeeded);
+
+        byte[] payload = Encoding.UTF8.GetBytes("attachment metadata payload");
+        using PdfDocument attachmentDocument = PdfDocument.Open(PdfDocument.Create()
+            .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Data, "Workflow attachment")
+            .Paragraph(paragraph => paragraph.Text("Attachment metadata workflow"))
+            .ToBytes());
+
+        PdfAttachmentInfo attachment = Assert.Single(attachmentDocument.Read.AttachmentMetadata());
+        Assert.Equal("payload.txt", attachment.Name);
+        Assert.Equal("payload.txt", attachment.FileName);
+        Assert.Equal("text/plain", attachment.MimeType);
+        Assert.Equal(PdfAssociatedFileRelationship.Data, attachment.Relationship);
+        Assert.False(attachment.IsAssociatedFile);
+        Assert.Single(attachmentDocument.Read.AttachmentMetadataByName("payload.txt"));
+        Assert.Single(attachmentDocument.Read.AttachmentMetadataByFileName("payload.txt"));
+        Assert.Single(attachmentDocument.Read.AttachmentMetadataBySource("Names/EmbeddedFiles"));
+        Assert.Single(attachmentDocument.Read.AttachmentMetadataByRelationship(PdfAssociatedFileRelationship.Data));
+        Assert.Empty(attachmentDocument.Read.AttachmentMetadataBySource("AF"));
+        Assert.True(attachmentDocument.Read.TryAttachmentMetadata().Succeeded);
+        Assert.True(attachmentDocument.Read.TryAttachmentMetadataByName("payload.txt").Succeeded);
+        Assert.True(attachmentDocument.Read.TryAttachmentMetadataByFileName("payload.txt").Succeeded);
+        Assert.True(attachmentDocument.Read.TryAttachmentMetadataBySource("Names/EmbeddedFiles").Succeeded);
+        Assert.True(attachmentDocument.Read.TryAttachmentMetadataByRelationship(PdfAssociatedFileRelationship.Data).Succeeded);
+    }
+
+    [Fact]
+    public void Open_ExposesSignatureValidationAndAppendOnlyMutationPolicy() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("External signing workflow"))
+            .ToBytes();
+        PdfExternalSignaturePreparation preparation = PdfIncrementalUpdater.PrepareExternalSignature(
+            source,
+            new PdfExternalSignatureOptions {
+                FieldName = "Approval",
+                Name = "Alice",
+                Reason = "Approval",
+                ReservedSignatureContentsBytes = 256,
+                SigningTime = new DateTimeOffset(2026, 6, 22, 12, 0, 0, TimeSpan.Zero)
+            });
+
+        using PdfDocument document = PdfDocument.Open(preparation.PreparedPdf);
+
+        PdfSignatureValidationReport signatures = document.ValidateSignatures();
+        PdfAppendOnlyMutationReport mutation = document.AnalyzeAppendOnlyMutation();
+
+        Assert.True(signatures.HasSignatures);
+        Assert.True(signatures.IsStructurallyValid);
+        Assert.True(signatures.RequiresAppendOnlyMutation);
+        Assert.False(signatures.CryptographicTrustVerified);
+        Assert.Equal("ExternalCryptoValidationRequired", signatures.ProofStatus);
+        Assert.Contains(signatures.Findings, finding => finding.Code == "SignatureDetachedCmsSubFilter");
+        Assert.Contains(signatures.Findings, finding => finding.Code == "AcroFormAppendOnly");
+
+        Assert.True(mutation.RequiresAppendOnlyMutation);
+        Assert.False(mutation.CanAppendMetadata);
+        Assert.False(mutation.CanPrepareExternalSignature);
+        Assert.Contains("Signed", mutation.Blockers);
+        Assert.Contains("SignaturePrepare", mutation.BlockedActions);
+        Assert.Contains("AcroFormAppendOnly", mutation.Warnings);
     }
 
     [Fact]
@@ -412,6 +552,14 @@ public class PdfDocumentWorkflowTests {
             PdfDocument.Open(source).Pages.Rotate(90, "2").ToBytes(),
             PdfDocument.Open(source).Pages.Rotate(90, PdfPageSelection.Parse("2")).ToBytes());
 
+        IReadOnlyList<PdfDocument> splitRanges = PdfDocument.Open(source).Pages.Split("1,3");
+        Assert.Equal(2, splitRanges.Count);
+        Assert.Contains("Page A", splitRanges[0].Read.Text(), StringComparison.Ordinal);
+        Assert.Contains("Page C", splitRanges[1].Read.Text(), StringComparison.Ordinal);
+        Assert.Equal(
+            PdfDocument.Open(source).Pages.Split(new[] { PdfPageRange.From(1, 1), PdfPageRange.From(3, 3) })[1].ToBytes(),
+            splitRanges[1].ToBytes());
+
         PdfDocument opened = PdfDocument.Open(source);
         Assert.Equal(PdfTextExtractor.ExtractAllTextByPageRanges(source, PdfPageRange.ParseMany("2,1")), opened.Read.Text(PdfPageSelection.Parse("2,1")));
         Assert.Equal(PdfTextExtractor.ExtractTextByPageRanges(source, PdfPageRange.ParseMany("2,1")), opened.Read.TextByPage(PdfPageSelection.Parse("2,1")));
@@ -430,14 +578,61 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(PdfPreflightCapability.ManipulatePages, extracted.Capability);
         Assert.Contains("Page B", extracted.RequireValue().Read.Text(), StringComparison.Ordinal);
 
+        PdfOperationResult<PdfDocument> stringExtract = PdfDocument.Open(source).Pages.TryExtract("2");
+        Assert.True(stringExtract.Succeeded);
+        Assert.Contains("Page B", stringExtract.RequireValue().Read.Text(), StringComparison.Ordinal);
+
+        PdfOperationResult<PdfDocument> stringDelete = PdfDocument.Open(source).Pages.TryDelete("2");
+        Assert.True(stringDelete.Succeeded);
+        Assert.DoesNotContain("Page B", stringDelete.RequireValue().Read.Text(), StringComparison.Ordinal);
+
+        PdfOperationResult<PdfDocument> stringReorder = PdfDocument.Open(source).Pages.TryReorder("2,3,1");
+        Assert.True(stringReorder.Succeeded);
+        Assert.Contains("Page A", stringReorder.RequireValue().Read.Text(), StringComparison.Ordinal);
+
+        PdfOperationResult<PdfDocument> stringDuplicate = PdfDocument.Open(source).Pages.TryDuplicate("2");
+        Assert.True(stringDuplicate.Succeeded);
+        Assert.Equal(4, stringDuplicate.RequireValue().Inspect().PageCount);
+
+        PdfOperationResult<PdfDocument> stringMove = PdfDocument.Open(source).Pages.TryMove(1, "3");
+        Assert.True(stringMove.Succeeded);
+        Assert.Equal(3, stringMove.RequireValue().Inspect().PageCount);
+
+        PdfOperationResult<PdfDocument> stringRotate = PdfDocument.Open(source).Pages.TryRotate(90, "2");
+        Assert.True(stringRotate.Succeeded);
+        Assert.Equal(3, stringRotate.RequireValue().Inspect().PageCount);
+
+        PdfOperationResult<PdfDocument> malformedRange = PdfDocument.Open(source).Pages.TryExtract("2-");
+        Assert.True(malformedRange.CanAttempt);
+        Assert.False(malformedRange.Succeeded);
+        Assert.NotNull(malformedRange.Exception);
+        Assert.Contains("Page number cannot be empty", string.Join(" ", malformedRange.Diagnostics), StringComparison.Ordinal);
+
         PdfOperationResult<IReadOnlyList<PdfDocument>> split = PdfDocument.Open(source).Pages.TrySplit();
         Assert.True(split.Succeeded);
         Assert.Equal(3, split.RequireValue().Count);
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> stringSplit = PdfDocument.Open(source).Pages.TrySplit("1,3");
+        Assert.True(stringSplit.CanAttempt);
+        Assert.True(stringSplit.Succeeded);
+        Assert.Equal(2, stringSplit.RequireValue().Count);
+        Assert.Contains("Page C", stringSplit.RequireValue()[1].Read.Text(), StringComparison.Ordinal);
 
         PdfOperationResult<IReadOnlyList<PdfDocument>> emptySelectionSplit = PdfDocument.Open(source).Pages.TrySplit(Array.Empty<PdfPageSelection>());
         Assert.False(emptySelectionSplit.Succeeded);
         Assert.Null(emptySelectionSplit.Value);
         Assert.Contains("At least one page selection", string.Join(" ", emptySelectionSplit.Diagnostics), StringComparison.Ordinal);
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> emptyRangeSplit = PdfDocument.Open(source).Pages.TrySplit(Array.Empty<PdfPageRange>());
+        Assert.False(emptyRangeSplit.Succeeded);
+        Assert.Null(emptyRangeSplit.Value);
+        Assert.Contains("At least one page range", string.Join(" ", emptyRangeSplit.Diagnostics), StringComparison.Ordinal);
+
+        PdfOperationResult<IReadOnlyList<PdfDocument>> malformedSplit = PdfDocument.Open(source).Pages.TrySplit("2-");
+        Assert.True(malformedSplit.CanAttempt);
+        Assert.False(malformedSplit.Succeeded);
+        Assert.NotNull(malformedSplit.Exception);
+        Assert.Contains("Page number cannot be empty", string.Join(" ", malformedSplit.Diagnostics), StringComparison.Ordinal);
 
         PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
         PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryExtract(PdfPageSelection.From(1));
@@ -472,11 +667,101 @@ public class PdfDocumentWorkflowTests {
         Assert.True(markdown.Succeeded);
         Assert.Contains("First page body", markdown.RequireValue(), StringComparison.Ordinal);
 
+        PdfOperationResult<string> stringText = opened.Read.TryText("2");
+        Assert.True(stringText.Succeeded);
+        Assert.Contains("Second page body", stringText.RequireValue(), StringComparison.Ordinal);
+
+        PdfOperationResult<IReadOnlyList<string>> stringTextByPage = opened.Read.TryTextByPage("3,1");
+        Assert.True(stringTextByPage.Succeeded);
+        Assert.Equal(2, stringTextByPage.RequireValue().Count);
+
+        PdfOperationResult<string> stringMarkdown = opened.Read.TryMarkdown("1");
+        Assert.True(stringMarkdown.Succeeded);
+        Assert.Contains("First page body", stringMarkdown.RequireValue(), StringComparison.Ordinal);
+
+        PdfOperationResult<PdfLogicalDocument> stringLogical = opened.Read.TryLogical("1,3");
+        Assert.True(stringLogical.Succeeded);
+        Assert.Equal(2, stringLogical.RequireValue().Pages.Count);
+
+        PdfOperationResult<IReadOnlyList<PdfLogicalTextBlock>> stringTextBlocks = opened.Read.TryTextBlocks("2");
+        Assert.True(stringTextBlocks.Succeeded);
+        Assert.Contains(stringTextBlocks.RequireValue(), block => block.Text.Contains("Second page body", StringComparison.Ordinal));
+
+        byte[] imagePdf = PdfStamper.StampImage(source, PdfPngTestImages.CreateRgbPng(255, 0, 0), new PdfImageStampOptions {
+            PageNumbers = new[] { 1, 3 },
+            Width = 24,
+            Height = 24
+        });
+        PdfDocument imageDocument = PdfDocument.Open(imagePdf);
+        IReadOnlyList<PdfExtractedImage> selectedImages = imageDocument.Read.Images("3,1-2");
+        Assert.Equal(2, selectedImages.Count);
+        Assert.Equal(3, selectedImages[0].PageNumber);
+        Assert.Equal(1, selectedImages[1].PageNumber);
+
+        PdfOperationResult<IReadOnlyList<PdfExtractedImage>> stringImages = imageDocument.Read.TryImages("3,1-2");
+        Assert.True(stringImages.Succeeded);
+        Assert.Equal(2, stringImages.RequireValue().Count);
+
+        IReadOnlyList<PdfImagePlacement> selectedPlacements = imageDocument.Read.ImagePlacements("3,1-2");
+        Assert.Equal(2, selectedPlacements.Count);
+        Assert.Equal(3, selectedPlacements[0].PageNumber);
+        Assert.Equal(1, selectedPlacements[1].PageNumber);
+        Assert.True(selectedPlacements[0].Width > 0);
+        Assert.True(selectedPlacements[0].Height > 0);
+
+        PdfOperationResult<IReadOnlyList<PdfImagePlacement>> stringPlacements = imageDocument.Read.TryImagePlacements("3,1-2");
+        Assert.True(stringPlacements.Succeeded);
+        Assert.Equal(2, stringPlacements.RequireValue().Count);
+
+        PdfOperationResult<IReadOnlyList<PdfImagePlacement>> malformedPlacementRange = imageDocument.Read.TryImagePlacements("2-");
+        Assert.True(malformedPlacementRange.CanAttempt);
+        Assert.False(malformedPlacementRange.Succeeded);
+        Assert.NotNull(malformedPlacementRange.Exception);
+        Assert.Contains("Page number cannot be empty", string.Join(" ", malformedPlacementRange.Diagnostics), StringComparison.Ordinal);
+
+        PdfOperationResult<IReadOnlyList<PdfExtractedImage>> malformedImageRange = imageDocument.Read.TryImages("2-");
+        Assert.True(malformedImageRange.CanAttempt);
+        Assert.False(malformedImageRange.Succeeded);
+        Assert.NotNull(malformedImageRange.Exception);
+        Assert.Contains("Page number cannot be empty", string.Join(" ", malformedImageRange.Diagnostics), StringComparison.Ordinal);
+
+        PdfOperationResult<string> malformedRange = opened.Read.TryText("2-");
+        Assert.True(malformedRange.CanAttempt);
+        Assert.False(malformedRange.Succeeded);
+        Assert.NotNull(malformedRange.Exception);
+        Assert.Contains("Page number cannot be empty", string.Join(" ", malformedRange.Diagnostics), StringComparison.Ordinal);
+
         PdfOperationResult<PdfDocument> stamped = opened.Stamp.TryText("Reviewed", new PdfTextStampOptions { X = 72, Y = 72 });
         Assert.True(stamped.Succeeded);
         Assert.Equal(3, stamped.RequireValue().Inspect().PageCount);
 
         byte[] formPdf = BuildSimpleFormPdf();
+        PdfDocument formDocument = PdfDocument.Open(formPdf);
+        PdfFormField formField = Assert.Single(formDocument.Read.FormFields());
+        Assert.Equal("Person.Name", formField.Name);
+        Assert.Equal(PdfFormFieldKind.Text, formField.Kind);
+        Assert.Equal("Original", formField.Value);
+        Assert.Equal("Person.Name", formDocument.Read.FormField("Person.Name")?.Name);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormFields("Person.Name")).Name);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormFields(PdfFormFieldKind.Text)).Name);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormFields(1)).Name);
+
+        PdfLogicalFormWidget widget = Assert.Single(formDocument.Read.FormWidgets());
+        Assert.Equal("Person.Name", widget.FieldName);
+        Assert.Equal(1, widget.PageNumber);
+        Assert.True(widget.Width > 0);
+        Assert.True(widget.Height > 0);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormWidgets("Person.Name")).FieldName);
+        Assert.Equal("Person.Name", Assert.Single(formDocument.Read.FormWidgets(1)).FieldName);
+
+        PdfOperationResult<IReadOnlyList<PdfFormField>> safeFormFields = formDocument.Read.TryFormFields("Person.Name");
+        Assert.True(safeFormFields.Succeeded);
+        Assert.Equal("Person.Name", Assert.Single(safeFormFields.RequireValue()).Name);
+
+        PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> safeFormWidgets = formDocument.Read.TryFormWidgets("Person.Name");
+        Assert.True(safeFormWidgets.Succeeded);
+        Assert.Equal("Person.Name", Assert.Single(safeFormWidgets.RequireValue()).FieldName);
+
         PdfOperationResult<PdfDocument> filled = PdfDocument.Open(formPdf).Forms.TryFill(new Dictionary<string, string> {
             ["Person.Name"] = "Ada Lovelace"
         });
@@ -497,6 +782,111 @@ public class PdfDocumentWorkflowTests {
         PdfOperationResult<PdfDocument> blockedStamp = invalid.Stamp.TryText("Reviewed");
         Assert.False(blockedStamp.CanAttempt);
         Assert.NotEmpty(blockedStamp.Diagnostics);
+
+        PdfOperationResult<IReadOnlyList<PdfFormField>> blockedFormFields = invalid.Read.TryFormFields();
+        Assert.False(blockedFormFields.CanAttempt);
+        Assert.NotEmpty(blockedFormFields.Diagnostics);
+
+        PdfOperationResult<IReadOnlyList<PdfLogicalFormWidget>> blockedFormWidgets = invalid.Read.TryFormWidgets();
+        Assert.False(blockedFormWidgets.CanAttempt);
+        Assert.NotEmpty(blockedFormWidgets.Diagnostics);
+
+        PdfOperationResult<PdfDocumentInfo> blockedDocumentInfo = invalid.Read.TryDocumentInfo();
+        Assert.False(blockedDocumentInfo.CanAttempt);
+        Assert.NotEmpty(blockedDocumentInfo.Diagnostics);
+
+        PdfOperationResult<PdfDocumentSecurityInfo> blockedSecurity = invalid.Read.TrySecurity();
+        Assert.False(blockedSecurity.CanAttempt);
+        Assert.NotEmpty(blockedSecurity.Diagnostics);
+
+        PdfOperationResult<PdfXmpMetadataInfo> blockedXmp = invalid.Read.TryXmpMetadata();
+        Assert.False(blockedXmp.CanAttempt);
+        Assert.NotEmpty(blockedXmp.Diagnostics);
+
+        PdfOperationResult<IReadOnlyList<PdfOutputIntentInfo>> blockedOutputIntents = invalid.Read.TryOutputIntents();
+        Assert.False(blockedOutputIntents.CanAttempt);
+        Assert.NotEmpty(blockedOutputIntents.Diagnostics);
+
+        PdfOperationResult<IReadOnlyList<PdfAttachmentInfo>> blockedAttachmentMetadata = invalid.Read.TryAttachmentMetadata();
+        Assert.False(blockedAttachmentMetadata.CanAttempt);
+        Assert.NotEmpty(blockedAttachmentMetadata.Diagnostics);
+    }
+
+    [Fact]
+    public void OperationResult_ExposesAttachmentExtractionThroughFluentReader() {
+        byte[] payload = Encoding.UTF8.GetBytes("attachment payload");
+        byte[] source = PdfDocument.Create()
+            .AttachFile("payload.txt", payload, "text/plain", PdfAssociatedFileRelationship.Data, "Workflow attachment")
+            .Paragraph(paragraph => paragraph.Text("Attachment workflow"))
+            .ToBytes();
+
+        PdfDocument opened = PdfDocument.Open(source);
+        IReadOnlyList<PdfExtractedAttachment> attachments = opened.Read.Attachments();
+        PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> result = opened.Read.TryAttachments();
+
+        PdfExtractedAttachment attachment = Assert.Single(attachments);
+        Assert.Equal("payload.txt", attachment.FileName);
+        Assert.Equal(payload, attachment.Bytes);
+        Assert.True(result.CanAttempt);
+        Assert.True(result.Succeeded);
+        Assert.Equal(PdfPreflightCapability.ExtractAttachments, result.Capability);
+        Assert.Equal(payload, Assert.Single(result.RequireValue()).Bytes);
+        Assert.Empty(result.Diagnostics);
+
+        PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> blocked = PdfDocument
+            .Open(Encoding.ASCII.GetBytes("not a pdf"))
+            .Read
+            .TryAttachments();
+
+        Assert.False(blocked.CanAttempt);
+        Assert.False(blocked.Succeeded);
+        Assert.NotEmpty(blocked.Diagnostics);
+    }
+
+    [Fact]
+    public void FluentReader_ExposesGenericAnnotationReadback() {
+        byte[] source = PdfDocument.Create()
+            .Paragraph(paragraph => paragraph.Text("Annotation workflow"))
+            .TextAnnotation("Review note", width: 20, height: 20, icon: PdfTextAnnotationIcon.Note, open: true)
+            .FreeTextAnnotation("Visible reviewer note", width: 140, height: 34, fontSize: 11, textAlign: PdfAlign.Center)
+            .ToBytes();
+
+        using PdfDocument document = PdfDocument.Open(source);
+        IReadOnlyList<PdfAnnotation> annotations = document.Read.Annotations();
+        Assert.Equal(2, annotations.Count);
+        Assert.All(annotations, annotation => Assert.Equal(1, annotation.PageNumber));
+
+        PdfAnnotation text = Assert.Single(document.Read.AnnotationsBySubtype("Text"));
+        Assert.Equal("Review note", text.Contents);
+        Assert.True(text.Width > 0);
+        Assert.True(text.Height > 0);
+
+        PdfAnnotation freeText = Assert.Single(document.Read.AnnotationsBySubtype("FreeText"));
+        Assert.Equal("Visible reviewer note", freeText.Contents);
+        Assert.True(freeText.HasFreeTextAppearanceMetadata);
+        Assert.Equal(11D, freeText.EffectiveFontSize);
+        Assert.Empty(document.Read.AnnotationsByActionType("JavaScript"));
+
+        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeAnnotations = document.Read.TryAnnotations();
+        Assert.True(safeAnnotations.Succeeded);
+        Assert.Equal(2, safeAnnotations.RequireValue().Count);
+
+        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeFreeText = document.Read.TryAnnotationsBySubtype("FreeText");
+        Assert.True(safeFreeText.Succeeded);
+        Assert.Equal("Visible reviewer note", Assert.Single(safeFreeText.RequireValue()).Contents);
+
+        PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeActions = document.Read.TryAnnotationsByActionType("JavaScript");
+        Assert.True(safeActions.Succeeded);
+        Assert.Empty(safeActions.RequireValue());
+
+        PdfOperationResult<IReadOnlyList<PdfAnnotation>> blocked = PdfDocument
+            .Open(Encoding.ASCII.GetBytes("not a pdf"))
+            .Read
+            .TryAnnotations();
+
+        Assert.False(blocked.CanAttempt);
+        Assert.False(blocked.Succeeded);
+        Assert.NotEmpty(blocked.Diagnostics);
     }
 
     [Fact]
@@ -548,6 +938,68 @@ public class PdfDocumentWorkflowTests {
     }
 
     [Fact]
+    public void ProofReports_StayFluentForRewritePreservationAndRedactionVerification() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
+        PdfDocument updated = PdfDocument.Open(source).UpdateMetadata(title: "Updated preservation title");
+        var preservationOptions = new PdfRewritePreservationOptions()
+            .AllowMetadataChanges("Title")
+            .RequireTextMarkers("PreservationMarker", "SecondPageMarker");
+
+        PdfRewritePreservationReport preserved = PdfDocument.Open(source).AssessRewritePreservation(updated, preservationOptions);
+        Assert.True(preserved.IsPreserved);
+        Assert.Empty(preserved.Issues);
+
+        using var rewrittenStream = new MemoryStream(updated.ToBytes());
+        Assert.True(PdfDocument.Open(source).AssertRewritePreserved(rewrittenStream, preservationOptions).IsPreserved);
+
+        PdfDocument deleted = PdfDocument.Open(source).Pages.Delete(2);
+        PdfRewritePreservationReport loss = PdfDocument.Open(source).AssessRewritePreservation(
+            deleted,
+            new PdfRewritePreservationOptions().RequireTextMarkers("SecondPageMarker"));
+        Assert.False(loss.IsPreserved);
+        Assert.Contains(loss.Issues, issue => issue.Feature == "PageCount");
+        Assert.Contains(loss.Issues, issue => issue.Feature == "TextMarker" && issue.Expected == "SecondPageMarker");
+
+        PdfRewritePreservationMatrixReport matrix = PdfDocument.Open(source).AssertRewritePreservationMatrix(
+            "fluent-metadata-update",
+            "MetadataUpdate",
+            document => document.UpdateMetadata(title: "Updated preservation title"),
+            options: preservationOptions,
+            sourceFeatures: new[] { "metadata", "xmp", "attachments" });
+        Assert.True(matrix.Passed);
+        PdfRewritePreservationMatrixEntry matrixEntry = Assert.Single(matrix.Entries);
+        Assert.Equal(PdfRewritePreservationMatrixClassification.RewriteSafe, matrixEntry.ActualClassification);
+        Assert.NotNull(matrixEntry.PreservationReport);
+        Assert.True(matrixEntry.PreservationReport!.IsPreserved);
+        Assert.Contains("attachments", matrixEntry.SourceFeatures);
+
+        byte[] signedSource = PdfRewritePreservationTestSupport.BuildSignedIncrementalProofPdf();
+        PdfRewritePreservationMatrixReport blockedMatrix = PdfDocument.Open(signedSource).AssertRewritePreservationMatrix(
+            "signed-rewrite-blocked",
+            "MetadataUpdate",
+            document => document.UpdateMetadata(title: "Blocked"),
+            PdfRewritePreservationMatrixClassification.Blocked,
+            sourceFeatures: new[] { "signature", "incremental" });
+        PdfRewritePreservationMatrixEntry blockedEntry = Assert.Single(blockedMatrix.Entries);
+        Assert.Equal(PdfRewritePreservationMatrixClassification.Blocked, blockedEntry.ActualClassification);
+        Assert.Contains("Signed PDF files are not supported for rewriting", blockedEntry.FailureMessage, StringComparison.Ordinal);
+
+        PdfRedactionProofResult redactionProof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
+        PdfRedactionVerificationOptions redactionOptions = PdfRedactionProofTestSupport.CreateVerificationOptions();
+
+        PdfRedactionVerificationReport verified = PdfDocument.Open(redactionProof.Redacted).VerifyRedactions(redactionOptions);
+        Assert.True(verified.IsVerified);
+        Assert.Empty(verified.Issues);
+        Assert.DoesNotContain("PAY-SECRET-2026", verified.ExtractedText, StringComparison.Ordinal);
+        Assert.Contains("Visible compliance marker", verified.ExtractedText, StringComparison.Ordinal);
+
+        PdfRedactionVerificationReport unredacted = PdfDocument.Open(redactionProof.Source).VerifyRedactions(redactionOptions);
+        Assert.False(unredacted.IsVerified);
+        Assert.Contains(unredacted.Issues, issue => issue.Feature == "RemovedTextMarker" && issue.Marker == "PAY-SECRET-2026");
+        Assert.Throws<InvalidOperationException>(() => PdfDocument.Open(redactionProof.Source).AssertRedactionsVerified(redactionOptions));
+    }
+
+    [Fact]
     public void Forms_TryFillNullOptionsCallsRemainSourceCompatible() {
         byte[] formPdf = BuildSimpleFormPdf();
         var textValues = new Dictionary<string, string> {
@@ -592,6 +1044,68 @@ public class PdfDocumentWorkflowTests {
         Assert.Contains("Page A", split[0].Read.Text(), StringComparison.Ordinal);
         Assert.Contains("Page B", split[1].Read.Text(), StringComparison.Ordinal);
         Assert.Contains("Page C", split[2].Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PageImports_StayFluentAndDelegateToCurrentEngine() {
+        byte[] target = BuildPdf("Target", "Target body");
+        byte[] source = BuildThreePagePdf();
+        PdfPageSelection selection = PdfPageSelection.Parse("3,1");
+
+        PdfDocument appended = PdfDocument.Open(target).Pages.Append(PdfDocument.Open(source), selection);
+        Assert.Equal(PdfPageImporter.AppendPages(target, source, 3, 1), appended.ToBytes());
+        Assert.Equal(3, appended.Inspect().PageCount);
+        Assert.Contains("PageC", appended.Read.Text(), StringComparison.Ordinal);
+        Assert.DoesNotContain("Page B", appended.Read.Text(), StringComparison.Ordinal);
+
+        PdfDocument prepended = PdfDocument.Open(target).Pages.Prepend(source, PdfPageSelection.From(2));
+        Assert.Equal(PdfPageImporter.PrependPages(target, source, 2), prepended.ToBytes());
+        Assert.Contains("Second page body", prepended.Read.Text(), StringComparison.Ordinal);
+
+        var importOptions = new PdfPageImportOptions {
+            FlattenVisualAnnotations = true
+        };
+        PdfDocument inserted = PdfDocument.Open(target).Pages.Insert(1, source, PdfPageSelection.From(2), importOptions);
+        Assert.Equal(PdfPageImporter.InsertPages(importOptions, target, source, 1, 2), inserted.ToBytes());
+
+        PdfOperationResult<PdfDocument> imported = PdfDocument.Open(target).Pages.TryAppend(PdfDocument.Open(source), PdfPageSelection.From(1));
+        Assert.True(imported.Succeeded);
+        Assert.Equal(PdfPreflightCapability.ManipulatePages, imported.Capability);
+        Assert.Contains("First page body", imported.RequireValue().Read.Text(), StringComparison.Ordinal);
+
+        PdfDocument invalid = PdfDocument.Open(Encoding.ASCII.GetBytes("not a pdf"));
+        PdfOperationResult<PdfDocument> blocked = invalid.Pages.TryAppend(PdfDocument.Open(source));
+        Assert.False(blocked.CanAttempt);
+        Assert.False(blocked.Succeeded);
+        Assert.NotEmpty(blocked.Diagnostics);
+
+        string sourcePath = Path.Combine(Path.GetTempPath(), "officeimo-page-import-" + Guid.NewGuid().ToString("N") + ".pdf");
+        try {
+            File.WriteAllBytes(sourcePath, source);
+
+            PdfOperationResult<PdfDocument> byteImport = PdfDocument.Open(target).Pages.TryAppend(source, PdfPageSelection.From(1));
+            Assert.True(byteImport.Succeeded);
+            Assert.Equal(2, byteImport.RequireValue().Inspect().PageCount);
+
+            using var sourceStream = new MemoryStream(source);
+            PdfOperationResult<PdfDocument> streamImport = PdfDocument.Open(target).Pages.TryPrepend(sourceStream, PdfPageSelection.From(2));
+            Assert.True(streamImport.Succeeded);
+            Assert.Contains("Second page body", streamImport.RequireValue().Read.Text(), StringComparison.Ordinal);
+
+            PdfOperationResult<PdfDocument> pathImport = PdfDocument.Open(target).Pages.TryInsert(1, sourcePath, PdfPageSelection.From(3));
+            Assert.True(pathImport.Succeeded);
+            Assert.Contains("Third page body", pathImport.RequireValue().Read.Text(), StringComparison.Ordinal);
+
+            PdfOperationResult<PdfDocument> failedSource = PdfDocument.Open(target).Pages.TryAppend(Encoding.ASCII.GetBytes("not a pdf"));
+            Assert.True(failedSource.CanAttempt);
+            Assert.False(failedSource.Succeeded);
+            Assert.NotNull(failedSource.Exception);
+            Assert.NotEmpty(failedSource.Diagnostics);
+        } finally {
+            if (File.Exists(sourcePath)) {
+                File.Delete(sourcePath);
+            }
+        }
     }
 
     [Fact]
@@ -666,6 +1180,131 @@ public class PdfDocumentWorkflowTests {
         Assert.Equal(
             PdfStamper.StampText(metadata.ToBytes(), "Reviewed", stampOptions),
             metadata.Stamp.Text("Reviewed", stampOptions).ToBytes());
+    }
+
+    [Fact]
+    public void AppendOnlyRevisionWorkflows_StayFluentAndDelegateToIncrementalEngine() {
+        byte[] source = BuildThreePagePdf();
+
+        PdfDocument metadata = PdfDocument.Open(source).AppendMetadataRevision(title: "Append-only workflow");
+        Assert.Equal(
+            PdfIncrementalUpdater.UpdateMetadata(source, title: "Append-only workflow"),
+            metadata.ToBytes());
+        Assert.Equal("Append-only workflow", metadata.Inspect().Metadata.Title);
+        Assert.True(metadata.Inspect().Security.HasIncrementalUpdates);
+
+        PdfOperationResult<PdfDocument> metadataResult = PdfDocument.Open(source).TryAppendMetadataRevision(author: "OfficeIMO Incremental");
+        Assert.True(metadataResult.Succeeded);
+        Assert.Equal(PdfPreflightCapability.AppendMetadataRevision, metadataResult.Capability);
+        Assert.Equal("OfficeIMO Incremental", metadataResult.RequireValue().Inspect().Metadata.Author);
+
+        byte[] formSource = BuildSimpleFormPdf();
+        var fieldValues = new Dictionary<string, string> {
+            ["Person.Name"] = "Ada"
+        };
+        var formOptions = new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        };
+
+        PdfDocument form = PdfDocument.Open(formSource).Forms.AppendRevision(fieldValues, formOptions);
+        Assert.Equal(
+            PdfIncrementalUpdater.UpdateFormFields(formSource, fieldValues, formOptions),
+            form.ToBytes());
+        Assert.Equal("Ada", Assert.Single(form.Inspect().FormFields).Value);
+        Assert.True(form.Inspect().Security.HasIncrementalUpdates);
+
+        PdfOperationResult<PdfDocument> formResult = PdfDocument.Open(formSource).Forms.TryAppendRevision(fieldValues, formOptions, readOptions: null);
+        Assert.True(formResult.Succeeded);
+        Assert.Equal(PdfPreflightCapability.AppendFormFieldRevision, formResult.Capability);
+        Assert.Equal("Ada", Assert.Single(formResult.RequireValue().Inspect().FormFields).Value);
+
+        var signatureOptions = new PdfExternalSignatureOptions {
+            FieldName = "Approval",
+            Name = "Alice",
+            Reason = "Approval",
+            ReservedSignatureContentsBytes = 256,
+            SigningTime = new DateTimeOffset(2026, 6, 22, 12, 0, 0, TimeSpan.Zero)
+        };
+
+        PdfExternalSignaturePreparation preparation = PdfDocument.Open(source).PrepareExternalSignature(signatureOptions);
+        Assert.Equal(
+            PdfIncrementalUpdater.PrepareExternalSignature(source, signatureOptions).PreparedPdf,
+            preparation.PreparedPdf);
+        Assert.Equal("Approval", preparation.FieldName);
+        Assert.True(PdfDocument.Open(preparation.PreparedPdf).ValidateSignatures().HasSignatures);
+
+        PdfOperationResult<PdfExternalSignaturePreparation> signatureResult = PdfDocument.Open(source).TryPrepareExternalSignature(signatureOptions);
+        Assert.True(signatureResult.Succeeded);
+        Assert.Equal(PdfPreflightCapability.PrepareExternalSignatureRevision, signatureResult.Capability);
+        Assert.Equal("Approval", signatureResult.RequireValue().FieldName);
+    }
+
+    [Fact]
+    public void AppendMetadataRevision_PreservesTaggedStructureWhenRewriteIsBlocked() {
+        byte[] source = PdfDocument.Create()
+            .TaggedPdfCatalogMarkers()
+            .Language("en-US")
+            .H1("Tagged append-only heading")
+            .Paragraph(paragraph => paragraph.Text("Tagged append-only body."))
+            .ToBytes();
+
+        PdfDocument tagged = PdfDocument.Open(source);
+        PdfDocumentPreflight preflight = tagged.Preflight();
+        Assert.True(preflight.CanRead);
+        Assert.False(preflight.CanRewrite);
+        Assert.True(preflight.CanAppendMetadataRevision);
+        Assert.True(preflight.Can(PdfPreflightCapability.AppendMetadataRevision));
+        Assert.Empty(preflight.GetCapabilityDiagnostics(PdfPreflightCapability.AppendMetadataRevision));
+        Assert.Contains(preflight.RewriteBlockers, blocker => blocker.Kind == PdfRewriteBlockerKind.TaggedContent);
+
+        PdfOperationResult<PdfDocument> result = tagged.TryAppendMetadataRevision(title: "Tagged append-only update");
+
+        Assert.True(result.Succeeded);
+        PdfDocument updated = result.RequireValue();
+        PdfDocumentInfo updatedInfo = updated.Inspect();
+        Assert.Equal("Tagged append-only update", updatedInfo.Metadata.Title);
+        Assert.True(updatedInfo.Security.HasIncrementalUpdates);
+        Assert.True(updatedInfo.HasReadableTaggedContent);
+        Assert.NotNull(updatedInfo.TaggedContent);
+        Assert.Contains("Document", updatedInfo.TaggedContent!.StructureTypes);
+        Assert.Contains("H1", updatedInfo.TaggedContent.StructureTypes);
+        Assert.Contains("P", updatedInfo.TaggedContent.StructureTypes);
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.AssertPreserved(
+            source,
+            updated.ToBytes(),
+            new PdfRewritePreservationOptions().AllowMetadataChanges("Title"));
+        Assert.True(report.IsPreserved);
+        Assert.Empty(report.Issues);
+    }
+
+    [Fact]
+    public void UpdateMetadata_PreservesSimpleOptionalContentLayersThroughFluentWorkflow() {
+        byte[] source = PdfOptionalContentSupport.BuildOptionalContentMetadataPdf();
+        PdfDocument layered = PdfDocument.Open(source);
+        PdfDocumentPreflight preflight = layered.Preflight();
+        Assert.True(preflight.CanRead);
+        Assert.True(preflight.CanRewrite);
+        Assert.False(preflight.HasRewriteBlocker(PdfRewriteBlockerKind.OptionalContent));
+        Assert.True(preflight.DocumentInfo!.HasReadableOptionalContent);
+
+        PdfDocument updated = layered.UpdateMetadata(title: "Layer-preserving update");
+
+        PdfDocumentInfo updatedInfo = updated.Inspect();
+        Assert.Equal("Layer-preserving update", updatedInfo.Metadata.Title);
+        Assert.True(updatedInfo.HasReadableOptionalContent);
+        Assert.Equal(new[] { "Print layer", "Hidden layer" }, updatedInfo.OptionalContentGroupNames);
+        PdfOptionalContentGroup hiddenLayer = Assert.Single(updatedInfo.GetOptionalContentGroupsByName("Hidden layer"));
+        Assert.False(hiddenLayer.IsInitiallyVisible);
+        Assert.True(hiddenLayer.IsLocked);
+
+        PdfRewritePreservationReport report = PdfRewritePreservation.AssertPreserved(
+            source,
+            updated.ToBytes(),
+            new PdfRewritePreservationOptions().AllowMetadataChanges("Title"));
+        Assert.True(report.IsPreserved);
+        Assert.Empty(report.Issues);
     }
 
     [Fact]

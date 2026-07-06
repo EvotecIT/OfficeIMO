@@ -35,6 +35,18 @@ public sealed class PdfComplianceProofReport {
     /// <summary>Caller-supplied external validation results.</summary>
     public IReadOnlyList<PdfExternalValidationResult> ExternalValidations => _externalValidations;
 
+    /// <summary>One machine-readable proof row for each external validator family required by the requested profile.</summary>
+    public IReadOnlyList<PdfExternalValidatorProof> ExternalValidatorProofs {
+        get {
+            var proofs = new List<PdfExternalValidatorProof>();
+            for (int i = 0; i < _requiredExternalValidators.Count; i++) {
+                proofs.Add(BuildExternalValidatorProof(_requiredExternalValidators[i]));
+            }
+
+            return proofs.AsReadOnly();
+        }
+    }
+
     /// <summary>True when every non-external OfficeIMO.Pdf readiness requirement is satisfied.</summary>
     public bool IsInternallyReady {
         get {
@@ -188,6 +200,17 @@ public sealed class PdfComplianceProofReport {
         return null;
     }
 
+    /// <summary>Finds the proof row for a required external validator family.</summary>
+    public PdfExternalValidatorProof? FindExternalValidatorProof(PdfExternalValidatorKind validatorKind) {
+        for (int i = 0; i < _requiredExternalValidators.Count; i++) {
+            if (_requiredExternalValidators[i] == validatorKind) {
+                return BuildExternalValidatorProof(validatorKind);
+            }
+        }
+
+        return null;
+    }
+
     internal static bool IsExternalValidationRequirement(string id) =>
         string.Equals(id, "verapdf-validation", StringComparison.Ordinal) ||
         string.Equals(id, "pdfua-validation", StringComparison.Ordinal) ||
@@ -204,6 +227,19 @@ public sealed class PdfComplianceProofReport {
         }
 
         return false;
+    }
+
+    private PdfExternalValidatorProof BuildExternalValidatorProof(PdfExternalValidatorKind validatorKind) {
+        var matches = new List<PdfExternalValidationResult>();
+        for (int i = 0; i < _externalValidations.Count; i++) {
+            PdfExternalValidationResult result = _externalValidations[i];
+            if (result.ValidatorKind == validatorKind &&
+                IsExternalValidationForRequestedProfile(result)) {
+                matches.Add(result);
+            }
+        }
+
+        return new PdfExternalValidatorProof(validatorKind, matches.AsReadOnly());
     }
 
     private int CountExternalValidations(PdfExternalValidationStatus status) {

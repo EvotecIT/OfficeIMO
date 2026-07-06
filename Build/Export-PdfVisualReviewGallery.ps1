@@ -39,6 +39,21 @@ $generatedReviewFileNames = @(
     'excel-dashboard-report.pdf',
     'markdown-technical-document.pdf',
     'markdown-invoice-statement.pdf',
+    'rtf-roundtrip-source.pdf',
+    'rtf-roundtrip-imported.rtf',
+    'rtf-roundtrip-summary.json',
+    'pdf-rewrite-preservation-source.pdf',
+    'pdf-rewrite-preservation-updated.pdf',
+    'pdf-rewrite-preservation-summary.json',
+    'pdf-redaction-removal-source.pdf',
+    'pdf-redaction-removal-redacted.pdf',
+    'pdf-redaction-removal-summary.json',
+    'pdf-form-appearance-source.pdf',
+    'pdf-form-appearance-filled.pdf',
+    'pdf-form-appearance-flattened.pdf',
+    'pdf-form-appearance-summary.json',
+    'pdf-provider-shaped-text.pdf',
+    'pdf-provider-shaped-text-summary.json',
     'practical-html.pdf',
     'html-css-resource-policy.pdf',
     'html-css-resource-policy-summary.json',
@@ -53,6 +68,9 @@ $generatedReviewFileNames = @(
     'pdf-logical-diagnostics-summary.json',
     'pdf-reader-degradation-corpus.pdf',
     'pdf-reader-degradation-summary.json',
+    'pdf-reader-hostile-action-corpus.pdf',
+    'pdf-reader-hostile-action-positioned-review.html',
+    'pdf-reader-hostile-action-summary.json',
     'pdf-reader-hostile-layout-corpus.pdf',
     'pdf-reader-hostile-layout-summary.json',
     'pdf-reader-hostile-table-corpus.pdf',
@@ -212,12 +230,15 @@ $scenarioProof = @(
     }
 )
 
+$qualityContract = $scenarioManifest.qualityContract
+
 $proofSummary = [pscustomobject]@{
     version = 1
     generatedAt = $generatedAt
     commit = $commit
     outputDirectory = $resolvedOutputPath
     manifest = 'conversion-scenarios.json'
+    qualityContract = $qualityContract
     scenarios = $scenarioProof
 }
 
@@ -255,6 +276,24 @@ $lines.Add('')
 $lines.Add("Manifest: [conversion-scenarios.json](conversion-scenarios.json)")
 $lines.Add('')
 $lines.Add("Proof summary: [conversion-proof-summary.json](conversion-proof-summary.json)")
+$lines.Add('')
+$lines.Add('## Premium Quality Contract')
+$lines.Add('')
+$lines.Add($qualityContract.goal)
+$lines.Add('')
+$lines.Add("Runtime ownership: $($qualityContract.runtimeOwnership)")
+$lines.Add('')
+$lines.Add('Required proof:')
+$lines.Add('')
+foreach ($proofItem in @($qualityContract.requiredProof)) {
+    $lines.Add("- $proofItem")
+}
+$lines.Add('')
+$lines.Add('Backlog still tracked by the contract:')
+$lines.Add('')
+foreach ($backlogItem in @($qualityContract.premiumBacklog)) {
+    $lines.Add("- $backlogItem")
+}
 $lines.Add('')
 $lines.Add('| Scenario | Path | Converter | Review artifacts |')
 $lines.Add('| --- | --- | --- | --- |')

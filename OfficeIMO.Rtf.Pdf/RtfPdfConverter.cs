@@ -8,7 +8,9 @@ internal static partial class RtfPdfConverter {
             throw new ArgumentNullException(nameof(document));
         }
 
-        RtfPdfSaveOptions normalized = (options ?? new RtfPdfSaveOptions()).Normalize();
+        RtfPdfSaveOptions exportOptions = options ?? new RtfPdfSaveOptions();
+        exportOptions.ResetExportState();
+        RtfPdfSaveOptions normalized = exportOptions.Normalize();
         PdfCore.PdfOptions pdfOptions = normalized.PdfOptions ?? new PdfCore.PdfOptions();
         ApplyPageSetup(document, document.PageSetup, pdfOptions);
         if (document.Sections.Count > 0) {
@@ -80,6 +82,13 @@ internal static partial class RtfPdfConverter {
             case RtfTable table when options.IncludeTables:
                 RenderTable(document, table, pdf, options, state);
                 break;
+            case RtfTable:
+                AddConversionWarning(
+                    options,
+                    "TableSkipped",
+                    "Table",
+                    "An RTF table was skipped because IncludeTables is false.");
+                break;
             case RtfImage image:
                 RenderImage(image, pdf, options);
                 break;
@@ -90,6 +99,15 @@ internal static partial class RtfPdfConverter {
                 RenderPlainTextBlock(shape.ToPlainText(), pdf);
                 break;
         }
+    }
+
+    private static void AddConversionWarning(RtfPdfSaveOptions options, string code, string source, string message, IReadOnlyDictionary<string, string>? details = null) {
+        options.ConversionReport.Add(new PdfCore.PdfConversionWarning(
+            "OfficeIMO.Rtf.Pdf",
+            code,
+            source,
+            message,
+            details: details));
     }
 
     private static void RenderPlainTextBlock(string text, PdfCore.PdfDocument pdf) {

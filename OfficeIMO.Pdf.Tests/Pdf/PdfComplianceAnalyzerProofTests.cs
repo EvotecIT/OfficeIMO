@@ -70,6 +70,47 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void DocumentProofUsesGeneratedEvidenceBeforeAcceptingExternalPdfAValidation() {
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A-3b profile accepted.",
+            "PDF/A-3b");
+
+        PdfDocument document = PdfDocument.Create(new PdfOptions()
+                .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
+            .Paragraph(paragraph => paragraph.Text("Generated text must still have embedded font proof."));
+
+        PdfComplianceProofReport proof = document.AssessComplianceProof(PdfComplianceProfile.PdfA3B, new[] { veraPdf });
+
+        Assert.False(proof.IsInternallyReady);
+        Assert.True(proof.HasRequiredExternalValidation);
+        Assert.False(proof.CanClaimConformance);
+        Assert.Equal("InternalGaps", proof.ProofStatus);
+        AssertRequirement(proof.Readiness, "embedded-font-coverage", PdfComplianceRequirementStatus.Missing);
+    }
+
+    [Fact]
+    public void DocumentProofUsesConfiguredProfileAndExternalValidatorGate() {
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A-3b profile accepted.",
+            "PDF/A-3b");
+
+        PdfComplianceProofReport proof = PdfDocument.Create(new PdfOptions()
+                .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B)
+                .RequireCompliance(PdfComplianceProfile.PdfA3B))
+            .AssessComplianceProof(new[] { veraPdf });
+
+        Assert.Equal(PdfComplianceProfile.PdfA3B, proof.Profile);
+        Assert.True(proof.IsInternallyReady);
+        Assert.True(proof.HasRequiredExternalValidation);
+        Assert.True(proof.CanClaimConformance);
+        Assert.Equal("Claimable", proof.ProofStatus);
+    }
+
+    [Fact]
     public void ReadinessAcceptsOpenTypeCffEmbeddedFontsForPdfAFontCoverage() {
         string? fontPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
         Assert.NotNull(fontPath);
@@ -182,6 +223,43 @@ public partial class PdfComplianceAnalyzerTests {
     }
 
     [Fact]
+    public void ProofReportExposesBlockingValidatorProofRowWhenFailureAndPassAreSupplied() {
+        var options = new PdfOptions()
+            .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B);
+        PdfExternalValidationResult failed = PdfExternalValidationResult.Failed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "Output intent failed policy validation.",
+            "PDF/A-3b",
+            exitCode: 1);
+        PdfExternalValidationResult passed = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "A later run passed.",
+            "PDF/A-3b");
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            PdfComplianceProfile.PdfA3B,
+            options,
+            new[] { failed, passed },
+            generatedStandardFonts: Array.Empty<PdfStandardFont>());
+
+        PdfExternalValidatorProof row = Assert.Single(proof.ExternalValidatorProofs);
+        Assert.NotNull(proof.FindExternalValidatorProof(PdfExternalValidatorKind.VeraPdf));
+        Assert.Equal(PdfExternalValidatorKind.VeraPdf, row.ValidatorKind);
+        Assert.Equal(PdfExternalValidatorProofStatus.Failed, row.Status);
+        Assert.False(row.IsSatisfied);
+        Assert.True(row.HasBlockingValidation);
+        Assert.True(row.BlocksConformanceClaim);
+        Assert.Same(failed, row.PrimaryValidation);
+        Assert.Same(failed, row.BlockingValidation);
+        Assert.Same(passed, row.PassingValidation);
+        Assert.Equal("veraPDF", row.ValidatorName);
+        Assert.Equal("Output intent failed policy validation.", row.Diagnostic);
+        Assert.Equal(1, row.ExitCode);
+    }
+
+    [Fact]
     public void ProofReportRequiresVeraPdfAndMustangForElectronicInvoiceProfiles() {
         PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
             PdfComplianceProfile.FacturX,
@@ -195,6 +273,43 @@ public partial class PdfComplianceAnalyzerTests {
         Assert.Contains(PdfExternalValidatorKind.Mustang, proof.RequiredExternalValidators);
         Assert.Contains(PdfExternalValidatorKind.VeraPdf, proof.MissingExternalValidators);
         Assert.Contains(PdfExternalValidatorKind.Mustang, proof.MissingExternalValidators);
+    }
+
+    [Fact]
+    public void ProofReportExposesPerValidatorRowsForElectronicInvoiceProfiles() {
+        PdfExternalValidationResult veraPdf = PdfExternalValidationResult.Passed(
+            PdfExternalValidatorKind.VeraPdf,
+            "veraPDF",
+            "PDF/A-3b carrier accepted.",
+            "PDF/A-3b");
+        PdfExternalValidationResult mustang = PdfExternalValidationResult.NotRun(
+            PdfExternalValidatorKind.Mustang,
+            "Mustang",
+            "Mustang is not configured on this runner.",
+            "Factur-X");
+
+        PdfComplianceProofReport proof = PdfComplianceAnalyzer.AssessProof(
+            PdfComplianceProfile.FacturX,
+            new PdfOptions(),
+            externalValidations: new[] { veraPdf, mustang },
+            generatedStandardFonts: Array.Empty<PdfStandardFont>());
+
+        Assert.Equal(new[] { PdfExternalValidatorKind.VeraPdf, PdfExternalValidatorKind.Mustang }, proof.ExternalValidatorProofs.Select(row => row.ValidatorKind).ToArray());
+        PdfExternalValidatorProof veraPdfRow = proof.FindExternalValidatorProof(PdfExternalValidatorKind.VeraPdf)!;
+        PdfExternalValidatorProof mustangRow = proof.FindExternalValidatorProof(PdfExternalValidatorKind.Mustang)!;
+
+        Assert.Equal(PdfExternalValidatorProofStatus.Passed, veraPdfRow.Status);
+        Assert.True(veraPdfRow.IsSatisfied);
+        Assert.False(veraPdfRow.BlocksConformanceClaim);
+        Assert.Same(veraPdf, veraPdfRow.PrimaryValidation);
+
+        Assert.Equal(PdfExternalValidatorProofStatus.NotRun, mustangRow.Status);
+        Assert.True(mustangRow.IsMissing);
+        Assert.True(mustangRow.BlocksConformanceClaim);
+        Assert.Same(mustang, mustangRow.PrimaryValidation);
+        Assert.Equal("Mustang is not configured on this runner.", mustangRow.Diagnostic);
+        Assert.Contains(PdfExternalValidatorKind.Mustang, proof.MissingExternalValidators);
+        Assert.False(proof.CanClaimConformance);
     }
 
     [Fact]

@@ -122,12 +122,12 @@ internal static partial class PdfSyntax {
         Guard.NotNull(pdf, nameof(pdf));
 
         if (options is not null) {
-            return ContainsAnyParsedPdfName(pdf, options, "AcroForm", "Fields", "FT");
+            return ContainsAnyParsedPdfName(pdf, options, "AcroForm", "Fields", "FT", "XFA");
         }
 
         string text = PdfEncoding.Latin1GetString(pdf);
-        return ContainsAnyPdfName(text, "AcroForm", "Fields", "FT") ||
-            ContainsAnyParsedPdfName(pdf, "AcroForm", "Fields", "FT");
+        return ContainsAnyPdfName(text, "AcroForm", "Fields", "FT", "XFA") ||
+            ContainsAnyParsedPdfName(pdf, "AcroForm", "Fields", "FT", "XFA");
     }
 
     internal static bool HasAnnotationMarkers(byte[] pdf) {

@@ -1,9 +1,9 @@
-# OfficeIMO.Word.Pdf - Word to PDF export
+# OfficeIMO.Word.Pdf - Word/PDF conversion
 
 [![nuget version](https://img.shields.io/nuget/v/OfficeIMO.Word.Pdf)](https://www.nuget.org/packages/OfficeIMO.Word.Pdf)
 [![nuget downloads](https://img.shields.io/nuget/dt/OfficeIMO.Word.Pdf?label=nuget%20downloads)](https://www.nuget.org/packages/OfficeIMO.Word.Pdf)
 
-`OfficeIMO.Word.Pdf` exports `OfficeIMO.Word` documents to PDF through the first-party `OfficeIMO.Pdf` engine. It is the adapter layer: Word stays responsible for the `.docx` model, while PDF layout and writing stay in `OfficeIMO.Pdf`.
+`OfficeIMO.Word.Pdf` exports `OfficeIMO.Word` documents to PDF through the first-party `OfficeIMO.Pdf` engine and imports parser-supported PDF logical content into editable Word documents. It is the adapter layer: Word stays responsible for the `.docx` model, while PDF layout, reading, diagnostics, and writing stay in `OfficeIMO.Pdf`.
 
 ## Install
 
@@ -98,6 +98,27 @@ foreach (var table in imported) {
 }
 ```
 
+### Import semantic PDF content into Word
+
+```csharp
+using OfficeIMO.Pdf;
+using OfficeIMO.Word.Pdf;
+
+var options = new PdfWordReadOptions {
+    LayoutOptions = new PdfTextLayoutOptions {
+        ForceSingleColumn = true
+    }
+};
+
+byte[] docx = File.ReadAllBytes("packet.pdf").ToWordDocumentBytesFromPdf(options);
+
+foreach (var warning in options.ConversionReport.Warnings) {
+    Console.WriteLine($"{warning.Code}: {warning.Message}");
+}
+```
+
+The semantic import path preserves document metadata, page breaks, headings, paragraphs, lists, logical tables, safe URI hyperlinks, supported internal destination links, embedded images, form-widget placeholders, and conversion diagnostics when those structures are available in the PDF logical model. It creates an editable Word document; it does not claim fixed-layout page recreation or Microsoft Word rendering parity.
+
 ## What it exports
 
 - Paragraphs, headings, rich runs, links, bookmarks, page breaks, lists, and common spacing/indentation settings.
@@ -106,13 +127,24 @@ foreach (var table in imported) {
 - Paragraph-aligned images, selected shapes, text boxes, content controls, simple form controls, footnote/endnote markers, and table-of-contents links where supported by the first-party PDF path.
 - Conversion warnings through `PdfSaveOptions.Warnings` and `PdfSaveOptions.ConversionReport`.
 
+## What it imports
+
+- Parser-supported PDF metadata, page breaks, headings, paragraphs, lists, logical tables, safe URI hyperlinks, supported internal destination links, complete image-file payloads with transparency-mask fidelity metadata, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette PDF image streams into editable `.docx` content when their filters are supported.
+- Image fallback placeholders and form-widget placeholders with diagnostics instead of silently dropping unsupported objects.
+- Page-range filtered imports through `PdfWordReadOptions.PageRanges`.
+- Active hyperlink reconstruction for absolute `http`, `https`, and `mailto` URI annotations through `PdfWordReadOptions.ImportUriLinks` and `PdfWordReadOptions.AllowedHyperlinkUriSchemes`.
+- Internal PDF destination reconstruction through `PdfWordReadOptions.ImportInternalLinks`, mapping supported page and named destinations to Word bookmarks and anchor hyperlinks.
+- Native image embedding through `PdfWordReadOptions.ImportImages`; complete image files, supported `ImageMask` stencil streams, color-key masked simple and `Indexed` streams, Decode-aware soft-mask-capable simple 8-bit `DeviceGray`/`DeviceRGB`/basic-converted `DeviceCMYK` streams, basic `ICCBased` N=1/3/4 streams, and Decode-aware soft-mask-capable `Indexed` palette streams are embedded when their filters are supported. Pass-through JPEG image payloads with unresolved PDF transparency masks are embedded with `PdfImageTransparencyMaskNotResolved`; unsupported complex PDF image streams can still produce editable placeholders through `PdfWordReadOptions.IncludeImagePlaceholders`.
+- Conversion warnings through `PdfWordReadOptions.ConversionReport`.
+
 ## Options and diagnostics
 
 Use `PdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, or table-border fallback. Keep `PdfSaveOptions.Warnings` and `PdfSaveOptions.ConversionReport` visible in wrappers and user interfaces; unsupported Word features should become actionable diagnostics instead of silent README promises.
 
 ## Boundaries
 
-- This package does not try to be a full Word renderer with perfect Microsoft Word parity.
+- This package does not try to be a full Word renderer with perfect Microsoft Word parity or a fixed-layout PDF-to-DOCX recreation engine.
+- PDF-to-Word import is semantic reconstruction over parser-supported logical PDF objects. Complex/unsupported PDF image streams, interactive controls, unresolved destinations, and remote/cross-document PDF navigation actions are not yet reconstructed as native Word objects.
 - Unsupported or simplified Word features should surface warnings rather than being hidden in the README as broad claims.
 - Reusable PDF layout work belongs in `OfficeIMO.Pdf`; Word-specific mapping belongs here.
 - PowerShell PDF workflows should be exposed through [PSWriteOffice](https://github.com/EvotecIT/PSWriteOffice).

@@ -50,7 +50,8 @@ public static partial class PdfStamper {
             overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
+        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
     }
 
     /// <summary>
@@ -162,7 +163,8 @@ public static partial class PdfStamper {
             overrides[page.ObjectNumber] = BuildPageOverrides(objects, pageObjectNumbers[i], fontResourceName, stampPseudoId, effectiveOptions.BehindContent);
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
+        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, pageObjectNumbers, overrides, additionalObjects, PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion);
     }
 
     /// <summary>

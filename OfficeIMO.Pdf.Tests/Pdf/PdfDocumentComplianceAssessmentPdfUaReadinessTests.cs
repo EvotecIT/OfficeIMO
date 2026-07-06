@@ -25,7 +25,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         AssertRequirement(report, "tagged-parent-tree-next-key", PdfComplianceRequirementStatus.Missing);
         AssertRequirement(report, "generated-document-structure-root", PdfComplianceRequirementStatus.Missing);
         AssertRequirement(report, "generated-document-structure-language", PdfComplianceRequirementStatus.Missing);
-        AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Unsupported);
+        AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Missing);
         AssertRequirement(report, "generated-text-structure-references", PdfComplianceRequirementStatus.Missing);
         AssertRequirement(report, "generated-list-structure-references", PdfComplianceRequirementStatus.Missing);
         AssertRequirement(report, "generated-list-structure-containers", PdfComplianceRequirementStatus.Missing);
@@ -58,11 +58,12 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
 
+        AssertRequirement(report, "full-unicode-mapping", PdfComplianceRequirementStatus.Missing);
         AssertRequirement(report, "tagged-catalog-markers", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "tagged-parent-tree-next-key", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "generated-document-structure-root", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "generated-document-structure-language", PdfComplianceRequirementStatus.Satisfied);
-        AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Unsupported);
+        AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "generated-text-structure-references", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "generated-list-structure-references", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "generated-list-structure-containers", PdfComplianceRequirementStatus.Satisfied);
@@ -82,6 +83,29 @@ public partial class PdfDocumentComplianceAssessmentTests {
         AssertRequirement(report, "decorative-running-page-text-artifacts", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "decorative-flow-rule-artifacts", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "decorative-layout-artifacts", PdfComplianceRequirementStatus.Satisfied);
+        Assert.False(report.IsReady);
+    }
+
+    [Fact]
+    public void AssessComplianceRecognizesEmbeddedFontUnicodeMappingForPdfUaGroundwork() {
+        string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (fontPath == null) {
+            return;
+        }
+
+        PdfDocument document = PdfDocument.Create(CreatePdfUaGroundworkOptions())
+            .TaggedPdfCatalogMarkers()
+            .UseFontFamily("PDF/UA Unicode readiness font", fontPath)
+            .Meta(title: "Accessible title")
+            .Paragraph(paragraph => paragraph.Text("PDF/UA embedded Unicode mapping readiness."));
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
+
+        AssertRequirement(report, "standard-font-to-unicode", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "full-unicode-mapping", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "tagged-catalog-markers", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "generated-text-structure-references", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "pdfua-validation", PdfComplianceRequirementStatus.Unsupported);
         Assert.False(report.IsReady);
     }
 
@@ -153,6 +177,21 @@ public partial class PdfDocumentComplianceAssessmentTests {
 
         AssertRequirement(report, "generated-image-alternate-text", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "alternate-text", PdfComplianceRequirementStatus.Satisfied);
+    }
+
+    [Fact]
+    public void AssessComplianceKeepsTaggedStructureMissingWhenMeaningfulImageLacksAlternativeText() {
+        byte[] png = CreateMinimalRgbPng();
+        PdfDocument document = PdfDocument.Create(CreatePdfUaGroundworkOptions())
+            .TaggedPdfCatalogMarkers()
+            .Meta(title: "Accessible title")
+            .Image(png, 24, 24);
+
+        PdfComplianceReadinessReport report = document.AssessCompliance(PdfComplianceProfile.PdfUa1);
+
+        AssertRequirement(report, "generated-image-alternate-text", PdfComplianceRequirementStatus.Missing);
+        PdfComplianceRequirement structure = AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Missing);
+        Assert.Contains("alternate text", structure.Diagnostic, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -233,7 +272,7 @@ public partial class PdfDocumentComplianceAssessmentTests {
         AssertRequirement(report, "decorative-flow-rule-artifacts", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "decorative-layout-artifacts", PdfComplianceRequirementStatus.Satisfied);
         Assert.Contains("artifact", artifacts.Diagnostic, StringComparison.OrdinalIgnoreCase);
-        AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Unsupported);
+        AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Satisfied);
     }
 
     [Fact]

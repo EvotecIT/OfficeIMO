@@ -83,11 +83,33 @@ public static partial class PdfComplianceAnalyzer {
                 ? "Generated text uses embedded TrueType Type0 fonts with Identity-H ToUnicode CMaps."
                 : "Enable PdfOptions.IncludeStandardFontToUnicodeMaps for non-embedded Type1 standard-font resources, or embed every generated font slot.");
 
-        requirements.Add(new PdfComplianceRequirement(
+        requirements.Add(BuildFullUnicodeMappingRequirement(generatedFontUsages, hasEmbeddedUnicodeCoverage));
+    }
+
+    private static PdfComplianceRequirement BuildFullUnicodeMappingRequirement(PdfGeneratedFontComplianceEvidence[]? generatedFontUsages, bool hasEmbeddedUnicodeCoverage) {
+        if (generatedFontUsages == null) {
+            return new PdfComplianceRequirement(
+                "full-unicode-mapping",
+                "Full generated text Unicode mapping",
+                PdfComplianceRequirementStatus.Unsupported,
+                "Generated text usage evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to verify whether every generated text font slot uses embedded Type0 Unicode mapping.");
+        }
+
+        if (hasEmbeddedUnicodeCoverage) {
+            return new PdfComplianceRequirement(
+                "full-unicode-mapping",
+                "Full generated text Unicode mapping",
+                PdfComplianceRequirementStatus.Satisfied,
+                generatedFontUsages.Length == 0
+                    ? "No generated text font usage was reported for this document."
+                    : "Every generated text font slot reported by layout uses a parseable embedded TrueType or OpenType/CFF Type0 font with Identity-H ToUnicode mapping.");
+        }
+
+        return new PdfComplianceRequirement(
             "full-unicode-mapping",
             "Full generated text Unicode mapping",
-            PdfComplianceRequirementStatus.Unsupported,
-            "OfficeIMO.Pdf does not yet prove Unicode mapping coverage for every generated text run, font fallback path, and future non-WinAnsi text path."));
+            PdfComplianceRequirementStatus.Missing,
+            "Embed parseable TrueType or OpenType/CFF mappings for every generated text font slot before claiming full generated text Unicode mapping.");
     }
 
     private static bool HasEmbeddedGeneratedFontUnicodeCoverage(PdfGeneratedFontComplianceEvidence[]? generatedFontUsages) {

@@ -206,6 +206,7 @@ public partial class PdfComplianceAnalyzerTests {
 
         AssertRequirement(report, "embedded-font-coverage", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "standard-font-to-unicode", PdfComplianceRequirementStatus.Satisfied);
+        AssertRequirement(report, "full-unicode-mapping", PdfComplianceRequirementStatus.Satisfied);
     }
 
     [Fact]
