@@ -1753,6 +1753,22 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ClassifiesRichMediaAnnotationActionsAsUnsafe() {
+        byte[] pdf = BuildRichMediaAnnotationActionPdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "rich-media-action.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        ReaderActionSummary action = Assert.Single(chunk.Actions!);
+        Assert.Equal("RichMedia", action.ActionType);
+        Assert.True(action.IsPotentiallyUnsafe);
+        Assert.True(chunk.Diagnostics!.HasActiveContent);
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_FlagsImageOnlyPagesAsOcrCandidates() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 PageWidth = 300,
@@ -1879,6 +1895,32 @@ public sealed class ReaderPdfModularTests {
         JsonElement root = document.RootElement;
         Assert.Equal("Invoice 1042\nTotal 123.45 EUR", root.GetProperty("blocks").EnumerateArray().Single(item => item.GetProperty("kind").GetString() == "ocr-text").GetProperty("text").GetString());
         Assert.Empty(root.GetProperty("ocrCandidates").EnumerateArray());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ApplyOcrResults_KeepsDiagnosticsForUnresolvedCandidatesInSameContainer() {
+        var location = new ReaderLocation { Page = 1, Path = "scan.pdf" };
+        var result = new OfficeDocumentReadResult {
+            Source = new OfficeDocumentSource { Path = "scan.pdf" },
+            OcrCandidates = new[] {
+                new OfficeDocumentOcrCandidate { Id = "ocr-1", Kind = "image", Reason = "First image needs OCR.", Location = location },
+                new OfficeDocumentOcrCandidate { Id = "ocr-2", Kind = "image", Reason = "Second image needs OCR.", Location = location }
+            },
+            Diagnostics = new[] {
+                new OfficeDocumentDiagnostic { Code = "ocr-needed", Message = "First image needs OCR.", Location = location },
+                new OfficeDocumentDiagnostic { Code = "ocr-needed", Message = "Second image needs OCR.", Location = location }
+            }
+        };
+
+        OfficeDocumentOcrEnrichmentResult enrichment = result.ApplyOcrResults(new[] {
+            new OfficeDocumentOcrTextResult { CandidateId = "ocr-1", Text = "Resolved text" }
+        });
+
+        OfficeDocumentReadResult enriched = enrichment.Document;
+        OfficeDocumentOcrCandidate unresolved = Assert.Single(enriched.OcrCandidates);
+        Assert.Equal("ocr-2", unresolved.Id);
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(enriched.Diagnostics, item => item.Code == "ocr-needed");
+        Assert.Equal("Second image needs OCR.", diagnostic.Message);
     }
 
     [Fact]
@@ -2666,6 +2708,46 @@ public sealed class ReaderPdfModularTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildRichMediaAnnotationActionPdf() {
+        string content = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Rich media action marker) Tj",
+            "ET"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 6 0 R >> >> /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Screen /Rect [40 120 180 180] /A << /S /RichMedia >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
             "%%EOF"
         }) + "\n";
 

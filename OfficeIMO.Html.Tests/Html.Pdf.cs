@@ -920,6 +920,36 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtml_LogicalDocumentPageRanges_UsesUniqueAnchorsForDuplicatePageSelections() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                CreateOutlineFromHeadings = true,
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .H1("Repeated Page")
+            .ToBytes();
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.Semantic,
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(1, 1),
+                PdfCore.PdfPageRange.From(1, 1)
+            }
+        };
+
+        string html = logical.ToHtml(options);
+
+        Assert.Contains("id=\"pdf-page-1-1\"", html, StringComparison.Ordinal);
+        Assert.Contains("id=\"pdf-page-1-2\"", html, StringComparison.Ordinal);
+        Assert.DoesNotContain("id=\"pdf-page-1\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"#pdf-page-1-1\"", html, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Pdf_ToHtml_SemanticProfile_EmbedsExtractedImageData() {
         byte[] pdf = CreateImageSamplePdf();
         var options = new PdfHtmlSaveOptions {

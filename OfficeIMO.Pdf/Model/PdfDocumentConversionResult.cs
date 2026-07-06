@@ -4,6 +4,8 @@ namespace OfficeIMO.Pdf;
 /// Result of a source-document to PDF conversion, pairing the generated PDF document with a snapshot of conversion diagnostics.
 /// </summary>
 public sealed partial class PdfDocumentConversionResult {
+    private readonly PdfConversionReport _sourceReport;
+
     /// <summary>
     /// Creates a conversion result from a generated PDF document and the conversion report populated during export.
     /// </summary>
@@ -11,6 +13,7 @@ public sealed partial class PdfDocumentConversionResult {
         Guard.NotNull(document, nameof(document));
         Guard.NotNull(conversionReport, nameof(conversionReport));
 
+        _sourceReport = conversionReport;
         Document = document;
         ConversionReport = SnapshotReport(conversionReport);
     }
@@ -18,7 +21,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// <summary>The generated PDF document, ready for fluent OfficeIMO.Pdf processing.</summary>
     public PdfDocument Document { get; }
 
-    /// <summary>Snapshot of conversion warnings captured when the result was created.</summary>
+    /// <summary>Snapshot of conversion warnings captured when the result was created and refreshed after save-time diagnostics run.</summary>
     public PdfConversionReport ConversionReport { get; }
 
     /// <summary>Warnings captured during conversion.</summary>
@@ -64,7 +67,7 @@ public sealed partial class PdfDocumentConversionResult {
         bool shouldCaptureArtifactHash = options.IncludeArtifactHash || !string.IsNullOrWhiteSpace(options.RequiredArtifactSha256);
         if (shouldReadGeneratedPdf || shouldCaptureArtifactHash) {
             try {
-                pdfBytes = Document.ToBytes();
+                pdfBytes = ToBytes();
                 if (shouldCaptureArtifactHash) {
                     artifactByteCount = pdfBytes.LongLength;
                     artifactSha256 = ComputeSha256Hex(pdfBytes);
@@ -83,6 +86,17 @@ public sealed partial class PdfDocumentConversionResult {
                 issues.Add(new PdfConversionProofIssue(
                     shouldReadGeneratedPdf ? "ReadablePdf" : "ArtifactSha256",
                     shouldReadGeneratedPdf ? "OfficeIMO.Pdf reader can inspect and extract text" : "generated PDF artifact hash",
+                    ex.GetType().Name + ": " + ex.Message));
+            }
+        }
+
+        if (pdfBytes is null && ShouldCaptureSaveDiagnostics(options)) {
+            try {
+                pdfBytes = ToBytes();
+            } catch (Exception ex) {
+                issues.Add(new PdfConversionProofIssue(
+                    "SaveDiagnostics",
+                    "generated PDF save diagnostics",
                     ex.GetType().Name + ": " + ex.Message));
             }
         }
@@ -174,7 +188,9 @@ public sealed partial class PdfDocumentConversionResult {
 
     /// <summary>Returns the generated PDF bytes.</summary>
     public byte[] ToBytes() {
-        return Document.ToBytes();
+        byte[] bytes = Document.ToBytes();
+        RefreshConversionReport();
+        return bytes;
     }
 
     /// <summary>
@@ -182,6 +198,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// </summary>
     public PdfDocumentConversionResult Save(Stream stream) {
         Document.Save(stream);
+        RefreshConversionReport();
         return this;
     }
 
@@ -190,6 +207,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// </summary>
     public PdfDocumentConversionResult Save(string path) {
         Document.Save(path);
+        RefreshConversionReport();
         return this;
     }
 
@@ -197,14 +215,18 @@ public sealed partial class PdfDocumentConversionResult {
     /// Attempts to write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
     public PdfSaveResult TrySave(Stream stream) {
-        return Document.TrySave(stream);
+        PdfSaveResult result = Document.TrySave(stream);
+        RefreshConversionReport();
+        return result;
     }
 
     /// <summary>
     /// Attempts to write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
     public PdfSaveResult TrySave(string path) {
-        return Document.TrySave(path);
+        PdfSaveResult result = Document.TrySave(path);
+        RefreshConversionReport();
+        return result;
     }
 
     /// <summary>
@@ -212,6 +234,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// </summary>
     public async System.Threading.Tasks.Task<PdfDocumentConversionResult> SaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
         await Document.SaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        RefreshConversionReport();
         return this;
     }
 
@@ -220,6 +243,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// </summary>
     public async System.Threading.Tasks.Task<PdfDocumentConversionResult> SaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
         await Document.SaveAsync(path, cancellationToken).ConfigureAwait(false);
+        RefreshConversionReport();
         return this;
     }
 
@@ -227,14 +251,26 @@ public sealed partial class PdfDocumentConversionResult {
     /// Attempts to asynchronously write the generated PDF document to the supplied stream and returns output diagnostics instead of throwing.
     /// </summary>
     public System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(Stream stream, System.Threading.CancellationToken cancellationToken = default) {
-        return Document.TrySaveAsync(stream, cancellationToken);
+        return TrySaveAsyncCore(stream, cancellationToken);
     }
 
     /// <summary>
     /// Attempts to asynchronously write the generated PDF document to the supplied file path and returns output diagnostics instead of throwing.
     /// </summary>
     public System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsync(string path, System.Threading.CancellationToken cancellationToken = default) {
-        return Document.TrySaveAsync(path, cancellationToken);
+        return TrySaveAsyncCore(path, cancellationToken);
+    }
+
+    private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(Stream stream, System.Threading.CancellationToken cancellationToken) {
+        PdfSaveResult result = await Document.TrySaveAsync(stream, cancellationToken).ConfigureAwait(false);
+        RefreshConversionReport();
+        return result;
+    }
+
+    private async System.Threading.Tasks.Task<PdfSaveResult> TrySaveAsyncCore(string path, System.Threading.CancellationToken cancellationToken) {
+        PdfSaveResult result = await Document.TrySaveAsync(path, cancellationToken).ConfigureAwait(false);
+        RefreshConversionReport();
+        return result;
     }
 
     private static PdfConversionReport SnapshotReport(PdfConversionReport conversionReport) {
@@ -242,6 +278,37 @@ public sealed partial class PdfDocumentConversionResult {
         snapshot.AddRange(conversionReport.Warnings);
         return snapshot;
     }
+
+    private void RefreshConversionReport() {
+        IReadOnlyList<PdfConversionWarning> sourceWarnings = _sourceReport.Warnings;
+        for (int i = 0; i < sourceWarnings.Count; i++) {
+            PdfConversionWarning warning = sourceWarnings[i];
+            if (!ContainsEquivalentWarning(ConversionReport.Warnings, warning)) {
+                ConversionReport.Add(warning);
+            }
+        }
+    }
+
+    private static bool ContainsEquivalentWarning(IReadOnlyList<PdfConversionWarning> warnings, PdfConversionWarning candidate) {
+        for (int i = 0; i < warnings.Count; i++) {
+            PdfConversionWarning warning = warnings[i];
+            if (string.Equals(warning.Converter, candidate.Converter, StringComparison.Ordinal) &&
+                string.Equals(warning.Code, candidate.Code, StringComparison.Ordinal) &&
+                string.Equals(warning.Source, candidate.Source, StringComparison.Ordinal) &&
+                string.Equals(warning.Message, candidate.Message, StringComparison.Ordinal) &&
+                warning.Severity == candidate.Severity) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ShouldCaptureSaveDiagnostics(PdfConversionProofOptions options) =>
+        options.RequiredWarningCodes.Count > 0 ||
+        options.RequiredWarningSources.Count > 0 ||
+        options.RequireNoUnexpectedWarnings ||
+        options.RequireNoErrorWarnings;
 
     private void AddUnexpectedWarningIssues(List<PdfConversionProofIssue> issues, PdfConversionProofOptions options) {
         var unexpectedCodes = new HashSet<string>(StringComparer.Ordinal);

@@ -172,7 +172,7 @@ public static partial class PdfRedactionApplier {
 
         PdfRedactionMatch? imageMatch = matches.FirstOrDefault(match =>
             match.Kind == PdfRedactionMatchKind.ImagePlacement &&
-            !removedMatches.Contains(match));
+            !ContainsRemovedImageMatch(removedMatches, match));
         if (imageMatch is null) {
             return;
         }
@@ -185,6 +185,30 @@ public static partial class PdfRedactionApplier {
             imageMatch.PageNumber.ToString(CultureInfo.InvariantCulture) +
             ". The image placement could not be rewritten safely; set PdfRedactionApplyOptions.AllowImagePlacementOverlays to true only when a visible overlay is an explicitly accepted weaker outcome.");
     }
+
+    private static bool ContainsRemovedImageMatch(IReadOnlyList<PdfRedactionMatch> removedMatches, PdfRedactionMatch candidate) {
+        if (removedMatches.Contains(candidate)) {
+            return true;
+        }
+
+        for (int i = 0; i < removedMatches.Count; i++) {
+            PdfRedactionMatch removed = removedMatches[i];
+            if (removed.Kind == candidate.Kind &&
+                removed.PageNumber == candidate.PageNumber &&
+                string.Equals(removed.ResourceName, candidate.ResourceName, StringComparison.Ordinal) &&
+                AreSameRedactionCoordinate(removed.X, candidate.X) &&
+                AreSameRedactionCoordinate(removed.Y, candidate.Y) &&
+                AreSameRedactionCoordinate(removed.Width, candidate.Width) &&
+                AreSameRedactionCoordinate(removed.Height, candidate.Height)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool AreSameRedactionCoordinate(double left, double right) =>
+        Math.Abs(left - right) <= 0.001D;
 
     private static bool RemoveMatchedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,

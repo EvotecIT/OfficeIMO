@@ -159,6 +159,36 @@ public partial class Word {
     }
 
     [Fact]
+    public void PdfSemanticImport_DisabledUriLinks_DoNotCreateActiveWordHyperlinks() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .H1("Disabled URI Link", linkUri: "https://example.com/disabled", linkContents: "Disabled URI Link")
+            .ToBytes();
+        var options = new PdfWordReadOptions {
+            ImportUriLinks = false,
+            ImportInternalLinks = true,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        byte[] documentBytes = pdf.ToWordDocumentBytesFromPdf(options);
+
+        Assert.DoesNotContain(options.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        using WordprocessingDocument package = WordprocessingDocument.Open(new MemoryStream(documentBytes), false);
+        Assert.Empty(new OpenXmlValidator().Validate(package).ToList());
+        Assert.Empty(package.MainDocumentPart!.HyperlinkRelationships);
+        Assert.Empty(GetPdfSemanticBody(package).Descendants<Hyperlink>());
+        Assert.Contains(GetPdfSemanticBody(package).Descendants<Text>(), text => text.Text == "Disabled URI Link");
+    }
+
+    [Fact]
     public void PdfSemanticImport_InternalLinks_BecomeWordBookmarkHyperlinks() {
         byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
                 PageWidth = 360,

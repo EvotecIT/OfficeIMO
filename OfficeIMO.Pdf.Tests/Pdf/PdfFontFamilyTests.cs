@@ -785,6 +785,28 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_RefreshesWarningsEmittedAfterResultCreation() {
+        var report = new PdfConversionReport();
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Save diagnostics result")),
+            report);
+
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "save-time-warning",
+            "writer",
+            "Warning emitted while serializing the PDF."));
+
+        Assert.False(result.HasWarnings);
+
+        byte[] bytes = result.ToBytes();
+
+        Assert.NotEmpty(bytes);
+        PdfConversionWarning warning = Assert.Single(result.Warnings);
+        Assert.Equal("save-time-warning", warning.Code);
+    }
+
+    [Fact]
     public async System.Threading.Tasks.Task PdfDocumentConversionResult_AsyncSavePreservesConversionReportSnapshot() {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(

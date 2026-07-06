@@ -63,7 +63,9 @@ namespace OfficeIMO.Word.Pdf {
             PdfWordReadOptions options,
             ImportNavigationMap navigation,
             out WordLinkTarget target) {
-            if (!string.IsNullOrWhiteSpace(link.Uri) && TryCreateWordHyperlinkUri(link, options, out Uri? uri)) {
+            if (options.ImportUriLinks &&
+                !string.IsNullOrWhiteSpace(link.Uri) &&
+                TryCreateWordHyperlinkUri(link, options, out Uri? uri)) {
                 target = WordLinkTarget.ForUri(uri!);
                 return true;
             }

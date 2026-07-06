@@ -23,37 +23,47 @@ public static partial class PdfRedactionApplier {
         var removedMatches = new List<PdfRedactionMatch>();
         var removedResourceNames = new HashSet<string>(StringComparer.Ordinal);
         Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects);
-        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
-            if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
-                indirect.Value is not PdfStream stream ||
-                stream.DecodingFailed) {
-                continue;
-            }
+        PdfObject currentContentsObject = contentsObject;
+        bool passChanged;
+        do {
+            passChanged = false;
+            PdfReference[] contentReferences = EnumerateContentReferences(objects, currentContentsObject).ToArray();
+            foreach (PdfReference reference in contentReferences) {
+                if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
+                    indirect.Value is not PdfStream stream ||
+                    stream.DecodingFailed) {
+                    continue;
+                }
 
-            byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-            string content = PdfEncoding.Latin1GetString(contentBytes);
-            string scrubbed = RemoveImageInvocations(content, wholeImageTargets, out IReadOnlyList<ImageRedactionTarget> removedTargets);
-            if (string.Equals(content, scrubbed, StringComparison.Ordinal)) {
-                continue;
-            }
+                byte[] contentBytes = StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+                string content = PdfEncoding.Latin1GetString(contentBytes);
+                string scrubbed = RemoveImageInvocations(content, wholeImageTargets, out IReadOnlyList<ImageRedactionTarget> removedTargets);
+                if (string.Equals(content, scrubbed, StringComparison.Ordinal)) {
+                    continue;
+                }
 
-            PdfReference targetReference = reference;
-            if (IsSharedReference(referenceCounts, reference)) {
-                targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
-                ReplacePageContentReference(objects, pageDictionary, contentsObject, reference, targetReference);
-            }
+                PdfReference targetReference = reference;
+                if (IsSharedReference(referenceCounts, reference)) {
+                    targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
+                    ReplacePageContentReference(objects, pageDictionary, currentContentsObject, reference, targetReference);
+                    currentContentsObject = pageDictionary.Items.TryGetValue("Contents", out PdfObject? updatedContentsObject)
+                        ? updatedContentsObject
+                        : currentContentsObject;
+                }
 
-            objects[targetReference.ObjectNumber] = new PdfIndirectObject(targetReference.ObjectNumber, targetReference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
-            AddRemovedImageTargets(removedTargets, removedMatches, removedResourceNames);
-            changed = true;
-        }
+                objects[targetReference.ObjectNumber] = new PdfIndirectObject(targetReference.ObjectNumber, targetReference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
+                AddRemovedImageTargets(removedTargets, removedMatches, removedResourceNames);
+                changed = true;
+                passChanged = true;
+            }
+        } while (passChanged);
 
         if (removedResourceNames.Count > 0) {
             RemoveUnusedPageImageResources(objects, pageDictionary, removedResourceNames);
         }
 
-        changed = ScrubMatchedImageFormXObjects(objects, pageDictionary, contentsObject, wholeImageTargets, referenceCounts, removedMatches, ref nextObjectNumber) || changed;
-        changed = RewriteMatchedImagePixels(objects, pageDictionary, contentsObject, pixelTargets, fillColor, referenceCounts, removedMatches, ref nextObjectNumber) || changed;
+        changed = ScrubMatchedImageFormXObjects(objects, pageDictionary, currentContentsObject, wholeImageTargets, referenceCounts, removedMatches, ref nextObjectNumber) || changed;
+        changed = RewriteMatchedImagePixels(objects, pageDictionary, currentContentsObject, pixelTargets, fillColor, referenceCounts, removedMatches, ref nextObjectNumber) || changed;
         return new ImageRedactionMutation(changed, removedMatches.AsReadOnly());
     }
 
@@ -302,8 +312,22 @@ public static partial class PdfRedactionApplier {
             }
         }
 
+        for (int i = 0; i < targets.Length; i++) {
+            if (string.Equals(targets[i].ResourceName, operand.Name, StringComparison.Ordinal) &&
+                RedactionAreaCoversRectangle(targets[i].Match.Area, x, y, width, height)) {
+                target = targets[i];
+                return true;
+            }
+        }
+
         return false;
     }
+
+    private static bool RedactionAreaCoversRectangle(PdfRedactionArea area, double x, double y, double width, double height) =>
+        area.X <= x + ImageRedactionTolerance &&
+        area.Y <= y + ImageRedactionTolerance &&
+        area.X + area.Width >= x + width - ImageRedactionTolerance &&
+        area.Y + area.Height >= y + height - ImageRedactionTolerance;
 
     private static void GetUnitRectangleBounds(Matrix2D transform, out double x, out double y, out double width, out double height) {
         var p0 = transform.Transform(0D, 0D);

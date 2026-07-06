@@ -7,10 +7,11 @@ using PdfCore = OfficeIMO.Pdf;
 namespace OfficeIMO.Html.Pdf;
 
 public static partial class PdfHtmlConverter {
-    private static void AppendPositionedPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfHtmlSaveOptions options) {
+    private static void AppendPositionedPage(StringBuilder builder, IReadOnlyList<PdfCore.PdfLogicalPage> pages, int renderIndex, PdfHtmlSaveOptions options) {
+        PdfCore.PdfLogicalPage page = pages[renderIndex];
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
         builder.Append("<section class=\"pdf-page\" id=\"");
-        builder.Append(GetPageAnchorId(page.PageNumber));
+        builder.Append(GetPageAnchorId(page.PageNumber, pages, renderIndex));
         builder.Append("\" data-page-number=\"");
         builder.Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
         builder.Append("\" style=\"width:");

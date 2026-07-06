@@ -326,6 +326,20 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
+    public void Apply_PreservesPriorSharedContentArrayImageReplacements() {
+        byte[] source = BuildSharedIndirectContentArrayImageRedactionSource();
+        IReadOnlyList<PdfImagePlacement> sourcePlacements = PdfImageExtractor.ExtractImagePlacements(source);
+        Assert.Equal(4, sourcePlacements.Count);
+        var area = new PdfRedactionArea(1, 0, 0, 200, 120, "shared-content-images");
+
+        byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
+
+        IReadOnlyList<PdfImagePlacement> placements = PdfImageExtractor.ExtractImagePlacements(redacted);
+        Assert.DoesNotContain(placements, placement => placement.PageNumber == 1);
+        Assert.Contains(placements, placement => placement.PageNumber == 2);
+    }
+
+    [Fact]
     public void Apply_AllowsExplicitImageOverlayWhenWeakerOutcomeIsAccepted() {
         byte[] source = BuildImageRedactionPlanningSource();
         PdfLogicalImage image = GetSingleImage(source);
@@ -365,6 +379,63 @@ public class PdfRedactionVerificationTests {
         const string pageContent = "q\n1 0 0 1 20 30 cm\n/FxA Do\nQ\nq\n1 0 0 1 120 30 cm\n/FxB Do\nQ\n";
         const string formContent = "q\n10 0 0 10 0 0 cm\n/ImShared Do\nQ\n";
         return BuildNestedImagePdf(pageContent, "<< /FxA 6 0 R /FxB 6 0 R >>", formContent, "ImShared");
+    }
+
+    private static byte[] BuildSharedIndirectContentArrayImageRedactionSource() {
+        const string firstContent = "q\n20 0 0 20 20 30 cm\n/ImSharedA Do\nQ\n";
+        const string secondContent = "q\n20 0 0 20 80 30 cm\n/ImSharedB Do\nQ\n";
+        const string imageBytes = "abc";
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 4 0 R] /MediaBox [0 0 200 120] /Resources << /XObject << /ImSharedA 9 0 R /ImSharedB 11 0 R >> >> >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 8 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Page /Parent 2 0 R /Contents 10 0 R >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(firstContent).ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            firstContent,
+            "endstream",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(secondContent).ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            secondContent,
+            "endstream",
+            "endobj",
+            "8 0 obj",
+            "[5 0 R 6 0 R]",
+            "endobj",
+            "9 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length " + Encoding.ASCII.GetByteCount(imageBytes).ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "10 0 obj",
+            "[5 0 R 6 0 R]",
+            "endobj",
+            "11 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length " + Encoding.ASCII.GetByteCount(imageBytes).ToString(CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            imageBytes,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] BuildNestedImagePdf(string pageContent, string pageXObjects, string formContent, string imageName) {

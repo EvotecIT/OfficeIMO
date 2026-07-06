@@ -174,7 +174,7 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
             Forms = result.Forms ?? Array.Empty<OfficeDocumentFormField>(),
             OcrCandidates = effectiveOptions.RemoveResolvedCandidates ? unresolved.ToArray() : candidates,
             Visuals = result.Visuals ?? Array.Empty<ReaderVisual>(),
-            Diagnostics = BuildDiagnostics(result.Diagnostics, applied, effectiveOptions)
+            Diagnostics = BuildDiagnostics(result.Diagnostics, unresolved, effectiveOptions)
         };
 
         return new OfficeDocumentOcrEnrichmentResult {
@@ -321,30 +321,36 @@ public static class OfficeDocumentOcrEnrichmentExtensions {
         return attributes;
     }
 
-    private static IReadOnlyList<OfficeDocumentDiagnostic> BuildDiagnostics(IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics, IReadOnlyList<AppliedOcrText> applied, OfficeDocumentOcrEnrichmentOptions options) {
+    private static IReadOnlyList<OfficeDocumentDiagnostic> BuildDiagnostics(IReadOnlyList<OfficeDocumentDiagnostic>? diagnostics, IReadOnlyList<OfficeDocumentOcrCandidate> unresolved, OfficeDocumentOcrEnrichmentOptions options) {
         IReadOnlyList<OfficeDocumentDiagnostic> existing = diagnostics ?? Array.Empty<OfficeDocumentDiagnostic>();
-        if (existing.Count == 0 || applied.Count == 0 || !options.RemoveResolvedOcrNeededDiagnostics) {
+        if (!options.RemoveResolvedOcrNeededDiagnostics) {
             return existing;
         }
 
-        return existing
-            .Where(diagnostic => !IsResolvedOcrDiagnostic(diagnostic, applied))
-            .ToArray();
-    }
-
-    private static bool IsResolvedOcrDiagnostic(OfficeDocumentDiagnostic diagnostic, IReadOnlyList<AppliedOcrText> applied) {
-        if (!string.Equals(diagnostic.Code, "ocr-needed", StringComparison.Ordinal)) {
-            return false;
-        }
-
-        for (int i = 0; i < applied.Count; i++) {
-            if (IsSameContainer(diagnostic.Location, applied[i].Candidate.Location)) {
-                return true;
+        var rebuilt = new List<OfficeDocumentDiagnostic>();
+        for (int i = 0; i < existing.Count; i++) {
+            if (!IsOcrNeededDiagnostic(existing[i])) {
+                rebuilt.Add(existing[i]);
             }
         }
 
-        return false;
+        for (int i = 0; i < unresolved.Count; i++) {
+            rebuilt.Add(BuildOcrNeededDiagnostic(unresolved[i]));
+        }
+
+        return rebuilt.Count == 0 ? Array.Empty<OfficeDocumentDiagnostic>() : rebuilt.ToArray();
     }
+
+    private static bool IsOcrNeededDiagnostic(OfficeDocumentDiagnostic diagnostic) =>
+        string.Equals(diagnostic.Code, "ocr-needed", StringComparison.Ordinal);
+
+    private static OfficeDocumentDiagnostic BuildOcrNeededDiagnostic(OfficeDocumentOcrCandidate candidate) =>
+        new OfficeDocumentDiagnostic {
+            Severity = OfficeDocumentDiagnosticSeverity.Warning,
+            Code = "ocr-needed",
+            Message = candidate.Reason ?? "OCR should be considered for this source region.",
+            Location = candidate.Location
+        };
 
     private static string? BuildMarkdown(string? markdown, IReadOnlyList<AppliedOcrText> applied, OfficeDocumentOcrEnrichmentOptions options) {
         if (!options.AppendRecognizedTextToMarkdown || applied.Count == 0) {

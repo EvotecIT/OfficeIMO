@@ -168,7 +168,7 @@ public static partial class PdfHtmlConverter {
             PdfCore.PdfLogicalPage page = pages[i];
             if (options.IncludePageContainers) {
                 builder.Append("<section class=\"pdf-page\" id=\"");
-                builder.Append(GetPageAnchorId(page.PageNumber));
+                builder.Append(GetPageAnchorId(page.PageNumber, pages, i));
                 builder.Append("\" data-page-number=\"");
                 builder.Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
                 builder.AppendLine("\">");
@@ -202,7 +202,7 @@ public static partial class PdfHtmlConverter {
         AppendAcroFormXfaNotice(builder, document, options);
 
         for (int i = 0; i < pages.Count; i++) {
-            AppendPositionedPage(builder, pages[i], options);
+            AppendPositionedPage(builder, pages, i, options);
         }
 
         if (options.EmitDocumentShell) {
@@ -374,7 +374,7 @@ public static partial class PdfHtmlConverter {
         builder.Append('>');
         if (outline.PageNumber.HasValue && IsPageInRenderScope(outline.PageNumber.Value, pages)) {
             builder.Append("<a href=\"#");
-            builder.Append(HtmlAttribute(GetPageAnchorId(outline.PageNumber.Value)));
+            builder.Append(HtmlAttribute(GetFirstPageAnchorId(outline.PageNumber.Value, pages)));
             builder.Append("\">");
             builder.Append(HtmlText(outline.Title));
             builder.Append("</a>");
@@ -464,6 +464,37 @@ public static partial class PdfHtmlConverter {
 
     private static string GetPageAnchorId(int pageNumber) =>
         "pdf-page-" + pageNumber.ToString(CultureInfo.InvariantCulture);
+
+    private static string GetPageAnchorId(int pageNumber, IReadOnlyList<PdfCore.PdfLogicalPage> pages, int renderIndex) {
+        int total = 0;
+        int occurrence = 0;
+        for (int i = 0; i < pages.Count; i++) {
+            if (pages[i].PageNumber != pageNumber) {
+                continue;
+            }
+
+            total++;
+            if (i <= renderIndex) {
+                occurrence++;
+            }
+        }
+
+        if (total <= 1) {
+            return GetPageAnchorId(pageNumber);
+        }
+
+        return GetPageAnchorId(pageNumber) + "-" + occurrence.ToString(CultureInfo.InvariantCulture);
+    }
+
+    private static string GetFirstPageAnchorId(int pageNumber, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        for (int i = 0; i < pages.Count; i++) {
+            if (pages[i].PageNumber == pageNumber) {
+                return GetPageAnchorId(pageNumber, pages, i);
+            }
+        }
+
+        return GetPageAnchorId(pageNumber);
+    }
 
     private static void AppendAcroFormXfaNotice(StringBuilder builder, PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options) {
         if (!document.HasAcroFormXfa || document.AcroFormXfa is null) {

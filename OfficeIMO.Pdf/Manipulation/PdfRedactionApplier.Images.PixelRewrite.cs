@@ -28,6 +28,7 @@ public static partial class PdfRedactionApplier {
         PdfDictionary xObjects = PdfPageResourceHelper.EnsurePageXObjects(objects, pageDictionary, "redaction image pixel rewrite");
         resources = ResolveDictionary(objects, pageDictionary.Items.TryGetValue("Resources", out PdfObject? pageResources) ? pageResources : null) ?? resources;
         bool changed = false;
+        PdfObject currentContentsObject = contentsObject;
         foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                 indirect.Value is not PdfStream stream ||
@@ -41,7 +42,10 @@ public static partial class PdfRedactionApplier {
                 PdfReference targetReference = reference;
                 if (IsSharedReference(referenceCounts, reference)) {
                     targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
-                    ReplacePageContentReference(objects, pageDictionary, contentsObject, reference, targetReference);
+                    ReplacePageContentReference(objects, pageDictionary, currentContentsObject, reference, targetReference);
+                    currentContentsObject = pageDictionary.Items.TryGetValue("Contents", out PdfObject? updatedContentsObject)
+                        ? updatedContentsObject
+                        : currentContentsObject;
                 }
 
                 objects[targetReference.ObjectNumber] = new PdfIndirectObject(targetReference.ObjectNumber, targetReference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(result.Content)));
