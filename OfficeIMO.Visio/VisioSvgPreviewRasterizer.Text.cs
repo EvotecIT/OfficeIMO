@@ -8,7 +8,7 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private static bool RenderText(OfficeRasterCanvas canvas, XElement element, SvgPaint paint, SvgTransform transform, SvgRenderContext context) {
-            SvgTextStyle style = SvgTextStyle.Resolve(element, SvgTextStyle.Default, context);
+            SvgTextStyle style = context.CurrentTextStyle;
             double x = ReadLength(element, "x", 0D);
             double y = ReadLength(element, "y", style.FontSize);
             double cursorX = x + ReadLength(element, "dx", 0D);
@@ -152,12 +152,12 @@ namespace OfficeIMO.Visio {
             }
 
             private static double ReadStyleLength(XElement element, Dictionary<string, string> style, string name, double fallback) {
-                string? raw = element.Attribute(name)?.Value ?? (style.TryGetValue(name, out string? value) ? value : null);
+                string? raw = style.TryGetValue(name, out string? value) ? value : element.Attribute(name)?.Value;
                 return TryParseLength(raw, out double parsed) ? parsed : fallback;
             }
 
             private static string? ReadStyleString(XElement element, Dictionary<string, string> style, string name) {
-                string? raw = element.Attribute(name)?.Value ?? (style.TryGetValue(name, out string? value) ? value : null);
+                string? raw = style.TryGetValue(name, out string? value) ? value : element.Attribute(name)?.Value;
                 if (string.IsNullOrWhiteSpace(raw)) {
                     return null;
                 }

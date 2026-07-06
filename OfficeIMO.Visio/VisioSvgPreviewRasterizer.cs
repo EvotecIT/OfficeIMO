@@ -41,6 +41,7 @@ namespace OfficeIMO.Visio {
             SvgPaint inherited = SvgPaint.Default;
             SvgRenderContext context = SvgRenderContext.Create(root, imageResolver);
             SvgTransform transform = SvgTransform.Create(width / viewWidth, 0D, 0D, height / viewHeight, -viewLeft * width / viewWidth, -viewTop * height / viewHeight);
+            using IDisposable rootTextStyle = context.PushTextStyle(SvgTextStyle.Resolve(root, SvgTextStyle.Default, context));
             bool rendered = RenderChildren(canvas, root, inherited, transform, context);
             if (!rendered) {
                 return false;
@@ -77,6 +78,7 @@ namespace OfficeIMO.Visio {
             SvgTransform localTransform = transform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
             using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(element, context));
             using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, out SvgPaintBounds bounds) ? bounds : null);
+            using IDisposable textStyleScope = context.PushTextStyle(SvgTextStyle.Resolve(element, context.CurrentTextStyle, context));
             bool appliesGroupOpacity = CanApplyGroupOpacity(name);
             double groupOpacity = appliesGroupOpacity ? SvgPaint.ReadOwnOpacity(element, context) : 1D;
             if (appliesGroupOpacity && groupOpacity <= 0D) {

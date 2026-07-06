@@ -24,39 +24,147 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            if (!TryReadFieldInstruction(paragraph, out string? instruction)) {
-                return false;
+            string? simpleInstruction = paragraph._simpleField?.Instruction?.Value;
+            if (!string.IsNullOrWhiteSpace(simpleInstruction)) {
+                return TryResolvePageFieldInstruction(simpleInstruction!, context, out text);
             }
 
-            if (IsFieldInstruction(instruction!, "PAGE")) {
-                text = TryReadFieldNumberFormat(instruction!, out NumberFormatValues? format)
+            if (TryResolveComplexPageFieldText(paragraph, context, out text)) {
+                return true;
+            }
+
+            return false;
+        }
+
+        private static bool TryResolvePageFieldInstruction(string instruction, WordImageFlowContext context, out string? text) {
+            text = null;
+            if (IsFieldInstruction(instruction, "PAGE")) {
+                text = TryReadFieldNumberFormat(instruction, out NumberFormatValues? format)
                     ? FormatPageNumber(context.PageNumberValue, format)
                     : context.PageNumberText;
                 return true;
             }
 
-            if (IsFieldInstruction(instruction!, "NUMPAGES")) {
-                text = TryReadFieldNumberFormat(instruction!, out NumberFormatValues? format)
+            if (IsFieldInstruction(instruction, "NUMPAGES")) {
+                text = TryReadFieldNumberFormat(instruction, out NumberFormatValues? format)
                     ? FormatPageNumber(context.TotalPageCount, format)
                     : context.TotalPageCount.ToString(CultureInfo.InvariantCulture);
                 return true;
             }
 
-            if (IsFieldInstruction(instruction!, "SECTION")) {
-                text = TryReadFieldNumberFormat(instruction!, out NumberFormatValues? format)
+            if (IsFieldInstruction(instruction, "SECTION")) {
+                text = TryReadFieldNumberFormat(instruction, out NumberFormatValues? format)
                     ? FormatPageNumber(context.SectionNumber, format)
                     : context.SectionNumber.ToString(CultureInfo.InvariantCulture);
                 return true;
             }
 
-            if (IsFieldInstruction(instruction!, "SECTIONPAGES")) {
-                text = TryReadFieldNumberFormat(instruction!, out NumberFormatValues? format)
+            if (IsFieldInstruction(instruction, "SECTIONPAGES")) {
+                text = TryReadFieldNumberFormat(instruction, out NumberFormatValues? format)
                     ? FormatPageNumber(context.SectionPageCount, format)
                     : context.SectionPageCount.ToString(CultureInfo.InvariantCulture);
                 return true;
             }
 
             return false;
+        }
+
+        private static bool TryResolveComplexPageFieldText(WordParagraph paragraph, WordImageFlowContext context, out string? text) {
+            text = null;
+            if (paragraph._runs == null || paragraph._runs.Count == 0) {
+                return false;
+            }
+
+            var output = new StringBuilder();
+            var instruction = new StringBuilder();
+            int fieldDepth = 0;
+            bool inFieldResult = false;
+            bool skipCurrentFieldResult = false;
+            bool resolvedAnyField = false;
+
+            foreach (Run run in paragraph._runs) {
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    if (child is FieldChar fieldChar) {
+                        FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                        if (fieldCharType == FieldCharValues.Begin) {
+                            if (fieldDepth == 0) {
+                                instruction.Clear();
+                                inFieldResult = false;
+                                skipCurrentFieldResult = false;
+                            }
+
+                            fieldDepth++;
+                            continue;
+                        }
+
+                        if (fieldCharType == FieldCharValues.Separate && fieldDepth > 0) {
+                            if (fieldDepth == 1 && TryResolvePageFieldInstruction(instruction.ToString(), context, out string? resolvedText)) {
+                                output.Append(resolvedText);
+                                skipCurrentFieldResult = true;
+                                resolvedAnyField = true;
+                            } else {
+                                skipCurrentFieldResult = false;
+                            }
+
+                            inFieldResult = true;
+                            continue;
+                        }
+
+                        if (fieldCharType == FieldCharValues.End && fieldDepth > 0) {
+                            if (fieldDepth == 1 && !inFieldResult && TryResolvePageFieldInstruction(instruction.ToString(), context, out string? resolvedText)) {
+                                output.Append(resolvedText);
+                                resolvedAnyField = true;
+                            }
+
+                            fieldDepth--;
+                            if (fieldDepth == 0) {
+                                instruction.Clear();
+                                inFieldResult = false;
+                                skipCurrentFieldResult = false;
+                            }
+
+                            continue;
+                        }
+                    }
+
+                    if (fieldDepth > 0) {
+                        if (!inFieldResult) {
+                            if (child is FieldCode fieldCode) {
+                                instruction.Append(fieldCode.Text);
+                            }
+
+                            continue;
+                        }
+
+                        if (skipCurrentFieldResult) {
+                            continue;
+                        }
+                    }
+
+                    AppendRenderableRunText(child, output);
+                }
+            }
+
+            if (!resolvedAnyField) {
+                return false;
+            }
+
+            text = output.ToString();
+            return true;
+        }
+
+        private static void AppendRenderableRunText(OpenXmlElement element, StringBuilder builder) {
+            switch (element) {
+                case Text textElement:
+                    builder.Append(textElement.Text);
+                    break;
+                case TabChar:
+                    builder.Append('\t');
+                    break;
+                case Break:
+                    builder.AppendLine();
+                    break;
+            }
         }
 
         private static bool TryResolveDocumentMetadataFieldText(WordParagraph paragraph, out string? text) {

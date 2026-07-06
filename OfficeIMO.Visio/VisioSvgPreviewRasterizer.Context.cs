@@ -22,6 +22,8 @@ namespace OfficeIMO.Visio {
 
             internal bool IsVisible { get; private set; } = true;
 
+            internal SvgTextStyle CurrentTextStyle { get; private set; } = SvgTextStyle.Default;
+
             internal static SvgRenderContext Create(XElement root, Func<string, byte[]?>? imageResolver = null) =>
                 new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver);
 
@@ -45,6 +47,12 @@ namespace OfficeIMO.Visio {
                 }
 
                 return new VisibilityScope(this, previous);
+            }
+
+            internal IDisposable PushTextStyle(SvgTextStyle style) {
+                SvgTextStyle previous = CurrentTextStyle;
+                CurrentTextStyle = style;
+                return new TextStyleScope(this, previous);
             }
 
             internal bool TryGetImageBytes(string href, out byte[]? bytes) {
@@ -100,6 +108,26 @@ namespace OfficeIMO.Visio {
                     }
 
                     _context.IsVisible = _previous;
+                    _disposed = true;
+                }
+            }
+
+            private sealed class TextStyleScope : IDisposable {
+                private readonly SvgRenderContext _context;
+                private readonly SvgTextStyle _previous;
+                private bool _disposed;
+
+                internal TextStyleScope(SvgRenderContext context, SvgTextStyle previous) {
+                    _context = context;
+                    _previous = previous;
+                }
+
+                public void Dispose() {
+                    if (_disposed) {
+                        return;
+                    }
+
+                    _context.CurrentTextStyle = _previous;
                     _disposed = true;
                 }
             }

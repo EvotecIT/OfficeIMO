@@ -24,14 +24,23 @@ internal sealed class PdfPageOptionalContentVisibility {
             }
         }
 
+        foreach (KeyValuePair<int, PdfIndirectObject> entry in objects) {
+            if (hiddenObjectNumbers.Contains(entry.Key)) {
+                continue;
+            }
+
+            if (IsOptionalContentObjectHidden(entry.Value.Value, groupVisibility, objects, new HashSet<int>())) {
+                hiddenObjectNumbers.Add(entry.Key);
+            }
+        }
+
         var hiddenProperties = new Dictionary<string, bool>(StringComparer.Ordinal);
         if (resources != null &&
             resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject) &&
             ResolveObject(propertiesObject, objects) is PdfDictionary properties) {
             foreach (KeyValuePair<string, PdfObject> entry in properties.Items) {
                 if (TryGetReferencedObjectNumber(entry.Value, out int objectNumber) &&
-                    groupVisibility.TryGetValue(objectNumber, out bool isVisible) &&
-                    !isVisible) {
+                    hiddenObjectNumbers.Contains(objectNumber)) {
                     hiddenProperties[entry.Key] = true;
                 }
             }
@@ -137,6 +146,88 @@ internal sealed class PdfPageOptionalContentVisibility {
 
         objectNumber = 0;
         return false;
+    }
+
+    private static bool IsOptionalContentObjectHidden(
+        PdfObject value,
+        Dictionary<int, bool> groupVisibility,
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> visited) {
+        if (value is PdfReference reference) {
+            if (groupVisibility.TryGetValue(reference.ObjectNumber, out bool groupVisible)) {
+                return !groupVisible;
+            }
+
+            if (!visited.Add(reference.ObjectNumber) ||
+                !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect)) {
+                return false;
+            }
+
+            return IsOptionalContentObjectHidden(indirect.Value, groupVisibility, objects, visited);
+        }
+
+        if (ResolveObject(value, objects) is not PdfDictionary dictionary) {
+            return false;
+        }
+
+        string? type = ReadName(dictionary, "Type", objects);
+        if (!string.Equals(type, "OCMD", StringComparison.Ordinal)) {
+            return false;
+        }
+
+        List<bool> visibilities = ReadOptionalContentMembershipGroupVisibilities(dictionary, groupVisibility, objects);
+        if (visibilities.Count == 0) {
+            return false;
+        }
+
+        string policy = ReadName(dictionary, "P", objects) ?? "AnyOn";
+        bool visible = policy switch {
+            "AllOn" => visibilities.TrueForAll(static visible => visible),
+            "AnyOff" => visibilities.Exists(static visible => !visible),
+            "AllOff" => visibilities.TrueForAll(static visible => !visible),
+            _ => visibilities.Exists(static visible => visible)
+        };
+        return !visible;
+    }
+
+    private static List<bool> ReadOptionalContentMembershipGroupVisibilities(
+        PdfDictionary dictionary,
+        Dictionary<int, bool> groupVisibility,
+        Dictionary<int, PdfIndirectObject> objects) {
+        var visibilities = new List<bool>();
+        if (!dictionary.Items.TryGetValue("OCGs", out PdfObject? groupsObject)) {
+            return visibilities;
+        }
+
+        PdfObject? resolved = ResolveObject(groupsObject, objects);
+        if (resolved is PdfArray groups) {
+            for (int i = 0; i < groups.Items.Count; i++) {
+                AddOptionalContentGroupVisibility(groups.Items[i], groupVisibility, objects, visibilities);
+            }
+
+            return visibilities;
+        }
+
+        AddOptionalContentGroupVisibility(groupsObject, groupVisibility, objects, visibilities);
+        return visibilities;
+    }
+
+    private static void AddOptionalContentGroupVisibility(
+        PdfObject value,
+        Dictionary<int, bool> groupVisibility,
+        Dictionary<int, PdfIndirectObject> objects,
+        List<bool> visibilities) {
+        if (value is PdfReference reference &&
+            groupVisibility.TryGetValue(reference.ObjectNumber, out bool visible)) {
+            visibilities.Add(visible);
+            return;
+        }
+
+        if (ResolveObject(value, objects) is PdfArray nested) {
+            for (int i = 0; i < nested.Items.Count; i++) {
+                AddOptionalContentGroupVisibility(nested.Items[i], groupVisibility, objects, visibilities);
+            }
+        }
     }
 
     private static PdfObject? ResolveObject(PdfObject? value, Dictionary<int, PdfIndirectObject> objects) =>
