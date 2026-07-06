@@ -187,8 +187,13 @@ namespace OfficeIMO.Excel {
         private static void ExpandEffectBounds(OfficeShape shape, ref double offsetX, ref double offsetY) {
             bool hasRotatedShapePadding = offsetX > 0D || offsetY > 0D;
             if (shape.Glow != null) {
-                offsetX = Math.Max(offsetX, shape.Glow.Radius);
-                offsetY = Math.Max(offsetY, shape.Glow.Radius);
+                if (hasRotatedShapePadding) {
+                    offsetX += shape.Glow.Radius;
+                    offsetY += shape.Glow.Radius;
+                } else {
+                    offsetX = Math.Max(offsetX, shape.Glow.Radius);
+                    offsetY = Math.Max(offsetY, shape.Glow.Radius);
+                }
             }
 
             if (shape.Shadow != null) {

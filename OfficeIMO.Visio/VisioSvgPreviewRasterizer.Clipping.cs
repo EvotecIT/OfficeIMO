@@ -16,9 +16,15 @@ namespace OfficeIMO.Visio {
                 return null;
             }
 
+            bool objectBoundingBox = string.Equals(definition.Attribute("clipPathUnits")?.Value?.Trim(), "objectBoundingBox", StringComparison.OrdinalIgnoreCase);
+            SvgTransform clipTransform = transform;
+            if (objectBoundingBox && context.CurrentPaintBounds is SvgPaintBounds paintBounds && paintBounds.HasArea) {
+                clipTransform = transform.Multiply(SvgTransform.Create(paintBounds.Width, 0D, 0D, paintBounds.Height, paintBounds.Left, paintBounds.Top));
+            }
+
             List<IReadOnlyList<OfficePoint>> contours = new();
             foreach (XElement child in definition.Elements()) {
-                AddClipElementContours(child, transform, contours);
+                AddClipElementContours(child, clipTransform, contours, context, objectBoundingBox);
             }
 
             if (contours.Count == 0) {
@@ -28,14 +34,14 @@ namespace OfficeIMO.Visio {
             return contours.Count == 1 ? canvas.PushClipPolygon(contours[0]) : canvas.PushClipPolygonsNonZero(contours);
         }
 
-        private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours) {
+        private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {
             string name = element.Name.LocalName;
             SvgTransform transform = parentTransform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
             if (string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase)) {
-                double x = ReadLength(element, "x", 0D);
-                double y = ReadLength(element, "y", 0D);
-                double width = ReadLength(element, "width", 0D);
-                double height = ReadLength(element, "height", 0D);
+                double x = ReadClipLength(element, "x", 0D, context, SvgLengthAxis.X, objectBoundingBox);
+                double y = ReadClipLength(element, "y", 0D, context, SvgLengthAxis.Y, objectBoundingBox);
+                double width = ReadClipLength(element, "width", 0D, context, SvgLengthAxis.X, objectBoundingBox);
+                double height = ReadClipLength(element, "height", 0D, context, SvgLengthAxis.Y, objectBoundingBox);
                 if (width > 0D && height > 0D) {
                     contours.Add(ProjectPoints(new[] {
                         (x, y),
@@ -49,19 +55,19 @@ namespace OfficeIMO.Visio {
             }
 
             if (string.Equals(name, "circle", StringComparison.OrdinalIgnoreCase)) {
-                double radius = ReadLength(element, "r", 0D);
+                double radius = ReadClipLength(element, "r", 0D, context, SvgLengthAxis.Diagonal, objectBoundingBox);
                 if (radius > 0D) {
-                    contours.Add(CreateEllipsePoints(ReadLength(element, "cx", 0D), ReadLength(element, "cy", 0D), radius, radius, transform));
+                    contours.Add(CreateEllipsePoints(ReadClipLength(element, "cx", 0D, context, SvgLengthAxis.X, objectBoundingBox), ReadClipLength(element, "cy", 0D, context, SvgLengthAxis.Y, objectBoundingBox), radius, radius, transform));
                 }
 
                 return;
             }
 
             if (string.Equals(name, "ellipse", StringComparison.OrdinalIgnoreCase)) {
-                double rx = ReadLength(element, "rx", 0D);
-                double ry = ReadLength(element, "ry", 0D);
+                double rx = ReadClipLength(element, "rx", 0D, context, SvgLengthAxis.X, objectBoundingBox);
+                double ry = ReadClipLength(element, "ry", 0D, context, SvgLengthAxis.Y, objectBoundingBox);
                 if (rx > 0D && ry > 0D) {
-                    contours.Add(CreateEllipsePoints(ReadLength(element, "cx", 0D), ReadLength(element, "cy", 0D), rx, ry, transform));
+                    contours.Add(CreateEllipsePoints(ReadClipLength(element, "cx", 0D, context, SvgLengthAxis.X, objectBoundingBox), ReadClipLength(element, "cy", 0D, context, SvgLengthAxis.Y, objectBoundingBox), rx, ry, transform));
                 }
 
                 return;
@@ -88,8 +94,13 @@ namespace OfficeIMO.Visio {
             }
 
             foreach (XElement child in element.Elements()) {
-                AddClipElementContours(child, transform, contours);
+                AddClipElementContours(child, transform, contours, context, objectBoundingBox);
             }
         }
+
+        private static double ReadClipLength(XElement element, string name, double fallback, SvgRenderContext context, SvgLengthAxis axis, bool objectBoundingBox) =>
+            objectBoundingBox
+                ? ReadLength(element, name, fallback, 1D)
+                : ReadLength(element, name, fallback, context, axis);
     }
 }

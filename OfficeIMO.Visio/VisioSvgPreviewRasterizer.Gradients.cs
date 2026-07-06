@@ -146,6 +146,10 @@ namespace OfficeIMO.Visio {
                 string? colorValue = stopStyle.TryGetValue("stop-color", out string? styleColor)
                     ? styleColor
                     : stopElement.Attribute("stop-color")?.Value;
+                if (string.IsNullOrWhiteSpace(colorValue)) {
+                    colorValue = "black";
+                }
+
                 double stopOpacity = ReadOpacity(
                     stopStyle.TryGetValue("stop-opacity", out string? styleOpacity)
                         ? styleOpacity

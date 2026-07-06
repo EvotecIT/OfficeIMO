@@ -7,9 +7,9 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private readonly struct SvgPaint {
-            internal static SvgPaint Default => new(OfficeColor.Black, null, null, OfficeColor.Transparent, 1D, null, 1D, OfficeColor.Black, SvgStrokeLineCap.Butt, SvgStrokeLineJoin.Miter, false);
+            internal static SvgPaint Default => new(OfficeColor.Black, null, null, OfficeColor.Transparent, 1D, null, 1D, 1D, 1D, OfficeColor.Black, SvgStrokeLineCap.Butt, SvgStrokeLineJoin.Miter, false);
 
-            private SvgPaint(OfficeColor fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor stroke, double strokeWidth, IReadOnlyList<double>? dashPattern, double opacity, OfficeColor currentColor, SvgStrokeLineCap strokeLineCap, SvgStrokeLineJoin strokeLineJoin, bool nonScalingStroke) {
+            private SvgPaint(OfficeColor fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor stroke, double strokeWidth, IReadOnlyList<double>? dashPattern, double opacity, double fillOpacity, double strokeOpacity, OfficeColor currentColor, SvgStrokeLineCap strokeLineCap, SvgStrokeLineJoin strokeLineJoin, bool nonScalingStroke) {
                 Fill = fill;
                 FillGradient = fillGradient;
                 FillRadialGradient = fillRadialGradient;
@@ -17,6 +17,8 @@ namespace OfficeIMO.Visio {
                 StrokeWidth = strokeWidth;
                 DashPattern = dashPattern;
                 Opacity = opacity;
+                FillOpacity = fillOpacity;
+                StrokeOpacity = strokeOpacity;
                 CurrentColor = currentColor;
                 StrokeLineCap = strokeLineCap;
                 StrokeLineJoin = strokeLineJoin;
@@ -36,6 +38,10 @@ namespace OfficeIMO.Visio {
             internal IReadOnlyList<double>? DashPattern { get; }
 
             internal double Opacity { get; }
+
+            internal double FillOpacity { get; }
+
+            internal double StrokeOpacity { get; }
 
             internal OfficeColor CurrentColor { get; }
 
@@ -58,24 +64,30 @@ namespace OfficeIMO.Visio {
                 string? rawFill = ReadPaint(element, style, "fill");
                 string? rawStroke = ReadPaint(element, style, "stroke");
                 double ownOpacity = applyOwnOpacity ? ReadOwnUnit(element, style, "opacity", 1D) : 1D;
-                double fillOpacity = ReadUnit(element, style, "fill-opacity", 1D);
-                double strokeOpacity = ReadUnit(element, style, "stroke-opacity", 1D);
-                double explicitFillMultiplier = string.IsNullOrWhiteSpace(rawFill) ? 1D : inherited.Opacity;
-                double explicitStrokeMultiplier = string.IsNullOrWhiteSpace(rawStroke) ? 1D : inherited.Opacity;
+                bool hasOwnFillOpacity = TryReadUnit(element, style, "fill-opacity", out double ownFillOpacity);
+                bool hasOwnStrokeOpacity = TryReadUnit(element, style, "stroke-opacity", out double ownStrokeOpacity);
+                double fillOpacity = hasOwnFillOpacity ? ownFillOpacity : inherited.FillOpacity;
+                double strokeOpacity = hasOwnStrokeOpacity ? ownStrokeOpacity : inherited.StrokeOpacity;
+                double fillMultiplier = string.IsNullOrWhiteSpace(rawFill)
+                    ? ownOpacity * ResolveInheritedPaintOpacityMultiplier(hasOwnFillOpacity, fillOpacity, inherited.FillOpacity)
+                    : inherited.Opacity * ownOpacity * fillOpacity;
+                double strokeMultiplier = string.IsNullOrWhiteSpace(rawStroke)
+                    ? ownOpacity * ResolveInheritedPaintOpacityMultiplier(hasOwnStrokeOpacity, strokeOpacity, inherited.StrokeOpacity)
+                    : inherited.Opacity * ownOpacity * strokeOpacity;
                 OfficeColor fill = ResolveColor(rawFill, inherited.Fill, currentColor);
                 OfficeColor stroke = ResolveColor(rawStroke, inherited.Stroke, currentColor);
                 double opacity = inherited.Opacity * ownOpacity;
-                fill = ApplyAlpha(fill, explicitFillMultiplier * ownOpacity * fillOpacity);
-                stroke = ApplyAlpha(stroke, explicitStrokeMultiplier * ownOpacity * strokeOpacity);
+                fill = ApplyAlpha(fill, fillMultiplier);
+                stroke = ApplyAlpha(stroke, strokeMultiplier);
                 OfficeLinearGradient? fillGradient = string.IsNullOrWhiteSpace(rawFill) ? inherited.FillGradient : null;
                 OfficeRadialGradient? fillRadialGradient = string.IsNullOrWhiteSpace(rawFill) ? inherited.FillRadialGradient : null;
-                if (TryResolveFillGradient(rawFill, context, explicitFillMultiplier * ownOpacity * fillOpacity, currentColor, out OfficeLinearGradient? resolvedFillGradient, out OfficeRadialGradient? resolvedFillRadialGradient)) {
+                if (TryResolveFillGradient(rawFill, context, fillMultiplier, currentColor, out OfficeLinearGradient? resolvedFillGradient, out OfficeRadialGradient? resolvedFillRadialGradient)) {
                     fillGradient = resolvedFillGradient;
                     fillRadialGradient = resolvedFillRadialGradient;
                 }
 
-                double strokeWidth = ReadLength(element, "stroke-width", inherited.StrokeWidth);
-                if (style.TryGetValue("stroke-width", out string? styleStrokeWidth) && TryParseLength(styleStrokeWidth, out double parsedStrokeWidth)) {
+                double strokeWidth = ReadLength(element, "stroke-width", inherited.StrokeWidth, context, SvgLengthAxis.Diagonal);
+                if (style.TryGetValue("stroke-width", out string? styleStrokeWidth) && TryParseLength(styleStrokeWidth, GetLengthReference(context, SvgLengthAxis.Diagonal), out double parsedStrokeWidth)) {
                     strokeWidth = parsedStrokeWidth;
                 }
 
@@ -83,23 +95,37 @@ namespace OfficeIMO.Visio {
                 SvgStrokeLineCap strokeLineCap = ReadStrokeLineCap(element, style, inherited.StrokeLineCap);
                 SvgStrokeLineJoin strokeLineJoin = ReadStrokeLineJoin(element, style, inherited.StrokeLineJoin);
                 bool nonScalingStroke = ReadNonScalingStroke(element, style, inherited.NonScalingStroke);
-                return new SvgPaint(fill, fillGradient, fillRadialGradient, stroke, strokeWidth, dashPattern, opacity, currentColor, strokeLineCap, strokeLineJoin, nonScalingStroke);
+                return new SvgPaint(fill, fillGradient, fillRadialGradient, stroke, strokeWidth, dashPattern, opacity, fillOpacity, strokeOpacity, currentColor, strokeLineCap, strokeLineJoin, nonScalingStroke);
             }
 
             private static string? ReadPaint(XElement element, Dictionary<string, string> style, string name) =>
                 ReadAttributeOrStyle(element, style, name);
 
             private static double ReadUnit(XElement element, Dictionary<string, string> style, string name, double fallback) {
+                return TryReadUnit(element, style, name, out double parsed) ? parsed : fallback;
+            }
+
+            private static bool TryReadUnit(XElement element, Dictionary<string, string> style, string name, out double value) {
+                value = 0D;
                 string? raw = ReadAttributeOrStyle(element, style, name);
                 if (string.IsNullOrWhiteSpace(raw) || !double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
-                    return fallback;
+                    return false;
                 }
 
-                return Math.Max(0D, Math.Min(1D, parsed));
+                value = Math.Max(0D, Math.Min(1D, parsed));
+                return true;
             }
 
             private static double ReadOwnUnit(XElement element, Dictionary<string, string> style, string name, double fallback) =>
                 ReadUnit(element, style, name, fallback);
+
+            private static double ResolveInheritedPaintOpacityMultiplier(bool hasOwnOpacity, double opacity, double inheritedOpacity) {
+                if (!hasOwnOpacity) {
+                    return 1D;
+                }
+
+                return inheritedOpacity > 0D ? opacity / inheritedOpacity : opacity;
+            }
 
             private static IReadOnlyList<double>? ReadDashPattern(XElement element, Dictionary<string, string> style, IReadOnlyList<double>? inherited) {
                 string? raw = ReadAttributeOrStyle(element, style, "stroke-dasharray");

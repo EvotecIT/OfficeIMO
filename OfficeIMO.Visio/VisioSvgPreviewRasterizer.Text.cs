@@ -9,10 +9,10 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private static bool RenderText(OfficeRasterCanvas canvas, XElement element, SvgPaint paint, SvgTransform transform, SvgRenderContext context) {
             SvgTextStyle style = context.CurrentTextStyle;
-            double x = ReadLength(element, "x", 0D);
-            double y = ReadLength(element, "y", style.FontSize);
-            double cursorX = x + ReadLength(element, "dx", 0D);
-            double cursorY = y + ReadLength(element, "dy", 0D);
+            double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
+            double y = ReadLength(element, "y", style.FontSize, context, SvgLengthAxis.Y);
+            double cursorX = x + ReadLength(element, "dx", 0D, context, SvgLengthAxis.X);
+            double cursorY = y + ReadLength(element, "dy", 0D, context, SvgLengthAxis.Y);
             bool rendered = false;
 
             foreach (XNode node in element.Nodes()) {
@@ -24,10 +24,10 @@ namespace OfficeIMO.Visio {
 
                 if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
                     SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
-                    double childX = ReadLength(child, "x", cursorX);
-                    double childY = ReadLength(child, "y", cursorY);
-                    childX += ReadLength(child, "dx", 0D);
-                    childY += ReadLength(child, "dy", 0D);
+                    double childX = ReadLength(child, "x", cursorX, context, SvgLengthAxis.X);
+                    double childY = ReadLength(child, "y", cursorY, context, SvgLengthAxis.Y);
+                    childX += ReadLength(child, "dx", 0D, context, SvgLengthAxis.X);
+                    childY += ReadLength(child, "dy", 0D, context, SvgLengthAxis.Y);
                     SvgPaint childPaint = SvgPaint.Resolve(child, paint, context);
                     string value = NormalizeText(child.Value);
                     rendered |= DrawSvgTextRun(canvas, value, childX, childY, childPaint, childStyle, transform, out double advance);
@@ -139,7 +139,7 @@ namespace OfficeIMO.Visio {
 
             internal static SvgTextStyle Resolve(XElement element, SvgTextStyle inherited, SvgRenderContext context) {
                 Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
-                double fontSize = ReadStyleLength(element, style, "font-size", inherited.FontSize);
+                double fontSize = ReadStyleLength(element, style, "font-size", inherited.FontSize, context);
                 string? fontFamily = ReadStyleString(element, style, "font-family") ?? inherited.FontFamily;
                 bool bold = ReadFontWeight(element, style, inherited.Bold);
                 bool italic = ReadFontStyle(element, style, inherited.Italic);
@@ -151,9 +151,9 @@ namespace OfficeIMO.Visio {
                 return new SvgTextStyle(fontSize, fontFamily, bold, italic, underline, strikethrough, alignment, baselineOffset);
             }
 
-            private static double ReadStyleLength(XElement element, Dictionary<string, string> style, string name, double fallback) {
+            private static double ReadStyleLength(XElement element, Dictionary<string, string> style, string name, double fallback, SvgRenderContext context) {
                 string? raw = style.TryGetValue(name, out string? value) ? value : element.Attribute(name)?.Value;
-                return TryParseLength(raw, out double parsed) ? parsed : fallback;
+                return TryParseLength(raw, GetLengthReference(context, SvgLengthAxis.Diagonal), out double parsed) ? parsed : fallback;
             }
 
             private static string? ReadStyleString(XElement element, Dictionary<string, string> style, string name) {

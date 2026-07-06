@@ -10,13 +10,16 @@ namespace OfficeIMO.Visio {
 
             private readonly Func<string, byte[]?>? _imageResolver;
 
-            private SvgRenderContext(SvgStyleSheet styleSheet, Dictionary<string, XElement> definitions, Func<string, byte[]?>? imageResolver) {
+            private SvgRenderContext(SvgStyleSheet styleSheet, Dictionary<string, XElement> definitions, Func<string, byte[]?>? imageResolver, SvgPaintBounds viewportBounds) {
                 StyleSheet = styleSheet;
                 _definitions = definitions;
                 _imageResolver = imageResolver;
+                ViewportBounds = viewportBounds;
             }
 
             internal SvgStyleSheet StyleSheet { get; }
+
+            internal SvgPaintBounds ViewportBounds { get; }
 
             internal SvgPaintBounds? CurrentPaintBounds { get; private set; }
 
@@ -24,8 +27,8 @@ namespace OfficeIMO.Visio {
 
             internal SvgTextStyle CurrentTextStyle { get; private set; } = SvgTextStyle.Default;
 
-            internal static SvgRenderContext Create(XElement root, Func<string, byte[]?>? imageResolver = null) =>
-                new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver);
+            internal static SvgRenderContext Create(XElement root, SvgPaintBounds viewportBounds, Func<string, byte[]?>? imageResolver = null) =>
+                new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver, viewportBounds);
 
             internal bool TryGetDefinition(string id, out XElement? definition) =>
                 _definitions.TryGetValue(id, out definition);

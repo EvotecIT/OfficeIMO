@@ -1,4 +1,5 @@
 using System;
+using System.Linq;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 
@@ -16,14 +17,15 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            double x = ReadLength(element, "x", 0D);
-            double y = ReadLength(element, "y", 0D);
-            double width = ReadLength(element, "width", image.Width);
-            double height = ReadLength(element, "height", image.Height);
+            double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
+            double y = ReadLength(element, "y", 0D, context, SvgLengthAxis.Y);
+            double width = ReadLength(element, "width", image.Width, context, SvgLengthAxis.X);
+            double height = ReadLength(element, "height", image.Height, context, SvgLengthAxis.Y);
             if (width <= 0D || height <= 0D) {
                 return false;
             }
 
+            ApplyPreserveAspectRatio(element, image, ref x, ref y, ref width, ref height);
             OfficePoint topLeft = transform.Apply(x, y);
             OfficePoint topRight = transform.Apply(x + width, y);
             OfficePoint bottomLeft = transform.Apply(x, y + height);
@@ -44,6 +46,37 @@ namespace OfficeIMO.Visio {
 
             canvas.DrawImage(renderedImage, left, top, right - left, bottom - top);
             return true;
+        }
+
+        private static void ApplyPreserveAspectRatio(XElement element, OfficeRasterImage image, ref double x, ref double y, ref double width, ref double height) {
+            string raw = element.Attribute("preserveAspectRatio")?.Value?.Trim() ?? "xMidYMid meet";
+            if (raw.Length == 0 || string.Equals(raw, "none", StringComparison.OrdinalIgnoreCase)) {
+                return;
+            }
+
+            string[] parts = raw.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            string align = parts.Length > 0 ? parts[0] : "xMidYMid";
+            bool slice = parts.Any(part => string.Equals(part, "slice", StringComparison.OrdinalIgnoreCase));
+            double scaleX = width / image.Width;
+            double scaleY = height / image.Height;
+            double scale = slice ? Math.Max(scaleX, scaleY) : Math.Min(scaleX, scaleY);
+            double scaledWidth = image.Width * scale;
+            double scaledHeight = image.Height * scale;
+
+            if (align.IndexOf("xMid", StringComparison.OrdinalIgnoreCase) >= 0) {
+                x += (width - scaledWidth) / 2D;
+            } else if (align.IndexOf("xMax", StringComparison.OrdinalIgnoreCase) >= 0) {
+                x += width - scaledWidth;
+            }
+
+            if (align.IndexOf("YMid", StringComparison.OrdinalIgnoreCase) >= 0) {
+                y += (height - scaledHeight) / 2D;
+            } else if (align.IndexOf("YMax", StringComparison.OrdinalIgnoreCase) >= 0) {
+                y += height - scaledHeight;
+            }
+
+            width = scaledWidth;
+            height = scaledHeight;
         }
 
         private static bool TryCreateImageProjection(OfficePoint topLeft, OfficePoint topRight, OfficePoint bottomLeft, OfficePoint bottomRight, out OfficeImageProjection projection) {

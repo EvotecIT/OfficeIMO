@@ -38,8 +38,8 @@ namespace OfficeIMO.Visio {
 
             OfficeRasterImage raster = new(width, height, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new(raster);
-            SvgPaint inherited = SvgPaint.Default;
-            SvgRenderContext context = SvgRenderContext.Create(root, imageResolver);
+            SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
+            SvgPaint inherited = SvgPaint.Resolve(root, SvgPaint.Default, context);
             SvgTransform transform = SvgTransform.Create(width / viewWidth, 0D, 0D, height / viewHeight, -viewLeft * width / viewWidth, -viewTop * height / viewHeight);
             using IDisposable rootTextStyle = context.PushTextStyle(SvgTextStyle.Resolve(root, SvgTextStyle.Default, context));
             bool rendered = RenderChildren(canvas, root, inherited, transform, context);
@@ -77,7 +77,7 @@ namespace OfficeIMO.Visio {
 
             SvgTransform localTransform = transform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
             using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(element, context));
-            using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, out SvgPaintBounds bounds) ? bounds : null);
+            using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, context, out SvgPaintBounds bounds) ? bounds : null);
             using IDisposable textStyleScope = context.PushTextStyle(SvgTextStyle.Resolve(element, context.CurrentTextStyle, context));
             bool appliesGroupOpacity = CanApplyGroupOpacity(name);
             double groupOpacity = appliesGroupOpacity ? SvgPaint.ReadOwnOpacity(element, context) : 1D;
@@ -118,15 +118,15 @@ namespace OfficeIMO.Visio {
             string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "use", StringComparison.OrdinalIgnoreCase);
 
-        private static bool TryGetElementPaintBounds(XElement element, string name, out SvgPaintBounds bounds) {
+        private static bool TryGetElementPaintBounds(XElement element, string name, SvgRenderContext context, out SvgPaintBounds bounds) {
             bounds = default;
             if (string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "image", StringComparison.OrdinalIgnoreCase) ||
                 string.Equals(name, "use", StringComparison.OrdinalIgnoreCase)) {
-                double x = ReadLength(element, "x", 0D);
-                double y = ReadLength(element, "y", 0D);
-                double width = ReadLength(element, "width", 0D);
-                double height = ReadLength(element, "height", 0D);
+                double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
+                double y = ReadLength(element, "y", 0D, context, SvgLengthAxis.Y);
+                double width = ReadLength(element, "width", 0D, context, SvgLengthAxis.X);
+                double height = ReadLength(element, "height", 0D, context, SvgLengthAxis.Y);
                 if (width > 0D && height > 0D) {
                     bounds = new SvgPaintBounds(x, y, width, height);
                     return true;
@@ -134,31 +134,31 @@ namespace OfficeIMO.Visio {
             }
 
             if (string.Equals(name, "circle", StringComparison.OrdinalIgnoreCase)) {
-                double radius = ReadLength(element, "r", 0D);
+                double radius = ReadLength(element, "r", 0D, context, SvgLengthAxis.Diagonal);
                 if (radius > 0D) {
-                    double cx = ReadLength(element, "cx", 0D);
-                    double cy = ReadLength(element, "cy", 0D);
+                    double cx = ReadLength(element, "cx", 0D, context, SvgLengthAxis.X);
+                    double cy = ReadLength(element, "cy", 0D, context, SvgLengthAxis.Y);
                     bounds = new SvgPaintBounds(cx - radius, cy - radius, radius * 2D, radius * 2D);
                     return true;
                 }
             }
 
             if (string.Equals(name, "ellipse", StringComparison.OrdinalIgnoreCase)) {
-                double rx = ReadLength(element, "rx", 0D);
-                double ry = ReadLength(element, "ry", 0D);
+                double rx = ReadLength(element, "rx", 0D, context, SvgLengthAxis.X);
+                double ry = ReadLength(element, "ry", 0D, context, SvgLengthAxis.Y);
                 if (rx > 0D && ry > 0D) {
-                    double cx = ReadLength(element, "cx", 0D);
-                    double cy = ReadLength(element, "cy", 0D);
+                    double cx = ReadLength(element, "cx", 0D, context, SvgLengthAxis.X);
+                    double cy = ReadLength(element, "cy", 0D, context, SvgLengthAxis.Y);
                     bounds = new SvgPaintBounds(cx - rx, cy - ry, rx * 2D, ry * 2D);
                     return true;
                 }
             }
 
             if (string.Equals(name, "line", StringComparison.OrdinalIgnoreCase)) {
-                double x1 = ReadLength(element, "x1", 0D);
-                double y1 = ReadLength(element, "y1", 0D);
-                double x2 = ReadLength(element, "x2", 0D);
-                double y2 = ReadLength(element, "y2", 0D);
+                double x1 = ReadLength(element, "x1", 0D, context, SvgLengthAxis.X);
+                double y1 = ReadLength(element, "y1", 0D, context, SvgLengthAxis.Y);
+                double x2 = ReadLength(element, "x2", 0D, context, SvgLengthAxis.X);
+                double y2 = ReadLength(element, "y2", 0D, context, SvgLengthAxis.Y);
                 bounds = CreatePaintBounds(new[] { (x1, y1), (x2, y2) });
                 return true;
             }
@@ -222,22 +222,22 @@ namespace OfficeIMO.Visio {
             }
 
             if (string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase)) {
-                return RenderRectangle(canvas, element, paint, localTransform);
+                return RenderRectangle(canvas, element, paint, localTransform, context);
             }
 
             if (string.Equals(name, "circle", StringComparison.OrdinalIgnoreCase)) {
-                double radius = ReadLength(element, "r", 0D);
-                return RenderEllipse(canvas, ReadLength(element, "cx", 0D), ReadLength(element, "cy", 0D), radius, radius, paint, localTransform);
+                double radius = ReadLength(element, "r", 0D, context, SvgLengthAxis.Diagonal);
+                return RenderEllipse(canvas, ReadLength(element, "cx", 0D, context, SvgLengthAxis.X), ReadLength(element, "cy", 0D, context, SvgLengthAxis.Y), radius, radius, paint, localTransform);
             }
 
             if (string.Equals(name, "ellipse", StringComparison.OrdinalIgnoreCase)) {
-                return RenderEllipse(canvas, ReadLength(element, "cx", 0D), ReadLength(element, "cy", 0D), ReadLength(element, "rx", 0D), ReadLength(element, "ry", 0D), paint, localTransform);
+                return RenderEllipse(canvas, ReadLength(element, "cx", 0D, context, SvgLengthAxis.X), ReadLength(element, "cy", 0D, context, SvgLengthAxis.Y), ReadLength(element, "rx", 0D, context, SvgLengthAxis.X), ReadLength(element, "ry", 0D, context, SvgLengthAxis.Y), paint, localTransform);
             }
 
             if (string.Equals(name, "line", StringComparison.OrdinalIgnoreCase)) {
                 return RenderPolyline(canvas, new[] {
-                    (ReadLength(element, "x1", 0D), ReadLength(element, "y1", 0D)),
-                    (ReadLength(element, "x2", 0D), ReadLength(element, "y2", 0D))
+                    (ReadLength(element, "x1", 0D, context, SvgLengthAxis.X), ReadLength(element, "y1", 0D, context, SvgLengthAxis.Y)),
+                    (ReadLength(element, "x2", 0D, context, SvgLengthAxis.X), ReadLength(element, "y2", 0D, context, SvgLengthAxis.Y))
                 }, closed: false, paint, localTransform);
             }
 
@@ -273,7 +273,7 @@ namespace OfficeIMO.Visio {
             }
 
             try {
-                SvgTransform useTransform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, ReadLength(element, "x", 0D), ReadLength(element, "y", 0D)));
+                SvgTransform useTransform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, ReadLength(element, "x", 0D, context, SvgLengthAxis.X), ReadLength(element, "y", 0D, context, SvgLengthAxis.Y)));
                 string definitionName = definition.Name.LocalName;
                 if ((string.Equals(definitionName, "symbol", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(definitionName, "svg", StringComparison.OrdinalIgnoreCase)) &&
@@ -291,17 +291,17 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static bool RenderRectangle(OfficeRasterCanvas canvas, XElement element, SvgPaint paint, SvgTransform transform) {
-            double x = ReadLength(element, "x", 0D);
-            double y = ReadLength(element, "y", 0D);
-            double width = ReadLength(element, "width", 0D);
-            double height = ReadLength(element, "height", 0D);
+        private static bool RenderRectangle(OfficeRasterCanvas canvas, XElement element, SvgPaint paint, SvgTransform transform, SvgRenderContext context) {
+            double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
+            double y = ReadLength(element, "y", 0D, context, SvgLengthAxis.Y);
+            double width = ReadLength(element, "width", 0D, context, SvgLengthAxis.X);
+            double height = ReadLength(element, "height", 0D, context, SvgLengthAxis.Y);
             if (width <= 0D || height <= 0D) {
                 return false;
             }
 
-            bool hasRx = TryParseLength(element.Attribute("rx")?.Value, out double rx);
-            bool hasRy = TryParseLength(element.Attribute("ry")?.Value, out double ry);
+            bool hasRx = TryParseLength(element.Attribute("rx")?.Value, GetLengthReference(context, SvgLengthAxis.X), out double rx);
+            bool hasRy = TryParseLength(element.Attribute("ry")?.Value, GetLengthReference(context, SvgLengthAxis.Y), out double ry);
             if (hasRx && !hasRy) {
                 ry = rx;
             } else if (!hasRx && hasRy) {
@@ -801,6 +801,27 @@ namespace OfficeIMO.Visio {
         private static double ReadLength(XElement element, string name, double fallback) =>
             TryParseLength(element.Attribute(name)?.Value, out double value) ? value : fallback;
 
+        private static double ReadLength(XElement element, string name, double fallback, SvgRenderContext context, SvgLengthAxis axis) =>
+            ReadLength(element, name, fallback, GetLengthReference(context, axis));
+
+        private static double ReadLength(XElement element, string name, double fallback, double? percentageReference) =>
+            TryParseLength(element.Attribute(name)?.Value, percentageReference, out double value) ? value : fallback;
+
+        private static double? GetLengthReference(SvgRenderContext context, SvgLengthAxis axis) {
+            SvgPaintBounds viewport = context.ViewportBounds;
+            double width = viewport.Width;
+            double height = viewport.Height;
+            if (width <= 0D || height <= 0D) {
+                return null;
+            }
+
+            return axis switch {
+                SvgLengthAxis.X => width,
+                SvgLengthAxis.Y => height,
+                _ => Math.Sqrt((width * width) + (height * height)) / Math.Sqrt(2D)
+            };
+        }
+
         private static SvgTransform ReadTransform(string? value) {
             if (string.IsNullOrWhiteSpace(value)) {
                 return SvgTransform.Identity;
@@ -866,6 +887,10 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool TryParseLength(string? value, out double result) {
+            return TryParseLength(value, null, out result);
+        }
+
+        private static bool TryParseLength(string? value, double? percentageReference, out double result) {
             result = 0D;
             if (string.IsNullOrWhiteSpace(value)) {
                 return false;
@@ -873,7 +898,17 @@ namespace OfficeIMO.Visio {
 
             string trimmed = value!.Trim();
             if (trimmed.EndsWith("%", StringComparison.Ordinal)) {
-                return false;
+                if (!percentageReference.HasValue || percentageReference.Value <= 0D) {
+                    return false;
+                }
+
+                string rawPercentage = trimmed.Substring(0, trimmed.Length - 1);
+                if (!double.TryParse(rawPercentage, NumberStyles.Float, CultureInfo.InvariantCulture, out double percentage)) {
+                    return false;
+                }
+
+                result = percentageReference.Value * percentage / 100D;
+                return true;
             }
 
             int end = 0;
@@ -882,6 +917,12 @@ namespace OfficeIMO.Visio {
             }
 
             return end > 0 && double.TryParse(trimmed.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+        }
+
+        private enum SvgLengthAxis {
+            X,
+            Y,
+            Diagonal
         }
 
         private static bool TryParsePoints(string? value, out List<(double X, double Y)> points) {

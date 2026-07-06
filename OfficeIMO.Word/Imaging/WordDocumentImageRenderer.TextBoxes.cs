@@ -207,7 +207,9 @@ namespace OfficeIMO.Word {
             }
 
             bool drawBehindContent = textBox.WrapText == WrapTextImage.BehindText;
-            if (!drawBehindContent) {
+            if (drawBehindContent) {
+                context.Drawing.AddShapeBehindContent(frame, left, top);
+            } else {
                 context.Drawing.AddShape(frame, left, top);
             }
 
@@ -235,7 +237,6 @@ namespace OfficeIMO.Word {
                         flipHorizontal: transform.FlipHorizontal,
                         flipVertical: transform.FlipVertical,
                         padding: padding);
-                    context.Drawing.AddShapeBehindContent(frame, left, top);
                     return;
                 }
 
@@ -277,7 +278,6 @@ namespace OfficeIMO.Word {
                     flipHorizontal: transform.FlipHorizontal,
                     flipVertical: transform.FlipVertical,
                     padding: padding);
-                context.Drawing.AddShapeBehindContent(frame, left, top);
                 return;
             }
 
