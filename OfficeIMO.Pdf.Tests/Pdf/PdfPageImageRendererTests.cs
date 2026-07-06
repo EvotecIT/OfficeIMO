@@ -1449,6 +1449,93 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_CropsImageXObjectAtPageEdge() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 0, 255, 0 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            contentStream: """
+                q
+                80 0 0 80 200 60 cm
+                /Im1 Do
+                Q
+                """);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingImage image = Assert.Single(drawing.Images);
+        Assert.True(image.Projection.HasCrop);
+        Assert.Equal(200D, image.Projection.X);
+        Assert.Equal(60D, image.Projection.Y);
+        Assert.Equal(40D, image.Projection.Width);
+        Assert.Equal(80D, image.Projection.Height);
+        Assert.Equal(0D, image.Projection.SourceLeft);
+        Assert.Equal(0.5D, image.Projection.SourceWidth);
+    }
+
+    [Fact]
+    public void RenderPage_IntersectsSuccessiveRectangleClipsForImageXObject() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 0, 255, 0 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            contentStream: """
+                0 0 100 100 re
+                W
+                n
+                40 0 100 100 re
+                W
+                n
+                q
+                100 0 0 100 0 0 cm
+                /Im1 Do
+                Q
+                """);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingImage image = Assert.Single(drawing.Images);
+        Assert.True(image.Projection.HasCrop);
+        Assert.Equal(40D, image.Projection.X);
+        Assert.Equal(100D, image.Projection.Y);
+        Assert.Equal(60D, image.Projection.Width);
+        Assert.Equal(100D, image.Projection.Height);
+        Assert.Equal(0.4D, image.Projection.SourceLeft);
+        Assert.Equal(0.6D, image.Projection.SourceWidth);
+    }
+
+    [Fact]
+    public void RenderPage_CarriesCallerClipIntoFormXObjectVectorContent() {
+        string formObject = BuildStreamObject(
+            5,
+            "<< /Type /XObject /Subtype /Form /BBox [0 0 100 100] /Resources << >>",
+            """
+            1 0 0 rg
+            0 0 100 100 re
+            f
+            """);
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            20 20 40 40 re
+            W
+            n
+            q
+            /Fm1 Do
+            Q
+            """,
+            "<< /XObject << /Fm1 5 0 R >> >>",
+            formObject);
+
+        byte[] png = PdfPageImageRenderer.RenderPageAsPng(pdf);
+
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? raster));
+        OfficeColor clippedInside = raster!.GetPixel(30, 150);
+        OfficeColor clippedOutside = raster.GetPixel(10, 110);
+        Assert.True(clippedInside.R > 240 && clippedInside.G < 20 && clippedInside.B < 20);
+        Assert.True(clippedOutside.R > 240 && clippedOutside.G > 240 && clippedOutside.B > 240);
+    }
+
+    [Fact]
     public void RenderPage_AppliesPathClipToImageXObject() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 0, 255, 0 }),

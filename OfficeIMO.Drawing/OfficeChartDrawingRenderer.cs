@@ -951,23 +951,17 @@ public static partial class OfficeChartDrawingRenderer {
         IReadOnlyList<OfficeChartSeries> barSeriesValues = barSeries.Select(item => item.Series).ToArray();
         double slot = plotWidth / categories.Count;
         double groupWidth = slot * 0.68D;
-        bool horizontal = barSeries.Any(item => IsBarChart(GetEffectiveSeriesKind(snapshot, item.Series)));
         bool stacked = barSeries.Any(item => IsStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)) || IsPercentStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)));
         bool percentStacked = barSeries.Any(item => IsPercentStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)));
         int barSeriesCount = barSeries.Count;
         double barWidth = Math.Max(2D, stacked ? groupWidth : groupWidth / barSeriesCount);
-        ValueRange range = percentStacked
+        ValueRange baseRange = percentStacked
             ? GetPercentStackedSeriesRange(barSeriesValues, categories.Count)
             : stacked
                 ? GetStackedSeriesRange(barSeriesValues, categories.Count)
                 : GetCartesianValueRange(snapshot);
-        range = ApplyValueAxisScale(range, layout, horizontal);
-        bool hasValueAxisScale = HasValueAxisScale(layout, horizontal);
-        double min = hasValueAxisScale ? range.Min : Math.Min(0D, range.Min);
-        double max = hasValueAxisScale ? range.Max : Math.Max(0D, range.Max);
-        if (max <= min) {
-            max = min + 1D;
-        }
+        ValueRange horizontalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: true);
+        ValueRange verticalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: false);
 
         for (int category = 0; category < categories.Count; category++) {
             double positiveBase = 0D;
@@ -1006,6 +1000,11 @@ public static partial class OfficeChartDrawingRenderer {
                 if (currentSeries.PointColors != null && category < currentSeries.PointColors!.Count && currentSeries.PointColors![category].HasValue) {
                     color = GetPointColor(style, currentSeries.PointColors, category);
                 }
+
+                bool horizontal = IsBarChart(GetEffectiveSeriesKind(snapshot, currentSeries));
+                ValueRange range = horizontal ? horizontalRange : verticalRange;
+                double min = range.Min;
+                double max = range.Max;
 
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
@@ -1072,6 +1071,18 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static double ClampValueToRange(double value, double min, double max) =>
         Math.Max(min, Math.Min(max, value));
+
+    private static ValueRange ResolveRenderedBarRange(ValueRange range, OfficeChartLayout layout, bool horizontal) {
+        range = ApplyValueAxisScale(range, layout, horizontal);
+        bool hasValueAxisScale = HasValueAxisScale(layout, horizontal);
+        double min = hasValueAxisScale ? range.Min : Math.Min(0D, range.Min);
+        double max = hasValueAxisScale ? range.Max : Math.Max(0D, range.Max);
+        if (max <= min) {
+            max = min + 1D;
+        }
+
+        return new ValueRange(min, max);
+    }
 
     private static void AddAreaSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;

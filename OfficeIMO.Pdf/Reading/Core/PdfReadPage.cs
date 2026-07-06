@@ -476,7 +476,8 @@ public sealed partial class PdfReadPage {
         double? initialFillOpacity = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
-        double paintOrderOffset = 0D) {
+        double paintOrderOffset = 0D,
+        PdfPageClipPath? initialClipPath = null) {
         foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
                      baseTransform,
@@ -486,10 +487,11 @@ public sealed partial class PdfReadPage {
                      GetOptionalContentVisibility(resources),
                      initialFillColor,
                      initialFillColorSpace,
-                     initialFillOpacity,
-                     paintOrderBase,
-                     paintOrderScale,
-                     paintOrderOffset)) {
+                      initialFillOpacity,
+                      paintOrderBase,
+                      paintOrderScale,
+                      paintOrderOffset,
+                      initialClipPath)) {
             Matrix2D invocationTransform = invocation.Transform;
             if (invocation.InlineImage != null) {
                 placements.Add(BuildImagePlacement(
@@ -537,7 +539,8 @@ public sealed partial class PdfReadPage {
                     invocation.FillColorSpace,
                     invocation.FillOpacity,
                     invocation.PaintOrder,
-                    paintOrderScale * 0.000000001D);
+                    paintOrderScale * 0.000000001D,
+                    initialClipPath: invocation.ClipPath);
             } finally {
                 activeForms.Remove(formStream);
             }

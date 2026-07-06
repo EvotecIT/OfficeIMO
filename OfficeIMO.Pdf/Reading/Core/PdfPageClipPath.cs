@@ -16,6 +16,27 @@ internal readonly struct PdfPageClipPath {
     public static PdfPageClipPath Rectangle(double x, double y, double width, double height) =>
         new PdfPageClipPath(x, y, width, height, true, OfficeFillRule.EvenOdd, Array.Empty<OfficePathCommand>());
 
+    public static PdfPageClipPath ResolveActiveClip(PdfPageClipPath? activeClipPath, PdfPageClipPath clipPath) {
+        if (!activeClipPath.HasValue) {
+            return clipPath;
+        }
+
+        PdfPageClipPath active = activeClipPath.Value;
+        if (!active.IsRectangle || !clipPath.IsRectangle) {
+            return active.IsRectangle ? clipPath : active;
+        }
+
+        double left = Math.Max(active.X, clipPath.X);
+        double top = Math.Max(active.Y, clipPath.Y);
+        double right = Math.Min(active.X + active.Width, clipPath.X + clipPath.Width);
+        double bottom = Math.Min(active.Y + active.Height, clipPath.Y + clipPath.Height);
+        double width = right - left;
+        double height = bottom - top;
+        return width > 0D && height > 0D
+            ? Rectangle(left, top, width, height)
+            : Rectangle(left, top, 0D, 0D);
+    }
+
     public static bool TryCreatePath(IReadOnlyList<OfficePathCommand> commands, OfficeFillRule fillRule, out PdfPageClipPath clipPath) {
         clipPath = default;
         if (commands.Count == 0 || commands[0].Kind != OfficePathCommandKind.MoveTo) {

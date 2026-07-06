@@ -24,12 +24,13 @@ internal static class PdfPageXObjectInvocationParser {
         double? initialFillOpacity = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
-        double paintOrderOffset = 0D) {
+        double paintOrderOffset = 0D,
+        PdfPageClipPath? initialClipPath = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath);
         return parser.Parse();
     }
 
@@ -49,6 +50,7 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
+        private readonly GraphicsState _initialState;
         private GraphicsState _state;
         private int _currentSubpathStartIndex = -1;
         private int _index;
@@ -66,13 +68,15 @@ internal static class PdfPageXObjectInvocationParser {
             double? initialFillOpacity,
             double paintOrderBase,
             double paintOrderScale,
-            double paintOrderOffset) {
+            double paintOrderOffset,
+            PdfPageClipPath? initialClipPath) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
             _colorSpaces = colorSpaces;
             _optionalContentVisibility = optionalContentVisibility;
-            _state = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity);
+            _initialState = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity, initialClipPath);
+            _state = _initialState;
             _pageHeight = pageHeight;
             _paintOrderBase = paintOrderBase;
             _paintOrderScale = paintOrderScale;
@@ -125,7 +129,7 @@ internal static class PdfPageXObjectInvocationParser {
                     _stack.Push(_state);
                     break;
                 case "Q":
-                    _state = _stack.Count > 0 ? _stack.Pop() : GraphicsState.Create(_baseTransform);
+                    _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
                     break;
                 case "cm":
                     if (_args.Count >= 6) {
@@ -337,12 +341,12 @@ internal static class PdfPageXObjectInvocationParser {
 
         private void CaptureClipPath(OfficeFillRule fillRule) {
             if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
-                _state = _state.WithClipPath(PdfPageClipPath.Rectangle(x, y, width, height));
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
                 return;
             }
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
-                _state = _state.WithClipPath(clipPath);
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, clipPath));
             }
         }
 
@@ -905,10 +909,10 @@ internal static class PdfPageXObjectInvocationParser {
         public double? FillOpacity { get; }
 
         public static GraphicsState Create(Matrix2D transform) =>
-            Create(transform, null, PdfPageColorSpaceKind.DeviceGray, null);
+            Create(transform, null, PdfPageColorSpaceKind.DeviceGray, null, null);
 
-        public static GraphicsState Create(Matrix2D transform, OfficeColor? fillColor, PdfPageColorSpaceKind fillColorSpace, double? fillOpacity) =>
-            new GraphicsState(transform, null, fillColor ?? OfficeColor.Black, fillColorSpace, fillOpacity);
+        public static GraphicsState Create(Matrix2D transform, OfficeColor? fillColor, PdfPageColorSpaceKind fillColorSpace, double? fillOpacity, PdfPageClipPath? clipPath) =>
+            new GraphicsState(transform, clipPath, fillColor ?? OfficeColor.Black, fillColorSpace, fillOpacity);
 
         public GraphicsState WithTransform(Matrix2D transform) => new GraphicsState(transform, ClipPath, FillColor, FillColorSpace, FillOpacity);
 

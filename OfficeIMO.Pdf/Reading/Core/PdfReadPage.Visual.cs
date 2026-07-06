@@ -239,6 +239,27 @@ public sealed partial class PdfReadPage {
 
         double localX = x - clip.X;
         double localY = y - clip.Y;
+        if ((localX < 0D || localY < 0D) &&
+            clip.IsRectangle &&
+            shape.Kind == OfficeShapeKind.Rectangle &&
+            shape.Transform == null) {
+            double visibleLeft = Math.Max(x, clip.X);
+            double visibleTop = Math.Max(y, clip.Y);
+            double visibleRight = Math.Min(x + shape.Width, clip.X + clip.Width);
+            double visibleBottom = Math.Min(y + shape.Height, clip.Y + clip.Height);
+            double visibleWidth = visibleRight - visibleLeft;
+            double visibleHeight = visibleBottom - visibleTop;
+            if (visibleWidth <= 0D || visibleHeight <= 0D) {
+                return true;
+            }
+
+            OfficeShape clippedShape = shape.Clone();
+            clippedShape.Width = visibleWidth;
+            clippedShape.Height = visibleHeight;
+            clippedShape.ClipPath = null;
+            drawing.AddShape(clippedShape, visibleLeft, visibleTop);
+            return true;
+        }
 
         double innerWidth = Math.Max(clip.Width, localX + shape.Width);
         double innerHeight = Math.Max(clip.Height, localY + shape.Height);
@@ -270,7 +291,8 @@ public sealed partial class PdfReadPage {
         HashSet<PdfStream> activeForms,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
-        double paintOrderOffset = 0D) {
+        double paintOrderOffset = 0D,
+        PdfPageClipPath? initialClipPath = null) {
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         primitives.AddRange(PdfPageContentVisualParser.Parse(
             transformedContent,
@@ -283,7 +305,8 @@ public sealed partial class PdfReadPage {
             GetOptionalContentVisibility(resources),
             paintOrderBase,
             paintOrderScale,
-            paintOrderOffset - transformedContentOffset));
+            paintOrderOffset - transformedContentOffset,
+            initialClipPath));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -291,10 +314,11 @@ public sealed partial class PdfReadPage {
                      pageHeight,
                      GetGraphicsStateResources(resources),
                      GetColorSpaceResources(resources),
-                     GetOptionalContentVisibility(resources),
-                     paintOrderBase: paintOrderBase,
-                     paintOrderScale: paintOrderScale,
-                     paintOrderOffset: paintOrderOffset)) {
+                      GetOptionalContentVisibility(resources),
+                      paintOrderBase: paintOrderBase,
+                      paintOrderScale: paintOrderScale,
+                      paintOrderOffset: paintOrderOffset,
+                      initialClipPath: initialClipPath)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 continue;
             }
@@ -308,7 +332,7 @@ public sealed partial class PdfReadPage {
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formDictionary);
-                CollectVisualPrimitivesAndForms(formContent, formResources, formTransform, pageWidth, pageHeight, primitives, activeForms, invocation.PaintOrder, paintOrderScale * 0.000000001D);
+                CollectVisualPrimitivesAndForms(formContent, formResources, formTransform, pageWidth, pageHeight, primitives, activeForms, invocation.PaintOrder, paintOrderScale * 0.000000001D, initialClipPath: invocation.ClipPath);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -1105,7 +1129,7 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool TryCreateImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
-        if (!HasAxisAlignedRectangleClip(placement) &&
+        if (!IsPlainAxisAlignedImagePlacement(placement) &&
             TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection)) {
             return true;
         }
@@ -1114,13 +1138,39 @@ public sealed partial class PdfReadPage {
         double imageY = pageHeight - placement.Y - placement.Height;
         projection = default;
 
-        if (!HasPositiveArea(imageX, imageY, placement.Width, placement.Height, drawingWidth, drawingHeight)) {
+        if (placement.Width <= 0D || placement.Height <= 0D) {
             return false;
         }
 
         PdfPageClipPath? clip = placement.ClipPath;
+        double imageRight = imageX + placement.Width;
+        double imageBottom = imageY + placement.Height;
+        double visibleLeft = Math.Max(imageX, 0D);
+        double visibleTop = Math.Max(imageY, 0D);
+        double visibleRight = Math.Min(imageRight, drawingWidth);
+        double visibleBottom = Math.Min(imageBottom, drawingHeight);
+
         if (!clip.HasValue || !clip.Value.IsRectangle) {
-            projection = new OfficeImageProjection(new OfficeImagePlacement(imageX, imageY, placement.Width, placement.Height));
+            double pageVisibleWidth = visibleRight - visibleLeft;
+            double pageVisibleHeight = visibleBottom - visibleTop;
+            if (pageVisibleWidth <= 0D || pageVisibleHeight <= 0D) {
+                return false;
+            }
+
+            if (NearlyEqual(visibleLeft, imageX) &&
+                NearlyEqual(visibleTop, imageY) &&
+                NearlyEqual(pageVisibleWidth, placement.Width) &&
+                NearlyEqual(pageVisibleHeight, placement.Height)) {
+                projection = new OfficeImageProjection(new OfficeImagePlacement(imageX, imageY, placement.Width, placement.Height));
+                return true;
+            }
+
+            var pageCrop = OfficeImageSourceCrop.FromClampedFractions(
+                (visibleLeft - imageX) / placement.Width,
+                (visibleTop - imageY) / placement.Height,
+                (imageRight - visibleRight) / placement.Width,
+                (imageBottom - visibleBottom) / placement.Height);
+            projection = new OfficeImageProjection(new OfficeImagePlacement(visibleLeft, visibleTop, pageVisibleWidth, pageVisibleHeight), pageCrop);
             return true;
         }
 
@@ -1128,12 +1178,10 @@ public sealed partial class PdfReadPage {
         double clipTop = clip.Value.Y;
         double clipRight = clipLeft + clip.Value.Width;
         double clipBottom = clipTop + clip.Value.Height;
-        double imageRight = imageX + placement.Width;
-        double imageBottom = imageY + placement.Height;
-        double visibleLeft = Math.Max(imageX, clipLeft);
-        double visibleTop = Math.Max(imageY, clipTop);
-        double visibleRight = Math.Min(imageRight, clipRight);
-        double visibleBottom = Math.Min(imageBottom, clipBottom);
+        visibleLeft = Math.Max(visibleLeft, clipLeft);
+        visibleTop = Math.Max(visibleTop, clipTop);
+        visibleRight = Math.Min(visibleRight, clipRight);
+        visibleBottom = Math.Min(visibleBottom, clipBottom);
         double visibleWidth = visibleRight - visibleLeft;
         double visibleHeight = visibleBottom - visibleTop;
         if (visibleWidth <= 0D || visibleHeight <= 0D ||
@@ -1150,11 +1198,11 @@ public sealed partial class PdfReadPage {
         return true;
     }
 
-    private static bool HasAxisAlignedRectangleClip(PdfImagePlacement placement) =>
-        placement.ClipPath.HasValue &&
-        placement.ClipPath.Value.IsRectangle &&
+    private static bool IsPlainAxisAlignedImagePlacement(PdfImagePlacement placement) =>
         NearlyEqual(placement.B, 0D) &&
-        NearlyEqual(placement.C, 0D);
+        NearlyEqual(placement.C, 0D) &&
+        placement.A >= 0D &&
+        placement.D >= 0D;
 
     private static bool TryCreateTransformedImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
         projection = default;
@@ -1234,7 +1282,7 @@ public sealed partial class PdfReadPage {
             flipHorizontal: flipHorizontal,
             flipVertical: flipVertical);
         (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
-        return HasPositiveArea(left, top, right - left, bottom - top, drawingWidth, drawingHeight);
+        return HasVisibleOverlap(left, top, right - left, bottom - top, drawingWidth, drawingHeight);
     }
 
     private static PdfExtractedImage? FindImage(IReadOnlyList<PdfExtractedImage> images, PdfImagePlacement placement) {

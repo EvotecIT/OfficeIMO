@@ -32,12 +32,13 @@ internal static class PdfPageContentVisualParser {
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
-        double paintOrderOffset = 0D) {
+        double paintOrderOffset = 0D,
+        PdfPageClipPath? initialClipPath = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath);
         return parser.Parse();
     }
 
@@ -59,7 +60,8 @@ internal static class PdfPageContentVisualParser {
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
-        private GraphicsState _state = GraphicsState.Default;
+        private readonly GraphicsState _initialState;
+        private GraphicsState _state;
         private int _currentSubpathStartIndex = -1;
         private bool _currentSubpathHasDraw;
         private int _index;
@@ -75,7 +77,8 @@ internal static class PdfPageContentVisualParser {
             PdfPageOptionalContentVisibility? optionalContentVisibility,
             double paintOrderBase,
             double paintOrderScale,
-            double paintOrderOffset) {
+            double paintOrderOffset,
+            PdfPageClipPath? initialClipPath) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -87,6 +90,10 @@ internal static class PdfPageContentVisualParser {
             _paintOrderBase = paintOrderBase;
             _paintOrderScale = paintOrderScale;
             _paintOrderOffset = paintOrderOffset;
+            _initialState = initialClipPath.HasValue
+                ? GraphicsState.Default.WithClipPath(initialClipPath.Value)
+                : GraphicsState.Default;
+            _state = _initialState;
         }
 
         public IReadOnlyList<PdfPageVisualPrimitive> Parse() {
@@ -135,7 +142,7 @@ internal static class PdfPageContentVisualParser {
                     _stack.Push(_state);
                     break;
                 case "Q":
-                    _state = _stack.Count > 0 ? _stack.Pop() : GraphicsState.Default;
+                    _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
                     break;
                 case "cm":
                     if (_args.Count >= 6) {
@@ -713,34 +720,13 @@ internal static class PdfPageContentVisualParser {
             }
 
             if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
-                _state = _state.WithClipPath(ResolveActiveClip(PdfPageClipPath.Rectangle(x, y, width, height)));
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, PdfPageClipPath.Rectangle(x, y, width, height)));
                 return;
             }
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
-                _state = _state.WithClipPath(ResolveActiveClip(clipPath));
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, clipPath));
             }
-        }
-
-        private PdfPageClipPath ResolveActiveClip(PdfPageClipPath clipPath) {
-            if (!_state.ClipPath.HasValue) {
-                return clipPath;
-            }
-
-            PdfPageClipPath active = _state.ClipPath.Value;
-            if (!active.IsRectangle || !clipPath.IsRectangle) {
-                return clipPath;
-            }
-
-            double left = Math.Max(active.X, clipPath.X);
-            double top = Math.Max(active.Y, clipPath.Y);
-            double right = Math.Min(active.X + active.Width, clipPath.X + clipPath.Width);
-            double bottom = Math.Min(active.Y + active.Height, clipPath.Y + clipPath.Height);
-            double width = right - left;
-            double height = bottom - top;
-            return width > 0D && height > 0D
-                ? PdfPageClipPath.Rectangle(left, top, width, height)
-                : PdfPageClipPath.Rectangle(left, top, 0D, 0D);
         }
 
         private void ClosePath() {
