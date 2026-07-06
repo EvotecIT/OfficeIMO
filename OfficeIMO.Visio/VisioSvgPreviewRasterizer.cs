@@ -40,8 +40,9 @@ namespace OfficeIMO.Visio {
             OfficeRasterCanvas canvas = new(raster);
             SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
             SvgPaint inherited = SvgPaint.Resolve(root, SvgPaint.Default, context);
-            SvgTransform transform = SvgTransform.Create(width / viewWidth, 0D, 0D, height / viewHeight, -viewLeft * width / viewWidth, -viewTop * height / viewHeight);
+            SvgTransform transform = CreateViewBoxTransform(viewLeft, viewTop, viewWidth, viewHeight, 0D, 0D, width, height, root.Attribute("preserveAspectRatio")?.Value);
             using IDisposable rootTextStyle = context.PushTextStyle(SvgTextStyle.Resolve(root, SvgTextStyle.Default, context));
+            using IDisposable rootFillRule = context.PushFillRule(ResolveFillRule(root, context));
             bool rendered = RenderChildren(canvas, root, inherited, transform, context);
             if (!rendered) {
                 return false;
@@ -79,6 +80,7 @@ namespace OfficeIMO.Visio {
             using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(element, context));
             using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, context, out SvgPaintBounds bounds) ? bounds : null);
             using IDisposable textStyleScope = context.PushTextStyle(SvgTextStyle.Resolve(element, context.CurrentTextStyle, context));
+            using IDisposable fillRuleScope = context.PushFillRule(ResolveFillRule(element, context));
             bool appliesGroupOpacity = CanApplyGroupOpacity(name);
             double groupOpacity = appliesGroupOpacity ? SvgPaint.ReadOwnOpacity(element, context) : 1D;
             if (appliesGroupOpacity && groupOpacity <= 0D) {
@@ -204,9 +206,12 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool RenderElementCore(OfficeRasterCanvas canvas, XElement element, string name, SvgPaint paint, SvgTransform localTransform, SvgRenderContext context) {
-            if (string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
-                string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase)) {
+            if (string.Equals(name, "g", StringComparison.OrdinalIgnoreCase)) {
                 return RenderChildren(canvas, element, paint, localTransform, context);
+            }
+
+            if (string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase)) {
+                return RenderNestedSvg(canvas, element, paint, localTransform, context);
             }
 
             if (string.Equals(name, "use", StringComparison.OrdinalIgnoreCase)) {
@@ -291,6 +296,37 @@ namespace OfficeIMO.Visio {
             }
         }
 
+        private static bool RenderNestedSvg(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+            double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
+            double y = ReadLength(element, "y", 0D, context, SvgLengthAxis.Y);
+            double width = ReadLength(element, "width", context.ViewportBounds.Width, context, SvgLengthAxis.X);
+            double height = ReadLength(element, "height", context.ViewportBounds.Height, context, SvgLengthAxis.Y);
+            if (width <= 0D || height <= 0D) {
+                return false;
+            }
+
+            SvgTransform contentTransform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, x, y));
+            SvgPaintBounds viewportBounds = new(0D, 0D, width, height);
+            if (TryParseNumbers(element.Attribute("viewBox")?.Value, out List<double> viewBox) &&
+                viewBox.Count >= 4 &&
+                viewBox[2] > 0D &&
+                viewBox[3] > 0D) {
+                contentTransform = CreateViewBoxTransform(viewBox[0], viewBox[1], viewBox[2], viewBox[3], x, y, width, height, element.Attribute("preserveAspectRatio")?.Value);
+                contentTransform = transform.Multiply(contentTransform);
+                viewportBounds = new SvgPaintBounds(viewBox[0], viewBox[1], viewBox[2], viewBox[3]);
+            }
+
+            IReadOnlyList<OfficePoint> clip = ProjectPoints(new[] {
+                (x, y),
+                (x + width, y),
+                (x + width, y + height),
+                (x, y + height)
+            }, transform);
+            using IDisposable clipScope = canvas.PushClipPolygon(clip);
+            using IDisposable viewportScope = context.PushViewportBounds(viewportBounds);
+            return RenderChildren(canvas, element, inherited, contentTransform, context);
+        }
+
         private static bool RenderRectangle(OfficeRasterCanvas canvas, XElement element, SvgPaint paint, SvgTransform transform, SvgRenderContext context) {
             double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
             double y = ReadLength(element, "y", 0D, context, SvgLengthAxis.Y);
@@ -372,7 +408,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (paint.HasFill && closedContours.Count > 0) {
-                bool useEvenOddFill = UseEvenOddFill(element, context.StyleSheet);
+                bool useEvenOddFill = context.CurrentFillRule == OfficeFillRule.EvenOdd;
                 if (paint.FillRadialGradient != null) {
                     FillGradientContours(canvas, closedContours, null, paint.FillRadialGradient, useEvenOddFill);
                 } else if (paint.FillGradient != null) {
@@ -732,13 +768,21 @@ namespace OfficeIMO.Visio {
             return projected;
         }
 
-        private static bool UseEvenOddFill(XElement element, SvgStyleSheet styleSheet) {
-            Dictionary<string, string> style = styleSheet.CreateStyle(element);
+        private static OfficeFillRule ResolveFillRule(XElement element, SvgRenderContext context) {
+            Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
             string? fillRule = style.TryGetValue("fill-rule", out string? styleValue)
                 ? styleValue
                 : element.Attribute("fill-rule")?.Value;
 
-            return string.Equals(fillRule, "evenodd", StringComparison.OrdinalIgnoreCase);
+            if (string.Equals(fillRule, "evenodd", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeFillRule.EvenOdd;
+            }
+
+            if (string.Equals(fillRule, "nonzero", StringComparison.OrdinalIgnoreCase)) {
+                return OfficeFillRule.NonZero;
+            }
+
+            return context.CurrentFillRule;
         }
 
         private static string? ReadHref(XElement element) {
@@ -766,8 +810,47 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            transform = SvgTransform.Create(width / viewBox[2], 0D, 0D, height / viewBox[3], -viewBox[0] * width / viewBox[2], -viewBox[1] * height / viewBox[3]);
+            transform = CreateViewBoxTransform(viewBox[0], viewBox[1], viewBox[2], viewBox[3], 0D, 0D, width, height, useElement.Attribute("preserveAspectRatio")?.Value ?? definition.Attribute("preserveAspectRatio")?.Value);
             return true;
+        }
+
+        private static SvgTransform CreateViewBoxTransform(double viewLeft, double viewTop, double viewWidth, double viewHeight, double viewportX, double viewportY, double viewportWidth, double viewportHeight, string? preserveAspectRatio) {
+            string align = "xMidYMid";
+            string meetOrSlice = "meet";
+            if (!string.IsNullOrWhiteSpace(preserveAspectRatio)) {
+                string[] parts = preserveAspectRatio!.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+                if (parts.Length > 0) {
+                    align = parts[0];
+                }
+
+                if (parts.Length > 1) {
+                    meetOrSlice = parts[1];
+                }
+            }
+
+            double scaleX = viewportWidth / viewWidth;
+            double scaleY = viewportHeight / viewHeight;
+            if (string.Equals(align, "none", StringComparison.OrdinalIgnoreCase)) {
+                return SvgTransform.Create(scaleX, 0D, 0D, scaleY, viewportX - (viewLeft * scaleX), viewportY - (viewTop * scaleY));
+            }
+
+            double scale = string.Equals(meetOrSlice, "slice", StringComparison.OrdinalIgnoreCase)
+                ? Math.Max(scaleX, scaleY)
+                : Math.Min(scaleX, scaleY);
+            double renderedWidth = viewWidth * scale;
+            double renderedHeight = viewHeight * scale;
+            double offsetX = align.IndexOf("xMax", StringComparison.OrdinalIgnoreCase) >= 0
+                ? viewportWidth - renderedWidth
+                : align.IndexOf("xMid", StringComparison.OrdinalIgnoreCase) >= 0
+                    ? (viewportWidth - renderedWidth) / 2D
+                    : 0D;
+            double offsetY = align.IndexOf("YMax", StringComparison.OrdinalIgnoreCase) >= 0
+                ? viewportHeight - renderedHeight
+                : align.IndexOf("YMid", StringComparison.OrdinalIgnoreCase) >= 0
+                    ? (viewportHeight - renderedHeight) / 2D
+                    : 0D;
+
+            return SvgTransform.Create(scale, 0D, 0D, scale, viewportX + offsetX - (viewLeft * scale), viewportY + offsetY - (viewTop * scale));
         }
 
         private static void ResolveViewport(XElement root, out double viewLeft, out double viewTop, out double viewWidth, out double viewHeight, out int width, out int height) {

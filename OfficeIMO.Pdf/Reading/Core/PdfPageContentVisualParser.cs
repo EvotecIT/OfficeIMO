@@ -384,6 +384,9 @@ internal static class PdfPageContentVisualParser {
                 case "n":
                     ClearPath();
                     break;
+                case "BI":
+                    SkipInlineImage();
+                    break;
                 case "BDC":
                     _hiddenContentStack.Push(IsHiddenOptionalContent(_args.Count > 1 ? _args[_args.Count - 2] : null, _args.Count > 0 ? _args[_args.Count - 1] : null));
                     break;
@@ -1078,6 +1081,67 @@ internal static class PdfPageContentVisualParser {
 
             return _content.Substring(start, _index - start);
         }
+
+        private void SkipInlineImage() {
+            while (_index < _content.Length) {
+                SkipWhitespace();
+                if (_index >= _content.Length) {
+                    return;
+                }
+
+                if (IsOperatorAt("ID")) {
+                    _index += 2;
+                    if (_index < _content.Length && char.IsWhiteSpace(_content[_index])) {
+                        _index++;
+                    }
+
+                    int dataLength = FindInlineImageDataLength(_index);
+                    if (dataLength < 0) {
+                        _index = _content.Length;
+                        return;
+                    }
+
+                    _index += dataLength;
+                    SkipWhitespace();
+                    if (IsOperatorAt("EI")) {
+                        _index += 2;
+                    }
+
+                    return;
+                }
+
+                if (IsOperatorAt("EI")) {
+                    _index += 2;
+                    return;
+                }
+
+                string token = ReadOperator();
+                if (token.Length == 0) {
+                    _index++;
+                }
+            }
+        }
+
+        private int FindInlineImageDataLength(int dataStart) {
+            int index = dataStart;
+            while (index + 2 < _content.Length) {
+                if (char.IsWhiteSpace(_content[index]) &&
+                    _content[index + 1] == 'E' &&
+                    _content[index + 2] == 'I' &&
+                    (index + 3 >= _content.Length || IsDelimiter(_content[index + 3]))) {
+                    return index - dataStart;
+                }
+
+                index++;
+            }
+
+            return -1;
+        }
+
+        private bool IsOperatorAt(string op) =>
+            _index + op.Length <= _content.Length &&
+            string.CompareOrdinal(_content, _index, op, 0, op.Length) == 0 &&
+            (_index + op.Length >= _content.Length || IsDelimiter(_content[_index + op.Length]));
 
         private void SkipLiteralString() {
             int depth = 1;

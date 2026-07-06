@@ -1150,20 +1150,20 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        bool stacked = areaSeries.Any(item => IsStackedAreaChart(item.Kind) || IsPercentStackedAreaChart(item.Kind));
-        bool percentStacked = areaSeries.Any(item => IsPercentStackedAreaChart(item.Kind));
-        List<OfficeChartSeries> rangeSeries = areaSeries.Select(item => item.Series).ToList();
-        ValueRange range = percentStacked
-            ? GetPercentStackedSeriesRange(rangeSeries, categories.Count)
-            : stacked
-                ? GetStackedSeriesRange(rangeSeries, categories.Count)
-                : GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false);
+        ValueRange range = GetAreaSeriesRenderRange(snapshot, areaSeries, categories.Count, layout);
         range = ApplyValueAxisScale(range, layout, horizontal: false);
         double step = plotWidth / (categories.Count - 1);
-        var positiveCumulative = new double[categories.Count];
-        var negativeCumulative = new double[categories.Count];
+        var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
+        var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
 
-        foreach ((OfficeChartSeries currentSeries, int sourceSeriesIndex, OfficeChartKind _) in areaSeries) {
+        foreach ((OfficeChartSeries currentSeries, int sourceSeriesIndex, OfficeChartKind kind) in areaSeries) {
+            bool currentStacked = IsStackedAreaChart(kind) || IsPercentStackedAreaChart(kind);
+            bool currentPercentStacked = IsPercentStackedAreaChart(kind);
+            List<OfficeChartSeries> stackSeries = currentStacked
+                ? areaSeries.Where(item => item.Kind == kind).Select(item => item.Series).ToList()
+                : new List<OfficeChartSeries>();
+            double[] positiveCumulative = currentStacked ? GetCumulative(positiveCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
+            double[] negativeCumulative = currentStacked ? GetCumulative(negativeCumulativeByKind, kind, categories.Count) : Array.Empty<double>();
             OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
             double strokeWidth = GetSeriesStrokeWidth(currentSeries, 1.4D);
             OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(currentSeries);
@@ -1181,8 +1181,8 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                double rawValue = percentStacked ? NormalizePercentStackedValue(rangeSeries, i, value) : value;
-                double baseline = stacked
+                double rawValue = currentPercentStacked ? NormalizePercentStackedValue(stackSeries, i, value) : value;
+                double baseline = currentStacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
                     : 0D;
                 double topValue = baseline + rawValue;
@@ -1192,8 +1192,8 @@ public static partial class OfficeChartDrawingRenderer {
                 bottomPoints.Add(new OfficePoint(x, ToPlotY(baseline, range.Min, range.Max, plotTop, plotHeight)));
                 runCategoryIndices.Add(i);
 
-                if (stacked) {
-                    double stackedValue = percentStacked ? NormalizePercentStackedValue(rangeSeries, i, value) : value;
+                if (currentStacked) {
+                    double stackedValue = currentPercentStacked ? NormalizePercentStackedValue(stackSeries, i, value) : value;
                     if (stackedValue >= 0D) {
                         positiveCumulative[i] += stackedValue;
                     } else {
@@ -1371,12 +1371,53 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (standardSeries.Count > 0) {
-            ValueRange finiteRange = GetFiniteSeriesRange(standardSeries);
-            ranges.Add(ExpandFlatRange(finiteRange.Min, finiteRange.Max));
+            ranges.Add(GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false));
         }
 
         foreach (KeyValuePair<OfficeChartKind, List<OfficeChartSeries>> group in stackedGroups) {
             ranges.Add(IsPercentStackedLineChart(group.Key)
+                ? GetPercentStackedSeriesRange(group.Value, categoryCount)
+                : GetStackedSeriesRange(group.Value, categoryCount));
+        }
+
+        if (ranges.Count == 0) {
+            return GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false);
+        }
+
+        double min = ranges[0].Min;
+        double max = ranges[0].Max;
+        for (int i = 1; i < ranges.Count; i++) {
+            min = Math.Min(min, ranges[i].Min);
+            max = Math.Max(max, ranges[i].Max);
+        }
+
+        return ExpandFlatRange(min, max);
+    }
+
+    private static ValueRange GetAreaSeriesRenderRange(OfficeChartSnapshot snapshot, IReadOnlyList<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> areaSeries, int categoryCount, OfficeChartLayout layout) {
+        var ranges = new List<ValueRange>();
+        var standardSeries = new List<OfficeChartSeries>();
+        var stackedGroups = new Dictionary<OfficeChartKind, List<OfficeChartSeries>>();
+        for (int i = 0; i < areaSeries.Count; i++) {
+            OfficeChartKind kind = areaSeries[i].Kind;
+            if (IsStackedAreaChart(kind) || IsPercentStackedAreaChart(kind)) {
+                if (!stackedGroups.TryGetValue(kind, out List<OfficeChartSeries>? group)) {
+                    group = new List<OfficeChartSeries>();
+                    stackedGroups[kind] = group;
+                }
+
+                group.Add(areaSeries[i].Series);
+            } else {
+                standardSeries.Add(areaSeries[i].Series);
+            }
+        }
+
+        if (standardSeries.Count > 0) {
+            ranges.Add(GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false));
+        }
+
+        foreach (KeyValuePair<OfficeChartKind, List<OfficeChartSeries>> group in stackedGroups) {
+            ranges.Add(IsPercentStackedAreaChart(group.Key)
                 ? GetPercentStackedSeriesRange(group.Value, categoryCount)
                 : GetStackedSeriesRange(group.Value, categoryCount));
         }

@@ -89,7 +89,7 @@ namespace OfficeIMO.Visio {
             if (string.Equals(name, "path", StringComparison.OrdinalIgnoreCase)) {
                 if (TryParsePath(element.Attribute("d")?.Value, out List<SvgPathContour> pathContours)) {
                     for (int i = 0; i < pathContours.Count; i++) {
-                        if (pathContours[i].IsClosed && pathContours[i].Points.Count >= 3) {
+                        if (pathContours[i].Points.Count >= 3) {
                             contours.Add(ProjectPoints(pathContours[i].Points, transform));
                         }
                     }
