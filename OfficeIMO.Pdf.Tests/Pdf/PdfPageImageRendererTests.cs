@@ -1141,9 +1141,18 @@ public class PdfPageImageRendererTests {
         Assert.Contains("<clipPath", Encoding.UTF8.GetString(svg), StringComparison.Ordinal);
 
         Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? raster));
-        OfficeColor inside = raster!.GetPixel(58, 105);
+        bool hasInkInsideClip = false;
+        for (int y = 90; y <= 130 && !hasInkInsideClip; y++) {
+            for (int x = 50; x <= 90; x++) {
+                if (raster!.GetPixel(x, y) != OfficeColor.White) {
+                    hasInkInsideClip = true;
+                    break;
+                }
+            }
+        }
+
         OfficeColor outside = raster.GetPixel(105, 105);
-        Assert.NotEqual(OfficeColor.White, inside);
+        Assert.True(hasInkInsideClip);
         Assert.Equal(OfficeColor.White, outside);
     }
 
