@@ -366,7 +366,7 @@ namespace OfficeIMO.Visio {
 
                 bool closed = contours[i].IsClosed && projected.Count >= 3;
                 projectedContours.Add((projected, closed));
-                if (closed) {
+                if (projected.Count >= 3) {
                     closedContours.Add(projected);
                 }
             }
@@ -982,6 +982,51 @@ namespace OfficeIMO.Visio {
             }
 
             return numbers.Count > 0;
+        }
+
+        private static bool TryParseRgbColor(string? value, out OfficeColor color) {
+            color = OfficeColor.Black;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return false;
+            }
+
+            string trimmed = value!.Trim();
+            if (!trimmed.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase) ||
+                !trimmed.EndsWith(")", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            string inner = trimmed.Substring(4, trimmed.Length - 5);
+            string[] components = inner.Split(new[] { ',', ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
+            if (components.Length < 3) {
+                return false;
+            }
+
+            if (!TryParseRgbComponent(components[0], out byte red) ||
+                !TryParseRgbComponent(components[1], out byte green) ||
+                !TryParseRgbComponent(components[2], out byte blue)) {
+                return false;
+            }
+
+            color = OfficeColor.FromRgb(red, green, blue);
+            return true;
+        }
+
+        private static bool TryParseRgbComponent(string raw, out byte component) {
+            component = 0;
+            string value = raw.Trim();
+            bool percent = value.EndsWith("%", StringComparison.Ordinal);
+            if (percent) {
+                value = value.Substring(0, value.Length - 1);
+            }
+
+            if (!double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
+                return false;
+            }
+
+            double scaled = percent ? parsed * 255D / 100D : parsed;
+            component = (byte)Math.Max(0D, Math.Min(255D, Math.Round(scaled)));
+            return true;
         }
 
         private static bool TryReadStyleValue(string? raw, string name, out string? value) {

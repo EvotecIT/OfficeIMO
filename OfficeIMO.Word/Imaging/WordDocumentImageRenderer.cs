@@ -96,6 +96,7 @@ namespace OfficeIMO.Word {
                     pageNumberText: pageNumberText,
                     contentTop: headerFooterFrame?.BodyTop,
                     contentBottom: headerFooterFrame?.BodyBottom,
+                    sectionPageCounts: sectionPageCounts,
                     bodyFrameProvider: pageContext.Section != null
                         ? CreateBodyFrameProvider(pageContext.Section, drawing, pageContext.SectionIndex, sectionPageNumberStart, totalPageCount, sectionPageCount, pageContext.SectionPageIndex, headerFooterFrame)
                         : null);
@@ -135,6 +136,7 @@ namespace OfficeIMO.Word {
             string? pageNumberText = null,
             double? contentTop = null,
             double? contentBottom = null,
+            IReadOnlyList<int>? sectionPageCounts = null,
             Func<int, WordImageBodyFrame>? bodyFrameProvider = null) {
             int targetPageIndex = Math.Max(0, sectionPageIndex);
             WordImageFlowContext context = CreateFlowContext(
@@ -151,9 +153,18 @@ namespace OfficeIMO.Word {
                 contentBottom,
                 bodyFrameProvider);
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
-            IReadOnlyList<OpenXmlElement> bodyChildren = GetSectionBodyElements(document, sectionIndex);
+            IReadOnlyList<WordSectionBodyElement> bodyEntries = GetSectionBodyElementEntries(document, sectionIndex);
+            IReadOnlyList<OpenXmlElement> bodyChildren = bodyEntries.Select(entry => entry.Element).ToList();
             for (int index = 0; index < bodyChildren.Count; index++) {
-                OpenXmlElement element = bodyChildren[index];
+                WordSectionBodyElement entry = bodyEntries[index];
+                OpenXmlElement element = entry.Element;
+                if (entry.SectionIndex != sectionIndex) {
+                    int mergedSectionPageCount = sectionPageCounts != null && entry.SectionIndex < sectionPageCounts.Count
+                        ? sectionPageCounts[entry.SectionIndex]
+                        : sectionPageCount;
+                    context.UpdateSectionContext(entry.SectionIndex + 1, mergedSectionPageCount);
+                }
+
                 TryAdvanceForKeepWithNext(document, bodyChildren, index, context, listMarkers);
                 if (context.PastTargetPage || context.StoppedForPagination) {
                     break;
@@ -799,13 +810,18 @@ namespace OfficeIMO.Word {
 
             internal int TotalPageCount { get; }
 
-            internal int SectionNumber { get; }
+            internal int SectionNumber { get; private set; }
 
-            internal int SectionPageCount { get; }
+            internal int SectionPageCount { get; private set; }
 
             internal int PageNumberValue { get; }
 
             internal string PageNumberText { get; }
+
+            internal void UpdateSectionContext(int sectionNumber, int sectionPageCount) {
+                SectionNumber = Math.Max(1, sectionNumber);
+                SectionPageCount = Math.Max(1, sectionPageCount);
+            }
 
             private bool AllowPageAdvanceForOverflow { get; }
 

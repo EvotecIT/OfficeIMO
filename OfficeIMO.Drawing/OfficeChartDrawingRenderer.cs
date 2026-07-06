@@ -949,50 +949,64 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         IReadOnlyList<OfficeChartSeries> barSeriesValues = barSeries.Select(item => item.Series).ToArray();
+        var stackedSlots = new Dictionary<OfficeChartKind, int>();
+        var clusteredSlots = new Dictionary<int, int>();
+        int slotCount = 0;
+        for (int i = 0; i < barSeries.Count; i++) {
+            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, barSeries[i].Series);
+            if (IsStackedBarOrColumnChart(kind) || IsPercentStackedBarOrColumnChart(kind)) {
+                if (!stackedSlots.ContainsKey(kind)) {
+                    stackedSlots[kind] = slotCount++;
+                }
+            } else {
+                clusteredSlots[barSeries[i].SourceIndex] = slotCount++;
+            }
+        }
+
         double slot = plotWidth / categories.Count;
         double groupWidth = slot * 0.68D;
-        bool stacked = barSeries.Any(item => IsStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)) || IsPercentStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)));
-        bool percentStacked = barSeries.Any(item => IsPercentStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)));
-        int barSeriesCount = barSeries.Count;
-        double barWidth = Math.Max(2D, stacked ? groupWidth : groupWidth / barSeriesCount);
-        ValueRange baseRange = percentStacked
-            ? GetPercentStackedSeriesRange(barSeriesValues, categories.Count)
-            : stacked
-                ? GetStackedSeriesRange(barSeriesValues, categories.Count)
-                : GetCartesianValueRange(snapshot);
+        int barSeriesCount = Math.Max(1, slotCount);
+        double barWidth = Math.Max(2D, groupWidth / barSeriesCount);
+        ValueRange baseRange = GetBarSeriesRenderRange(snapshot, barSeries, categories.Count);
         ValueRange horizontalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: true);
         ValueRange verticalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: false);
 
         for (int category = 0; category < categories.Count; category++) {
-            double positiveBase = 0D;
-            double negativeBase = 0D;
-            int barSeriesOrdinal = 0;
+            var positiveBases = new Dictionary<OfficeChartKind, double>();
+            var negativeBases = new Dictionary<OfficeChartKind, double>();
             for (int s = 0; s < barSeries.Count; s++) {
                 OfficeChartSeries currentSeries = barSeries[s].Series;
                 int sourceSeriesIndex = barSeries[s].SourceIndex;
+                OfficeChartKind seriesKind = GetEffectiveSeriesKind(snapshot, currentSeries);
+                bool seriesStacked = IsStackedBarOrColumnChart(seriesKind) || IsPercentStackedBarOrColumnChart(seriesKind);
+                bool seriesPercentStacked = IsPercentStackedBarOrColumnChart(seriesKind);
 
                 if (!TryGetSeriesValue(currentSeries, category, out double value)) {
-                    barSeriesOrdinal++;
                     continue;
                 }
 
                 if (value == 0D && !ShouldShowDataLabel(layout, sourceSeriesIndex, category)) {
-                    barSeriesOrdinal++;
                     continue;
                 }
 
                 double baseline = 0D;
                 double plottedValue = value;
-                if (stacked) {
-                    if (percentStacked) {
-                        plottedValue = NormalizePercentStackedValue(barSeriesValues, category, value);
+                if (seriesStacked) {
+                    IReadOnlyList<OfficeChartSeries> stackGroup = barSeries
+                        .Where(item => GetEffectiveSeriesKind(snapshot, item.Series) == seriesKind)
+                        .Select(item => item.Series)
+                        .ToArray();
+                    if (seriesPercentStacked) {
+                        plottedValue = NormalizePercentStackedValue(stackGroup, category, value);
                     }
 
+                    positiveBases.TryGetValue(seriesKind, out double positiveBase);
+                    negativeBases.TryGetValue(seriesKind, out double negativeBase);
                     baseline = plottedValue >= 0D ? positiveBase : negativeBase;
                     if (plottedValue >= 0D) {
-                        positiveBase += plottedValue;
+                        positiveBases[seriesKind] = positiveBase + plottedValue;
                     } else {
-                        negativeBase += plottedValue;
+                        negativeBases[seriesKind] = negativeBase + plottedValue;
                     }
                 }
 
@@ -1001,19 +1015,22 @@ public static partial class OfficeChartDrawingRenderer {
                     color = GetPointColor(style, currentSeries.PointColors, category);
                 }
 
-                bool horizontal = IsBarChart(GetEffectiveSeriesKind(snapshot, currentSeries));
+                bool horizontal = IsBarChart(seriesKind);
                 ValueRange range = horizontal ? horizontalRange : verticalRange;
                 double min = range.Min;
                 double max = range.Max;
+                int layoutSlot = seriesStacked
+                    ? stackedSlots[seriesKind]
+                    : clusteredSlots[sourceSeriesIndex];
 
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
-                    double rowHeight = Math.Max(2D, categoryHeight * 0.68D / (stacked ? 1D : barSeriesCount));
+                    double rowHeight = Math.Max(2D, categoryHeight * 0.68D / barSeriesCount);
                     int categorySlot = GetHorizontalBarCategorySlotIndex(category, categories.Count, layout);
-                    int seriesSlot = stacked ? 0 : barSeriesCount - 1 - barSeriesOrdinal;
-                    double y = plotTop + categoryHeight * categorySlot + categoryHeight * 0.16D + (stacked ? 0D : rowHeight * seriesSlot);
+                    int seriesSlot = barSeriesCount - 1 - layoutSlot;
+                    double y = plotTop + categoryHeight * categorySlot + categoryHeight * 0.16D + rowHeight * seriesSlot;
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
-                    double visibleValue = ClampValueToRange(stacked ? baseline + plottedValue : plottedValue, min, max);
+                    double visibleValue = ClampValueToRange(seriesStacked ? baseline + plottedValue : plottedValue, min, max);
                     double x1 = ToPlotX(visibleBaseline, min, max, plotLeft, plotWidth);
                     double x2 = ToPlotX(visibleValue, min, max, plotLeft, plotWidth);
                     double x = Math.Min(x1, x2);
@@ -1038,9 +1055,9 @@ public static partial class OfficeChartDrawingRenderer {
                         category);
                 } else {
                     int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
-                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + (stacked ? 0D : barWidth * barSeriesOrdinal);
+                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + barWidth * layoutSlot;
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
-                    double visibleValue = ClampValueToRange(stacked ? baseline + plottedValue : plottedValue, min, max);
+                    double visibleValue = ClampValueToRange(seriesStacked ? baseline + plottedValue : plottedValue, min, max);
                     double y1 = ToPlotY(visibleBaseline, min, max, plotTop, plotHeight);
                     double y2 = ToPlotY(visibleValue, min, max, plotTop, plotHeight);
                     double y = Math.Min(y1, y2);
@@ -1063,10 +1080,51 @@ public static partial class OfficeChartDrawingRenderer {
                         sourceSeriesIndex,
                         category);
                 }
-
-                barSeriesOrdinal++;
             }
         }
+    }
+
+    private static ValueRange GetBarSeriesRenderRange(OfficeChartSnapshot snapshot, IReadOnlyList<(OfficeChartSeries Series, int SourceIndex)> barSeries, int categoryCount) {
+        var ranges = new List<ValueRange>();
+        var clusteredSeries = new List<OfficeChartSeries>();
+        var stackedGroups = new Dictionary<OfficeChartKind, List<OfficeChartSeries>>();
+        for (int i = 0; i < barSeries.Count; i++) {
+            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, barSeries[i].Series);
+            if (IsStackedBarOrColumnChart(kind) || IsPercentStackedBarOrColumnChart(kind)) {
+                if (!stackedGroups.TryGetValue(kind, out List<OfficeChartSeries>? group)) {
+                    group = new List<OfficeChartSeries>();
+                    stackedGroups[kind] = group;
+                }
+
+                group.Add(barSeries[i].Series);
+            } else {
+                clusteredSeries.Add(barSeries[i].Series);
+            }
+        }
+
+        if (clusteredSeries.Count > 0) {
+            ValueRange finiteRange = GetFiniteSeriesRange(clusteredSeries);
+            ranges.Add(ExpandFlatRange(Math.Min(0D, finiteRange.Min), Math.Max(0D, finiteRange.Max)));
+        }
+
+        foreach (KeyValuePair<OfficeChartKind, List<OfficeChartSeries>> group in stackedGroups) {
+            ranges.Add(IsPercentStackedBarOrColumnChart(group.Key)
+                ? GetPercentStackedSeriesRange(group.Value, categoryCount)
+                : GetStackedSeriesRange(group.Value, categoryCount));
+        }
+
+        if (ranges.Count == 0) {
+            return GetCartesianValueRange(snapshot);
+        }
+
+        double min = ranges[0].Min;
+        double max = ranges[0].Max;
+        for (int i = 1; i < ranges.Count; i++) {
+            min = Math.Min(min, ranges[i].Min);
+            max = Math.Max(max, ranges[i].Max);
+        }
+
+        return ExpandFlatRange(min, max);
     }
 
     private static double ClampValueToRange(double value, double min, double max) =>

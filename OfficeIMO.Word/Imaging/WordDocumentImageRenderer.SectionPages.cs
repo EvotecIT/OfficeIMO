@@ -48,17 +48,23 @@ namespace OfficeIMO.Word {
         }
 
         private static IReadOnlyList<OpenXmlElement> GetSectionBodyElements(WordDocument document, int targetSectionIndex) {
+            return GetSectionBodyElementEntries(document, targetSectionIndex)
+                .Select(entry => entry.Element)
+                .ToList();
+        }
+
+        private static IReadOnlyList<WordSectionBodyElement> GetSectionBodyElementEntries(WordDocument document, int targetSectionIndex) {
             int sectionCount = Math.Max(1, document.Sections.Count);
             int normalizedTarget = Math.Min(Math.Max(0, targetSectionIndex), sectionCount - 1);
             int sectionIndex = 0;
-            var sectionElements = new List<OpenXmlElement>();
+            var sectionElements = new List<WordSectionBodyElement>();
 
             foreach (OpenXmlElement element in document.BodyRoot.ChildElements) {
                 if (element is SectionProperties) {
                     continue;
                 }
 
-                sectionElements.Add(element);
+                sectionElements.Add(new WordSectionBodyElement(element, sectionIndex));
                 if (HasSectionBoundary(element) && sectionIndex < sectionCount - 1) {
                     if (sectionIndex >= normalizedTarget &&
                         CanMergeImageSectionOnSamePage(GetSectionBoundaryProperties(element), document.Sections[sectionIndex], document.Sections[sectionIndex + 1])) {
@@ -70,14 +76,25 @@ namespace OfficeIMO.Word {
                         return sectionElements;
                     }
 
-                    sectionElements = new List<OpenXmlElement>();
+                    sectionElements = new List<WordSectionBodyElement>();
                     sectionIndex++;
                 }
             }
 
             return sectionIndex >= normalizedTarget
                 ? sectionElements
-                : new List<OpenXmlElement>();
+                : new List<WordSectionBodyElement>();
+        }
+
+        private readonly struct WordSectionBodyElement {
+            internal WordSectionBodyElement(OpenXmlElement element, int sectionIndex) {
+                Element = element;
+                SectionIndex = sectionIndex;
+            }
+
+            internal OpenXmlElement Element { get; }
+
+            internal int SectionIndex { get; }
         }
 
         private static int EstimateSectionContentPageCount(WordDocument document, WordSection section, IReadOnlyList<OpenXmlElement> sectionElements) {

@@ -220,11 +220,8 @@ namespace OfficeIMO.Visio {
                     return currentColor;
                 }
 
-                if (value.StartsWith("rgb(", StringComparison.OrdinalIgnoreCase) && value.EndsWith(")", StringComparison.Ordinal)) {
-                    string inner = value.Substring(4, value.Length - 5);
-                    if (TryParseNumbers(inner, out List<double> parts) && parts.Count >= 3) {
-                        return OfficeColor.FromRgb(ToByte(parts[0]), ToByte(parts[1]), ToByte(parts[2]));
-                    }
+                if (TryParseRgbColor(value, out OfficeColor rgbColor)) {
+                    return rgbColor;
                 }
 
                 if (OfficeColor.TryParse(value, out OfficeColor color)) {

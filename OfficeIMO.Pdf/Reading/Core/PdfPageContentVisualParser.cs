@@ -483,8 +483,11 @@ internal static class PdfPageContentVisualParser {
                     CreateShadingGradients(_state.StrokePattern.Value.Shading, strokePathX, strokePathY, strokePathWidth, strokePathHeight, _state.StrokePattern.Value.Matrix, out strokeGradient, out strokeRadialGradient);
                 }
 
+                IReadOnlyList<OfficePathCommand> pathCommands = fill && !stroke
+                    ? CloseFilledSubpaths(_pathCommands)
+                    : _pathCommands;
                 if (PdfPageVisualPrimitive.TryCreatePath(
-                    _pathCommands,
+                    pathCommands,
                     fill && fillGradient == null && fillRadialGradient == null ? _state.FillColor : null,
                     fillGradient,
                     fillRadialGradient,
@@ -777,6 +780,45 @@ internal static class PdfPageContentVisualParser {
 
             _path.Add(_path[_currentSubpathStartIndex]);
             _pathCommands.Add(OfficePathCommand.Close());
+        }
+
+        private static List<OfficePathCommand> CloseFilledSubpaths(List<OfficePathCommand> commands) {
+            if (commands.Count == 0) {
+                return commands;
+            }
+
+            var closed = new List<OfficePathCommand>(commands.Count + 4);
+            bool hasOpenSubpath = false;
+            bool subpathHasDraw = false;
+            for (int i = 0; i < commands.Count; i++) {
+                OfficePathCommand command = commands[i];
+                if (command.Kind == OfficePathCommandKind.MoveTo) {
+                    if (hasOpenSubpath && subpathHasDraw) {
+                        closed.Add(OfficePathCommand.Close());
+                    }
+
+                    hasOpenSubpath = true;
+                    subpathHasDraw = false;
+                    closed.Add(command);
+                    continue;
+                }
+
+                closed.Add(command);
+                if (command.Kind == OfficePathCommandKind.Close) {
+                    hasOpenSubpath = false;
+                    subpathHasDraw = false;
+                } else if (command.Kind == OfficePathCommandKind.LineTo ||
+                    command.Kind == OfficePathCommandKind.QuadraticBezierTo ||
+                    command.Kind == OfficePathCommandKind.CubicBezierTo) {
+                    subpathHasDraw = true;
+                }
+            }
+
+            if (hasOpenSubpath && subpathHasDraw) {
+                closed.Add(OfficePathCommand.Close());
+            }
+
+            return closed;
         }
 
         private void LineTo(double x, double y) {
