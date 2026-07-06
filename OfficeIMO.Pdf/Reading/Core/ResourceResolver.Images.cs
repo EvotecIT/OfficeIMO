@@ -20,7 +20,7 @@ internal static partial class ResourceResolver {
         int pixelCount = width * height;
         byte[] scanlines = new byte[(1 + width * 4) * height];
         for (int sampleIndex = 0; sampleIndex < pixelCount; sampleIndex++) {
-            if (!TryReadIndexedSample(maskPixels, sampleIndex, 1, out int sample)) {
+            if (!TryReadIndexedSample(maskPixels, width, sampleIndex, 1, out int sample)) {
                 return false;
             }
 
@@ -152,7 +152,7 @@ internal static partial class ResourceResolver {
         int colorType = hasAlpha ? 6 : 2;
         byte[] scanlines = new byte[(1 + width * outputChannels) * height];
         for (int sampleIndex = 0; sampleIndex < expectedSampleCount; sampleIndex++) {
-            if (!TryReadIndexedSample(indexedPixels, sampleIndex, bitsPerComponent, out int sample)) {
+            if (!TryReadIndexedSample(indexedPixels, width, sampleIndex, bitsPerComponent, out int sample)) {
                 return false;
             }
 
@@ -284,8 +284,10 @@ internal static partial class ResourceResolver {
         }
     }
 
-    private static bool TryReadIndexedSample(byte[] pixels, int sampleIndex, int bitsPerComponent, out int sample) {
+    private static bool TryReadIndexedSample(byte[] pixels, int width, int sampleIndex, int bitsPerComponent, out int sample) {
         sample = 0;
+        int row = sampleIndex / width;
+        int column = sampleIndex - row * width;
         if (bitsPerComponent == 8) {
             if (sampleIndex >= pixels.Length) {
                 return false;
@@ -295,7 +297,9 @@ internal static partial class ResourceResolver {
             return true;
         }
 
-        int bitOffset = sampleIndex * bitsPerComponent;
+        int rowBitCount = width * bitsPerComponent;
+        int rowByteCount = (rowBitCount + 7) / 8;
+        int bitOffset = row * rowByteCount * 8 + column * bitsPerComponent;
         int byteIndex = bitOffset / 8;
         if (byteIndex >= pixels.Length) {
             return false;

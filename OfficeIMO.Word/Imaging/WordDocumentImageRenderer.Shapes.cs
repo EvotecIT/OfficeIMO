@@ -189,6 +189,7 @@ namespace OfficeIMO.Word {
                     DescribeShape(shape));
             }
 
+            AdvanceFlowToAnchoredWrapTop(context, top);
             return true;
         }
 

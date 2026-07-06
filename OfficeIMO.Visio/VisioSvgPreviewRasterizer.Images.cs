@@ -28,6 +28,12 @@ namespace OfficeIMO.Visio {
             OfficePoint topRight = transform.Apply(x + width, y);
             OfficePoint bottomLeft = transform.Apply(x, y + height);
             OfficePoint bottomRight = transform.Apply(x + width, y + height);
+            OfficeRasterImage renderedImage = paint.Opacity < 1D ? ApplyImageOpacity(image, paint.Opacity) : image;
+            if (TryCreateImageProjection(topLeft, topRight, bottomLeft, bottomRight, out OfficeImageProjection projection)) {
+                canvas.DrawImage(renderedImage, projection);
+                return true;
+            }
+
             double left = Math.Min(Math.Min(topLeft.X, topRight.X), Math.Min(bottomLeft.X, bottomRight.X));
             double top = Math.Min(Math.Min(topLeft.Y, topRight.Y), Math.Min(bottomLeft.Y, bottomRight.Y));
             double right = Math.Max(Math.Max(topLeft.X, topRight.X), Math.Max(bottomLeft.X, bottomRight.X));
@@ -36,7 +42,38 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            canvas.DrawImage(paint.Opacity < 1D ? ApplyImageOpacity(image, paint.Opacity) : image, left, top, right - left, bottom - top);
+            canvas.DrawImage(renderedImage, left, top, right - left, bottom - top);
+            return true;
+        }
+
+        private static bool TryCreateImageProjection(OfficePoint topLeft, OfficePoint topRight, OfficePoint bottomLeft, OfficePoint bottomRight, out OfficeImageProjection projection) {
+            projection = default;
+            double columnX = topRight.X - topLeft.X;
+            double columnY = topRight.Y - topLeft.Y;
+            double rowX = bottomLeft.X - topLeft.X;
+            double rowY = bottomLeft.Y - topLeft.Y;
+            double width = Math.Sqrt(columnX * columnX + columnY * columnY);
+            double height = Math.Sqrt(rowX * rowX + rowY * rowY);
+            if (width <= 0D || height <= 0D) {
+                return false;
+            }
+
+            double dot = columnX * rowX + columnY * rowY;
+            if (Math.Abs(dot) > 0.001D * width * height) {
+                return false;
+            }
+
+            if (Math.Abs(bottomRight.X - (topRight.X + rowX)) > 0.001D ||
+                Math.Abs(bottomRight.Y - (topRight.Y + rowY)) > 0.001D) {
+                return false;
+            }
+
+            double rotationDegrees = Math.Atan2(columnY, columnX) * 180D / Math.PI;
+            projection = new OfficeImageProjection(
+                new OfficeImagePlacement(topLeft.X, topLeft.Y, width, height),
+                rotationDegrees: rotationDegrees,
+                rotationCenterX: topLeft.X,
+                rotationCenterY: topLeft.Y);
             return true;
         }
 

@@ -34,7 +34,7 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddRectangle(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
-        if (!HasPositiveArea(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
+        if (!HasVisibleOverlap(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
             return;
         }
 
@@ -52,11 +52,14 @@ public sealed partial class PdfReadPage {
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
-        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, primitive.ClipPath)) {
+        PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height);
+        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, clipPath)) {
             return;
         }
 
-        drawing.AddShape(shape, primitive.X, primitive.Y);
+        if (HasPositiveArea(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
+            drawing.AddShape(shape, primitive.X, primitive.Y);
+        }
     }
 
     private static void AddLine(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
@@ -64,11 +67,9 @@ public sealed partial class PdfReadPage {
         double top = Math.Min(primitive.Y1, primitive.Y2);
         double right = Math.Max(primitive.X1, primitive.X2);
         double bottom = Math.Max(primitive.Y1, primitive.Y2);
+        double strokeHalf = Math.Max(primitive.StrokeWidth, 1D) / 2D;
         if ((NearlyEqual(left, right) && NearlyEqual(top, bottom)) ||
-            left < 0D ||
-            top < 0D ||
-            right > drawing.Width ||
-            bottom > drawing.Height) {
+            !HasVisibleOverlap(left - strokeHalf, top - strokeHalf, right - left + (strokeHalf * 2D), bottom - top + (strokeHalf * 2D), drawing.Width, drawing.Height)) {
             return;
         }
 
@@ -81,15 +82,18 @@ public sealed partial class PdfReadPage {
         shape.StrokeLineCap = primitive.StrokeLineCap;
         shape.StrokeLineJoin = primitive.StrokeLineJoin;
         shape.StrokeOpacity = primitive.StrokeOpacity;
-        if (TryAddClippedShape(drawing, shape, left, top, primitive.ClipPath)) {
+        PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, left - strokeHalf, top - strokeHalf, right - left + (strokeHalf * 2D), bottom - top + (strokeHalf * 2D), drawing.Width, drawing.Height);
+        if (TryAddClippedShape(drawing, shape, left, top, clipPath)) {
             return;
         }
 
-        drawing.AddShape(shape, left, top);
+        if (HasVisibleOverlap(left - strokeHalf, top - strokeHalf, right - left + (strokeHalf * 2D), bottom - top + (strokeHalf * 2D), drawing.Width, drawing.Height)) {
+            drawing.AddShape(shape, left, top);
+        }
     }
 
     private static void AddPath(OfficeDrawing drawing, PdfPageVisualPrimitive primitive) {
-        if (!HasPositiveArea(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
+        if (!HasVisibleOverlap(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
             return;
         }
 
@@ -107,11 +111,43 @@ public sealed partial class PdfReadPage {
         shape.FillOpacity = primitive.FillOpacity;
         shape.StrokeOpacity = primitive.StrokeOpacity;
         shape.FillRule = primitive.FillRule;
-        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, primitive.ClipPath)) {
+        PdfPageClipPath? clipPath = GetEffectivePageClip(primitive.ClipPath, primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height);
+        if (TryAddClippedShape(drawing, shape, primitive.X, primitive.Y, clipPath)) {
             return;
         }
 
-        drawing.AddShape(shape, primitive.X, primitive.Y);
+        if (HasPositiveArea(primitive.X, primitive.Y, primitive.Width, primitive.Height, drawing.Width, drawing.Height)) {
+            drawing.AddShape(shape, primitive.X, primitive.Y);
+        }
+    }
+
+    private static PdfPageClipPath? GetEffectivePageClip(PdfPageClipPath? clipPath, double x, double y, double width, double height, double drawingWidth, double drawingHeight) {
+        PdfPageClipPath pageClip = PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight);
+        if (!clipPath.HasValue) {
+            return HasPositiveArea(x, y, width, height, drawingWidth, drawingHeight) ? null : pageClip;
+        }
+
+        if (!clipPath.Value.IsRectangle) {
+            return clipPath;
+        }
+
+        return IntersectClipBounds(clipPath.Value, pageClip, out PdfPageClipPath intersection) ? intersection : clipPath;
+    }
+
+    private static bool IntersectClipBounds(PdfPageClipPath first, PdfPageClipPath second, out PdfPageClipPath intersection) {
+        double left = Math.Max(first.X, second.X);
+        double top = Math.Max(first.Y, second.Y);
+        double right = Math.Min(first.X + first.Width, second.X + second.Width);
+        double bottom = Math.Min(first.Y + first.Height, second.Y + second.Height);
+        double width = right - left;
+        double height = bottom - top;
+        if (width <= 0D || height <= 0D) {
+            intersection = default;
+            return false;
+        }
+
+        intersection = PdfPageClipPath.Rectangle(left, top, width, height);
+        return true;
     }
 
     private static bool TryAddClippedShape(OfficeDrawing drawing, OfficeShape shape, double x, double y, PdfPageClipPath? clipPath) {
@@ -142,9 +178,6 @@ public sealed partial class PdfReadPage {
 
         double localX = x - clip.X;
         double localY = y - clip.Y;
-        if (localX < 0D || localY < 0D) {
-            return false;
-        }
 
         double innerWidth = Math.Max(clip.Width, localX + shape.Width);
         double innerHeight = Math.Max(clip.Height, localY + shape.Height);
@@ -972,7 +1005,7 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool TryCreateImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
-        if (!placement.ClipPath.HasValue &&
+        if (!HasAxisAlignedRectangleClip(placement) &&
             TryCreateTransformedImageProjection(placement, pageHeight, drawingWidth, drawingHeight, out projection)) {
             return true;
         }
@@ -1016,6 +1049,12 @@ public sealed partial class PdfReadPage {
         projection = new OfficeImageProjection(new OfficeImagePlacement(visibleLeft, visibleTop, visibleWidth, visibleHeight), crop);
         return true;
     }
+
+    private static bool HasAxisAlignedRectangleClip(PdfImagePlacement placement) =>
+        placement.ClipPath.HasValue &&
+        placement.ClipPath.Value.IsRectangle &&
+        NearlyEqual(placement.B, 0D) &&
+        NearlyEqual(placement.C, 0D);
 
     private static bool TryCreateTransformedImageProjection(PdfImagePlacement placement, double pageHeight, double drawingWidth, double drawingHeight, out OfficeImageProjection projection) {
         projection = default;
@@ -1119,6 +1158,14 @@ public sealed partial class PdfReadPage {
         y >= 0D &&
         x + width <= maxWidth &&
         y + height <= maxHeight;
+
+    private static bool HasVisibleOverlap(double x, double y, double width, double height, double maxWidth, double maxHeight) =>
+        width > 0D &&
+        height > 0D &&
+        x < maxWidth &&
+        y < maxHeight &&
+        x + width > 0D &&
+        y + height > 0D;
 
     private static double Clamp(double value, double min, double max) {
         if (value < min) {

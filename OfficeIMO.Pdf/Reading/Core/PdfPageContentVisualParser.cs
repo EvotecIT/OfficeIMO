@@ -689,13 +689,34 @@ internal static class PdfPageContentVisualParser {
             }
 
             if (TryCreateAxisAlignedRectangle(out double x, out double y, out double width, out double height)) {
-                _state = _state.WithClipPath(PdfPageClipPath.Rectangle(x, y, width, height));
+                _state = _state.WithClipPath(ResolveActiveClip(PdfPageClipPath.Rectangle(x, y, width, height)));
                 return;
             }
 
             if (PdfPageClipPath.TryCreatePath(_pathCommands, fillRule, out PdfPageClipPath clipPath)) {
-                _state = _state.WithClipPath(clipPath);
+                _state = _state.WithClipPath(ResolveActiveClip(clipPath));
             }
+        }
+
+        private PdfPageClipPath ResolveActiveClip(PdfPageClipPath clipPath) {
+            if (!_state.ClipPath.HasValue) {
+                return clipPath;
+            }
+
+            PdfPageClipPath active = _state.ClipPath.Value;
+            if (!active.IsRectangle || !clipPath.IsRectangle) {
+                return clipPath;
+            }
+
+            double left = Math.Max(active.X, clipPath.X);
+            double top = Math.Max(active.Y, clipPath.Y);
+            double right = Math.Min(active.X + active.Width, clipPath.X + clipPath.Width);
+            double bottom = Math.Min(active.Y + active.Height, clipPath.Y + clipPath.Height);
+            double width = right - left;
+            double height = bottom - top;
+            return width > 0D && height > 0D
+                ? PdfPageClipPath.Rectangle(left, top, width, height)
+                : PdfPageClipPath.Rectangle(left, top, 0D, 0D);
         }
 
         private void ClosePath() {

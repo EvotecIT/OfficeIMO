@@ -37,7 +37,7 @@ namespace OfficeIMO.Word {
                     frame.ContentLeft,
                     frame.FooterTop,
                     frame.ContentWidth,
-                    frame.FooterRenderBottom,
+                    drawing.Height,
                     "unsupported-word-footer-overflow",
                     "Stopped rendering Word footer content because it does not fit in the page footer band.",
                     targetPageIndex: pageIndex,

@@ -266,6 +266,8 @@ namespace OfficeIMO.Visio {
                     }
                 } else if (UseEvenOddFill(element, context.StyleSheet) && closedContours.Count > 1) {
                     canvas.FillPolygonsEvenOdd(closedContours, paint.Fill);
+                } else if (closedContours.Count > 1) {
+                    canvas.FillPolygonsNonZero(closedContours, paint.Fill);
                 } else {
                     for (int i = 0; i < closedContours.Count; i++) {
                         canvas.FillPolygon(closedContours[i], paint.Fill);

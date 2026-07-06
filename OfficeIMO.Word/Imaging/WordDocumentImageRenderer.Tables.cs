@@ -176,7 +176,7 @@ namespace OfficeIMO.Word {
                 Paragraph? firstOpenXmlParagraph = cell._tableCell.ChildElements.OfType<Paragraph>().FirstOrDefault();
                 WordParagraph? firstRun = firstOpenXmlParagraph == null
                     ? null
-                    : WordSection.ConvertParagraphToWordParagraphs(cell.Document, firstOpenXmlParagraph).FirstOrDefault();
+                    : WordSection.ConvertParagraphToWordParagraphs(cell.Document, firstOpenXmlParagraph, splitPaginationMarkers: true).FirstOrDefault();
                 if (firstRun?.IsPageBreak == true) {
                     return TableRowStartBreakKind.Page;
                 }
@@ -425,7 +425,7 @@ namespace OfficeIMO.Word {
         private static List<OfficeRichTextRun> CreateTableCellRichTextRuns(WordTableCell cell, A.ColorScheme? colorScheme, WordImageFlowContext? context = null) {
             var richRuns = new List<OfficeRichTextRun>();
             foreach (Paragraph paragraph in cell._tableCell.ChildElements.OfType<Paragraph>()) {
-                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph)
+                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph, splitPaginationMarkers: true)
                     .Where(run => !run.IsPageBreak && !run.IsColumnBreak)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();

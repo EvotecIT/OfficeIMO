@@ -18,6 +18,7 @@ using SdtContentPicture = DocumentFormat.OpenXml.Wordprocessing.SdtContentPictur
 using TabStop = DocumentFormat.OpenXml.Wordprocessing.TabStop;
 using Text = DocumentFormat.OpenXml.Wordprocessing.Text;
 using V = DocumentFormat.OpenXml.Vml;
+using W14 = DocumentFormat.OpenXml.Office2010.Word;
 using W15 = DocumentFormat.OpenXml.Office2013.Word;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
@@ -77,6 +78,10 @@ namespace OfficeIMO.Word {
                 }
 
                 if (_stdRun != null) {
+                    if (_stdRun.SdtProperties?.Elements<W14.SdtContentCheckBox>().Any() == true) {
+                        return string.Empty;
+                    }
+
                     return ReadVisibleText(_stdRun);
                 }
 

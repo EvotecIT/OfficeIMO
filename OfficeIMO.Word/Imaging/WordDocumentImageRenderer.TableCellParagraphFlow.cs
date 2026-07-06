@@ -108,7 +108,7 @@ namespace OfficeIMO.Word {
         private static List<List<WordParagraph>> CreateTableCellParagraphRuns(WordTableCell cell) {
             var paragraphs = new List<List<WordParagraph>>();
             foreach (Paragraph paragraph in cell._tableCell.ChildElements.OfType<Paragraph>()) {
-                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph)
+                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph, splitPaginationMarkers: true)
                     .Where(run => !run.IsPageBreak && !run.IsColumnBreak)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();

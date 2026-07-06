@@ -211,6 +211,7 @@ namespace OfficeIMO.Word {
                     DescribeImage(image));
             }
 
+            AdvanceFlowToAnchoredWrapTop(context, boundsTop);
             return true;
         }
 

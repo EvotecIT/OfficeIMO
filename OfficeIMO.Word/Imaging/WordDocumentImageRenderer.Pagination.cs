@@ -39,8 +39,9 @@ namespace OfficeIMO.Word {
                         wrapText: false);
                 }
 
+                string text = ResolveImageExportText(paragraph, context);
                 context.Drawing.AddText(
-                    paragraph.Text,
+                    text,
                     textLayout.TextLeft,
                     context.Y,
                     textLayout.TextWidth,
@@ -508,7 +509,7 @@ namespace OfficeIMO.Word {
             string current = string.Empty;
             for (int i = 0; i < words.Count; i++) {
                 string word = words[i];
-                string candidate = current.Length == 0 ? word : current + " " + word;
+                string candidate = current + word;
                 if (measurer.MeasureWidth(candidate, style) <= contentWidth || current.Length == 0) {
                     if (measurer.MeasureWidth(candidate, style) <= contentWidth) {
                         current = candidate;
@@ -532,18 +533,19 @@ namespace OfficeIMO.Word {
         private static List<string> SplitMeasuredWords(string text) {
             var words = new List<string>();
             int start = -1;
+            bool? currentIsWhitespace = null;
             for (int i = 0; i < text.Length; i++) {
-                if (char.IsWhiteSpace(text[i])) {
-                    if (start >= 0) {
-                        words.Add(text.Substring(start, i - start));
-                        start = -1;
-                    }
-
+                bool isWhitespace = char.IsWhiteSpace(text[i]);
+                if (start >= 0 && currentIsWhitespace != isWhitespace) {
+                    words.Add(text.Substring(start, i - start));
+                    start = i;
+                    currentIsWhitespace = isWhitespace;
                     continue;
                 }
 
                 if (start < 0) {
                     start = i;
+                    currentIsWhitespace = isWhitespace;
                 }
             }
 

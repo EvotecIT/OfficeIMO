@@ -272,7 +272,7 @@ namespace OfficeIMO.Word {
                 return runAdded;
             }
 
-            foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
+            foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(document, paragraph, splitPaginationMarkers: true)) {
                 if (run.IsPageBreak) {
                     added |= FlushTextRuns();
                     context.AdvancePage();

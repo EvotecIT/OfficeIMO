@@ -625,8 +625,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
+        /// <param name="splitPaginationMarkers"></param>
         /// <returns></returns>
-        internal static List<WordParagraph> ConvertParagraphToWordParagraphs(WordDocument document, Paragraph paragraph) {
+        internal static List<WordParagraph> ConvertParagraphToWordParagraphs(WordDocument document, Paragraph paragraph, bool splitPaginationMarkers = false) {
             var list = new List<WordParagraph>();
             var childElements = paragraph.ChildElements;
             if (childElements.Count == 1 && childElements[0] is ParagraphProperties) {
@@ -638,7 +639,7 @@ namespace OfficeIMO.Word {
 
                 void AddRun(Run run, Hyperlink? hyperlink = null) {
                     WordParagraph wordParagraph;
-                    IReadOnlyList<Run> logicalRuns = SplitRunByPaginationMarkers(run);
+                    IReadOnlyList<Run> logicalRuns = splitPaginationMarkers ? SplitRunByPaginationMarkers(run) : new[] { run };
                     if (logicalRuns.Count > 1) {
                         foreach (Run logicalRun in logicalRuns) {
                             AddRun(logicalRun, hyperlink);
@@ -685,10 +686,16 @@ namespace OfficeIMO.Word {
                     } else if (element is DeletedRun || element is MoveFromRun) {
                         // Image export follows Word's final view by default: inserted/moved-to text is visible, deleted/moved-from text is hidden.
                     } else if (element is Hyperlink hyperlink) {
-                        wordParagraph = new WordParagraph(document, paragraph, hyperlink);
-                        list.Add(wordParagraph);
+                        if (splitPaginationMarkers && ContainsPaginationMarker(hyperlink)) {
+                            foreach (OpenXmlElement child in hyperlink.ChildElements) {
+                                ProcessElement(child, hyperlink);
+                            }
+                        } else {
+                            wordParagraph = new WordParagraph(document, paragraph, hyperlink);
+                            list.Add(wordParagraph);
+                        }
                     } else if (element is SimpleField simpleField) {
-                        if (!ProcessSimpleFieldWithHardBreaks(simpleField, hyperlinkContext)) {
+                        if (!splitPaginationMarkers || !ProcessSimpleFieldWithHardBreaks(simpleField, hyperlinkContext)) {
                             wordParagraph = new WordParagraph(document, paragraph, simpleField);
                             list.Add(wordParagraph);
                         }
@@ -706,6 +713,10 @@ namespace OfficeIMO.Word {
                         wordParagraph = new WordParagraph(document, paragraph, mathParagraph);
                         list.Add(wordParagraph);
                     } else if (element is SdtRun sdtRun) {
+                        if (splitPaginationMarkers && ProcessInlineContentControl(sdtRun, hyperlinkContext)) {
+                            return;
+                        }
+
                         list.Add(new WordParagraph(document, paragraph, sdtRun));
                     } else if (element is ProofError) {
 
@@ -714,6 +725,27 @@ namespace OfficeIMO.Word {
                     } else {
                         Debug.WriteLine("Please implement me! " + element.GetType().Name);
                     }
+                }
+
+                bool ProcessInlineContentControl(SdtRun sdtRun, Hyperlink? hyperlinkContext) {
+                    if (!ContainsPaginationMarker(sdtRun)) {
+                        return false;
+                    }
+
+                    SdtContentRun? contentRun = sdtRun.SdtContentRun;
+                    if (contentRun == null || contentRun.ChildElements.Count == 0) {
+                        return false;
+                    }
+
+                    bool processed = false;
+                    foreach (OpenXmlElement child in contentRun.ChildElements) {
+                        if (CanProcessInlineContentControlChild(child)) {
+                            ProcessElement(child, hyperlinkContext);
+                            processed = true;
+                        }
+                    }
+
+                    return processed;
                 }
 
                 bool ProcessSimpleFieldWithHardBreaks(SimpleField simpleField, Hyperlink? hyperlinkContext) {
@@ -727,6 +759,15 @@ namespace OfficeIMO.Word {
 
                     return true;
                 }
+
+                static bool CanProcessInlineContentControlChild(OpenXmlElement child) =>
+                    child is Run ||
+                    child is InsertedRun ||
+                    child is MoveToRun ||
+                    child is DeletedRun ||
+                    child is MoveFromRun ||
+                    child is Hyperlink ||
+                    child is SdtRun;
 
                 bool ProcessComplexFieldWithHardBreaks(IReadOnlyList<Run> fieldRuns, Hyperlink? hyperlinkContext) {
                     List<Run> resultRuns = ExtractComplexFieldResultRuns(fieldRuns);
@@ -1181,7 +1222,7 @@ namespace OfficeIMO.Word {
         /// <param name="sectionProperties"></param>
         /// <param name="newSectionProperties"></param>
         private static void CopySectionProperties(SectionProperties sectionProperties, SectionProperties newSectionProperties) {
-            if (newSectionProperties.ChildElements.All(element => element is SectionType)) {
+            if (newSectionProperties.ChildElements.Count == 0) {
                 var listSectionEntries = sectionProperties.ChildElements.ToList();
                 foreach (var element in listSectionEntries) {
                     if (element is HeaderReference) {
@@ -1223,5 +1264,6 @@ namespace OfficeIMO.Word {
                 //newSectionProperties.Append(listSectionEntries);
             }
         }
+
     }
 }

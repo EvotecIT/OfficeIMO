@@ -123,6 +123,7 @@ namespace OfficeIMO.Word {
                     "Word text box");
             }
 
+            AdvanceFlowToAnchoredWrapTop(context, top);
             return true;
         }
 
@@ -405,13 +406,15 @@ namespace OfficeIMO.Word {
                     .OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
                     .Select(paragraph => {
                         if (context?.ResolveDynamicPageFields != true) {
-                            return paragraph.InnerText;
+                            return NormalizeTextBoxParagraphText(paragraph.InnerText);
                         }
 
                         string resolvedText = string.Concat(
-                            WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph)
+                            WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
                                 .Select(run => ResolveImageExportText(run, context)));
-                        return string.IsNullOrEmpty(resolvedText) ? paragraph.InnerText : resolvedText;
+                        return string.IsNullOrEmpty(resolvedText)
+                            ? NormalizeTextBoxParagraphText(paragraph.InnerText)
+                            : NormalizeTextBoxParagraphText(resolvedText);
                     })
                     .Where(text => !string.IsNullOrEmpty(text))
                     .ToList();
@@ -421,14 +424,38 @@ namespace OfficeIMO.Word {
             }
 
             List<string> parts = fallbackRuns
-                .Select(paragraph => ResolveImageExportText(paragraph, context))
+                .Select(paragraph => NormalizeTextBoxParagraphText(ResolveImageExportText(paragraph, context)))
                 .Where(text => !string.IsNullOrEmpty(text))
                 .ToList();
             return string.Join(Environment.NewLine, parts);
         }
 
-        private static bool ShouldRenderTextBoxAsRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
-            richRuns.Count > 1 || richRuns.Any(run => run.BackgroundColor.HasValue);
+        private static string NormalizeTextBoxParagraphText(string text) =>
+            text.TrimEnd('\r', '\n');
+
+        private static void AdvanceFlowToAnchoredWrapTop(WordImageFlowContext context, double top) {
+            if (IsFinite(top) && IsFinite(context.ContentBottom) && context.ContentBottom < double.MaxValue / 2D && top > context.Y && top < context.ContentBottom) {
+                context.Y = top;
+            }
+        }
+
+        private static bool ShouldRenderTextBoxAsRichText(IReadOnlyList<OfficeRichTextRun> richRuns) {
+            if (richRuns.Any(run => run.BackgroundColor.HasValue)) {
+                return true;
+            }
+
+            OfficeRichTextRun? firstRun = richRuns.FirstOrDefault();
+            return firstRun != null && richRuns.Any(run => !HasSameTextBoxRunStyle(firstRun, run));
+        }
+
+        private static bool HasSameTextBoxRunStyle(OfficeRichTextRun left, OfficeRichTextRun right) =>
+            left.FontSize.Equals(right.FontSize) &&
+            left.Color == right.Color &&
+            left.Bold == right.Bold &&
+            left.Italic == right.Italic &&
+            left.Underline == right.Underline &&
+            left.Strikethrough == right.Strikethrough &&
+            string.Equals(left.FontFamily, right.FontFamily, StringComparison.Ordinal);
 
         private static List<OfficeRichTextRun> CreateTextBoxRichTextRuns(WordTextBox textBox, A.ColorScheme? colorScheme, WordImageFlowContext? context = null) {
             var richRuns = new List<OfficeRichTextRun>();
@@ -438,7 +465,7 @@ namespace OfficeIMO.Word {
             }
 
             foreach (DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph in content.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
-                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph)
+                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
                 if (paragraphRuns.Count == 0) {
