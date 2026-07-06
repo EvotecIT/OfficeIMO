@@ -234,7 +234,7 @@ namespace OfficeIMO.Word {
 
         private static void AppendVisibleText(StringBuilder builder, OpenXmlElement element) {
             switch (element) {
-                case Run run when IsHiddenRun(run):
+                case Run run when IsHiddenCommentReferenceRun(run):
                     return;
                 case Text text:
                     builder.Append(text.Text);
@@ -276,9 +276,11 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static bool IsHiddenRun(Run run) {
+        private static bool IsHiddenCommentReferenceRun(Run run) {
             Vanish? vanish = run.RunProperties?.GetFirstChild<Vanish>();
-            return vanish != null && (vanish.Val == null || vanish.Val.Value);
+            return vanish != null &&
+                   (vanish.Val == null || vanish.Val.Value) &&
+                   run.Elements<CommentReference>().Any();
         }
 
         private static bool TryAppendMathText(StringBuilder builder, OpenXmlElement element) {
