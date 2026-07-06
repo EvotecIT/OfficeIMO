@@ -329,7 +329,7 @@ internal static class CsvWriter
     {
         if (!TextRowNeedsEscaping(values, delimiter))
         {
-            WritePlainTextRecord(writer, values, delimiter, newLine);
+            WritePlainTextRecordBuffered(writer, buffer, values, delimiter, newLine);
             return;
         }
 
@@ -1098,22 +1098,28 @@ internal static class CsvWriter
         return false;
     }
 
-    private static void WritePlainTextRecord(TextWriter writer, string?[] values, char delimiter, string newLine)
+    private static void WritePlainTextRecordBuffered(TextWriter writer, StringBuilder buffer, string?[] values, char delimiter, string newLine)
     {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        buffer.Clear();
         for (var i = 0; i < values.Length; i++)
         {
             if (i > 0)
             {
-                writer.Write(delimiter);
+                buffer.Append(delimiter);
             }
 
             if (values[i] != null)
             {
-                writer.Write(values[i]);
+                buffer.Append(values[i]);
             }
         }
 
-        writer.Write(newLine);
+        WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
     private static int IndexOfCsvSpecial(string text, char delimiter)

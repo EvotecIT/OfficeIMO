@@ -18,6 +18,7 @@ public sealed class CsvObjectWriter : IDisposable
     private readonly bool _useAlwaysQuotedWritePath;
     private readonly bool _leaveOpen;
     private readonly StringBuilder _rowBuffer = new(1024);
+    private const int WideTextRowThreshold = 20;
     private IReadOnlyList<string>? _columns;
     private Func<object, object?[], bool>? _propertyProjector;
     private Func<object, string?[], CultureInfo, bool>? _propertyTextProjector;
@@ -303,7 +304,7 @@ public sealed class CsvObjectWriter : IDisposable
 
         if (_useDefaultWritePath)
         {
-            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            WriteDefaultTextRecord(values);
             return;
         }
 
@@ -554,7 +555,7 @@ public sealed class CsvObjectWriter : IDisposable
     {
         if (_useDefaultWritePath)
         {
-            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            WriteDefaultTextRecord(values);
             return;
         }
 
@@ -582,5 +583,16 @@ public sealed class CsvObjectWriter : IDisposable
         }
 
         CsvWriter.WriteTextRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+    }
+
+    private void WriteDefaultTextRecord(string?[] values)
+    {
+        if (values.Length >= WideTextRowThreshold)
+        {
+            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        CsvWriter.WriteRecordDefaultAdaptive(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
     }
 }
