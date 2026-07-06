@@ -230,7 +230,10 @@ public static class OfficeDrawingSvgExporter {
         }
 
         bool hasStroke = shape.Kind == OfficeShapeKind.Line ||
-            (shape.StrokeColor.HasValue && shape.StrokeWidth > 0D && shape.StrokeColor.Value.A > 0);
+            (shape.StrokeWidth > 0D &&
+                (shape.StrokeRadialGradient != null ||
+                 shape.StrokeGradient != null ||
+                 (shape.StrokeColor.HasValue && shape.StrokeColor.Value.A > 0)));
         bool hasFill = shape.Kind != OfficeShapeKind.Line &&
             (shape.FillRadialGradient != null || shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
         OfficeDrawingShape coreShadow = CreateShadowShape(drawingShape, shadow, hasStroke, hasFill, Math.Max(0D, shape.StrokeWidth), shadow.Opacity);
@@ -267,6 +270,8 @@ public static class OfficeDrawingSvgExporter {
         shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
         shadowShape.FillOpacity = opacity;
         shadowShape.StrokeColor = hasStroke ? shadow.Color : null;
+        shadowShape.StrokeGradient = null;
+        shadowShape.StrokeRadialGradient = null;
         shadowShape.StrokeWidth = strokeWidth;
         shadowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
         shadowShape.StrokeStartMarker = null;

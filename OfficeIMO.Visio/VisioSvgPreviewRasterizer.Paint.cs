@@ -82,10 +82,10 @@ namespace OfficeIMO.Visio {
             }
 
             private static string? ReadPaint(XElement element, Dictionary<string, string> style, string name) =>
-                element.Attribute(name)?.Value ?? (style.TryGetValue(name, out string? value) ? value : null);
+                ReadAttributeOrStyle(element, style, name);
 
             private static double ReadUnit(XElement element, Dictionary<string, string> style, string name, double fallback) {
-                string? raw = element.Attribute(name)?.Value ?? (style.TryGetValue(name, out string? value) ? value : null);
+                string? raw = ReadAttributeOrStyle(element, style, name);
                 if (string.IsNullOrWhiteSpace(raw) || !double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {
                     return fallback;
                 }
@@ -97,7 +97,7 @@ namespace OfficeIMO.Visio {
                 ReadUnit(element, style, name, fallback);
 
             private static IReadOnlyList<double>? ReadDashPattern(XElement element, Dictionary<string, string> style, IReadOnlyList<double>? inherited) {
-                string? raw = element.Attribute("stroke-dasharray")?.Value ?? (style.TryGetValue("stroke-dasharray", out string? value) ? value : null);
+                string? raw = ReadAttributeOrStyle(element, style, "stroke-dasharray");
                 if (string.IsNullOrWhiteSpace(raw)) {
                     return inherited;
                 }
@@ -133,7 +133,7 @@ namespace OfficeIMO.Visio {
             }
 
             private static SvgStrokeLineCap ReadStrokeLineCap(XElement element, Dictionary<string, string> style, SvgStrokeLineCap inherited) {
-                string? raw = element.Attribute("stroke-linecap")?.Value ?? (style.TryGetValue("stroke-linecap", out string? value) ? value : null);
+                string? raw = ReadAttributeOrStyle(element, style, "stroke-linecap");
                 if (string.IsNullOrWhiteSpace(raw)) {
                     return inherited;
                 }
@@ -146,7 +146,7 @@ namespace OfficeIMO.Visio {
             }
 
             private static SvgStrokeLineJoin ReadStrokeLineJoin(XElement element, Dictionary<string, string> style, SvgStrokeLineJoin inherited) {
-                string? raw = element.Attribute("stroke-linejoin")?.Value ?? (style.TryGetValue("stroke-linejoin", out string? value) ? value : null);
+                string? raw = ReadAttributeOrStyle(element, style, "stroke-linejoin");
                 if (string.IsNullOrWhiteSpace(raw)) {
                     return inherited;
                 }
@@ -159,7 +159,7 @@ namespace OfficeIMO.Visio {
             }
 
             private static bool ReadNonScalingStroke(XElement element, Dictionary<string, string> style, bool inherited) {
-                string? raw = element.Attribute("vector-effect")?.Value ?? (style.TryGetValue("vector-effect", out string? styleValue) ? styleValue : null);
+                string? raw = ReadAttributeOrStyle(element, style, "vector-effect");
                 if (string.IsNullOrWhiteSpace(raw)) {
                     return inherited;
                 }
@@ -171,6 +171,9 @@ namespace OfficeIMO.Visio {
 
                 return vectorEffect.IndexOf("non-scaling-stroke", StringComparison.OrdinalIgnoreCase) >= 0;
             }
+
+            private static string? ReadAttributeOrStyle(XElement element, Dictionary<string, string> style, string name) =>
+                style.TryGetValue(name, out string? value) ? value : element.Attribute(name)?.Value;
 
             private static OfficeColor ResolveColor(string? raw, OfficeColor inherited, OfficeColor currentColor) {
                 if (string.IsNullOrWhiteSpace(raw)) {

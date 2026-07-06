@@ -290,19 +290,16 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            OfficePoint center = transform.Apply(cx, cy);
-            double scaledRx = Math.Abs(rx * transform.ScaleX);
-            double scaledRy = Math.Abs(ry * transform.ScaleY);
+            IReadOnlyList<OfficePoint> ellipsePoints = CreateEllipsePoints(cx, cy, rx, ry, transform);
             if (paint.HasFill) {
                 if (paint.FillRadialGradient != null || paint.FillGradient != null) {
-                    IReadOnlyList<OfficePoint> ellipsePoints = CreateEllipsePoints(cx, cy, rx, ry, transform);
                     if (paint.FillRadialGradient != null) {
                         canvas.FillRadialGradientPolygon(ellipsePoints, paint.FillRadialGradient);
                     } else {
                         canvas.FillLinearGradientPolygon(ellipsePoints, paint.FillGradient!);
                     }
                 } else {
-                    canvas.DrawEllipse(center.X, center.Y, scaledRx, scaledRy, paint.Fill, OfficeColor.Transparent, 0D);
+                    canvas.FillPolygon(ellipsePoints, paint.Fill);
                 }
             }
 
@@ -310,11 +307,7 @@ namespace OfficeIMO.Visio {
                 double strokeScale = GetStrokeScale(paint, transform);
                 double strokeWidth = Math.Max(1D, paint.StrokeWidth * strokeScale);
                 IReadOnlyList<double>? dashPattern = ScaleDashPattern(paint.DashPattern, strokeScale);
-                if (dashPattern != null) {
-                    canvas.DrawPatternedEllipse(center.X, center.Y, scaledRx, scaledRy, paint.Stroke, strokeWidth, dashPattern);
-                } else {
-                    canvas.DrawEllipse(center.X, center.Y, scaledRx, scaledRy, OfficeColor.Transparent, paint.Stroke, strokeWidth);
-                }
+                StrokeClosedContour(canvas, ellipsePoints, paint, strokeWidth, dashPattern);
             }
 
             return paint.HasFill || paint.Stroke.A > 0;

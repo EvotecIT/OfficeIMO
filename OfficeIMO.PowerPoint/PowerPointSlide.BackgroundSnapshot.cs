@@ -194,6 +194,11 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private static PowerPointSlideBackground GetBackgroundGradient(A.GradientFill gradientFill, A.ColorScheme? colorScheme, A.SchemeColor? placeholderColor) {
+            A.LinearGradientFill? linearGradientFill = gradientFill.GetFirstChild<A.LinearGradientFill>();
+            if (linearGradientFill == null) {
+                return PowerPointSlideBackground.Unsupported("The slide background uses a path or radial gradient, which is not currently supported by OfficeIMO exporters.");
+            }
+
             A.GradientStop[] stops = gradientFill.GetFirstChild<A.GradientStopList>()?
                 .Elements<A.GradientStop>()
                 .OrderBy(stop => stop.Position?.Value ?? 0)
@@ -209,7 +214,7 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointSlideBackground.Unsupported("The slide background gradient uses colors that could not be resolved.");
             }
 
-            double angleDegrees = (gradientFill.GetFirstChild<A.LinearGradientFill>()?.Angle?.Value ?? 0) / 60000D;
+            double angleDegrees = (linearGradientFill.Angle?.Value ?? 0) / 60000D;
             return PowerPointSlideBackground.LinearGradient(FormatBackgroundColor(startColor.Value), FormatBackgroundColor(endColor.Value), angleDegrees);
         }
 

@@ -51,6 +51,7 @@ internal static class TextContentParser {
 
     private sealed class InlineDictionary {
         public Dictionary<string, object> Items { get; } = new(StringComparer.Ordinal);
+        public List<int> OptionalContentObjectNumbers { get; } = new();
     }
 
     private readonly struct ActualTextValue {
@@ -575,8 +576,10 @@ internal static class TextContentParser {
         bool IsHiddenOptionalContent(object? tag, object? property) =>
             tag is string tagName &&
             string.Equals(tagName, "OC", StringComparison.Ordinal) &&
-            property is string propertyName &&
-            optionalContentVisibility?.IsHidden(propertyName) == true;
+            ((property is string propertyName &&
+                optionalContentVisibility?.IsHidden(propertyName) == true) ||
+             (property is InlineDictionary dictionary &&
+                optionalContentVisibility?.IsHiddenAny(dictionary.OptionalContentObjectNumbers) == true));
 
         void ShowTextArray(object arrObj) {
             if (!inText || arrObj == null) return;
@@ -649,6 +652,7 @@ internal static class TextContentParser {
         }
 
         InlineDictionary ReadInlineDictionary() {
+            int start = i;
             i += 2;
             var dictionary = new InlineDictionary();
             while (i < n) {
@@ -682,6 +686,8 @@ internal static class TextContentParser {
                 }
             }
 
+            dictionary.OptionalContentObjectNumbers.AddRange(
+                PdfInlineOptionalContentReferenceParser.ExtractObjectNumbers(content, start, Math.Max(0, i - start)));
             return dictionary;
         }
 
@@ -974,7 +980,11 @@ internal static class TextContentParser {
             if (c == '/') { args.Add(ReadName()); continue; }
             if (c == '(') { ReadLiteralStringBytes(); continue; }
             if (c == '<') {
-                if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; }
+                if (i + 1 < n && content[i + 1] == '<') {
+                    args.Add(PdfInlineOptionalContentReferenceParser.Read(content, ref i));
+                    continue;
+                }
+
                 ReadHexStringBytes();
                 continue;
             }
@@ -1052,8 +1062,10 @@ internal static class TextContentParser {
         bool IsHiddenOptionalContent(object? tag, object? property) =>
             tag is string tagName &&
             string.Equals(tagName, "OC", StringComparison.Ordinal) &&
-            property is string propertyName &&
-            optionalContentVisibility?.IsHidden(propertyName) == true;
+            ((property is string propertyName &&
+                optionalContentVisibility?.IsHidden(propertyName) == true) ||
+             (property is PdfInlineOptionalContentReferences references &&
+                optionalContentVisibility?.IsHiddenAny(references.ObjectNumbers) == true));
 
         void SkipWs() { while (i < n && char.IsWhiteSpace(content[i])) i++; }
         static bool IsDigit(char ch) => ch >= '0' && ch <= '9';

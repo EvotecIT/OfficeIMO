@@ -1053,7 +1053,10 @@ public static class OfficeDrawingRasterRenderer {
         }
 
         bool hasStroke = shape.Kind == OfficeShapeKind.Line ||
-            (shape.StrokeColor.HasValue && shape.StrokeWidth > 0D && shape.StrokeColor.Value.A > 0);
+            (shape.StrokeWidth > 0D &&
+                (shape.StrokeRadialGradient != null ||
+                 shape.StrokeGradient != null ||
+                 (shape.StrokeColor.HasValue && shape.StrokeColor.Value.A > 0)));
         bool hasFill = shape.Kind != OfficeShapeKind.Line &&
             (shape.FillRadialGradient != null || shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
         OfficeDrawingShape coreShadow = CreateShadowShape(drawingShape, shadow, hasStroke, hasFill, Math.Max(0D, shape.StrokeWidth), shadow.Opacity);

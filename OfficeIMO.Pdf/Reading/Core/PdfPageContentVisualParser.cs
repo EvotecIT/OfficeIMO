@@ -92,7 +92,11 @@ internal static class PdfPageContentVisualParser {
                 } else if (current == '(') {
                     SkipLiteralString();
                 } else if (current == '<') {
-                    SkipAngleObject();
+                    if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
+                        _args.Add(PdfInlineOptionalContentReferenceParser.Read(_content, ref _index));
+                    } else {
+                        SkipAngleObject();
+                    }
                 } else if (current == '[') {
                     _args.Add(ReadNumberArray());
                 } else if (IsNumberStart(current)) {
@@ -671,8 +675,10 @@ internal static class PdfPageContentVisualParser {
         private bool IsHiddenOptionalContent(object? tag, object? property) =>
             tag is string tagName &&
             string.Equals(tagName, "OC", StringComparison.Ordinal) &&
-            property is string propertyName &&
-            _optionalContentVisibility?.IsHidden(propertyName) == true;
+            ((property is string propertyName &&
+                _optionalContentVisibility?.IsHidden(propertyName) == true) ||
+             (property is PdfInlineOptionalContentReferences references &&
+                _optionalContentVisibility?.IsHiddenAny(references.ObjectNumbers) == true));
 
         private void MoveTo(double x, double y) {
             DiscardCurrentSubpathIfEmpty();

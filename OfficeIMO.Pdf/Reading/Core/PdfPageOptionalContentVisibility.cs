@@ -2,40 +2,58 @@ namespace OfficeIMO.Pdf;
 
 internal sealed class PdfPageOptionalContentVisibility {
     private readonly Dictionary<string, bool> _hiddenProperties;
+    private readonly HashSet<int> _hiddenObjectNumbers;
 
-    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties) {
+    private PdfPageOptionalContentVisibility(Dictionary<string, bool> hiddenProperties, HashSet<int> hiddenObjectNumbers) {
         _hiddenProperties = hiddenProperties;
+        _hiddenObjectNumbers = hiddenObjectNumbers;
     }
 
     public static PdfPageOptionalContentVisibility? Create(
         PdfDictionary? resources,
         Dictionary<int, PdfIndirectObject> objects) {
-        if (resources == null ||
-            !resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject) ||
-            ResolveObject(propertiesObject, objects) is not PdfDictionary properties ||
-            properties.Items.Count == 0) {
-            return null;
-        }
-
         Dictionary<int, bool> groupVisibility = ReadGroupVisibility(objects);
         if (groupVisibility.Count == 0) {
             return null;
         }
 
-        var hiddenProperties = new Dictionary<string, bool>(StringComparer.Ordinal);
-        foreach (KeyValuePair<string, PdfObject> entry in properties.Items) {
-            if (TryGetReferencedObjectNumber(entry.Value, out int objectNumber) &&
-                groupVisibility.TryGetValue(objectNumber, out bool isVisible) &&
-                !isVisible) {
-                hiddenProperties[entry.Key] = true;
+        var hiddenObjectNumbers = new HashSet<int>();
+        foreach (KeyValuePair<int, bool> entry in groupVisibility) {
+            if (!entry.Value) {
+                hiddenObjectNumbers.Add(entry.Key);
             }
         }
 
-        return hiddenProperties.Count == 0 ? null : new PdfPageOptionalContentVisibility(hiddenProperties);
+        var hiddenProperties = new Dictionary<string, bool>(StringComparer.Ordinal);
+        if (resources != null &&
+            resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject) &&
+            ResolveObject(propertiesObject, objects) is PdfDictionary properties) {
+            foreach (KeyValuePair<string, PdfObject> entry in properties.Items) {
+                if (TryGetReferencedObjectNumber(entry.Value, out int objectNumber) &&
+                    groupVisibility.TryGetValue(objectNumber, out bool isVisible) &&
+                    !isVisible) {
+                    hiddenProperties[entry.Key] = true;
+                }
+            }
+        }
+
+        return hiddenProperties.Count == 0 && hiddenObjectNumbers.Count == 0
+            ? null
+            : new PdfPageOptionalContentVisibility(hiddenProperties, hiddenObjectNumbers);
     }
 
     public bool IsHidden(string propertyName) =>
         _hiddenProperties.TryGetValue(propertyName, out bool hidden) && hidden;
+
+    public bool IsHiddenAny(IReadOnlyList<int> objectNumbers) {
+        for (int i = 0; i < objectNumbers.Count; i++) {
+            if (_hiddenObjectNumbers.Contains(objectNumbers[i])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
 
     private static Dictionary<int, bool> ReadGroupVisibility(Dictionary<int, PdfIndirectObject> objects) {
         var result = new Dictionary<int, bool>();
