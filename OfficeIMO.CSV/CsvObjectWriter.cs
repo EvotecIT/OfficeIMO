@@ -241,6 +241,37 @@ public sealed class CsvObjectWriter : IDisposable
     }
 
     /// <summary>
+    /// Writes one already-projected row using a caller-provided value accessor and the established column order.
+    /// </summary>
+    /// <typeparam name="TState">State type used by the value accessor.</typeparam>
+    /// <param name="valueCount">Number of values exposed by <paramref name="valueAccessor"/>.</param>
+    /// <param name="state">Caller state passed to <paramref name="valueAccessor"/> for each column index.</param>
+    /// <param name="valueAccessor">Function that returns the value for a column index.</param>
+    public void WriteTrustedRow<TState>(
+        int valueCount,
+        TState state,
+        Func<TState, int, object?> valueAccessor)
+    {
+        ThrowIfDisposed();
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        if (_columns == null)
+        {
+            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+        }
+
+        if (valueCount != _columns.Count)
+        {
+            throw new CsvException($"Row contains {valueCount} values but header defines {_columns.Count} columns.");
+        }
+
+        WriteBuffered(valueCount, state, valueAccessor);
+    }
+
+    /// <summary>
     /// Writes one already-formatted text row using the column order that was established by a previous row.
     /// </summary>
     /// <param name="values">Text values in the same order as the established CSV columns.</param>
@@ -286,6 +317,68 @@ public sealed class CsvObjectWriter : IDisposable
     }
 
     /// <summary>
+    /// Writes one already-formatted text row using a caller-provided value accessor.
+    /// </summary>
+    /// <typeparam name="TState">State type used by the value accessor.</typeparam>
+    /// <param name="columns">Column names for the first row and validation for later rows.</param>
+    /// <param name="valueCount">Number of values exposed by <paramref name="valueAccessor"/>.</param>
+    /// <param name="state">Caller state passed to <paramref name="valueAccessor"/> for each column index.</param>
+    /// <param name="valueAccessor">Function that returns the already-formatted text for a column index.</param>
+    public void WriteTextRow<TState>(
+        IReadOnlyList<string> columns,
+        int valueCount,
+        TState state,
+        Func<TState, int, string?> valueAccessor)
+    {
+        ThrowIfDisposed();
+        if (columns == null)
+        {
+            throw new ArgumentNullException(nameof(columns));
+        }
+
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        ValidateProjectedValueCount(columns, valueCount);
+        EnsureColumns(columns);
+
+        WriteTextBuffered(valueCount, state, valueAccessor);
+    }
+
+    /// <summary>
+    /// Writes one already-formatted text row using the column order that was established by a previous row.
+    /// </summary>
+    /// <typeparam name="TState">State type used by the value accessor.</typeparam>
+    /// <param name="valueCount">Number of values exposed by <paramref name="valueAccessor"/>.</param>
+    /// <param name="state">Caller state passed to <paramref name="valueAccessor"/> for each column index.</param>
+    /// <param name="valueAccessor">Function that returns the already-formatted text for a column index.</param>
+    public void WriteTrustedTextRow<TState>(
+        int valueCount,
+        TState state,
+        Func<TState, int, string?> valueAccessor)
+    {
+        ThrowIfDisposed();
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        if (_columns == null)
+        {
+            throw new InvalidOperationException("Columns must be established before writing trusted rows.");
+        }
+
+        if (valueCount != _columns.Count)
+        {
+            throw new CsvException($"Row contains {valueCount} values but header defines {_columns.Count} columns.");
+        }
+
+        WriteTextBuffered(valueCount, state, valueAccessor);
+    }
+
+    /// <summary>
     /// Writes one projected row using a caller-provided value accessor.
     /// </summary>
     /// <typeparam name="TState">State type used by the value accessor.</typeparam>
@@ -313,7 +406,7 @@ public sealed class CsvObjectWriter : IDisposable
         ValidateProjectedValueCount(columns, valueCount);
         EnsureColumns(columns);
 
-        CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+        WriteBuffered(valueCount, state, valueAccessor);
     }
 
     /// <inheritdoc />
@@ -440,6 +533,23 @@ public sealed class CsvObjectWriter : IDisposable
         CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
     }
 
+    private void WriteBuffered<TState>(int valueCount, TState state, Func<TState, int, object?> valueAccessor)
+    {
+        if (_useDefaultWritePath)
+        {
+            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture);
+            return;
+        }
+
+        if (_useAlwaysQuotedWritePath)
+        {
+            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+            return;
+        }
+
+        CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+    }
+
     private void WriteTextBuffered(string?[] values)
     {
         if (_useDefaultWritePath)
@@ -455,5 +565,22 @@ public sealed class CsvObjectWriter : IDisposable
         }
 
         CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+    }
+
+    private void WriteTextBuffered<TState>(int valueCount, TState state, Func<TState, int, string?> valueAccessor)
+    {
+        if (_useDefaultWritePath)
+        {
+            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        if (_useAlwaysQuotedWritePath)
+        {
+            CsvWriter.WriteRecordBufferedAlwaysQuoted(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        CsvWriter.WriteTextRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
     }
 }

@@ -234,6 +234,73 @@ internal static class CsvWriter
         WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
+    internal static void WriteRecordBufferedDefault<TState>(
+        TextWriter writer,
+        StringBuilder buffer,
+        int valueCount,
+        TState state,
+        Func<TState, int, object?> valueAccessor,
+        char delimiter,
+        string newLine,
+        CultureInfo culture)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < valueCount; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValueDefault(buffer, valueAccessor(state, i), delimiter, culture);
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void WriteRecordBufferedDefault<TState>(
+        TextWriter writer,
+        StringBuilder buffer,
+        int valueCount,
+        TState state,
+        Func<TState, int, string?> valueAccessor,
+        char delimiter,
+        string newLine)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < valueCount; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedTextDefault(buffer, valueAccessor(state, i), delimiter);
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
     internal static void WriteRecordDefault(
         TextWriter writer,
         string?[] values,
@@ -322,6 +389,39 @@ internal static class CsvWriter
         WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
+    internal static void WriteRecordBufferedAlwaysQuoted<TState>(
+        TextWriter writer,
+        StringBuilder buffer,
+        int valueCount,
+        TState state,
+        Func<TState, int, string?> valueAccessor,
+        char delimiter,
+        string newLine)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < valueCount; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendAlwaysQuotedTextValue(buffer, valueAccessor(state, i));
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
     internal static void WriteRecordBufferedAlwaysQuoted(
         TextWriter writer,
         StringBuilder buffer,
@@ -393,6 +493,44 @@ internal static class CsvWriter
         int valueCount,
         TState state,
         Func<TState, int, object?> valueAccessor,
+        char delimiter,
+        string newLine,
+        CultureInfo culture,
+        CsvFormulaInjectionPolicy formulaInjectionPolicy,
+        CsvQuoteMode quoteMode,
+        ISet<string>? quoteFields,
+        IReadOnlyList<string>? fieldNames)
+    {
+        if (buffer == null)
+        {
+            throw new ArgumentNullException(nameof(buffer));
+        }
+
+        if (valueAccessor == null)
+        {
+            throw new ArgumentNullException(nameof(valueAccessor));
+        }
+
+        buffer.Clear();
+        for (var i = 0; i < valueCount; i++)
+        {
+            if (i > 0)
+            {
+                buffer.Append(delimiter);
+            }
+
+            AppendEscapedValue(buffer, valueAccessor(state, i), delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+        }
+
+        WriteBufferedRecordLine(writer, buffer, newLine);
+    }
+
+    internal static void WriteTextRecordBuffered<TState>(
+        TextWriter writer,
+        StringBuilder buffer,
+        int valueCount,
+        TState state,
+        Func<TState, int, string?> valueAccessor,
         char delimiter,
         string newLine,
         CultureInfo culture,
