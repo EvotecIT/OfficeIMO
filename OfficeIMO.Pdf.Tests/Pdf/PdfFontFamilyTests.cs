@@ -83,8 +83,8 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
-    public void PdfOptions_UseTextFallbacksKeepsEmojiCandidateWhenOnlyOneFallbackSlotIsAvailable() {
-        if (!DefaultEmojiFallbackFontIsAvailable()) {
+    public void PdfOptions_UseTextFallbacksPrefersTextCandidateWhenOnlyOneFallbackSlotIsAvailable() {
+        if (!DefaultTextSymbolFallbackFontIsAvailable()) {
             return;
         }
 
@@ -96,7 +96,7 @@ public class PdfFontFamilyTests {
             return;
         }
 
-        Assert.Contains("Emoji", fallbackSet.Candidates[0].FontName, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("Emoji", fallbackSet.Candidates[0].FontName, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]
@@ -2826,11 +2826,15 @@ public class PdfFontFamilyTests {
         return false;
     }
 
-    private static bool DefaultEmojiFallbackFontIsAvailable() {
+    private static bool DefaultTextSymbolFallbackFontIsAvailable() {
         string[] candidates = {
-            "Segoe UI Emoji",
-            "Noto Emoji",
-            "Noto Color Emoji"
+            "Segoe UI Symbol",
+            "Noto Sans Symbols",
+            "Noto Sans Symbols 2",
+            "Symbola",
+            "DejaVu Sans",
+            "Arial Unicode MS",
+            "Arial"
         };
 
         foreach (string candidate in candidates) {

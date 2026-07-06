@@ -135,7 +135,7 @@ public sealed partial class PdfOptions {
                 return selected;
             }
 
-            if (IsEmojiFallbackCandidate(candidate)) {
+            if (!IsEmojiFallbackCandidate(candidate)) {
                 selected.Add(candidate);
             }
         }

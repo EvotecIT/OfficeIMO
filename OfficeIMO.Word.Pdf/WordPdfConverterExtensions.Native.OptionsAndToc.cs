@@ -29,8 +29,8 @@ namespace OfficeIMO.Word.Pdf {
             bool preserveConfiguredFontSlots = ApplyNativeDefaultFont(document, options, pdfOptions, allowSystemFontEmbedding, nativeFontMap) ||
                                                 options?.PdfOptions != null;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowSystemFontEmbedding, nativeFontMap);
-            RegisterNativeThemeStyleFonts(document, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             ApplyNativeTextFallbacks(options, pdfOptions, registeredFontSlots, preserveConfiguredFontSlots, allowSystemFontEmbedding);
+            RegisterNativeThemeStyleFonts(document, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
@@ -114,7 +114,7 @@ namespace OfficeIMO.Word.Pdf {
         private static void ApplyNativeTextFallbacks(
             PdfSaveOptions? options,
             PdfCore.PdfOptions pdfOptions,
-            IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
+            HashSet<PdfCore.PdfStandardFont> reservedFontSlots,
             bool preserveConfiguredFontSlots,
             bool allowSystemFontEmbedding) {
             if (options == null ||
@@ -130,6 +130,9 @@ namespace OfficeIMO.Word.Pdf {
 
             if (fallbackFeatures != PdfCore.PdfTextFallbackFeatures.None) {
                 pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, allowSystemFontEmbedding);
+                foreach (PdfCore.PdfStandardFont slot in pdfOptions.EmbeddedFontFallbacks?.FontSlots ?? Array.Empty<PdfCore.PdfStandardFont>()) {
+                    PdfCore.PdfOptions.AddRegisteredFontFamilySlot(reservedFontSlots, slot);
+                }
             }
         }
 
