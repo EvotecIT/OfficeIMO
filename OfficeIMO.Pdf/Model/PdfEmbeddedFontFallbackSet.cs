@@ -74,6 +74,25 @@ public sealed class PdfEmbeddedFontFallbackSet {
         return options;
     }
 
+    internal PdfOptions RegisterFonts(PdfOptions options, IReadOnlyDictionary<int, PdfStandardFont> fontSlots) {
+        Guard.NotNull(options, nameof(options));
+        Guard.NotNull(fontSlots, nameof(fontSlots));
+
+        foreach (KeyValuePair<int, PdfStandardFont> entry in fontSlots) {
+            int candidateIndex = entry.Key;
+            if (candidateIndex < 0 || candidateIndex >= _candidates.Count) {
+                throw new ArgumentException("Embedded font fallback font slots contain an unknown candidate index.", nameof(fontSlots));
+            }
+
+            PdfEmbeddedFontFallbackCandidate candidate = _candidates[candidateIndex];
+            options.RegisterFontFamily(
+                NormalizeFontSlot(entry.Value),
+                new PdfEmbeddedFontFamily(candidate.FontName, candidate.DataSnapshot));
+        }
+
+        return options;
+    }
+
     /// <summary>
     /// Plans fallback coverage for text using this set's prioritized candidates.
     /// </summary>

@@ -83,6 +83,23 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_UseTextFallbacksKeepsEmojiCandidateWhenOnlyOneFallbackSlotIsAvailable() {
+        if (!DefaultEmojiFallbackFontIsAvailable()) {
+            return;
+        }
+
+        PdfEmbeddedFontFallbackSet? fallbackSet = new PdfOptions()
+            .UseTextFallbacks()
+            .EmbeddedFontFallbacks;
+        if (fallbackSet == null ||
+            fallbackSet.Candidates.Count != 1) {
+            return;
+        }
+
+        Assert.Contains("Emoji", fallbackSet.Candidates[0].FontName, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void PdfOptions_TryUseDefaultDocumentFontFallbackEmbedsUnicodeCapableGeneratedText() {
         var options = new PdfOptions {
             CompressContentStreams = false
@@ -2430,6 +2447,167 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfDocument_RegisteredFallbacksSplitMixedUnsupportedTokenWithoutDroppingSelectedText() {
+        string? primaryPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (primaryPath == null) {
+            return;
+        }
+
+        byte[] primary = File.ReadAllBytes(primaryPath);
+        const string text = "A😀B";
+        foreach (string fallbackPath in EnumerateLocalNonBmpTrueTypeFonts()) {
+            if (string.Equals(primaryPath, fallbackPath, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            var fallbackSet = new PdfEmbeddedFontFallbackSet(
+                new[] { new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", File.ReadAllBytes(fallbackPath)) },
+                new[] { PdfStandardFont.TimesRoman });
+            if (fallbackSet.PlanText("A").IsFullyCovered ||
+                !fallbackSet.PlanText("😀").IsFullyCovered) {
+                continue;
+            }
+
+            byte[] bytes;
+            try {
+                bytes = PdfDocument.Create(new PdfOptions {
+                        CompressContentStreams = false
+                    })
+                    .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "OfficeIMO Primary")
+                    .RegisterEmbeddedFontFallbacks(fallbackSet)
+                    .Paragraph(paragraph => paragraph.Text(text))
+                    .ToBytes();
+            } catch (Exception exception) when (exception is NotSupportedException || exception is ArgumentException) {
+                continue;
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+            Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /EmojiFallback", raw, StringComparison.Ordinal);
+            Assert.Contains("A", extracted, StringComparison.Ordinal);
+            Assert.Contains("B", extracted, StringComparison.Ordinal);
+            return;
+        }
+    }
+
+    [Fact]
+    public void PdfDocument_RegisteredFallbacksResolveOnlyUsedCandidates() {
+        string? primaryPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (primaryPath == null) {
+            return;
+        }
+
+        byte[] primary = File.ReadAllBytes(primaryPath);
+        const string text = "Invoice 😀 marker";
+        foreach (string fallbackPath in EnumerateLocalNonBmpTrueTypeFonts()) {
+            if (string.Equals(primaryPath, fallbackPath, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            byte[] fallback = File.ReadAllBytes(fallbackPath);
+            var coverageProbe = new PdfEmbeddedFontFallbackSet(
+                new[] { new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", fallback) },
+                new[] { PdfStandardFont.TimesRoman });
+            if (coverageProbe.PlanText("A").IsFullyCovered ||
+                !coverageProbe.PlanText("😀").IsFullyCovered) {
+                continue;
+            }
+
+            var fallbackSet = new PdfEmbeddedFontFallbackSet(
+                new[] {
+                    new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", fallback),
+                    new PdfEmbeddedFontFallbackCandidate("Unused Secondary Fallback", fallback),
+                    new PdfEmbeddedFontFallbackCandidate("Unused Tertiary Fallback", fallback)
+                },
+                new[] {
+                    PdfStandardFont.Helvetica,
+                    PdfStandardFont.TimesRoman,
+                    PdfStandardFont.Courier
+                });
+
+            byte[] bytes;
+            try {
+                bytes = PdfDocument.Create(new PdfOptions {
+                        CompressContentStreams = false
+                    })
+                    .EmbedStandardFont(PdfStandardFont.Helvetica, primary, "OfficeIMO Primary")
+                    .RegisterEmbeddedFontFallbacks(fallbackSet)
+                    .Paragraph(paragraph => paragraph.Text(text))
+                    .ToBytes();
+            } catch (Exception exception) when (exception is NotSupportedException || exception is ArgumentException) {
+                continue;
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+            Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /EmojiFallback", raw, StringComparison.Ordinal);
+            Assert.Contains("Invoice", extracted, StringComparison.Ordinal);
+            Assert.Contains("marker", extracted, StringComparison.Ordinal);
+            return;
+        }
+    }
+
+    [Fact]
+    public void PdfDocument_RegisteredFallbackReplacementDoesNotOverwriteDocumentDefaultFontSlot() {
+        string? primaryPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (primaryPath == null) {
+            return;
+        }
+
+        byte[] primary = File.ReadAllBytes(primaryPath);
+        const string text = "A😀B";
+        foreach (string fallbackPath in EnumerateLocalNonBmpTrueTypeFonts()) {
+            if (string.Equals(primaryPath, fallbackPath, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            var fallbackSet = new PdfEmbeddedFontFallbackSet(
+                new[] { new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", File.ReadAllBytes(fallbackPath)) },
+                new[] { PdfStandardFont.TimesRoman });
+            if (fallbackSet.PlanText("A").IsFullyCovered ||
+                !fallbackSet.PlanText("😀").IsFullyCovered) {
+                continue;
+            }
+
+            byte[] bytes;
+            try {
+                var options = new PdfOptions {
+                    CompressContentStreams = false
+                };
+                options.RegisterFontFamily(
+                    PdfStandardFont.Helvetica,
+                    new PdfEmbeddedFontFamily("OfficeIMO Default", primary));
+                options.RegisterFontFamily(
+                    PdfStandardFont.TimesRoman,
+                    new PdfEmbeddedFontFamily("OfficeIMO Primary", primary));
+                options.RegisterEmbeddedFontFallbacks(fallbackSet);
+
+                bytes = PdfDocument.Create(options)
+                    .Paragraph(paragraph => paragraph.Text("Plain text"))
+                    .Paragraph(paragraph => paragraph.Font(PdfStandardFont.TimesRoman).Text(text))
+                    .ToBytes();
+            } catch (Exception exception) when (exception is NotSupportedException || exception is ArgumentException) {
+                continue;
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+            Assert.Contains("/BaseFont /OfficeIMODefault", raw, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /OfficeIMOPrimary", raw, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /EmojiFallback", raw, StringComparison.Ordinal);
+            Assert.Contains("Plain text", extracted, StringComparison.Ordinal);
+            Assert.Contains("A", extracted, StringComparison.Ordinal);
+            Assert.Contains("B", extracted, StringComparison.Ordinal);
+            return;
+        }
+    }
+
+    [Fact]
     public void PdfDocument_RegisteredFallbacksSurviveLaterFontRegistrationInSameSlot() {
         string? primaryPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont() ?? PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (primaryPath == null) {
@@ -2645,6 +2823,23 @@ public class PdfFontFamilyTests {
         }
 
         family = null;
+        return false;
+    }
+
+    private static bool DefaultEmojiFallbackFontIsAvailable() {
+        string[] candidates = {
+            "Segoe UI Emoji",
+            "Noto Emoji",
+            "Noto Color Emoji"
+        };
+
+        foreach (string candidate in candidates) {
+            if (PdfEmbeddedFontFamily.TryFromSystem(candidate, out PdfEmbeddedFontFamily? family) &&
+                family != null) {
+                return true;
+            }
+        }
+
         return false;
     }
 

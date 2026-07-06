@@ -50,7 +50,7 @@ internal static partial class PdfWriter {
 
         for (int index = 0; index < text.Length;) {
             char ch = text[index];
-            if (ch == '\n' || ch == '\r' || ch == '\t') {
+            if (IsFallbackLayoutSeparator(ch)) {
                 if (ch == '\t') {
                     runs.Add(TextRun.Tab(run.TabLeader, run.TabAlignment));
                 } else {
@@ -65,30 +65,21 @@ internal static partial class PdfWriter {
             }
 
             int segmentStart = index;
-            if (ch == ' ') {
-                while (index < text.Length && text[index] == ' ') {
-                    index++;
-                }
-
-                runs.Add(CreateStyledTextRun(text.Substring(segmentStart, index - segmentStart), run, run.Font));
-                continue;
-            }
-
+            bool selectedFontCanWrite = CanWriteNextFallbackScalarWithSelectedFont(text, index, fontForRun, options);
+            index += GetNextFallbackScalarLength(text, index);
             while (index < text.Length &&
-                   text[index] != ' ' &&
-                   text[index] != '\n' &&
-                   text[index] != '\r' &&
-                   text[index] != '\t') {
-                index++;
+                   !IsFallbackLayoutSeparator(text[index]) &&
+                   selectedFontCanWrite == CanWriteNextFallbackScalarWithSelectedFont(text, index, fontForRun, options)) {
+                index += GetNextFallbackScalarLength(text, index);
             }
 
-            string token = text.Substring(segmentStart, index - segmentStart);
-            if (CanWriteTextWithSelectedFont(token, fontForRun, options)) {
-                runs.Add(CreateStyledTextRun(token, run, run.Font));
+            string segment = text.Substring(segmentStart, index - segmentStart);
+            if (selectedFontCanWrite) {
+                runs.Add(CreateStyledTextRun(segment, run, run.Font));
                 continue;
             }
 
-            if (!TryPlanFallbackTextRuns(fallbackSet, token, run, options, fontForRun, out System.Collections.Generic.IReadOnlyList<TextRun> fallbackRuns)) {
+            if (!TryPlanFallbackTextRuns(fallbackSet, segment, run, options, fontForRun, out System.Collections.Generic.IReadOnlyList<TextRun> fallbackRuns)) {
                 plannedRuns = Array.Empty<TextRun>();
                 return false;
             }
@@ -113,7 +104,7 @@ internal static partial class PdfWriter {
             value,
             shapingMode: options?.TextShapingModeSnapshot ?? PdfTextShapingMode.UnicodeScalar);
         if (!plan.IsFullyCovered ||
-            !TryResolveFallbackFontSlots(fallbackSet, selectedFont, options, out System.Collections.Generic.IReadOnlyList<PdfStandardFont> fontSlots)) {
+            !TryResolveFallbackFontSlots(fallbackSet, plan, selectedFont, options, out System.Collections.Generic.IReadOnlyDictionary<int, PdfStandardFont> fontSlots)) {
             return false;
         }
 
@@ -128,40 +119,46 @@ internal static partial class PdfWriter {
 
     private static bool TryResolveFallbackFontSlots(
         PdfEmbeddedFontFallbackSet fallbackSet,
+        PdfTextFallbackPlan plan,
         PdfStandardFont selectedFont,
         PdfOptions? options,
-        out System.Collections.Generic.IReadOnlyList<PdfStandardFont> fontSlots) {
+        out System.Collections.Generic.IReadOnlyDictionary<int, PdfStandardFont> fontSlots) {
         PdfStandardFont selectedFamily = PdfStandardFontMapper.GetFontFamily(selectedFont);
-        var resolved = new System.Collections.Generic.List<PdfStandardFont>(fallbackSet.Candidates.Count);
+        var resolved = new System.Collections.Generic.Dictionary<int, PdfStandardFont>();
         var used = new System.Collections.Generic.HashSet<PdfStandardFont>();
+        var reservedDocumentSlots = CreateReservedDocumentFontSlots(options);
 
-        for (int index = 0; index < fallbackSet.Candidates.Count; index++) {
+        foreach (int index in plan.Segments
+                     .Select(segment => segment.FontIndex)
+                     .Where(index => index >= 0 && index < fallbackSet.Candidates.Count)
+                     .Distinct()
+                     .OrderBy(index => index)) {
             PdfEmbeddedFontFallbackCandidate candidate = fallbackSet.Candidates[index];
             PdfStandardFont requested = PdfStandardFontMapper.GetFontFamily(fallbackSet.FontSlots[index]);
-            if (CanUseFallbackFontSlot(requested, candidate, selectedFamily, used, options)) {
-                resolved.Add(requested);
+            if (CanUseFallbackFontSlot(requested, candidate, selectedFamily, used, reservedDocumentSlots, options)) {
+                resolved[index] = requested;
                 used.Add(requested);
                 continue;
             }
 
             PdfStandardFont? replacement = null;
             foreach (PdfStandardFont family in FallbackFontSlotFamilies) {
-                if (CanUseFallbackFontSlot(family, candidate, selectedFamily, used, options)) {
+                if (CanUseFallbackFontSlot(family, candidate, selectedFamily, used, reservedDocumentSlots, options)) {
                     replacement = family;
                     break;
                 }
             }
 
             if (!replacement.HasValue) {
-                fontSlots = Array.Empty<PdfStandardFont>();
+                fontSlots = new System.Collections.Generic.Dictionary<int, PdfStandardFont>();
                 return false;
             }
 
-            resolved.Add(replacement.Value);
+            resolved[index] = replacement.Value;
             used.Add(replacement.Value);
         }
 
-        fontSlots = resolved.AsReadOnly();
+        fontSlots = resolved;
         return true;
     }
 
@@ -170,11 +167,43 @@ internal static partial class PdfWriter {
         PdfEmbeddedFontFallbackCandidate candidate,
         PdfStandardFont selectedFamily,
         System.Collections.Generic.HashSet<PdfStandardFont> used,
+        System.Collections.Generic.HashSet<PdfStandardFont> reservedDocumentSlots,
         PdfOptions? options) {
         PdfStandardFont normalized = PdfStandardFontMapper.GetFontFamily(family);
         return normalized != selectedFamily &&
                !used.Contains(normalized) &&
+               !reservedDocumentSlots.Contains(normalized) &&
                FontFamilySlotIsEmptyOrCandidate(normalized, candidate, options);
+    }
+
+    private static System.Collections.Generic.HashSet<PdfStandardFont> CreateReservedDocumentFontSlots(PdfOptions? options) {
+        var reserved = new System.Collections.Generic.HashSet<PdfStandardFont>();
+        if (options == null) {
+            return reserved;
+        }
+
+        PdfOptions.AddRegisteredFontFamilySlot(reserved, options.DefaultFont);
+        PdfOptions.AddRegisteredFontFamilySlot(reserved, options.HeaderFont);
+        PdfOptions.AddRegisteredFontFamilySlot(reserved, options.FooterFont);
+        return reserved;
+    }
+
+    private static bool IsFallbackLayoutSeparator(char ch) =>
+        ch == '\n' || ch == '\r' || ch == '\t';
+
+    private static bool CanWriteNextFallbackScalarWithSelectedFont(string text, int index, PdfStandardFont fontForRun, PdfOptions? options) {
+        int length = GetNextFallbackScalarLength(text, index);
+        return CanWriteTextWithSelectedFont(text.Substring(index, length), fontForRun, options);
+    }
+
+    private static int GetNextFallbackScalarLength(string text, int index) {
+        if (index + 1 < text.Length &&
+            char.IsHighSurrogate(text[index]) &&
+            char.IsLowSurrogate(text[index + 1])) {
+            return 2;
+        }
+
+        return 1;
     }
 
     private static bool FontFamilySlotIsEmptyOrCandidate(PdfStandardFont family, PdfEmbeddedFontFallbackCandidate candidate, PdfOptions? options) {

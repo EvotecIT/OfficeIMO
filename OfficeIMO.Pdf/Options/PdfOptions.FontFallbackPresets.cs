@@ -86,10 +86,47 @@ public sealed partial class PdfOptions {
         }
 
         if (slots.Length < candidates.Count) {
-            candidates = candidates.Take(slots.Length).ToList();
+            candidates = SelectPreferredEmbeddedFallbackCandidates(candidates, slots.Length);
         }
 
         RegisterEmbeddedFontFallbacks(new PdfEmbeddedFontFallbackSet(candidates, slots));
         return true;
     }
+
+    private static List<PdfEmbeddedFontFallbackCandidate> SelectPreferredEmbeddedFallbackCandidates(
+        IReadOnlyList<PdfEmbeddedFontFallbackCandidate> candidates,
+        int slotCount) {
+        var selected = new List<PdfEmbeddedFontFallbackCandidate>();
+        if (slotCount <= 0) {
+            return selected;
+        }
+
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in candidates) {
+            if (selected.Count == slotCount) {
+                return selected;
+            }
+
+            if (IsEmojiFallbackCandidate(candidate)) {
+                selected.Add(candidate);
+            }
+        }
+
+        foreach (PdfEmbeddedFontFallbackCandidate candidate in candidates) {
+            if (selected.Count == slotCount) {
+                return selected;
+            }
+
+            if (!selected.Contains(candidate)) {
+                selected.Add(candidate);
+            }
+        }
+
+        return selected;
+    }
+
+    private static bool IsEmojiFallbackCandidate(PdfEmbeddedFontFallbackCandidate candidate) =>
+        System.Globalization.CultureInfo.InvariantCulture.CompareInfo.IndexOf(
+            candidate.FontName,
+            "Emoji",
+            System.Globalization.CompareOptions.IgnoreCase) >= 0;
 }
