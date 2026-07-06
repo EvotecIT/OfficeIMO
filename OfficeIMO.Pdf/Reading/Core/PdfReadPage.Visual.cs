@@ -223,13 +223,11 @@ public sealed partial class PdfReadPage {
             return true;
         }
 
-        if (clip.X < 0D ||
-            clip.Y < 0D ||
-            clip.X + clip.Width > drawing.Width ||
-            clip.Y + clip.Height > drawing.Height) {
-            return false;
+        if (!TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out PdfPageClipPath drawingClip)) {
+            return true;
         }
 
+        clip = drawingClip;
         OfficeClipPath? localClip = clip.ToOfficeClipPath(x, y);
         if (localClip != null) {
             shape.ClipPath = localClip;
@@ -1150,21 +1148,75 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection) {
-        if (!placement.ClipPath.HasValue || (placement.ClipPath.Value.IsRectangle && !projection.HasTransform)) {
+        PdfPageClipPath? activeClipPath = placement.ClipPath;
+        if (!activeClipPath.HasValue && projection.HasTransform) {
+            (double left, double top, double right, double bottom) = projection.GetDestinationBounds();
+            if (HasPositiveArea(left, top, right - left, bottom - top, drawing.Width, drawing.Height)) {
+                return false;
+            }
+
+            if (!TryCreatePageClip(left, top, right, bottom, drawing.Width, drawing.Height, out PdfPageClipPath pageClip)) {
+                return true;
+            }
+
+            activeClipPath = pageClip;
+        }
+
+        if (!activeClipPath.HasValue || (activeClipPath.Value.IsRectangle && !projection.HasTransform)) {
             return false;
         }
 
-        PdfPageClipPath clip = placement.ClipPath.Value;
+        PdfPageClipPath clip = activeClipPath.Value;
         if (clip.Width <= 0D || clip.Height <= 0D) {
             return true;
         }
 
+        if (!TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out PdfPageClipPath drawingClip)) {
+            return true;
+        }
+
+        clip = drawingClip;
         OfficeClipPath? clipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
         if (clipPath == null) {
             return false;
         }
 
         drawing.AddClippedImage(image.Bytes, image.MimeType, projection, clip.X, clip.Y, clipPath, opacity: placement.ImageOpacity ?? 1D);
+        return true;
+    }
+
+    private static bool TryCreatePageClip(double left, double top, double right, double bottom, double drawingWidth, double drawingHeight, out PdfPageClipPath clip) {
+        double visibleLeft = Math.Max(0D, left);
+        double visibleTop = Math.Max(0D, top);
+        double visibleRight = Math.Min(drawingWidth, right);
+        double visibleBottom = Math.Min(drawingHeight, bottom);
+        double visibleWidth = visibleRight - visibleLeft;
+        double visibleHeight = visibleBottom - visibleTop;
+        if (visibleWidth <= 0D || visibleHeight <= 0D) {
+            clip = default;
+            return false;
+        }
+
+        clip = PdfPageClipPath.Rectangle(visibleLeft, visibleTop, visibleWidth, visibleHeight);
+        return true;
+    }
+
+    private static bool TryFitClipToDrawing(PdfPageClipPath clip, double drawingWidth, double drawingHeight, out PdfPageClipPath drawingClip) {
+        if (clip.X >= 0D &&
+            clip.Y >= 0D &&
+            clip.X + clip.Width <= drawingWidth &&
+            clip.Y + clip.Height <= drawingHeight) {
+            drawingClip = clip;
+            return true;
+        }
+
+        PdfPageClipPath pageClip = PdfPageClipPath.Rectangle(0D, 0D, drawingWidth, drawingHeight);
+        if (!IntersectClipBounds(clip, pageClip, out PdfPageClipPath intersection)) {
+            drawingClip = default;
+            return false;
+        }
+
+        drawingClip = clip.WithBounds(intersection);
         return true;
     }
 

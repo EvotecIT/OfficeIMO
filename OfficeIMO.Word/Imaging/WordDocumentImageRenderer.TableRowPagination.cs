@@ -455,57 +455,103 @@ namespace OfficeIMO.Word {
                 int imageCount = 0;
                 int nestedTableCount = 0;
                 int lineCount = 0;
-                for (int i = _imageIndex; i < ImageCount; i++) {
-                    double imageHeight = _images[i].Height;
-                    if (i < ImageCount - 1 || _nestedTableIndex < NestedTableCount || _lineIndex < LineCount) {
-                        imageHeight += ParagraphGapPoints;
+                int blockCount = 0;
+                bool visitedText = false;
+
+                bool TryAddBlock(double height) {
+                    double blockHeight = height + (blockCount > 0 ? ParagraphGapPoints : 0D);
+                    if (used + blockHeight > textHeight + 0.01D) {
+                        return false;
                     }
 
-                    if (imageCount > 0 && used + imageHeight > textHeight + 0.01D) {
-                        return new SplitTableCellFragment(imageCount, nestedTableCount, lineCount);
+                    used += blockHeight;
+                    blockCount++;
+                    return true;
+                }
+
+                bool TryAddTextBlock() {
+                    if (visitedText) {
+                        return true;
                     }
 
-                    if (imageCount == 0 && imageHeight > textHeight + 0.01D) {
-                        return new SplitTableCellFragment(0, 0, 0);
+                    visitedText = true;
+                    bool addedTextBlock = false;
+                    for (int i = _lineIndex; i < LineCount; i++) {
+                        double lineHeight = GetLineHeight(i);
+                        double lineBlockHeight = lineHeight;
+                        if (!addedTextBlock && blockCount > 0) {
+                            lineBlockHeight += ParagraphGapPoints;
+                        }
+
+                        if (used + lineBlockHeight > textHeight + 0.01D) {
+                            return lineCount > 0 || blockCount > 0;
+                        }
+
+                        used += lineBlockHeight;
+                        if (!addedTextBlock) {
+                            addedTextBlock = true;
+                            blockCount++;
+                        }
+
+                        lineCount++;
                     }
 
-                    used += imageHeight;
+                    return true;
+                }
+
+                SplitTableCellFragment CurrentFragment() =>
+                    new SplitTableCellFragment(imageCount, nestedTableCount, lineCount);
+
+                for (int i = 0; i < _contentOrder.Count; i++) {
+                    SplitTableCellContentEntry entry = _contentOrder[i];
+                    if (entry.Kind == SplitTableCellContentKind.Image) {
+                        int nextImageIndex = _imageIndex + imageCount;
+                        if (entry.Index < nextImageIndex) {
+                            continue;
+                        }
+
+                        if (entry.Index != nextImageIndex || !TryAddBlock(_images[entry.Index].Height)) {
+                            return CurrentFragment();
+                        }
+
+                        imageCount++;
+                    } else if (entry.Kind == SplitTableCellContentKind.NestedTable) {
+                        int nextNestedTableIndex = _nestedTableIndex + nestedTableCount;
+                        if (entry.Index < nextNestedTableIndex) {
+                            continue;
+                        }
+
+                        if (entry.Index != nextNestedTableIndex || !TryAddBlock(_nestedTables[entry.Index].Height)) {
+                            return CurrentFragment();
+                        }
+
+                        nestedTableCount++;
+                    } else if (!TryAddTextBlock()) {
+                        return CurrentFragment();
+                    }
+                }
+
+                for (int i = _imageIndex + imageCount; i < ImageCount; i++) {
+                    if (!TryAddBlock(_images[i].Height)) {
+                        return CurrentFragment();
+                    }
+
                     imageCount++;
                 }
 
-                for (int i = _nestedTableIndex; i < NestedTableCount; i++) {
-                    double nestedTableHeight = _nestedTables[i].Height;
-                    if (i < NestedTableCount - 1 || _lineIndex < LineCount) {
-                        nestedTableHeight += ParagraphGapPoints;
+                for (int i = _nestedTableIndex + nestedTableCount; i < NestedTableCount; i++) {
+                    if (!TryAddBlock(_nestedTables[i].Height)) {
+                        return CurrentFragment();
                     }
 
-                    if ((imageCount > 0 || nestedTableCount > 0) && used + nestedTableHeight > textHeight + 0.01D) {
-                        return new SplitTableCellFragment(imageCount, nestedTableCount, lineCount);
-                    }
-
-                    if (imageCount == 0 && nestedTableCount == 0 && nestedTableHeight > textHeight + 0.01D) {
-                        return new SplitTableCellFragment(0, 0, 0);
-                    }
-
-                    used += nestedTableHeight;
                     nestedTableCount++;
                 }
 
-                for (int i = _lineIndex; i < LineCount; i++) {
-                    double lineHeight = GetLineHeight(i);
-                    if ((imageCount > 0 || nestedTableCount > 0 || lineCount > 0) && used + lineHeight > textHeight + 0.01D) {
-                        break;
-                    }
-
-                    if (imageCount == 0 && nestedTableCount == 0 && lineCount == 0 && lineHeight > textHeight + 0.01D) {
-                        break;
-                    }
-
-                    used += lineHeight;
-                    lineCount++;
+                if (!TryAddTextBlock()) {
+                    return CurrentFragment();
                 }
 
-                return new SplitTableCellFragment(imageCount, nestedTableCount, lineCount);
+                return CurrentFragment();
             }
 
             internal void Consume(double fragmentHeight) {

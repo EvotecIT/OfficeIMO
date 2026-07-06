@@ -121,7 +121,7 @@ internal readonly struct PdfPageClipPath {
 
     public IReadOnlyList<OfficePathCommand> Commands { get; }
 
-    private PdfPageClipPath WithBounds(PdfPageClipPath bounds) =>
+    internal PdfPageClipPath WithBounds(PdfPageClipPath bounds) =>
         new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, IsRectangle, FillRule, Commands);
 
     public OfficeClipPath? ToOfficeClipPath(double primitiveX, double primitiveY) {

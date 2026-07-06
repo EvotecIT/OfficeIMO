@@ -975,7 +975,27 @@ namespace OfficeIMO.Excel {
             }
 
             format.FontSize ??= rule.DifferentialFontSize;
-            format.Border ??= rule.DifferentialBorder;
+            format.Border = MergeDifferentialBorder(format.Border, rule.DifferentialBorder);
+        }
+
+        private static ExcelCellBorderSnapshot? MergeDifferentialBorder(ExcelCellBorderSnapshot? current, ExcelCellBorderSnapshot? incoming) {
+            if (incoming == null) {
+                return current;
+            }
+
+            if (current == null) {
+                return incoming;
+            }
+
+            return new ExcelCellBorderSnapshot {
+                Left = current.Left ?? incoming.Left,
+                Right = current.Right ?? incoming.Right,
+                Top = current.Top ?? incoming.Top,
+                Bottom = current.Bottom ?? incoming.Bottom,
+                Diagonal = current.Diagonal ?? incoming.Diagonal,
+                DiagonalUp = current.DiagonalUp || (current.Diagonal == null && incoming.DiagonalUp),
+                DiagonalDown = current.DiagonalDown || (current.Diagonal == null && incoming.DiagonalDown)
+            };
         }
 
         private static void ApplyFillFormat(
