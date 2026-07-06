@@ -33,11 +33,34 @@ internal static partial class CsvParser
 
         var quotedPosition = quoteIndex + 1;
         var valueStart = quotedPosition;
+        var quoteOffset = text.Slice(quotedPosition).IndexOf('"');
+        if (quoteOffset < 0)
+        {
+            return false;
+        }
+
+        quotedPosition += quoteOffset;
+        if (quotedPosition + 1 >= text.Length || text[quotedPosition + 1] != '"')
+        {
+            return CompleteTextFinalUnescapedQuotedRecordFieldSpansFromPrefix(
+                text,
+                emitFields,
+                recordIndex,
+                delimiterIndexesBeforeQuote,
+                start,
+                valueStart,
+                quotedPosition,
+                ref position,
+                ref fieldVisitor,
+                out fieldCount,
+                out firstFieldLength);
+        }
+
         var escapeCount = 0;
-        var firstEscapedQuote = -1;
+        var firstEscapedQuote = quotedPosition;
         while (quotedPosition < text.Length)
         {
-            var quoteOffset = text.Slice(quotedPosition).IndexOf('"');
+            quoteOffset = text.Slice(quotedPosition).IndexOf('"');
             if (quoteOffset < 0)
             {
                 return false;
@@ -46,11 +69,6 @@ internal static partial class CsvParser
             quotedPosition += quoteOffset;
             if (quotedPosition + 1 < text.Length && text[quotedPosition + 1] == '"')
             {
-                if (firstEscapedQuote < 0)
-                {
-                    firstEscapedQuote = quotedPosition;
-                }
-
                 escapeCount++;
                 quotedPosition += 2;
                 continue;
@@ -113,6 +131,70 @@ internal static partial class CsvParser
                 var unescaped = UnescapeTextQuotedField(field, firstEscapedQuote - valueStart, fieldLength, ref scratch);
                 fieldVisitor.VisitField(recordIndex, fieldCount, unescaped);
             }
+        }
+
+        fieldCount++;
+        position = nextPosition;
+        return true;
+    }
+
+    private static bool CompleteTextFinalUnescapedQuotedRecordFieldSpansFromPrefix<TVisitor>(
+        ReadOnlySpan<char> text,
+        bool emitFields,
+        int recordIndex,
+        ReadOnlySpan<int> delimiterIndexesBeforeQuote,
+        int start,
+        int valueStart,
+        int valueEnd,
+        ref int position,
+        ref TVisitor fieldVisitor,
+        out int fieldCount,
+        out int firstFieldLength)
+        where TVisitor : struct, ICsvFieldSpanVisitor
+    {
+        var nextPosition = valueEnd + 1;
+        if (nextPosition < text.Length)
+        {
+            var separator = text[nextPosition];
+            if (separator == '\n')
+            {
+                nextPosition++;
+            }
+            else if (separator == '\r')
+            {
+                nextPosition++;
+                if (nextPosition < text.Length && text[nextPosition] == '\n')
+                {
+                    nextPosition++;
+                }
+            }
+            else
+            {
+                fieldCount = 0;
+                firstFieldLength = 0;
+                return false;
+            }
+        }
+
+        fieldCount = 0;
+        firstFieldLength = 0;
+        var fieldStart = start;
+        foreach (var delimiterIndex in delimiterIndexesBeforeQuote)
+        {
+            VisitTextField(text.Slice(fieldStart, delimiterIndex - fieldStart), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+            fieldCount++;
+            fieldStart = delimiterIndex + 1;
+        }
+
+        var field = text.Slice(valueStart, valueEnd - valueStart);
+        if (fieldCount == 0)
+        {
+            firstFieldLength = field.Length;
+        }
+
+        if (emitFields)
+        {
+            fieldVisitor.VisitField(recordIndex, fieldCount, field);
         }
 
         fieldCount++;
