@@ -1111,7 +1111,7 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                double rawValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
+                double rawValue = percentStacked ? NormalizePercentStackedValue(rangeSeries, i, value) : value;
                 double baseline = stacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
                     : 0D;
@@ -1123,7 +1123,7 @@ public static partial class OfficeChartDrawingRenderer {
                 runCategoryIndices.Add(i);
 
                 if (stacked) {
-                    double stackedValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
+                    double stackedValue = percentStacked ? NormalizePercentStackedValue(rangeSeries, i, value) : value;
                     if (stackedValue >= 0D) {
                         positiveCumulative[i] += stackedValue;
                     } else {
@@ -1214,7 +1214,7 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                double rawValue = percentStacked ? NormalizePercentStackedValue(series, i, value) : value;
+                double rawValue = percentStacked ? NormalizePercentStackedValue(rangeSeries, i, value) : value;
                 double baseline = stacked
                     ? (rawValue >= 0D ? positiveCumulative[i] : negativeCumulative[i])
                     : 0D;
@@ -1271,7 +1271,7 @@ public static partial class OfficeChartDrawingRenderer {
                         continue;
                     }
 
-                    double value = percentStacked ? NormalizePercentStackedValue(series, i, seriesValue) : seriesValue;
+                    double value = percentStacked ? NormalizePercentStackedValue(rangeSeries, i, seriesValue) : seriesValue;
                     if (value >= 0D) {
                         positiveCumulative[i] += value;
                     } else {

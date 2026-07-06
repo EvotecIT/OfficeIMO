@@ -59,12 +59,25 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
+            bool userSpace = IsUserSpaceGradient(definition);
             double cx = ReadGradientUnit(definition.Attribute("cx")?.Value, 0.5D);
             double cy = ReadGradientUnit(definition.Attribute("cy")?.Value, 0.5D);
             double r = ReadGradientUnit(definition.Attribute("r")?.Value, 0.5D);
             double fx = ReadGradientUnit(definition.Attribute("fx")?.Value, cx);
             double fy = ReadGradientUnit(definition.Attribute("fy")?.Value, cy);
             double fr = ReadGradientUnit(definition.Attribute("fr")?.Value, 0D);
+            if (userSpace && context.CurrentPaintBounds.HasValue) {
+                SvgPaintBounds bounds = context.CurrentPaintBounds.Value;
+                if (bounds.HasArea) {
+                    cx = NormalizeUserSpaceGradientCoordinate(cx, bounds.Left, bounds.Width);
+                    cy = NormalizeUserSpaceGradientCoordinate(cy, bounds.Top, bounds.Height);
+                    fx = NormalizeUserSpaceGradientCoordinate(fx, bounds.Left, bounds.Width);
+                    fy = NormalizeUserSpaceGradientCoordinate(fy, bounds.Top, bounds.Height);
+                    r = NormalizeUserSpaceGradientRadius(r, bounds);
+                    fr = NormalizeUserSpaceGradientRadius(fr, bounds);
+                }
+            }
+
             if (r.Equals(fr) && cx.Equals(fx) && cy.Equals(fy)) {
                 r = Math.Min(1D, fr + 0.5D);
             }
@@ -222,6 +235,11 @@ namespace OfficeIMO.Visio {
 
         private static double NormalizeUserSpaceGradientCoordinate(double value, double origin, double length) =>
             length > 0D ? (value - origin) / length : value;
+
+        private static double NormalizeUserSpaceGradientRadius(double value, SvgPaintBounds bounds) {
+            double length = Math.Max(bounds.Width, bounds.Height);
+            return length > 0D ? value / length : value;
+        }
 
         private static double ReadOpacity(string? raw, double fallback) {
             if (string.IsNullOrWhiteSpace(raw) || !double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {

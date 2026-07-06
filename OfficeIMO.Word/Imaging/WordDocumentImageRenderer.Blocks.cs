@@ -234,7 +234,8 @@ namespace OfficeIMO.Word {
                 .GetFirstChild<ParagraphPropertiesDefault>()?
                 .GetFirstChild<ParagraphPropertiesBaseStyle>()?
                 .GetFirstChild<WidowControl>();
-            return ReadOnOff(defaultValue) == true;
+            bool? resolvedDefault = ReadOnOff(defaultValue);
+            return resolvedDefault ?? true;
         }
 
         private static bool ResolvePageBreakBefore(WordDocument document, Paragraph paragraph) {

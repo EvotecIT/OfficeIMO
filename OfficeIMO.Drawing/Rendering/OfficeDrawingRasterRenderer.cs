@@ -503,14 +503,15 @@ public static class OfficeDrawingRasterRenderer {
         }
 
         if ((strokeGradient == null && strokeRadialGradient == null) || dashStyle != OfficeStrokeDashStyle.Solid) {
-            if (!stroke.HasValue) {
+            OfficeColor? fallbackStroke = stroke ?? GetGradientFallbackStroke(strokeGradient, strokeRadialGradient);
+            if (!fallbackStroke.HasValue) {
                 return;
             }
 
             if (close) {
-                canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, dashStyle);
+                canvas.DrawStyledPolygon(points, fallbackStroke.Value, strokeWidth, dashStyle);
             } else {
-                canvas.DrawStyledPolyline(points, stroke.Value, strokeWidth, dashStyle);
+                canvas.DrawStyledPolyline(points, fallbackStroke.Value, strokeWidth, dashStyle);
             }
 
             return;
@@ -521,6 +522,18 @@ public static class OfficeDrawingRasterRenderer {
         for (int i = 1; i < strokePoints.Count; i++) {
             DrawGradientLineSegment(canvas, strokePoints[i - 1], strokePoints[i], strokeGradient, strokeRadialGradient, x, y, width, height, strokeWidth);
         }
+    }
+
+    private static OfficeColor? GetGradientFallbackStroke(OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient) {
+        if (strokeGradient?.Stops.Count > 0) {
+            return strokeGradient.Stops[0].Color;
+        }
+
+        if (strokeRadialGradient?.Stops.Count > 0) {
+            return strokeRadialGradient.Stops[0].Color;
+        }
+
+        return null;
     }
 
     private static void DrawGradientLineSegment(
