@@ -4088,9 +4088,10 @@ namespace OfficeIMO.Tests {
                 document.AddParagraph("Fitting split prelude " + index.ToString(CultureInfo.InvariantCulture));
             }
 
-            document.AddParagraph(string.Join(
+            WordParagraph paragraph = document.AddParagraph(string.Join(
                 " ",
                 Enumerable.Range(1, 8).Select(index => "FitSplit" + index.ToString("00", CultureInfo.InvariantCulture))));
+            paragraph.AvoidWidowAndOrphan = false;
 
             WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White });
             WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });

@@ -3,6 +3,21 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static partial class ResourceResolver {
+    private static bool TryBuildExtractedImageMaskPng(
+        PdfStream stream,
+        int width,
+        int height,
+        int bitsPerComponent,
+        Dictionary<int, PdfIndirectObject> objects,
+        OfficeColor? imageMaskColor,
+        out byte[] pngBytes) {
+        if (imageMaskColor.HasValue) {
+            return TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor.Value, out pngBytes);
+        }
+
+        return PdfImageMaskNormalizer.TryBuildPngFile(width, height, stream, objects, out pngBytes);
+    }
+
     private static bool TryBuildPngFileFromImageMask(
         PdfStream stream,
         int width,

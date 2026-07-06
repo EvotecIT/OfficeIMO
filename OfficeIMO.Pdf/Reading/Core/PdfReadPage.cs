@@ -270,13 +270,17 @@ public sealed partial class PdfReadPage {
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
-        return GetImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, imagePlacements);
+        return GetImages(pageNumber, imagePlacements, colorizeImageMasks: false);
     }
 
-    private IReadOnlyList<PdfExtractedImage> GetImagesForResources(PdfDictionary? resources, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
+    internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks) {
+        return GetImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, imagePlacements, colorizeImageMasks);
+    }
+
+    private IReadOnlyList<PdfExtractedImage> GetImagesForResources(PdfDictionary? resources, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements, bool colorizeImageMasks = false) {
         var images = resources == null
             ? new List<PdfExtractedImage>()
-            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements));
+            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements, colorizeImageMasks));
         if (imagePlacements is not null) {
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];
@@ -292,7 +296,8 @@ public sealed partial class PdfReadPage {
                     placement.InlineImageStream,
                     _objects,
                     placement.ImageMaskColor,
-                    placement.InlineImageResources ?? resources));
+                    placement.InlineImageResources ?? resources,
+                    colorizeImageMasks));
             }
         }
 

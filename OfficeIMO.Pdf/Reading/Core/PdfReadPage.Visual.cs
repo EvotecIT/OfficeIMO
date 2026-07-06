@@ -632,7 +632,7 @@ public sealed partial class PdfReadPage {
             var imagePlacements = new List<PdfImagePlacement>();
             CollectImagePlacementsAndForms(appearanceContent, appearanceResources, 0, appearanceTransform, pageHeight, imagePlacements, activeForms);
             if (imagePlacements.Count > 0) {
-                AddImagePlacements(drawing, pageHeight, imagePlacements, GetImagesForResources(appearanceResources, 0, imagePlacements));
+                AddImagePlacements(drawing, pageHeight, imagePlacements, GetImagesForResources(appearanceResources, 0, imagePlacements, colorizeImageMasks: true));
             }
         }
     }
@@ -945,7 +945,7 @@ public sealed partial class PdfReadPage {
             return;
         }
 
-        IReadOnlyList<PdfExtractedImage> images = GetImages(0, placements);
+        IReadOnlyList<PdfExtractedImage> images = GetImages(0, placements, colorizeImageMasks: true);
         AddImagePlacements(drawing, pageHeight, placements, images);
     }
 
