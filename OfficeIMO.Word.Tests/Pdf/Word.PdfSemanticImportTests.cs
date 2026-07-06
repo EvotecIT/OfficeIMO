@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Text;
 using Xunit;
 using PdfCore = OfficeIMO.Pdf;
+using OfficeWordDocument = OfficeIMO.Word.WordDocument;
 
 namespace OfficeIMO.Tests;
 
@@ -126,6 +127,40 @@ public partial class Word {
         Assert.DoesNotContain("First Page Marker", text, StringComparison.Ordinal);
         Assert.Contains("Second Page Marker", text, StringComparison.Ordinal);
         Assert.Contains("Only selected page body.", text, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void PdfSemanticImport_LoadedDocumentPageRanges_ImportsOnlySelectedPages() {
+        byte[] pdf = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 320,
+                PageHeight = 220,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36
+            })
+            .H1("Loaded First Page Marker")
+            .PageBreak()
+            .H1("Loaded Second Page Marker")
+            .Paragraph(paragraph => paragraph.Text("Loaded selected page body."))
+            .ToBytes();
+        var options = new PdfWordReadOptions {
+            PageRanges = new[] {
+                PdfCore.PdfPageRange.From(2, 2)
+            },
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        PdfCore.PdfReadDocument readDocument = PdfCore.PdfReadDocument.Load(pdf);
+        using OfficeWordDocument document = readDocument.ToWordDocument(options);
+
+        Body body = document._wordprocessingDocument!.MainDocumentPart!.Document.Body!;
+        string text = string.Concat(body.Descendants<Text>().Select(item => item.Text));
+        Assert.DoesNotContain("Loaded First Page Marker", text, StringComparison.Ordinal);
+        Assert.Contains("Loaded Second Page", text, StringComparison.Ordinal);
+        Assert.Contains("Loaded selected page body.", text, StringComparison.Ordinal);
     }
 
     [Fact]

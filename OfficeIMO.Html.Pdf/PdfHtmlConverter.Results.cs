@@ -345,6 +345,7 @@ public static partial class PdfHtmlConverter {
         string.Equals(actionType, "SubmitForm", StringComparison.Ordinal) ||
         string.Equals(actionType, "ImportData", StringComparison.Ordinal) ||
         string.Equals(actionType, "Movie", StringComparison.Ordinal) ||
+        string.Equals(actionType, "RichMedia", StringComparison.Ordinal) ||
         string.Equals(actionType, "Rendition", StringComparison.Ordinal);
 
     private struct ActionDiagnosticSummary {

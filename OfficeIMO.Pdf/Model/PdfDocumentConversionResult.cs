@@ -18,6 +18,16 @@ public sealed partial class PdfDocumentConversionResult {
         ConversionReport = SnapshotReport(conversionReport);
     }
 
+    private PdfDocumentConversionResult(PdfDocument document, PdfConversionReport sourceReport, PdfConversionReport conversionReportSnapshot) {
+        Guard.NotNull(document, nameof(document));
+        Guard.NotNull(sourceReport, nameof(sourceReport));
+        Guard.NotNull(conversionReportSnapshot, nameof(conversionReportSnapshot));
+
+        _sourceReport = sourceReport;
+        Document = document;
+        ConversionReport = SnapshotReport(conversionReportSnapshot);
+    }
+
     /// <summary>The generated PDF document, ready for fluent OfficeIMO.Pdf processing.</summary>
     public PdfDocument Document { get; }
 
@@ -37,7 +47,7 @@ public sealed partial class PdfDocumentConversionResult {
     /// Returns a new conversion result with the supplied PDF document while preserving the captured conversion diagnostics.
     /// </summary>
     public PdfDocumentConversionResult WithDocument(PdfDocument document) {
-        return new PdfDocumentConversionResult(document, ConversionReport);
+        return new PdfDocumentConversionResult(document, _sourceReport, ConversionReport);
     }
 
     /// <summary>

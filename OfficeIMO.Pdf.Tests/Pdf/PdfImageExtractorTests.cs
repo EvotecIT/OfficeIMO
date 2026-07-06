@@ -131,6 +131,22 @@ public class PdfImageExtractorTests {
     }
 
     [Fact]
+    public void ExtractImages_ReportsExplicitMaskImageAsUnresolvedWhenRgbStreamNormalizesToPng() {
+        byte[] source = BuildDeviceRgbExplicitMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("png", image.FileExtension);
+        Assert.True(image.IsImageFile);
+        Assert.True(image.HasTransparencyMask);
+        Assert.True(image.HasUnresolvedTransparencyMask);
+        Assert.False(image.TransparencyMaskResolved);
+        Assert.Equal("explicit-mask-image", image.TransparencyMaskKind);
+        AssertPngSignature(image.Bytes);
+    }
+
+    [Fact]
     public void ExtractImages_AppliesImageDecodeArrayWhenNormalizingDeviceGrayStreamsToPngFiles() {
         byte[] source = BuildUnfilteredDeviceGrayInvertedDecodeImagePdf();
 
@@ -865,6 +881,18 @@ public class PdfImageExtractorTests {
         return BuildImagePdfWithColorSpace("/DeviceRGB", 2, 1, 8, "abcdef", " /Mask [97 97 98 98 99 99]");
     }
 
+    private static byte[] BuildDeviceRgbExplicitMaskImagePdf() {
+        return BuildImagePdfWithColorSpace(
+            "/DeviceRGB",
+            2,
+            1,
+            8,
+            "abcdef",
+            " /Mask 6 0 R",
+            new[] { BuildImageMaskObject(6) },
+            7);
+    }
+
     private static byte[] BuildAsciiHexFlateDeviceCmykImagePdf() {
         string encoded = EncodeAsciiHex(BuildStoredZlib(new byte[] { 97, 98, 99, 32 }));
         return BuildImagePdf("DeviceCMYK", encoded, " /Filter [/ASCIIHexDecode /FlateDecode]");
@@ -1026,6 +1054,20 @@ public class PdfImageExtractorTests {
                 + " >>",
             "stream",
             encodedAlpha,
+            "endstream",
+            "endobj"
+        });
+    }
+
+    private static string BuildImageMaskObject(int objectNumber) {
+        string maskData = PdfEncoding.Latin1GetString(new byte[] { 0x80 });
+        return string.Join("\n", new[] {
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 2 /Height 1 /ImageMask true /BitsPerComponent 1 /Length "
+                + maskData.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " >>",
+            "stream",
+            maskData,
             "endstream",
             "endobj"
         });

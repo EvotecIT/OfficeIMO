@@ -118,7 +118,8 @@ public static partial class PdfRedactionApplier {
         PdfDictionary xObjects = PdfPageResourceHelper.EnsurePageXObjects(objects, pageDictionary, "redaction nested image cleanup");
         resources = ResolveDictionary(objects, pageDictionary.Items.TryGetValue("Resources", out PdfObject? pageResources) ? pageResources : null) ?? resources;
         bool changed = false;
-        foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
+        PdfObject currentContentsObject = contentsObject;
+        foreach (PdfReference reference in EnumerateContentReferences(objects, currentContentsObject)) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                 indirect.Value is not PdfStream stream ||
                 stream.DecodingFailed) {
@@ -126,13 +127,27 @@ public static partial class PdfRedactionApplier {
             }
 
             string content = PdfEncoding.Latin1GetString(StreamDecoder.Decode(stream.Dictionary, stream.Data, objects));
-            changed = ScrubImageFormInvocations(objects, resources, xObjects, content, targets, Matrix2D.Identity, referenceCounts, new HashSet<int>(), removedMatches, ref nextObjectNumber) || changed;
+            ImagePixelRewriteContentResult result = ScrubImageFormInvocations(objects, resources, xObjects, content, targets, Matrix2D.Identity, referenceCounts, new HashSet<int>(), removedMatches, ref nextObjectNumber);
+            if (!string.Equals(result.Content, content, StringComparison.Ordinal)) {
+                PdfReference targetReference = reference;
+                if (IsSharedReference(referenceCounts, reference)) {
+                    targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
+                    ReplacePageContentReference(objects, pageDictionary, currentContentsObject, reference, targetReference);
+                    currentContentsObject = pageDictionary.Items.TryGetValue("Contents", out PdfObject? updatedContentsObject)
+                        ? updatedContentsObject
+                        : currentContentsObject;
+                }
+
+                objects[targetReference.ObjectNumber] = new PdfIndirectObject(targetReference.ObjectNumber, targetReference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(result.Content)));
+            }
+
+            changed = result.HasChanges || changed;
         }
 
         return changed;
     }
 
-    private static bool ScrubImageFormInvocations(
+    private static ImagePixelRewriteContentResult ScrubImageFormInvocations(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary resources,
         PdfDictionary xObjects,
@@ -144,11 +159,43 @@ public static partial class PdfRedactionApplier {
         List<PdfRedactionMatch> removedMatches,
         ref int nextObjectNumber) {
         bool changed = false;
-        foreach (TextContentParser.FormInvocation invocation in TextContentParser.ExtractFormInvocations(content)) {
+        string rewrittenContent = content;
+        ImageResourceInvocation[] invocations = ExtractImageResourceInvocations(content);
+        for (int invocationIndex = invocations.Length - 1; invocationIndex >= 0; invocationIndex--) {
+            ImageResourceInvocation invocation = invocations[invocationIndex];
             if (!TryGetFormXObject(objects, xObjects, invocation.Name, out PdfReference reference, out PdfStream formStream) ||
                 formStream.DecodingFailed ||
-                !activeForms.Add(reference.ObjectNumber) ||
-                CountResourceInvocations(content, invocation.Name) != 1) {
+                activeForms.Contains(reference.ObjectNumber)) {
+                continue;
+            }
+
+            Matrix2D invocationTransform = Matrix2D.Multiply(baseTransform, invocation.Transform);
+            bool repeatedInvocation = CountResourceInvocations(content, invocation.Name) != 1;
+            if (repeatedInvocation &&
+                PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? repeatedSourceIndirect)) {
+                string resourceName = CreateUniqueResourceName(xObjects, invocation.Name);
+                reference = CloneIndirectObject(objects, reference, repeatedSourceIndirect, ref nextObjectNumber);
+                xObjects.Items[resourceName] = reference;
+                formStream = (PdfStream)objects[reference.ObjectNumber].Value;
+
+                if (!activeForms.Add(reference.ObjectNumber)) {
+                    continue;
+                }
+
+                int repeatedObjectNumber = reference.ObjectNumber;
+                try {
+                    if (ScrubImageForm(objects, resources, reference, formStream, targets, invocationTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber).HasChanges) {
+                        rewrittenContent = ReplaceInvocationResourceName(rewrittenContent, invocation, resourceName);
+                        changed = true;
+                    }
+                } finally {
+                    activeForms.Remove(repeatedObjectNumber);
+                }
+
+                continue;
+            }
+
+            if (!activeForms.Add(reference.ObjectNumber)) {
                 continue;
             }
 
@@ -162,26 +209,51 @@ public static partial class PdfRedactionApplier {
                     changed = true;
                 }
 
-                PdfDictionary formResources = ResolveDictionary(objects, formStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
-                PdfDictionary formXObjects = ResolveDictionary(objects, formResources.Items.TryGetValue("XObject", out PdfObject? formXObjectObject) ? formXObjectObject : null) ?? new PdfDictionary();
-                Matrix2D formTransform = ApplyFormMatrix(Matrix2D.Multiply(baseTransform, invocation.Transform), formStream.Dictionary);
-                string formContent = PdfEncoding.Latin1GetString(StreamDecoder.Decode(formStream.Dictionary, formStream.Data, objects));
-                string scrubbed = RemoveImageInvocations(formContent, targets, formTransform, out IReadOnlyList<ImageRedactionTarget> removedTargets);
-                if (!string.Equals(formContent, scrubbed, StringComparison.Ordinal)) {
-                    objects[reference.ObjectNumber] = new PdfIndirectObject(reference.ObjectNumber, reference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
-                    formContent = scrubbed;
-                    AddRemovedImageTargets(removedTargets, removedMatches, null);
-                    RemoveUnusedImageResourcesFromXObjects(objects, formXObjects, formContent, removedTargets);
-                    changed = true;
-                }
-
-                changed = ScrubImageFormInvocations(objects, formResources, formXObjects, formContent, targets, formTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber) || changed;
+                changed = ScrubImageForm(objects, resources, reference, formStream, targets, invocationTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber).HasChanges || changed;
             } finally {
                 activeForms.Remove(activeObjectNumber);
             }
         }
 
-        return changed;
+        return new ImagePixelRewriteContentResult(changed, rewrittenContent);
+    }
+
+    private static ImagePixelRewriteContentResult ScrubImageForm(
+        Dictionary<int, PdfIndirectObject> objects,
+        PdfDictionary inheritedResources,
+        PdfReference formReference,
+        PdfStream formStream,
+        ImageRedactionTarget[] targets,
+        Matrix2D invocationTransform,
+        IReadOnlyDictionary<int, int> referenceCounts,
+        HashSet<int> activeForms,
+        List<PdfRedactionMatch> removedMatches,
+        ref int nextObjectNumber) {
+        PdfDictionary formResources = ResolveDictionary(objects, formStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? inheritedResources;
+        PdfDictionary formXObjects = EnsureResourceXObjects(objects, formResources);
+        Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formStream.Dictionary);
+        string formContent = PdfEncoding.Latin1GetString(StreamDecoder.Decode(formStream.Dictionary, formStream.Data, objects));
+        string scrubbed = RemoveImageInvocations(formContent, targets, formTransform, out IReadOnlyList<ImageRedactionTarget> removedTargets);
+        bool changed = false;
+
+        if (!string.Equals(formContent, scrubbed, StringComparison.Ordinal)) {
+            formContent = scrubbed;
+            AddRemovedImageTargets(removedTargets, removedMatches, null);
+            RemoveUnusedImageResourcesFromXObjects(objects, formXObjects, formContent, removedTargets);
+            changed = true;
+        }
+
+        ImagePixelRewriteContentResult nestedResult = ScrubImageFormInvocations(objects, formResources, formXObjects, formContent, targets, formTransform, referenceCounts, activeForms, removedMatches, ref nextObjectNumber);
+        if (!string.Equals(nestedResult.Content, formContent, StringComparison.Ordinal)) {
+            formContent = nestedResult.Content;
+            changed = true;
+        }
+
+        if (changed || nestedResult.HasChanges) {
+            objects[formReference.ObjectNumber] = new PdfIndirectObject(formReference.ObjectNumber, formReference.Generation, new PdfStream(CleanStreamDictionary(formStream.Dictionary), PdfEncoding.Latin1GetBytes(formContent)));
+        }
+
+        return new ImagePixelRewriteContentResult(changed || nestedResult.HasChanges, formContent);
     }
 
     private static string RemoveImageInvocations(string content, ImageRedactionTarget[] targets, out IReadOnlyList<ImageRedactionTarget> removedTargets) {

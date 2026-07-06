@@ -221,7 +221,7 @@ public class PdfRedactionVerificationTests {
     }
 
     [Fact]
-    public void Apply_ClonesRepeatedFormInvocationBeforeRewritingNestedImagePixels() {
+    public void Apply_ClonesRepeatedFormInvocationBeforeRemovingNestedImagePlacement() {
         byte[] source = BuildRepeatedFormImageRedactionSource();
         PdfLogicalImage image = GetSingleImage(source);
         PdfImagePlacement firstPlacement = image.Placements.OrderBy(placement => placement.X).First();
@@ -230,12 +230,9 @@ public class PdfRedactionVerificationTests {
         byte[] redacted = PdfRedactionApplier.Apply(source, new[] { area });
 
         IReadOnlyList<PdfImagePlacement> placements = PdfImageExtractor.ExtractImagePlacements(redacted);
-        Assert.Equal(2, placements.Count);
-        Assert.Contains(placements, placement => Math.Abs(placement.X - 20D) < 0.001D);
-        Assert.Contains(placements, placement => Math.Abs(placement.X - 120D) < 0.001D);
-        Assert.Equal(2, PdfImageExtractor.ExtractImages(redacted).Count);
-        Assert.Contains(DecodeImagePixelStreams(redacted), pixels => pixels.Length == 3 && pixels[0] == 0 && pixels[1] == 0 && pixels[2] == 0);
-        Assert.Contains(DecodeImagePixelStreams(redacted), pixels => Encoding.ASCII.GetString(pixels) == "abc");
+        PdfImagePlacement remaining = Assert.Single(placements);
+        Assert.Equal(120D, remaining.X, 3);
+        Assert.Single(PdfImageExtractor.ExtractImages(redacted));
     }
 
     [Fact]

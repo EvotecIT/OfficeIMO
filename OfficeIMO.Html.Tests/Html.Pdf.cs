@@ -1112,15 +1112,15 @@ public sealed class HtmlPdfTests {
         Assert.True(result.Summary.HasPageActions);
         Assert.True(result.Summary.HasAnnotationActions);
         Assert.True(result.Summary.HasActiveContent);
-        Assert.Equal(4, result.Summary.PotentiallyUnsafeActionCount);
+        Assert.Equal(5, result.Summary.PotentiallyUnsafeActionCount);
         Assert.Equal(2, result.Summary.JavaScriptActionCount);
         Assert.Equal(1, result.Summary.LaunchActionCount);
         Assert.Equal(1, result.Summary.SubmitFormActionCount);
         Assert.Equal(1, result.Summary.CatalogActionCount);
         Assert.Equal(1, result.Summary.PageActionCount);
         Assert.Equal(1, result.Summary.SelectedPageActionCount);
-        Assert.Equal(2, result.Summary.AnnotationActionCount);
-        Assert.Equal(2, result.Summary.SelectedAnnotationActionCount);
+        Assert.Equal(3, result.Summary.AnnotationActionCount);
+        Assert.Equal(3, result.Summary.SelectedAnnotationActionCount);
         Assert.DoesNotContain("app.alert", result.Html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("tool.exe", result.Html, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain("https://example.com/submit", result.Html, StringComparison.OrdinalIgnoreCase);
@@ -1247,7 +1247,7 @@ public sealed class HtmlPdfTests {
             "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
             "endobj",
             "3 0 obj",
-            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] /AA << /O 7 0 R >> >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R 9 0 R] /AA << /O 7 0 R >> >>",
             "endobj",
             "4 0 obj",
             "<< /Length 0 >>",
@@ -1267,8 +1267,11 @@ public sealed class HtmlPdfTests {
             "8 0 obj",
             "<< /S /SubmitForm /F (https://example.com/submit) >>",
             "endobj",
+            "9 0 obj",
+            "<< /Type /Annot /Subtype /Screen /Rect [40 110 180 150] /A << /S /RichMedia >> >>",
+            "endobj",
             "trailer",
-            "<< /Root 1 0 R /Size 9 >>",
+            "<< /Root 1 0 R /Size 10 >>",
             "%%EOF"
         }) + "\n";
 

@@ -13,7 +13,7 @@ namespace OfficeIMO.Word.Pdf {
 
             PdfWordReadOptions readOptions = options ?? new PdfWordReadOptions();
             readOptions.ResetImportState();
-            return PdfWordConverter.Convert(PdfCore.PdfLogicalDocument.From(document, readOptions.LayoutOptions), readOptions);
+            return PdfWordConverter.Convert(LoadLogical(document, readOptions), readOptions);
         }
 
         /// <summary>Converts a first-party logical PDF read model into an editable Word document using semantic extraction.</summary>

@@ -747,7 +747,7 @@ internal static class ResourceResolver {
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
-            transparencyMaskResolved = transparencyMaskKind is not null;
+            transparencyMaskResolved = IsTransparencyMaskResolvedByPngNormalization(transparencyMaskKind);
         }
 
         return new PdfExtractedImage(
@@ -799,6 +799,10 @@ internal static class ResourceResolver {
 
         return "mask";
     }
+
+    private static bool IsTransparencyMaskResolvedByPngNormalization(string? transparencyMaskKind) =>
+        string.Equals(transparencyMaskKind, "soft-mask", System.StringComparison.Ordinal) ||
+        string.Equals(transparencyMaskKind, "color-key-mask", System.StringComparison.Ordinal);
 
     private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         var resolved = ResolveObject(obj, objects);

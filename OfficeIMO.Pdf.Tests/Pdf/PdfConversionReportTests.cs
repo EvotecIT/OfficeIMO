@@ -77,6 +77,27 @@ public sealed class PdfConversionReportTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_WithDocumentRefreshesFromOriginalConversionReport() {
+        var report = new PdfConversionReport();
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Refresh source proof")),
+            report);
+
+        PdfDocumentConversionResult processed = result.WithDocument(result.Document.UpdateMetadata(title: "Processed refresh source proof"));
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "SaveTimeWarning",
+            "save:document",
+            "Warning emitted after post-processing."));
+
+        processed.ToBytes();
+
+        PdfConversionWarning warning = Assert.Single(processed.Warnings);
+        Assert.Equal("SaveTimeWarning", warning.Code);
+        Assert.DoesNotContain(result.Warnings, item => item.Code == "SaveTimeWarning");
+    }
+
+    [Fact]
     public void PdfDocumentConversionResult_AssessProofCapturesTextWarningsAndProcessedDocument() {
         var report = new PdfConversionReport();
         report.Add(new PdfConversionWarning(
