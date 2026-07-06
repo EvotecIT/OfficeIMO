@@ -1,12 +1,17 @@
 #nullable enable
 
+using System.Buffers;
 using System.Text;
 
 namespace OfficeIMO.CSV;
 
-internal sealed class CsvLineReader
+internal sealed partial class CsvLineReader : IDisposable
 {
     private const int DefaultBufferSize = 32 * 1024;
+#if NET8_0_OR_GREATER
+    private const int UnquotedDelimiterIndexCapacity = 64;
+    private const int QuotedPrefixReuseMinimumDelimiterCount = 4;
+#endif
     private readonly TextReader _reader;
     private readonly char[] _buffer;
     private int _position;
@@ -16,7 +21,12 @@ internal sealed class CsvLineReader
     public CsvLineReader(TextReader reader)
     {
         _reader = reader ?? throw new ArgumentNullException(nameof(reader));
-        _buffer = new char[DefaultBufferSize];
+        _buffer = ArrayPool<char>.Shared.Rent(DefaultBufferSize);
+    }
+
+    public void Dispose()
+    {
+        ArrayPool<char>.Shared.Return(_buffer);
     }
 
     public CsvLineReadResult ReadUnquotedRecordOrLine(char delimiter, bool trim, char commentCharacter, List<string> fields, out string? line, out string separator)
@@ -42,6 +52,16 @@ internal sealed class CsvLineReader
             line = ReadLine(out separator);
             return CsvLineReadResult.Line;
         }
+
+#if NET8_0_OR_GREATER
+        if (!trim &&
+            delimiter <= byte.MaxValue &&
+            System.Runtime.Intrinsics.X86.Avx2.IsSupported &&
+            TryReadUnquotedRecordOrLineAvx2(delimiter, fields, out line, out separator, out var readResult))
+        {
+            return readResult;
+        }
+#endif
 
         var newlineIndex = IndexOfNewline(segmentStart, segmentLength);
         if (newlineIndex < 0)
@@ -142,6 +162,21 @@ internal sealed class CsvLineReader
         var newlineIndex = segmentStart + specialIndex;
         if (!endsAtReaderEnd && _buffer[newlineIndex] == '"')
         {
+            if (TryReadStandardQuotedFieldSpansOrLine(
+                    delimiter,
+                    trim,
+                    allowEmpty,
+                    emitFields,
+                    recordIndex,
+                    ref fieldVisitor,
+                    out fieldCount,
+                    out isEmptyRecord,
+                    out separator,
+                    out var quotedReadResult))
+            {
+                return quotedReadResult;
+            }
+
             line = ReadLine(out separator);
             return CsvLineReadResult.Line;
         }
@@ -253,6 +288,96 @@ internal sealed class CsvLineReader
     }
 
 #if NET8_0_OR_GREATER
+    private bool TryReadUnquotedRecordOrLineAvx2(
+        char delimiter,
+        List<string> fields,
+        out string? line,
+        out string separator,
+        out CsvLineReadResult readResult)
+    {
+        line = null;
+        separator = string.Empty;
+        readResult = CsvLineReadResult.Line;
+
+        var start = _position;
+        var end = _length - 32;
+        if (start > end)
+        {
+            return false;
+        }
+
+        Span<int> delimiterIndexes = stackalloc int[UnquotedDelimiterIndexCapacity];
+        var delimiterCount = 0;
+        var pos = start;
+        var delimiterVector = System.Runtime.Intrinsics.Vector256.Create((byte)delimiter);
+        var quoteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'"');
+        var carriageReturnVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\r');
+        var lineFeedVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\n');
+
+        while (pos <= end)
+        {
+            var values = System.Runtime.InteropServices.MemoryMarshal.Cast<char, short>(_buffer.AsSpan(pos, 32));
+            var first = System.Runtime.Intrinsics.Vector256.LoadUnsafe(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(values));
+            var second = System.Runtime.Intrinsics.Vector256.LoadUnsafe(ref System.Runtime.InteropServices.MemoryMarshal.GetReference(values.Slice(16)));
+            var packed = System.Runtime.Intrinsics.X86.Avx2.PackUnsignedSaturate(first, second);
+            var packedBytes = System.Runtime.Intrinsics.Vector256.AsByte(
+                System.Runtime.Intrinsics.X86.Avx2.Permute4x64(System.Runtime.Intrinsics.Vector256.AsInt64(packed), 0b11_01_10_00));
+
+            var delimiterMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
+                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, delimiterVector));
+            var quoteMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
+                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, quoteVector));
+            var carriageReturnMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
+                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, carriageReturnVector));
+            var lineFeedMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
+                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, lineFeedVector));
+            var terminalMask = quoteMask | carriageReturnMask | lineFeedMask;
+
+            if (terminalMask != 0)
+            {
+                var terminalOffset = System.Numerics.BitOperations.TrailingZeroCount(terminalMask);
+                var delimiterMaskBeforeTerminal = delimiterMask & ((1u << terminalOffset) - 1u);
+                if (!AddDelimiterIndexes(delimiterMaskBeforeTerminal, pos, delimiterIndexes, ref delimiterCount))
+                {
+                    return false;
+                }
+
+                if (((quoteMask >> terminalOffset) & 1u) != 0)
+                {
+                    return false;
+                }
+
+                var newlineIndex = pos + terminalOffset;
+                AddIndexedUnquotedFields(start, newlineIndex, delimiterIndexes.Slice(0, delimiterCount), fields);
+                _position = newlineIndex;
+                ConsumeLineSeparator(_buffer[newlineIndex], out separator);
+                readResult = CsvLineReadResult.UnquotedRecord;
+                return true;
+            }
+
+            if (!AddDelimiterIndexes(delimiterMask, pos, delimiterIndexes, ref delimiterCount))
+            {
+                return false;
+            }
+
+            pos += 32;
+        }
+
+        return false;
+    }
+
+    private void AddIndexedUnquotedFields(int start, int end, ReadOnlySpan<int> delimiterIndexes, List<string> fields)
+    {
+        var fieldStart = start;
+        foreach (var delimiterIndex in delimiterIndexes)
+        {
+            fields.Add(GetUnquotedField(fieldStart, delimiterIndex - fieldStart, trim: false));
+            fieldStart = delimiterIndex + 1;
+        }
+
+        fields.Add(GetUnquotedField(fieldStart, end - fieldStart, trim: false));
+    }
+
     private bool HasNonWhitespaceOrDelimiter(int start, int end, char delimiter)
     {
         for (var i = start; i < end; i++)
@@ -421,7 +546,7 @@ internal sealed class CsvLineReader
             return false;
         }
 
-        Span<int> delimiterIndexes = stackalloc int[256];
+        Span<int> delimiterIndexes = stackalloc int[UnquotedDelimiterIndexCapacity];
         var delimiterCount = 0;
         var pos = start;
         var delimiterVector = System.Runtime.Intrinsics.Vector256.Create((byte)delimiter);
@@ -459,6 +584,24 @@ internal sealed class CsvLineReader
 
                 if (((quoteMask >> terminalOffset) & 1u) != 0)
                 {
+                    var quoteIndex = pos + terminalOffset;
+                    if (delimiterCount >= QuotedPrefixReuseMinimumDelimiterCount &&
+                        TryReadStandardQuotedFieldSpansOrLineFromPrefix(
+                            delimiter,
+                            allowEmpty,
+                            emitFields,
+                            recordIndex,
+                            delimiterIndexes.Slice(0, delimiterCount),
+                            quoteIndex,
+                            ref fieldVisitor,
+                            out fieldCount,
+                            out isEmptyRecord,
+                            out separator,
+                            out readResult))
+                    {
+                        return true;
+                    }
+
                     return false;
                 }
 

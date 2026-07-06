@@ -167,6 +167,120 @@ public class CsvStreamingTests
 
 #if NET8_0_OR_GREATER
     [Fact]
+    public void ReadRowFieldSpans_StreamsHeaderAndRows()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+        using var reader = new StringReader("Name,Value\nA,1\nB,2\n");
+
+        CsvDocument.ReadRowFieldSpans(reader, ref visitor);
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:A",
+                "field:0:1:1",
+                "end:0:2",
+                "begin:1:Name|Value",
+                "field:1:0:B",
+                "field:1:1:2",
+                "end:1:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpans_DetectDelimiterSkipsInitialRecordsAfterLeadingComments()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+        using var reader = new StringReader("#note\nmetadata,with,commas\nName;Value\nAlpha;1\n");
+
+        CsvDocument.ReadRowFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpans_RecognizesW3CFieldsHeader()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+        using var reader = new StringReader("#Version: 1.0\n#Fields: date time cs-uri\n2026-01-01 00:00 /index.html\n");
+
+        CsvDocument.ReadRowFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions { Delimiter = ' ' });
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:date|time|cs-uri",
+                "field:0:0:2026-01-01",
+                "field:0:1:00:00",
+                "field:0:2:/index.html",
+                "end:0:3"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpans_NoHeaderGeneratesDefaultHeaderAndPreservesFirstRow()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+        using var reader = new StringReader("A,1\nB,2\n");
+
+        CsvDocument.ReadRowFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions { HasHeaderRow = false });
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Column1|Column2",
+                "field:0:0:A",
+                "field:0:1:1",
+                "end:0:2",
+                "begin:1:Column1|Column2",
+                "field:1:0:B",
+                "field:1:1:2",
+                "end:1:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpans_StrictPolicyThrowsOnMismatchedDataRow()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+        using var reader = new StringReader("Name,Value\nAlpha,1,extra\n");
+
+        Assert.Throws<CsvException>(() => CsvDocument.ReadRowFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions { ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict }));
+    }
+
+    [Fact]
     public void ReadFieldSpans_CanSkipInitialRecords()
     {
         var fields = new List<string>();
@@ -212,6 +326,20 @@ public class CsvStreamingTests
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "0:1:one\ntwo" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_UnescapesQuotedFieldsWithoutMaterializedFallback()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name,Note\nAlpha,\"one \"\"quoted\"\" value\"\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:one \"quoted\" value" }, fields);
     }
 
     [Fact]
@@ -283,6 +411,85 @@ public class CsvStreamingTests
             new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" },
             fields);
     }
+
+    [Fact]
+    public void ReadFieldSpansFromText_CanSkipInitialRecords()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "metadata\nName,Value\nAlpha,1\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(
+            new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" },
+            fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_ReadsQuotedMultilineAndEscapedFields()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Note\nAlpha,\"one\n\"\"two\"\"\"\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:one\n\"two\"" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_DoesNotEmitSkippedBlankOrWhitespaceOnlyLines()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Value\n\n   \t  \nAlpha,1\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions {
+                SkipInitialRecords = 1,
+                TrimWhitespace = true
+            });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:1" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_DetectsDelimiterAfterSkippedMetadata()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "metadata,with,commas\nName;Value\nAlpha;1\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        Assert.Equal(
+            new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" },
+            fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_TrimWhitespaceAllowsSpacesAfterQuotedField()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Note,Value\nAlpha,\"one\"  ,1\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions {
+                SkipInitialRecords = 1,
+                TrimWhitespace = true
+            });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:one", "0:2:1" }, fields);
+    }
+
 #endif
 
     [Fact]
@@ -375,4 +582,31 @@ public class CsvStreamingTests
             base.Dispose(disposing);
         }
     }
+
+#if NET8_0_OR_GREATER
+    private readonly struct CapturingRowFieldSpanVisitor : ICsvRowFieldSpanVisitor
+    {
+        private readonly List<string> _events;
+
+        public CapturingRowFieldSpanVisitor(List<string> events)
+        {
+            _events = events;
+        }
+
+        public void BeginRow(IReadOnlyList<string> header, int rowIndex)
+        {
+            _events.Add($"begin:{rowIndex}:{string.Join("|", header)}");
+        }
+
+        public void VisitField(int rowIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+            _events.Add($"field:{rowIndex}:{fieldIndex}:{value.ToString()}");
+        }
+
+        public void EndRow(int rowIndex, int fieldCount)
+        {
+            _events.Add($"end:{rowIndex}:{fieldCount}");
+        }
+    }
+#endif
 }

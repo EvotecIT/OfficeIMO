@@ -20,7 +20,9 @@ public sealed class CsvObjectWriter : IDisposable
     private readonly StringBuilder _rowBuffer = new(1024);
     private IReadOnlyList<string>? _columns;
     private Func<object, object?[], bool>? _propertyProjector;
+    private Func<object, string?[], CultureInfo, bool>? _propertyTextProjector;
     private object?[]? _propertyValues;
+    private string?[]? _propertyTextValues;
     private bool _disposed;
 
     /// <summary>
@@ -66,6 +68,15 @@ public sealed class CsvObjectWriter : IDisposable
         }
 
         if (_columns != null &&
+            _propertyTextProjector != null &&
+            _propertyTextValues != null &&
+            _propertyTextProjector(item, _propertyTextValues, _options.Culture))
+        {
+            WriteTextBuffered(_propertyTextValues);
+            return;
+        }
+
+        if (_columns != null &&
             _propertyProjector != null &&
             _propertyValues != null &&
             _propertyProjector(item, _propertyValues))
@@ -78,6 +89,17 @@ public sealed class CsvObjectWriter : IDisposable
         var dictionaryLike = ObjectDataHelpers.IsDictionaryLike(item);
         EnsureColumns(itemColumns, requireOrder: !dictionaryLike);
         var columns = _columns!;
+
+        if (_useDefaultWritePath &&
+            !dictionaryLike &&
+            ObjectDataHelpers.TryCreatePropertyTextProjector(item, columns, out var textProjector))
+        {
+            _propertyTextProjector = textProjector;
+            _propertyTextValues = new string?[columns.Count];
+            textProjector!(item, _propertyTextValues, _options.Culture);
+            WriteTextBuffered(_propertyTextValues);
+            return;
+        }
 
         if (!dictionaryLike &&
             ObjectDataHelpers.TryCreatePropertyProjector(item, columns, out var projector))
@@ -222,7 +244,7 @@ public sealed class CsvObjectWriter : IDisposable
 
         if (_useDefaultWritePath)
         {
-            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            CsvWriter.WriteRecordDefault(_writer, values, _options.Delimiter, _options.NewLine);
             return;
         }
 
@@ -388,5 +410,22 @@ public sealed class CsvObjectWriter : IDisposable
         }
 
         CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+    }
+
+    private void WriteTextBuffered(string?[] values)
+    {
+        if (_useDefaultWritePath)
+        {
+            CsvWriter.WriteRecordDefault(_writer, values, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        if (_useAlwaysQuotedWritePath)
+        {
+            CsvWriter.WriteRecordBufferedAlwaysQuoted(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
     }
 }

@@ -15,6 +15,17 @@ public interface ICsvFieldSpanVisitor
     /// <param name="fieldIndex">Zero-based field index within the record.</param>
     /// <param name="value">The field value. Do not capture the span beyond this method.</param>
     void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value);
+
+    /// <summary>
+    /// Visits one parsed string field. Implement this to avoid copying fields that were already materialized while parsing quoted records.
+    /// </summary>
+    /// <param name="recordIndex">Zero-based emitted record index.</param>
+    /// <param name="fieldIndex">Zero-based field index within the record.</param>
+    /// <param name="value">The field value.</param>
+    void VisitFieldValue(int recordIndex, int fieldIndex, string value)
+    {
+        VisitField(recordIndex, fieldIndex, value.AsSpan());
+    }
 }
 
 internal readonly struct CsvFieldSpanActionVisitor : ICsvFieldSpanVisitor

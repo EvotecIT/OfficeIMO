@@ -117,7 +117,7 @@ internal static partial class CsvParser
         var lineNumber = 1;
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
-        var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader);
 
         while (ReadLineWithSeparator(lineReader, pendingLines, out var lineSeparator) is { } line)
         {
@@ -199,7 +199,7 @@ internal static partial class CsvParser
         var lineNumber = 1;
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
-        var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader);
 
         while (ReadLineWithSeparator(lineReader, pendingLines, out var lineSeparator) is { } line)
         {
@@ -272,7 +272,7 @@ internal static partial class CsvParser
         var reusableQuotedRecord = new List<string>(64);
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
-        var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader);
 
         while (pendingLines.Count > 0 || true)
         {
@@ -382,7 +382,7 @@ internal static partial class CsvParser
         var reusableQuotedRecord = new List<string>(64);
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
-        var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader);
 
         while (pendingLines.Count > 0 || true)
         {
@@ -492,8 +492,9 @@ internal static partial class CsvParser
         var lineNumber = 1;
         var emittedRecordCount = 0;
         var recordIndex = 0;
+        var reusableQuotedRecord = new List<string>(64);
         var pendingLines = new Queue<CsvLine>();
-        var lineReader = new CsvLineReader(reader);
+        using var lineReader = new CsvLineReader(reader);
 
         while (pendingLines.Count > 0 || true)
         {
@@ -561,7 +562,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (TrySplitUnquotedRecord(line, delimiter, trim, out var record))
+            if (line.IndexOf('"') < 0 && TrySplitUnquotedRecord(line, delimiter, trim, out var record))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
@@ -583,33 +584,21 @@ internal static partial class CsvParser
                 continue;
             }
 
-            string[] fields;
-            if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
+            if (!TryParseQuotedRecordContinuations(
+                    lineReader,
+                    pendingLines,
+                    line,
+                    lineSeparator,
+                    delimiter,
+                    trim,
+                    reusableQuotedRecord,
+                    ref lineNumber) &&
+                !TryParseQuotedRecord(line, delimiter, trim, reusableQuotedRecord))
             {
-                var logicalRecord = new StringBuilder(line);
-                var pendingSeparator = lineSeparator;
-                while (true)
-                {
-                    var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                    if (next == null)
-                    {
-                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
-                    }
-
-                    logicalRecord.Append(pendingSeparator);
-                    logicalRecord.Append(next);
-                    lineNumber++;
-
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, out fields))
-                    {
-                        break;
-                    }
-
-                    pendingSeparator = nextSeparator;
-                }
+                throw new CsvParseException("Unterminated quoted field.", lineNumber);
             }
 
-            if (ShouldEmitRecord(fields, allowEmpty))
+            if (ShouldEmitRecord(reusableQuotedRecord, allowEmpty))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
                 {
@@ -619,7 +608,7 @@ internal static partial class CsvParser
                     }
                     else
                     {
-                        VisitParsedFields(fields, recordIndex, ref fieldVisitor);
+                        VisitParsedFields(reusableQuotedRecord, recordIndex, ref fieldVisitor);
                         recordIndex++;
                     }
 
@@ -636,7 +625,7 @@ internal static partial class CsvParser
     {
         for (var fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
         {
-            fieldVisitor.VisitField(recordIndex, fieldIndex, fields[fieldIndex].AsSpan());
+            fieldVisitor.VisitFieldValue(recordIndex, fieldIndex, fields[fieldIndex]);
         }
     }
 #endif

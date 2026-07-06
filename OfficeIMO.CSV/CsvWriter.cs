@@ -234,6 +234,25 @@ internal static class CsvWriter
         WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
+    internal static void WriteRecordDefault(
+        TextWriter writer,
+        string?[] values,
+        char delimiter,
+        string newLine)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                writer.Write(delimiter);
+            }
+
+            WriteEscapedDefault(writer, values[i], delimiter);
+        }
+
+        writer.Write(newLine);
+    }
+
     internal static void WriteRecordBufferedAlwaysQuoted(
         TextWriter writer,
         StringBuilder buffer,
@@ -839,6 +858,66 @@ internal static class CsvWriter
         }
 
         writer.Append('"');
+    }
+
+    private static void WriteEscapedDefault(TextWriter writer, string? text, char delimiter)
+    {
+        if (text == null)
+        {
+            return;
+        }
+
+        var specialIndex = IndexOfCsvSpecial(text, delimiter);
+        if (specialIndex < 0)
+        {
+            writer.Write(text);
+            return;
+        }
+
+        WriteEscapedDefault(writer, text, specialIndex);
+    }
+
+    private static void WriteEscapedDefault(TextWriter writer, string text, int specialIndex)
+    {
+        writer.Write('"');
+        if (text.IndexOf('"', specialIndex) < 0)
+        {
+            writer.Write(text);
+            writer.Write('"');
+            return;
+        }
+
+        var segmentStart = 0;
+        for (var i = specialIndex; i < text.Length; i++)
+        {
+            if (text[i] == '"')
+            {
+                WriteTextSegment(writer, text, segmentStart, i - segmentStart);
+                writer.Write("\"\"");
+                segmentStart = i + 1;
+            }
+        }
+
+        if (segmentStart < text.Length)
+        {
+            WriteTextSegment(writer, text, segmentStart, text.Length - segmentStart);
+        }
+
+        writer.Write('"');
+    }
+
+    private static void WriteTextSegment(TextWriter writer, string text, int start, int length)
+    {
+        if (length <= 0)
+        {
+            return;
+        }
+
+#if NET6_0_OR_GREATER
+        writer.Write(text.AsSpan(start, length));
+#else
+        writer.Write(text.Substring(start, length));
+#endif
     }
 
     private static void AppendEscapedTextDefault(StringBuilder writer, string? text, char delimiter)
