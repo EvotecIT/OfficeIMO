@@ -74,10 +74,96 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            SvgPaint paint = SvgPaint.Resolve(element, inherited, context);
             SvgTransform localTransform = transform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
+            using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, out SvgPaintBounds bounds) ? bounds : null);
+            SvgPaint paint = SvgPaint.Resolve(element, inherited, context);
             using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
             return RenderElementCore(canvas, element, name, paint, localTransform, context);
+        }
+
+        private static bool TryGetElementPaintBounds(XElement element, string name, out SvgPaintBounds bounds) {
+            bounds = default;
+            if (string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "image", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "use", StringComparison.OrdinalIgnoreCase)) {
+                double x = ReadLength(element, "x", 0D);
+                double y = ReadLength(element, "y", 0D);
+                double width = ReadLength(element, "width", 0D);
+                double height = ReadLength(element, "height", 0D);
+                if (width > 0D && height > 0D) {
+                    bounds = new SvgPaintBounds(x, y, width, height);
+                    return true;
+                }
+            }
+
+            if (string.Equals(name, "circle", StringComparison.OrdinalIgnoreCase)) {
+                double radius = ReadLength(element, "r", 0D);
+                if (radius > 0D) {
+                    double cx = ReadLength(element, "cx", 0D);
+                    double cy = ReadLength(element, "cy", 0D);
+                    bounds = new SvgPaintBounds(cx - radius, cy - radius, radius * 2D, radius * 2D);
+                    return true;
+                }
+            }
+
+            if (string.Equals(name, "ellipse", StringComparison.OrdinalIgnoreCase)) {
+                double rx = ReadLength(element, "rx", 0D);
+                double ry = ReadLength(element, "ry", 0D);
+                if (rx > 0D && ry > 0D) {
+                    double cx = ReadLength(element, "cx", 0D);
+                    double cy = ReadLength(element, "cy", 0D);
+                    bounds = new SvgPaintBounds(cx - rx, cy - ry, rx * 2D, ry * 2D);
+                    return true;
+                }
+            }
+
+            if (string.Equals(name, "line", StringComparison.OrdinalIgnoreCase)) {
+                double x1 = ReadLength(element, "x1", 0D);
+                double y1 = ReadLength(element, "y1", 0D);
+                double x2 = ReadLength(element, "x2", 0D);
+                double y2 = ReadLength(element, "y2", 0D);
+                bounds = CreatePaintBounds(new[] { (x1, y1), (x2, y2) });
+                return true;
+            }
+
+            if (string.Equals(name, "polyline", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "polygon", StringComparison.OrdinalIgnoreCase)) {
+                if (TryParsePoints(element.Attribute("points")?.Value, out List<(double X, double Y)> points) && points.Count > 0) {
+                    bounds = CreatePaintBounds(points);
+                    return true;
+                }
+            }
+
+            if (string.Equals(name, "path", StringComparison.OrdinalIgnoreCase)) {
+                if (TryParsePath(element.Attribute("d")?.Value, out List<SvgPathContour> contours)) {
+                    var points = new List<(double X, double Y)>();
+                    for (int i = 0; i < contours.Count; i++) {
+                        points.AddRange(contours[i].Points);
+                    }
+
+                    if (points.Count > 0) {
+                        bounds = CreatePaintBounds(points);
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+
+        private static SvgPaintBounds CreatePaintBounds(IReadOnlyList<(double X, double Y)> points) {
+            double left = points[0].X;
+            double right = points[0].X;
+            double top = points[0].Y;
+            double bottom = points[0].Y;
+            for (int i = 1; i < points.Count; i++) {
+                left = Math.Min(left, points[i].X);
+                right = Math.Max(right, points[i].X);
+                top = Math.Min(top, points[i].Y);
+                bottom = Math.Max(bottom, points[i].Y);
+            }
+
+            return new SvgPaintBounds(left, top, right - left, bottom - top);
         }
 
         private static bool RenderElementCore(OfficeRasterCanvas canvas, XElement element, string name, SvgPaint paint, SvgTransform localTransform, SvgRenderContext context) {

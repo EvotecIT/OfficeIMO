@@ -85,7 +85,6 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            context.Y += ParagraphGapPoints;
             return true;
         }
 
@@ -548,7 +547,7 @@ namespace OfficeIMO.Word {
                     return;
                 }
 
-                string text = string.Join(Environment.NewLine, _plainLines!.GetRange(_lineIndex, lineCount));
+                string text = string.Join(Environment.NewLine, _plainLines!.GetRange(_lineIndex, lineCount).Select(line => line.TrimEnd(' ', '\t')));
                 drawing.AddText(
                     text,
                     left,

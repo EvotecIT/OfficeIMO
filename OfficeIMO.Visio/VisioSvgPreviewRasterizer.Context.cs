@@ -18,6 +18,8 @@ namespace OfficeIMO.Visio {
 
             internal SvgStyleSheet StyleSheet { get; }
 
+            internal SvgPaintBounds? CurrentPaintBounds { get; private set; }
+
             internal static SvgRenderContext Create(XElement root, Func<string, byte[]?>? imageResolver = null) =>
                 new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver);
 
@@ -27,6 +29,12 @@ namespace OfficeIMO.Visio {
             internal bool TryEnterUse(string id) => _activeUseIds.Add(id);
 
             internal void ExitUse(string id) => _activeUseIds.Remove(id);
+
+            internal IDisposable PushPaintBounds(SvgPaintBounds? bounds) {
+                SvgPaintBounds? previous = CurrentPaintBounds;
+                CurrentPaintBounds = bounds;
+                return new PaintBoundsScope(this, previous);
+            }
 
             internal bool TryGetImageBytes(string href, out byte[]? bytes) {
                 bytes = _imageResolver?.Invoke(href);
@@ -44,6 +52,45 @@ namespace OfficeIMO.Visio {
 
                 return definitions;
             }
+
+            private sealed class PaintBoundsScope : IDisposable {
+                private readonly SvgRenderContext _context;
+                private readonly SvgPaintBounds? _previous;
+                private bool _disposed;
+
+                internal PaintBoundsScope(SvgRenderContext context, SvgPaintBounds? previous) {
+                    _context = context;
+                    _previous = previous;
+                }
+
+                public void Dispose() {
+                    if (_disposed) {
+                        return;
+                    }
+
+                    _context.CurrentPaintBounds = _previous;
+                    _disposed = true;
+                }
+            }
+        }
+
+        private readonly struct SvgPaintBounds {
+            internal SvgPaintBounds(double left, double top, double width, double height) {
+                Left = left;
+                Top = top;
+                Width = Math.Max(0D, width);
+                Height = Math.Max(0D, height);
+            }
+
+            internal double Left { get; }
+
+            internal double Top { get; }
+
+            internal double Width { get; }
+
+            internal double Height { get; }
+
+            internal bool HasArea => Width > 0D && Height > 0D;
         }
     }
 }

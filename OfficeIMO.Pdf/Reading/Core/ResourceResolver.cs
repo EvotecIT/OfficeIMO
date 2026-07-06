@@ -949,8 +949,19 @@ internal static partial class ResourceResolver {
             return TryBuildPngFileFromDeviceColor(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
         }
 
+        if (!HasSingleFlateFilter(stream.Dictionary.Items.TryGetValue("Filter", out var filterObj) ? filterObj : null, objects)) {
+            return TryBuildPngFileFromDeviceColor(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
+        }
+
         pngBytes = OfficePngWriter.CreateFromCompressedScanlines(width, height, bitsPerComponent, colorType, stream.Data);
         return true;
+    }
+
+    private static bool HasSingleFlateFilter(PdfObject? filterObject, Dictionary<int, PdfIndirectObject> objects) {
+        List<string> filterNames = GetFilterNames(filterObject, objects);
+        return filterNames.Count == 1 &&
+            (string.Equals(filterNames[0], "FlateDecode", System.StringComparison.Ordinal) ||
+             string.Equals(filterNames[0], "Fl", System.StringComparison.Ordinal));
     }
 
     private static bool TryBuildPngFileWithSoftMask(

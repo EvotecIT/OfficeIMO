@@ -1075,38 +1075,36 @@ public static partial class OfficeChartDrawingRenderer {
     private static void AddAreaSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
-        if (categories.Count < 2 || series.Count == 0) {
+        List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> areaSeries = GetRenderableAreaSeries(snapshot);
+        if (categories.Count < 2 || areaSeries.Count == 0) {
             return;
         }
 
-        bool stacked = IsStackedAreaChart(snapshot.ChartKind) || IsPercentStackedAreaChart(snapshot.ChartKind);
-        bool percentStacked = IsPercentStackedAreaChart(snapshot.ChartKind);
+        bool stacked = areaSeries.Any(item => IsStackedAreaChart(item.Kind) || IsPercentStackedAreaChart(item.Kind));
+        bool percentStacked = areaSeries.Any(item => IsPercentStackedAreaChart(item.Kind));
+        List<OfficeChartSeries> rangeSeries = areaSeries.Select(item => item.Series).ToList();
         ValueRange range = percentStacked
-            ? GetPercentStackedSeriesRange(series, categories.Count)
+            ? GetPercentStackedSeriesRange(rangeSeries, categories.Count)
             : stacked
-                ? GetStackedSeriesRange(series, categories.Count)
+                ? GetStackedSeriesRange(rangeSeries, categories.Count)
                 : GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false);
         range = ApplyValueAxisScale(range, layout, horizontal: false);
         double step = plotWidth / (categories.Count - 1);
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
 
-        for (int s = 0; s < series.Count; s++) {
-            if (!ShouldRenderSeriesAsArea(snapshot, series[s])) {
-                continue;
-            }
-
-            OfficeColor color = GetSeriesColor(style, series, s);
-            double strokeWidth = GetSeriesStrokeWidth(series[s], 1.4D);
-            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
+        foreach ((OfficeChartSeries currentSeries, int sourceSeriesIndex, OfficeChartKind _) in areaSeries) {
+            OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
+            double strokeWidth = GetSeriesStrokeWidth(currentSeries, 1.4D);
+            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(currentSeries);
             var topPoints = new List<OfficePoint>(categories.Count);
             var bottomPoints = new List<OfficePoint>(categories.Count);
             var runCategoryIndices = new List<int>(categories.Count);
 
             for (int i = 0; i < categories.Count; i++) {
-                if (!TryGetSeriesValue(series[s], i, out double value)) {
+                if (!TryGetSeriesValue(currentSeries, i, out double value)) {
                     AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle);
-                    AddAreaRunDataLabels(drawing, layout, style, categories, series, s, runCategoryIndices, topPoints);
+                    AddAreaRunDataLabels(drawing, layout, style, categories, series, sourceSeriesIndex, runCategoryIndices, topPoints);
                     topPoints.Clear();
                     bottomPoints.Clear();
                     runCategoryIndices.Clear();
@@ -1135,7 +1133,7 @@ public static partial class OfficeChartDrawingRenderer {
             }
 
             AddAreaRun(drawing, topPoints, bottomPoints, color, strokeWidth, dashStyle);
-            AddAreaRunDataLabels(drawing, layout, style, categories, series, s, runCategoryIndices, topPoints);
+            AddAreaRunDataLabels(drawing, layout, style, categories, series, sourceSeriesIndex, runCategoryIndices, topPoints);
         }
     }
 
@@ -1188,33 +1186,31 @@ public static partial class OfficeChartDrawingRenderer {
     private static void AddLineSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
-        if (categories.Count == 0 || series.Count == 0) {
+        List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> lineSeries = GetRenderableLineSeries(snapshot);
+        if (categories.Count == 0 || lineSeries.Count == 0) {
             return;
         }
 
-        bool stacked = IsStackedLineChart(snapshot.ChartKind) || IsPercentStackedLineChart(snapshot.ChartKind);
-        bool percentStacked = IsPercentStackedLineChart(snapshot.ChartKind);
+        bool stacked = lineSeries.Any(item => IsStackedLineChart(item.Kind) || IsPercentStackedLineChart(item.Kind));
+        bool percentStacked = lineSeries.Any(item => IsPercentStackedLineChart(item.Kind));
+        List<OfficeChartSeries> rangeSeries = lineSeries.Select(item => item.Series).ToList();
         ValueRange range = percentStacked
-            ? GetPercentStackedSeriesRange(series, categories.Count)
+            ? GetPercentStackedSeriesRange(rangeSeries, categories.Count)
             : stacked
-                ? GetStackedSeriesRange(series, categories.Count)
+                ? GetStackedSeriesRange(rangeSeries, categories.Count)
                 : GetCartesianValueRange(snapshot, layout, horizontalValueAxis: false);
         range = ApplyValueAxisScale(range, layout, horizontal: false);
         double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
-        for (int s = 0; s < series.Count; s++) {
-            if (!ShouldRenderSeriesAsLine(snapshot, series[s])) {
-                continue;
-            }
-
-            OfficeColor color = GetSeriesColor(style, series, s);
-            double strokeWidth = GetSeriesStrokeWidth(series[s], 1.75D);
-            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
+        foreach ((OfficeChartSeries currentSeries, int sourceSeriesIndex, OfficeChartKind _) in lineSeries) {
+            OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
+            double strokeWidth = GetSeriesStrokeWidth(currentSeries, 1.75D);
+            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(currentSeries);
             var points = new OfficePoint[categories.Count];
             var plotted = new bool[categories.Count];
             for (int i = 0; i < categories.Count; i++) {
-                if (!TryGetSeriesValue(series[s], i, out double value)) {
+                if (!TryGetSeriesValue(currentSeries, i, out double value)) {
                     continue;
                 }
 
@@ -1228,7 +1224,7 @@ public static partial class OfficeChartDrawingRenderer {
                 plotted[i] = true;
             }
 
-            if (series[s].ConnectLine) {
+            if (currentSeries.ConnectLine) {
                 for (int i = 1; i < categories.Count; i++) {
                     if (!plotted[i - 1] || !plotted[i]) {
                         continue;
@@ -1249,29 +1245,29 @@ public static partial class OfficeChartDrawingRenderer {
                     continue;
                 }
 
-                if (layout.ShowMarkers && series[s].ShowMarkers) {
-                    OfficeColor pointColor = GetPointColor(series[s].PointColors, i, color);
-                    AddMarker(drawing, series[s], points[i], 4D, pointColor, 1D);
+                if (layout.ShowMarkers && currentSeries.ShowMarkers) {
+                    OfficeColor pointColor = GetPointColor(currentSeries.PointColors, i, color);
+                    AddMarker(drawing, currentSeries, points[i], 4D, pointColor, 1D);
                 }
 
-                double value = GetSeriesValue(series[s], i);
+                double value = GetSeriesValue(currentSeries, i);
                 AddPointDataLabel(
                     drawing,
                     layout,
                     style,
                     categories[i],
-                    series[s],
+                    currentSeries,
                     value,
                     GetDataLabelCategoryTotal(series, i),
                     points[i].X,
                     points[i].Y,
-                    s,
+                    sourceSeriesIndex,
                     i);
             }
 
             if (stacked) {
                 for (int i = 0; i < categories.Count; i++) {
-                    if (!TryGetSeriesValue(series[s], i, out double seriesValue)) {
+                    if (!TryGetSeriesValue(currentSeries, i, out double seriesValue)) {
                         continue;
                     }
 
@@ -1284,6 +1280,32 @@ public static partial class OfficeChartDrawingRenderer {
                 }
             }
         }
+    }
+
+    private static List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> GetRenderableAreaSeries(OfficeChartSnapshot snapshot) {
+        var items = new List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)>();
+        IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
+        for (int i = 0; i < series.Count; i++) {
+            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, series[i]);
+            if (!HasMixedCartesianSeriesKinds(snapshot) || IsAreaChart(kind)) {
+                items.Add((series[i], i, kind));
+            }
+        }
+
+        return items;
+    }
+
+    private static List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> GetRenderableLineSeries(OfficeChartSnapshot snapshot) {
+        var items = new List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)>();
+        IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
+        for (int i = 0; i < series.Count; i++) {
+            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, series[i]);
+            if (!HasMixedCartesianSeriesKinds(snapshot) || IsLineChart(kind)) {
+                items.Add((series[i], i, kind));
+            }
+        }
+
+        return items;
     }
 
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {

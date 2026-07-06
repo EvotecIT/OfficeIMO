@@ -509,6 +509,10 @@ namespace OfficeIMO.Word {
             string current = string.Empty;
             for (int i = 0; i < words.Count; i++) {
                 string word = words[i];
+                if (current.Length == 0 && IsMeasuredWhitespaceRun(word)) {
+                    continue;
+                }
+
                 string candidate = current + word;
                 if (measurer.MeasureWidth(candidate, style) <= contentWidth || current.Length == 0) {
                     if (measurer.MeasureWidth(candidate, style) <= contentWidth) {
@@ -520,15 +524,21 @@ namespace OfficeIMO.Word {
                     continue;
                 }
 
-                lines.Add(current);
+                lines.Add(TrimMeasuredLine(current));
                 current = string.Empty;
                 i--;
             }
 
             if (current.Length > 0) {
-                lines.Add(current);
+                lines.Add(TrimMeasuredLine(current));
             }
         }
+
+        private static string TrimMeasuredLine(string text) =>
+            text.TrimEnd(' ', '\t');
+
+        private static bool IsMeasuredWhitespaceRun(string text) =>
+            text.All(char.IsWhiteSpace);
 
         private static List<string> SplitMeasuredWords(string text) {
             var words = new List<string>();

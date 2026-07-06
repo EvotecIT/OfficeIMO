@@ -276,7 +276,7 @@ namespace OfficeIMO.PowerPoint {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
                 }
 
-                series.Add(new PowerPointChartSeries(name, values, null, chartKind, ReadSeriesColor(seriesElement, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
+                series.Add(new PowerPointChartSeries(name, values, null, chartKind, ReadSeriesColor(seriesElement, chartKind, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
             }
 
             return series.Count == 0 ? null : new PowerPointChartData(categories, series);
@@ -310,7 +310,7 @@ namespace OfficeIMO.PowerPoint {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
                 }
 
-                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList(), PowerPointChartSnapshotKind.Scatter, ReadSeriesColor(seriesElement, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
+                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList(), PowerPointChartSnapshotKind.Scatter, ReadSeriesColor(seriesElement, PowerPointChartSnapshotKind.Scatter, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
             }
 
             if (series.Count == 0 || categoryXValues == null || categoryXValues.Count == 0) {
@@ -323,10 +323,15 @@ namespace OfficeIMO.PowerPoint {
             return series.Count == 0 ? null : new PowerPointChartData(categories, series);
         }
 
-        private static OfficeColor? ReadSeriesColor(OpenXmlCompositeElement seriesElement, A.ColorScheme? colorScheme) {
+        private static OfficeColor? ReadSeriesColor(OpenXmlCompositeElement seriesElement, PowerPointChartSnapshotKind? chartKind, A.ColorScheme? colorScheme) {
             C.ChartShapeProperties? properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
             if (properties == null) {
                 return null;
+            }
+
+            OfficeColor? fillColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
+            if (IsFilledChartKind(chartKind) && fillColor.HasValue) {
+                return fillColor;
             }
 
             OfficeColor? lineColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), colorScheme);
@@ -334,8 +339,21 @@ namespace OfficeIMO.PowerPoint {
                 return lineColor;
             }
 
-            return PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
+            return fillColor;
         }
+
+        private static bool IsFilledChartKind(PowerPointChartSnapshotKind? chartKind) =>
+            chartKind == PowerPointChartSnapshotKind.ClusteredColumn ||
+            chartKind == PowerPointChartSnapshotKind.StackedColumn ||
+            chartKind == PowerPointChartSnapshotKind.StackedColumn100 ||
+            chartKind == PowerPointChartSnapshotKind.ClusteredBar ||
+            chartKind == PowerPointChartSnapshotKind.StackedBar ||
+            chartKind == PowerPointChartSnapshotKind.StackedBar100 ||
+            chartKind == PowerPointChartSnapshotKind.Area ||
+            chartKind == PowerPointChartSnapshotKind.StackedArea ||
+            chartKind == PowerPointChartSnapshotKind.StackedArea100 ||
+            chartKind == PowerPointChartSnapshotKind.Pie ||
+            chartKind == PowerPointChartSnapshotKind.Doughnut;
 
         private static double? ReadSeriesStrokeWidth(OpenXmlCompositeElement seriesElement) {
             C.ChartShapeProperties? properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();

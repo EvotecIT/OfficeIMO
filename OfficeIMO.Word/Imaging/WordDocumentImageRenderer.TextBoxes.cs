@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using V = DocumentFormat.OpenXml.Vml;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
@@ -214,7 +215,7 @@ namespace OfficeIMO.Word {
             double rotationCenterY = top + (height / 2D);
 
             List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, context);
-            if (ShouldRenderTextBoxAsRichText(richRuns)) {
+            if (ShouldRenderTextBoxAsRichText(textBox, richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double richLineHeight = Math.Max(maxFontSize * 1.25D, 12D);
                 if (drawBehindContent) {
@@ -439,14 +440,22 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private static bool ShouldRenderTextBoxAsRichText(IReadOnlyList<OfficeRichTextRun> richRuns) {
+        private static bool ShouldRenderTextBoxAsRichText(WordTextBox textBox, IReadOnlyList<OfficeRichTextRun> richRuns) {
             if (richRuns.Any(run => run.BackgroundColor.HasValue)) {
                 return true;
+            }
+
+            if (ContainsTextBoxField(textBox)) {
+                return richRuns.Count > 0;
             }
 
             OfficeRichTextRun? firstRun = richRuns.FirstOrDefault();
             return firstRun != null && richRuns.Any(run => !HasSameTextBoxRunStyle(firstRun, run));
         }
+
+        private static bool ContainsTextBoxField(WordTextBox textBox) =>
+            textBox.Content?.Descendants<W.FieldCode>().Any() == true ||
+            textBox.Content?.Descendants<W.SimpleField>().Any() == true;
 
         private static bool HasSameTextBoxRunStyle(OfficeRichTextRun left, OfficeRichTextRun right) =>
             left.FontSize.Equals(right.FontSize) &&

@@ -30,10 +30,21 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
+            bool userSpace = IsUserSpaceGradient(definition);
             double x1 = ReadGradientUnit(definition.Attribute("x1")?.Value, 0D);
             double y1 = ReadGradientUnit(definition.Attribute("y1")?.Value, 0D);
-            double x2 = ReadGradientUnit(definition.Attribute("x2")?.Value, 1D);
+            double x2 = ReadGradientUnit(definition.Attribute("x2")?.Value, userSpace ? x1 + 1D : 1D);
             double y2 = ReadGradientUnit(definition.Attribute("y2")?.Value, 0D);
+            if (userSpace && context.CurrentPaintBounds.HasValue) {
+                SvgPaintBounds bounds = context.CurrentPaintBounds.Value;
+                if (bounds.HasArea) {
+                    x1 = NormalizeUserSpaceGradientCoordinate(x1, bounds.Left, bounds.Width);
+                    y1 = NormalizeUserSpaceGradientCoordinate(y1, bounds.Top, bounds.Height);
+                    x2 = NormalizeUserSpaceGradientCoordinate(x2, bounds.Left, bounds.Width);
+                    y2 = NormalizeUserSpaceGradientCoordinate(y2, bounds.Top, bounds.Height);
+                }
+            }
+
             if (x1.Equals(x2) && y1.Equals(y2)) {
                 x2 = x1 < 1D ? 1D : 0D;
             }
@@ -205,6 +216,12 @@ namespace OfficeIMO.Visio {
 
             return percent ? parsed / 100D : parsed;
         }
+
+        private static bool IsUserSpaceGradient(XElement definition) =>
+            string.Equals(definition.Attribute("gradientUnits")?.Value, "userSpaceOnUse", StringComparison.OrdinalIgnoreCase);
+
+        private static double NormalizeUserSpaceGradientCoordinate(double value, double origin, double length) =>
+            length > 0D ? (value - origin) / length : value;
 
         private static double ReadOpacity(string? raw, double fallback) {
             if (string.IsNullOrWhiteSpace(raw) || !double.TryParse(raw, NumberStyles.Float, CultureInfo.InvariantCulture, out double parsed)) {

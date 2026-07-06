@@ -1222,19 +1222,24 @@ namespace OfficeIMO.Word {
         /// <param name="sectionProperties"></param>
         /// <param name="newSectionProperties"></param>
         private static void CopySectionProperties(SectionProperties sectionProperties, SectionProperties newSectionProperties) {
-            if (newSectionProperties.ChildElements.Count == 0) {
+            bool canMoveInheritedSectionParts = newSectionProperties.ChildElements.Count == 0;
+            if (canMoveInheritedSectionParts || HasOnlySectionType(newSectionProperties)) {
                 var listSectionEntries = sectionProperties.ChildElements.ToList();
                 foreach (var element in listSectionEntries) {
                     if (element is HeaderReference) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                            sectionProperties.RemoveChild(element);
+                        }
                     } else if (element is FooterReference) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                            sectionProperties.RemoveChild(element);
+                        }
                     } else if (element is PageSize) {
-                        newSectionProperties.Append(element.CloneNode(true));
+                        AppendMissingSectionElement<PageSize>(newSectionProperties, element);
                     } else if (element is PageMargin) {
-                        newSectionProperties.Append(element.CloneNode(true));
+                        AppendMissingSectionElement<PageMargin>(newSectionProperties, element);
                         //sectionProperties.RemoveChild(element);
                         //} else if (element is Columns) {
                         //    newSectionProperties.Append(element.CloneNode(true));
@@ -1243,25 +1248,44 @@ namespace OfficeIMO.Word {
                         //} else if (element is SectionType) {
                         //    newSectionProperties.Append(element.CloneNode(true));
                     } else if (element is FootnoteProperties footnoteProps) {
-                        var cloned = (FootnoteProperties)footnoteProps.CloneNode(true);
-                        cloned.RemoveAllChildren<NumberingRestart>();
-                        newSectionProperties.Append(cloned);
-                        footnoteProps.RemoveAllChildren<NumberingRestart>();
+                        if (canMoveInheritedSectionParts) {
+                            var cloned = (FootnoteProperties)footnoteProps.CloneNode(true);
+                            cloned.RemoveAllChildren<NumberingRestart>();
+                            newSectionProperties.Append(cloned);
+                            footnoteProps.RemoveAllChildren<NumberingRestart>();
+                        }
                     } else if (element is EndnoteProperties endnoteProps) {
-                        var cloned = (EndnoteProperties)endnoteProps.CloneNode(true);
-                        cloned.RemoveAllChildren<NumberingRestart>();
-                        newSectionProperties.Append(cloned);
-                        endnoteProps.RemoveAllChildren<NumberingRestart>();
+                        if (canMoveInheritedSectionParts) {
+                            var cloned = (EndnoteProperties)endnoteProps.CloneNode(true);
+                            cloned.RemoveAllChildren<NumberingRestart>();
+                            newSectionProperties.Append(cloned);
+                            endnoteProps.RemoveAllChildren<NumberingRestart>();
+                        }
                     } else if (element is TitlePage) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                            sectionProperties.RemoveChild(element);
+                        }
                     } else {
-                        newSectionProperties.Append(element.CloneNode(true));
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                        }
                         //throw new NotImplementedException("This isn't implemented yet?");
                     }
                 }
                 //sectionProperties.RemoveAllChildren();
                 //newSectionProperties.Append(listSectionEntries);
+            }
+        }
+
+        private static bool HasOnlySectionType(SectionProperties sectionProperties) =>
+            sectionProperties.ChildElements.Count > 0 &&
+            sectionProperties.ChildElements.All(element => element is SectionType);
+
+        private static void AppendMissingSectionElement<TElement>(SectionProperties sectionProperties, OpenXmlElement source)
+            where TElement : OpenXmlElement {
+            if (!sectionProperties.Elements<TElement>().Any()) {
+                sectionProperties.Append(source.CloneNode(true));
             }
         }
 
