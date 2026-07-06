@@ -8,6 +8,176 @@ internal static partial class CsvParser
     private const int TextStandardQuotedFieldSpanCapacity = 64;
     private const int TextQuotedPrefixReuseMinimumDelimiterCount = 4;
 
+    private static bool TryReadTextQuotedRecordFieldSpansFromPrefix<TVisitor>(
+        ReadOnlySpan<char> text,
+        char delimiter,
+        bool emitFields,
+        int recordIndex,
+        ReadOnlySpan<int> delimiterIndexesBeforeQuote,
+        int quoteIndex,
+        ref int position,
+        ref TVisitor fieldVisitor,
+        ref char[]? scratch,
+        out int fieldCount,
+        out int firstFieldLength)
+        where TVisitor : struct, ICsvFieldSpanVisitor
+    {
+        fieldCount = 0;
+        firstFieldLength = 0;
+        var start = position;
+        var fieldStart = start;
+
+        foreach (var delimiterIndex in delimiterIndexesBeforeQuote)
+        {
+            if (delimiterIndex < fieldStart || delimiterIndex >= quoteIndex)
+            {
+                return false;
+            }
+
+            fieldStart = delimiterIndex + 1;
+        }
+
+        if (fieldStart != quoteIndex)
+        {
+            return false;
+        }
+
+        fieldStart = start;
+        foreach (var delimiterIndex in delimiterIndexesBeforeQuote)
+        {
+            VisitTextField(text.Slice(fieldStart, delimiterIndex - fieldStart), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+            fieldCount++;
+            fieldStart = delimiterIndex + 1;
+        }
+
+        position = quoteIndex;
+        if (!TryVisitTextQuotedField(text, delimiter, trim: false, emitFields, recordIndex, fieldCount, ref position, ref fieldVisitor, ref scratch, out var quotedLength))
+        {
+            throw new CsvParseException("Unterminated quoted field.", 0);
+        }
+
+        if (fieldCount == 0)
+        {
+            firstFieldLength = quotedLength;
+        }
+
+        fieldCount++;
+        var pendingTrailingField = false;
+        if (!TryConsumeTextQuotedFieldSeparator(text, delimiter, ref position, ref pendingTrailingField, out var recordEnded))
+        {
+            throw new CsvParseException("Unexpected character after CSV field.", 0);
+        }
+
+        if (recordEnded)
+        {
+            return true;
+        }
+
+        while (position < text.Length)
+        {
+            var value = text[position];
+            if (value == delimiter)
+            {
+                if (pendingTrailingField)
+                {
+                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+                    fieldCount++;
+                }
+
+                position++;
+                pendingTrailingField = true;
+                continue;
+            }
+
+            if (value == '\r' || value == '\n')
+            {
+                if (pendingTrailingField)
+                {
+                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+                    fieldCount++;
+                }
+
+                ConsumeTextLineSeparator(text, ref position);
+                return true;
+            }
+
+            pendingTrailingField = false;
+            if (value == '"')
+            {
+                if (!TryVisitTextQuotedField(text, delimiter, trim: false, emitFields, recordIndex, fieldCount, ref position, ref fieldVisitor, ref scratch, out quotedLength))
+                {
+                    throw new CsvParseException("Unterminated quoted field.", 0);
+                }
+
+                if (fieldCount == 0)
+                {
+                    firstFieldLength = quotedLength;
+                }
+
+                if (!TryConsumeTextQuotedFieldSeparator(text, delimiter, ref position, ref pendingTrailingField, out recordEnded))
+                {
+                    throw new CsvParseException("Unexpected character after CSV field.", 0);
+                }
+
+                fieldCount++;
+                if (recordEnded)
+                {
+                    return true;
+                }
+
+                continue;
+            }
+            else
+            {
+                var field = ReadTextUnquotedField(text, delimiter, trim: false, ref position);
+                VisitTextField(field, emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+            }
+
+            fieldCount++;
+            pendingTrailingField = false;
+        }
+
+        if (pendingTrailingField)
+        {
+            VisitTextField(text.Slice(text.Length, 0), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+            fieldCount++;
+        }
+
+        return true;
+    }
+
+    private static bool TryConsumeTextQuotedFieldSeparator(
+        ReadOnlySpan<char> text,
+        char delimiter,
+        ref int position,
+        ref bool pendingTrailingField,
+        out bool recordEnded)
+    {
+        recordEnded = false;
+        if (position >= text.Length)
+        {
+            recordEnded = true;
+            return true;
+        }
+
+        var value = text[position];
+        if (value == delimiter)
+        {
+            position++;
+            pendingTrailingField = true;
+            return true;
+        }
+
+        if (value == '\r' || value == '\n')
+        {
+            ConsumeTextLineSeparator(text, ref position);
+            recordEnded = true;
+            return true;
+        }
+
+        return false;
+    }
+
     private static bool TryReadTextStandardQuotedRecordFieldSpansFromPrefix<TVisitor>(
         ReadOnlySpan<char> text,
         char delimiter,

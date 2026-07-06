@@ -253,7 +253,19 @@ internal static partial class CsvParser
                     encounteredQuote = true;
                     var quoteIndex = pos + terminalOffset;
                     if (delimiterCount >= TextQuotedPrefixReuseMinimumDelimiterCount &&
-                        TryReadTextStandardQuotedRecordFieldSpansFromPrefix(
+                        (TryReadTextQuotedRecordFieldSpansFromPrefix(
+                            text,
+                            delimiter,
+                            emitFields,
+                            recordIndex,
+                            delimiterIndexes.Slice(0, delimiterCount),
+                            quoteIndex,
+                            ref position,
+                            ref fieldVisitor,
+                            ref scratch,
+                            out fieldCount,
+                            out firstFieldLength) ||
+                         TryReadTextStandardQuotedRecordFieldSpansFromPrefix(
                             text,
                             delimiter,
                             allowEmpty,
@@ -265,7 +277,7 @@ internal static partial class CsvParser
                             ref fieldVisitor,
                             ref scratch,
                             out fieldCount,
-                            out firstFieldLength))
+                            out firstFieldLength)))
                     {
                         return true;
                     }

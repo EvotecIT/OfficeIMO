@@ -506,6 +506,31 @@ public class CsvStreamingTests
         Assert.Equal(new[] { "0:0:Alpha", "0:1:one", "0:2:1" }, fields);
     }
 
+    [Fact]
+    public void ReadFieldSpansFromText_ReadsEmptyFieldAfterQuotedField()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Id,Name,Department,Region,Note,Empty,Value\n1,Alpha,Ops,EU,\"one\",,1\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(
+            new[] { "0:0:1", "0:1:Alpha", "0:2:Ops", "0:3:EU", "0:4:one", "0:5:", "0:6:1" },
+            fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_RejectsUnexpectedCharacterAfterQuotedField()
+    {
+        Assert.Throws<CsvParseException>(() =>
+            CsvDocument.ReadFieldSpansFromText(
+                "Id,Name,Department,Region,Note,Value\n1,Alpha,Ops,EU,\"one\"x,1\n",
+                static (_, _, _) => { },
+                new CsvLoadOptions { SkipInitialRecords = 1 }));
+    }
+
 #endif
 
     [Fact]
