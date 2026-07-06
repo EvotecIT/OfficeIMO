@@ -43,6 +43,7 @@ public sealed partial class PdfOptions {
         }
 
         if ((features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
+            AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.TimesRoman);
             TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback, reservedFontSlots: reservedSlots);
         }
 

@@ -137,16 +137,28 @@ public static partial class MarkdownPdfConverterExtensions {
             fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
         }
 
-        pdfOptions.UseTextFallbacks(
-            fallbackFeatures,
-            CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots),
-            options.AllowSystemFontEmbedding);
+        PdfCore.PdfTextFallbackFeatures documentAndMonospaceFallbacks =
+            fallbackFeatures & (PdfCore.PdfTextFallbackFeatures.DocumentFont | PdfCore.PdfTextFallbackFeatures.MonospaceFont);
+        if (documentAndMonospaceFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+            pdfOptions.UseTextFallbacks(
+                documentAndMonospaceFallbacks,
+                CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: false),
+                options.AllowSystemFontEmbedding);
+        }
+
+        if ((fallbackFeatures & PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
+            pdfOptions.UseTextFallbacks(
+                PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts,
+                CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: true),
+                options.AllowSystemFontEmbedding);
+        }
     }
 
-    private static IReadOnlyList<PdfCore.PdfStandardFont> CreateMarkdownReservedFontSlots(PdfCore.PdfOptions pdfOptions, bool includeDocumentFontSlots) {
-        var slots = new List<PdfCore.PdfStandardFont> {
-            PdfCore.PdfStandardFont.Courier
-        };
+    private static IReadOnlyList<PdfCore.PdfStandardFont> CreateMarkdownReservedFontSlots(PdfCore.PdfOptions pdfOptions, bool includeDocumentFontSlots, bool reserveCourier) {
+        var slots = new List<PdfCore.PdfStandardFont>();
+        if (reserveCourier) {
+            slots.Add(PdfCore.PdfStandardFont.Courier);
+        }
 
         if (includeDocumentFontSlots) {
             slots.Add(pdfOptions.DefaultFont);

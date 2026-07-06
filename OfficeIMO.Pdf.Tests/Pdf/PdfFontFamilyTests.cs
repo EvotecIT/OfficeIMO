@@ -100,6 +100,28 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_UseTextFallbacksDoesNotAssignAutomaticFallbacksToTimesSlot() {
+        if (!DefaultTextSymbolFallbackFontIsAvailable()) {
+            return;
+        }
+
+        var options = new PdfOptions {
+            DefaultFont = PdfStandardFont.TimesRoman,
+            HeaderFont = PdfStandardFont.TimesRoman,
+            FooterFont = PdfStandardFont.TimesRoman
+        }.UseTextFallbacks(PdfTextFallbackFeatures.SymbolAndEmojiFonts);
+
+        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
+        if (fallbackSet == null) {
+            return;
+        }
+
+        Assert.DoesNotContain(
+            PdfStandardFont.TimesRoman,
+            fallbackSet.FontSlots.Select(PdfStandardFontMapper.GetFontFamily));
+    }
+
+    [Fact]
     public void PdfOptions_TryUseDefaultDocumentFontFallbackEmbedsUnicodeCapableGeneratedText() {
         var options = new PdfOptions {
             CompressContentStreams = false

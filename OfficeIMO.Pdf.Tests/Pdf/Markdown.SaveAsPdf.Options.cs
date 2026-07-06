@@ -91,6 +91,18 @@ public class MarkdownSaveAsPdfOptionsTests {
     }
 
     [Fact]
+    public void ToPdfDocument_Markdown_TextFallbacksEmbedMonospaceBeforeReservingCourierForSymbols() {
+        var probe = new PdfCore.PdfOptions();
+        if (!probe.TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: true)) {
+            return;
+        }
+
+        PdfCore.PdfDocument document = "`Zażółć` text".ToPdfDocument(new MarkdownPdfSaveOptions());
+
+        Assert.True(document.Options.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.Courier));
+    }
+
+    [Fact]
     public void ToPdfDocument_Markdown_DefaultsUseSharedUnicodeFallbackWhenAvailable() {
         var probe = new PdfCore.PdfOptions();
         if (!probe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) {
