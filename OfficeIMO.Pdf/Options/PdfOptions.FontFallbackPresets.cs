@@ -12,6 +12,18 @@ public sealed partial class PdfOptions {
     /// <param name="features">Fallback groups to enable. The default enables document, monospace, symbol, and emoji fallbacks.</param>
     /// <returns>The current options for fluent chaining.</returns>
     public PdfOptions UseTextFallbacks(PdfTextFallbackFeatures features = PdfTextFallbackFeatures.Default) {
+        return UseTextFallbacks(features, Array.Empty<PdfStandardFont>(), allowSystemFontEmbedding: true);
+    }
+
+    internal PdfOptions UseTextFallbacks(
+        PdfTextFallbackFeatures features,
+        IEnumerable<PdfStandardFont> reservedFontSlots,
+        bool allowSystemFontEmbedding) {
+        Guard.NotNull(reservedFontSlots, nameof(reservedFontSlots));
+        if (!allowSystemFontEmbedding || features == PdfTextFallbackFeatures.None) {
+            return this;
+        }
+
         if ((features & PdfTextFallbackFeatures.DocumentFont) != 0) {
             TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
         }
@@ -21,7 +33,7 @@ public sealed partial class PdfOptions {
         }
 
         if ((features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
-            TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback);
+            TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback, reservedFontSlots: reservedFontSlots);
         }
 
         return this;
@@ -47,6 +59,13 @@ public sealed partial class PdfOptions {
     /// <param name="maxFallbackFonts">Maximum number of installed fallback font families to register.</param>
     /// <returns>True when fallback fonts are already configured or at least one installed fallback was registered.</returns>
     public bool TryRegisterEmbeddedFontFallbacksFromSystem(string? familyNames, int maxFallbackFonts = 2) {
+        return TryRegisterEmbeddedFontFallbacksFromSystem(familyNames, maxFallbackFonts, Array.Empty<PdfStandardFont>());
+    }
+
+    internal bool TryRegisterEmbeddedFontFallbacksFromSystem(
+        string? familyNames,
+        int maxFallbackFonts = 2,
+        IEnumerable<PdfStandardFont>? reservedFontSlots = null) {
         if (maxFallbackFonts <= 0) {
             throw new ArgumentOutOfRangeException(nameof(maxFallbackFonts), "Maximum fallback font count must be positive.");
         }
@@ -80,7 +99,7 @@ public sealed partial class PdfOptions {
             return false;
         }
 
-        PdfStandardFont[] slots = GetAvailableEmbeddedFallbackFontSlots(candidates.Count, Array.Empty<PdfStandardFont>()).ToArray();
+        PdfStandardFont[] slots = GetAvailableEmbeddedFallbackFontSlots(candidates.Count, reservedFontSlots ?? Array.Empty<PdfStandardFont>()).ToArray();
         if (slots.Length == 0) {
             return false;
         }

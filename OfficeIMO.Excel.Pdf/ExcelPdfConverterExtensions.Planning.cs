@@ -11,7 +11,7 @@ namespace OfficeIMO.Excel.Pdf {
             preserveConfiguredFontSlots = options.PdfOptions != null;
 
             if (!string.IsNullOrWhiteSpace(options.FontFamily) &&
-                TryApplyPdfFontFamily(options.FontFamily, pdfOptions)) {
+                TryApplyPdfFontFamily(options.FontFamily, pdfOptions, options.AllowSystemFontEmbedding)) {
                 preserveConfiguredFontSlots = true;
             }
 
@@ -26,25 +26,35 @@ namespace OfficeIMO.Excel.Pdf {
             return pdfOptions;
         }
 
-        private static void ApplyDefaultEmbeddedFontFallback(PdfCore.PdfOptions pdfOptions, ExcelPdfSaveOptions options, bool preserveConfiguredFontSlots) {
-            if (options.PdfOptions == null &&
-                !preserveConfiguredFontSlots &&
-                !pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
-                pdfOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true);
-            }
-        }
-
-        private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool requireEmbeddedFont = false) {
-            return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont: true, requireEmbeddedFont: requireEmbeddedFont);
-        }
-
-        private static void RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelPdfSaveOptions options, bool preserveConfiguredFontSlots) {
-            if (!options.UseWorksheetCellStyles) {
+        private static void ApplyTextFallbacks(
+            PdfCore.PdfOptions pdfOptions,
+            ExcelPdfSaveOptions options,
+            bool preserveConfiguredFontSlots,
+            IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots) {
+            if (!options.AllowSystemFontEmbedding ||
+                options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
                 return;
             }
 
-            var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
+            if (preserveConfiguredFontSlots || pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
+                fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
+            }
+
+            pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, options.AllowSystemFontEmbedding);
+        }
+
+        private static bool TryApplyPdfFontFamily(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
+            return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
+        }
+
+        private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelPdfSaveOptions options, bool preserveConfiguredFontSlots) {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
+            if (!options.UseWorksheetCellStyles) {
+                return registeredFontSlots;
+            }
+
+            var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             foreach (WorksheetPdfExportPlan plan in exportPlans) {
                 ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
                 if (styles == null) {
@@ -55,15 +65,17 @@ namespace OfficeIMO.Excel.Pdf {
                 int columns = styles.GetLength(1);
                 for (int row = 0; row < rows; row++) {
                     for (int column = 0; column < columns; column++) {
-                        RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots);
+                        RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
                     }
                 }
             }
+
+            return registeredFontSlots;
         }
 
-        private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots) {
+        private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool embedSystemFont) {
             if (PdfCore.PdfOptions.TryAddOfficeFontFamilyKey(familyName, registeredFamilies, normalizeKey: null, out string trimmedFamilyName)) {
-                pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, embedSystemFont: true, out _);
+                pdfOptions.TryRegisterMappedOfficeFontFamily(trimmedFamilyName, registeredFontSlots, embedSystemFont, out _);
             }
         }
 

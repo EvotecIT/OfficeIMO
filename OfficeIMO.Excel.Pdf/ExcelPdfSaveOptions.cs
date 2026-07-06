@@ -32,6 +32,16 @@ namespace OfficeIMO.Excel.Pdf {
         public string? FontFamily { get; set; }
 
         /// <summary>
+        /// When true, Excel PDF export may load installed system fonts to embed them into the generated PDF. Defaults to true to preserve existing workbook fidelity.
+        /// </summary>
+        public bool AllowSystemFontEmbedding { get; set; } = true;
+
+        /// <summary>
+        /// Built-in generated-text fallback groups applied by the Excel PDF converter.
+        /// </summary>
+        public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
+
+        /// <summary>
         /// Optional first-party page size in PDF points.
         /// </summary>
         public PdfCore.PageSize? PageSize { get; set; }
@@ -173,6 +183,62 @@ namespace OfficeIMO.Excel.Pdf {
         /// Text used for empty worksheet cells in the exported PDF table. Defaults to an empty string.
         /// </summary>
         public string EmptyCellText { get; set; } = string.Empty;
+
+        /// <summary>
+        /// Applies a high-level export profile by setting the Excel PDF options that correspond to that profile.
+        /// </summary>
+        public ExcelPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+            switch (profile) {
+                case PdfCore.PdfExportProfile.Faithful:
+                    RespectWorkbookSheetVisibility = true;
+                    UseWorksheetPrintAreas = true;
+                    UseWorksheetPageSetup = true;
+                    UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPageBreaks = true;
+                    UseWorksheetHeadersAndFooters = true;
+                    UseWorksheetHeaderFooterImages = true;
+                    UseWorksheetCellStyles = true;
+                    UseWorksheetHyperlinks = true;
+                    UseWorksheetImages = true;
+                    UseWorksheetCharts = true;
+                    UseWorksheetMergedCells = true;
+                    UseWorksheetColumnWidths = true;
+                    UseWorksheetRowHeights = true;
+                    RespectWorksheetHiddenRowsAndColumns = true;
+                    IncludeSheetHeadings = true;
+                    break;
+                case PdfCore.PdfExportProfile.Lightweight:
+                    UseWorksheetHeaderFooterImages = false;
+                    UseWorksheetImages = false;
+                    UseWorksheetCharts = false;
+                    UseWorksheetHyperlinks = false;
+                    UseWorksheetCellStyles = true;
+                    IncludeSheetHeadings = true;
+                    break;
+                case PdfCore.PdfExportProfile.PrintReady:
+                    UseWorksheetPrintAreas = true;
+                    UseWorksheetPageSetup = true;
+                    UseWorksheetPrintTitleRows = true;
+                    UseWorksheetPageBreaks = true;
+                    UseWorksheetHeadersAndFooters = true;
+                    RespectWorksheetHiddenRowsAndColumns = true;
+                    IncludeSheetHeadings = false;
+                    break;
+                case PdfCore.PdfExportProfile.TextOnly:
+                    UseWorksheetHeaderFooterImages = false;
+                    UseWorksheetImages = false;
+                    UseWorksheetCharts = false;
+                    UseWorksheetHyperlinks = false;
+                    UseWorksheetCellStyles = false;
+                    UseWorksheetMergedCells = true;
+                    IncludeSheetHeadings = true;
+                    break;
+                default:
+                    throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");
+            }
+
+            return this;
+        }
 
         internal void ResetExportState() {
             Warnings.Clear();

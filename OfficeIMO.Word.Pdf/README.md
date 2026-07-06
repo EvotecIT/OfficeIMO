@@ -139,7 +139,7 @@ The semantic import path preserves document metadata, page breaks, headings, par
 
 ## Options and diagnostics
 
-Use `PdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, or table-border fallback. Keep `PdfSaveOptions.Warnings` and `PdfSaveOptions.ConversionReport` visible in wrappers and user interfaces; unsupported Word features should become actionable diagnostics instead of silent README promises.
+Use `PdfSaveOptions` when callers need to override page geometry, metadata, page-number behavior, font family, table-border fallback, profile presets, or text fallback policy. `TextFallbacks` uses the shared `PdfTextFallbackFeatures` enum; set `AllowSystemFontEmbedding = true` when Word export may embed installed host fonts for Unicode, symbols, and emoji. Keep `PdfSaveOptions.Warnings` and `PdfSaveOptions.ConversionReport` visible in wrappers and user interfaces; unsupported Word features should become actionable diagnostics instead of silent README promises.
 
 ## Boundaries
 

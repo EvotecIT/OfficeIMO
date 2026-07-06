@@ -30,8 +30,7 @@ namespace OfficeIMO.Word.Pdf {
                                                 options?.PdfOptions != null;
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = RegisterNativeDocumentFonts(document, pdfOptions, preserveConfiguredFontSlots, allowSystemFontEmbedding, nativeFontMap);
             RegisterNativeThemeStyleFonts(document, pdfOptions, registeredFontSlots, allowSystemFontEmbedding, nativeFontMap);
-            ApplyNativeFallbackFont(options, pdfOptions, preserveConfiguredFontSlots, allowSystemFontEmbedding);
-            RegisterNativeEmbeddedTextFallbacks(pdfOptions, registeredFontSlots, allowSystemFontEmbedding);
+            ApplyNativeTextFallbacks(options, pdfOptions, registeredFontSlots, preserveConfiguredFontSlots, allowSystemFontEmbedding);
             pdfOptions.BackgroundColor = ParseNativeColor(document.Background?.Color);
             pdfOptions.CreateOutlineFromHeadings = true;
             ApplyNativeBiDiViewerPreferences(document, pdfOptions);
@@ -112,51 +111,30 @@ namespace OfficeIMO.Word.Pdf {
             return false;
         }
 
-        private static void ApplyNativeFallbackFont(PdfSaveOptions? options, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots, bool allowSystemFontEmbedding) {
-            if (options?.PdfOptions == null &&
-                allowSystemFontEmbedding &&
-                !preserveConfiguredFontSlots &&
-                !pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
-                pdfOptions.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true);
+        private static void ApplyNativeTextFallbacks(
+            PdfSaveOptions? options,
+            PdfCore.PdfOptions pdfOptions,
+            IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots,
+            bool preserveConfiguredFontSlots,
+            bool allowSystemFontEmbedding) {
+            if (options == null ||
+                !allowSystemFontEmbedding ||
+                options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
+                return;
+            }
+
+            PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
+            if (preserveConfiguredFontSlots || pdfOptions.HasEmbeddedStandardFontFamily(pdfOptions.DefaultFont)) {
+                fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
+            }
+
+            if (fallbackFeatures != PdfCore.PdfTextFallbackFeatures.None) {
+                pdfOptions.UseTextFallbacks(fallbackFeatures, reservedFontSlots, allowSystemFontEmbedding);
             }
         }
 
         private static bool TryApplyNativeDefaultFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, bool embedSystemFont, bool requireEmbeddedFont = false) {
             return pdfOptions.TryUseOfficeFontFamily(familyName, embedSystemFont, requireEmbeddedFont);
-        }
-
-        private static void RegisterNativeEmbeddedTextFallbacks(PdfCore.PdfOptions pdfOptions, IEnumerable<PdfCore.PdfStandardFont> reservedFontSlots, bool allowSystemFontEmbedding) {
-            if (!allowSystemFontEmbedding ||
-                pdfOptions.EmbeddedFontFallbacks != null) {
-                return;
-            }
-
-            var candidates = new List<PdfCore.PdfEmbeddedFontFallbackCandidate>();
-            foreach (string familyName in new[] { "Segoe UI Symbol", "Segoe UI Emoji", "DejaVu Sans", "Arial" }) {
-                if (candidates.Count == 2) {
-                    break;
-                }
-
-                if (PdfCore.PdfEmbeddedFontFamily.TryFromSystem(familyName, out PdfCore.PdfEmbeddedFontFamily? family) &&
-                    family != null) {
-                    candidates.Add(new PdfCore.PdfEmbeddedFontFallbackCandidate(family.FamilyName, family.Regular));
-                }
-            }
-
-            if (candidates.Count == 0) {
-                return;
-            }
-
-            PdfCore.PdfStandardFont[] slots = pdfOptions.GetAvailableEmbeddedFallbackFontSlots(candidates.Count, reservedFontSlots).ToArray();
-            if (slots.Length == 0) {
-                return;
-            }
-
-            if (slots.Length < candidates.Count) {
-                candidates = candidates.Take(slots.Length).ToList();
-            }
-
-            pdfOptions.RegisterEmbeddedFontFallbacks(new PdfCore.PdfEmbeddedFontFallbackSet(candidates, slots));
         }
 
         private static HashSet<PdfCore.PdfStandardFont> RegisterNativeDocumentFonts(WordDocument document, PdfCore.PdfOptions pdfOptions, bool preserveConfiguredFontSlots, bool allowSystemFontEmbedding, NativeFontMap nativeFontMap) {

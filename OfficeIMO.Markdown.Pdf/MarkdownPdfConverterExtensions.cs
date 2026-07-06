@@ -80,13 +80,13 @@ public static partial class MarkdownPdfConverterExtensions {
             pdfOptions.TryUseOfficeFontFamily(options.FontFamily);
         }
 
-        if (options.PdfOptions == null && options.UseDefaultTextFallbacks) {
-            PdfCore.PdfTextFallbackFeatures fallbackFeatures = PdfCore.PdfTextFallbackFeatures.Default;
+        if (options.TextFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
+            PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
             if (hasExplicitFontFamily) {
                 fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
             }
 
-            pdfOptions.UseTextFallbacks(fallbackFeatures);
+            pdfOptions.UseTextFallbacks(fallbackFeatures, Array.Empty<PdfCore.PdfStandardFont>(), options.AllowSystemFontEmbedding);
         }
 
         if (options.CreateOutlineFromHeadings) {

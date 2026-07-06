@@ -13,6 +13,16 @@ public sealed class PowerPointPdfSaveOptions {
     /// <summary>Optional PowerPoint-style font family used as the first-party PDF default font.</summary>
     public string? FontFamily { get; set; }
 
+    /// <summary>
+    /// When true, PowerPoint PDF export may load installed system fonts to embed them into the generated PDF. Defaults to true to preserve existing presentation fidelity.
+    /// </summary>
+    public bool AllowSystemFontEmbedding { get; set; } = true;
+
+    /// <summary>
+    /// Built-in generated-text fallback groups applied by the PowerPoint PDF converter.
+    /// </summary>
+    public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
+
     /// <summary>When true, supported slide pictures are embedded through the shared PDF image pipeline. Defaults to true.</summary>
     public bool IncludePictures { get; set; } = true;
 
@@ -63,6 +73,52 @@ public sealed class PowerPointPdfSaveOptions {
 
     /// <summary>Optional shared chart layout applied to supported slide chart snapshots.</summary>
     public DrawingCore.OfficeChartLayout? ChartLayout { get; set; }
+
+    /// <summary>
+    /// Applies a high-level export profile by setting the PowerPoint PDF options that correspond to that profile.
+    /// </summary>
+    public PowerPointPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+        switch (profile) {
+            case PdfCore.PdfExportProfile.Faithful:
+                IncludePictures = true;
+                IncludeAutoShapes = true;
+                IncludeTextBoxes = true;
+                IncludeSlideBackgrounds = true;
+                IncludeTables = true;
+                IncludeCharts = true;
+                IncludeHiddenSlides = false;
+                break;
+            case PdfCore.PdfExportProfile.Lightweight:
+                IncludePictures = false;
+                IncludeAutoShapes = true;
+                IncludeTextBoxes = true;
+                IncludeSlideBackgrounds = false;
+                IncludeTables = true;
+                IncludeCharts = false;
+                break;
+            case PdfCore.PdfExportProfile.PrintReady:
+                IncludePictures = true;
+                IncludeAutoShapes = true;
+                IncludeTextBoxes = true;
+                IncludeSlideBackgrounds = true;
+                IncludeTables = true;
+                IncludeCharts = true;
+                IncludeHiddenSlides = false;
+                break;
+            case PdfCore.PdfExportProfile.TextOnly:
+                IncludePictures = false;
+                IncludeAutoShapes = false;
+                IncludeTextBoxes = true;
+                IncludeSlideBackgrounds = false;
+                IncludeTables = true;
+                IncludeCharts = false;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");
+        }
+
+        return this;
+    }
 
     /// <summary>Warnings recorded during the latest export.</summary>
     public IList<PowerPointPdfExportWarning> Warnings { get; } = new List<PowerPointPdfExportWarning>();

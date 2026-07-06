@@ -63,12 +63,16 @@ presentation.SaveAsPdf(stream);
 ```csharp
 using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
+using OfficeIMO.Pdf;
 
 using var presentation = PowerPointPresentation.Open("complex-deck.pptx");
 var options = new PowerPointPdfSaveOptions {
     IncludeCharts = true,
     IncludeAutoShapes = true
-};
+}.UseProfile(PdfExportProfile.Faithful);
+
+options.TextFallbacks = PdfTextFallbackFeatures.Default;
+options.AllowSystemFontEmbedding = true;
 
 var result = presentation.TrySaveAsPdf("complex-deck.pdf", options);
 if (!result.Succeeded) {
@@ -80,6 +84,8 @@ if (!result.Succeeded) {
 foreach (var warning in options.ConversionReport.Warnings) {
     Console.WriteLine($"{warning.Source}: {warning.Message}");
 }
+
+options.ConversionReport.RequireNoErrorWarnings();
 ```
 
 ## What it maps
@@ -88,6 +94,7 @@ foreach (var warning in options.ConversionReport.Warnings) {
 - Slide backgrounds, text boxes, supported pictures, supported tables, supported charts, and basic auto-shapes.
 - Text box fill, outline, margins, font defaults, alignment, vertical anchoring, rich runs, and hyperlinks.
 - Supported JPEG/PNG pictures through the shared PDF image pipeline.
+- Profile presets through `PowerPointPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
 - Conversion warnings through `PowerPointPdfSaveOptions.Warnings` and `PowerPointPdfSaveOptions.ConversionReport`.
 
 ## PDF table import

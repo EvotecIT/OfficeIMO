@@ -18,10 +18,24 @@ public sealed class MarkdownPdfSaveOptions {
     public string? FontFamily { get; set; }
 
     /// <summary>
-    /// When true and the converter creates the PDF options, applies OfficeIMO's default document, monospace, symbol, and emoji text fallbacks.
-    /// Set to false only when exact standard-font output is required.
+    /// Built-in generated-text fallback groups applied by the Markdown PDF converter. Set to <see cref="PdfCore.PdfTextFallbackFeatures.None"/> for exact standard-font output.
     /// </summary>
-    public bool UseDefaultTextFallbacks { get; set; } = true;
+    public PdfCore.PdfTextFallbackFeatures TextFallbacks { get; set; } = PdfCore.PdfTextFallbackFeatures.Default;
+
+    /// <summary>
+    /// When true, Markdown PDF export may load installed system fonts to cover Unicode, symbol, and emoji fallback runs.
+    /// Defaults to true so Markdown text can render common Unicode content without caller preprocessing.
+    /// </summary>
+    public bool AllowSystemFontEmbedding { get; set; } = true;
+
+    /// <summary>
+    /// Compatibility shortcut for enabling or disabling the default text fallback preset. Prefer <see cref="TextFallbacks"/> for new code.
+    /// </summary>
+    [Obsolete("Use TextFallbacks instead.")]
+    public bool UseDefaultTextFallbacks {
+        get => TextFallbacks != PdfCore.PdfTextFallbackFeatures.None;
+        set => TextFallbacks = value ? PdfCore.PdfTextFallbackFeatures.Default : PdfCore.PdfTextFallbackFeatures.None;
+    }
 
     /// <summary>Markdown reader options used by string and file overloads.</summary>
     public MarkdownReaderOptions? ReaderOptions { get; set; }
@@ -142,6 +156,45 @@ public sealed class MarkdownPdfSaveOptions {
 
             _defaultImageHeight = value;
         }
+    }
+
+    /// <summary>
+    /// Applies a high-level export profile by setting the Markdown PDF options that correspond to that profile.
+    /// </summary>
+    public MarkdownPdfSaveOptions UseProfile(PdfCore.PdfExportProfile profile) {
+        switch (profile) {
+            case PdfCore.PdfExportProfile.Faithful:
+                IncludeDataUriImages = true;
+                IncludeLocalImages = true;
+                ApplyWordLikeTheme = true;
+                CreateOutlineFromHeadings = true;
+                FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader;
+                break;
+            case PdfCore.PdfExportProfile.Lightweight:
+                IncludeDataUriImages = false;
+                IncludeLocalImages = false;
+                RemoteImageResolver = null;
+                ApplyWordLikeTheme = true;
+                CreateOutlineFromHeadings = true;
+                break;
+            case PdfCore.PdfExportProfile.PrintReady:
+                IncludeDataUriImages = true;
+                ApplyWordLikeTheme = true;
+                CreateOutlineFromHeadings = true;
+                FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.DocumentHeader;
+                break;
+            case PdfCore.PdfExportProfile.TextOnly:
+                IncludeDataUriImages = false;
+                IncludeLocalImages = false;
+                RemoteImageResolver = null;
+                ApplyWordLikeTheme = false;
+                FrontMatterRenderMode = MarkdownPdfFrontMatterRenderMode.Hidden;
+                break;
+            default:
+                throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unsupported PDF export profile.");
+        }
+
+        return this;
     }
 
     /// <summary>Warnings recorded during the latest export.</summary>

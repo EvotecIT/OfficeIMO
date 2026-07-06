@@ -518,6 +518,13 @@ public sealed partial class PdfOptions {
     }
 
     /// <summary>
+    /// Applies common PDF/UA groundwork for the requested profile.
+    /// </summary>
+    public PdfOptions UsePdfUa(PdfComplianceProfile profile = PdfComplianceProfile.PdfUa1, string language = "en-US") {
+        return ConfigurePdfUaGroundwork(profile, language);
+    }
+
+    /// <summary>
     /// Configures common PDF/UA-1 or PDF/UA-2 groundwork without enabling formal compliance profile generation.
     /// </summary>
     public PdfOptions ConfigurePdfUaGroundwork(PdfComplianceProfile profile, string language = "en-US") {
@@ -558,6 +565,13 @@ public sealed partial class PdfOptions {
         }
 
         return this;
+    }
+
+    /// <summary>
+    /// Applies common PDF/A groundwork for the requested profile.
+    /// </summary>
+    public PdfOptions UsePdfA(PdfComplianceProfile profile = PdfComplianceProfile.PdfA3B, string language = "en-US") {
+        return ConfigurePdfAGroundwork(profile, language);
     }
 
     /// <summary>Adds an embedded file associated with the generated PDF catalog.</summary>
@@ -623,6 +637,25 @@ public sealed partial class PdfOptions {
         PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
         string? description = "Factur-X/ZUGFeRD invoice XML",
         bool useDocumentFontFallback = true) {
+        return ConfigureFacturXGroundwork(
+            ciiXml,
+            useDocumentFontFallback ? PdfTextFallbackFeatures.DocumentFont : PdfTextFallbackFeatures.None,
+            conformanceLevel,
+            version,
+            relationship,
+            description);
+    }
+
+    /// <summary>
+    /// Configures common PDF/A-3 Factur-X/ZUGFeRD groundwork with explicit text fallback groups.
+    /// </summary>
+    public PdfOptions ConfigureFacturXGroundwork(
+        byte[] ciiXml,
+        PdfTextFallbackFeatures textFallbacks,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML") {
         PdfAIdentification pdfAIdentification = new PdfAIdentification(3, "B");
         PdfOutputIntent outputIntent = PdfOutputIntent.CreateSrgbIec6196621();
         PdfElectronicInvoiceMetadata metadata = CreateFacturXInvoiceMetadata(conformanceLevel, version);
@@ -631,13 +664,26 @@ public sealed partial class PdfOptions {
         AddEmbeddedFile(attachment);
         FileVersion = PdfFileVersion.Pdf17;
         IncludeStandardFontToUnicodeMaps = true;
-        if (useDocumentFontFallback) {
-            TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
+        if (textFallbacks != PdfTextFallbackFeatures.None) {
+            UseTextFallbacks(textFallbacks);
         }
 
         SetPdfAIdentification(pdfAIdentification);
         SetOutputIntent(outputIntent);
         return SetElectronicInvoiceMetadata(metadata);
+    }
+
+    /// <summary>
+    /// Applies Factur-X/ZUGFeRD PDF/A-3 groundwork and attaches the CrossIndustryInvoice XML payload.
+    /// </summary>
+    public PdfOptions UseFacturX(
+        byte[] ciiXml,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML",
+        PdfTextFallbackFeatures textFallbacks = PdfTextFallbackFeatures.DocumentFont) {
+        return ConfigureFacturXGroundwork(ciiXml, textFallbacks, conformanceLevel, version, relationship, description);
     }
 
     /// <summary>
@@ -652,6 +698,20 @@ public sealed partial class PdfOptions {
         bool useDocumentFontFallback = true) {
         Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
         return ConfigureFacturXGroundwork(System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description, useDocumentFontFallback);
+    }
+
+    /// <summary>
+    /// Applies Factur-X/ZUGFeRD PDF/A-3 groundwork from a CrossIndustryInvoice XML file.
+    /// </summary>
+    public PdfOptions UseFacturXFile(
+        string ciiXmlPath,
+        string conformanceLevel = "EN 16931",
+        string version = "1.0",
+        PdfAssociatedFileRelationship relationship = PdfAssociatedFileRelationship.Data,
+        string? description = "Factur-X/ZUGFeRD invoice XML",
+        PdfTextFallbackFeatures textFallbacks = PdfTextFallbackFeatures.DocumentFont) {
+        Guard.NotNullOrWhiteSpace(ciiXmlPath, nameof(ciiXmlPath));
+        return UseFacturX(System.IO.File.ReadAllBytes(ciiXmlPath), conformanceLevel, version, relationship, description, textFallbacks);
     }
 
     /// <summary>

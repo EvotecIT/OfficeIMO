@@ -64,13 +64,17 @@ workbook.SaveAsPdf(stream);
 ```csharp
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
+using OfficeIMO.Pdf;
 
 using var workbook = ExcelDocument.Load("dashboard.xlsx");
 var options = new ExcelPdfSaveOptions {
     IncludeSheetHeadings = true,
     RespectWorksheetHiddenRowsAndColumns = true,
     UseWorksheetCharts = true
-};
+}.UseProfile(PdfExportProfile.Faithful);
+
+options.TextFallbacks = PdfTextFallbackFeatures.Default;
+options.AllowSystemFontEmbedding = true;
 
 var result = workbook.TrySaveAsPdf("dashboard.pdf", options);
 if (!result.Succeeded) {
@@ -82,6 +86,8 @@ if (!result.Succeeded) {
 foreach (var warning in options.ConversionReport.Warnings) {
     Console.WriteLine($"{warning.Source}: {warning.Message}");
 }
+
+options.ConversionReport.RequireNoErrorWarnings();
 ```
 
 ## Import PDF tables
@@ -121,6 +127,7 @@ Console.WriteLine($"Imported {results.Count} table(s).");
 - Repeated print-title rows, headers, footers, page/date/time/sheet/workbook tokens, and supported header/footer images.
 - Cell display values, common number formats, fills, font emphasis, alignment, borders, merged cells, links, row heights, column widths, conditional fills/data bars/icons, and table layout primitives.
 - Supported worksheet images and common chart snapshots through shared OfficeIMO drawing primitives.
+- Profile presets through `ExcelPdfSaveOptions.UseProfile(...)`, plus shared `TextFallbacks` and `AllowSystemFontEmbedding` controls for Unicode, symbols, and emoji.
 - Conversion warnings through `ExcelPdfSaveOptions.Warnings` and `ExcelPdfSaveOptions.ConversionReport`.
 
 ## Boundaries
