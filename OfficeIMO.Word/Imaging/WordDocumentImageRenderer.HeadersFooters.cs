@@ -65,7 +65,7 @@ namespace OfficeIMO.Word {
             double bodyBottom = Math.Max(bodyTop, drawing.Height - bottomMargin);
 
             (int pageNumberValue, string pageNumberText) = ResolveSectionPageNumber(section, sectionPageNumberStart, sectionPageIndex);
-            WordHeaderFooter? header = SelectPageHeader(section, pageIndex, sectionPageIndex, pageNumberValue);
+            WordHeaderFooter? header = SelectPageHeader(section, sectionPageIndex, pageNumberValue);
             double headerTop = 0D;
             double headerRenderBottom = 0D;
             if (header != null) {
@@ -79,7 +79,7 @@ namespace OfficeIMO.Word {
                 }
             }
 
-            WordHeaderFooter? footer = SelectPageFooter(section, pageIndex, sectionPageIndex, pageNumberValue);
+            WordHeaderFooter? footer = SelectPageFooter(section, sectionPageIndex, pageNumberValue);
             double footerTop = drawing.Height;
             double footerRenderBottom = drawing.Height;
             if (footer != null) {
@@ -143,12 +143,12 @@ namespace OfficeIMO.Word {
             return (value, FormatPageNumber(value, pageNumberType?.Format?.Value));
         }
 
-        private static WordHeaderFooter? SelectPageHeader(WordSection section, int pageIndex, int sectionPageIndex, int pageNumberValue) {
+        private static WordHeaderFooter? SelectPageHeader(WordSection section, int sectionPageIndex, int pageNumberValue) {
             if (sectionPageIndex == 0 && section.DifferentFirstPage && section.Header.First != null) {
                 return section.Header.First;
             }
 
-            if ((IsEvenPageNumber(pageNumberValue) || IsEvenPageNumber(pageIndex + 1)) &&
+            if (IsEvenPageNumber(pageNumberValue) &&
                 section.DifferentOddAndEvenPages &&
                 section.Header.Even != null) {
                 return section.Header.Even;
@@ -157,12 +157,12 @@ namespace OfficeIMO.Word {
             return section.Header.Default;
         }
 
-        private static WordHeaderFooter? SelectPageFooter(WordSection section, int pageIndex, int sectionPageIndex, int pageNumberValue) {
+        private static WordHeaderFooter? SelectPageFooter(WordSection section, int sectionPageIndex, int pageNumberValue) {
             if (sectionPageIndex == 0 && section.DifferentFirstPage && section.Footer.First != null) {
                 return section.Footer.First;
             }
 
-            if ((IsEvenPageNumber(pageNumberValue) || IsEvenPageNumber(pageIndex + 1)) &&
+            if (IsEvenPageNumber(pageNumberValue) &&
                 section.DifferentOddAndEvenPages &&
                 section.Footer.Even != null) {
                 return section.Footer.Even;

@@ -64,6 +64,36 @@ internal sealed class PdfPageOptionalContentVisibility {
         return false;
     }
 
+    public bool IsHidden(PdfInlineOptionalContentReferences references) {
+        if (references.IsMembershipDictionary) {
+            return IsMembershipHidden(references.ObjectNumbers, references.Policy);
+        }
+
+        return IsHiddenAny(references.ObjectNumbers);
+    }
+
+    private bool IsMembershipHidden(IReadOnlyList<int> objectNumbers, string? policy) {
+        if (objectNumbers.Count == 0) {
+            return false;
+        }
+
+        bool anyVisible = false;
+        bool anyHidden = false;
+        for (int i = 0; i < objectNumbers.Count; i++) {
+            bool visible = !_hiddenObjectNumbers.Contains(objectNumbers[i]);
+            anyVisible |= visible;
+            anyHidden |= !visible;
+        }
+
+        bool visibleByPolicy = policy switch {
+            "AllOn" => !anyHidden,
+            "AnyOff" => anyHidden,
+            "AllOff" => !anyVisible,
+            _ => anyVisible
+        };
+        return !visibleByPolicy;
+    }
+
     private static Dictionary<int, bool> ReadGroupVisibility(Dictionary<int, PdfIndirectObject> objects) {
         var result = new Dictionary<int, bool>();
         PdfDictionary? catalog = PdfSyntax.FindCatalog(objects);

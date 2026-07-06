@@ -464,7 +464,7 @@ internal static class PdfPageXObjectInvocationParser {
             ((property is string propertyName &&
                 _optionalContentVisibility?.IsHidden(propertyName) == true) ||
              (property is PdfInlineOptionalContentReferences references &&
-                _optionalContentVisibility?.IsHiddenAny(references.ObjectNumbers) == true));
+                _optionalContentVisibility?.IsHidden(references) == true));
 
         private bool TryReadInlineImage(out PdfPageInlineImage? inlineImage) {
             inlineImage = null;

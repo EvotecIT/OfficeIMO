@@ -51,7 +51,7 @@ internal static class TextContentParser {
 
     private sealed class InlineDictionary {
         public Dictionary<string, object> Items { get; } = new(StringComparer.Ordinal);
-        public List<int> OptionalContentObjectNumbers { get; } = new();
+        public PdfInlineOptionalContentReferences? OptionalContentReferences { get; set; }
     }
 
     private readonly struct ActualTextValue {
@@ -514,6 +514,7 @@ internal static class TextContentParser {
             double rotationDegrees = CalculateRotationDegrees(endX - dx, endY - dy);
             OfficeColor paintColor = ResolveTextPaintColor(textRenderingMode, fillColor, strokeColor);
             OfficeColor visibleColor = ApplyTextOpacity(paintColor, textRenderingMode);
+            PdfPageClipPath? spanClipPath = clipPath;
             if (isHidden) {
                 // Hidden optional-content still advances text state but should not emit visible/logical spans.
             } else if (isArtifact) {
@@ -522,15 +523,36 @@ internal static class TextContentParser {
                 textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
-                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), clipPath, paintOrder));
+                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
                     sbOutGlobal.Append(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), clipPath, paintOrder));
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
                 sbOutGlobal.Append(textOut);
             }
 
+            if (!isHidden) {
+                ApplyTextClippingPath(advTotal);
+            }
+
             textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
+        }
+
+        void ApplyTextClippingPath(double advance) {
+            if (!AddsTextToClippingPath(textRenderingMode) || size <= 0D || Math.Abs(advance) <= 0.000001D) {
+                return;
+            }
+
+            double left = advance < 0D ? advance : 0D;
+            double width = Math.Abs(advance);
+            double descent = Math.Max(0.001D, size * 0.25D);
+            double height = Math.Max(0.001D, size + descent);
+            Matrix2D textToPage = Matrix2D.Multiply(ctm, textMatrix);
+            var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
+            textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
+            if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, textClipPath);
+            }
         }
 
         MarkedContentState? GetActiveActualTextState() {
@@ -587,7 +609,8 @@ internal static class TextContentParser {
             ((property is string propertyName &&
                 optionalContentVisibility?.IsHidden(propertyName) == true) ||
              (property is InlineDictionary dictionary &&
-                optionalContentVisibility?.IsHiddenAny(dictionary.OptionalContentObjectNumbers) == true));
+                dictionary.OptionalContentReferences != null &&
+                optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
 
         void ShowTextArray(object arrObj, double paintOrder) {
             if (!inText || arrObj == null) return;
@@ -694,8 +717,7 @@ internal static class TextContentParser {
                 }
             }
 
-            dictionary.OptionalContentObjectNumbers.AddRange(
-                PdfInlineOptionalContentReferenceParser.ExtractObjectNumbers(content, start, Math.Max(0, i - start)));
+            dictionary.OptionalContentReferences = PdfInlineOptionalContentReferenceParser.Parse(content, start, Math.Max(0, i - start));
             return dictionary;
         }
 
@@ -871,6 +893,9 @@ internal static class TextContentParser {
 
         static bool IsTextRenderingModeVisible(int renderingMode) =>
             renderingMode != 3 && renderingMode != 7;
+
+        static bool AddsTextToClippingPath(int renderingMode) =>
+            renderingMode >= 4 && renderingMode <= 7;
 
         static double CalculateRotationDegrees(double x, double y) {
             if (Math.Abs(x) <= 0.000001D && Math.Abs(y) <= 0.000001D) {
@@ -1081,7 +1106,7 @@ internal static class TextContentParser {
             ((property is string propertyName &&
                 optionalContentVisibility?.IsHidden(propertyName) == true) ||
              (property is PdfInlineOptionalContentReferences references &&
-                optionalContentVisibility?.IsHiddenAny(references.ObjectNumbers) == true));
+                optionalContentVisibility?.IsHidden(references) == true));
 
         void SkipWs() { while (i < n && char.IsWhiteSpace(content[i])) i++; }
         static bool IsDigit(char ch) => ch >= '0' && ch <= '9';

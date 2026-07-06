@@ -440,14 +440,8 @@ public static class OfficeDrawingRasterRenderer {
             }
 
             if (closedContours.Count > 0) {
-                if (fillRadialGradient != null) {
-                    for (int i = 0; i < closedContours.Count; i++) {
-                        canvas.FillRadialGradientPolygon(closedContours[i], fillRadialGradient);
-                    }
-                } else if (fillGradient != null) {
-                    for (int i = 0; i < closedContours.Count; i++) {
-                        canvas.FillLinearGradientPolygon(closedContours[i], fillGradient);
-                    }
+                if (fillRadialGradient != null || fillGradient != null) {
+                    FillGradientPathContours(canvas, closedContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
                     FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
@@ -707,14 +701,8 @@ public static class OfficeDrawingRasterRenderer {
             }
 
             if (closedContours.Count > 0) {
-                if (fillRadialGradient != null) {
-                    for (int i = 0; i < closedContours.Count; i++) {
-                        canvas.FillRadialGradientPolygon(closedContours[i], fillRadialGradient);
-                    }
-                } else if (fillGradient != null) {
-                    for (int i = 0; i < closedContours.Count; i++) {
-                        canvas.FillLinearGradientPolygon(closedContours[i], fillGradient);
-                    }
+                if (fillRadialGradient != null || fillGradient != null) {
+                    FillGradientPathContours(canvas, closedContours, fillGradient, fillRadialGradient, shape.FillRule);
                 } else {
                     FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
@@ -850,6 +838,63 @@ public static class OfficeDrawingRasterRenderer {
         } else {
             canvas.FillPolygonsEvenOdd(contours, color);
         }
+    }
+
+    private static void FillGradientPathContours(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeLinearGradient? linearGradient, OfficeRadialGradient? radialGradient, OfficeFillRule fillRule) {
+        if (contours.Count == 1) {
+            if (radialGradient != null) {
+                canvas.FillRadialGradientPolygon(contours[0], radialGradient);
+            } else if (linearGradient != null) {
+                canvas.FillLinearGradientPolygon(contours[0], linearGradient);
+            }
+
+            return;
+        }
+
+        if (!TryGetContourBounds(contours, out double left, out double top, out double right, out double bottom)) {
+            return;
+        }
+
+        var bounds = new[] {
+            new OfficePoint(left, top),
+            new OfficePoint(right, top),
+            new OfficePoint(right, bottom),
+            new OfficePoint(left, bottom)
+        };
+        using (PushClipPolygons(canvas, contours, fillRule)) {
+            if (radialGradient != null) {
+                canvas.FillRadialGradientPolygon(bounds, radialGradient);
+            } else if (linearGradient != null) {
+                canvas.FillLinearGradientPolygon(bounds, linearGradient);
+            }
+        }
+    }
+
+    private static bool TryGetContourBounds(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, out double left, out double top, out double right, out double bottom) {
+        left = 0D;
+        top = 0D;
+        right = 0D;
+        bottom = 0D;
+        bool hasPoint = false;
+        for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
+            IReadOnlyList<OfficePoint> contour = contours[contourIndex];
+            for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                OfficePoint point = contour[pointIndex];
+                if (!hasPoint) {
+                    left = right = point.X;
+                    top = bottom = point.Y;
+                    hasPoint = true;
+                    continue;
+                }
+
+                if (point.X < left) left = point.X;
+                if (point.Y < top) top = point.Y;
+                if (point.X > right) right = point.X;
+                if (point.Y > bottom) bottom = point.Y;
+            }
+        }
+
+        return hasPoint && right > left && bottom > top;
     }
 
     private static IDisposable PushClipPolygons(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) =>

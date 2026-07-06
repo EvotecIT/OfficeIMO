@@ -744,7 +744,7 @@ internal static class PdfPageContentVisualParser {
             ((property is string propertyName &&
                 _optionalContentVisibility?.IsHidden(propertyName) == true) ||
              (property is PdfInlineOptionalContentReferences references &&
-                _optionalContentVisibility?.IsHiddenAny(references.ObjectNumbers) == true));
+                _optionalContentVisibility?.IsHidden(references) == true));
 
         private void MoveTo(double x, double y) {
             DiscardCurrentSubpathIfEmpty();

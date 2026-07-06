@@ -990,13 +990,18 @@ public class PdfPageImageRendererTests {
     public void RenderPage_DoesNotPaintClipOnlyTextRenderingMode() {
         byte[] pdf = BuildSingleStreamPdf(
             """
+            q
             BT
             /F1 18 Tf
             7 Tr
             40 130 Td
             (Clip only) Tj
+            ET
+            Q
+            BT
+            /F1 18 Tf
             0 Tr
-            0 -30 Td
+            40 100 Td
             (Painted label) Tj
             ET
             """,

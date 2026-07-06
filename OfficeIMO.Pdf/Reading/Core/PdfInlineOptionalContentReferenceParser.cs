@@ -1,18 +1,34 @@
 namespace OfficeIMO.Pdf;
 
 internal sealed class PdfInlineOptionalContentReferences {
-    public PdfInlineOptionalContentReferences(IReadOnlyList<int> objectNumbers) {
+    public PdfInlineOptionalContentReferences(IReadOnlyList<int> objectNumbers, bool isMembershipDictionary = false, string? policy = null) {
         ObjectNumbers = objectNumbers;
+        IsMembershipDictionary = isMembershipDictionary;
+        Policy = string.IsNullOrWhiteSpace(policy) ? null : policy;
     }
 
     public IReadOnlyList<int> ObjectNumbers { get; }
+
+    public bool IsMembershipDictionary { get; }
+
+    public string? Policy { get; }
 }
 
 internal static class PdfInlineOptionalContentReferenceParser {
     public static PdfInlineOptionalContentReferences Read(string content, ref int index) {
         int start = index;
         SkipInlineDictionary(content, ref index);
-        return new PdfInlineOptionalContentReferences(ExtractObjectNumbers(content, start, Math.Max(0, index - start)));
+        return Parse(content, start, Math.Max(0, index - start));
+    }
+
+    public static PdfInlineOptionalContentReferences Parse(string content, int start, int length) {
+        IReadOnlyList<int> objectNumbers = ExtractObjectNumbers(content, start, length);
+        bool isMembershipDictionary = TryReadNameValue(content, start, length, "Type", out string? type) &&
+            string.Equals(type, "OCMD", StringComparison.Ordinal);
+        string? policy = isMembershipDictionary && TryReadNameValue(content, start, length, "P", out string? parsedPolicy)
+            ? parsedPolicy
+            : null;
+        return new PdfInlineOptionalContentReferences(objectNumbers, isMembershipDictionary, policy);
     }
 
     public static IReadOnlyList<int> ExtractObjectNumbers(string content, int start, int length) {
@@ -135,6 +151,69 @@ internal static class PdfInlineOptionalContentReferenceParser {
         }
 
         return true;
+    }
+
+    private static bool TryReadNameValue(string content, int start, int length, string key, out string? value) {
+        value = null;
+        if (string.IsNullOrEmpty(content) || length <= 0 || start < 0 || start >= content.Length) {
+            return false;
+        }
+
+        int end = Math.Min(content.Length, start + length);
+        int index = start;
+        while (index < end) {
+            SkipWhitespace(content, ref index, end);
+            if (index >= end) {
+                return false;
+            }
+
+            if (content[index] != '/') {
+                SkipToken(content, ref index, end);
+                continue;
+            }
+
+            string name = ReadNameToken(content, ref index, end);
+            if (!string.Equals(name, key, StringComparison.Ordinal)) {
+                continue;
+            }
+
+            SkipWhitespace(content, ref index, end);
+            if (index >= end || content[index] != '/') {
+                return false;
+            }
+
+            value = ReadNameToken(content, ref index, end);
+            return !string.IsNullOrEmpty(value);
+        }
+
+        return false;
+    }
+
+    private static string ReadNameToken(string content, ref int index, int end) {
+        if (index >= end || content[index] != '/') {
+            return string.Empty;
+        }
+
+        index++;
+        int start = index;
+        while (index < end) {
+            char ch = content[index];
+            if (char.IsWhiteSpace(ch) ||
+                ch == '%' ||
+                ch == '/' ||
+                ch == '[' ||
+                ch == ']' ||
+                ch == '(' ||
+                ch == ')' ||
+                ch == '<' ||
+                ch == '>') {
+                break;
+            }
+
+            index++;
+        }
+
+        return content.Substring(start, index - start);
     }
 
     private static void SkipToken(string content, ref int index, int end) {
