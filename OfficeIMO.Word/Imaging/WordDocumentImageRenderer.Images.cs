@@ -126,7 +126,9 @@ namespace OfficeIMO.Word {
 
             top = Math.Max(top, context.Y);
             double distanceFromBottom = GetAnchorDistancePoints(image._Image.Anchor?.DistanceFromBottom);
-            double requiredHeight = top + height + distanceFromBottom - context.Y;
+            OfficeImageProjection projection = CreateImageProjection(image, left, top, width, height);
+            (double _, double _, double _, double projectedBottom) = projection.GetDestinationBounds();
+            double requiredHeight = Math.Max(top + height, projectedBottom) + distanceFromBottom - context.Y;
             if (!EnsureVerticalSpace(context, requiredHeight, diagnostics)) {
                 return false;
             }
@@ -141,7 +143,7 @@ namespace OfficeIMO.Word {
             }
 
             top = Math.Max(top, context.Y);
-            OfficeImageProjection projection = CreateImageProjection(image, left, top, width, height);
+            projection = CreateImageProjection(image, left, top, width, height);
             (double boundsLeft, double boundsTop, double boundsRight, double boundsBottom) = projection.GetDestinationBounds();
             if (boundsLeft < 0D || boundsTop < 0D || boundsRight > context.Drawing.Width || boundsBottom > context.Drawing.Height) {
                 AddDiagnostic(

@@ -227,7 +227,7 @@ namespace OfficeIMO.Word {
                 }
 
                 FitImageToWidth(contentWidth, ref width, ref height);
-                images.Add(new SplitTableCellImage(image, bytes, image.ContentType, width, height));
+                images.Add(new SplitTableCellImage(image, bytes, image.ContentType, width, height, GetProjectedImageBlockHeight(image, width, height)));
             }
 
             return images;
@@ -244,6 +244,12 @@ namespace OfficeIMO.Word {
             }
 
             return blocks;
+        }
+
+        private static double GetProjectedImageBlockHeight(WordImage image, double width, double height) {
+            OfficeImageProjection projection = CreateImageProjection(image, 0D, 0D, width, height);
+            (double _, double boundsTop, double _, double boundsBottom) = projection.GetDestinationBounds();
+            return Math.Max(height, boundsBottom - Math.Min(0D, boundsTop));
         }
 
         private static IReadOnlyList<SplitTableCellContentEntry> CreateSplitTableCellContentOrder(WordTableCell cell, WordImageFlowContext context, double contentWidth, int totalLineCount) {
@@ -464,7 +470,7 @@ namespace OfficeIMO.Word {
                 get {
                     double height = _padding.Top + _padding.Bottom;
                     for (int i = _imageIndex; i < ImageCount; i++) {
-                        height += _images[i].Height;
+                        height += _images[i].BlockHeight;
                         if (i < ImageCount - 1 || _nestedTableIndex < NestedTableCount || _lineIndex < LineCount) {
                             height += ParagraphGapPoints;
                         }
@@ -561,7 +567,7 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        if (entry.Index != nextImageIndex || !TryAddBlock(_images[entry.Index].Height)) {
+                        if (entry.Index != nextImageIndex || !TryAddBlock(_images[entry.Index].BlockHeight)) {
                             return CurrentFragment();
                         }
 
@@ -583,7 +589,7 @@ namespace OfficeIMO.Word {
                 }
 
                 for (int i = _imageIndex + imageCount; i < ImageCount; i++) {
-                    if (!TryAddBlock(_images[i].Height)) {
+                    if (!TryAddBlock(_images[i].BlockHeight)) {
                         return CurrentFragment();
                     }
 
@@ -654,7 +660,7 @@ namespace OfficeIMO.Word {
                         image.ContentType,
                         CreateImageProjection(image.Source, contentLeft, contentTop, image.Width, image.Height),
                         DescribeImage(image.Source));
-                    contentTop += image.Height;
+                    contentTop += image.BlockHeight;
                     AddGapIfNeeded();
                     return true;
                 }
@@ -795,12 +801,13 @@ namespace OfficeIMO.Word {
         }
 
         private readonly struct SplitTableCellImage {
-            internal SplitTableCellImage(WordImage source, byte[] bytes, string contentType, double width, double height) {
+            internal SplitTableCellImage(WordImage source, byte[] bytes, string contentType, double width, double height, double blockHeight) {
                 Source = source;
                 Bytes = bytes;
                 ContentType = contentType;
                 Width = width;
                 Height = height;
+                BlockHeight = blockHeight;
             }
 
             internal WordImage Source { get; }
@@ -812,6 +819,8 @@ namespace OfficeIMO.Word {
             internal double Width { get; }
 
             internal double Height { get; }
+
+            internal double BlockHeight { get; }
         }
 
         private readonly struct SplitTableCellNestedTable {

@@ -31,7 +31,12 @@ namespace OfficeIMO.Visio {
                 return null;
             }
 
-            return contours.Count == 1 ? canvas.PushClipPolygon(contours[0]) : canvas.PushClipPolygonsNonZero(contours);
+            bool useEvenOddClip = UseEvenOddClip(definition, context.StyleSheet);
+            return contours.Count == 1
+                ? canvas.PushClipPolygon(contours[0])
+                : useEvenOddClip
+                    ? canvas.PushClipPolygonsEvenOdd(contours)
+                    : canvas.PushClipPolygonsNonZero(contours);
         }
 
         private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {
@@ -102,5 +107,19 @@ namespace OfficeIMO.Visio {
             objectBoundingBox
                 ? ReadLength(element, name, fallback, 1D)
                 : ReadLength(element, name, fallback, context, axis);
+
+        private static bool UseEvenOddClip(XElement element, SvgStyleSheet styleSheet) {
+            Dictionary<string, string> style = styleSheet.CreateStyle(element);
+            string? clipRule = style.TryGetValue("clip-rule", out string? clipValue)
+                ? clipValue
+                : element.Attribute("clip-rule")?.Value;
+            if (string.IsNullOrWhiteSpace(clipRule)) {
+                clipRule = style.TryGetValue("fill-rule", out string? fillValue)
+                    ? fillValue
+                    : element.Attribute("fill-rule")?.Value;
+            }
+
+            return string.Equals(clipRule, "evenodd", StringComparison.OrdinalIgnoreCase);
+        }
     }
 }

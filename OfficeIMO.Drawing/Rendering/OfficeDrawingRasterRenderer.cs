@@ -466,7 +466,7 @@ public static class OfficeDrawingRasterRenderer {
             OfficePoint b = shape.Points[1];
             OfficePoint start = new OfficePoint(x + (a.X * scale), y + (a.Y * scale));
             OfficePoint end = new OfficePoint(x + (b.X * scale), y + (b.Y * scale));
-            DrawGradientOrSolidPolyline(canvas, new[] { start, end }, color, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: false);
+            DrawGradientOrSolidPolyline(canvas, new[] { start, end }, color, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: false, shape.StrokeLineCap);
             RenderLineMarkers(canvas, shape, start, end, color, scale);
         }
     }
@@ -491,7 +491,8 @@ public static class OfficeDrawingRasterRenderer {
         OfficeRadialGradient? strokeRadialGradient,
         double strokeWidth,
         OfficeStrokeDashStyle dashStyle,
-        bool close) {
+        bool close,
+        OfficeStrokeLineCap? lineCap = null) {
         if (strokeWidth <= 0D || points.Count < 2) {
             return;
         }
@@ -502,7 +503,9 @@ public static class OfficeDrawingRasterRenderer {
                 return;
             }
 
-            if (close) {
+            if (!close && points.Count == 2 && dashStyle == OfficeStrokeDashStyle.Solid && lineCap.HasValue && lineCap.Value != OfficeStrokeLineCap.Round) {
+                DrawCappedLine(canvas, points[0], points[1], fallbackStroke.Value, strokeWidth, lineCap.Value);
+            } else if (close) {
                 canvas.DrawStyledPolygon(points, fallbackStroke.Value, strokeWidth, dashStyle);
             } else {
                 canvas.DrawStyledPolyline(points, fallbackStroke.Value, strokeWidth, dashStyle);
@@ -516,6 +519,32 @@ public static class OfficeDrawingRasterRenderer {
         for (int i = 1; i < strokePoints.Count; i++) {
             DrawGradientLineSegment(canvas, strokePoints[i - 1], strokePoints[i], strokeGradient, strokeRadialGradient, x, y, width, height, strokeWidth);
         }
+    }
+
+    private static void DrawCappedLine(OfficeRasterCanvas canvas, OfficePoint start, OfficePoint end, OfficeColor color, double strokeWidth, OfficeStrokeLineCap lineCap) {
+        double dx = end.X - start.X;
+        double dy = end.Y - start.Y;
+        double length = Math.Sqrt((dx * dx) + (dy * dy));
+        if (length <= double.Epsilon) {
+            return;
+        }
+
+        double half = strokeWidth / 2D;
+        double ux = dx / length;
+        double uy = dy / length;
+        double px = -uy * half;
+        double py = ux * half;
+        double extension = lineCap == OfficeStrokeLineCap.Square ? half : 0D;
+        double sx = start.X - (ux * extension);
+        double sy = start.Y - (uy * extension);
+        double ex = end.X + (ux * extension);
+        double ey = end.Y + (uy * extension);
+        canvas.FillPolygon(new[] {
+            new OfficePoint(sx + px, sy + py),
+            new OfficePoint(ex + px, ey + py),
+            new OfficePoint(ex - px, ey - py),
+            new OfficePoint(sx - px, sy - py)
+        }, color);
     }
 
     private static OfficeColor? GetGradientFallbackStroke(OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient) {

@@ -25,12 +25,24 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            ApplyPreserveAspectRatio(element, image, ref x, ref y, ref width, ref height);
+            double viewportX = x;
+            double viewportY = y;
+            double viewportWidth = width;
+            double viewportHeight = height;
+            bool slice = ApplyPreserveAspectRatio(element, image, ref x, ref y, ref width, ref height);
             OfficePoint topLeft = transform.Apply(x, y);
             OfficePoint topRight = transform.Apply(x + width, y);
             OfficePoint bottomLeft = transform.Apply(x, y + height);
             OfficePoint bottomRight = transform.Apply(x + width, y + height);
             OfficeRasterImage renderedImage = paint.Opacity < 1D ? ApplyImageOpacity(image, paint.Opacity) : image;
+            using IDisposable? clipScope = slice
+                ? canvas.PushClipPolygon(new[] {
+                    transform.Apply(viewportX, viewportY),
+                    transform.Apply(viewportX + viewportWidth, viewportY),
+                    transform.Apply(viewportX + viewportWidth, viewportY + viewportHeight),
+                    transform.Apply(viewportX, viewportY + viewportHeight)
+                })
+                : null;
             if (TryCreateImageProjection(topLeft, topRight, bottomLeft, bottomRight, out OfficeImageProjection projection)) {
                 canvas.DrawImage(renderedImage, projection);
                 return true;
@@ -48,10 +60,10 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static void ApplyPreserveAspectRatio(XElement element, OfficeRasterImage image, ref double x, ref double y, ref double width, ref double height) {
+        private static bool ApplyPreserveAspectRatio(XElement element, OfficeRasterImage image, ref double x, ref double y, ref double width, ref double height) {
             string raw = element.Attribute("preserveAspectRatio")?.Value?.Trim() ?? "xMidYMid meet";
             if (raw.Length == 0 || string.Equals(raw, "none", StringComparison.OrdinalIgnoreCase)) {
-                return;
+                return false;
             }
 
             string[] parts = raw.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
@@ -77,6 +89,7 @@ namespace OfficeIMO.Visio {
 
             width = scaledWidth;
             height = scaledHeight;
+            return slice;
         }
 
         private static bool TryCreateImageProjection(OfficePoint topLeft, OfficePoint topRight, OfficePoint bottomLeft, OfficePoint bottomRight, out OfficeImageProjection projection) {
