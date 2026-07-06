@@ -30,13 +30,8 @@ public sealed partial class PdfReadPage {
     /// Falls back to 612x792 (US Letter) when not present or malformed.
     /// </summary>
     public (double Width, double Height) GetPageSize() {
-        var crop = GetInheritedValue("CropBox");
-        if (TryParseBox(crop, out var cropSize)) return cropSize;
-
-        var media = GetInheritedValue("MediaBox");
-        if (TryParseBox(media, out var mediaSize)) return mediaSize;
-
-        return (612, 792);
+        PdfPageBox box = GetPageBoundaryBox();
+        return (box.Width, box.Height);
     }
 
     private (double Width, double Height) GetVisualPageSize() {
@@ -48,19 +43,29 @@ public sealed partial class PdfReadPage {
     }
 
     private Matrix2D GetVisualPageTransform() {
-        (double Width, double Height) pageSize = GetPageSize();
-        switch (GetRotationDegrees()) {
-            case 90:
-                return new Matrix2D(0D, 1D, -1D, 0D, pageSize.Height, 0D);
-            case 180:
-                return new Matrix2D(-1D, 0D, 0D, -1D, pageSize.Width, pageSize.Height);
-            case 270:
-                return new Matrix2D(0D, -1D, 1D, 0D, 0D, pageSize.Width);
-            default:
-                return Matrix2D.Identity;
-        }
+        PdfPageBox pageBox = GetPageBoundaryBox();
+        Matrix2D cropOrigin = Matrix2D.Translation(-pageBox.Left, -pageBox.Bottom);
+        Matrix2D rotation = GetRotationDegrees() switch {
+            90 => new Matrix2D(0D, 1D, -1D, 0D, pageBox.Height, 0D),
+            180 => new Matrix2D(-1D, 0D, 0D, -1D, pageBox.Width, pageBox.Height),
+            270 => new Matrix2D(0D, -1D, 1D, 0D, 0D, pageBox.Width),
+            _ => Matrix2D.Identity
+        };
+
+        return Matrix2D.Multiply(rotation, cropOrigin);
     }
 
+    private PdfPageBox GetPageBoundaryBox() {
+        if (TryReadPageBox("CropBox", out PdfPageBox? cropBox) && cropBox != null) {
+            return cropBox;
+        }
+
+        if (TryReadPageBox("MediaBox", out PdfPageBox? mediaBox) && mediaBox != null) {
+            return mediaBox;
+        }
+
+        return new PdfPageBox("MediaBox", 0D, 0D, 612D, 792D);
+    }
     /// <summary>Gets inherited page rotation in degrees normalized to 0, 90, 180, or 270.</summary>
     public int GetRotationDegrees() {
         var rotate = GetInheritedValue("Rotate");

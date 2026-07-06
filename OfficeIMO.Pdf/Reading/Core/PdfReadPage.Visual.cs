@@ -308,7 +308,10 @@ public sealed partial class PdfReadPage {
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null) {
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         primitives.AddRange(PdfPageContentVisualParser.Parse(
             transformedContent,
@@ -322,7 +325,10 @@ public sealed partial class PdfReadPage {
             paintOrderBase,
             paintOrderScale,
             paintOrderOffset - transformedContentOffset,
-            initialClipPath));
+            initialClipPath,
+            initialFillColor,
+            initialFillColorSpace,
+            initialFillOpacity));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -334,7 +340,10 @@ public sealed partial class PdfReadPage {
                       paintOrderBase: paintOrderBase,
                       paintOrderScale: paintOrderScale,
                       paintOrderOffset: paintOrderOffset,
-                      initialClipPath: initialClipPath)) {
+                      initialClipPath: initialClipPath,
+                      initialFillColor: initialFillColor,
+                      initialFillColorSpace: initialFillColorSpace,
+                      initialFillOpacity: initialFillOpacity)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 continue;
             }
@@ -348,7 +357,20 @@ public sealed partial class PdfReadPage {
                 PdfDictionary? formResources = ResolveDictionary(formDictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocation.Transform, formDictionary);
                 string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formDictionary);
-                CollectVisualPrimitivesAndForms(formContent, formResources, formTransform, pageWidth, pageHeight, primitives, activeForms, invocation.PaintOrder, paintOrderScale * 0.000000001D, initialClipPath: invocation.ClipPath);
+                CollectVisualPrimitivesAndForms(
+                    formContent,
+                    formResources,
+                    formTransform,
+                    pageWidth,
+                    pageHeight,
+                    primitives,
+                    activeForms,
+                    invocation.PaintOrder,
+                    paintOrderScale * 0.000000001D,
+                    initialClipPath: invocation.ClipPath,
+                    initialFillColor: invocation.FillColor,
+                    initialFillColorSpace: invocation.FillColorSpace,
+                    initialFillOpacity: invocation.FillOpacity);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -777,11 +799,14 @@ public sealed partial class PdfReadPage {
         }
 
         if (annotation.Items.TryGetValue("AS", out PdfObject? appearanceStateObject) &&
-            ResolveObject(appearanceStateObject) is PdfName appearanceState &&
-            stateDictionary.Items.TryGetValue(appearanceState.Name, out PdfObject? stateObject) &&
-            ResolveObject(stateObject) is PdfStream stateStream) {
-            stream = stateStream;
-            return true;
+            ResolveObject(appearanceStateObject) is PdfName appearanceState) {
+            if (stateDictionary.Items.TryGetValue(appearanceState.Name, out PdfObject? stateObject) &&
+                ResolveObject(stateObject) is PdfStream stateStream) {
+                stream = stateStream;
+                return true;
+            }
+
+            return false;
         }
 
         foreach (KeyValuePair<string, PdfObject> state in stateDictionary.Items) {

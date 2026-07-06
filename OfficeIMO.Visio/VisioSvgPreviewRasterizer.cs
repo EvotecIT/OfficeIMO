@@ -278,22 +278,68 @@ namespace OfficeIMO.Visio {
             }
 
             try {
-                SvgTransform useTransform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, ReadLength(element, "x", 0D, context, SvgLengthAxis.X), ReadLength(element, "y", 0D, context, SvgLengthAxis.Y)));
                 string definitionName = definition.Name.LocalName;
+                if (string.Equals(definitionName, "symbol", StringComparison.OrdinalIgnoreCase)) {
+                    return RenderSymbolUse(canvas, element, definition, inherited, transform, context);
+                }
+
+                SvgTransform useTransform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, ReadLength(element, "x", 0D, context, SvgLengthAxis.X), ReadLength(element, "y", 0D, context, SvgLengthAxis.Y)));
                 if ((string.Equals(definitionName, "symbol", StringComparison.OrdinalIgnoreCase) ||
                      string.Equals(definitionName, "svg", StringComparison.OrdinalIgnoreCase)) &&
                     TryReadViewBoxTransform(definition, element, out SvgTransform viewBoxTransform)) {
                     useTransform = useTransform.Multiply(viewBoxTransform);
                 }
 
-                if (string.Equals(definitionName, "symbol", StringComparison.OrdinalIgnoreCase)) {
-                    return RenderChildren(canvas, definition, inherited, useTransform, context);
-                }
-
                 return RenderElement(canvas, definition, inherited, useTransform, context);
             } finally {
                 context.ExitUse(id);
             }
+        }
+
+        private static bool RenderSymbolUse(OfficeRasterCanvas canvas, XElement useElement, XElement symbol, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+            double x = ReadLength(useElement, "x", 0D, context, SvgLengthAxis.X);
+            double y = ReadLength(useElement, "y", 0D, context, SvgLengthAxis.Y);
+            double viewLeft = 0D;
+            double viewTop = 0D;
+            double viewWidth = ReadLength(useElement, "width", context.ViewportBounds.Width, context, SvgLengthAxis.X);
+            double viewHeight = ReadLength(useElement, "height", context.ViewportBounds.Height, context, SvgLengthAxis.Y);
+            bool hasViewBox = TryParseNumbers(symbol.Attribute("viewBox")?.Value, out List<double> viewBox) &&
+                viewBox.Count >= 4 &&
+                viewBox[2] > 0D &&
+                viewBox[3] > 0D;
+            if (hasViewBox) {
+                viewLeft = viewBox[0];
+                viewTop = viewBox[1];
+                viewWidth = viewBox[2];
+                viewHeight = viewBox[3];
+            }
+
+            double width = ReadLength(useElement, "width", viewWidth, context, SvgLengthAxis.X);
+            double height = ReadLength(useElement, "height", viewHeight, context, SvgLengthAxis.Y);
+            if (width <= 0D || height <= 0D || viewWidth <= 0D || viewHeight <= 0D) {
+                return false;
+            }
+
+            SvgTransform contentTransform = CreateViewBoxTransform(
+                viewLeft,
+                viewTop,
+                viewWidth,
+                viewHeight,
+                x,
+                y,
+                width,
+                height,
+                useElement.Attribute("preserveAspectRatio")?.Value ?? symbol.Attribute("preserveAspectRatio")?.Value);
+            contentTransform = transform.Multiply(contentTransform);
+            IReadOnlyList<OfficePoint> clip = ProjectPoints(new[] {
+                (x, y),
+                (x + width, y),
+                (x + width, y + height),
+                (x, y + height)
+            }, transform);
+            using IDisposable clipScope = canvas.PushClipPolygon(clip);
+            using IDisposable viewportScope = context.PushViewportBounds(new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight));
+            return RenderChildren(canvas, symbol, inherited, contentTransform, context);
         }
 
         private static bool RenderNestedSvg(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {

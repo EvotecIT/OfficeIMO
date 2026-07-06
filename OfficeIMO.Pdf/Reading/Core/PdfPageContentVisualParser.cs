@@ -35,12 +35,15 @@ internal static class PdfPageContentVisualParser {
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
         double paintOrderOffset = 0D,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity);
         return parser.Parse();
     }
 
@@ -88,7 +91,10 @@ internal static class PdfPageContentVisualParser {
             double paintOrderBase,
             double paintOrderScale,
             double paintOrderOffset,
-            PdfPageClipPath? initialClipPath) {
+            PdfPageClipPath? initialClipPath,
+            OfficeColor? initialFillColor,
+            PdfPageColorSpaceKind initialFillColorSpace,
+            double? initialFillOpacity) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -100,9 +106,16 @@ internal static class PdfPageContentVisualParser {
             _paintOrderBase = paintOrderBase;
             _paintOrderScale = paintOrderScale;
             _paintOrderOffset = paintOrderOffset;
-            _initialState = initialClipPath.HasValue
-                ? GraphicsState.Default.WithClipPath(initialClipPath.Value)
+            GraphicsState initialState = initialFillColor.HasValue
+                ? GraphicsState.Default.WithFillColor(initialFillColor.Value, initialFillColorSpace)
                 : GraphicsState.Default;
+            if (initialFillOpacity.HasValue) {
+                initialState = initialState.WithOpacity(initialFillOpacity, null);
+            }
+
+            _initialState = initialClipPath.HasValue
+                ? initialState.WithClipPath(initialClipPath.Value)
+                : initialState;
             _state = _initialState;
         }
 
