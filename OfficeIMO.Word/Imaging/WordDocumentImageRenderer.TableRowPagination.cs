@@ -131,6 +131,7 @@ namespace OfficeIMO.Word {
                 }
 
                 List<SplitTableCellNestedTable> nestedTables = CreateSplitTableCellNestedTables(cell, contentWidth);
+                IReadOnlyList<SplitTableCellContentEntry> contentOrder = CreateSplitTableCellContentOrder(cell);
                 A.ColorScheme? colorScheme = GetDocumentColorScheme(cell.Document);
                 OfficeTextPadding padding = new OfficeTextPadding(marginLeft, marginTop, marginRight, marginBottom);
                 OfficeColor fillColor = ResolveCellFillColor(table, cell, rowIndex, columnIndex, rows.Count, columnWidths.Count, colorScheme);
@@ -143,6 +144,7 @@ namespace OfficeIMO.Word {
                             cellWidth,
                             images,
                             nestedTables,
+                            contentOrder,
                             new List<string>(),
                             OfficeFontInfo.Default,
                             OfficeColor.Black,
@@ -169,6 +171,7 @@ namespace OfficeIMO.Word {
                             cellWidth,
                             images,
                             nestedTables,
+                            contentOrder,
                             richLayout.Lines,
                             MapTextAlignment(paragraph?.ParagraphAlignment),
                             lineHeight,
@@ -188,6 +191,7 @@ namespace OfficeIMO.Word {
                         cellWidth,
                         images,
                         nestedTables,
+                        contentOrder,
                         lines,
                         font,
                         ResolveParagraphTextColor(paragraph, colorScheme),
@@ -238,6 +242,33 @@ namespace OfficeIMO.Word {
             }
 
             return blocks;
+        }
+
+        private static IReadOnlyList<SplitTableCellContentEntry> CreateSplitTableCellContentOrder(WordTableCell cell) {
+            var entries = new List<SplitTableCellContentEntry>();
+            int imageIndex = 0;
+            int nestedTableIndex = 0;
+            bool textAdded = false;
+            foreach (var child in cell._tableCell.ChildElements) {
+                if (child is Paragraph paragraph) {
+                    foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph, splitPaginationMarkers: true)) {
+                        if (run.IsPageBreak || run.IsColumnBreak) {
+                            continue;
+                        }
+
+                        if (run.Image != null) {
+                            entries.Add(SplitTableCellContentEntry.CreateImage(imageIndex++));
+                        } else if (!textAdded && !string.IsNullOrEmpty(run.Text)) {
+                            entries.Add(SplitTableCellContentEntry.CreateText());
+                            textAdded = true;
+                        }
+                    }
+                } else if (child is Table) {
+                    entries.Add(SplitTableCellContentEntry.CreateNestedTable(nestedTableIndex++));
+                }
+            }
+
+            return entries;
         }
 
         private static bool ShouldSplitTableCellAsRichText(IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns, bool hasListMarkers) {
@@ -304,6 +335,7 @@ namespace OfficeIMO.Word {
             private readonly double _width;
             private readonly IReadOnlyList<SplitTableCellImage> _images;
             private readonly IReadOnlyList<SplitTableCellNestedTable> _nestedTables;
+            private readonly IReadOnlyList<SplitTableCellContentEntry> _contentOrder;
             private readonly List<string>? _plainLines;
             private readonly IReadOnlyList<OfficeRichTextLine>? _richLines;
             private readonly OfficeFontInfo? _font;
@@ -322,6 +354,7 @@ namespace OfficeIMO.Word {
                 double width,
                 IReadOnlyList<SplitTableCellImage> images,
                 IReadOnlyList<SplitTableCellNestedTable> nestedTables,
+                IReadOnlyList<SplitTableCellContentEntry> contentOrder,
                 List<string>? plainLines,
                 IReadOnlyList<OfficeRichTextLine>? richLines,
                 OfficeFontInfo? font,
@@ -335,6 +368,7 @@ namespace OfficeIMO.Word {
                 _width = width;
                 _images = images;
                 _nestedTables = nestedTables;
+                _contentOrder = contentOrder;
                 _plainLines = plainLines;
                 _richLines = richLines;
                 _font = font;
@@ -351,6 +385,7 @@ namespace OfficeIMO.Word {
                 double width,
                 IReadOnlyList<SplitTableCellImage> images,
                 IReadOnlyList<SplitTableCellNestedTable> nestedTables,
+                IReadOnlyList<SplitTableCellContentEntry> contentOrder,
                 List<string> lines,
                 OfficeFontInfo font,
                 OfficeColor textColor,
@@ -359,20 +394,21 @@ namespace OfficeIMO.Word {
                 OfficeTextPadding padding,
                 OfficeColor fillColor,
                 OfficeBorderBox borders) =>
-                new SplitTableCellLayout(leftOffset, width, images, nestedTables, lines, null, font, textColor, alignment, lineHeight, padding, fillColor, borders);
+                new SplitTableCellLayout(leftOffset, width, images, nestedTables, contentOrder, lines, null, font, textColor, alignment, lineHeight, padding, fillColor, borders);
 
             internal static SplitTableCellLayout CreateRich(
                 double leftOffset,
                 double width,
                 IReadOnlyList<SplitTableCellImage> images,
                 IReadOnlyList<SplitTableCellNestedTable> nestedTables,
+                IReadOnlyList<SplitTableCellContentEntry> contentOrder,
                 IReadOnlyList<OfficeRichTextLine> lines,
                 OfficeTextAlignment alignment,
                 double lineHeight,
                 OfficeTextPadding padding,
                 OfficeColor fillColor,
                 OfficeBorderBox borders) =>
-                new SplitTableCellLayout(leftOffset, width, images, nestedTables, null, lines, null, OfficeColor.Black, alignment, lineHeight, padding, fillColor, borders);
+                new SplitTableCellLayout(leftOffset, width, images, nestedTables, contentOrder, null, lines, null, OfficeColor.Black, alignment, lineHeight, padding, fillColor, borders);
 
             internal bool HasRemainingContent => _imageIndex < ImageCount || _nestedTableIndex < NestedTableCount || _lineIndex < LineCount;
 
@@ -495,21 +531,46 @@ namespace OfficeIMO.Word {
                 double contentLeft = left + _padding.Left;
                 double contentTop = top + _padding.Top;
                 double contentWidth = Math.Max(1D, _width - _padding.Left - _padding.Right);
-                for (int i = 0; i < fragment.ImageCount; i++) {
-                    SplitTableCellImage image = _images[_imageIndex + i];
+                int lineCount = Math.Min(fragment.LineCount, Math.Max(0, LineCount - _lineIndex));
+                int imageStart = _imageIndex;
+                int imageEnd = imageStart + fragment.ImageCount;
+                int nestedTableStart = _nestedTableIndex;
+                int nestedTableEnd = nestedTableStart + fragment.NestedTableCount;
+                var drawnImages = new HashSet<int>();
+                var drawnNestedTables = new HashSet<int>();
+                bool drewText = false;
+                int drawnBlocks = 0;
+                int totalBlocks = fragment.ImageCount + fragment.NestedTableCount + (lineCount > 0 ? 1 : 0);
+
+                void AddGapIfNeeded() {
+                    drawnBlocks++;
+                    if (drawnBlocks < totalBlocks) {
+                        contentTop += ParagraphGapPoints;
+                    }
+                }
+
+                bool DrawImageBlock(int imageIndex) {
+                    if (imageIndex < imageStart || imageIndex >= imageEnd || !drawnImages.Add(imageIndex)) {
+                        return false;
+                    }
+
+                    SplitTableCellImage image = _images[imageIndex];
                     drawing.AddImage(
                         image.Bytes,
                         image.ContentType,
                         CreateImageProjection(image.Source, contentLeft, contentTop, image.Width, image.Height),
                         DescribeImage(image.Source));
                     contentTop += image.Height;
-                    if (_imageIndex + i < ImageCount - 1 || fragment.NestedTableCount > 0 || fragment.LineCount > 0) {
-                        contentTop += ParagraphGapPoints;
-                    }
+                    AddGapIfNeeded();
+                    return true;
                 }
 
-                for (int i = 0; i < fragment.NestedTableCount; i++) {
-                    SplitTableCellNestedTable nestedTable = _nestedTables[_nestedTableIndex + i];
+                bool DrawNestedTableBlock(int nestedTableIndex) {
+                    if (nestedTableIndex < nestedTableStart || nestedTableIndex >= nestedTableEnd || !drawnNestedTables.Add(nestedTableIndex)) {
+                        return false;
+                    }
+
+                    SplitTableCellNestedTable nestedTable = _nestedTables[nestedTableIndex];
                     WordImageFlowContext nestedContext = CreateFlowContext(
                         drawing,
                         contentLeft,
@@ -520,47 +581,71 @@ namespace OfficeIMO.Word {
                         "Skipped a nested Word table inside a split table row because it does not fit within the row fragment.");
                     AddTable(nestedTable.Table, nestedContext, diagnostics, listMarkers, allowNestedTable: true);
                     contentTop += nestedTable.Height;
-                    if (_nestedTableIndex + i < NestedTableCount - 1 || fragment.LineCount > 0) {
-                        contentTop += ParagraphGapPoints;
+                    AddGapIfNeeded();
+                    return true;
+                }
+
+                bool DrawTextBlock() {
+                    if (drewText || lineCount <= 0) {
+                        return false;
+                    }
+
+                    double textTop = contentTop > top + _padding.Top + 0.000001D ? contentTop - _padding.Top : top;
+                    double textHeight = Math.Max(1D, top + height - textTop);
+                    if (_richLines != null) {
+                        drawing.AddRichText(
+                            CreateRichTextRunsFromLines(_richLines, _lineIndex, lineCount),
+                            left,
+                            textTop,
+                            _width,
+                            textHeight,
+                            _alignment,
+                            _lineHeight,
+                            OfficeTextVerticalAlignment.Top,
+                            wrapText: true,
+                            padding: _padding);
+                    } else {
+                        string text = string.Join(Environment.NewLine, _plainLines!.GetRange(_lineIndex, lineCount).Select(line => line.TrimEnd(' ', '\t')));
+                        drawing.AddText(
+                            text,
+                            left,
+                            textTop,
+                            _width,
+                            textHeight,
+                            _font,
+                            _textColor,
+                            _alignment,
+                            _lineHeight,
+                            OfficeTextVerticalAlignment.Top,
+                            wrapText: true,
+                            padding: _padding);
+                    }
+
+                    drewText = true;
+                    AddGapIfNeeded();
+                    return true;
+                }
+
+                for (int i = 0; i < _contentOrder.Count; i++) {
+                    SplitTableCellContentEntry entry = _contentOrder[i];
+                    if (entry.Kind == SplitTableCellContentKind.Image) {
+                        DrawImageBlock(entry.Index);
+                    } else if (entry.Kind == SplitTableCellContentKind.NestedTable) {
+                        DrawNestedTableBlock(entry.Index);
+                    } else {
+                        DrawTextBlock();
                     }
                 }
 
-                int lineCount = Math.Min(fragment.LineCount, Math.Max(0, LineCount - _lineIndex));
-                if (lineCount <= 0) {
-                    return;
+                for (int i = imageStart; i < imageEnd; i++) {
+                    DrawImageBlock(i);
                 }
 
-                double textTop = contentTop > top + _padding.Top + 0.000001D ? contentTop - _padding.Top : top;
-                double textHeight = Math.Max(1D, top + height - textTop);
-                if (_richLines != null) {
-                    drawing.AddRichText(
-                        CreateRichTextRunsFromLines(_richLines, _lineIndex, lineCount),
-                        left,
-                        textTop,
-                        _width,
-                        textHeight,
-                        _alignment,
-                        _lineHeight,
-                        OfficeTextVerticalAlignment.Top,
-                        wrapText: true,
-                        padding: _padding);
-                    return;
+                for (int i = nestedTableStart; i < nestedTableEnd; i++) {
+                    DrawNestedTableBlock(i);
                 }
 
-                string text = string.Join(Environment.NewLine, _plainLines!.GetRange(_lineIndex, lineCount).Select(line => line.TrimEnd(' ', '\t')));
-                drawing.AddText(
-                    text,
-                    left,
-                    textTop,
-                    _width,
-                    textHeight,
-                    _font,
-                    _textColor,
-                    _alignment,
-                    _lineHeight,
-                    OfficeTextVerticalAlignment.Top,
-                    wrapText: true,
-                    padding: _padding);
+                DrawTextBlock();
             }
 
             private int ImageCount => _images.Count;
@@ -571,6 +656,32 @@ namespace OfficeIMO.Word {
 
             private double GetLineHeight(int index) =>
                 _richLines != null ? ResolveRichTextSliceLineHeight(_richLines[index], _lineHeight) : _lineHeight;
+        }
+
+        private enum SplitTableCellContentKind {
+            Image,
+            NestedTable,
+            Text
+        }
+
+        private readonly struct SplitTableCellContentEntry {
+            private SplitTableCellContentEntry(SplitTableCellContentKind kind, int index) {
+                Kind = kind;
+                Index = index;
+            }
+
+            internal SplitTableCellContentKind Kind { get; }
+
+            internal int Index { get; }
+
+            internal static SplitTableCellContentEntry CreateImage(int index) =>
+                new(SplitTableCellContentKind.Image, index);
+
+            internal static SplitTableCellContentEntry CreateNestedTable(int index) =>
+                new(SplitTableCellContentKind.NestedTable, index);
+
+            internal static SplitTableCellContentEntry CreateText() =>
+                new(SplitTableCellContentKind.Text, -1);
         }
 
         private readonly struct SplitTableCellImage {

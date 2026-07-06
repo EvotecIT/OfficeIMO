@@ -47,12 +47,17 @@ namespace OfficeIMO.Visio {
 
             internal bool HasFill => Fill.A > 0 || FillGradient != null || FillRadialGradient != null;
 
-            internal static SvgPaint Resolve(XElement element, SvgPaint inherited, SvgRenderContext context) {
+            internal static double ReadOwnOpacity(XElement element, SvgRenderContext context) {
+                Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
+                return ReadOwnUnit(element, style, "opacity", 1D);
+            }
+
+            internal static SvgPaint Resolve(XElement element, SvgPaint inherited, SvgRenderContext context, bool applyOwnOpacity = true) {
                 Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
                 OfficeColor currentColor = ResolveColor(ReadPaint(element, style, "color"), inherited.CurrentColor, inherited.CurrentColor);
                 string? rawFill = ReadPaint(element, style, "fill");
                 string? rawStroke = ReadPaint(element, style, "stroke");
-                double ownOpacity = ReadOwnUnit(element, style, "opacity", 1D);
+                double ownOpacity = applyOwnOpacity ? ReadOwnUnit(element, style, "opacity", 1D) : 1D;
                 double fillOpacity = ReadUnit(element, style, "fill-opacity", 1D);
                 double strokeOpacity = ReadUnit(element, style, "stroke-opacity", 1D);
                 double explicitFillMultiplier = string.IsNullOrWhiteSpace(rawFill) ? 1D : inherited.Opacity;

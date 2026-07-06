@@ -35,6 +35,16 @@ namespace OfficeIMO.Visio {
             double y1 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y1"), 0D);
             double x2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "x2"), userSpace ? x1 + 1D : 1D);
             double y2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y2"), 0D);
+            SvgTransform gradientTransform = ReadInheritedGradientTransform(definition, context);
+            if (userSpace) {
+                OfficePoint start = gradientTransform.Apply(x1, y1);
+                OfficePoint end = gradientTransform.Apply(x2, y2);
+                x1 = start.X;
+                y1 = start.Y;
+                x2 = end.X;
+                y2 = end.Y;
+            }
+
             if (userSpace && context.CurrentPaintBounds.HasValue) {
                 SvgPaintBounds bounds = context.CurrentPaintBounds.Value;
                 if (bounds.HasArea) {
@@ -43,6 +53,15 @@ namespace OfficeIMO.Visio {
                     x2 = NormalizeUserSpaceGradientCoordinate(x2, bounds.Left, bounds.Width);
                     y2 = NormalizeUserSpaceGradientCoordinate(y2, bounds.Top, bounds.Height);
                 }
+            }
+
+            if (!userSpace) {
+                OfficePoint start = gradientTransform.Apply(x1, y1);
+                OfficePoint end = gradientTransform.Apply(x2, y2);
+                x1 = start.X;
+                y1 = start.Y;
+                x2 = end.X;
+                y2 = end.Y;
             }
 
             if (x1.Equals(x2) && y1.Equals(y2)) {
@@ -66,6 +85,19 @@ namespace OfficeIMO.Visio {
             double fx = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fx"), cx);
             double fy = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fy"), cy);
             double fr = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fr"), 0D);
+            SvgTransform gradientTransform = ReadInheritedGradientTransform(definition, context);
+            double radiusScale = Math.Max(gradientTransform.ScaleX, gradientTransform.ScaleY);
+            if (userSpace) {
+                OfficePoint center = gradientTransform.Apply(cx, cy);
+                OfficePoint focus = gradientTransform.Apply(fx, fy);
+                cx = center.X;
+                cy = center.Y;
+                fx = focus.X;
+                fy = focus.Y;
+                r *= radiusScale;
+                fr *= radiusScale;
+            }
+
             if (userSpace && context.CurrentPaintBounds.HasValue) {
                 SvgPaintBounds bounds = context.CurrentPaintBounds.Value;
                 if (bounds.HasArea) {
@@ -76,6 +108,17 @@ namespace OfficeIMO.Visio {
                     r = NormalizeUserSpaceGradientRadius(r, bounds);
                     fr = NormalizeUserSpaceGradientRadius(fr, bounds);
                 }
+            }
+
+            if (!userSpace) {
+                OfficePoint center = gradientTransform.Apply(cx, cy);
+                OfficePoint focus = gradientTransform.Apply(fx, fy);
+                cx = center.X;
+                cy = center.Y;
+                fx = focus.X;
+                fy = focus.Y;
+                r *= radiusScale;
+                fr *= radiusScale;
             }
 
             if (r.Equals(fr) && cx.Equals(fx) && cy.Equals(fy)) {
@@ -262,6 +305,11 @@ namespace OfficeIMO.Visio {
 
         private static bool IsUserSpaceGradient(XElement definition, SvgRenderContext context) =>
             string.Equals(ReadInheritedGradientAttribute(definition, context, "gradientUnits"), "userSpaceOnUse", StringComparison.OrdinalIgnoreCase);
+
+        private static SvgTransform ReadInheritedGradientTransform(XElement definition, SvgRenderContext context) {
+            string? value = ReadInheritedGradientAttribute(definition, context, "gradientTransform");
+            return string.IsNullOrWhiteSpace(value) ? SvgTransform.Identity : ReadTransform(value);
+        }
 
         private static double NormalizeUserSpaceGradientCoordinate(double value, double origin, double length) =>
             length > 0D ? (value - origin) / length : value;

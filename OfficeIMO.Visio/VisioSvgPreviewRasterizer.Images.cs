@@ -68,12 +68,26 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            double rotationDegrees = Math.Atan2(columnY, columnX) * 180D / Math.PI;
+            double determinant = (columnX * rowY) - (columnY * rowX);
+            bool flipHorizontal = determinant < 0D;
+            double placementX = topLeft.X;
+            double placementY = topLeft.Y;
+            double rotationColumnX = columnX;
+            double rotationColumnY = columnY;
+            if (flipHorizontal) {
+                rotationColumnX = -rotationColumnX;
+                rotationColumnY = -rotationColumnY;
+                placementX += columnX;
+                placementY += columnY;
+            }
+
+            double rotationDegrees = Math.Atan2(rotationColumnY, rotationColumnX) * 180D / Math.PI;
             projection = new OfficeImageProjection(
-                new OfficeImagePlacement(topLeft.X, topLeft.Y, width, height),
+                new OfficeImagePlacement(placementX, placementY, width, height),
                 rotationDegrees: rotationDegrees,
-                rotationCenterX: topLeft.X,
-                rotationCenterY: topLeft.Y);
+                rotationCenterX: placementX,
+                rotationCenterY: placementY,
+                flipHorizontal: flipHorizontal);
             return true;
         }
 

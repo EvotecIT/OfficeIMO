@@ -77,14 +77,39 @@ namespace OfficeIMO.Visio {
             SvgTransform localTransform = transform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
             using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(element, context));
             using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, out SvgPaintBounds bounds) ? bounds : null);
-            SvgPaint paint = SvgPaint.Resolve(element, inherited, context);
-            using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
+            bool appliesGroupOpacity = CanApplyGroupOpacity(name);
+            double groupOpacity = appliesGroupOpacity ? SvgPaint.ReadOwnOpacity(element, context) : 1D;
+            if (appliesGroupOpacity && groupOpacity <= 0D) {
+                return false;
+            }
+
+            bool useGroupOpacityLayer = appliesGroupOpacity && groupOpacity < 1D;
+            SvgPaint paint = SvgPaint.Resolve(element, inherited, context, applyOwnOpacity: !useGroupOpacityLayer);
             if (!context.IsVisible && !CanHiddenElementHaveVisibleDescendants(name)) {
                 return false;
             }
 
+            if (useGroupOpacityLayer) {
+                OfficeRasterImage layer = new(canvas.Width, canvas.Height, OfficeColor.Transparent);
+                OfficeRasterCanvas layerCanvas = new(layer);
+                bool rendered = RenderElementCore(layerCanvas, element, name, paint, localTransform, context);
+                if (!rendered) {
+                    return false;
+                }
+
+                using IDisposable? groupClipScope = PushClipPath(canvas, element, localTransform, context);
+                canvas.DrawImage(ApplyImageOpacity(layer, groupOpacity), 0D, 0D, canvas.Width, canvas.Height);
+                return true;
+            }
+
+            using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
             return RenderElementCore(canvas, element, name, paint, localTransform, context);
         }
+
+        private static bool CanApplyGroupOpacity(string name) =>
+            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "use", StringComparison.OrdinalIgnoreCase);
 
         private static bool CanHiddenElementHaveVisibleDescendants(string name) =>
             string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
