@@ -402,6 +402,10 @@ internal static partial class PdfWriter {
                             double keepTogetherTextHeight = heights.Sum();
                             double keepTogetherPanelHeight = panelStyle.PaddingY + keepTogetherTextHeight + panelStyle.PaddingY;
                             double keepTogetherAvailableHeight = currentOpts.PageHeight - currentOpts.MarginTop - currentOpts.MarginBottom;
+                            if (panelStyle.KeepTogether && panelStyle.PaddingY + panelStyle.PaddingY > keepTogetherAvailableHeight + 0.001D) {
+                                throw new ArgumentException("Panel vertical padding and first line height exceed the available page content height.");
+                            }
+
                             bool keepPanelTogether = panelStyle.KeepTogether && keepTogetherPanelHeight <= keepTogetherAvailableHeight + 0.001;
                             if (keepPanelTogether) {
                                 double panelHeight = keepTogetherPanelHeight;
@@ -441,6 +445,13 @@ internal static partial class PdfWriter {
 
                                 double roomForText = remain - topPad - panelStyle.PaddingY;
                                 if (roomForText < minLine) {
+                                    if (start == lines.Count - 1) {
+                                        EnsurePanelSegmentCanFitLine(topPad + panelStyle.PaddingY, minLine);
+                                        if (consumed > 0) break;
+                                        remain = 0;
+                                        break;
+                                    }
+
                                     roomForText = remain - topPad;
                                 }
 
@@ -459,6 +470,19 @@ internal static partial class PdfWriter {
                                 }
 
                                 bool lastSeg = start + take >= lines.Count;
+                                if (lastSeg && topPad + hsum + panelStyle.PaddingY > remain + 0.001D) {
+                                    if (take > 1) {
+                                        take--;
+                                        hsum -= heights[start + take];
+                                        lastSeg = false;
+                                    } else {
+                                        EnsurePanelSegmentCanFitLine(topPad + panelStyle.PaddingY, minLine);
+                                        if (consumed > 0) break;
+                                        remain = 0;
+                                        break;
+                                    }
+                                }
+
                                 double panelTop = yCol;
                                 double usedBottomPad = lastSeg ? panelStyle.PaddingY : Math.Max(0, remain - (topPad + hsum));
                                 double panelBottom = yCol - (topPad + hsum + usedBottomPad);

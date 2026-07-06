@@ -310,6 +310,29 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void PanelParagraph_KeepTogetherRejectsSingleLineWhenBottomPaddingCannotFit() {
+        var exception = Assert.Throws<ArgumentException>(() =>
+            PdfDocument.Create(new PdfOptions {
+                    PageWidth = 180,
+                    PageHeight = 110,
+                    MarginLeft = 20,
+                    MarginRight = 20,
+                    MarginTop = 20,
+                    MarginBottom = 20,
+                    DefaultFont = PdfStandardFont.Helvetica,
+                    DefaultFontSize = 10
+                })
+                .PanelParagraph(p => p.Text("CannotFitWithBottomPadding"), new PanelStyle {
+                    KeepTogether = true,
+                    PaddingY = 36,
+                    BorderWidth = 0
+                })
+                .ToBytes());
+
+        Assert.Contains("Panel vertical padding and first line height exceed the available page content height.", exception.Message, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void RowColumnPanelParagraph_RejectsVerticalPaddingThatCannotFitFirstLine() {
         var exception = Assert.Throws<ArgumentException>(() =>
             PdfDocument.Create(new PdfOptions {

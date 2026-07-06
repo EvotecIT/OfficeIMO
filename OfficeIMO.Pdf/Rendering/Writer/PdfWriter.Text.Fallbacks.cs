@@ -65,12 +65,12 @@ internal static partial class PdfWriter {
             }
 
             int segmentStart = index;
-            bool selectedFontCanWrite = CanWriteNextFallbackScalarWithSelectedFont(text, index, fontForRun, options);
-            index += GetNextFallbackScalarLength(text, index);
+            bool selectedFontCanWrite = TryGetSelectedFontCoveredFallbackTextLength(text, index, fontForRun, options, out int coveredLength);
+            index += coveredLength;
             while (index < text.Length &&
                    !IsFallbackLayoutSeparator(text[index]) &&
-                   selectedFontCanWrite == CanWriteNextFallbackScalarWithSelectedFont(text, index, fontForRun, options)) {
-                index += GetNextFallbackScalarLength(text, index);
+                   selectedFontCanWrite == TryGetSelectedFontCoveredFallbackTextLength(text, index, fontForRun, options, out coveredLength)) {
+                index += coveredLength;
             }
 
             string segment = text.Substring(segmentStart, index - segmentStart);
@@ -191,8 +191,20 @@ internal static partial class PdfWriter {
     private static bool IsFallbackLayoutSeparator(char ch) =>
         ch == '\n' || ch == '\r' || ch == '\t';
 
-    private static bool CanWriteNextFallbackScalarWithSelectedFont(string text, int index, PdfStandardFont fontForRun, PdfOptions? options) {
-        int length = GetNextFallbackScalarLength(text, index);
+    private static bool TryGetSelectedFontCoveredFallbackTextLength(string text, int index, PdfStandardFont fontForRun, PdfOptions? options, out int length) {
+        length = GetNextFallbackScalarLength(text, index);
+        if (options != null &&
+            options.TryGetEmbeddedStandardFontProgram(fontForRun, out PdfTrueTypeFontProgram? fontProgram) &&
+            fontProgram != null) {
+            return TryGetCoveredTextLength(text, index, fontProgram, options.TextShapingModeSnapshot, out length);
+        }
+
+        if (options != null &&
+            options.TryGetEmbeddedStandardOpenTypeCffFontProgram(fontForRun, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
+            cffFontProgram != null) {
+            return TryGetCoveredTextLength(text, index, cffFontProgram, options.TextShapingModeSnapshot, out length);
+        }
+
         return CanWriteTextWithSelectedFont(text.Substring(index, length), fontForRun, options);
     }
 
