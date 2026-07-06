@@ -2654,6 +2654,73 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfDocument_RegisteredFallbacksDoNotReuseSlotsAlreadyEmittedByEarlierRuns() {
+        string? textFallbackPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        if (textFallbackPath == null) {
+            return;
+        }
+
+        byte[] textFallback = File.ReadAllBytes(textFallbackPath);
+        const string polish = "\u0141\u00f3d\u017a";
+        foreach (string emojiFallbackPath in EnumerateLocalNonBmpTrueTypeFonts()) {
+            if (string.Equals(textFallbackPath, emojiFallbackPath, StringComparison.OrdinalIgnoreCase)) {
+                continue;
+            }
+
+            byte[] emojiFallback = File.ReadAllBytes(emojiFallbackPath);
+            var fallbackSet = new PdfEmbeddedFontFallbackSet(
+                new[] {
+                    new PdfEmbeddedFontFallbackCandidate("Issue 2035 Emoji Fallback", emojiFallback),
+                    new PdfEmbeddedFontFallbackCandidate("Issue 2035 Polish Fallback", textFallback),
+                    new PdfEmbeddedFontFallbackCandidate("Issue 2035 Unused Fallback", CreateMinimalOpenTypeCffFont())
+                },
+                new[] {
+                    PdfStandardFont.Helvetica,
+                    PdfStandardFont.TimesRoman,
+                    PdfStandardFont.Courier
+                });
+
+            PdfTextFallbackPlan polishPlan;
+            PdfTextFallbackPlan emojiPlan;
+            try {
+                polishPlan = fallbackSet.PlanText(polish);
+                emojiPlan = fallbackSet.PlanText("\U0001F600");
+            } catch (NotSupportedException) {
+                continue;
+            }
+
+            if (!polishPlan.IsFullyCovered ||
+                !polishPlan.Segments.Any(segment => segment.FontIndex == 1) ||
+                !emojiPlan.IsFullyCovered ||
+                !emojiPlan.Segments.Any(segment => segment.FontIndex == 0)) {
+                continue;
+            }
+
+            byte[] bytes;
+            try {
+                bytes = PdfDocument.Create(new PdfOptions {
+                        CompressContentStreams = false
+                    })
+                    .RegisterEmbeddedFontFallbacks(fallbackSet)
+                    .Paragraph(paragraph => paragraph.Text("Polish " + polish))
+                    .Paragraph(paragraph => paragraph.Text("Emoji \U0001F600"))
+                    .ToBytes();
+            } catch (Exception exception) when (exception is ArgumentException || exception is NotSupportedException) {
+                continue;
+            }
+
+            string raw = Encoding.ASCII.GetString(bytes);
+            string extracted = PdfReadDocument.Load(bytes).ExtractText();
+
+            Assert.Contains("/BaseFont /Issue2035PolishFallback", raw, StringComparison.Ordinal);
+            Assert.Contains("/BaseFont /Issue2035EmojiFallback", raw, StringComparison.Ordinal);
+            Assert.Contains("Polish", extracted, StringComparison.Ordinal);
+            Assert.Contains("Emoji", extracted, StringComparison.Ordinal);
+            return;
+        }
+    }
+
+    [Fact]
     public void PdfDocument_UseFontFamilyEncodesTextWatermarkWithEmbeddedGlyphs() {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {

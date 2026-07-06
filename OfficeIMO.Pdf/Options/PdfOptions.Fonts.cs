@@ -184,6 +184,15 @@ public sealed partial class PdfOptions {
         }
     }
 
+    internal void MarkEmbeddedFallbackFontFamilySlotUsed(PdfStandardFont font) {
+        (_usedEmbeddedFallbackFontSlots ??= new HashSet<PdfStandardFont>()).Add(PdfStandardFontMapper.GetFontFamily(font));
+    }
+
+    internal bool IsEmbeddedFallbackFontFamilySlotUsed(PdfStandardFont font) {
+        return _usedEmbeddedFallbackFontSlots != null &&
+               _usedEmbeddedFallbackFontSlots.Contains(PdfStandardFontMapper.GetFontFamily(font));
+    }
+
     private bool TryUseOfficeFontFamilyCore(string? familyName, bool embedSystemFont, bool requireEmbeddedFont) {
         if (string.IsNullOrWhiteSpace(familyName)) {
             return false;

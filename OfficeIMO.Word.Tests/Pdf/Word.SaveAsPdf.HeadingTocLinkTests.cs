@@ -428,6 +428,46 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void SaveAsPdf_OfficeIMOEngine_Reserves_Theme_Style_Fonts_Before_Text_Fallbacks() {
+            string docPath = Path.Combine(_directoryWithFiles, "PdfNativeThemeStyleBeforeFallbacks.docx");
+
+            using WordDocument document = WordDocument.Create(docPath);
+            document.AddParagraph("Native theme heading slot").SetStyle(WordParagraphStyles.Heading1);
+
+            Style headingStyle = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!
+                .Elements<Style>()
+                .First(style => style.StyleId == "Heading1");
+            StyleRunProperties runProperties = headingStyle.GetFirstChild<StyleRunProperties>() ?? headingStyle.AppendChild(new StyleRunProperties());
+            runProperties.RemoveAllChildren<RunFonts>();
+            runProperties.AppendChild(new RunFonts { Ascii = "serif", HighAnsi = "serif" });
+
+            Type nativeFontMapType = typeof(WordPdfConverterExtensions).GetNestedType("NativeFontMap", BindingFlags.NonPublic)!;
+            object nativeFontMap = Activator.CreateInstance(nativeFontMapType, nonPublic: true)!;
+            MethodInfo createOptions = typeof(WordPdfConverterExtensions).GetMethod(
+                "CreateNativeOptions",
+                BindingFlags.NonPublic | BindingFlags.Static)!;
+
+            var saveOptions = new PdfSaveOptions {
+                AllowSystemFontEmbedding = true,
+                TextFallbacks = PdfTextFallbackFeatures.Default
+            };
+            PdfOptions pdfOptions = Assert.IsType<PdfOptions>(createOptions.Invoke(null, new object[] {
+                document,
+                saveOptions,
+                nativeFontMap
+            }));
+
+            object[] args = { "serif", PdfStandardFont.Helvetica };
+            bool mapped = (bool)nativeFontMapType.GetMethod("TryGetFontSlot", BindingFlags.Public | BindingFlags.Instance)!.Invoke(nativeFontMap, args)!;
+
+            Assert.True(mapped);
+            Assert.Equal(PdfStandardFont.TimesRoman, Assert.IsType<PdfStandardFont>(args[1]));
+            if (pdfOptions.EmbeddedFontFallbacks != null) {
+                Assert.DoesNotContain(PdfStandardFont.TimesRoman, pdfOptions.EmbeddedFontFallbacks.FontSlots);
+            }
+        }
+
+        [Fact]
         public void SaveAsPdf_OfficeIMOEngine_Uses_Declared_Word_Heading_Formatting() {
             using WordDocument document = WordDocument.Create(Path.Combine(_directoryWithFiles, "PdfNativeDeclaredHeadingFormatting.docx"));
             WordParagraph heading = document.AddParagraph("Native declared heading formatting").SetStyle(WordParagraphStyles.Heading1);

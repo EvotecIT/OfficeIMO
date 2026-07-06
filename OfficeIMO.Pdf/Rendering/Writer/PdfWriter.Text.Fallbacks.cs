@@ -113,6 +113,10 @@ internal static partial class PdfWriter {
         }
 
         fallbackSet.RegisterFonts(options, fontSlots);
+        foreach (PdfStandardFont slot in fontSlots.Values) {
+            options.MarkEmbeddedFallbackFontFamilySlotUsed(slot);
+        }
+
         plannedRuns = plan.ToTextRuns(fontSlots, styleTemplate);
         return true;
     }
@@ -234,7 +238,8 @@ internal static partial class PdfWriter {
             if (options.TryGetEmbeddedStandardFont(variant, out PdfEmbeddedFont? embeddedFont) &&
                 embeddedFont != null &&
                 !embeddedFont.DataSnapshot.SequenceEqual(candidate.DataSnapshot) &&
-                !EmbeddedFontMatchesUnusedFallbackCandidate(embeddedFont, fallbackSet, plannedCandidateIndexes)) {
+                (options.IsEmbeddedFallbackFontFamilySlotUsed(family) ||
+                 !EmbeddedFontMatchesUnusedFallbackCandidate(embeddedFont, fallbackSet, plannedCandidateIndexes))) {
                 return false;
             }
         }
