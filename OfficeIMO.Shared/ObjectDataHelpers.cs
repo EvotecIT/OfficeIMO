@@ -203,13 +203,13 @@ internal static class ObjectDataHelpers
         private Func<object, object?[], bool>? _defaultProjector;
         private Func<object, string?[], CultureInfo, bool>? _defaultTextProjector;
 
-        public ObjectPropertyPlan(Type type, IReadOnlyList<PropertyInfo> properties)
+        public ObjectPropertyPlan(Type type, PropertyInfo[] properties)
         {
-            var columnNames = new string[properties.Count];
-            _properties = new PropertyInfo[properties.Count];
-            _propertiesByName = new Dictionary<string, PropertyInfo>(properties.Count, StringComparer.Ordinal);
+            var columnNames = new string[properties.Length];
+            _properties = new PropertyInfo[properties.Length];
+            _propertiesByName = new Dictionary<string, PropertyInfo>(properties.Length, StringComparer.Ordinal);
             _type = type;
-            for (var i = 0; i < properties.Count; i++)
+            for (var i = 0; i < properties.Length; i++)
             {
                 var property = properties[i];
                 _properties[i] = property;
@@ -220,7 +220,7 @@ internal static class ObjectDataHelpers
             ColumnNames = columnNames;
         }
 
-        public IReadOnlyList<string> ColumnNames { get; }
+        public string[] ColumnNames { get; }
 
         public bool TryGetValue(object item, string column, out object? value)
         {
@@ -284,7 +284,7 @@ internal static class ObjectDataHelpers
 
         private bool IsDefaultColumnOrder(IReadOnlyList<string> columns)
         {
-            if (columns.Count != ColumnNames.Count)
+            if (columns.Count != ColumnNames.Length)
             {
                 return false;
             }
@@ -300,7 +300,7 @@ internal static class ObjectDataHelpers
             return true;
         }
 
-        private Func<object, object?[], bool> CreateProjector(IReadOnlyList<PropertyInfo> properties)
+        private Func<object, object?[], bool> CreateProjector(PropertyInfo[] properties)
         {
 #if NET5_0_OR_GREATER
             if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
@@ -309,8 +309,8 @@ internal static class ObjectDataHelpers
             }
 #endif
 
-            var accessors = new Func<object, object?>[properties.Count];
-            for (var i = 0; i < properties.Count; i++)
+            var accessors = new Func<object, object?>[properties.Length];
+            for (var i = 0; i < properties.Length; i++)
             {
                 accessors[i] = CreateAccessor(properties[i]);
             }
@@ -318,7 +318,7 @@ internal static class ObjectDataHelpers
             return CreateProjector(_type, accessors);
         }
 
-        private Func<object, string?[], CultureInfo, bool> CreateTextProjector(IReadOnlyList<PropertyInfo> properties)
+        private Func<object, string?[], CultureInfo, bool> CreateTextProjector(PropertyInfo[] properties)
         {
 #if NET5_0_OR_GREATER
             if (System.Runtime.CompilerServices.RuntimeFeature.IsDynamicCodeSupported)
@@ -327,8 +327,8 @@ internal static class ObjectDataHelpers
             }
 #endif
 
-            var accessors = new Func<object, CultureInfo, string?>[properties.Count];
-            for (var i = 0; i < properties.Count; i++)
+            var accessors = new Func<object, CultureInfo, string?>[properties.Length];
+            for (var i = 0; i < properties.Length; i++)
             {
                 accessors[i] = CreateTextAccessor(properties[i]);
             }
@@ -337,13 +337,13 @@ internal static class ObjectDataHelpers
         }
 
 #if NET5_0_OR_GREATER
-        private static Func<object, object?[], bool> CreateCompiledProjector(Type type, IReadOnlyList<PropertyInfo> properties)
+        private static Func<object, object?[], bool> CreateCompiledProjector(Type type, PropertyInfo[] properties)
         {
             var item = Expression.Parameter(typeof(object), "item");
             var values = Expression.Parameter(typeof(object?[]), "values");
             var typedItem = Expression.Variable(type, "typedItem");
             var returnTarget = Expression.Label(typeof(bool));
-            var expressions = new List<Expression>(properties.Count + 6);
+            var expressions = new List<Expression>(properties.Length + 6);
 
             expressions.Add(Expression.IfThen(
                 Expression.OrElse(
@@ -360,7 +360,7 @@ internal static class ObjectDataHelpers
                     Expression.Constant("values")))));
 
             expressions.Add(Expression.IfThen(
-                Expression.NotEqual(Expression.ArrayLength(values), Expression.Constant(properties.Count)),
+                Expression.NotEqual(Expression.ArrayLength(values), Expression.Constant(properties.Length)),
                 Expression.Throw(Expression.New(
                     typeof(ArgumentException).GetConstructor(new[] { typeof(string), typeof(string) })!,
                     Expression.Constant("Value buffer length must match the projector column count."),
@@ -368,7 +368,7 @@ internal static class ObjectDataHelpers
 
             expressions.Add(Expression.Assign(typedItem, Expression.Convert(item, type)));
 
-            for (var i = 0; i < properties.Count; i++)
+            for (var i = 0; i < properties.Length; i++)
             {
                 expressions.Add(Expression.Assign(
                     Expression.ArrayAccess(values, Expression.Constant(i)),
@@ -384,14 +384,14 @@ internal static class ObjectDataHelpers
                 values).Compile();
         }
 
-        private static Func<object, string?[], CultureInfo, bool> CreateCompiledTextProjector(Type type, IReadOnlyList<PropertyInfo> properties)
+        private static Func<object, string?[], CultureInfo, bool> CreateCompiledTextProjector(Type type, PropertyInfo[] properties)
         {
             var item = Expression.Parameter(typeof(object), "item");
             var values = Expression.Parameter(typeof(string?[]), "values");
             var culture = Expression.Parameter(typeof(CultureInfo), "culture");
             var typedItem = Expression.Variable(type, "typedItem");
             var returnTarget = Expression.Label(typeof(bool));
-            var expressions = new List<Expression>(properties.Count + 7);
+            var expressions = new List<Expression>(properties.Length + 7);
 
             expressions.Add(Expression.IfThen(
                 Expression.OrElse(
@@ -414,7 +414,7 @@ internal static class ObjectDataHelpers
                     Expression.Constant("culture")))));
 
             expressions.Add(Expression.IfThen(
-                Expression.NotEqual(Expression.ArrayLength(values), Expression.Constant(properties.Count)),
+                Expression.NotEqual(Expression.ArrayLength(values), Expression.Constant(properties.Length)),
                 Expression.Throw(Expression.New(
                     typeof(ArgumentException).GetConstructor(new[] { typeof(string), typeof(string) })!,
                     Expression.Constant("Value buffer length must match the projector column count."),
@@ -422,7 +422,7 @@ internal static class ObjectDataHelpers
 
             expressions.Add(Expression.Assign(typedItem, Expression.Convert(item, type)));
 
-            for (var i = 0; i < properties.Count; i++)
+            for (var i = 0; i < properties.Length; i++)
             {
                 expressions.Add(Expression.Assign(
                     Expression.ArrayAccess(values, Expression.Constant(i)),

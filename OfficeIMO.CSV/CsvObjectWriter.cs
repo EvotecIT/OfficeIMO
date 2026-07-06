@@ -180,6 +180,34 @@ public sealed class CsvObjectWriter : IDisposable
     }
 
     /// <summary>
+    /// Writes one already-formatted text row using the provided column order.
+    /// </summary>
+    /// <param name="columns">Column names for the first row and validation for later rows.</param>
+    /// <param name="values">Text values in the same order as <paramref name="columns"/>.</param>
+    /// <remarks>
+    /// Use this when the caller already owns culture-aware value formatting.
+    /// The method still applies CSV escaping and validates that the row width matches the header.
+    /// </remarks>
+    public void WriteTextRow(IReadOnlyList<string> columns, string?[] values)
+    {
+        ThrowIfDisposed();
+        if (columns == null)
+        {
+            throw new ArgumentNullException(nameof(columns));
+        }
+
+        if (values == null)
+        {
+            throw new ArgumentNullException(nameof(values));
+        }
+
+        ValidateProjectedValueCount(columns, values.Length);
+        EnsureColumns(columns);
+
+        WriteTextBuffered(values);
+    }
+
+    /// <summary>
     /// Writes one already-projected row using the column order that was established by a previous row.
     /// </summary>
     /// <param name="values">Values in the same order as the established CSV columns.</param>
@@ -244,7 +272,7 @@ public sealed class CsvObjectWriter : IDisposable
 
         if (_useDefaultWritePath)
         {
-            CsvWriter.WriteRecordDefault(_writer, values, _options.Delimiter, _options.NewLine);
+            CsvWriter.WriteRecordDefaultAdaptive(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
             return;
         }
 
@@ -416,7 +444,7 @@ public sealed class CsvObjectWriter : IDisposable
     {
         if (_useDefaultWritePath)
         {
-            CsvWriter.WriteRecordDefault(_writer, values, _options.Delimiter, _options.NewLine);
+            CsvWriter.WriteRecordDefaultAdaptive(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
             return;
         }
 

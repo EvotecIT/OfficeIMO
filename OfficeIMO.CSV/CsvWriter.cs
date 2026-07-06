@@ -253,6 +253,22 @@ internal static class CsvWriter
         writer.Write(newLine);
     }
 
+    internal static void WriteRecordDefaultAdaptive(
+        TextWriter writer,
+        StringBuilder buffer,
+        string?[] values,
+        char delimiter,
+        string newLine)
+    {
+        if (!TextRowNeedsEscaping(values, delimiter))
+        {
+            WritePlainTextRecord(writer, values, delimiter, newLine);
+            return;
+        }
+
+        WriteRecordBufferedDefault(writer, buffer, values, delimiter, newLine);
+    }
+
     internal static void WriteRecordBufferedAlwaysQuoted(
         TextWriter writer,
         StringBuilder buffer,
@@ -928,6 +944,38 @@ internal static class CsvWriter
         }
 
         WriteEscapedDefault(writer, text, delimiter);
+    }
+
+    private static bool TextRowNeedsEscaping(string?[] values, char delimiter)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            var text = values[i];
+            if (text != null && IndexOfCsvSpecial(text, delimiter) >= 0)
+            {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static void WritePlainTextRecord(TextWriter writer, string?[] values, char delimiter, string newLine)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            if (i > 0)
+            {
+                writer.Write(delimiter);
+            }
+
+            if (values[i] != null)
+            {
+                writer.Write(values[i]);
+            }
+        }
+
+        writer.Write(newLine);
     }
 
     private static int IndexOfCsvSpecial(string text, char delimiter)
