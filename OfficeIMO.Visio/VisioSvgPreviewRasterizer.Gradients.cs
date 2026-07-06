@@ -94,10 +94,16 @@ namespace OfficeIMO.Visio {
             }
 
             foreach (XElement stopElement in stopElements) {
-                Dictionary<string, string> stopStyle = ReadDeclarations(stopElement.Attribute("style")?.Value);
+                Dictionary<string, string> stopStyle = context.StyleSheet.CreateStyle(stopElement);
                 double offset = ReadGradientUnit(stopElement.Attribute("offset")?.Value, 0D);
-                string? colorValue = stopElement.Attribute("stop-color")?.Value ?? (stopStyle.TryGetValue("stop-color", out string? styleColor) ? styleColor : null);
-                double stopOpacity = ReadOpacity(stopElement.Attribute("stop-opacity")?.Value ?? (stopStyle.TryGetValue("stop-opacity", out string? styleOpacity) ? styleOpacity : null), 1D);
+                string? colorValue = stopStyle.TryGetValue("stop-color", out string? styleColor)
+                    ? styleColor
+                    : stopElement.Attribute("stop-color")?.Value;
+                double stopOpacity = ReadOpacity(
+                    stopStyle.TryGetValue("stop-opacity", out string? styleOpacity)
+                        ? styleOpacity
+                        : stopElement.Attribute("stop-opacity")?.Value,
+                    1D);
                 if (TryReadGradientColor(colorValue, opacity * stopOpacity, currentColor, out OfficeColor color)) {
                     parsedStops.Add(new OfficeGradientStop(ClampUnit(offset), color));
                 }

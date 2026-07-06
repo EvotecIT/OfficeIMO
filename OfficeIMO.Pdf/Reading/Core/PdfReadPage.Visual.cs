@@ -45,11 +45,15 @@ public sealed partial class PdfReadPage {
             }
         }
 
+        SortDrawingElements(elements);
+        return elements;
+    }
+
+    private static void SortDrawingElements(List<PdfPageDrawingElement> elements) {
         elements.Sort(static (left, right) => {
             int order = left.PaintOrder.CompareTo(right.PaintOrder);
             return order != 0 ? order : left.Sequence.CompareTo(right.Sequence);
         });
-        return elements;
     }
 
     private static void AddDrawingElement(OfficeDrawing drawing, double pageHeight, PdfPageDrawingElement element) {
@@ -261,10 +265,24 @@ public sealed partial class PdfReadPage {
             return true;
         }
 
-        double innerWidth = Math.Max(clip.Width, localX + shape.Width);
-        double innerHeight = Math.Max(clip.Height, localY + shape.Height);
+        double shapeX = localX;
+        double shapeY = localY;
+        if (shapeX < 0D || shapeY < 0D) {
+            double translatedX = Math.Max(0D, shapeX);
+            double translatedY = Math.Max(0D, shapeY);
+            double offsetX = shapeX - translatedX;
+            double offsetY = shapeY - translatedY;
+            shape = shape.Clone();
+            OfficeTransform offsetTransform = OfficeTransform.Translate(offsetX, offsetY);
+            shape.Transform = shape.Transform.HasValue ? offsetTransform.Then(shape.Transform.Value) : offsetTransform;
+            shapeX = translatedX;
+            shapeY = translatedY;
+        }
+
+        double innerWidth = Math.Max(clip.Width, shapeX + shape.Width);
+        double innerHeight = Math.Max(clip.Height, shapeY + shape.Height);
         var innerDrawing = new OfficeDrawing(innerWidth, innerHeight);
-        innerDrawing.AddShape(shape, localX, localY);
+        innerDrawing.AddShape(shape, shapeX, shapeY);
         drawing.AddClippedDrawing(innerDrawing, clip.X, clip.Y, groupClip);
         return true;
     }
@@ -706,17 +724,11 @@ public sealed partial class PdfReadPage {
             }
 
             Matrix2D appearanceTransform = Matrix2D.Multiply(pageTransform, CreateAnnotationAppearanceTransform(rectangle, appearanceStream.Dictionary));
+            var elements = new List<PdfPageDrawingElement>();
             var primitives = new List<PdfPageVisualPrimitive>();
             CollectVisualPrimitivesAndForms(appearanceContent, appearanceResources, appearanceTransform, drawing.Width, pageHeight, primitives, activeForms);
             for (int primitiveIndex = 0; primitiveIndex < primitives.Count; primitiveIndex++) {
-                PdfPageVisualPrimitive primitive = primitives[primitiveIndex];
-                if (primitive.Kind == PdfPageVisualPrimitiveKind.Rectangle) {
-                    AddRectangle(drawing, primitive);
-                } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Line) {
-                    AddLine(drawing, primitive);
-                } else if (primitive.Kind == PdfPageVisualPrimitiveKind.Path) {
-                    AddPath(drawing, primitive);
-                }
+                elements.Add(PdfPageDrawingElement.FromPrimitive(primitives[primitiveIndex], elements.Count));
             }
 
             var textSpans = new List<PdfTextSpan>();
@@ -726,13 +738,25 @@ public sealed partial class PdfReadPage {
             string transformedAppearanceContent = WrapContentWithTransform(appearanceContent, appearanceTransform);
             CollectTextAndForms(transformedAppearanceContent, appearanceResources, appearanceDecoders, appearanceWidthProviders, appearanceFonts, textSpans, activeForms, pageHeight);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
-                AddTextSpan(drawing, pageHeight, textSpans[textIndex]);
+                elements.Add(PdfPageDrawingElement.FromText(textSpans[textIndex], elements.Count));
             }
 
             var imagePlacements = new List<PdfImagePlacement>();
             CollectImagePlacementsAndForms(appearanceContent, appearanceResources, 0, appearanceTransform, pageHeight, imagePlacements, activeForms);
             if (imagePlacements.Count > 0) {
-                AddImagePlacements(drawing, pageHeight, imagePlacements, GetImagesForResources(appearanceResources, 0, imagePlacements, colorizeImageMasks: true));
+                IReadOnlyList<PdfExtractedImage> images = GetImagesForResources(appearanceResources, 0, imagePlacements, colorizeImageMasks: true);
+                for (int imageIndex = 0; imageIndex < imagePlacements.Count; imageIndex++) {
+                    PdfImagePlacement placement = imagePlacements[imageIndex];
+                    PdfExtractedImage? image = FindImage(images, placement);
+                    if (image != null) {
+                        elements.Add(PdfPageDrawingElement.FromImage(placement, image, elements.Count));
+                    }
+                }
+            }
+
+            SortDrawingElements(elements);
+            for (int elementIndex = 0; elementIndex < elements.Count; elementIndex++) {
+                AddDrawingElement(drawing, pageHeight, elements[elementIndex]);
             }
         }
     }

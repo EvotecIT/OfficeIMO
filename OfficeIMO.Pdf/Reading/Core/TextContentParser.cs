@@ -270,7 +270,7 @@ internal static class TextContentParser {
                 case "W":
                 case "W*":
                     if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
-                        clipPath = parsedClipPath;
+                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
                     }
 
                     args.Clear();

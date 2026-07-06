@@ -83,7 +83,7 @@ namespace OfficeIMO.Word {
 
             while (lineIndex < lines.Count) {
                 if (spacingBeforePending) {
-                    if (context.Y + spacing.Before + lineHeight > context.ContentBottom && context.CanAdvancePageForOverflow) {
+                    if (ShouldAdvanceBeforeSpacing(context, spacing.Before, lineHeight)) {
                         context.AdvanceColumnOrPage();
                         if (context.PastTargetPage) {
                             return renderedOnTargetPage;
@@ -198,7 +198,7 @@ namespace OfficeIMO.Word {
             while (lineIndex < lines.Count) {
                 if (spacingBeforePending) {
                     double firstLineHeight = ResolveRichTextSliceLineHeight(lines[lineIndex], lineHeight);
-                    if (context.Y + spacing.Before + firstLineHeight > context.ContentBottom && context.CanAdvancePageForOverflow) {
+                    if (ShouldAdvanceBeforeSpacing(context, spacing.Before, firstLineHeight)) {
                         context.AdvanceColumnOrPage();
                         if (context.PastTargetPage) {
                             return renderedOnTargetPage;
@@ -259,6 +259,11 @@ namespace OfficeIMO.Word {
             context.SetParagraphSpacingState(spacingState);
             return consumedText || renderedOnTargetPage;
         }
+
+        private static bool ShouldAdvanceBeforeSpacing(WordImageFlowContext context, double spacingBefore, double firstLineHeight) =>
+            context.Y > context.Top &&
+            context.Y + spacingBefore + firstLineHeight > context.ContentBottom &&
+            context.CanAdvancePageForOverflow;
 
         private static int ApplyWidowOrphanControl(
             int totalLineCount,
