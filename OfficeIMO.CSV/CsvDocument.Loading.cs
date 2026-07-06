@@ -191,6 +191,35 @@ public sealed partial class CsvDocument
         IReadOnlyList<string>? header = null;
         if (options.HasHeaderRow)
         {
+            if (!options.SkipCommentRows)
+            {
+                CsvParser.ReadRecordsReusableWithMetadataUntilAccepted(
+                    reader,
+                    options,
+                    record =>
+                    {
+                        var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader);
+                        if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
+                        {
+                            return false;
+                        }
+
+                        if (recordsToSkip > 0)
+                        {
+                            recordsToSkip--;
+                            return false;
+                        }
+
+                        header = isW3CFieldsHeader
+                            ? w3cHeader
+                            : NormalizeParsedHeader(record.Values, options);
+                        return true;
+                    },
+                    values => InvokeRowAction(rowAction, header!, values, options.ColumnCountMismatchPolicy));
+
+                return;
+            }
+
             CsvParser.ReadRecordsReusableWithMetadata(reader, options, record =>
             {
                 if (header is null)
