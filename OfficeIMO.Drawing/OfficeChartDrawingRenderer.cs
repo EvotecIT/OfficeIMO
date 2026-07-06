@@ -983,6 +983,7 @@ public static partial class OfficeChartDrawingRenderer {
                 }
 
                 if (value == 0D && !ShouldShowDataLabel(layout, sourceSeriesIndex, category)) {
+                    barSeriesOrdinal++;
                     continue;
                 }
 
@@ -1308,6 +1309,19 @@ public static partial class OfficeChartDrawingRenderer {
         return items;
     }
 
+    private static List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> GetRenderableScatterSeries(OfficeChartSnapshot snapshot) {
+        var items = new List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)>();
+        IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
+        for (int i = 0; i < series.Count; i++) {
+            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, series[i]);
+            if (!HasMixedCartesianSeriesKinds(snapshot) || IsScatterChart(kind)) {
+                items.Add((series[i], i, kind));
+            }
+        }
+
+        return items;
+    }
+
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
@@ -1316,24 +1330,28 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         IReadOnlyList<double> sharedXValues = GetScatterXValues(categories);
-        (ValueRange pairedXRange, ValueRange pairedYRange) = GetScatterPointRanges(series, sharedXValues);
+        List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> scatterSeries = GetRenderableScatterSeries(snapshot);
+        if (scatterSeries.Count == 0) {
+            return;
+        }
+
+        List<OfficeChartSeries> rangeSeries = scatterSeries.Select(item => item.Series).ToList();
+        (ValueRange pairedXRange, ValueRange pairedYRange) = GetScatterPointRanges(rangeSeries, sharedXValues);
         ValueRange xRange = ApplyValueAxisScale(pairedXRange, layout, horizontal: true);
         ValueRange yRange = ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
-        for (int s = 0; s < series.Count; s++) {
-            if (!ShouldRenderSeriesAsScatter(snapshot, series[s])) {
-                continue;
-            }
-
-            OfficeColor color = GetSeriesColor(style, series, s);
-            double strokeWidth = GetSeriesStrokeWidth(series[s], 1.25D);
-            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
-            IReadOnlyList<double> xValues = series[s].XValues ?? sharedXValues;
-            int pointCount = Math.Min(xValues.Count, series[s].Values.Count);
+        for (int s = 0; s < scatterSeries.Count; s++) {
+            OfficeChartSeries currentSeries = scatterSeries[s].Series;
+            int sourceSeriesIndex = scatterSeries[s].SourceIndex;
+            OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
+            double strokeWidth = GetSeriesStrokeWidth(currentSeries, 1.25D);
+            OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(currentSeries);
+            IReadOnlyList<double> xValues = currentSeries.XValues ?? sharedXValues;
+            int pointCount = Math.Min(xValues.Count, currentSeries.Values.Count);
             var points = new List<(OfficePoint Point, int SourceIndex)>(pointCount);
             var lineSegment = new List<OfficePoint>(pointCount);
             for (int i = 0; i < pointCount; i++) {
-                if (!TryGetSeriesValue(series[s], i, out double yValue)) {
-                    if (layout.ConnectScatterPoints && series[s].ConnectLine) {
+                if (!TryGetSeriesValue(currentSeries, i, out double yValue)) {
+                    if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
                         AddPointLine(drawing, lineSegment, color, strokeWidth, dashStyle);
                     }
 
@@ -1343,7 +1361,7 @@ public static partial class OfficeChartDrawingRenderer {
 
                 double xValue = xValues[i];
                 if (!IsFiniteChartValue(xValue)) {
-                    if (layout.ConnectScatterPoints && series[s].ConnectLine) {
+                    if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
                         AddPointLine(drawing, lineSegment, color, strokeWidth, dashStyle);
                     }
 
@@ -1355,23 +1373,23 @@ public static partial class OfficeChartDrawingRenderer {
                 double y = ToPlotY(yValue, yRange.Min, yRange.Max, plotTop, plotHeight);
                 var point = new OfficePoint(x, y);
                 points.Add((point, i));
-                if (layout.ConnectScatterPoints && series[s].ConnectLine) {
+                if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
                     lineSegment.Add(point);
                 }
             }
 
-            if (layout.ConnectScatterPoints && series[s].ConnectLine) {
+            if (layout.ConnectScatterPoints && currentSeries.ConnectLine) {
                 AddPointLine(drawing, lineSegment, color, strokeWidth, dashStyle);
             }
             for (int i = 0; i < points.Count; i++) {
                 OfficePoint point = points[i].Point;
-                if (layout.ShowMarkers && series[s].ShowMarkers) {
-                    OfficeColor pointColor = GetPointColor(series[s].PointColors, points[i].SourceIndex, color);
-                    AddMarker(drawing, series[s], point, 5D, pointColor, 1.25D);
+                if (layout.ShowMarkers && currentSeries.ShowMarkers) {
+                    OfficeColor pointColor = GetPointColor(currentSeries.PointColors, points[i].SourceIndex, color);
+                    AddMarker(drawing, currentSeries, point, 5D, pointColor, 1.25D);
                 }
 
                 int pointIndex = points[i].SourceIndex;
-                string labelCategory = series[s].XValues != null && pointIndex < xValues.Count
+                string labelCategory = currentSeries.XValues != null && pointIndex < xValues.Count
                     ? xValues[pointIndex].ToString("0.####", CultureInfo.InvariantCulture)
                     : pointIndex < categories.Count ? categories[pointIndex] : string.Empty;
                 AddPointDataLabel(
@@ -1379,12 +1397,12 @@ public static partial class OfficeChartDrawingRenderer {
                     layout,
                     style,
                     labelCategory,
-                    series[s],
-                    series[s].Values[pointIndex],
+                    currentSeries,
+                    currentSeries.Values[pointIndex],
                     GetDataLabelCategoryTotal(series, pointIndex),
                     point.X,
                     point.Y,
-                    s,
+                    sourceSeriesIndex,
                     pointIndex);
             }
         }

@@ -30,11 +30,11 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            bool userSpace = IsUserSpaceGradient(definition);
-            double x1 = ReadGradientUnit(definition.Attribute("x1")?.Value, 0D);
-            double y1 = ReadGradientUnit(definition.Attribute("y1")?.Value, 0D);
-            double x2 = ReadGradientUnit(definition.Attribute("x2")?.Value, userSpace ? x1 + 1D : 1D);
-            double y2 = ReadGradientUnit(definition.Attribute("y2")?.Value, 0D);
+            bool userSpace = IsUserSpaceGradient(definition, context);
+            double x1 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "x1"), 0D);
+            double y1 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y1"), 0D);
+            double x2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "x2"), userSpace ? x1 + 1D : 1D);
+            double y2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y2"), 0D);
             if (userSpace && context.CurrentPaintBounds.HasValue) {
                 SvgPaintBounds bounds = context.CurrentPaintBounds.Value;
                 if (bounds.HasArea) {
@@ -59,13 +59,13 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            bool userSpace = IsUserSpaceGradient(definition);
-            double cx = ReadGradientUnit(definition.Attribute("cx")?.Value, 0.5D);
-            double cy = ReadGradientUnit(definition.Attribute("cy")?.Value, 0.5D);
-            double r = ReadGradientUnit(definition.Attribute("r")?.Value, 0.5D);
-            double fx = ReadGradientUnit(definition.Attribute("fx")?.Value, cx);
-            double fy = ReadGradientUnit(definition.Attribute("fy")?.Value, cy);
-            double fr = ReadGradientUnit(definition.Attribute("fr")?.Value, 0D);
+            bool userSpace = IsUserSpaceGradient(definition, context);
+            double cx = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "cx"), 0.5D);
+            double cy = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "cy"), 0.5D);
+            double r = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "r"), 0.5D);
+            double fx = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fx"), cx);
+            double fy = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fy"), cy);
+            double fr = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fr"), 0D);
             if (userSpace && context.CurrentPaintBounds.HasValue) {
                 SvgPaintBounds bounds = context.CurrentPaintBounds.Value;
                 if (bounds.HasArea) {
@@ -230,8 +230,32 @@ namespace OfficeIMO.Visio {
             return percent ? parsed / 100D : parsed;
         }
 
-        private static bool IsUserSpaceGradient(XElement definition) =>
-            string.Equals(definition.Attribute("gradientUnits")?.Value, "userSpaceOnUse", StringComparison.OrdinalIgnoreCase);
+        private static string? ReadInheritedGradientAttribute(XElement definition, SvgRenderContext context, string attributeName) {
+            string? value = definition.Attribute(attributeName)?.Value;
+            if (!string.IsNullOrWhiteSpace(value)) {
+                return value;
+            }
+
+            return ReadInheritedGradientAttribute(definition, context, attributeName, new HashSet<string>(StringComparer.Ordinal));
+        }
+
+        private static string? ReadInheritedGradientAttribute(XElement definition, SvgRenderContext context, string attributeName, HashSet<string> visited) {
+            if (!TryReadUrlId(ReadHref(definition), out string? hrefId) ||
+                hrefId == null ||
+                !visited.Add(hrefId) ||
+                !context.TryGetDefinition(hrefId, out XElement? inherited) ||
+                inherited == null) {
+                return null;
+            }
+
+            string? value = inherited.Attribute(attributeName)?.Value;
+            return !string.IsNullOrWhiteSpace(value)
+                ? value
+                : ReadInheritedGradientAttribute(inherited, context, attributeName, visited);
+        }
+
+        private static bool IsUserSpaceGradient(XElement definition, SvgRenderContext context) =>
+            string.Equals(ReadInheritedGradientAttribute(definition, context, "gradientUnits"), "userSpaceOnUse", StringComparison.OrdinalIgnoreCase);
 
         private static double NormalizeUserSpaceGradientCoordinate(double value, double origin, double length) =>
             length > 0D ? (value - origin) / length : value;

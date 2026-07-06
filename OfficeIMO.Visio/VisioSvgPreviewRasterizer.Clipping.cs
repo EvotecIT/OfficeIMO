@@ -25,7 +25,7 @@ namespace OfficeIMO.Visio {
                 return null;
             }
 
-            return contours.Count == 1 ? canvas.PushClipPolygon(contours[0]) : canvas.PushClipPolygonsEvenOdd(contours);
+            return contours.Count == 1 ? canvas.PushClipPolygon(contours[0]) : canvas.PushClipPolygonsNonZero(contours);
         }
 
         private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours) {

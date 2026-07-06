@@ -159,6 +159,11 @@ namespace OfficeIMO.PowerPoint {
                     if (data != null) {
                         parts.Add((kind, data));
                     }
+                } else if (element is C.ScatterChart scatterChart) {
+                    PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme);
+                    if (data != null) {
+                        parts.Add((PowerPointChartSnapshotKind.Scatter, data));
+                    }
                 }
             }
 

@@ -131,7 +131,9 @@ public sealed partial class PdfReadPage {
             return clipPath;
         }
 
-        return IntersectClipBounds(clipPath.Value, pageClip, out PdfPageClipPath intersection) ? intersection : clipPath;
+        return IntersectClipBounds(clipPath.Value, pageClip, out PdfPageClipPath intersection)
+            ? intersection
+            : PdfPageClipPath.Rectangle(0D, 0D, 0D, 0D);
     }
 
     private static bool IntersectClipBounds(PdfPageClipPath first, PdfPageClipPath second, out PdfPageClipPath intersection) {
@@ -156,10 +158,12 @@ public sealed partial class PdfReadPage {
         }
 
         PdfPageClipPath clip = clipPath.Value;
+        if (clip.Width <= 0D || clip.Height <= 0D) {
+            return true;
+        }
+
         if (clip.X < 0D ||
             clip.Y < 0D ||
-            clip.Width <= 0D ||
-            clip.Height <= 0D ||
             clip.X + clip.Width > drawing.Width ||
             clip.Y + clip.Height > drawing.Height) {
             return false;
@@ -600,7 +604,7 @@ public sealed partial class PdfReadPage {
             }
 
             PdfDictionary? appearanceResources = ResolveDictionary(appearanceStream.Dictionary.Items.TryGetValue("Resources", out PdfObject? resourcesObject) ? resourcesObject : null) ?? pageResources;
-            string appearanceContent = PdfEncoding.Latin1GetString(DecodeIfNeeded(appearanceStream));
+            string appearanceContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(appearanceStream)), appearanceStream.Dictionary);
             if (appearanceContent.Length == 0) {
                 continue;
             }
@@ -779,11 +783,19 @@ public sealed partial class PdfReadPage {
 
         double height = Math.Max(1D, span.FontSize * 1.25D);
         double width = Math.Max(span.Advance, span.Text.Length * span.FontSize * 0.55D);
-        double x = Clamp(span.X, 0D, drawing.Width);
-        double y = Clamp(pageHeight - span.Y - span.FontSize, 0D, drawing.Height);
+        double rawX = span.X;
+        double rawY = pageHeight - span.Y - span.FontSize;
+        if (!HasVisibleOverlap(rawX, rawY, width, height, drawing.Width, drawing.Height)) {
+            return;
+        }
+
+        double x = Clamp(rawX, 0D, drawing.Width);
+        double y = Clamp(rawY, 0D, drawing.Height);
+        double clippedRight = Math.Min(rawX + width, drawing.Width);
+        double clippedBottom = Math.Min(rawY + height, drawing.Height);
         double baselineY = Clamp(pageHeight - span.Y, 0D, drawing.Height);
-        width = Math.Min(width, Math.Max(1D, drawing.Width - x));
-        height = Math.Min(height, Math.Max(1D, drawing.Height - y));
+        width = Math.Max(1D, clippedRight - x);
+        height = Math.Max(1D, clippedBottom - y);
         if (TryAddClippedTextSpan(drawing, span, x, y, width, height, baselineY)) {
             return;
         }
@@ -808,6 +820,10 @@ public sealed partial class PdfReadPage {
         }
 
         PdfPageClipPath clip = span.ClipPath.Value;
+        if (clip.Width <= 0D || clip.Height <= 0D) {
+            return true;
+        }
+
         OfficeClipPath? officeClipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
         if (officeClipPath == null) {
             return false;
@@ -827,8 +843,6 @@ public sealed partial class PdfReadPage {
         double localY = y - clip.Y;
         if (clip.X < 0D ||
             clip.Y < 0D ||
-            clip.Width <= 0D ||
-            clip.Height <= 0D ||
             clipRight > drawing.Width ||
             clipBottom > drawing.Height) {
             return false;
@@ -995,6 +1009,10 @@ public sealed partial class PdfReadPage {
         }
 
         PdfPageClipPath clip = placement.ClipPath.Value;
+        if (clip.Width <= 0D || clip.Height <= 0D) {
+            return true;
+        }
+
         OfficeClipPath? clipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
         if (clipPath == null) {
             return false;

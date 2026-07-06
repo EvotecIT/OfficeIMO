@@ -1084,6 +1084,7 @@ public static class OfficeDrawingRasterRenderer {
         OfficeShape shape = drawingShape.Shape;
         OfficeShape shadowShape = shape.Clone();
         shadowShape.Shadow = null;
+        shadowShape.Glow = null;
         shadowShape.FillGradient = null;
         shadowShape.FillRadialGradient = null;
         shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;

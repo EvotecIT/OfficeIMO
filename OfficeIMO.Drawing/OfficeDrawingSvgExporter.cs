@@ -261,6 +261,7 @@ public static class OfficeDrawingSvgExporter {
         OfficeShape shape = drawingShape.Shape;
         var shadowShape = shape.Clone();
         shadowShape.Shadow = null;
+        shadowShape.Glow = null;
         shadowShape.FillGradient = null;
         shadowShape.FillRadialGradient = null;
         shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
