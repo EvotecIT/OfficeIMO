@@ -1094,7 +1094,7 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement, PdfExtractedImage image) {
-        if (!image.IsImageFile || placement.Width <= 0D || placement.Height <= 0D) {
+        if (!image.IsImageFile || image.HasUnresolvedTransparencyMask || placement.Width <= 0D || placement.Height <= 0D) {
             return;
         }
 
@@ -1110,7 +1110,7 @@ public sealed partial class PdfReadPage {
     }
 
     private static bool TryAddClippedImagePlacement(OfficeDrawing drawing, PdfImagePlacement placement, PdfExtractedImage image, OfficeImageProjection projection) {
-        if (!placement.ClipPath.HasValue || placement.ClipPath.Value.IsRectangle) {
+        if (!placement.ClipPath.HasValue || (placement.ClipPath.Value.IsRectangle && !projection.HasTransform)) {
             return false;
         }
 

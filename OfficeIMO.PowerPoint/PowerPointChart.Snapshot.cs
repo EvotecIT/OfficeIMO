@@ -175,7 +175,7 @@ namespace OfficeIMO.PowerPoint {
             var series = new List<PowerPointChartSeries>();
             foreach (var part in parts) {
                 foreach (PowerPointChartSeries item in part.Data.Series) {
-                    if (item.Values.Count == categories.Count) {
+                    if (item.Values.Count == categories.Count || HasAlignedScatterPoints(item)) {
                         series.Add(item);
                     }
                 }
@@ -188,6 +188,11 @@ namespace OfficeIMO.PowerPoint {
             snapshot = CreateSnapshot(chart, parts[0].Kind, new PowerPointChartData(categories, series));
             return true;
         }
+
+        private static bool HasAlignedScatterPoints(PowerPointChartSeries series) =>
+            series.XValues != null &&
+            series.XValues.Count == series.Values.Count &&
+            series.Values.Count > 0;
 
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart, PowerPointChartSnapshotKind kind, PowerPointChartData data) {
             return new PowerPointChartSnapshot(

@@ -4,6 +4,8 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Pdf;
 
 internal static class PdfPageContentVisualParser {
+    private const double HairlineStrokeWidth = 0.25D;
+
     public static IReadOnlyList<PdfPageVisualPrimitive> Parse(string content, double pageHeight) {
         return Parse(content, pageHeight, null);
     }
@@ -40,6 +42,14 @@ internal static class PdfPageContentVisualParser {
 
         var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath);
         return parser.Parse();
+    }
+
+    private static double ResolveStrokeWidth(double value) {
+        if (value < 0D) {
+            return 0D;
+        }
+
+        return Math.Abs(value) <= 0.001D ? HairlineStrokeWidth : value;
     }
 
     private sealed class Parser {
@@ -159,7 +169,7 @@ internal static class PdfPageContentVisualParser {
                     break;
                 case "w":
                     if (_args.Count >= 1) {
-                        _state = _state.WithStrokeWidth(Math.Max(0D, NumberAt(_args.Count - 1)));
+                        _state = _state.WithStrokeWidth(ResolveStrokeWidth(NumberAt(_args.Count - 1)));
                     }
 
                     break;
@@ -1162,7 +1172,7 @@ internal static class PdfPageContentVisualParser {
                 StrokePattern,
                 FillColorSpace,
                 StrokeColorSpace,
-                resource.StrokeWidth ?? StrokeWidth,
+                resource.StrokeWidth.HasValue ? ResolveStrokeWidth(resource.StrokeWidth.Value) : StrokeWidth,
                 resource.StrokeDashStyle ?? StrokeDashStyle,
                 resource.StrokeLineCap ?? StrokeLineCap,
                 resource.StrokeLineJoin ?? StrokeLineJoin,

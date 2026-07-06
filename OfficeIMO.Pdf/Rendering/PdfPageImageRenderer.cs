@@ -49,19 +49,19 @@ public static class PdfPageImageRenderer {
     /// Renders a one-based PDF page to dependency-free PNG bytes through the shared OfficeIMO drawing rasterizer.
     /// </summary>
     public static byte[] RenderPageAsPng(byte[] pdf, int pageNumber = 1, double scale = 1D, OfficeColor? background = null) =>
-        OfficeDrawingRasterRenderer.ToPng(RenderPage(pdf, pageNumber), scale, background ?? OfficeColor.White);
+        RenderDrawingAsPng(RenderPage(pdf, pageNumber), scale, background);
 
     /// <summary>
     /// Renders a one-based PDF page to dependency-free PNG bytes from the current stream position.
     /// </summary>
     public static byte[] RenderPageAsPng(Stream stream, int pageNumber = 1, double scale = 1D, OfficeColor? background = null) =>
-        OfficeDrawingRasterRenderer.ToPng(RenderPage(stream, pageNumber), scale, background ?? OfficeColor.White);
+        RenderDrawingAsPng(RenderPage(stream, pageNumber), scale, background);
 
     /// <summary>
     /// Renders a one-based PDF page to dependency-free PNG bytes from a file path.
     /// </summary>
     public static byte[] RenderPageAsPng(string path, int pageNumber = 1, double scale = 1D, OfficeColor? background = null) =>
-        OfficeDrawingRasterRenderer.ToPng(RenderPage(path, pageNumber), scale, background ?? OfficeColor.White);
+        RenderDrawingAsPng(RenderPage(path, pageNumber), scale, background);
 
     /// <summary>
     /// Renders a one-based PDF page to UTF-8 SVG bytes through the shared OfficeIMO drawing SVG exporter.
@@ -84,6 +84,25 @@ public static class PdfPageImageRenderer {
     private static void ValidatePageNumber(PdfReadDocument document, int pageNumber) {
         if (pageNumber <= 0 || pageNumber > document.Pages.Count) {
             throw new ArgumentOutOfRangeException(nameof(pageNumber), pageNumber, "Page number must refer to an existing one-based PDF page.");
+        }
+    }
+
+    private static byte[] RenderDrawingAsPng(OfficeDrawing drawing, double scale, OfficeColor? background) {
+        EnsureRasterImagesCanRender(drawing);
+        return OfficeDrawingRasterRenderer.ToPng(drawing, scale, background ?? OfficeColor.White);
+    }
+
+    private static void EnsureRasterImagesCanRender(OfficeDrawing drawing) {
+        foreach (OfficeDrawingElement element in drawing.Elements) {
+            if (element is OfficeDrawingImage image &&
+                !OfficeRasterImageDecoder.TryDecode(image.Bytes, out _)) {
+                string contentType = string.IsNullOrWhiteSpace(image.ContentType) ? "unknown" : image.ContentType!;
+                throw new NotSupportedException("PDF PNG rendering cannot rasterize " + contentType + " image bytes with the dependency-free rasterizer. Supported image formats are " + OfficeRasterImageDecoder.SupportedFormatDescription + ".");
+            }
+
+            if (element is OfficeDrawingGroup group) {
+                EnsureRasterImagesCanRender(group.Drawing);
+            }
         }
     }
 }

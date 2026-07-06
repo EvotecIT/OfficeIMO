@@ -99,6 +99,34 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_SkipsJpegImageXObjectWithUnresolvedSoftMask() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CreateMinimalJpeg(1, 1),
+            CompressWithDeflate(new byte[] { 128 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            imageFilterEntry: "/Filter /DCTDecode");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        Assert.Empty(drawing.Images);
+    }
+
+    [Fact]
+    public void RenderPageAsPng_ReportsUnsupportedJpegImageXObject() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CreateMinimalJpeg(1, 1),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            imageFilterEntry: "/Filter /DCTDecode");
+
+        NotSupportedException exception = Assert.Throws<NotSupportedException>(() => PdfPageImageRenderer.RenderPageAsPng(pdf));
+
+        Assert.Contains("image/jpeg", exception.Message, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("dependency-free rasterizer", exception.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void RenderPage_AppliesImageXObjectExtGStateOpacity() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 0, 255, 255, 0 }),
@@ -208,6 +236,22 @@ public class PdfPageImageRendererTests {
             element => Assert.Equal("Before", Assert.IsType<OfficeDrawingText>(element).Text),
             element => Assert.IsType<OfficeDrawingImage>(element),
             element => Assert.Equal("After", Assert.IsType<OfficeDrawingText>(element).Text));
+    }
+
+    [Fact]
+    public void RenderPage_RendersHairlineStrokeAsDrawableWidth() {
+        byte[] pdf = BuildSingleStreamPdf("""
+            0 w
+            1 0 0 RG
+            20 20 m
+            120 20 l
+            S
+            """);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape line = Assert.Single(drawing.Shapes, shape => shape.Shape.Kind == OfficeShapeKind.Line);
+        Assert.True(line.Shape.StrokeWidth > 0D);
     }
 
     [Fact]
@@ -405,6 +449,32 @@ public class PdfPageImageRendererTests {
         Assert.Equal(90D, image.Projection.RotationCenterX, 1);
         Assert.Equal(110D, image.Projection.RotationCenterY, 1);
         AssertPngSignature(png);
+    }
+
+    [Fact]
+    public void RenderPage_AppliesRectangleClipToRotatedImageXObject() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 255, 0, 0, 0, 0, 255 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 2,
+            contentStream: """
+                40 40 40 40 re
+                W
+                n
+                q
+                0 80 -80 0 120 40 cm
+                /Im1 Do
+                Q
+                """);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        byte[] svg = PdfPageImageRenderer.RenderPageAsSvg(pdf);
+
+        OfficeDrawingGroup group = Assert.Single(drawing.Elements.OfType<OfficeDrawingGroup>());
+        Assert.Equal(OfficeClipPathKind.Rectangle, group.ClipPath.Kind);
+        Assert.Equal(40D, group.ClipPath.Width, 1);
+        Assert.Equal(40D, group.ClipPath.Height, 1);
+        Assert.Contains("<clipPath", Encoding.UTF8.GetString(svg), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1982,6 +2052,22 @@ public class PdfPageImageRendererTests {
         }
 
         return output.ToArray();
+    }
+
+    private static byte[] CreateMinimalJpeg(int width, int height) {
+        return new byte[] {
+            0xFF, 0xD8,
+            0xFF, 0xC0,
+            0x00, 0x11,
+            0x08,
+            (byte)(height >> 8), (byte)(height & 0xFF),
+            (byte)(width >> 8), (byte)(width & 0xFF),
+            0x03,
+            0x01, 0x11, 0x00,
+            0x02, 0x11, 0x00,
+            0x03, 0x11, 0x00,
+            0xFF, 0xD9
+        };
     }
 
     private static string EncodeAscii85(byte[] input) {

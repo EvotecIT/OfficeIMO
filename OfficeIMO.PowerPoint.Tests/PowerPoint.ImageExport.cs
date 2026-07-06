@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -2657,6 +2658,30 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_RendersComboChartsWithScatterSeriesOwnXValues() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 240);
+            PowerPointSlide slide = presentation.Slides[0];
+            var data = new PowerPointChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new PowerPointChartSeries("Columns", new[] { 10D, 16D, 22D }),
+                    new PowerPointChartSeries("Scatter", new[] { 12D, 18D, 24D })
+                });
+
+            PowerPointChart chart = slide.AddChartPoints(data, 30, 25, 280, 180);
+            ConvertSecondBarSeriesToScatterChart(chart);
+
+            Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+            Assert.Equal(2, snapshot.Data.Series.Count);
+            Assert.Equal(PowerPointChartSnapshotKind.ClusteredColumn, snapshot.Data.Series[0].ChartKind);
+            Assert.Equal(PowerPointChartSnapshotKind.Scatter, snapshot.Data.Series[1].ChartKind);
+            Assert.Equal(new[] { 1.5D, 2.5D }, snapshot.Data.Series[1].XValues);
+            Assert.Equal(new[] { 11D, 13D }, snapshot.Data.Series[1].Values);
+        }
+
+        [Fact]
         public void PowerPointSlide_RendersThemeChartSeriesColorsThroughSharedDrawingChartRenderer() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -3394,6 +3419,45 @@ namespace OfficeIMO.Tests {
             barSeries.Remove();
             barChart.InsertAfterSelf(lineChart);
             chartPart.ChartSpace.Save();
+        }
+
+        private static void ConvertSecondBarSeriesToScatterChart(PowerPointChart chart) {
+            DocumentFormat.OpenXml.Packaging.ChartPart chartPart = GetChartPart(chart);
+            C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+            C.BarChart barChart = plotArea.Elements<C.BarChart>().Single();
+            C.BarChartSeries barSeries = barChart.Elements<C.BarChartSeries>().Skip(1).Single();
+            var scatterChart = new C.ScatterChart(new C.ScatterStyle { Val = C.ScatterStyleValues.LineMarker });
+            var scatterSeries = new C.ScatterChartSeries();
+            C.Index? index = barSeries.GetFirstChild<C.Index>()?.CloneNode(true) as C.Index;
+            C.Order? order = barSeries.GetFirstChild<C.Order>()?.CloneNode(true) as C.Order;
+            C.SeriesText? text = barSeries.GetFirstChild<C.SeriesText>()?.CloneNode(true) as C.SeriesText;
+            if (index != null) scatterSeries.Append(index);
+            if (order != null) scatterSeries.Append(order);
+            if (text != null) scatterSeries.Append(text);
+            scatterSeries.Append(
+                new C.XValues(CreateNumberReference("Sheet1!$D$2:$D$3", new[] { 1.5D, 2.5D })),
+                new C.YValues(CreateNumberReference("Sheet1!$E$2:$E$3", new[] { 11D, 13D })));
+
+            scatterChart.Append(scatterSeries);
+            foreach (C.AxisId axisId in barChart.Elements<C.AxisId>()) {
+                scatterChart.Append((C.AxisId)axisId.CloneNode(true));
+            }
+
+            barSeries.Remove();
+            barChart.InsertAfterSelf(scatterChart);
+            chartPart.ChartSpace.Save();
+        }
+
+        private static C.NumberReference CreateNumberReference(string formula, IReadOnlyList<double> values) {
+            C.NumberingCache cache = new(new C.FormatCode { Text = "General" }, new C.PointCount { Val = (uint)values.Count });
+            for (int i = 0; i < values.Count; i++) {
+                cache.Append(new C.NumericPoint {
+                    Index = (uint)i,
+                    NumericValue = new C.NumericValue { Text = values[i].ToString(CultureInfo.InvariantCulture) }
+                });
+            }
+
+            return new C.NumberReference(new C.Formula { Text = formula }, cache);
         }
 
         private static void SetFirstLineSeriesOutlineSchemeColor(PowerPointChart chart, A.SchemeColorValues schemeColor) {
