@@ -14,25 +14,35 @@ namespace OfficeIMO.Visio {
             double cursorX = x + ReadLength(element, "dx", 0D, context, SvgLengthAxis.X);
             double cursorY = y + ReadLength(element, "dy", 0D, context, SvgLengthAxis.Y);
             bool rendered = false;
+            bool pendingSpace = false;
+            bool hasTextRun = false;
 
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
-                    rendered |= DrawSvgTextRun(canvas, NormalizeText(textNode.Value), cursorX, cursorY, paint, style, transform, out double advance);
+                    string value = NormalizeTextRun(textNode.Value, ref pendingSpace, hasTextRun);
+                    rendered |= DrawSvgTextRun(canvas, value, cursorX, cursorY, paint, style, transform, out double advance);
                     cursorX += advance;
+                    hasTextRun |= value.Length > 0;
                     continue;
                 }
 
                 if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
+                    bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
+                    if (resetsTextFlow) {
+                        pendingSpace = false;
+                    }
+
                     SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
                     double childX = ReadLength(child, "x", cursorX, context, SvgLengthAxis.X);
                     double childY = ReadLength(child, "y", cursorY, context, SvgLengthAxis.Y);
                     childX += ReadLength(child, "dx", 0D, context, SvgLengthAxis.X);
                     childY += ReadLength(child, "dy", 0D, context, SvgLengthAxis.Y);
                     SvgPaint childPaint = SvgPaint.Resolve(child, paint, context);
-                    string value = NormalizeText(child.Value);
+                    string value = NormalizeTextRun(child.Value, ref pendingSpace, hasTextRun && !resetsTextFlow);
                     rendered |= DrawSvgTextRun(canvas, value, childX, childY, childPaint, childStyle, transform, out double advance);
                     cursorX = childX + advance;
                     cursorY = childY;
+                    hasTextRun |= value.Length > 0;
                 }
             }
 
@@ -75,24 +85,32 @@ namespace OfficeIMO.Visio {
             return true;
         }
 
-        private static string NormalizeText(string? text) {
+        private static string NormalizeTextRun(string? text, ref bool pendingSpace, bool hasPriorTextRun) {
             if (string.IsNullOrWhiteSpace(text)) {
+                if (hasPriorTextRun && text != null) {
+                    for (int i = 0; i < text.Length; i++) {
+                        if (char.IsWhiteSpace(text[i])) {
+                            pendingSpace = true;
+                            break;
+                        }
+                    }
+                }
+
                 return string.Empty;
             }
 
             StringBuilder builder = new(text!.Length);
-            bool pendingSpace = false;
             for (int i = 0; i < text.Length; i++) {
                 if (char.IsWhiteSpace(text[i])) {
-                    pendingSpace = builder.Length > 0;
+                    pendingSpace = builder.Length > 0 || hasPriorTextRun;
                     continue;
                 }
 
-                if (pendingSpace) {
+                if (pendingSpace && (builder.Length > 0 || hasPriorTextRun)) {
                     builder.Append(' ');
-                    pendingSpace = false;
                 }
 
+                pendingSpace = false;
                 builder.Append(text[i]);
             }
 

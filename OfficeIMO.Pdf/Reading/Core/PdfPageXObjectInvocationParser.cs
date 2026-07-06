@@ -128,7 +128,7 @@ internal static class PdfPageXObjectInvocationParser {
                         SkipAngleObject();
                     }
                 } else if (current == '[') {
-                    SkipArray();
+                    _args.Add(ReadNumberArray());
                 } else if (IsNumberStart(current)) {
                     _args.Add(ReadNumber());
                 } else {
@@ -187,8 +187,8 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "d":
-                    if (_args.Count >= 1) {
-                        _state = _state.WithStrokeDashStyle(OfficeStrokeDashStyle.Dash);
+                    if (_args.Count >= 2 && _args[_args.Count - 2] is double[] dashArray) {
+                        _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
                     }
 
                     break;
@@ -621,6 +621,12 @@ internal static class PdfPageXObjectInvocationParser {
                 return true;
             }
 
+            if (current == '<') {
+                value = ReadInlineImageAngleObject();
+                return true;
+            }
+
+            int start = _index;
             string token = ReadOperator();
             if (string.Equals(token, "true", StringComparison.Ordinal)) {
                 value = new PdfBoolean(true);
@@ -632,7 +638,31 @@ internal static class PdfPageXObjectInvocationParser {
                 return true;
             }
 
+            if (_index == start && _index < _content.Length) {
+                _index++;
+            }
+
             return false;
+        }
+
+        private PdfObject ReadInlineImageAngleObject() {
+            if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
+                SkipAngleObject();
+                return new PdfDictionary();
+            }
+
+            _index++;
+            int start = _index;
+            while (_index < _content.Length && _content[_index] != '>') {
+                _index++;
+            }
+
+            string hex = _content.Substring(start, _index - start);
+            if (_index < _content.Length) {
+                _index++;
+            }
+
+            return new PdfStringObj(PdfTextString.DecodeHexBytes(hex));
         }
 
         private PdfArray ReadInlineImageArray() {
@@ -875,6 +905,26 @@ internal static class PdfPageXObjectInvocationParser {
             };
         }
 
+        private static OfficeStrokeDashStyle ReadDashStyle(double[] dashArray) {
+            if (dashArray.Length == 0) {
+                return OfficeStrokeDashStyle.Solid;
+            }
+
+            if (dashArray.Length >= 6) {
+                return OfficeStrokeDashStyle.DashDotDot;
+            }
+
+            if (dashArray.Length >= 4) {
+                return OfficeStrokeDashStyle.DashDot;
+            }
+
+            if (dashArray.Length >= 2) {
+                return dashArray[0] <= dashArray[1] ? OfficeStrokeDashStyle.Dot : OfficeStrokeDashStyle.Dash;
+            }
+
+            return OfficeStrokeDashStyle.Solid;
+        }
+
         private static double Clamp01(double value) {
             if (value < 0D) {
                 return 0D;
@@ -979,7 +1029,8 @@ internal static class PdfPageXObjectInvocationParser {
             }
         }
 
-        private void SkipArray() {
+        private double[] ReadNumberArray() {
+            var numbers = new List<double>();
             int depth = 1;
             _index++;
             while (_index < _content.Length && depth > 0) {
@@ -988,6 +1039,8 @@ internal static class PdfPageXObjectInvocationParser {
                     SkipLiteralString();
                 } else if (ch == '<') {
                     SkipAngleObject();
+                } else if (IsNumberStart(ch)) {
+                    numbers.Add(ReadNumber());
                 } else {
                     if (ch == '[') {
                         depth++;
@@ -998,6 +1051,8 @@ internal static class PdfPageXObjectInvocationParser {
                     _index++;
                 }
             }
+
+            return numbers.ToArray();
         }
 
         private static bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || char.IsDigit(ch);
