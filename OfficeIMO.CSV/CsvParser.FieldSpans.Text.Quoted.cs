@@ -244,9 +244,19 @@ internal static partial class CsvParser
         for (var fieldIndex = 0; fieldIndex < fields.Length; fieldIndex++)
         {
             var field = fields[fieldIndex];
-            var value = field.HasEscapedQuotes
-                ? UnescapeTextQuotedField(text.Slice(field.Start, field.End - field.Start), field.FirstEscapedQuote - field.Start, field.Length, ref scratch)
-                : text.Slice(field.Start, field.Length);
+            var value = text.Slice(field.Start, field.End - field.Start);
+            if (field.HasEscapedQuotes)
+            {
+                if (fieldVisitor.TryVisitEscapedField(recordIndex, fieldIndex, value, field.Length))
+                {
+                    continue;
+                }
+
+                var unescaped = UnescapeTextQuotedField(value, field.FirstEscapedQuote - field.Start, field.Length, ref scratch);
+                fieldVisitor.VisitField(recordIndex, fieldIndex, unescaped);
+                continue;
+            }
+
             fieldVisitor.VisitField(recordIndex, fieldIndex, value);
         }
     }

@@ -633,6 +633,11 @@ internal static partial class CsvParser
                 return true;
             }
 
+            if (fieldVisitor.TryVisitEscapedField(recordIndex, fieldIndex, field, fieldLength))
+            {
+                return true;
+            }
+
             var unescaped = UnescapeTextQuotedField(field, firstEscapedQuote - valueStart, fieldLength, ref scratch);
             fieldVisitor.VisitField(recordIndex, fieldIndex, unescaped);
             return true;

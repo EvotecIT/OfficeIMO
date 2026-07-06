@@ -418,9 +418,17 @@ internal sealed partial class CsvLineReader
         for (var fieldIndex = 0; fieldIndex < fields.Length; fieldIndex++)
         {
             var field = fields[fieldIndex];
-            var value = field.HasEscapedQuotes
-                ? CompactEscapedQuotedField(field.Start, field.End, field.FirstEscapedQuote)
-                : _buffer.AsSpan(field.Start, field.Length);
+            ReadOnlySpan<char> value = _buffer.AsSpan(field.Start, field.End - field.Start);
+            if (field.HasEscapedQuotes)
+            {
+                if (fieldVisitor.TryVisitEscapedField(recordIndex, fieldIndex, value, field.Length))
+                {
+                    continue;
+                }
+
+                value = CompactEscapedQuotedField(field.Start, field.End, field.FirstEscapedQuote);
+            }
+
             fieldVisitor.VisitField(recordIndex, fieldIndex, value);
         }
     }

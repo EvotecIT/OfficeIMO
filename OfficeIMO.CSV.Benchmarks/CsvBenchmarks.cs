@@ -464,6 +464,13 @@ public class CsvBenchmarks
             FieldCount++;
             TextLength += value.Length;
         }
+
+        public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
+        {
+            FieldCount++;
+            TextLength += unescapedLength;
+            return true;
+        }
     }
 }
 

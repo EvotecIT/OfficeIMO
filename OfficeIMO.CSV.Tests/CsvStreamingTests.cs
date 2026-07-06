@@ -441,6 +441,22 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpansFromText_CanVisitEscapedQuotedFieldsWithoutCompacting()
+    {
+        var fields = new List<string>();
+        var visitor = new EscapedFieldCapturingVisitor(fields);
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Note\nAlpha,\"one \"\"quoted\"\" value\"\n",
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(
+            new[] { "field:0:0:Alpha", "escaped:0:1:one \"\"quoted\"\" value:18" },
+            fields);
+    }
+
+    [Fact]
     public void ReadFieldSpansFromText_DoesNotEmitSkippedBlankOrWhitespaceOnlyLines()
     {
         var fields = new List<string>();
@@ -606,6 +622,27 @@ public class CsvStreamingTests
         public void EndRow(int rowIndex, int fieldCount)
         {
             _events.Add($"end:{rowIndex}:{fieldCount}");
+        }
+    }
+
+    private readonly struct EscapedFieldCapturingVisitor : ICsvFieldSpanVisitor
+    {
+        private readonly List<string> _events;
+
+        public EscapedFieldCapturingVisitor(List<string> events)
+        {
+            _events = events;
+        }
+
+        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+            _events.Add($"field:{recordIndex}:{fieldIndex}:{value.ToString()}");
+        }
+
+        public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
+        {
+            _events.Add($"escaped:{recordIndex}:{fieldIndex}:{escapedValue.ToString()}:{unescapedLength}");
+            return true;
         }
     }
 #endif
