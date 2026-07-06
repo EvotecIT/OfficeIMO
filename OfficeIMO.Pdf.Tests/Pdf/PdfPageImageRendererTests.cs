@@ -182,6 +182,35 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_PreservesPdfPainterOrderAcrossTextAndImages() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 0, 255, 0 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            extraResourceEntries: " /Font << /F1 6 0 R >>",
+            contentStream: """
+                BT /F1 12 Tf 20 150 Td (Before) Tj ET
+                q
+                20 0 0 20 40 80 cm
+                /Im1 Do
+                Q
+                BT /F1 12 Tf 20 120 Td (After) Tj ET
+                """,
+            extraObjects: new[] { "6 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj" });
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingElement[] painted = drawing.Elements
+            .Where(element => element is OfficeDrawingText || element is OfficeDrawingImage)
+            .ToArray();
+        Assert.Collection(
+            painted,
+            element => Assert.Equal("Before", Assert.IsType<OfficeDrawingText>(element).Text),
+            element => Assert.IsType<OfficeDrawingImage>(element),
+            element => Assert.Equal("After", Assert.IsType<OfficeDrawingText>(element).Text));
+    }
+
+    [Fact]
     public void RenderPage_ProjectsPdfBaseFontIntoDrawingTextFont() {
         byte[] pdf = BuildSingleStreamPdf(
             """

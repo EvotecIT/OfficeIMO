@@ -21,12 +21,15 @@ internal static class PdfPageXObjectInvocationParser {
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         OfficeColor? initialFillColor = null,
         PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
-        double? initialFillOpacity = null) {
+        double? initialFillOpacity = null,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageXObjectInvocation>();
         }
 
-        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity);
+        var parser = new Parser(content, baseTransform, pageHeight, graphicsStates, colorSpaces, optionalContentVisibility, initialFillColor, initialFillColorSpace, initialFillOpacity, paintOrderBase, paintOrderScale, paintOrderOffset);
         return parser.Parse();
     }
 
@@ -37,6 +40,9 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? _graphicsStates;
         private readonly IReadOnlyDictionary<string, PdfPageColorSpaceKind>? _colorSpaces;
         private readonly PdfPageOptionalContentVisibility? _optionalContentVisibility;
+        private readonly double _paintOrderBase;
+        private readonly double _paintOrderScale;
+        private readonly double _paintOrderOffset;
         private readonly List<PdfPageXObjectInvocation> _invocations = new List<PdfPageXObjectInvocation>();
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
@@ -57,7 +63,10 @@ internal static class PdfPageXObjectInvocationParser {
             PdfPageOptionalContentVisibility? optionalContentVisibility,
             OfficeColor? initialFillColor,
             PdfPageColorSpaceKind initialFillColorSpace,
-            double? initialFillOpacity) {
+            double? initialFillOpacity,
+            double paintOrderBase,
+            double paintOrderScale,
+            double paintOrderOffset) {
             _content = content;
             _baseTransform = baseTransform;
             _graphicsStates = graphicsStates;
@@ -65,6 +74,9 @@ internal static class PdfPageXObjectInvocationParser {
             _optionalContentVisibility = optionalContentVisibility;
             _state = GraphicsState.Create(baseTransform, initialFillColor, initialFillColorSpace, initialFillOpacity);
             _pageHeight = pageHeight;
+            _paintOrderBase = paintOrderBase;
+            _paintOrderScale = paintOrderScale;
+            _paintOrderOffset = paintOrderOffset;
         }
 
         public IReadOnlyList<PdfPageXObjectInvocation> Parse() {
@@ -92,11 +104,12 @@ internal static class PdfPageXObjectInvocationParser {
                 } else if (IsNumberStart(current)) {
                     _args.Add(ReadNumber());
                 } else {
+                    double paintOrder = GetPaintOrder(_index);
                     string op = ReadOperator();
                     if (op.Length == 0) {
                         _index++;
                     } else {
-                        ApplyOperator(op);
+                        ApplyOperator(op, paintOrder);
                     }
                 }
             }
@@ -104,7 +117,9 @@ internal static class PdfPageXObjectInvocationParser {
             return _invocations.Count == 0 ? Array.Empty<PdfPageXObjectInvocation>() : _invocations.AsReadOnly();
         }
 
-        private void ApplyOperator(string op) {
+        private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
+
+        private void ApplyOperator(string op, double paintOrder) {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
@@ -244,13 +259,13 @@ internal static class PdfPageXObjectInvocationParser {
                         _args.Count >= 1 &&
                         _args[_args.Count - 1] is string name &&
                         !string.IsNullOrEmpty(name)) {
-                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity));
+                        _invocations.Add(new PdfPageXObjectInvocation(name, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, paintOrder));
                     }
 
                     break;
                 case "BI":
                     if (TryReadInlineImage(out PdfPageInlineImage? inlineImage) && inlineImage != null && !HasHiddenContent()) {
-                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity));
+                        _invocations.Add(new PdfPageXObjectInvocation(inlineImage, _state.Transform, _state.ClipPath, _state.FillColor, _state.FillColorSpace, _state.FillOpacity, paintOrder));
                     }
 
                     break;
@@ -911,7 +926,7 @@ internal static class PdfPageXObjectInvocationParser {
 }
 
 internal readonly struct PdfPageXObjectInvocation {
-    public PdfPageXObjectInvocation(string name, Matrix2D transform, PdfPageClipPath? clipPath, OfficeColor fillColor, PdfPageColorSpaceKind fillColorSpace, double? fillOpacity) {
+    public PdfPageXObjectInvocation(string name, Matrix2D transform, PdfPageClipPath? clipPath, OfficeColor fillColor, PdfPageColorSpaceKind fillColorSpace, double? fillOpacity, double paintOrder = 0D) {
         Name = name;
         InlineImage = null;
         Transform = transform;
@@ -919,9 +934,10 @@ internal readonly struct PdfPageXObjectInvocation {
         FillColor = fillColor;
         FillColorSpace = fillColorSpace;
         FillOpacity = fillOpacity;
+        PaintOrder = paintOrder;
     }
 
-    public PdfPageXObjectInvocation(PdfPageInlineImage inlineImage, Matrix2D transform, PdfPageClipPath? clipPath, OfficeColor fillColor, PdfPageColorSpaceKind fillColorSpace, double? fillOpacity) {
+    public PdfPageXObjectInvocation(PdfPageInlineImage inlineImage, Matrix2D transform, PdfPageClipPath? clipPath, OfficeColor fillColor, PdfPageColorSpaceKind fillColorSpace, double? fillOpacity, double paintOrder = 0D) {
         Name = inlineImage.ResourceName;
         InlineImage = inlineImage;
         Transform = transform;
@@ -929,6 +945,7 @@ internal readonly struct PdfPageXObjectInvocation {
         FillColor = fillColor;
         FillColorSpace = fillColorSpace;
         FillOpacity = fillOpacity;
+        PaintOrder = paintOrder;
     }
 
     public string Name { get; }
@@ -944,4 +961,6 @@ internal readonly struct PdfPageXObjectInvocation {
     public PdfPageColorSpaceKind FillColorSpace { get; }
 
     public double? FillOpacity { get; }
+
+    public double PaintOrder { get; }
 }

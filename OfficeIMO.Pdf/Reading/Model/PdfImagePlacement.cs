@@ -25,7 +25,8 @@ public sealed class PdfImagePlacement {
         OfficeColor? imageMaskColor = null,
         double? imageOpacity = null,
         PdfStream? inlineImageStream = null,
-        PdfDictionary? inlineImageResources = null) {
+        PdfDictionary? inlineImageResources = null,
+        double paintOrder = 0D) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -45,6 +46,7 @@ public sealed class PdfImagePlacement {
         ImageOpacity = imageOpacity;
         InlineImageStream = inlineImageStream;
         InlineImageResources = inlineImageResources;
+        PaintOrder = paintOrder;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -98,6 +100,8 @@ public sealed class PdfImagePlacement {
     internal PdfStream? InlineImageStream { get; }
 
     internal PdfDictionary? InlineImageResources { get; }
+
+    internal double PaintOrder { get; }
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;

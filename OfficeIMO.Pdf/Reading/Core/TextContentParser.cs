@@ -80,10 +80,12 @@ internal static class TextContentParser {
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
+        public double PaintOrder { get; }
 
-        public FormInvocation(string name, Matrix2D transform) {
+        public FormInvocation(string name, Matrix2D transform, double paintOrder = 0D) {
             Name = name;
             Transform = transform;
+            PaintOrder = paintOrder;
         }
     }
 
@@ -97,7 +99,10 @@ internal static class TextContentParser {
         IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces = null,
         System.Func<string, string?>? baseFontForResource = null,
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
-        double pageHeight = 0D) {
+        double pageHeight = 0D,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -139,6 +144,7 @@ internal static class TextContentParser {
             if (c == ']' || c == '>') { i++; continue; }
             if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
             // operator (BT, ET, Tf, Tm, Td, TD, T*, TL, Tc, Tw, Tz, Ts, cm, q, Q, Tj, TJ, ', ")
+            double paintOrder = GetPaintOrder(i);
             string op = ReadOperator();
             if (op.Length == 0) { i++; continue; }
 
@@ -375,15 +381,15 @@ internal static class TextContentParser {
                     args.Clear();
                     break;
                 case "'": // move to next line and show text
-                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; }
                     args.Clear();
                     break;
-                case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; args.Clear(); } break;
-                case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1]); args.Clear(); } break;
+                case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; args.Clear(); } break;
+                case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
                 case "BDC":
                     markedContentStack.Push(new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
@@ -432,6 +438,8 @@ internal static class TextContentParser {
             pendingGapPt = 0;
         }
 
+        double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
+
         void MaybeInsertSpaceBeforeRun() {
             // Insert a space depending on kerning gap accumulated from TJ array numbers
             if (pendingGapPt <= 0) return;
@@ -445,7 +453,7 @@ internal static class TextContentParser {
             if (pendingGapPt >= threshold) sbOutGlobal.Append(' ');
             pendingGapPt = 0;
         }
-        void ShowTextRun(byte[] bytes) {
+        void ShowTextRun(byte[] bytes, double paintOrder) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
             // Detect 2-byte CIDs (Identity-H) vs single-byte
@@ -514,11 +522,11 @@ internal static class TextContentParser {
                 textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
-                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), clipPath));
+                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), clipPath, paintOrder));
                     sbOutGlobal.Append(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), clipPath));
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), clipPath, paintOrder));
                 sbOutGlobal.Append(textOut);
             }
 
@@ -581,13 +589,13 @@ internal static class TextContentParser {
              (property is InlineDictionary dictionary &&
                 optionalContentVisibility?.IsHiddenAny(dictionary.OptionalContentObjectNumbers) == true));
 
-        void ShowTextArray(object arrObj) {
+        void ShowTextArray(object arrObj, double paintOrder) {
             if (!inText || arrObj == null) return;
             var list = arrObj as List<object>;
             if (list == null) return;
             for (int j = 0; j < list.Count; j++) {
                 var it = list[j];
-                if (it is byte[] b) { ShowTextRun(b); }
+                if (it is byte[] b) { ShowTextRun(b, paintOrder); }
                 else if (adjustKerningFromTJ && it is double num) {
                     double delta = -num / 1000.0 * size * hScale;
                     textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
@@ -958,7 +966,12 @@ internal static class TextContentParser {
     private static bool IsNullOrEmptyDecodedGlyph(string? value) =>
         string.IsNullOrEmpty(value) || value.All(static character => character == '\0');
 
-    public static List<FormInvocation> ExtractFormInvocations(string content, PdfPageOptionalContentVisibility? optionalContentVisibility = null) {
+    public static List<FormInvocation> ExtractFormInvocations(
+        string content,
+        PdfPageOptionalContentVisibility? optionalContentVisibility = null,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D) {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
         var gstack = new Stack<Matrix2D>();
@@ -992,6 +1005,7 @@ internal static class TextContentParser {
             if (c == ']' || c == '>') { i++; continue; }
             if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
 
+            double paintOrder = GetPaintOrder(i);
             string op = ReadOperator();
             if (op.Length == 0) { i++; continue; }
 
@@ -1021,7 +1035,7 @@ internal static class TextContentParser {
                     if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm));
+                            invocations.Add(new FormInvocation(name, ctm, paintOrder));
                         }
                     }
                     args.Clear();
@@ -1048,6 +1062,8 @@ internal static class TextContentParser {
         }
 
         return invocations;
+
+        double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
 
         bool HasHiddenContent() {
             foreach (bool hidden in hiddenContentStack) {

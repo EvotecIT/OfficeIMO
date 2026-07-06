@@ -29,12 +29,15 @@ internal static class PdfPageContentVisualParser {
         IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces,
         IReadOnlyDictionary<string, PdfPageShadingResource>? shadings,
         IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
-        PdfPageOptionalContentVisibility? optionalContentVisibility = null) {
+        PdfPageOptionalContentVisibility? optionalContentVisibility = null,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset);
         return parser.Parse();
     }
 
@@ -47,6 +50,9 @@ internal static class PdfPageContentVisualParser {
         private readonly IReadOnlyDictionary<string, PdfPageShadingResource>? _shadings;
         private readonly IReadOnlyDictionary<string, PdfPageShadingPatternResource>? _shadingPatterns;
         private readonly PdfPageOptionalContentVisibility? _optionalContentVisibility;
+        private readonly double _paintOrderBase;
+        private readonly double _paintOrderScale;
+        private readonly double _paintOrderOffset;
         private readonly List<PdfPageVisualPrimitive> _primitives = new List<PdfPageVisualPrimitive>();
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
@@ -66,7 +72,10 @@ internal static class PdfPageContentVisualParser {
             IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces,
             IReadOnlyDictionary<string, PdfPageShadingResource>? shadings,
             IReadOnlyDictionary<string, PdfPageShadingPatternResource>? shadingPatterns,
-            PdfPageOptionalContentVisibility? optionalContentVisibility) {
+            PdfPageOptionalContentVisibility? optionalContentVisibility,
+            double paintOrderBase,
+            double paintOrderScale,
+            double paintOrderOffset) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -75,6 +84,9 @@ internal static class PdfPageContentVisualParser {
             _shadings = shadings;
             _shadingPatterns = shadingPatterns;
             _optionalContentVisibility = optionalContentVisibility;
+            _paintOrderBase = paintOrderBase;
+            _paintOrderScale = paintOrderScale;
+            _paintOrderOffset = paintOrderOffset;
         }
 
         public IReadOnlyList<PdfPageVisualPrimitive> Parse() {
@@ -102,11 +114,12 @@ internal static class PdfPageContentVisualParser {
                 } else if (IsNumberStart(current)) {
                     _args.Add(ReadNumber());
                 } else {
+                    double paintOrder = GetPaintOrder(_index);
                     string op = ReadOperator();
                     if (op.Length == 0) {
                         _index++;
                     } else {
-                        ApplyOperator(op);
+                        ApplyOperator(op, paintOrder);
                     }
                 }
             }
@@ -114,7 +127,9 @@ internal static class PdfPageContentVisualParser {
             return _primitives.Count == 0 ? Array.Empty<PdfPageVisualPrimitive>() : _primitives.AsReadOnly();
         }
 
-        private void ApplyOperator(string op) {
+        private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
+
+        private void ApplyOperator(string op, double paintOrder) {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
@@ -317,35 +332,35 @@ internal static class PdfPageContentVisualParser {
                     break;
                 case "f":
                 case "F":
-                    PaintPath(fill: true, stroke: false, OfficeFillRule.NonZero);
+                    PaintPath(fill: true, stroke: false, OfficeFillRule.NonZero, paintOrder);
                     break;
                 case "f*":
-                    PaintPath(fill: true, stroke: false, OfficeFillRule.EvenOdd);
+                    PaintPath(fill: true, stroke: false, OfficeFillRule.EvenOdd, paintOrder);
                     break;
                 case "S":
-                    PaintPath(fill: false, stroke: true, OfficeFillRule.NonZero);
+                    PaintPath(fill: false, stroke: true, OfficeFillRule.NonZero, paintOrder);
                     break;
                 case "s":
                     ClosePath();
-                    PaintPath(fill: false, stroke: true, OfficeFillRule.NonZero);
+                    PaintPath(fill: false, stroke: true, OfficeFillRule.NonZero, paintOrder);
                     break;
                 case "B":
-                    PaintPath(fill: true, stroke: true, OfficeFillRule.NonZero);
+                    PaintPath(fill: true, stroke: true, OfficeFillRule.NonZero, paintOrder);
                     break;
                 case "B*":
-                    PaintPath(fill: true, stroke: true, OfficeFillRule.EvenOdd);
+                    PaintPath(fill: true, stroke: true, OfficeFillRule.EvenOdd, paintOrder);
                     break;
                 case "b":
                     ClosePath();
-                    PaintPath(fill: true, stroke: true, OfficeFillRule.NonZero);
+                    PaintPath(fill: true, stroke: true, OfficeFillRule.NonZero, paintOrder);
                     break;
                 case "b*":
                     ClosePath();
-                    PaintPath(fill: true, stroke: true, OfficeFillRule.EvenOdd);
+                    PaintPath(fill: true, stroke: true, OfficeFillRule.EvenOdd, paintOrder);
                     break;
                 case "sh":
                     if (_args.Count >= 1 && _args[_args.Count - 1] is string shadingName) {
-                        PaintShading(shadingName);
+                        PaintShading(shadingName, paintOrder);
                     }
 
                     break;
@@ -389,7 +404,7 @@ internal static class PdfPageContentVisualParser {
             _pathCommands.Add(OfficePathCommand.Close());
         }
 
-        private void PaintPath(bool fill, bool stroke, OfficeFillRule fillRule) {
+        private void PaintPath(bool fill, bool stroke, OfficeFillRule fillRule, double paintOrder) {
             if (_path.Count < 2) {
                 ClearPath();
                 return;
@@ -430,9 +445,10 @@ internal static class PdfPageContentVisualParser {
                     _state.StrokeLineJoin,
                     fill ? _state.FillOpacity : null,
                     stroke && _state.StrokeWidth > 0D ? _state.StrokeOpacity : null,
-                    _state.ClipPath));
+                    _state.ClipPath,
+                    paintOrder));
             } else if (stroke && _path.Count == 2) {
-                AddLine(_path[0], _path[1]);
+                AddLine(_path[0], _path[1], paintOrder);
             } else {
                 OfficeLinearGradient? fillGradient = null;
                 OfficeRadialGradient? fillRadialGradient = null;
@@ -466,6 +482,7 @@ internal static class PdfPageContentVisualParser {
                     stroke && _state.StrokeWidth > 0D ? _state.StrokeOpacity : null,
                     fillRule,
                     _state.ClipPath,
+                    paintOrder,
                     out PdfPageVisualPrimitive pathPrimitive)) {
                     _primitives.Add(pathPrimitive);
                 }
@@ -479,7 +496,7 @@ internal static class PdfPageContentVisualParser {
             return _shadingPatterns != null && _shadingPatterns.TryGetValue(patternName, out pattern);
         }
 
-        private void PaintShading(string shadingName) {
+        private void PaintShading(string shadingName, double paintOrder) {
             if (HasHiddenContent() ||
                 _shadings == null ||
                 !_shadings.TryGetValue(shadingName, out PdfPageShadingResource shading) ||
@@ -489,9 +506,9 @@ internal static class PdfPageContentVisualParser {
 
             CreateShadingGradients(shading, x, y, width, height, Matrix2D.Identity, out OfficeLinearGradient? linearGradient, out OfficeRadialGradient? radialGradient);
             if (radialGradient != null) {
-                _primitives.Add(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, radialGradient, _state.FillOpacity, _state.ClipPath));
+                _primitives.Add(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, radialGradient, _state.FillOpacity, _state.ClipPath, paintOrder));
             } else if (linearGradient != null) {
-                _primitives.Add(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, linearGradient, _state.FillOpacity, _state.ClipPath));
+                _primitives.Add(PdfPageVisualPrimitive.ShadedRectangle(x, y, width, height, linearGradient, _state.FillOpacity, _state.ClipPath, paintOrder));
             }
         }
 
@@ -618,7 +635,7 @@ internal static class PdfPageContentVisualParser {
             return true;
         }
 
-        private void AddLine((double X, double Y) start, (double X, double Y) end) {
+        private void AddLine((double X, double Y) start, (double X, double Y) end, double paintOrder) {
             double x1 = start.X;
             double y1 = ToTop(start.Y);
             double x2 = end.X;
@@ -650,7 +667,8 @@ internal static class PdfPageContentVisualParser {
                 _state.StrokeLineCap,
                 _state.StrokeLineJoin,
                 _state.StrokeOpacity,
-                _state.ClipPath));
+                _state.ClipPath,
+                paintOrder));
         }
 
         private void ApplyGraphicsStateResource(string name) {
