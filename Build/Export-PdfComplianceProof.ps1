@@ -100,7 +100,9 @@ function Test-ValidatorDiagnosticFailureEvidence {
                 $Text -match '(?i)\bvalidation\s+failed\b'
         }
         'PdfUaValidator' {
-            return $Text -match '(?i)\bpdf/ua\b.*\b(fail|failed|not\s+compliant|violation)' -or
+            return $Text -match '(?i)isCompliant\s*=\s*["'']?false' -or
+                $Text -match '(?i)\bnot\s+compliant\b' -or
+                $Text -match '(?i)\bpdf/ua\b.*\b(fail|failed|not\s+compliant|violation)' -or
                 $Text -match '(?i)\bvalidation\s+failed\b' -or
                 $Text -match '(?i)\bviolations?\b'
         }
@@ -230,6 +232,97 @@ function Get-ProofProfileRows {
     }
 
     return $rows
+}
+
+function Get-ProductProofDiagnosticFileName {
+    param(
+        [Parameter(Mandatory = $true)]
+        $Profile,
+
+        [Parameter(Mandatory = $true)]
+        [string] $ValidatorKind
+    )
+
+    switch ([string] $Profile.profile) {
+        'PdfA3B' {
+            if ($ValidatorKind -eq 'VeraPdf') {
+                return 'verapdf-pdfa3-groundwork.txt'
+            }
+        }
+        'PdfUa1' {
+            if ($ValidatorKind -eq 'PdfUaValidator') {
+                return 'pdfua-groundwork.txt'
+            }
+        }
+        { $_ -eq 'FacturX' -or $_ -eq 'Zugferd' } {
+            if ($ValidatorKind -eq 'VeraPdf') {
+                return 'verapdf-einvoice-groundwork.txt'
+            }
+
+            if ($ValidatorKind -eq 'Mustang') {
+                return 'mustang-einvoice-groundwork.txt'
+            }
+        }
+    }
+
+    return $null
+}
+
+function Update-ProductProofContractWithDiagnostics {
+    param(
+        [Parameter(Mandatory = $true)]
+        $ProductProofContract,
+
+        [Parameter(Mandatory = $true)]
+        [array] $DiagnosticRows
+    )
+
+    foreach ($profile in @($ProductProofContract.profiles)) {
+        $hasRequiredExternalValidation = $true
+        $missingExternalValidators = [System.Collections.Generic.List[string]]::new()
+        $failedExternalValidationCount = 0
+
+        foreach ($validatorProof in @($profile.externalValidatorProofs)) {
+            $diagnosticFileName = Get-ProductProofDiagnosticFileName -Profile $profile -ValidatorKind $validatorProof.validatorKind
+            $diagnosticRow = if ([string]::IsNullOrWhiteSpace($diagnosticFileName)) {
+                $null
+            } else {
+                @($DiagnosticRows | Where-Object { $_.file -eq $diagnosticFileName }) | Select-Object -First 1
+            }
+
+            if ($null -eq $diagnosticRow) {
+                $validatorProof.status = 'Missing'
+                $validatorProof.isSatisfied = $false
+                $validatorProof.blocksConformanceClaim = $true
+                $validatorProof.validatorName = $validatorProof.validatorKind
+                $validatorProof.diagnostic = 'Missing external validation.'
+                $validatorProof.profile = $null
+                $validatorProof.exitCode = $null
+            } else {
+                $validatorProof.status = $diagnosticRow.status
+                $validatorProof.isSatisfied = $diagnosticRow.status -eq 'Passed'
+                $validatorProof.blocksConformanceClaim = -not $validatorProof.isSatisfied
+                $validatorProof.validatorName = $diagnosticRow.validatorKind
+                $validatorProof.diagnostic = "Validator diagnostic status $($diagnosticRow.status) matched expected status $($diagnosticRow.expectedStatus): $($diagnosticRow.file)."
+                $validatorProof.profile = $diagnosticRow.profile
+                $validatorProof.exitCode = $diagnosticRow.exitCode
+            }
+
+            if (-not $validatorProof.isSatisfied) {
+                $missingExternalValidators.Add([string] $validatorProof.validatorKind)
+                $hasRequiredExternalValidation = $false
+            }
+
+            if ($validatorProof.status -eq 'Failed' -or $validatorProof.status -eq 'Error') {
+                $failedExternalValidationCount++
+            }
+        }
+
+        $profile.hasRequiredExternalValidation = $hasRequiredExternalValidation
+        $profile.canClaimConformance = [bool] $profile.isInternallyReady -and $hasRequiredExternalValidation -and $failedExternalValidationCount -eq 0
+        $profile.missingExternalValidators = @($missingExternalValidators)
+        $profile.failedExternalValidationCount = $failedExternalValidationCount
+    }
 }
 
 $repoRoot = Resolve-Path -LiteralPath (Join-Path $PSScriptRoot '..')
@@ -503,6 +596,7 @@ if ($diagnosticFiles.Count -eq 0) {
             status = $validatorStatus
             expectedStatus = $expectedStatus
             matchesExpectedStatus = $matchesExpectedStatus
+            exitCode = if ($diagnosticText -match 'exited with code\s+(\d+)\b') { [int] $Matches[1] } else { $null }
             sizeBytes = $file.Length
             sha256 = $hash
         }
@@ -510,6 +604,8 @@ if ($diagnosticFiles.Count -eq 0) {
 }
 
 $profileRows = @(Get-ProofProfileRows -PdfRows $pdfRows -DiagnosticRows $diagnosticRows)
+Update-ProductProofContractWithDiagnostics -ProductProofContract $productProofContract -DiagnosticRows $diagnosticRows
+$productProofContract | ConvertTo-Json -Depth 8 | Set-Content -LiteralPath $productProofContractPath -Encoding UTF8
 $lines.Add('')
 $lines.Add('## Profile Proof Matrix')
 $lines.Add('')
@@ -540,6 +636,23 @@ foreach ($profile in @($productProofContract.profiles)) {
     }
 
     $lines.Add("| $($profile.displayName) | $($profile.isInternallyReady) | $($profile.hasRequiredExternalValidation) | $($profile.canClaimConformance) | $missingValidators | $unsupportedRequirements |")
+}
+
+$lines.Add('')
+$lines.Add('### External Validator Proof Rows')
+$lines.Add('')
+$lines.Add('| Profile | Validator | Status | Blocks Claim | Diagnostic |')
+$lines.Add('| --- | --- | --- | --- | --- |')
+foreach ($profile in @($productProofContract.profiles)) {
+    foreach ($validatorProof in @($profile.externalValidatorProofs)) {
+        $diagnostic = [string] $validatorProof.diagnostic
+        if ([string]::IsNullOrWhiteSpace($diagnostic)) {
+            $diagnostic = 'none'
+        }
+
+        $diagnostic = $diagnostic.Replace('|', '\|')
+        $lines.Add("| $($profile.displayName) | $($validatorProof.validatorKind) | $($validatorProof.status) | $($validatorProof.blocksConformanceClaim) | $diagnostic |")
+    }
 }
 
 if (-not [string]::IsNullOrWhiteSpace($status)) {

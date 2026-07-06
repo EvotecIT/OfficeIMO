@@ -40,8 +40,11 @@ PdfDocument.Create(new PdfOptions {
 
 - Creates PDFs with page setup, headings, paragraphs, rich text, links, lists, panels, rows/columns, tables, images, vector drawing, headers, footers, watermarks, metadata, and form primitives.
 - Reads and inspects PDFs through text extraction, logical document objects, page metadata, links, images, attachments, outlines, forms, active-content diagnostics, and security/revision markers.
-- Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, and watermarks.
-- Provides conversion reports and diagnostics so adapters can expose unsupported or simplified source content honestly.
+- Manipulates existing PDFs with page extraction, split, merge, delete, duplicate, move, rotate, metadata editing, stamps, and watermarks while preserving source PDF header versions on shared rewrite paths.
+- Provides conversion reports, grouped warning summaries, and diagnostics so adapters can expose unsupported or simplified source content honestly.
+- Provides reusable conversion proof snapshots for generated PDFs, artifact hashes, required page counts, page sizes, document metadata, outline titles, URI links, form fields, named destinations, page labels, attachments, output intents, optional-content/layer metadata, catalog/viewer metadata, XMP/tagged metadata, text markers, logical readback signals, expected and accepted warning contracts, and post-processing hand-off.
+- Provides reusable rewrite-preservation proof for page geometry, metadata, navigation, catalog/viewer/action state, optional content, tagged content, security signatures, document versions, and source-structure markers such as incremental updates, xref streams, and object streams.
+- Provides a reusable rewrite-preservation matrix for classifying named manipulation scenarios as rewrite-safe, preservation-failed, blocked by safety checks, or operation-failed, including optional-content/layer drift, targeted form-fill preservation, form/tagged/active-content/signature blockers, and fluent `PdfDocument` helpers for normal document rewrite operations.
 - Serves as the shared engine for Word, Excel, Markdown, HTML, and PowerPoint PDF adapters.
 
 ## Existing PDF workflows
@@ -124,9 +127,18 @@ using var pdf = PdfDocument.Open("statement.pdf");
 
 string text = pdf.Read.Text();
 string firstPages = pdf.Read.Text("1-2");
+PdfOperationResult<string> safeFirstPages = pdf.Read.TryText("1-2");
 string markdown = pdf.Read.Markdown();
 IReadOnlyList<string> pages = pdf.Read.TextByPage();
 PdfLogicalDocument logical = pdf.Read.Logical();
+PdfMetadata metadata = pdf.Read.Metadata();
+PdfDocumentSecurityInfo security = pdf.Read.Security();
+IReadOnlyList<PdfPageInfo> pageInfo = pdf.Read.Pages();
+PdfXmpMetadataInfo? xmp = pdf.Read.XmpMetadata();
+IReadOnlyList<PdfOutputIntentInfo> outputIntents = pdf.Read.OutputIntents();
+PdfTaggedContentInfo? taggedContent = pdf.Read.TaggedContent();
+PdfOptionalContentProperties? optionalContent = pdf.Read.OptionalContent();
+PdfOperationResult<PdfDocumentInfo> safeInfo = pdf.Read.TryDocumentInfo();
 
 foreach (var table in logical.Tables) {
     Console.WriteLine($"Table on page {table.PageNumber}: {table.Rows.Count} rows");
@@ -134,7 +146,25 @@ foreach (var table in logical.Tables) {
 
 string markdownTables = PdfLogicalTableTextExportExtensions.ExtractMarkdownTables("statement.pdf");
 IReadOnlyList<PdfExtractedImage> images = pdf.Read.Images();
+IReadOnlyList<PdfExtractedImage> firstPageImages = pdf.Read.Images("1");
+PdfOperationResult<IReadOnlyList<PdfExtractedImage>> safeImages = pdf.Read.TryImages("1-2");
+IReadOnlyList<PdfImagePlacement> imageGeometry = pdf.Read.ImagePlacements("1-2");
+IReadOnlyList<PdfOutlineItem> outlines = pdf.Read.Outlines();
+IReadOnlyList<PdfLogicalLinkAnnotation> links = pdf.Read.Links();
+IReadOnlyList<PdfLogicalLinkAnnotation> supportLinks = pdf.Read.LinksByUri("https://example.com/support");
+PdfOperationResult<IReadOnlyList<PdfNamedDestination>> safeDestinations = pdf.Read.TryNamedDestinations();
+IReadOnlyList<PdfAnnotation> annotations = pdf.Read.Annotations();
+IReadOnlyList<PdfAnnotation> freeTextNotes = pdf.Read.AnnotationsBySubtype("FreeText");
+PdfOperationResult<IReadOnlyList<PdfAnnotation>> safeAnnotations = pdf.Read.TryAnnotations();
+IReadOnlyList<PdfCatalogAction> catalogActions = pdf.Read.CatalogActions();
+IReadOnlyList<PdfPageAction> pageActions = pdf.Read.PageActions();
+PdfOperationResult<IReadOnlyList<PdfPageAction>> safePageActions = pdf.Read.TryPageActions();
+IReadOnlyList<PdfFormField> formFields = pdf.Read.FormFields();
+IReadOnlyList<PdfLogicalFormWidget> formWidgets = pdf.Read.FormWidgets("Person.Name");
+PdfOperationResult<IReadOnlyList<PdfFormField>> safeFormFields = pdf.Read.TryFormFields();
+IReadOnlyList<PdfAttachmentInfo> attachmentMetadata = pdf.Read.AttachmentMetadata();
 IReadOnlyList<PdfExtractedAttachment> attachments = pdf.Read.Attachments();
+PdfOperationResult<IReadOnlyList<PdfExtractedAttachment>> safeAttachments = pdf.Read.TryAttachments();
 ```
 
 ### Split and extract pages
@@ -151,6 +181,10 @@ IReadOnlyList<PdfDocument> singlePageDocuments = source.Pages.Split();
 for (int index = 0; index < singlePageDocuments.Count; index++) {
     singlePageDocuments[index].Save($"packet-page-{index + 1:000}.pdf");
 }
+
+IReadOnlyList<PdfDocument> selectedRanges = source.Pages.Split("1-2,5-6");
+selectedRanges[0].Save("packet-front.pdf");
+selectedRanges[1].Save("packet-evidence.pdf");
 ```
 
 ### Merge, reorder, delete, duplicate, move, and rotate
@@ -202,6 +236,25 @@ PdfDocument.Open("application-form.pdf")
     .Save("application-form-filled.pdf");
 ```
 
+### Assess compliance proof without overclaiming
+
+```csharp
+using OfficeIMO.Pdf;
+
+PdfDocument document = PdfDocument.Create(new PdfOptions()
+        .ConfigurePdfAGroundwork(PdfComplianceProfile.PdfA3B))
+    .Paragraph(paragraph => paragraph.Text("Groundwork can be assessed before a formal claim."));
+
+PdfComplianceProofReport proof = document.AssessComplianceProof(
+    PdfComplianceProfile.PdfA3B,
+    externalValidations: null);
+
+if (!proof.CanClaimConformance) {
+    Console.WriteLine(proof.ProofStatus);
+    Console.WriteLine(proof.ExternalProofSummary);
+}
+```
+
 ### Page setup, watermarks, and metadata
 
 ```csharp
@@ -233,7 +286,7 @@ if (!preflight.Can(PdfPreflightCapability.ManipulatePages)) {
     }
 }
 
-var result = PdfDocument.Open(bytes).Pages.TryExtract(PdfPageSelection.Parse("1-2"));
+var result = PdfDocument.Open(bytes).Pages.TryExtract("1-2");
 if (result.Succeeded) {
     result.RequireValue().Save("incoming-first-pages.pdf");
 }

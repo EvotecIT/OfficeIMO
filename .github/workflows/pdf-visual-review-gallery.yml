@@ -159,6 +159,7 @@ jobs:
             ${{ env.GALLERY_PATH }}/*.json
             ${{ env.GALLERY_PATH }}/*.pdf
             ${{ env.GALLERY_PATH }}/*.html
+            ${{ env.GALLERY_PATH }}/*.rtf
             ${{ env.GALLERY_PATH }}/*.docx
             ${{ env.GALLERY_PATH }}/*.xlsx
             ${{ env.GALLERY_PATH }}/*.pptx

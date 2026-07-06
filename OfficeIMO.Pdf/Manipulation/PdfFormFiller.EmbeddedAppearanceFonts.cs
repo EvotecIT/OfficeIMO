@@ -149,7 +149,7 @@ public static partial class PdfFormFiller {
 
         public IReadOnlyList<PdfFontEmbeddingDiagnostic> AnalyzeFullFontEmbedding(string source) {
             if (_cffFont != null) {
-                return PdfFontDiagnostics.AnalyzeOpenTypeCffFullFontEmbedding(_cffFont, source);
+                return PdfFontDiagnostics.AnalyzeOpenTypeCffCompactEmbedding(_cffFont, source);
             }
 
             return Array.Empty<PdfFontEmbeddingDiagnostic>();
@@ -214,7 +214,7 @@ public static partial class PdfFormFiller {
         int descendantFontObjectNumber,
         int toUnicodeObjectNumber,
         int type0FontObjectNumber) {
-        byte[] fontData = fontProgram.BuildFullOpenTypeFontFile();
+        byte[] fontData = fontProgram.BuildCompactOpenTypeFontFile();
         objects[fontFileObjectNumber] = new PdfIndirectObject(fontFileObjectNumber, 0, CreateOpenTypeCffFontFileStream(fontData));
         objects[descriptorObjectNumber] = new PdfIndirectObject(descriptorObjectNumber, 0, CreateOpenTypeCffFontDescriptor(fontProgram, fontFileObjectNumber));
         objects[descendantFontObjectNumber] = new PdfIndirectObject(descendantFontObjectNumber, 0, CreateCidFontType0Descendant(fontProgram, descriptorObjectNumber));

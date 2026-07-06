@@ -67,6 +67,62 @@ public sealed class PdfDocumentForms {
     }
 
     /// <summary>
+    /// Appends a simple AcroForm field-value revision without rewriting the existing PDF bytes.
+    /// </summary>
+    public PdfDocument AppendRevision(IReadOnlyDictionary<string, string> fieldValues, bool keepNeedAppearances = true) {
+        return PdfDocument.FromBytes(PdfIncrementalUpdater.UpdateFormFields(_document.Snapshot(), fieldValues, keepNeedAppearances));
+    }
+
+    /// <summary>
+    /// Appends a simple AcroForm field-value revision without rewriting the existing PDF bytes.
+    /// </summary>
+    public PdfDocument AppendRevision(IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions) {
+        return PdfDocument.FromBytes(PdfIncrementalUpdater.UpdateFormFields(_document.Snapshot(), fieldValues, formOptions));
+    }
+
+    /// <summary>
+    /// Attempts to append a simple AcroForm field-value revision, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, string> fieldValues, bool keepNeedAppearances = true, PdfReadOptions? options = null) {
+        return _document.TryOperation("Append form field revision", PdfPreflightCapability.AppendFormFieldRevision, () => AppendRevision(fieldValues, keepNeedAppearances), options);
+    }
+
+    /// <summary>
+    /// Attempts to append a simple AcroForm field-value revision, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, string> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions, PdfReadOptions? readOptions) {
+        return _document.TryOperation("Append form field revision", PdfPreflightCapability.AppendFormFieldRevision, () => AppendRevision(fieldValues, formOptions), readOptions);
+    }
+
+    /// <summary>
+    /// Appends a simple AcroForm field-value revision, including multi-value fields, without rewriting the existing PDF bytes.
+    /// </summary>
+    public PdfDocument AppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, bool keepNeedAppearances = true) {
+        return PdfDocument.FromBytes(PdfIncrementalUpdater.UpdateFormFields(_document.Snapshot(), fieldValues, keepNeedAppearances));
+    }
+
+    /// <summary>
+    /// Appends a simple AcroForm field-value revision, including multi-value fields, without rewriting the existing PDF bytes.
+    /// </summary>
+    public PdfDocument AppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions) {
+        return PdfDocument.FromBytes(PdfIncrementalUpdater.UpdateFormFields(_document.Snapshot(), fieldValues, formOptions));
+    }
+
+    /// <summary>
+    /// Attempts to append a simple AcroForm field-value revision, including multi-value fields, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, bool keepNeedAppearances = true, PdfReadOptions? options = null) {
+        return _document.TryOperation("Append form field revision", PdfPreflightCapability.AppendFormFieldRevision, () => AppendRevision(fieldValues, keepNeedAppearances), options);
+    }
+
+    /// <summary>
+    /// Attempts to append a simple AcroForm field-value revision, including multi-value fields, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryAppendRevision(IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues, PdfIncrementalFormFieldUpdateOptions? formOptions, PdfReadOptions? readOptions) {
+        return _document.TryOperation("Append form field revision", PdfPreflightCapability.AppendFormFieldRevision, () => AppendRevision(fieldValues, formOptions), readOptions);
+    }
+
+    /// <summary>
     /// Creates a new PDF with simple form fields flattened.
     /// </summary>
     public PdfDocument Flatten() {

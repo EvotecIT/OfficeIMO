@@ -8,7 +8,9 @@ public static partial class PdfFormFiller {
         int inheritedFlags,
         int? inheritedMaxLength,
         PdfDictionary? inheritedDefaultResources,
+        string? inheritedDefaultAppearance,
         string? inheritedDisplayValue,
+        IReadOnlyList<PdfFreeTextRichTextRun>? inheritedRichAppearanceRuns,
         string? inheritedName,
         PdfArray? inheritedChoiceOptions,
         PdfFormFillerOptions? options,
@@ -38,12 +40,19 @@ public static partial class PdfFormFiller {
         int fieldFlags = ReadFieldFlags(objects, field, inheritedFlags);
         int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
+        string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
         PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         IReadOnlyList<string>? values = TryReadSimpleValues(objects, field, "V");
-        string? value = values is { Count: > 0 } ? values[0] : inheritedDisplayValue;
+        string? richValue = TryReadText(objects, field, "RV");
+        string? richPlainText = PdfFreeTextStyleParser.ExtractPlainText(richValue);
+        IReadOnlyList<PdfFreeTextRichTextRun>? richAppearanceRuns = PdfFreeTextStyleParser.ExtractRichTextRuns(richValue) ?? inheritedRichAppearanceRuns;
+        string? value = values is { Count: > 0 } ? values[0] : richPlainText ?? inheritedDisplayValue;
         bool isButtonField = string.Equals(fieldType, "Btn", StringComparison.Ordinal);
+        bool isRadioButtonGroup = isButtonField && (fieldFlags & RadioButtonFlag) != 0;
+        bool isMultiSelectChoice = string.Equals(fieldType, "Ch", StringComparison.Ordinal) && (fieldFlags & MultiSelectChoiceFlag) != 0;
+        string choiceDisplaySeparator = isMultiSelectChoice ? "\n" : ", ";
         string? appearanceValue = string.Equals(fieldType, "Ch", StringComparison.Ordinal)
-            ? TryResolveChoiceDisplayValue(objects, choiceOptions, values) ?? JoinSimpleValues(values) ?? inheritedDisplayValue
+            ? TryResolveChoiceDisplayValue(objects, choiceOptions, values, choiceDisplaySeparator) ?? JoinSimpleValues(values, choiceDisplaySeparator) ?? inheritedDisplayValue
             : value;
 
         if (IsWidget(field)) {
@@ -56,7 +65,7 @@ public static partial class PdfFormFiller {
             if (isButtonField) {
                 string appearanceState = GetButtonWidgetFlattenAppearanceState(objects, field, value);
                 if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out PdfReference? appearanceReference)) {
-                    EnsureButtonWidgetAppearances(objects, field, appearanceState, ref nextObjectNumber);
+                    EnsureButtonWidgetAppearances(objects, field, appearanceState, isRadioButtonGroup, ref nextObjectNumber);
                     if (!TryGetButtonAppearanceReference(objects, field, appearanceState, out appearanceReference)) {
                         throw new NotSupportedException(UnsupportedFlattenWidgetMessage);
                     }
@@ -68,8 +77,13 @@ public static partial class PdfFormFiller {
             } else {
                 PdfDictionary? widgetAppearanceResources = TryReadNormalAppearanceResources(objects, field);
                 PdfDictionary? widgetPageResources = TryReadWidgetPageResources(objects, field);
+                PdfFormFieldStyle widgetStyle = ReadWidgetAppearanceStyle(objects, field, fieldFlags, inheritedMaxLength: fieldMaxLength, inheritedDefaultAppearance: defaultAppearance);
+                if (isMultiSelectChoice) {
+                    widgetStyle.IsMultiline = true;
+                }
+
                 appearanceObjectNumber = nextObjectNumber++;
-                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, width, height, ReadWidgetAppearanceStyle(objects, field, fieldFlags, inheritedMaxLength: fieldMaxLength), options, fullName, ref nextObjectNumber));
+                objects[appearanceObjectNumber] = new PdfIndirectObject(appearanceObjectNumber, 0, CreateTextAppearanceStream(objects, defaultResources, widgetAppearanceResources, widgetPageResources, appearanceValue ?? string.Empty, width, height, widgetStyle, defaultAppearance, ReadWidgetAppearanceFontSize(defaultAppearance, height), options, fullName, ref nextObjectNumber, richAppearanceRuns));
             }
 
             widgets[fieldObjectNumber.Value] = new FlattenWidgetState(fieldObjectNumber.Value, x, y, width, height, appearanceObjectNumber);
@@ -82,7 +96,7 @@ public static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldMaxLength, defaultResources, appearanceValue, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber);
+            CollectFlattenWidgets(objects, kids.Items[i], fieldType, fieldFlags, fieldMaxLength, defaultResources, defaultAppearance, appearanceValue, richAppearanceRuns, fullName, choiceOptions, options, widgets, removableObjects, visited, ref nextObjectNumber);
         }
     }
 

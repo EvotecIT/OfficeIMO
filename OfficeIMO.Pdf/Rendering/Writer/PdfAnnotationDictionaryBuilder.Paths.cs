@@ -12,7 +12,7 @@ internal readonly struct PdfAnnotationPathPoint {
 }
 
 internal static partial class PdfAnnotationDictionaryBuilder {
-    internal static string BuildInkAppearanceContent(double width, double height, IReadOnlyList<IReadOnlyList<PdfAnnotationPathPoint>> paths, PdfColor? strokeColor = null, double borderWidth = 1D) {
+    internal static string BuildInkAppearanceContent(double width, double height, IReadOnlyList<IReadOnlyList<PdfAnnotationPathPoint>> paths, PdfColor? strokeColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(paths, nameof(paths));
@@ -24,8 +24,8 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
         var builder = new StringBuilder();
         builder.Append("q\n")
-            .Append(FormatColor(resolvedStrokeColor)).Append(" RG ")
-            .Append(FormatCoordinate(borderWidth)).Append(" w 1 J 1 j\n");
+            .Append(BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern))
+            .Append("1 J 1 j\n");
 
         for (int i = 0; i < paths.Count; i++) {
             AppendOpenPath(builder, paths[i]);
@@ -35,7 +35,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildPathAnnotationAppearanceContent(double width, double height, string subtype, IReadOnlyList<PdfAnnotationPathPoint> vertices, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, string? startEnding = null, string? endEnding = null) {
+    internal static string BuildPathAnnotationAppearanceContent(double width, double height, string subtype, IReadOnlyList<PdfAnnotationPathPoint> vertices, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? startEnding = null, string? endEnding = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(vertices, nameof(vertices));
@@ -57,8 +57,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         if (hasStroke) {
-            builder.Append(FormatColor(resolvedStrokeColor)).Append(" RG ")
-                .Append(FormatCoordinate(borderWidth)).Append(" w ");
+            builder.Append(BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern));
         }
 
         AppendVerticesPath(builder, vertices, isPolygon);

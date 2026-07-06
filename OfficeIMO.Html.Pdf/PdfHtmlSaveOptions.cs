@@ -33,6 +33,11 @@ public sealed class PdfHtmlSaveOptions {
     public bool IncludeMetadata { get; set; } = true;
 
     /// <summary>
+    /// Emit PDF outlines/bookmarks as inert HTML navigation metadata when available.
+    /// </summary>
+    public bool IncludeOutlines { get; set; } = true;
+
+    /// <summary>
     /// Emit page containers and page number metadata.
     /// </summary>
     public bool IncludePageContainers { get; set; } = true;

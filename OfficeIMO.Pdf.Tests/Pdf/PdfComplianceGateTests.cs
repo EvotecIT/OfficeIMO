@@ -189,17 +189,23 @@ public class PdfComplianceGateTests {
 
             using JsonDocument document = JsonDocument.Parse(File.ReadAllText(path, Encoding.UTF8));
             JsonElement root = document.RootElement;
-            Assert.Equal(2, root.GetProperty("schemaVersion").GetInt32());
+            Assert.Equal(3, root.GetProperty("schemaVersion").GetInt32());
             Assert.Equal("NoExternalValidationInjected", root.GetProperty("externalEvidenceMode").GetString());
             JsonElement profiles = root.GetProperty("profiles");
             Assert.Equal(4, profiles.GetArrayLength());
             Assert.Contains(profiles.EnumerateArray(), profile =>
                 string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.PdfA3B), StringComparison.Ordinal) &&
                 profile.GetProperty("requiredExternalValidators").EnumerateArray().Any(validator => string.Equals(validator.GetString(), nameof(PdfExternalValidatorKind.VeraPdf), StringComparison.Ordinal)) &&
+                profile.GetProperty("externalValidatorProofs").EnumerateArray().Any(validator => string.Equals(validator.GetProperty("validatorKind").GetString(), nameof(PdfExternalValidatorKind.VeraPdf), StringComparison.Ordinal) &&
+                    string.Equals(validator.GetProperty("status").GetString(), nameof(PdfExternalValidatorProofStatus.Missing), StringComparison.Ordinal) &&
+                    validator.GetProperty("blocksConformanceClaim").GetBoolean()) &&
                 profile.GetProperty("canClaimConformance").GetBoolean() == false);
             Assert.Contains(profiles.EnumerateArray(), profile =>
                 string.Equals(profile.GetProperty("profile").GetString(), nameof(PdfComplianceProfile.Zugferd), StringComparison.Ordinal) &&
                 profile.GetProperty("requiredExternalValidators").EnumerateArray().Any(validator => string.Equals(validator.GetString(), nameof(PdfExternalValidatorKind.Mustang), StringComparison.Ordinal)) &&
+                profile.GetProperty("externalValidatorProofs").EnumerateArray().Any(validator => string.Equals(validator.GetProperty("validatorKind").GetString(), nameof(PdfExternalValidatorKind.Mustang), StringComparison.Ordinal) &&
+                    string.Equals(validator.GetProperty("status").GetString(), nameof(PdfExternalValidatorProofStatus.Missing), StringComparison.Ordinal) &&
+                    validator.GetProperty("blocksConformanceClaim").GetBoolean()) &&
                 profile.GetProperty("canClaimConformance").GetBoolean() == false);
         } finally {
             Environment.SetEnvironmentVariable(ProofOutputEnv, string.IsNullOrEmpty(previousOutput) ? null : previousOutput);
@@ -340,7 +346,7 @@ public class PdfComplianceGateTests {
 
         Directory.CreateDirectory(outputDirectory);
         var contract = new ProfileProofContract {
-            SchemaVersion = 2,
+            SchemaVersion = 3,
             GeneratedBy = nameof(PdfComplianceAnalyzer) + "." + nameof(PdfComplianceAnalyzer.AssessProof),
             ExternalEvidenceMode = "NoExternalValidationInjected",
             Profiles = new[] {
@@ -373,6 +379,16 @@ public class PdfComplianceGateTests {
             RequiredExternalValidators = proof.RequiredExternalValidators.Select(validator => validator.ToString()).ToArray(),
             MissingExternalValidators = proof.MissingExternalValidators.Select(validator => validator.ToString()).ToArray(),
             FailedExternalValidationCount = proof.FailedExternalValidations.Count,
+            ExternalValidatorProofs = proof.ExternalValidatorProofs.Select(row => new ExternalValidatorProofContractRow {
+                ValidatorKind = row.ValidatorKind.ToString(),
+                Status = row.Status.ToString(),
+                IsSatisfied = row.IsSatisfied,
+                BlocksConformanceClaim = row.BlocksConformanceClaim,
+                ValidatorName = row.ValidatorName,
+                Diagnostic = row.Diagnostic,
+                Profile = row.Profile,
+                ExitCode = row.ExitCode
+            }).ToArray(),
             MissingRequirementIds = proof.Readiness.MissingRequirements.Select(requirement => requirement.Id).ToArray(),
             UnsupportedRequirementIds = proof.Readiness.UnsupportedRequirements.Select(requirement => requirement.Id).ToArray()
         };
@@ -468,8 +484,28 @@ public class PdfComplianceGateTests {
 
         public int FailedExternalValidationCount { get; set; }
 
+        public ExternalValidatorProofContractRow[] ExternalValidatorProofs { get; set; } = Array.Empty<ExternalValidatorProofContractRow>();
+
         public string[] MissingRequirementIds { get; set; } = Array.Empty<string>();
 
         public string[] UnsupportedRequirementIds { get; set; } = Array.Empty<string>();
+    }
+
+    private sealed class ExternalValidatorProofContractRow {
+        public string ValidatorKind { get; set; } = string.Empty;
+
+        public string Status { get; set; } = string.Empty;
+
+        public bool IsSatisfied { get; set; }
+
+        public bool BlocksConformanceClaim { get; set; }
+
+        public string ValidatorName { get; set; } = string.Empty;
+
+        public string Diagnostic { get; set; } = string.Empty;
+
+        public string? Profile { get; set; }
+
+        public int? ExitCode { get; set; }
     }
 }

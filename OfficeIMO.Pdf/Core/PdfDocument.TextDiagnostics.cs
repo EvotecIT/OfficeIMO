@@ -266,7 +266,10 @@ public sealed partial class PdfDocument {
         }
 
         if (options.HasDiagnosticsReport) {
-            options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text!, source));
+            options.AddTextShapingDiagnostics(
+                PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text!, source),
+                text!,
+                ShouldDeferProviderCoveredTextShapingDiagnostics(options, font, text!));
         }
 
         IReadOnlyList<PdfTextEncodingDiagnostic> textDiagnostics = PdfTextDiagnostics.AnalyzeGeneratedText(text!, options, font, source, location);
@@ -329,13 +332,78 @@ public sealed partial class PdfDocument {
 
     private static void AddRuns(List<PdfTextEncodingDiagnostic> diagnostics, IEnumerable<TextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source, string location, int? tableRowIndex = null, int? tableColumnIndex = null) {
         if (options.HasDiagnosticsReport) {
-            options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayoutRuns(runs, source));
+            AddRunTextShapingDiagnostics(runs, options, defaultFont, source);
         }
 
         IReadOnlyList<PdfTextEncodingDiagnostic> runDiagnostics = PdfTextDiagnostics.AnalyzeGeneratedTextRuns(runs, options, defaultFont, source, location);
         foreach (PdfTextEncodingDiagnostic diagnostic in runDiagnostics) {
             diagnostics.Add(AnnotateDiagnostic(diagnostic, pageNumber: null, tableRowIndex: tableRowIndex, tableColumnIndex: tableColumnIndex));
         }
+    }
+
+    private static void AddRunTextShapingDiagnostics(IEnumerable<TextRun> runs, PdfOptions options, PdfStandardFont defaultFont, string source) {
+        foreach (TextRun run in runs) {
+            if (run == null || string.Equals(run.Text, "\n", StringComparison.Ordinal) || string.Equals(run.Text, "\t", StringComparison.Ordinal)) {
+                continue;
+            }
+
+            PdfStandardFont runFont = ResolveDiagnosticRunFont(defaultFont, run);
+            options.AddTextShapingDiagnostics(
+                PdfTextDiagnostics.AnalyzeAdvancedTextLayout(run.Text, source),
+                run.Text,
+                ShouldDeferProviderCoveredTextShapingDiagnostics(options, runFont, run.Text));
+        }
+    }
+
+    private static bool ShouldDeferProviderCoveredTextShapingDiagnostics(PdfOptions options, PdfStandardFont font, string text) {
+        if (options.TextShapingProviderSnapshot == null) {
+            return false;
+        }
+
+        if (HasEmbeddedFontProgram(options, font)) {
+            return true;
+        }
+
+        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacksSnapshot;
+        if (fallbackSet == null || string.IsNullOrEmpty(text)) {
+            return false;
+        }
+
+        PdfTextFallbackPlan plan = fallbackSet.PlanText(text, shapingMode: options.TextShapingModeSnapshot);
+        if (!plan.IsFullyCovered) {
+            return false;
+        }
+
+        foreach (PdfTextFallbackSegment segment in plan.Segments) {
+            if (segment.FontIndex >= 0 &&
+                segment.FontIndex < fallbackSet.FontSlots.Count &&
+                HasEmbeddedFontProgram(options, fallbackSet.FontSlots[segment.FontIndex])) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool HasEmbeddedFontProgram(PdfOptions options, PdfStandardFont font) =>
+        (options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) && fontProgram != null) ||
+        (options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) && cffFontProgram != null);
+
+    private static PdfStandardFont ResolveDiagnosticRunFont(PdfStandardFont defaultFont, TextRun run) {
+        PdfStandardFont font = run.Font ?? defaultFont;
+        if (run.Bold && run.Italic) {
+            return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: true);
+        }
+
+        if (run.Bold) {
+            return PdfStandardFontMapper.GetStyledFont(font, bold: true, italic: false);
+        }
+
+        if (run.Italic) {
+            return PdfStandardFontMapper.GetStyledFont(font, bold: false, italic: true);
+        }
+
+        return font;
     }
 
     private static PdfTextEncodingDiagnostic AnnotateDiagnostic(PdfTextEncodingDiagnostic diagnostic, int? pageNumber, int? tableRowIndex, int? tableColumnIndex, string? fieldName = null) {

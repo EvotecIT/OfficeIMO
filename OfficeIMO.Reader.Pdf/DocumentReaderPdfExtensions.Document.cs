@@ -20,6 +20,14 @@ public static partial class DocumentReaderPdfExtensions {
     }
 
     /// <summary>
+    /// Reads PDF bytes and returns the shared OfficeIMO read result JSON envelope.
+    /// </summary>
+    public static string ReadPdfDocumentJson(byte[] pdfBytes, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
+        OfficeDocumentReadResult result = ReadPdfDocument(pdfBytes, sourceName, readerOptions, pdfOptions, cancellationToken);
+        return OfficeDocumentReadResultJson.Serialize(result, indented);
+    }
+
+    /// <summary>
     /// Converts an already loaded logical PDF model into the shared OfficeIMO read result JSON envelope.
     /// </summary>
     public static string ReadPdfDocumentJson(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indented = false, CancellationToken cancellationToken = default) {
@@ -42,6 +50,13 @@ public static partial class DocumentReaderPdfExtensions {
     }
 
     /// <summary>
+    /// Reads PDF bytes and returns logical tables in source order.
+    /// </summary>
+    public static IReadOnlyList<ReaderTable> ReadPdfTables(byte[] pdfBytes, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+        return DocumentReader.ExtractTables(ReadPdf(pdfBytes, sourceName, readerOptions, pdfOptions, cancellationToken), cancellationToken);
+    }
+
+    /// <summary>
     /// Converts an already loaded logical PDF model into logical tables in source order.
     /// </summary>
     public static IReadOnlyList<ReaderTable> ReadPdfTables(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
@@ -60,6 +75,13 @@ public static partial class DocumentReaderPdfExtensions {
     /// </summary>
     public static IReadOnlyList<ReaderTableExportBundle> ReadPdfTableExports(Stream pdfStream, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indentedJson = false, CancellationToken cancellationToken = default) {
         return DocumentReader.ExportTables(ReadPdfTables(pdfStream, sourceName, readerOptions, pdfOptions, cancellationToken), indentedJson, cancellationToken);
+    }
+
+    /// <summary>
+    /// Reads PDF bytes and returns logical table export payloads in source order.
+    /// </summary>
+    public static IReadOnlyList<ReaderTableExportBundle> ReadPdfTableExports(byte[] pdfBytes, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, bool indentedJson = false, CancellationToken cancellationToken = default) {
+        return DocumentReader.ExportTables(ReadPdfTables(pdfBytes, sourceName, readerOptions, pdfOptions, cancellationToken), indentedJson, cancellationToken);
     }
 
     /// <summary>
@@ -132,6 +154,16 @@ public static partial class DocumentReaderPdfExtensions {
     }
 
     /// <summary>
+    /// Reads PDF bytes and returns the shared OfficeIMO read result envelope.
+    /// </summary>
+    public static OfficeDocumentReadResult ReadPdfDocument(byte[] pdfBytes, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+        if (pdfBytes == null) throw new ArgumentNullException(nameof(pdfBytes));
+
+        using var stream = new MemoryStream(pdfBytes, writable: false);
+        return ReadPdfDocument(stream, sourceName, readerOptions, pdfOptions, cancellationToken);
+    }
+
+    /// <summary>
     /// Converts an already loaded logical PDF model into the shared OfficeIMO read result envelope.
     /// </summary>
     public static OfficeDocumentReadResult ReadPdfDocument(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
@@ -182,7 +214,7 @@ public static partial class DocumentReaderPdfExtensions {
             },
             Markdown = markdown,
             Chunks = chunks,
-            Metadata = BuildDocumentMetadata(document, source, preflight, applyPageRanges ? pages : null),
+            Metadata = BuildDocumentMetadata(document, source, preflight, applyPageRanges ? pages : null, tables, ocrCandidates),
             Pages = BuildDocumentPages(pages, source, blocks, tables, assets, links, forms, ocrCandidates),
             Blocks = blocks,
             Tables = tables,
@@ -308,10 +340,25 @@ public static partial class DocumentReaderPdfExtensions {
                     PayloadHash = ComputeSha256Hex(image.SourceImage.Bytes),
                     PayloadBytes = image.SourceImage.Bytes,
                     SourceObjectId = imageObjectId,
+                    Region = BuildImageAssetRegion(image),
                     Location = BuildLocation(source, page.PageNumber, pageIndex, "image", "page-" + page.PageNumber.ToString(CultureInfo.InvariantCulture) + "-selection-" + pageIndex.ToString("D4", CultureInfo.InvariantCulture) + "-image-" + imageIndex.ToString(CultureInfo.InvariantCulture))
                 };
             }
         }
+    }
+
+    private static OfficeDocumentRegion? BuildImageAssetRegion(PdfLogicalImage image) {
+        PdfImagePlacement? placement = image.PrimaryPlacement;
+        if (placement == null) {
+            return null;
+        }
+
+        return new OfficeDocumentRegion {
+            X = placement.X,
+            Y = placement.Y,
+            Width = placement.Width,
+            Height = placement.Height
+        };
     }
 
     private static IEnumerable<OfficeDocumentOcrCandidate> BuildDocumentOcrCandidates(IReadOnlyList<PdfLogicalPage> pages, SourceMetadata source, IReadOnlyList<OfficeDocumentAsset> assets) {
@@ -431,7 +478,7 @@ public static partial class DocumentReaderPdfExtensions {
         }
     }
 
-    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfLogicalDocument document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages) {
+    private static IReadOnlyList<OfficeDocumentMetadataEntry> BuildDocumentMetadata(PdfLogicalDocument document, SourceMetadata source, PdfDocumentPreflight? preflight, IReadOnlyList<PdfLogicalPage>? selectedPages, IReadOnlyList<ReaderTable> tables, IReadOnlyList<OfficeDocumentOcrCandidate> ocrCandidates) {
         var entries = new List<OfficeDocumentMetadataEntry>();
         HashSet<int>? selectedPageNumbers = BuildSelectedPageNumberSet(selectedPages);
         AddMetadata(entries, "pdf-catalog-page-mode", "pdf.catalog", "PageMode", document.CatalogPageMode);
@@ -440,10 +487,24 @@ public static partial class DocumentReaderPdfExtensions {
         AddMetadata(entries, "pdf-catalog-language", "pdf.catalog", "Language", document.CatalogLanguage);
         AddCountMetadata(entries, "pdf-outline-count", "pdf.outline", "Count", CountOutlines(document.Outlines, selectedPageNumbers));
         AddCountMetadata(entries, "pdf-named-destination-count", "pdf.destination", "Count", CountNamedDestinations(document.NamedDestinations, selectedPageNumbers));
+        AddAttachmentMetadata(entries, document.Attachments);
+        AddOutputIntentMetadata(entries, document.OutputIntents);
+        AddOptionalContentMetadata(entries, document.OptionalContent);
+        AddTaggedContentMetadata(entries, document.TaggedContent);
+        AddXmpMetadata(entries, document.XmpMetadata);
+        AddSecurityMetadata(entries, document.Security);
         AddCountMetadata(entries, "pdf-catalog-action-count", "pdf.catalog.action", "Count", document.CatalogActions.Count);
         AddCountMetadata(entries, "pdf-form-field-count", "pdf.form", "Count", CountFormFields(document.FormFields, selectedPageNumbers));
+        AddImageGeometryMetadata(entries, selectedPages ?? document.Pages);
+        AddTableQualityMetadata(entries, tables);
+        AddOcrCandidateMetadata(entries, ocrCandidates);
+        AddLinkMetadata(entries, selectedPages ?? document.Pages);
+        AddAnnotationMetadata(entries, source, selectedPages ?? document.Pages);
+        AddFormWidgetMetadata(entries, selectedPages ?? document.Pages);
+        AddActionMetadata(entries, document, selectedPages ?? document.Pages);
         AddMetadata(entries, "pdf-acroform-need-appearances", "pdf.form", "NeedAppearances", ToMetadataText(document.AcroFormNeedAppearances), "boolean");
         AddMetadata(entries, "pdf-acroform-signature-flags", "pdf.form", "SignatureFlags", ToMetadataText(document.AcroFormSignatureFlags), "number");
+        AddAcroFormXfaMetadata(entries, document.AcroFormXfa);
         entries.AddRange(BuildPdfPreflightMetadata(preflight));
 
         if (document.OpenAction != null && IsSelectedPage(document.OpenAction.PageNumber, selectedPageNumbers)) {
@@ -553,34 +614,6 @@ public static partial class DocumentReaderPdfExtensions {
 
             AddOutlineMetadata(entries, source, outline.Children, selectedPageNumbers);
         }
-    }
-
-    private static void AddMetadata(List<OfficeDocumentMetadataEntry> entries, string id, string category, string name, string? value, string valueType = "string") {
-        if (string.IsNullOrWhiteSpace(value)) {
-            return;
-        }
-
-        entries.Add(new OfficeDocumentMetadataEntry {
-            Id = id,
-            Category = category,
-            Name = name,
-            Value = value,
-            ValueType = valueType
-        });
-    }
-
-    private static void AddCountMetadata(List<OfficeDocumentMetadataEntry> entries, string id, string category, string name, int count) {
-        if (count == 0) {
-            return;
-        }
-
-        entries.Add(new OfficeDocumentMetadataEntry {
-            Id = id,
-            Category = category,
-            Name = name,
-            Value = count.ToString(CultureInfo.InvariantCulture),
-            ValueType = "count"
-        });
     }
 
     private static Dictionary<string, string> BuildDestinationAttributes(

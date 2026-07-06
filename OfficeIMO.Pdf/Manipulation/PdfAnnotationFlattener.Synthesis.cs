@@ -1,8 +1,6 @@
 namespace OfficeIMO.Pdf;
 
 public static partial class PdfAnnotationFlattener {
-    private static readonly char[] AppearanceTokenSeparators = { ' ', '\t', '\r', '\n' };
-
     private static PdfReference CreateSyntheticAppearanceReference(
         Dictionary<int, PdfIndirectObject> objects,
         PdfDictionary annotation,
@@ -13,56 +11,90 @@ public static partial class PdfAnnotationFlattener {
         double height,
         ref int nextObjectNumber) {
         string content;
-        bool needsHelvetica;
+        IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources;
+        double? opacity = TryReadAnnotationOpacity(objects, annotation);
 
         if (string.Equals(subtype, "FreeText", StringComparison.Ordinal)) {
-            content = BuildSyntheticFreeTextAppearance(objects, annotation, width, height);
-            needsHelvetica = true;
+            content = BuildSyntheticFreeTextAppearance(objects, annotation, x, y, width, height, out fontResources);
         } else if (string.Equals(subtype, "Highlight", StringComparison.Ordinal)) {
             content = BuildSyntheticHighlightAppearance(objects, annotation, x, y, width, height);
-            needsHelvetica = false;
+            fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else if (IsTextMarkupSubtype(subtype)) {
             content = BuildSyntheticTextMarkupAppearance(objects, annotation, subtype, x, y, width, height);
-            needsHelvetica = false;
+            fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else if (IsShapeSubtype(subtype)) {
             content = BuildSyntheticShapeAppearance(objects, annotation, subtype, width, height);
-            needsHelvetica = false;
+            fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else if (string.Equals(subtype, "Line", StringComparison.Ordinal)) {
             content = BuildSyntheticLineAppearance(objects, annotation, x, y, width, height);
-            needsHelvetica = false;
+            fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else if (string.Equals(subtype, "Ink", StringComparison.Ordinal)) {
             content = BuildSyntheticInkAppearance(objects, annotation, x, y, width, height);
-            needsHelvetica = false;
+            fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else if (IsPathAnnotationSubtype(subtype)) {
             content = BuildSyntheticPathAnnotationAppearance(objects, annotation, subtype, x, y, width, height);
-            needsHelvetica = false;
+            fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else if (string.Equals(subtype, "Stamp", StringComparison.Ordinal)) {
             content = BuildSyntheticStampAppearance(objects, annotation, width, height);
-            needsHelvetica = true;
+            fontResources = new[] { ("Helv", PdfStandardFont.Helvetica) };
         } else if (string.Equals(subtype, "Caret", StringComparison.Ordinal)) {
             content = BuildSyntheticCaretAppearance(objects, annotation, width, height);
-            needsHelvetica = false;
+            fontResources = Array.Empty<(string Name, PdfStandardFont Font)>();
         } else {
             throw new NotSupportedException(UnsupportedVisualAnnotationMessage);
+        }
+
+        bool usesHighlightBlendMode = string.Equals(subtype, "Highlight", StringComparison.Ordinal);
+        if (opacity.HasValue && !usesHighlightBlendMode) {
+            content = ApplyAnnotationOpacity(content);
         }
 
         int appearanceObjectNumber = nextObjectNumber++;
         objects[appearanceObjectNumber] = new PdfIndirectObject(
             appearanceObjectNumber,
             0,
-            CreateSyntheticAppearanceStream(width, height, content, needsHelvetica, string.Equals(subtype, "Highlight", StringComparison.Ordinal)));
+            CreateSyntheticAppearanceStream(width, height, content, fontResources, usesHighlightBlendMode, opacity));
         return new PdfReference(appearanceObjectNumber, 0);
     }
 
-    private static string BuildSyntheticFreeTextAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double width, double height) {
-        string contents = TryReadString(objects, annotation, "Contents") ?? string.Empty;
-        double fontSize = TryReadFreeTextFontSize(objects, annotation) ?? 10D;
-        PdfColor? textColor = TryReadFreeTextTextColor(objects, annotation);
+    private static string BuildSyntheticFreeTextAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double x, double y, double width, double height, out IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources) {
+        string contents = TryReadFreeTextContents(objects, annotation);
+        PdfFreeTextDefaultStyle defaultStyle = PdfFreeTextStyleParser.ParseDefaultStyle(TryReadString(objects, annotation, "DS"));
+        double fontSize = TryReadFreeTextFontSize(objects, annotation) ?? defaultStyle.FontSize ?? 10D;
+        PdfColor? textColor = TryReadFreeTextTextColor(objects, annotation) ?? defaultStyle.TextColor;
         PdfColor? borderColor = TryReadColor(objects, annotation, "C");
         double borderWidth = TryReadBorderWidth(objects, annotation);
+        IReadOnlyList<double>? borderDashPattern = TryReadBorderDashPattern(objects, annotation);
+        PdfFormFieldBorderStyle borderStyle = TryReadBorderStyle(objects, annotation);
         PdfColor? fillColor = TryReadColor(objects, annotation, "IC");
-        PdfAlign textAlign = TryReadFreeTextAlignment(objects, annotation);
+        PdfAlign textAlign = TryReadFreeTextAlignment(objects, annotation, defaultStyle.TextAlign);
+        IReadOnlyList<PdfAnnotationPathPoint> calloutLine = TryReadFreeTextCalloutLine(objects, annotation, x, y, width, height);
+        string? calloutLineEnding = TryReadFreeTextCalloutLineEnding(objects, annotation);
+        double[]? rectangleDifferences = TryReadFreeTextRectangleDifferences(objects, annotation, width, height);
+        TryReadBorderEffect(objects, annotation, out string? borderEffectStyle, out double borderEffectIntensity);
+        IReadOnlyList<PdfFreeTextRichTextRun>? richRuns = PdfFreeTextStyleParser.ExtractRichTextRuns(TryReadString(objects, annotation, "RC"));
+        if (richRuns != null) {
+            return PdfAnnotationDictionaryBuilder.BuildFreeTextRichAppearanceContent(
+                width,
+                height,
+                richRuns,
+                out fontResources,
+                fontSize,
+                textColor,
+                borderColor,
+                borderWidth,
+                fillColor,
+                textAlign,
+                borderDashPattern: borderDashPattern,
+                borderStyle: borderStyle,
+                calloutLine: calloutLine,
+                calloutLineEnding: calloutLineEnding,
+                rectangleDifferences: rectangleDifferences,
+                borderEffectStyle: borderEffectStyle,
+                borderEffectIntensity: borderEffectIntensity);
+        }
 
+        fontResources = new[] { ("Helv", PdfStandardFont.Helvetica) };
         return PdfAnnotationDictionaryBuilder.BuildFreeTextAppearanceContent(
             width,
             height,
@@ -72,7 +104,14 @@ public static partial class PdfAnnotationFlattener {
             borderColor,
             borderWidth,
             fillColor,
-            textAlign);
+            textAlign,
+            borderDashPattern: borderDashPattern,
+            borderStyle: borderStyle,
+            calloutLine: calloutLine,
+            calloutLineEnding: calloutLineEnding,
+            rectangleDifferences: rectangleDifferences,
+            borderEffectStyle: borderEffectStyle,
+            borderEffectIntensity: borderEffectIntensity);
     }
 
     private static string BuildSyntheticHighlightAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double x, double y, double width, double height) {
@@ -96,13 +135,17 @@ public static partial class PdfAnnotationFlattener {
     }
 
     private static string BuildSyntheticShapeAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, string subtype, double width, double height) {
+        TryReadBorderEffect(objects, annotation, out string? borderEffectStyle, out double borderEffectIntensity);
         return PdfAnnotationDictionaryBuilder.BuildShapeAppearanceContent(
             width,
             height,
             subtype,
             TryReadColor(objects, annotation, "C"),
             TryReadColor(objects, annotation, "IC"),
-            TryReadBorderWidth(objects, annotation));
+            TryReadBorderWidth(objects, annotation),
+            TryReadBorderDashPattern(objects, annotation),
+            borderEffectStyle,
+            borderEffectIntensity);
     }
 
     private static bool IsShapeSubtype(string subtype) {
@@ -121,7 +164,8 @@ public static partial class PdfAnnotationFlattener {
             height,
             paths,
             TryReadColor(objects, annotation, "C"),
-            TryReadBorderWidth(objects, annotation));
+            TryReadBorderWidth(objects, annotation),
+            TryReadBorderDashPattern(objects, annotation));
     }
 
     private static string BuildSyntheticPathAnnotationAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, string subtype, double x, double y, double width, double height) {
@@ -139,6 +183,7 @@ public static partial class PdfAnnotationFlattener {
             TryReadColor(objects, annotation, "C"),
             TryReadColor(objects, annotation, "IC"),
             TryReadBorderWidth(objects, annotation),
+            TryReadBorderDashPattern(objects, annotation),
             startEnding,
             endEnding);
     }
@@ -156,7 +201,8 @@ public static partial class PdfAnnotationFlattener {
             stampName,
             TryReadColor(objects, annotation, "C"),
             TryReadColor(objects, annotation, "IC"),
-            TryReadBorderWidth(objects, annotation));
+            TryReadBorderWidth(objects, annotation),
+            TryReadBorderDashPattern(objects, annotation));
     }
 
     private static string BuildSyntheticCaretAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double width, double height) {
@@ -164,7 +210,8 @@ public static partial class PdfAnnotationFlattener {
             width,
             height,
             TryReadColor(objects, annotation, "C"),
-            TryReadBorderWidth(objects, annotation));
+            TryReadBorderWidth(objects, annotation),
+            TryReadBorderDashPattern(objects, annotation));
     }
 
     private static string BuildSyntheticLineAppearance(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double x, double y, double width, double height) {
@@ -183,6 +230,7 @@ public static partial class PdfAnnotationFlattener {
             TryReadColor(objects, annotation, "C"),
             TryReadColor(objects, annotation, "IC"),
             TryReadBorderWidth(objects, annotation),
+            TryReadBorderDashPattern(objects, annotation),
             startEnding,
             endEnding);
     }
@@ -225,6 +273,51 @@ public static partial class PdfAnnotationFlattener {
         if (ResolveObject(objects, lineEndings.Items[1]) is PdfName endName) {
             endEnding = endName.Name;
         }
+    }
+
+    private static IReadOnlyList<PdfAnnotationPathPoint> TryReadFreeTextCalloutLine(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double x, double y, double width, double height) {
+        if (!annotation.Items.TryGetValue("CL", out var calloutObject) ||
+            ResolveObject(objects, calloutObject) is not PdfArray calloutLine ||
+            (calloutLine.Items.Count != 4 && calloutLine.Items.Count != 6)) {
+            return Array.Empty<PdfAnnotationPathPoint>();
+        }
+
+        return ReadPathPoints(objects, calloutLine, x, y, width, height);
+    }
+
+    private static string? TryReadFreeTextCalloutLineEnding(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        if (!annotation.Items.TryGetValue("LE", out var lineEndingObject)) {
+            return null;
+        }
+
+        PdfObject? resolved = ResolveObject(objects, lineEndingObject);
+        if (resolved is PdfName lineEndingName) {
+            return lineEndingName.Name;
+        }
+
+        if (resolved is PdfArray lineEndings &&
+            lineEndings.Items.Count > 0 &&
+            ResolveObject(objects, lineEndings.Items[0]) is PdfName firstEndingName) {
+            return firstEndingName.Name;
+        }
+
+        return null;
+    }
+
+    private static double[]? TryReadFreeTextRectangleDifferences(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double width, double height) {
+        if (!annotation.Items.TryGetValue("RD", out var rectangleDifferencesObject) ||
+            ResolveObject(objects, rectangleDifferencesObject) is not PdfArray rectangleDifferences ||
+            rectangleDifferences.Items.Count < 4 ||
+            !TryReadNonNegativeFiniteNumber(objects, rectangleDifferences.Items[0], out double left) ||
+            !TryReadNonNegativeFiniteNumber(objects, rectangleDifferences.Items[1], out double top) ||
+            !TryReadNonNegativeFiniteNumber(objects, rectangleDifferences.Items[2], out double right) ||
+            !TryReadNonNegativeFiniteNumber(objects, rectangleDifferences.Items[3], out double bottom) ||
+            left + right >= width ||
+            top + bottom >= height) {
+            return null;
+        }
+
+        return new[] { left, top, right, bottom };
     }
 
     private static IReadOnlyList<IReadOnlyList<PdfAnnotationPathPoint>> TryReadInkList(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, double x, double y, double width, double height) {
@@ -331,7 +424,11 @@ public static partial class PdfAnnotationFlattener {
         return value > max ? max : value;
     }
 
-    private static PdfStream CreateSyntheticAppearanceStream(double width, double height, string content, bool needsHelvetica, bool usesHighlightBlendMode) {
+    private static string ApplyAnnotationOpacity(string content) {
+        return "q\n/OfficeIMOAnnotationOpacityGs gs\n" + content + "Q\n";
+    }
+
+    private static PdfStream CreateSyntheticAppearanceStream(double width, double height, string content, IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, bool usesHighlightBlendMode, double? opacity) {
         var dictionary = new PdfDictionary();
         dictionary.Items["Type"] = new PdfName("XObject");
         dictionary.Items["Subtype"] = new PdfName("Form");
@@ -342,56 +439,180 @@ public static partial class PdfAnnotationFlattener {
         bbox.Items.Add(new PdfNumber(height));
         dictionary.Items["BBox"] = bbox;
 
-        if (needsHelvetica || usesHighlightBlendMode) {
-            dictionary.Items["Resources"] = CreateSyntheticAppearanceResources(needsHelvetica, usesHighlightBlendMode);
+        if (fontResources.Count > 0 || usesHighlightBlendMode || opacity.HasValue) {
+            dictionary.Items["Resources"] = CreateSyntheticAppearanceResources(fontResources, usesHighlightBlendMode, opacity);
         }
 
         return new PdfStream(dictionary, PdfEncoding.Latin1GetBytes(content));
     }
 
-    private static PdfDictionary CreateSyntheticAppearanceResources(bool needsHelvetica, bool usesHighlightBlendMode) {
+    private static PdfDictionary CreateSyntheticAppearanceResources(IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, bool usesHighlightBlendMode, double? opacity) {
         var resources = new PdfDictionary();
-        if (needsHelvetica) {
+        if (fontResources.Count > 0) {
             var fonts = new PdfDictionary();
-            var helvetica = new PdfDictionary();
-            helvetica.Items["Type"] = new PdfName("Font");
-            helvetica.Items["Subtype"] = new PdfName("Type1");
-            helvetica.Items["BaseFont"] = new PdfName("Helvetica");
-            helvetica.Items["Encoding"] = new PdfName("WinAnsiEncoding");
-            fonts.Items["Helv"] = helvetica;
+            for (int i = 0; i < fontResources.Count; i++) {
+                (string name, PdfStandardFont font) = fontResources[i];
+                fonts.Items[name] = PdfStandardFontDictionaryBuilder.BuildStandardType1FontDictionary(font);
+            }
+
             resources.Items["Font"] = fonts;
         }
 
-        if (usesHighlightBlendMode) {
+        if (usesHighlightBlendMode || opacity.HasValue) {
             var extGStates = new PdfDictionary();
-            var highlightState = new PdfDictionary();
-            highlightState.Items["Type"] = new PdfName("ExtGState");
-            highlightState.Items["BM"] = new PdfName("Multiply");
-            highlightState.Items["CA"] = new PdfNumber(0.35D);
-            highlightState.Items["ca"] = new PdfNumber(0.35D);
-            extGStates.Items["OfficeIMOHighlightGs"] = highlightState;
+            if (usesHighlightBlendMode) {
+                double highlightOpacity = opacity ?? 0.35D;
+                var highlightState = new PdfDictionary();
+                highlightState.Items["Type"] = new PdfName("ExtGState");
+                highlightState.Items["BM"] = new PdfName("Multiply");
+                highlightState.Items["CA"] = new PdfNumber(highlightOpacity);
+                highlightState.Items["ca"] = new PdfNumber(highlightOpacity);
+                extGStates.Items["OfficeIMOHighlightGs"] = highlightState;
+            }
+
+            if (opacity.HasValue && !usesHighlightBlendMode) {
+                var opacityState = new PdfDictionary();
+                opacityState.Items["Type"] = new PdfName("ExtGState");
+                opacityState.Items["CA"] = new PdfNumber(opacity.Value);
+                opacityState.Items["ca"] = new PdfNumber(opacity.Value);
+                extGStates.Items["OfficeIMOAnnotationOpacityGs"] = opacityState;
+            }
+
             resources.Items["ExtGState"] = extGStates;
         }
 
         return resources;
     }
 
+    private static double? TryReadAnnotationOpacity(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        double? value = TryReadNumber(objects, annotation, "CA");
+        if (!value.HasValue ||
+            double.IsNaN(value.Value) ||
+            double.IsInfinity(value.Value) ||
+            value.Value < 0D ||
+            value.Value > 1D) {
+            return null;
+        }
+
+        return value.Value;
+    }
+
     private static double TryReadBorderWidth(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        if (ResolveDictionary(objects, annotation.Items.TryGetValue("BS", out PdfObject? borderStyleObject) ? borderStyleObject : null) is PdfDictionary borderStyle &&
+            borderStyle.Items.TryGetValue("W", out PdfObject? borderStyleWidthObject) &&
+            TryReadNonNegativeFiniteNumber(objects, borderStyleWidthObject, out double borderStyleWidth)) {
+            return borderStyleWidth;
+        }
+
         if (!annotation.Items.TryGetValue("Border", out var borderObject) ||
             ResolveObject(objects, borderObject) is not PdfArray border ||
             border.Items.Count < 3 ||
-            ResolveObject(objects, border.Items[2]) is not PdfNumber width ||
-            width.Value < 0D) {
+            !TryReadNonNegativeFiniteNumber(objects, border.Items[2], out double width)) {
             return 1D;
         }
 
-        return width.Value;
+        return width;
     }
 
-    private static PdfAlign TryReadFreeTextAlignment(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+    private static bool TryReadNonNegativeFiniteNumber(Dictionary<int, PdfIndirectObject> objects, PdfObject numberObject, out double value) {
+        value = 0D;
+        if (ResolveObject(objects, numberObject) is not PdfNumber number ||
+            number.Value < 0D ||
+            double.IsNaN(number.Value) ||
+            double.IsInfinity(number.Value)) {
+            return false;
+        }
+
+        value = number.Value;
+        return true;
+    }
+
+    private static double[]? TryReadBorderDashPattern(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        if (ResolveDictionary(objects, annotation.Items.TryGetValue("BS", out PdfObject? borderStyleObject) ? borderStyleObject : null) is not PdfDictionary borderStyle ||
+            borderStyle.Get<PdfName>("S")?.Name != "D") {
+            return null;
+        }
+
+        if (!borderStyle.Items.TryGetValue("D", out PdfObject? dashObject)) {
+            return new[] { 3D };
+        }
+
+        return TryReadDashPattern(objects, dashObject);
+    }
+
+    private static double[]? TryReadDashPattern(Dictionary<int, PdfIndirectObject> objects, PdfObject dashObject) {
+        if (ResolveObject(objects, dashObject) is not PdfArray dashArray || dashArray.Items.Count == 0) {
+            return null;
+        }
+
+        var values = new double[dashArray.Items.Count];
+        bool hasPositiveSegment = false;
+        for (int i = 0; i < dashArray.Items.Count; i++) {
+            if (!TryReadNonNegativeFiniteNumber(objects, dashArray.Items[i], out double segment)) {
+                return null;
+            }
+
+            if (segment > 0D) {
+                hasPositiveSegment = true;
+            }
+
+            values[i] = segment;
+        }
+
+        return hasPositiveSegment ? values : null;
+    }
+
+    private static PdfFormFieldBorderStyle TryReadBorderStyle(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        if (ResolveDictionary(objects, annotation.Items.TryGetValue("BS", out PdfObject? borderStyleObject) ? borderStyleObject : null) is not PdfDictionary borderStyle ||
+            borderStyle.Get<PdfName>("S") is not PdfName styleName) {
+            return PdfFormFieldBorderStyle.Solid;
+        }
+
+        switch (styleName.Name) {
+            case "D":
+                return PdfFormFieldBorderStyle.Dashed;
+            case "U":
+                return PdfFormFieldBorderStyle.Underline;
+            case "B":
+                return PdfFormFieldBorderStyle.Beveled;
+            case "I":
+                return PdfFormFieldBorderStyle.Inset;
+            default:
+                return PdfFormFieldBorderStyle.Solid;
+        }
+    }
+
+    private static void TryReadBorderEffect(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, out string? style, out double intensity) {
+        style = null;
+        intensity = 0D;
+        if (ResolveDictionary(objects, annotation.Items.TryGetValue("BE", out PdfObject? borderEffectObject) ? borderEffectObject : null) is not PdfDictionary borderEffect ||
+            borderEffect.Get<PdfName>("S") is not PdfName styleName ||
+            !string.Equals(styleName.Name, "C", StringComparison.Ordinal)) {
+            return;
+        }
+
+        double rawIntensity = TryReadNumber(objects, borderEffect, "I") ?? 1D;
+        if (double.IsNaN(rawIntensity) || double.IsInfinity(rawIntensity) || rawIntensity <= 0D) {
+            return;
+        }
+
+        style = styleName.Name;
+        intensity = Math.Min(2D, rawIntensity);
+    }
+
+    private static string TryReadFreeTextContents(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
+        string? contents = TryReadString(objects, annotation, "Contents");
+        if (!string.IsNullOrWhiteSpace(contents)) {
+            return contents!;
+        }
+
+        return PdfFreeTextStyleParser.ExtractPlainText(TryReadString(objects, annotation, "RC")) ?? string.Empty;
+    }
+
+    private static PdfAlign TryReadFreeTextAlignment(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation, PdfAlign? defaultAlignment) {
         double? alignment = TryReadNumber(objects, annotation, "Q");
         if (!alignment.HasValue) {
-            return PdfAlign.Left;
+            return defaultAlignment ?? PdfAlign.Left;
         }
 
         int value = (int)Math.Round(alignment.Value);
@@ -404,40 +625,15 @@ public static partial class PdfAnnotationFlattener {
 
     private static double? TryReadFreeTextFontSize(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
         string? defaultAppearance = TryReadString(objects, annotation, "DA");
-        if (defaultAppearance == null || defaultAppearance.Trim().Length == 0) {
-            return null;
-        }
-
-        string[] tokens = defaultAppearance.Split(AppearanceTokenSeparators, StringSplitOptions.RemoveEmptyEntries);
-        for (int i = 1; i < tokens.Length; i++) {
-            if (string.Equals(tokens[i], "Tf", StringComparison.Ordinal) &&
-                double.TryParse(tokens[i - 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double fontSize) &&
-                fontSize > 0D) {
-                return fontSize;
-            }
-        }
-
-        return null;
+        return PdfDefaultAppearanceParser.TryReadFontSize(defaultAppearance, out double fontSize)
+            ? fontSize
+            : null;
     }
 
     private static PdfColor? TryReadFreeTextTextColor(Dictionary<int, PdfIndirectObject> objects, PdfDictionary annotation) {
         string? defaultAppearance = TryReadString(objects, annotation, "DA");
-        if (defaultAppearance == null || defaultAppearance.Trim().Length == 0) {
-            return null;
-        }
-
-        string[] tokens = defaultAppearance.Split(AppearanceTokenSeparators, StringSplitOptions.RemoveEmptyEntries);
-        for (int i = 3; i < tokens.Length; i++) {
-            if (!string.Equals(tokens[i], "rg", StringComparison.Ordinal) ||
-                !double.TryParse(tokens[i - 3], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double r) ||
-                !double.TryParse(tokens[i - 2], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double g) ||
-                !double.TryParse(tokens[i - 1], System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double b)) {
-                continue;
-            }
-
-            return new PdfColor(ClampColor(r), ClampColor(g), ClampColor(b));
-        }
-
-        return null;
+        return PdfDefaultAppearanceParser.TryReadTextColor(defaultAppearance, out PdfColor color)
+            ? color
+            : null;
     }
 }

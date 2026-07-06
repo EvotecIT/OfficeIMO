@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using OfficeIMO.Drawing;
@@ -47,6 +48,356 @@ public class PdfImageExtractorTests {
         Assert.True(image.IsImageFile);
         AssertPngSignature(image.Bytes);
         Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsJpegWithUnresolvedTransparencyMetadataWhenDctImageHasSoftMask() {
+        byte[] source = BuildDeviceRgbJpegSoftMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("DeviceRGB", image.ColorSpace);
+        Assert.Equal("DCTDecode", image.Filter);
+        Assert.Equal("jpg", image.FileExtension);
+        Assert.Equal("image/jpeg", image.MimeType);
+        Assert.True(image.IsImageFile);
+        Assert.True(image.HasTransparencyMask);
+        Assert.True(image.HasUnresolvedTransparencyMask);
+        Assert.False(image.TransparencyMaskResolved);
+        Assert.Equal("soft-mask", image.TransparencyMaskKind);
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Jpeg, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesUnfilteredDeviceRgbImageStreamsToPngFiles() {
+        byte[] source = BuildUnfilteredDeviceRgbImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal(1, image.PageNumber);
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+        Assert.Equal(8, image.BitsPerComponent);
+        Assert.Equal("DeviceRGB", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(new byte[] { 0, 97, 98, 99 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesSupportedFilterChainDeviceRgbImageStreamsToPngFiles() {
+        byte[] source = BuildAsciiHexFlateDeviceRgbImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("ASCIIHexDecode,FlateDecode", image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(new byte[] { 0, 97, 98, 99 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsRgbaPngWhenDeviceRgbImageHasColorKeyMask() {
+        byte[] source = BuildDeviceRgbColorKeyMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("DeviceRGB", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 97, 98, 99, 0, 100, 101, 102, 255 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReportsExplicitMaskImageAsUnresolvedWhenRgbStreamNormalizesToPng() {
+        byte[] source = BuildDeviceRgbExplicitMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("png", image.FileExtension);
+        Assert.True(image.IsImageFile);
+        Assert.True(image.HasTransparencyMask);
+        Assert.True(image.HasUnresolvedTransparencyMask);
+        Assert.False(image.TransparencyMaskResolved);
+        Assert.Equal("explicit-mask-image", image.TransparencyMaskKind);
+        AssertPngSignature(image.Bytes);
+    }
+
+    [Fact]
+    public void ExtractImages_AppliesImageDecodeArrayWhenNormalizingDeviceGrayStreamsToPngFiles() {
+        byte[] source = BuildUnfilteredDeviceGrayInvertedDecodeImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("DeviceGray", image.ColorSpace);
+        Assert.Equal(8, image.BitsPerComponent);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(0, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 158 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesUnfilteredDeviceCmykImageStreamsToRgbPngFiles() {
+        byte[] source = BuildUnfilteredDeviceCmykImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal(1, image.PageNumber);
+        Assert.Equal(1, image.Width);
+        Assert.Equal(1, image.Height);
+        Assert.Equal(8, image.BitsPerComponent);
+        Assert.Equal("DeviceCMYK", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(2, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 126, 125, 124 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesIccBasedRgbImageStreamsToPngFiles() {
+        byte[] source = BuildUnfilteredIccBasedRgbImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("ICCBased", image.ColorSpace);
+        Assert.Equal(8, image.BitsPerComponent);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(2, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 97, 98, 99 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesIccBasedCmykImageStreamsToRgbPngFiles() {
+        byte[] source = BuildUnfilteredIccBasedCmykImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("ICCBased", image.ColorSpace);
+        Assert.Equal(8, image.BitsPerComponent);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(2, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 126, 125, 124 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesSupportedFilterChainDeviceCmykImageStreamsToRgbPngFiles() {
+        byte[] source = BuildAsciiHexFlateDeviceCmykImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("DeviceCMYK", image.ColorSpace);
+        Assert.Equal("ASCIIHexDecode,FlateDecode", image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(2, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 126, 125, 124 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsRgbaPngWhenDeviceCmykImageHasSoftMask() {
+        byte[] source = BuildDeviceCmykSoftMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("DeviceCMYK", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 126, 125, 124, 126 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsRgbaPngWhenIccBasedCmykImageHasSoftMask() {
+        byte[] source = BuildIccBasedCmykSoftMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("ICCBased", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 126, 125, 124, 126 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesPackedIndexedRgbImageStreamsToRgbPngFiles() {
+        byte[] source = BuildUnfilteredIndexedRgbImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal(1, image.PageNumber);
+        Assert.Equal(2, image.Width);
+        Assert.Equal(1, image.Height);
+        Assert.Equal(1, image.BitsPerComponent);
+        Assert.Equal("Indexed", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(2, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_NormalizesSupportedFilterChainIndexedRgbImageStreamsToRgbPngFiles() {
+        byte[] source = BuildAsciiHexFlateIndexedRgbImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("Indexed", image.ColorSpace);
+        Assert.Equal("ASCIIHexDecode,FlateDecode", image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(2, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 255, 0 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsRgbaPngWhenIndexedImageHasSoftMask() {
+        byte[] source = BuildIndexedSoftMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("Indexed", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 255, 0, 0, 126, 0, 255, 0, 64 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsRgbaPngWhenIndexedImageHasColorKeyMask() {
+        byte[] source = BuildIndexedColorKeyMaskImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("Indexed", image.ColorSpace);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(6, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 255, 0, 0, 0, 0, 255, 0, 255 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_ReturnsGrayAlphaPngWhenImageMaskStreamIsSupported() {
+        byte[] source = BuildImageMaskPdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("ImageMask", image.ColorSpace);
+        Assert.Equal(1, image.BitsPerComponent);
+        Assert.Equal(string.Empty, image.Filter);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(4, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 0, 0, 255 }, DecodeStoredPngIdat(image.Bytes));
+        Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
+        Assert.Equal(OfficeImageFormat.Png, info.Format);
+    }
+
+    [Fact]
+    public void ExtractImages_AppliesImageDecodeArrayWhenNormalizingIndexedStreamsToRgbPngFiles() {
+        byte[] source = BuildUnfilteredIndexedRgbInvertedDecodeImagePdf();
+
+        var images = PdfImageExtractor.ExtractImages(source);
+
+        var image = Assert.Single(images);
+        Assert.Equal("Indexed", image.ColorSpace);
+        Assert.Equal(1, image.BitsPerComponent);
+        Assert.Equal("png", image.FileExtension);
+        Assert.Equal("image/png", image.MimeType);
+        Assert.True(image.IsImageFile);
+        AssertPngSignature(image.Bytes);
+        Assert.Equal(2, ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 0, 255, 0, 255, 0, 0 }, DecodeStoredPngIdat(image.Bytes));
         Assert.True(OfficeImageReader.TryIdentify(image.Bytes, null, out var info));
         Assert.Equal(OfficeImageFormat.Png, info.Format);
     }
@@ -493,6 +844,304 @@ public class PdfImageExtractorTests {
         return new MemoryStream(data);
     }
 
+    private static byte[] BuildUnfilteredDeviceRgbImagePdf() {
+        return BuildDeviceRgbImagePdf("abc", string.Empty);
+    }
+
+    private static byte[] BuildUnfilteredDeviceCmykImagePdf() {
+        return BuildImagePdf("DeviceCMYK", "abc ", string.Empty);
+    }
+
+    private static byte[] BuildUnfilteredDeviceGrayInvertedDecodeImagePdf() {
+        return BuildImagePdf("DeviceGray", "a", " /Decode [1 0]");
+    }
+
+    private static byte[] BuildUnfilteredIccBasedRgbImagePdf() {
+        return BuildIccBasedImagePdf(3, "DeviceRGB", "abc");
+    }
+
+    private static byte[] BuildUnfilteredIccBasedCmykImagePdf() {
+        return BuildIccBasedImagePdf(4, "DeviceCMYK", "abc ");
+    }
+
+    private static byte[] BuildUnfilteredIndexedRgbImagePdf() {
+        return BuildImagePdfWithColorSpace("[/Indexed /DeviceRGB 1 <FF000000FF00>]", 2, 1, 1, "@", string.Empty);
+    }
+
+    private static byte[] BuildUnfilteredIndexedRgbInvertedDecodeImagePdf() {
+        return BuildImagePdfWithColorSpace("[/Indexed /DeviceRGB 1 <FF000000FF00>]", 2, 1, 1, "@", " /Decode [1 0]");
+    }
+
+    private static byte[] BuildAsciiHexFlateDeviceRgbImagePdf() {
+        string encoded = EncodeAsciiHex(BuildStoredZlib(new byte[] { 97, 98, 99 }));
+        return BuildDeviceRgbImagePdf(encoded, " /Filter [/ASCIIHexDecode /FlateDecode]");
+    }
+
+    private static byte[] BuildDeviceRgbColorKeyMaskImagePdf() {
+        return BuildImagePdfWithColorSpace("/DeviceRGB", 2, 1, 8, "abcdef", " /Mask [97 97 98 98 99 99]");
+    }
+
+    private static byte[] BuildDeviceRgbExplicitMaskImagePdf() {
+        return BuildImagePdfWithColorSpace(
+            "/DeviceRGB",
+            2,
+            1,
+            8,
+            "abcdef",
+            " /Mask 6 0 R",
+            new[] { BuildImageMaskObject(6) },
+            7);
+    }
+
+    private static byte[] BuildAsciiHexFlateDeviceCmykImagePdf() {
+        string encoded = EncodeAsciiHex(BuildStoredZlib(new byte[] { 97, 98, 99, 32 }));
+        return BuildImagePdf("DeviceCMYK", encoded, " /Filter [/ASCIIHexDecode /FlateDecode]");
+    }
+
+    private static byte[] BuildDeviceCmykSoftMaskImagePdf() {
+        return BuildImagePdfWithColorSpace(
+            "/DeviceCMYK",
+            1,
+            1,
+            8,
+            "abc ",
+            " /SMask 6 0 R",
+            new[] { BuildSoftMaskObject(6, 126) },
+            7);
+    }
+
+    private static byte[] BuildDeviceRgbJpegSoftMaskImagePdf() {
+        byte[] jpeg = CreateMinimalJpeg(2, 1);
+        return BuildImagePdfWithColorSpace(
+            "/DeviceRGB",
+            2,
+            1,
+            8,
+            PdfEncoding.Latin1GetString(jpeg),
+            " /Filter /DCTDecode /SMask 6 0 R",
+            new[] { BuildSoftMaskObject(6, new byte[] { 126, 64 }, 2, 1) },
+            7);
+    }
+
+    private static byte[] BuildIccBasedCmykSoftMaskImagePdf() {
+        string profileObject = BuildIccProfileObject(6, 4, "DeviceCMYK");
+        return BuildImagePdfWithColorSpace(
+            "[/ICCBased 6 0 R]",
+            1,
+            1,
+            8,
+            "abc ",
+            " /SMask 7 0 R",
+            new[] { profileObject, BuildSoftMaskObject(7, 126) },
+            8);
+    }
+
+    private static byte[] BuildAsciiHexFlateIndexedRgbImagePdf() {
+        string encoded = EncodeAsciiHex(BuildStoredZlib(new byte[] { 64 }));
+        return BuildImagePdfWithColorSpace("[/Indexed /DeviceRGB 1 <FF000000FF00>]", 2, 1, 1, encoded, " /Filter [/ASCIIHexDecode /FlateDecode]");
+    }
+
+    private static byte[] BuildIndexedSoftMaskImagePdf() {
+        return BuildImagePdfWithColorSpace(
+            "[/Indexed /DeviceRGB 1 <FF000000FF00>]",
+            2,
+            1,
+            1,
+            "@",
+            " /SMask 6 0 R",
+            new[] { BuildSoftMaskObject(6, new byte[] { 126, 64 }, 2, 1) },
+            7);
+    }
+
+    private static byte[] BuildIndexedColorKeyMaskImagePdf() {
+        return BuildImagePdfWithColorSpace(
+            "[/Indexed /DeviceRGB 1 <FF000000FF00>]",
+            2,
+            1,
+            1,
+            "@",
+            " /Mask [0 0]");
+    }
+
+    private static byte[] BuildImageMaskPdf() {
+        string content = string.Join("\n", new[] {
+            "q",
+            "24 0 0 24 36 160 cm",
+            "/Im1 Do",
+            "Q"
+        });
+
+        string imageStreamData = "@";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 220 220] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 2 /Height 1 /ImageMask true /Length " + Encoding.ASCII.GetByteCount(imageStreamData).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            imageStreamData,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildDeviceRgbImagePdf(string imageStreamData, string imageDictionarySuffix) {
+        return BuildImagePdf("DeviceRGB", imageStreamData, imageDictionarySuffix);
+    }
+
+    private static byte[] BuildImagePdf(string colorSpace, string imageStreamData, string imageDictionarySuffix) {
+        return BuildImagePdfWithColorSpace("/" + colorSpace, 1, 1, 8, imageStreamData, imageDictionarySuffix);
+    }
+
+    private static byte[] BuildImagePdfWithColorSpace(
+        string colorSpaceObject,
+        int width,
+        int height,
+        int bitsPerComponent,
+        string imageStreamData,
+        string imageDictionarySuffix) {
+        return BuildImagePdfWithColorSpace(colorSpaceObject, width, height, bitsPerComponent, imageStreamData, imageDictionarySuffix, Array.Empty<string>(), 6);
+    }
+
+    private static byte[] BuildIccBasedImagePdf(int componentCount, string alternateColorSpace, string imageStreamData) {
+        string profileObject = BuildIccProfileObject(6, componentCount, alternateColorSpace);
+        return BuildImagePdfWithColorSpace("[/ICCBased 6 0 R]", 1, 1, 8, imageStreamData, string.Empty, new[] { profileObject }, 7);
+    }
+
+    private static string BuildIccProfileObject(int objectNumber, int componentCount, string alternateColorSpace) {
+        return string.Join("\n", new[] {
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj",
+            "<< /N " + componentCount.ToString(System.Globalization.CultureInfo.InvariantCulture) + " /Alternate /" + alternateColorSpace + " /Length 0 >>",
+            "stream",
+            string.Empty,
+            "endstream",
+            "endobj"
+        });
+    }
+
+    private static string BuildSoftMaskObject(int objectNumber, byte alpha) {
+        return BuildSoftMaskObject(objectNumber, new[] { alpha }, 1, 1);
+    }
+
+    private static string BuildSoftMaskObject(int objectNumber, byte[] alpha, int width, int height) {
+        string encodedAlpha = EncodeAsciiHex(BuildStoredZlib(alpha));
+        return string.Join("\n", new[] {
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width "
+                + width.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " /Height "
+                + height.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " /ColorSpace /DeviceGray /BitsPerComponent 8 /Filter [/ASCIIHexDecode /FlateDecode] /Length "
+                + Encoding.ASCII.GetByteCount(encodedAlpha).ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " >>",
+            "stream",
+            encodedAlpha,
+            "endstream",
+            "endobj"
+        });
+    }
+
+    private static string BuildImageMaskObject(int objectNumber) {
+        string maskData = PdfEncoding.Latin1GetString(new byte[] { 0x80 });
+        return string.Join("\n", new[] {
+            objectNumber.ToString(System.Globalization.CultureInfo.InvariantCulture) + " 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 2 /Height 1 /ImageMask true /BitsPerComponent 1 /Length "
+                + maskData.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " >>",
+            "stream",
+            maskData,
+            "endstream",
+            "endobj"
+        });
+    }
+
+    private static byte[] BuildImagePdfWithColorSpace(
+        string colorSpaceObject,
+        int width,
+        int height,
+        int bitsPerComponent,
+        string imageStreamData,
+        string imageDictionarySuffix,
+        IReadOnlyList<string> additionalObjects,
+        int trailerSize) {
+        string content = string.Join("\n", new[] {
+            "q",
+            "24 0 0 24 36 160 cm",
+            "/Im1 Do",
+            "Q"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 220 220] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width "
+                + width.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " /Height "
+                + height.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " /ColorSpace "
+                + colorSpaceObject
+                + " /BitsPerComponent "
+                + bitsPerComponent.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + " /Length "
+                + imageStreamData.Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                + imageDictionarySuffix
+                + " >>",
+            "stream",
+            imageStreamData,
+            "endstream",
+            "endobj",
+            string.Join("\n", additionalObjects),
+            "trailer",
+            "<< /Root 1 0 R /Size " + trailerSize.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "%%EOF"
+        }) + "\n";
+
+        return PdfEncoding.Latin1GetBytes(pdf);
+    }
+
+    private static string EncodeAsciiHex(byte[] data) {
+        var builder = new StringBuilder(data.Length * 2 + 1);
+        for (int i = 0; i < data.Length; i++) {
+            builder.Append(data[i].ToString("X2", System.Globalization.CultureInfo.InvariantCulture));
+        }
+
+        builder.Append('>');
+        return builder.ToString();
+    }
+
     private sealed class WriteOnlyStream : Stream {
         public override bool CanRead => false;
         public override bool CanSeek => false;
@@ -526,6 +1175,22 @@ public class PdfImageExtractorTests {
     private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(255, 0, 0);
 
     private static byte[] CreateMinimalRgbaPng() => PdfPngTestImages.CreateRgbaPng(255, 0, 0, 128);
+
+    private static byte[] CreateMinimalJpeg(int width, int height) {
+        return new byte[] {
+            0xFF, 0xD8,
+            0xFF, 0xC0,
+            0x00, 0x11,
+            0x08,
+            (byte)(height >> 8), (byte)(height & 0xFF),
+            (byte)(width >> 8), (byte)(width & 0xFF),
+            0x03,
+            0x01, 0x11, 0x00,
+            0x02, 0x11, 0x00,
+            0x03, 0x11, 0x00,
+            0xFF, 0xD9
+        };
+    }
 
     private static byte[] CreateMinimalRgbTransparencyPng() {
         using var ms = new MemoryStream();

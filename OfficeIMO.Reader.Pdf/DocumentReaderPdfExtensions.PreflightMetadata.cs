@@ -15,6 +15,9 @@ public static partial class DocumentReaderPdfExtensions {
         AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-extract-images", "CanExtractImages", preflight.CanExtractImages);
         AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-read-logical-objects", "CanReadLogicalObjects", preflight.CanReadLogicalObjects);
         AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-manipulate-pages", "CanManipulatePages", preflight.CanManipulatePages);
+        AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-append-metadata-revision", "CanAppendMetadataRevision", preflight.CanAppendMetadataRevision);
+        AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-append-form-field-revision", "CanAppendFormFieldRevision", preflight.CanAppendFormFieldRevision);
+        AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-prepare-external-signature-revision", "CanPrepareExternalSignatureRevision", preflight.CanPrepareExternalSignatureRevision);
         AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-fill-simple-form-fields", "CanFillSimpleFormFields", preflight.CanFillSimpleFormFields);
         AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-flatten-simple-form-fields", "CanFlattenSimpleFormFields", preflight.CanFlattenSimpleFormFields);
         AddPdfPreflightCapabilityMetadata(entries, "pdf-preflight-can-fill-and-flatten-simple-form-fields", "CanFillAndFlattenSimpleFormFields", preflight.CanFillAndFlattenSimpleFormFields);

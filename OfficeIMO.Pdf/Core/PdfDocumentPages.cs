@@ -3,7 +3,7 @@ namespace OfficeIMO.Pdf;
 /// <summary>
 /// Fluent page extraction and editing operations for a <see cref="PdfDocument"/>.
 /// </summary>
-public sealed class PdfDocumentPages {
+public sealed partial class PdfDocumentPages {
     private readonly PdfDocument _document;
 
     internal PdfDocumentPages(PdfDocument document) {
@@ -50,6 +50,13 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfDocument Extract(string pageRanges) {
         return Extract(PdfPageSelection.Parse(pageRanges));
+    }
+
+    /// <summary>
+    /// Attempts to create a new PDF containing pages described by page ranges, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryExtract(string pageRanges, PdfReadOptions? options = null) {
+        return TryPageExtractionOperation("Extract pages", effectiveOptions => Extract(PdfPageSelection.Parse(pageRanges), effectiveOptions), options);
     }
 
     /// <summary>
@@ -143,6 +150,13 @@ public sealed class PdfDocumentPages {
     }
 
     /// <summary>
+    /// Creates one PDF for each comma- or semicolon-separated inclusive page range.
+    /// </summary>
+    public IReadOnlyList<PdfDocument> Split(string pageRanges) {
+        return Split(PdfPageRange.ParseMany(pageRanges));
+    }
+
+    /// <summary>
     /// Returns outline/bookmark-derived page ranges in document order.
     /// </summary>
     public IReadOnlyList<PdfBookmarkPageRange> BookmarkPageRanges(params string[] bookmarkTitles) {
@@ -222,6 +236,21 @@ public sealed class PdfDocumentPages {
     }
 
     /// <summary>
+    /// Attempts to create one PDF for each supplied inclusive page range, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(IEnumerable<PdfPageRange> pageRanges, PdfReadOptions? options = null) {
+        Guard.NotNull(pageRanges, nameof(pageRanges));
+        return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page ranges", effectiveOptions => Split(pageRanges, effectiveOptions), options);
+    }
+
+    /// <summary>
+    /// Attempts to create one PDF for each parsed page range, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplit(string pageRanges, PdfReadOptions? options = null) {
+        return TryPageExtractionOperation<IReadOnlyList<PdfDocument>>("Split page ranges", effectiveOptions => Split(PdfPageRange.ParseMany(pageRanges), effectiveOptions), options);
+    }
+
+    /// <summary>
     /// Attempts to create one PDF for each outline/bookmark-derived page range.
     /// </summary>
     public PdfOperationResult<IReadOnlyList<PdfDocument>> TrySplitByBookmarks(IReadOnlyList<string>? bookmarkTitles = null, PdfReadOptions? options = null) {
@@ -269,6 +298,13 @@ public sealed class PdfDocumentPages {
     }
 
     /// <summary>
+    /// Attempts to create a new PDF with pages described by page ranges deleted, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryDelete(string pageRanges, PdfReadOptions? options = null) {
+        return _document.TryOperation("Delete pages", PdfPreflightCapability.ManipulatePages, () => Delete(PdfPageSelection.Parse(pageRanges)), options);
+    }
+
+    /// <summary>
     /// Creates a new PDF with every page copied in the specified one-based order.
     /// </summary>
     public PdfDocument Reorder(params int[] pageNumbers) {
@@ -296,6 +332,13 @@ public sealed class PdfDocumentPages {
     public PdfOperationResult<PdfDocument> TryReorder(PdfPageSelection selection, PdfReadOptions? options = null) {
         Guard.NotNull(selection, nameof(selection));
         return _document.TryOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, () => Reorder(selection), options);
+    }
+
+    /// <summary>
+    /// Attempts to create a new PDF with pages copied in parsed page-range order, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryReorder(string pageRanges, PdfReadOptions? options = null) {
+        return _document.TryOperation("Reorder pages", PdfPreflightCapability.ManipulatePages, () => Reorder(PdfPageSelection.Parse(pageRanges)), options);
     }
 
     /// <summary>
@@ -333,6 +376,13 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfDocument Duplicate(string pageRanges) {
         return Duplicate(PdfPageSelection.Parse(pageRanges));
+    }
+
+    /// <summary>
+    /// Attempts to create a new PDF with parsed page ranges duplicated, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryDuplicate(string pageRanges, PdfReadOptions? options = null) {
+        return _document.TryOperation("Duplicate pages", PdfPreflightCapability.ManipulatePages, () => Duplicate(PdfPageSelection.Parse(pageRanges)), options);
     }
 
     /// <summary>
@@ -377,6 +427,13 @@ public sealed class PdfDocumentPages {
     }
 
     /// <summary>
+    /// Attempts to create a new PDF with parsed page ranges moved before the supplied one-based page number, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryMove(int insertBeforePageNumber, string pageRanges, PdfReadOptions? options = null) {
+        return _document.TryOperation("Move pages", PdfPreflightCapability.ManipulatePages, () => Move(insertBeforePageNumber, PdfPageSelection.Parse(pageRanges)), options);
+    }
+
+    /// <summary>
     /// Creates a new PDF with selected pages rotated. Supplying no page numbers rotates every page.
     /// </summary>
     public PdfDocument Rotate(int rotationDegrees, params int[] pageNumbers) {
@@ -411,6 +468,13 @@ public sealed class PdfDocumentPages {
     /// </summary>
     public PdfDocument Rotate(int rotationDegrees, string pageRanges) {
         return Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges));
+    }
+
+    /// <summary>
+    /// Attempts to create a new PDF with parsed page ranges rotated, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryRotate(int rotationDegrees, string pageRanges, PdfReadOptions? options = null) {
+        return _document.TryOperation("Rotate pages", PdfPreflightCapability.ManipulatePages, () => Rotate(rotationDegrees, PdfPageSelection.Parse(pageRanges)), options);
     }
 
     private static PdfBookmarkPageRange[] BuildBookmarkPageRanges(PdfDocumentInfo info) {

@@ -2,12 +2,13 @@ using System.Globalization;
 
 namespace OfficeIMO.Pdf;
 
-internal sealed class PdfOpenTypeCffFontProgram {
+internal sealed partial class PdfOpenTypeCffFontProgram {
     private const uint OpenTypeCffScalerType = 0x4F54544F;
 
     private readonly byte[] _data;
     private readonly ushort[] _advanceWidths;
     private readonly Dictionary<int, int> _cmap;
+    private readonly Dictionary<string, TableRecord> _tables;
     private readonly SortedSet<int> _usedGlyphIds = new();
     private readonly Dictionary<int, string> _usedGlyphToUnicode = new();
     private readonly object _usageLock = new();
@@ -28,8 +29,10 @@ internal sealed class PdfOpenTypeCffFontProgram {
         int stemV,
         ushort[] advanceWidths,
         Dictionary<int, int> cmap,
+        Dictionary<string, TableRecord> tables,
         int cffTableLength) {
         _data = data.ToArray();
+        _tables = new Dictionary<string, TableRecord>(tables, StringComparer.Ordinal);
         FontName = fontName;
         UnitsPerEm = unitsPerEm;
         FontBBox = new[] { ScaleMetric(xMin, unitsPerEm), ScaleMetric(yMin, unitsPerEm), ScaleMetric(xMax, unitsPerEm), ScaleMetric(yMax, unitsPerEm) };
@@ -142,6 +145,7 @@ internal sealed class PdfOpenTypeCffFontProgram {
             stemV,
             widths,
             CopyUnicodeCMap(info.UnicodeCMap),
+            tables,
             cff.Length);
     }
 
@@ -156,9 +160,13 @@ internal sealed class PdfOpenTypeCffFontProgram {
         return ScaleMetric(_advanceWidths[glyphId], UnitsPerEm);
     }
 
-    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    public double MeasureTextWidth(string? text, double fontSize, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
         if (string.IsNullOrEmpty(text)) {
             return 0D;
+        }
+
+        if (PdfExternalTextShaper.TryShapeText(text!, this, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider), out PdfGlyphRun glyphRun)) {
+            return glyphRun.TotalAdvanceWidth1000 * fontSize / 1000D;
         }
 
         double width = 0D;
@@ -184,8 +192,12 @@ internal sealed class PdfOpenTypeCffFontProgram {
         return width;
     }
 
-    public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    public string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) {
         Guard.NotNull(text, nameof(text));
+        if (PdfExternalTextShaper.TryShapeText(text, this, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider), out PdfGlyphRun glyphRun)) {
+            return glyphRun.ToGlyphHex();
+        }
+
         var sb = new StringBuilder(text.Length * 4);
         for (int index = 0; index < text.Length;) {
             int scalarStart = index;
@@ -209,6 +221,15 @@ internal sealed class PdfOpenTypeCffFontProgram {
         }
 
         return sb.ToString();
+    }
+
+    internal string EncodeTextAsGlyphHex(string text, PdfTextShapingMode shapingMode, IPdfTextShapingProvider? shapingProvider, Action<string, string, bool>? providerShapedTextRecorder) {
+        Guard.NotNull(text, nameof(text));
+        if (PdfExternalTextShaper.TryShapeText(text, this, PdfTextShapingOptions.ForRendering(FontName, shapingMode, shapingProvider, providerShapedTextRecorder), out PdfGlyphRun glyphRun)) {
+            return glyphRun.ToGlyphHex();
+        }
+
+        return EncodeTextAsGlyphHex(text, shapingMode, shapingProvider);
     }
 
     public double GetAscender(double fontSize) =>
@@ -264,10 +285,10 @@ internal sealed class PdfOpenTypeCffFontProgram {
         }
     }
 
-    private void RecordGlyphUsage(int glyphId, int unicodeScalar) =>
+    internal void RecordGlyphUsage(int glyphId, int unicodeScalar) =>
         RecordGlyphUsage(glyphId, char.ConvertFromUtf32(unicodeScalar));
 
-    private void RecordGlyphUsage(int glyphId, string unicodeText) {
+    internal void RecordGlyphUsage(int glyphId, string unicodeText) {
         lock (_usageLock) {
             _usedGlyphIds.Add(glyphId);
             if (!string.IsNullOrEmpty(unicodeText) &&

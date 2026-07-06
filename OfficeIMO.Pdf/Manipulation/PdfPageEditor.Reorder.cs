@@ -18,7 +18,8 @@ public static partial class PdfPageEditor {
             ordered[i] = document.Pages[pageNumbers[i] - 1].ObjectNumber;
         }
 
-        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
+        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
+        return PdfPageExtractor.ExtractPages(objects, document.Metadata, ordered, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     /// <summary>

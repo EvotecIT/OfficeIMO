@@ -76,6 +76,19 @@ namespace OfficeIMO.Excel.Pdf {
             return pdf;
         }
 
+        /// <summary>
+        /// Converts an Excel workbook to a PDF document and returns conversion diagnostics with it.
+        /// </summary>
+        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this ExcelDocument document, ExcelPdfSaveOptions? options = null) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            options ??= new ExcelPdfSaveOptions();
+            PdfCore.PdfDocument pdf = document.ToPdfDocument(options);
+            return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+        }
+
         private static PdfCore.PdfImageStyle CreateConverterImageStyle() => new() {
             ScaleDownToFit = true
         };

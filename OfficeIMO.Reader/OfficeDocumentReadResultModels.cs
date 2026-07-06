@@ -15,7 +15,7 @@ public static class OfficeDocumentReadResultSchema {
     /// <summary>
     /// Current schema version.
     /// </summary>
-    public const int Version = 1;
+    public const int Version = 4;
 }
 
 /// <summary>
@@ -403,6 +403,11 @@ public sealed class OfficeDocumentAsset {
     /// Source-specific relationship, resource, or object identifier.
     /// </summary>
     public string? SourceObjectId { get; set; }
+
+    /// <summary>
+    /// Source geometry for this asset when the read adapter can locate a concrete placement.
+    /// </summary>
+    public OfficeDocumentRegion? Region { get; set; }
 
     /// <summary>
     /// Source location for this asset.

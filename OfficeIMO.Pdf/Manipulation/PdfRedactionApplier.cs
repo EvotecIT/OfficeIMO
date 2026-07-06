@@ -136,7 +136,10 @@ public static partial class PdfRedactionApplier {
             }
 
             PdfRedactionMatch[] currentMatches = pageMatches ?? Array.Empty<PdfRedactionMatch>();
-            bool pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, currentMatches, ref nextObjectNumber);
+            ImageRedactionMutation imageMutation = RemoveMatchedImageObjects(objects, pageDictionary, currentMatches, options.FillColor, ref nextObjectNumber);
+            ValidateImagePlacementMatches(currentMatches, imageMutation.RemovedMatches, options);
+            bool pageChanged = imageMutation.HasChanges;
+            pageChanged = RemoveMatchedTextObjects(objects, pageDictionary, currentMatches, ref nextObjectNumber) || pageChanged;
             pageChanged = RemoveMatchedAnnotations(objects, pageDictionary, currentMatches) || pageChanged;
 
             PdfRedactionArea[] paintAreas = SelectPaintAreas(pageAreas ?? Array.Empty<PdfRedactionArea>(), currentMatches, options);
@@ -161,6 +164,51 @@ public static partial class PdfRedactionApplier {
             }
         }
     }
+
+    private static void ValidateImagePlacementMatches(IReadOnlyList<PdfRedactionMatch> matches, IReadOnlyList<PdfRedactionMatch> removedMatches, PdfRedactionApplyOptions options) {
+        if (options.AllowImagePlacementOverlays) {
+            return;
+        }
+
+        PdfRedactionMatch? imageMatch = matches.FirstOrDefault(match =>
+            match.Kind == PdfRedactionMatchKind.ImagePlacement &&
+            !ContainsRemovedImageMatch(removedMatches, match));
+        if (imageMatch is null) {
+            return;
+        }
+
+        string resourceName = string.IsNullOrEmpty(imageMatch.ResourceName) ? "unknown" : imageMatch.ResourceName!;
+        throw new InvalidOperationException(
+            "PDF redaction cannot be safely applied because a redaction area intersects image placement resource '" +
+            resourceName +
+            "' on page " +
+            imageMatch.PageNumber.ToString(CultureInfo.InvariantCulture) +
+            ". The image placement could not be rewritten safely; set PdfRedactionApplyOptions.AllowImagePlacementOverlays to true only when a visible overlay is an explicitly accepted weaker outcome.");
+    }
+
+    private static bool ContainsRemovedImageMatch(IReadOnlyList<PdfRedactionMatch> removedMatches, PdfRedactionMatch candidate) {
+        if (removedMatches.Contains(candidate)) {
+            return true;
+        }
+
+        for (int i = 0; i < removedMatches.Count; i++) {
+            PdfRedactionMatch removed = removedMatches[i];
+            if (removed.Kind == candidate.Kind &&
+                removed.PageNumber == candidate.PageNumber &&
+                string.Equals(removed.ResourceName, candidate.ResourceName, StringComparison.Ordinal) &&
+                AreSameRedactionCoordinate(removed.X, candidate.X) &&
+                AreSameRedactionCoordinate(removed.Y, candidate.Y) &&
+                AreSameRedactionCoordinate(removed.Width, candidate.Width) &&
+                AreSameRedactionCoordinate(removed.Height, candidate.Height)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool AreSameRedactionCoordinate(double left, double right) =>
+        Math.Abs(left - right) <= 0.001D;
 
     private static bool RemoveMatchedAnnotations(
         Dictionary<int, PdfIndirectObject> objects,

@@ -365,6 +365,12 @@ public sealed partial class PdfDocument {
         return this;
     }
 
+    /// <summary>Sets or clears the generated text line-break callback used for long unspaced tokens.</summary>
+    public PdfDocument TextLineBreaks(PdfTextLineBreakCallback? callback) {
+        _options.SetTextLineBreaks(callback);
+        return this;
+    }
+
     /// <summary>Sets or clears the generated catalog page mode.</summary>
     public PdfDocument CatalogPageMode(PdfCatalogPageMode? pageMode) {
         _options.SetCatalogPageMode(pageMode);

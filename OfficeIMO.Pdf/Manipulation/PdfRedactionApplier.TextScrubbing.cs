@@ -21,6 +21,7 @@ public static partial class PdfRedactionApplier {
         bool changed = false;
         Dictionary<int, int> referenceCounts = CountIndirectReferenceUsage(objects);
         Dictionary<string, Func<byte[], string>> fontDecoders = ResourceResolver.GetFontDecoders(pageDictionary, objects);
+        PdfObject currentContentsObject = contentsObject;
         foreach (PdfReference reference in EnumerateContentReferences(objects, contentsObject)) {
             if (!PdfObjectLookup.TryGet(objects, reference, out PdfIndirectObject? indirect) ||
                 indirect.Value is not PdfStream stream ||
@@ -38,14 +39,17 @@ public static partial class PdfRedactionApplier {
             PdfReference targetReference = reference;
             if (IsSharedReference(referenceCounts, reference)) {
                 targetReference = CloneIndirectObject(objects, reference, indirect, ref nextObjectNumber);
-                ReplacePageContentReference(objects, pageDictionary, contentsObject, reference, targetReference);
+                ReplacePageContentReference(objects, pageDictionary, currentContentsObject, reference, targetReference);
+                currentContentsObject = pageDictionary.Items.TryGetValue("Contents", out PdfObject? updatedContentsObject)
+                    ? updatedContentsObject
+                    : currentContentsObject;
             }
 
             objects[targetReference.ObjectNumber] = new PdfIndirectObject(targetReference.ObjectNumber, targetReference.Generation, new PdfStream(CleanStreamDictionary(stream.Dictionary), PdfEncoding.Latin1GetBytes(scrubbed)));
             changed = true;
         }
 
-        return ScrubMatchedFormXObjects(objects, pageDictionary, contentsObject, textTargets, fontDecoders, referenceCounts, ref nextObjectNumber) || changed;
+        return ScrubMatchedFormXObjects(objects, pageDictionary, currentContentsObject, textTargets, fontDecoders, referenceCounts, ref nextObjectNumber) || changed;
     }
 
     private static RedactionTextTarget[] BuildTextTargets(IReadOnlyList<PdfRedactionMatch> matches) {

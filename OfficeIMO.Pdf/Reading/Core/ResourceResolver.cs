@@ -241,7 +241,7 @@ internal static partial class ResourceResolver {
                     continue;
                 }
 
-                bool isImageMask = IsTrue(stream.Dictionary.Items.TryGetValue("ImageMask", out var imageMaskObject) ? imageMaskObject : null, objects);
+                bool isImageMask = PdfImageMaskNormalizer.IsImageMask(stream, objects);
                 if (isImageMask && matchingPlacements is not null) {
                     for (int placementIndex = 0; placementIndex < matchingPlacements.Count; placementIndex++) {
                         OfficeColor imageMaskColor = matchingPlacements[placementIndex].ImageMaskColor;
@@ -763,38 +763,39 @@ internal static partial class ResourceResolver {
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        bool isImageMask = PdfImageMaskNormalizer.IsImageMask(stream, objects);
+        if (isImageMask && bitsPerComponent == 0) {
+            bitsPerComponent = 1;
+        }
+
         PdfObject? colorSpaceObject = stream.Dictionary.Items.TryGetValue("ColorSpace", out var colorSpaceObj) ? colorSpaceObj : null;
         PdfObject? resolvedColorSpaceObject = ResolveColorSpaceResource(colorSpaceObject, resources, objects);
-        string colorSpace = GetNameOrEmpty(resolvedColorSpaceObject ?? colorSpaceObject, objects);
-        PdfObject? filterObject = stream.Dictionary.Items.TryGetValue("Filter", out var filterObj) ? filterObj : null;
-        List<string> filterNames = GetFilterNames(filterObject, objects);
-        string filter = string.Join(",", filterNames);
+        PdfObject? effectiveColorSpaceObject = resolvedColorSpaceObject ?? colorSpaceObject;
+        string colorSpace = isImageMask ? "ImageMask" : GetNameOrEmpty(effectiveColorSpaceObject, objects);
+        string filter = GetFilterName(stream.Dictionary.Items.TryGetValue("Filter", out var filterObj) ? filterObj : null, objects);
 
         byte[] bytes = stream.Data;
         string? extension = null;
         string? mimeType = null;
         bool isImageFile = false;
-        bool isImageMask = IsTrue(stream.Dictionary.Items.TryGetValue("ImageMask", out var imageMaskObject) ? imageMaskObject : null, objects);
+        string? transparencyMaskKind = GetTransparencyMaskKind(stream.Dictionary, objects);
+        bool transparencyMaskResolved = false;
 
-        if (filterNames.Count == 1 && string.Equals(filterNames[0], "DCTDecode", System.StringComparison.Ordinal)) {
+        if (string.Equals(filter, "DCTDecode", System.StringComparison.Ordinal)) {
             extension = "jpg";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg);
             isImageFile = true;
-        } else if (CanDecodeImageSamples(filterNames) &&
-                   TryBuildPngFile(
-                       stream,
-                       width,
-                       height,
-                       bitsPerComponent,
-                       colorSpace,
-                       resolvedColorSpaceObject ?? colorSpaceObject,
-                       objects,
-                       imageMaskColor ?? OfficeColor.Black,
-                       out var pngBytes)) {
+        } else if (isImageMask && TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor ?? OfficeColor.Black, out var imageMaskPngBytes)) {
+            bytes = imageMaskPngBytes;
+            extension = "png";
+            mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
+            isImageFile = true;
+        } else if (TryBuildPngFile(stream, width, height, bitsPerComponent, effectiveColorSpaceObject, colorSpace, filter, objects, out var pngBytes)) {
             bytes = pngBytes;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
             isImageFile = true;
+            transparencyMaskResolved = IsTransparencyMaskResolvedByPngNormalization(transparencyMaskKind);
         }
 
         return new PdfExtractedImage(
@@ -810,46 +811,68 @@ internal static partial class ResourceResolver {
             extension,
             mimeType,
             isImageFile,
+            transparencyMaskKind,
+            transparencyMaskResolved,
             directStreamIdentity,
             isImageMask,
             imageMaskColor ?? OfficeColor.Black);
     }
 
-    private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) =>
-        string.Join(",", GetFilterNames(obj, objects));
+    private static string? GetTransparencyMaskKind(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
+        if (dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
+            var resolvedSoftMask = ResolveObject(softMaskObj, objects);
+            if (resolvedSoftMask is PdfName softMaskName &&
+                string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal)) {
+                return null;
+            }
 
-    private static List<string> GetFilterNames(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
-        var filters = new List<string>();
+            return "soft-mask";
+        }
+
+        if (!dictionary.Items.TryGetValue("Mask", out var maskObj)) {
+            return null;
+        }
+
+        var resolvedMask = ResolveObject(maskObj, objects);
+        if (resolvedMask is PdfArray) {
+            return "color-key-mask";
+        }
+
+        if (resolvedMask is PdfStream) {
+            return "explicit-mask-image";
+        }
+
+        if (resolvedMask is PdfName maskName &&
+            string.Equals(maskName.Name, "None", System.StringComparison.Ordinal)) {
+            return null;
+        }
+
+        return "mask";
+    }
+
+    private static bool IsTransparencyMaskResolvedByPngNormalization(string? transparencyMaskKind) =>
+        string.Equals(transparencyMaskKind, "soft-mask", System.StringComparison.Ordinal) ||
+        string.Equals(transparencyMaskKind, "color-key-mask", System.StringComparison.Ordinal);
+
+    private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         var resolved = ResolveObject(obj, objects);
         if (resolved is PdfName name) {
-            filters.Add(name.Name);
-            return filters;
+            return name.Name;
         }
 
         if (resolved is PdfArray array) {
+            var names = new List<string>();
             foreach (var item in array.Items) {
                 var itemResolved = ResolveObject(item, objects);
                 if (itemResolved is PdfName itemName) {
-                    filters.Add(itemName.Name);
+                    names.Add(itemName.Name);
                 }
             }
+
+            return string.Join(",", names);
         }
 
-        return filters;
-    }
-
-    private static bool CanDecodeImageSamples(List<string> filterNames) {
-        if (filterNames.Count == 0) {
-            return true;
-        }
-
-        for (int i = 0; i < filterNames.Count; i++) {
-            if (!Filters.StreamDecoder.IsSupportedFilter(filterNames[i])) {
-                return false;
-            }
-        }
-
-        return true;
+        return string.Empty;
     }
 
     private static string GetNameOrEmpty(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
@@ -896,47 +919,76 @@ internal static partial class ResourceResolver {
         int width,
         int height,
         int bitsPerComponent,
+        PdfObject? colorSpaceObj,
         string colorSpace,
-        PdfObject? colorSpaceObject,
+        string filter,
         Dictionary<int, PdfIndirectObject> objects,
-        OfficeColor imageMaskColor,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
         if (width <= 0 || height <= 0) {
             return false;
         }
 
-        if (IsTrue(stream.Dictionary.Items.TryGetValue("ImageMask", out var imageMaskObject) ? imageMaskObject : null, objects)) {
-            return TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor, out pngBytes);
-        }
-
-        if (string.Equals(colorSpace, "Indexed", System.StringComparison.Ordinal) ||
-            string.Equals(colorSpace, "I", System.StringComparison.Ordinal)) {
-            return TryBuildPngFileFromIndexed(stream, width, height, bitsPerComponent, colorSpaceObject, objects, out pngBytes);
+        if (PdfIndexedImageNormalizer.TryBuildPngFile(colorSpaceObj, width, height, bitsPerComponent, stream, objects, out pngBytes)) {
+            return true;
         }
 
         if (bitsPerComponent != 8) {
             return false;
         }
 
-        int colorType;
-        if (string.Equals(colorSpace, "DeviceGray", System.StringComparison.Ordinal)) {
-            colorType = 0;
-        } else if (string.Equals(colorSpace, "DeviceRGB", System.StringComparison.Ordinal)) {
-            colorType = 2;
-        } else if (string.Equals(colorSpace, "DeviceCMYK", System.StringComparison.Ordinal)) {
-            return TryBuildPngFileFromCmyk(stream, width, height, bitsPerComponent, objects, out pngBytes);
-        } else {
+        if (!PdfImageColorSpaceNormalization.TryResolve(colorSpaceObj, colorSpace, objects, out var colorNormalization)) {
             return false;
         }
 
-        if (stream.Dictionary.Items.ContainsKey("Decode") ||
-            stream.Dictionary.Items.ContainsKey("Mask")) {
-            return TryBuildPngFileFromDeviceColor(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
+        if (stream.Dictionary.Items.ContainsKey("SMask")) {
+            if (colorNormalization.SourceColorCount != 1 &&
+                colorNormalization.SourceColorCount != 3 &&
+                colorNormalization.SourceColorCount != 4) {
+                return false;
+            }
+
+            var decodeTransform = PdfImageDecodeTransform.CreateColor(stream.Dictionary, colorNormalization.SourceColorCount, objects);
+            return TryBuildPngFileWithSoftMask(
+                stream,
+                width,
+                height,
+                bitsPerComponent,
+                colorNormalization.SourceColorCount,
+                colorNormalization.PngColorType,
+                decodeTransform,
+                objects,
+                out pngBytes);
         }
 
-        if (stream.Dictionary.Items.ContainsKey("SMask")) {
-            return TryBuildPngFileWithSoftMask(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
+        var colorDecodeTransform = PdfImageDecodeTransform.CreateColor(stream.Dictionary, colorNormalization.SourceColorCount, objects);
+        var colorKeyMask = PdfImageColorKeyMask.Create(stream.Dictionary, colorNormalization.SourceColorCount, objects);
+        if (colorKeyMask is not null) {
+            if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) {
+                return false;
+            }
+
+            byte[] pixels = string.IsNullOrEmpty(filter)
+                ? stream.Data
+                : Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+            return TryBuildPngFileFromDecodedPixelsWithColorKeyMask(
+                width,
+                height,
+                bitsPerComponent,
+                colorNormalization.SourceColorCount,
+                colorNormalization.PngColorType,
+                colorDecodeTransform,
+                colorKeyMask,
+                pixels,
+                out pngBytes);
+        }
+
+        if (string.IsNullOrEmpty(filter)) {
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, stream.Data, out pngBytes);
+        }
+
+        if (!string.Equals(filter, "FlateDecode", System.StringComparison.Ordinal)) {
+            return TryBuildPngFileFromSupportedDecodedStream(stream, width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, objects, out pngBytes);
         }
 
         PdfDictionary? decodeParms = null;
@@ -945,75 +997,161 @@ internal static partial class ResourceResolver {
         }
 
         int predictor = (int)(decodeParms?.Get<PdfNumber>("Predictor")?.Value ?? 1);
+        if (predictor <= 1 || predictor == 2) {
+            byte[] pixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, pixels, out pngBytes);
+        }
+
         if (predictor < 10 || predictor > 15) {
-            return TryBuildPngFileFromDeviceColor(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
+            return false;
         }
 
-        if (!HasSingleFlateFilter(stream.Dictionary.Items.TryGetValue("Filter", out var filterObj) ? filterObj : null, objects)) {
-            return TryBuildPngFileFromDeviceColor(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
+        if ((colorNormalization.SourceColorCount != 1 && colorNormalization.SourceColorCount != 3) || colorDecodeTransform is not null) {
+            byte[] pixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+            return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, pixels, out pngBytes);
         }
 
-        pngBytes = OfficePngWriter.CreateFromCompressedScanlines(width, height, bitsPerComponent, colorType, stream.Data);
+        pngBytes = OfficePngWriter.CreateFromCompressedScanlines(width, height, bitsPerComponent, colorNormalization.PngColorType, stream.Data);
         return true;
     }
 
-    private static bool HasSingleFlateFilter(PdfObject? filterObject, Dictionary<int, PdfIndirectObject> objects) {
-        List<string> filterNames = GetFilterNames(filterObject, objects);
-        return filterNames.Count == 1 &&
-            (string.Equals(filterNames[0], "FlateDecode", System.StringComparison.Ordinal) ||
-             string.Equals(filterNames[0], "Fl", System.StringComparison.Ordinal));
-    }
-
-    private static bool TryBuildPngFileWithSoftMask(
+    private static bool TryBuildPngFileFromSupportedDecodedStream(
         PdfStream stream,
         int width,
         int height,
         int bitsPerComponent,
-        int colorType,
+        int sourceColorCount,
+        int pngColorType,
+        PdfImageDecodeTransform? decodeTransform,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
-        int baseColors;
-        int alphaColorType;
-        if (colorType == 0) {
-            baseColors = 1;
-            alphaColorType = 4;
-        } else if (colorType == 2) {
-            baseColors = 3;
-            alphaColorType = 6;
-        } else {
+        if (Filters.StreamDecoder.GetUnsupportedFilters(stream.Dictionary, objects).Count != 0) {
             return false;
         }
 
-        byte[] basePixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-        if (!TryDecodeSoftMask(stream, width, height, bitsPerComponent, objects, out var alphaPixels)) {
+        byte[] pixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, sourceColorCount, pngColorType, decodeTransform, pixels, out pngBytes);
+    }
+
+    private static bool TryBuildPngFileFromDecodedPixels(
+        int width,
+        int height,
+        int bitsPerComponent,
+        int sourceColorCount,
+        int pngColorType,
+        PdfImageDecodeTransform? decodeTransform,
+        byte[] pixels,
+        out byte[] pngBytes) {
+        pngBytes = Array.Empty<byte>();
+        if (pixels.Length == 0) {
             return false;
         }
 
-        int baseRowLength = width * baseColors;
-        int alphaRowLength = width;
-        int expectedBaseLength = baseRowLength * height;
-        int expectedAlphaLength = alphaRowLength * height;
-        if (basePixels.Length < expectedBaseLength || alphaPixels.Length < expectedAlphaLength) {
+        if ((sourceColorCount != 1 && sourceColorCount != 3 && sourceColorCount != 4) ||
+            (pngColorType != 0 && pngColorType != 2)) {
             return false;
         }
 
-        int outputChannels = baseColors + 1;
-        byte[] scanlines = new byte[(1 + width * outputChannels) * height];
+        long sourceRowLengthLong = (long)width * sourceColorCount;
+        long expectedLengthLong = sourceRowLengthLong * height;
+        long outputRowLengthLong = (long)width * (pngColorType == 0 ? 1 : 3);
+        if (sourceRowLengthLong > int.MaxValue ||
+            expectedLengthLong > int.MaxValue ||
+            outputRowLengthLong > int.MaxValue) {
+            return false;
+        }
+
+        int sourceRowLength = (int)sourceRowLengthLong;
+        int expectedLength = (int)expectedLengthLong;
+        int outputRowLength = (int)outputRowLengthLong;
+        if (pixels.Length < expectedLength) {
+            return false;
+        }
+
+        byte[] scanlines = new byte[(1 + outputRowLength) * height];
         for (int row = 0; row < height; row++) {
-            int outputRow = row * (1 + width * outputChannels);
-            int baseRow = row * baseRowLength;
-            int alphaRow = row * alphaRowLength;
+            int outputRow = row * (1 + outputRowLength);
+            int sourceRow = row * sourceRowLength;
+            scanlines[outputRow] = 0;
+            if (sourceColorCount == 4) {
+                CopyDeviceCmykRowAsRgb(pixels, sourceRow, scanlines, outputRow + 1, width, decodeTransform);
+            } else if (decodeTransform is not null) {
+                CopyDecodedColorRow(pixels, sourceRow, scanlines, outputRow + 1, width, sourceColorCount, decodeTransform);
+            } else {
+                Buffer.BlockCopy(pixels, sourceRow, scanlines, outputRow + 1, outputRowLength);
+            }
+        }
+
+        pngBytes = OfficePngWriter.EncodeScanlines(
+            width,
+            height,
+            bitsPerComponent,
+            pngColorType,
+            scanlines,
+            OfficePngCompression.Stored);
+        return true;
+    }
+
+    private static bool TryBuildPngFileFromDecodedPixelsWithColorKeyMask(
+        int width,
+        int height,
+        int bitsPerComponent,
+        int sourceColorCount,
+        int pngColorType,
+        PdfImageDecodeTransform? decodeTransform,
+        PdfImageColorKeyMask colorKeyMask,
+        byte[] pixels,
+        out byte[] pngBytes) {
+        pngBytes = Array.Empty<byte>();
+        if (pixels.Length == 0) {
+            return false;
+        }
+
+        if ((sourceColorCount != 1 && sourceColorCount != 3 && sourceColorCount != 4) ||
+            (pngColorType != 0 && pngColorType != 2)) {
+            return false;
+        }
+
+        int outputBaseColors = pngColorType == 0 ? 1 : 3;
+        int alphaColorType = pngColorType == 0 ? 4 : 6;
+        long sourceRowLengthLong = (long)width * sourceColorCount;
+        long expectedLengthLong = sourceRowLengthLong * height;
+        long outputRowLengthLong = (long)width * (outputBaseColors + 1);
+        if (sourceRowLengthLong > int.MaxValue ||
+            expectedLengthLong > int.MaxValue ||
+            outputRowLengthLong > int.MaxValue) {
+            return false;
+        }
+
+        int sourceRowLength = (int)sourceRowLengthLong;
+        int expectedLength = (int)expectedLengthLong;
+        int outputRowLength = (int)outputRowLengthLong;
+        if (pixels.Length < expectedLength) {
+            return false;
+        }
+
+        int outputChannels = outputBaseColors + 1;
+        byte[] scanlines = new byte[(1 + outputRowLength) * height];
+        for (int row = 0; row < height; row++) {
+            int outputRow = row * (1 + outputRowLength);
+            int sourceRow = row * sourceRowLength;
             scanlines[outputRow] = 0;
 
             for (int pixel = 0; pixel < width; pixel++) {
+                int sourcePixel = sourceRow + pixel * sourceColorCount;
                 int outputPixel = outputRow + 1 + pixel * outputChannels;
-                int basePixel = baseRow + pixel * baseColors;
-                for (int channel = 0; channel < baseColors; channel++) {
-                    scanlines[outputPixel + channel] = basePixels[basePixel + channel];
+                if (sourceColorCount == 4) {
+                    CopyDeviceCmykRowAsRgb(pixels, sourcePixel, scanlines, outputPixel, 1, decodeTransform);
+                } else {
+                    for (int channel = 0; channel < outputBaseColors; channel++) {
+                        scanlines[outputPixel + channel] = TransformColorComponent(pixels[sourcePixel + channel], channel, decodeTransform);
+                    }
                 }
 
-                scanlines[outputPixel + baseColors] = alphaPixels[alphaRow + pixel];
+                scanlines[outputPixel + outputBaseColors] = colorKeyMask.IsTransparent(pixels, sourcePixel)
+                    ? (byte)0
+                    : (byte)255;
             }
         }
 
@@ -1027,57 +1165,135 @@ internal static partial class ResourceResolver {
         return true;
     }
 
-    private static bool TryBuildPngFileFromCmyk(
+    private static void CopyDecodedColorRow(
+        byte[] source,
+        int sourceOffset,
+        byte[] target,
+        int targetOffset,
+        int width,
+        int sourceColorCount,
+        PdfImageDecodeTransform decodeTransform) {
+        int rowLength = width * sourceColorCount;
+        for (int channel = 0; channel < rowLength; channel++) {
+            target[targetOffset + channel] = decodeTransform.TransformColorComponent(source[sourceOffset + channel], channel % sourceColorCount);
+        }
+    }
+
+    private static void CopyDeviceCmykRowAsRgb(byte[] source, int sourceOffset, byte[] target, int targetOffset, int width, PdfImageDecodeTransform? decodeTransform) {
+        for (int pixel = 0; pixel < width; pixel++) {
+            int sourcePixel = sourceOffset + pixel * 4;
+            int targetPixel = targetOffset + pixel * 3;
+            byte c = TransformColorComponent(source[sourcePixel], 0, decodeTransform);
+            byte m = TransformColorComponent(source[sourcePixel + 1], 1, decodeTransform);
+            byte y = TransformColorComponent(source[sourcePixel + 2], 2, decodeTransform);
+            byte k = TransformColorComponent(source[sourcePixel + 3], 3, decodeTransform);
+
+            target[targetPixel] = ConvertDeviceCmykComponentToRgb(c, k);
+            target[targetPixel + 1] = ConvertDeviceCmykComponentToRgb(m, k);
+            target[targetPixel + 2] = ConvertDeviceCmykComponentToRgb(y, k);
+        }
+    }
+
+    private static byte TransformColorComponent(byte sample, int componentIndex, PdfImageDecodeTransform? decodeTransform) {
+        return decodeTransform is null ? sample : decodeTransform.TransformColorComponent(sample, componentIndex);
+    }
+
+    private static byte ConvertDeviceCmykComponentToRgb(byte colorant, byte black) {
+        int ink = colorant + black;
+        return (byte)(255 - (ink > 255 ? 255 : ink));
+    }
+
+    private static bool TryBuildPngFileWithSoftMask(
         PdfStream stream,
         int width,
         int height,
         int bitsPerComponent,
+        int sourceColorCount,
+        int pngColorType,
+        PdfImageDecodeTransform? decodeTransform,
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
-        byte[] cmykPixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-        int expectedCmykLength = width * height * 4;
-        if (cmykPixels.Length < expectedCmykLength) {
+        if (!stream.Dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
             return false;
         }
 
-        bool hasSoftMask = stream.Dictionary.Items.ContainsKey("SMask");
-        byte[]? alphaPixels = null;
-        if (hasSoftMask &&
-            !TryDecodeSoftMask(stream, width, height, bitsPerComponent, objects, out alphaPixels)) {
+        PdfStream? softMask = ResolveStream(softMaskObj, objects);
+        if (softMask is null) {
             return false;
         }
 
-        PdfColorKeyMask? colorKeyMask = TryReadColorKeyMask(stream.Dictionary, 4, objects, out PdfColorKeyMask parsedColorKeyMask)
-            ? parsedColorKeyMask
-            : null;
-        bool hasAlpha = hasSoftMask || colorKeyMask.HasValue;
-        int outputChannels = hasAlpha ? 4 : 3;
-        int colorType = hasAlpha ? 6 : 2;
-        byte[] scanlines = new byte[(1 + width * outputChannels) * height];
+        int softMaskWidth = (int)(softMask.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
+        int softMaskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
+        int softMaskBitsPerComponent = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        string softMaskColorSpace = GetNameOrEmpty(softMask.Dictionary.Items.TryGetValue("ColorSpace", out var softMaskColorSpaceObj) ? softMaskColorSpaceObj : null, objects);
+        if (softMaskWidth != width ||
+            softMaskHeight != height ||
+            softMaskBitsPerComponent != bitsPerComponent ||
+            !string.Equals(softMaskColorSpace, "DeviceGray", System.StringComparison.Ordinal) ||
+            Filters.StreamDecoder.GetUnsupportedFilters(softMask.Dictionary, objects).Count != 0) {
+            return false;
+        }
+
+        int outputBaseColors;
+        int alphaColorType;
+        if (sourceColorCount == 1 && pngColorType == 0) {
+            outputBaseColors = 1;
+            alphaColorType = 4;
+        } else if (sourceColorCount == 3 && pngColorType == 2) {
+            outputBaseColors = 3;
+            alphaColorType = 6;
+        } else if (sourceColorCount == 4 && pngColorType == 2) {
+            outputBaseColors = 3;
+            alphaColorType = 6;
+        } else {
+            return false;
+        }
+
+        byte[] basePixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        byte[] alphaPixels = Filters.StreamDecoder.Decode(softMask.Dictionary, softMask.Data, objects);
+        long baseRowLengthLong = (long)width * sourceColorCount;
+        long alphaRowLengthLong = width;
+        long expectedBaseLengthLong = baseRowLengthLong * height;
+        long expectedAlphaLengthLong = alphaRowLengthLong * height;
+        long outputRowLengthLong = (long)width * (outputBaseColors + 1);
+        if (baseRowLengthLong > int.MaxValue ||
+            expectedBaseLengthLong > int.MaxValue ||
+            expectedAlphaLengthLong > int.MaxValue ||
+            outputRowLengthLong > int.MaxValue) {
+            return false;
+        }
+
+        int baseRowLength = (int)baseRowLengthLong;
+        int alphaRowLength = (int)alphaRowLengthLong;
+        int expectedBaseLength = (int)expectedBaseLengthLong;
+        int expectedAlphaLength = (int)expectedAlphaLengthLong;
+        int outputRowLength = (int)outputRowLengthLong;
+        if (basePixels.Length < expectedBaseLength || alphaPixels.Length < expectedAlphaLength) {
+            return false;
+        }
+
+        int outputChannels = outputBaseColors + 1;
+        var alphaDecodeTransform = PdfImageDecodeTransform.CreateColor(softMask.Dictionary, 1, objects);
+        byte[] scanlines = new byte[(1 + outputRowLength) * height];
         for (int row = 0; row < height; row++) {
-            int outputRow = row * (1 + width * outputChannels);
-            int cmykRow = row * width * 4;
-            int alphaRow = row * width;
+            int outputRow = row * (1 + outputRowLength);
+            int baseRow = row * baseRowLength;
+            int alphaRow = row * alphaRowLength;
             scanlines[outputRow] = 0;
 
             for (int pixel = 0; pixel < width; pixel++) {
-                int sourcePixel = cmykRow + pixel * 4;
                 int outputPixel = outputRow + 1 + pixel * outputChannels;
-                byte cyan = DecodeImageComponent(stream.Dictionary, 0, cmykPixels[sourcePixel], objects);
-                byte magenta = DecodeImageComponent(stream.Dictionary, 1, cmykPixels[sourcePixel + 1], objects);
-                byte yellow = DecodeImageComponent(stream.Dictionary, 2, cmykPixels[sourcePixel + 2], objects);
-                byte black = DecodeImageComponent(stream.Dictionary, 3, cmykPixels[sourcePixel + 3], objects);
-                scanlines[outputPixel] = ConvertCmykComponent(cyan, black);
-                scanlines[outputPixel + 1] = ConvertCmykComponent(magenta, black);
-                scanlines[outputPixel + 2] = ConvertCmykComponent(yellow, black);
-                if (hasAlpha) {
-                    if (alphaPixels is not null && alphaPixels.Length <= alphaRow + pixel) {
-                        return false;
+                int basePixel = baseRow + pixel * sourceColorCount;
+                if (sourceColorCount == 4) {
+                    CopyDeviceCmykRowAsRgb(basePixels, basePixel, scanlines, outputPixel, 1, decodeTransform);
+                } else {
+                    for (int channel = 0; channel < outputBaseColors; channel++) {
+                        scanlines[outputPixel + channel] = TransformColorComponent(basePixels[basePixel + channel], channel, decodeTransform);
                     }
-
-                    scanlines[outputPixel + 3] = ResolveImageAlpha(cmykPixels, sourcePixel, 4, colorKeyMask, alphaPixels, alphaRow + pixel);
                 }
+
+                scanlines[outputPixel + outputBaseColors] = TransformColorComponent(alphaPixels[alphaRow + pixel], 0, alphaDecodeTransform);
             }
         }
 
@@ -1085,7 +1301,7 @@ internal static partial class ResourceResolver {
             width,
             height,
             bitsPerComponent,
-            colorType,
+            alphaColorType,
             scanlines,
             OfficePngCompression.Stored);
         return true;
@@ -1112,12 +1328,11 @@ internal static partial class ResourceResolver {
         int softMaskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int softMaskBitsPerComponent = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
         string softMaskColorSpace = GetNameOrEmpty(softMask.Dictionary.Items.TryGetValue("ColorSpace", out var softMaskColorSpaceObj) ? softMaskColorSpaceObj : null, objects);
-        List<string> softMaskFilters = GetFilterNames(softMask.Dictionary.Items.TryGetValue("Filter", out var softMaskFilterObj) ? softMaskFilterObj : null, objects);
         if (softMaskWidth != width ||
             softMaskHeight != height ||
             softMaskBitsPerComponent != bitsPerComponent ||
             !string.Equals(softMaskColorSpace, "DeviceGray", System.StringComparison.Ordinal) ||
-            !CanDecodeImageSamples(softMaskFilters)) {
+            Filters.StreamDecoder.GetUnsupportedFilters(softMask.Dictionary, objects).Count != 0) {
             return false;
         }
 
@@ -1141,9 +1356,6 @@ internal static partial class ResourceResolver {
         double value = (1D - component / 255D) * (1D - black / 255D);
         return (byte)System.Math.Round(value * 255D);
     }
-
-    private static bool IsTrue(PdfObject? value, Dictionary<int, PdfIndirectObject> objects) =>
-        ResolveObject(value, objects) is PdfBoolean boolean && boolean.Value;
 
     private static PdfStream? ResolveStream(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         var resolved = ResolveObject(obj, objects);

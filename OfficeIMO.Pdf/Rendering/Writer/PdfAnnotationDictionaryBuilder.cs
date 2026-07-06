@@ -139,6 +139,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf " + PdfAcroFormDictionaryBuilder.FormatColor((style ?? new PdfFormFieldStyle()).TextColor) + " rg") +
             BuildQuaddingEntry(style) +
             BuildMkEntry(style) +
+            BuildBorderStyleEntry(style) +
             " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
             " >>" +
@@ -173,6 +174,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(selectedName) +
             BuildMkEntry(style) +
+            BuildBorderStyleEntry(style) +
             " /AP << /N << /Off " +
             PdfSyntaxEscaper.IndirectReference(offAppearanceId) +
             " /" +
@@ -261,6 +263,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             PdfSyntaxEscaper.LiteralString("/Helv " + FormatCoordinate(fontSize) + " Tf " + PdfAcroFormDictionaryBuilder.FormatColor((style ?? new PdfFormFieldStyle()).TextColor) + " rg") +
             BuildQuaddingEntry(style) +
             BuildMkEntry(style) +
+            BuildBorderStyleEntry(style) +
             " /AP << /N " +
             PdfSyntaxEscaper.IndirectReference(normalAppearanceId) +
             " >>" +
@@ -321,6 +324,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             "] /F 4 /AS /" +
             PdfSyntaxEscaper.Name(stateName) +
             BuildMkEntry(style) +
+            BuildBorderStyleEntry(style) +
             " /AP << /N << /Off " +
             PdfSyntaxEscaper.IndirectReference(offAppearanceId) +
             " /" +
@@ -505,6 +509,57 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         return sb.Length == 0 ? string.Empty : " /MK <<" + sb + " >>";
+    }
+
+    private static string BuildBorderStyleEntry(PdfFormFieldStyle? style) {
+        if (style == null || style.BorderWidth <= 0D) {
+            return string.Empty;
+        }
+
+        bool hasDashPattern = style.BorderDashPattern != null && style.BorderDashPattern.Count > 0;
+        string? styleName = ResolveBorderStyleName(style.BorderStyle, hasDashPattern);
+        if (styleName == null) {
+            return string.Empty;
+        }
+
+        bool isDashed = string.Equals(styleName, "D", StringComparison.Ordinal);
+        var sb = new StringBuilder(" /BS << /S /");
+        sb.Append(styleName);
+        sb.Append(" /W ");
+        sb.Append(FormatCoordinate(style.BorderWidth));
+        if (isDashed) {
+            IReadOnlyList<double> dashPattern = hasDashPattern ? style.BorderDashPattern! : DefaultBorderDashPattern;
+            sb.Append(" /D [");
+            for (int i = 0; i < dashPattern.Count; i++) {
+                if (i > 0) {
+                    sb.Append(' ');
+                }
+
+                sb.Append(FormatCoordinate(dashPattern[i]));
+            }
+
+            sb.Append(']');
+        }
+
+        sb.Append(" >>");
+        return sb.ToString();
+    }
+
+    private static string? ResolveBorderStyleName(PdfFormFieldBorderStyle borderStyle, bool hasDashPattern) {
+        switch (borderStyle) {
+            case PdfFormFieldBorderStyle.Dashed:
+                return "D";
+            case PdfFormFieldBorderStyle.Underline:
+                return "U";
+            case PdfFormFieldBorderStyle.Beveled:
+                return "B";
+            case PdfFormFieldBorderStyle.Inset:
+                return "I";
+            case PdfFormFieldBorderStyle.Solid:
+                return hasDashPattern ? "D" : null;
+            default:
+                return null;
+        }
     }
 
     private static void ValidateRadioOptions(IReadOnlyList<string> options, string value) {

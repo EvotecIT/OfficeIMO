@@ -1,7 +1,7 @@
 namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationDictionaryBuilder {
-    internal static string BuildStampAppearanceContent(double width, double height, string stampName, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 2D) {
+    internal static string BuildStampAppearanceContent(double width, double height, string stampName, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 2D, IReadOnlyList<double>? borderDashPattern = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNullOrWhiteSpace(stampName, nameof(stampName));
@@ -24,8 +24,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
         if (borderWidth > 0D) {
             double inset = borderWidth / 2D;
-            builder.Append(FormatColor(resolvedStrokeColor)).Append(" RG ")
-                .Append(FormatCoordinate(borderWidth)).Append(" w ")
+            builder.Append(BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern))
                 .Append(FormatCoordinate(inset)).Append(' ')
                 .Append(FormatCoordinate(inset)).Append(' ')
                 .Append(FormatCoordinate(Math.Max(0D, width - borderWidth))).Append(' ')
@@ -42,7 +41,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildCaretAppearanceContent(double width, double height, PdfColor? strokeColor = null, double borderWidth = 1D) {
+    internal static string BuildCaretAppearanceContent(double width, double height, PdfColor? strokeColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
@@ -52,8 +51,8 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
         PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
         return "q\n" +
-            FormatColor(resolvedStrokeColor) + " RG " +
-            FormatCoordinate(borderWidth) + " w 1 J 1 j " +
+            BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern) +
+            "1 J 1 j " +
             "0 " + FormatCoordinate(height) + " m " +
             FormatCoordinate(width / 2D) + " 0 l " +
             FormatCoordinate(width) + " " + FormatCoordinate(height) + " l S\n" +

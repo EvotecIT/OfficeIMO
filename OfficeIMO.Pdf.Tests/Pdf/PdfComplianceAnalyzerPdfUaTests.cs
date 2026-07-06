@@ -87,7 +87,7 @@ public partial class PdfComplianceAnalyzerTests {
         PdfComplianceRequirement markers = AssertRequirement(report, "tagged-catalog-markers", PdfComplianceRequirementStatus.Satisfied);
         PdfComplianceRequirement structure = AssertRequirement(report, "tagged-structure", PdfComplianceRequirementStatus.Unsupported);
         Assert.Contains("/MarkInfo", markers.Diagnostic);
-        Assert.Contains("complete marked-content reference coverage", structure.Diagnostic);
+        Assert.Contains("Generated structure evidence was not supplied", structure.Diagnostic);
         AssertRequirement(report, "tagged-page-tab-order", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "tagged-parent-tree-next-key", PdfComplianceRequirementStatus.Satisfied);
         AssertRequirement(report, "generated-document-structure-root", PdfComplianceRequirementStatus.Satisfied);

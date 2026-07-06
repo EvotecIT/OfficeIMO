@@ -5,7 +5,9 @@ public enum PdfRedactionMatchKind {
     /// <summary>Line-level logical text block.</summary>
     TextBlock = 0,
     /// <summary>Page annotation rectangle.</summary>
-    Annotation = 1
+    Annotation = 1,
+    /// <summary>Image XObject placement rectangle.</summary>
+    ImagePlacement = 2
 }
 
 /// <summary>Content intersecting a requested redaction area.</summary>
@@ -20,7 +22,8 @@ public sealed class PdfRedactionMatch {
         double height,
         string? text,
         string? subtype,
-        int? objectNumber) {
+        int? objectNumber,
+        string? resourceName = null) {
         Kind = kind;
         Area = area;
         PageNumber = pageNumber;
@@ -31,6 +34,7 @@ public sealed class PdfRedactionMatch {
         Text = text;
         Subtype = subtype;
         ObjectNumber = objectNumber;
+        ResourceName = resourceName;
     }
 
     /// <summary>Matched content kind.</summary>
@@ -62,4 +66,7 @@ public sealed class PdfRedactionMatch {
 
     /// <summary>Related PDF object number, when known.</summary>
     public int? ObjectNumber { get; }
+
+    /// <summary>Related PDF resource name, when matching an image placement.</summary>
+    public string? ResourceName { get; }
 }

@@ -316,6 +316,7 @@ public class PdfFormCreationTests {
             BackgroundColor = PdfColor.FromRgb(238, 242, 255),
             BorderColor = PdfColor.FromRgb(30, 64, 175),
             BorderWidth = 2,
+            BorderDashPattern = new[] { 6D, 2D },
             TextColor = PdfColor.FromRgb(127, 29, 29),
             MarkColor = PdfColor.FromRgb(22, 101, 52),
             TextAlignment = PdfFormFieldTextAlignment.Center
@@ -331,8 +332,9 @@ public class PdfFormCreationTests {
         string raw = Encoding.ASCII.GetString(pdf);
 
         Assert.Contains("/BC [0.118 0.251 0.686] /BG [0.933 0.949 1]", raw, StringComparison.Ordinal);
+        Assert.Equal(5, CountOccurrences(raw, "/BS << /S /D /W 2 /D [6 2] >>"));
         Assert.Contains("/Helv 10 Tf 0.498 0.114 0.114 rg", raw, StringComparison.Ordinal);
-        Assert.Contains("0.118 0.251 0.686 RG 2 w", raw, StringComparison.Ordinal);
+        Assert.Contains("0.118 0.251 0.686 RG 2 w [6 2] 0 d", raw, StringComparison.Ordinal);
         Assert.Contains("0.086 0.396 0.204 RG 1.25 w", raw, StringComparison.Ordinal);
         Assert.Contains("0.086 0.396 0.204 rg", raw, StringComparison.Ordinal);
         Assert.Equal(2, CountOccurrences(raw, "/Q 1"));
@@ -349,8 +351,51 @@ public class PdfFormCreationTests {
         string filledRaw = Encoding.ASCII.GetString(filled);
 
         Assert.Contains("<46696C6C6564> Tj", filledRaw, StringComparison.Ordinal);
-        Assert.Contains("0.118 0.251 0.686 RG 1 w", filledRaw, StringComparison.Ordinal);
+        Assert.Contains("0.118 0.251 0.686 RG 2 w [6 2] 0 d", filledRaw, StringComparison.Ordinal);
         Assert.Contains("0.498 0.114 0.114 rg", filledRaw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GeneratedFields_CanUseUnderlineBorderStyle() {
+        var style = new PdfFormFieldStyle {
+            BackgroundColor = PdfColor.White,
+            BorderColor = PdfColor.FromRgb(30, 64, 175),
+            BorderWidth = 2,
+            BorderStyle = PdfFormFieldBorderStyle.Underline,
+            TextColor = PdfColor.Black
+        };
+
+        byte[] pdf = PdfDocument.Create()
+            .TextField("Styled.Underline", value: "Ada", style: style)
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/BS << /S /U /W 2 >>", raw, StringComparison.Ordinal);
+        Assert.Contains("0.118 0.251 0.686 RG 2 w 0 1 m 180 1 l S", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("0.118 0.251 0.686 RG 2 w 1 1 178 20 re S", raw, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GeneratedFields_CanUseBeveledBorderStyle() {
+        var style = new PdfFormFieldStyle {
+            BackgroundColor = PdfColor.White,
+            BorderColor = PdfColor.Black,
+            BorderWidth = 2,
+            BorderStyle = PdfFormFieldBorderStyle.Beveled,
+            TextColor = PdfColor.Black
+        };
+
+        byte[] pdf = PdfDocument.Create()
+            .TextField("Styled.Beveled", value: "Ada", style: style)
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+
+        Assert.Contains("/BS << /S /B /W 2 >>", raw, StringComparison.Ordinal);
+        Assert.Contains("0.55 0.55 0.55 RG 2 w 1 1 m 1 21 l 179 21 l S", raw, StringComparison.Ordinal);
+        Assert.Contains("0 0 0 RG 2 w 1 1 m 179 1 l 179 21 l S", raw, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 0 0 RG 2 w 1 1 178 20 re S", raw, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -782,7 +827,10 @@ public class PdfFormCreationTests {
 
         Assert.Equal(new[] { "Germany", "United States" }, filledField.Values);
         Assert.Equal(new[] { "Germany", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
-        Assert.Contains("<4765726D616E792C20556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        string filledRaw = Encoding.ASCII.GetString(filled);
+        Assert.Contains("<4765726D616E79> Tj", filledRaw, StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", filledRaw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<4765726D616E792C20556E6974656420537461746573> Tj", filledRaw, StringComparison.Ordinal);
 
         byte[] scalarFilled = PdfFormFiller.FillFields(pdf, new Dictionary<string, string> {
             ["Countries"] = "Germany"
@@ -921,6 +969,12 @@ public class PdfFormCreationTests {
         Assert.Throws<ArgumentOutOfRangeException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, gap: -1));
         Assert.Throws<ArgumentException>(() => PdfDocument.Create().RadioButtonGroup("Group", new[] { "One" }, align: PdfAlign.Justify));
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderWidth = -1 });
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = Array.Empty<double>() });
+        Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { 0D, 0D } });
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderDashPattern = new[] { -1D } });
+        Assert.Equal(PdfFormFieldBorderStyle.Beveled, new PdfFormFieldStyle { BorderStyle = PdfFormFieldBorderStyle.Beveled }.BorderStyle);
+        Assert.Equal(PdfFormFieldBorderStyle.Inset, new PdfFormFieldStyle { BorderStyle = PdfFormFieldBorderStyle.Inset }.BorderStyle);
+        Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { BorderStyle = (PdfFormFieldBorderStyle)999 });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { AlternateName = " " });
         Assert.Throws<ArgumentException>(() => new PdfFormFieldStyle { MappingName = " " });
         Assert.Throws<ArgumentOutOfRangeException>(() => new PdfFormFieldStyle { TextAlignment = PdfFormFieldTextAlignment.Unknown });

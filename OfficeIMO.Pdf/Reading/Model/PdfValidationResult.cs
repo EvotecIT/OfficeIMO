@@ -41,6 +41,18 @@ public sealed class PdfValidationResult {
     /// <summary>True when OfficeIMO.Pdf can fill and flatten supported simple AcroForm fields.</summary>
     public bool CanFillAndFlattenSimpleFormFields => Preflight.CanFillAndFlattenSimpleFormFields;
 
+    /// <summary>Append-only mutation policy for metadata, form-value, and external-signature revisions.</summary>
+    public PdfAppendOnlyMutationReport AppendOnlyMutationReport => Preflight.AppendOnlyMutationReport;
+
+    /// <summary>True when OfficeIMO.Pdf can append a metadata-only revision to this input.</summary>
+    public bool CanAppendMetadataRevision => Preflight.CanAppendMetadataRevision;
+
+    /// <summary>True when OfficeIMO.Pdf can append simple AcroForm field-value revisions to this input.</summary>
+    public bool CanAppendFormFieldRevision => Preflight.CanAppendFormFieldRevision;
+
+    /// <summary>True when OfficeIMO.Pdf can append an external-signature placeholder revision to this input.</summary>
+    public bool CanPrepareExternalSignatureRevision => Preflight.CanPrepareExternalSignatureRevision;
+
     /// <summary>Parsed document information when validation reached inspection.</summary>
     public PdfDocumentInfo? DocumentInfo => Preflight.DocumentInfo;
 

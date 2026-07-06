@@ -6,8 +6,19 @@ namespace OfficeIMO.Rtf.Pdf;
 /// Controls conversion from an RTF document model to a first-party PDF document.
 /// </summary>
 public sealed class RtfPdfSaveOptions {
+    /// <summary>Creates RTF to PDF save options.</summary>
+    public RtfPdfSaveOptions() {
+    }
+
+    private RtfPdfSaveOptions(PdfCore.PdfConversionReport conversionReport) {
+        ConversionReport = conversionReport;
+    }
+
     /// <summary>Optional PDF engine options. The converter clones the instance before applying RTF page setup.</summary>
     public PdfCore.PdfOptions? PdfOptions { get; set; }
+
+    /// <summary>Shared conversion diagnostics populated during PDF export.</summary>
+    public PdfCore.PdfConversionReport ConversionReport { get; } = new PdfCore.PdfConversionReport();
 
     /// <summary>When true, RTF hidden runs are included in PDF output. Hidden text is skipped by default.</summary>
     public bool IncludeHiddenText { get; set; }
@@ -43,7 +54,7 @@ public sealed class RtfPdfSaveOptions {
             throw new ArgumentOutOfRangeException(nameof(DefaultImageHeight), "Default image height must be greater than zero.");
         }
 
-        return new RtfPdfSaveOptions {
+        return new RtfPdfSaveOptions(ConversionReport) {
             PdfOptions = PdfOptions?.Clone(),
             IncludeHiddenText = IncludeHiddenText,
             IncludeImages = IncludeImages,
@@ -54,5 +65,9 @@ public sealed class RtfPdfSaveOptions {
             IncludeHeaderFooters = IncludeHeaderFooters,
             IncludeNotes = IncludeNotes
         };
+    }
+
+    internal void ResetExportState() {
+        ConversionReport.Clear();
     }
 }

@@ -141,13 +141,13 @@ public static partial class PdfFormFiller {
         }
     }
 
-    private static string? JoinSimpleValues(IReadOnlyList<string>? values) {
+    private static string? JoinSimpleValues(IReadOnlyList<string>? values, string separator) {
         return values is { Count: > 0 }
-            ? string.Join(", ", values)
+            ? string.Join(separator, values)
             : null;
     }
 
-    private static string? TryResolveChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, IReadOnlyList<string>? exportValues) {
+    private static string? TryResolveChoiceDisplayValue(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, IReadOnlyList<string>? exportValues, string separator) {
         if (exportValues is not { Count: > 0 } ||
             options is null ||
             options.Items.Count == 0) {
@@ -160,7 +160,7 @@ public static partial class PdfFormFiller {
             displayValues.Add(optionLookup.ResolveDisplayValue(exportValues[i]) ?? exportValues[i]);
         }
 
-        return displayValues.Count == 0 ? null : string.Join(", ", displayValues);
+        return displayValues.Count == 0 ? null : string.Join(separator, displayValues);
     }
 
     private static List<ChoiceFillValue> ResolveChoiceFillValues(Dictionary<int, PdfIndirectObject> objects, PdfArray? options, bool isEditableChoice, IReadOnlyList<string> values) {

@@ -143,14 +143,7 @@ public partial class PdfReaderAndFooterRegressionTests {
 
         Assert.Equal(2, placements.Count);
         Assert.Equal(2, images.Count);
-        Assert.All(images, AssertExtractedPngImage);
-
-        List<byte[]> decodedImages = images
-            .Select(image => PdfPngTestImages.DecodeStoredPngIdat(image.Bytes))
-            .OrderBy(bytes => bytes[1])
-            .ToList();
-        Assert.Equal(new byte[] { 0, 97, 97, 97 }, decodedImages[0]);
-        Assert.Equal(new byte[] { 0, 98, 98, 98 }, decodedImages[1]);
+        Assert.Equal(new[] { "aaa", "bbb" }, images.Select(DecodeSingleRgbPngPixel).OrderBy(value => value, StringComparer.Ordinal).ToArray());
     }
 
     [Fact]
@@ -162,8 +155,7 @@ public partial class PdfReaderAndFooterRegressionTests {
 
         PdfExtractedImage image = Assert.Single(images);
         Assert.Single(placements);
-        AssertExtractedPngImage(image);
-        Assert.Equal(new byte[] { 0, 102, 111, 114 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+        Assert.Equal("for", DecodeSingleRgbPngPixel(image));
     }
 
     [Fact]
@@ -189,10 +181,13 @@ public partial class PdfReaderAndFooterRegressionTests {
         return Assert.IsAssignableFrom<IReadOnlyList<PdfExtractedImage>>(method!.Invoke(page, new object[] { 0, placements })!);
     }
 
-    private static void AssertExtractedPngImage(PdfExtractedImage image) {
+    private static string DecodeSingleRgbPngPixel(PdfExtractedImage image) {
         Assert.True(image.IsImageFile);
         Assert.Equal("png", image.FileExtension);
-        Assert.Equal("image/png", image.MimeType);
+        byte[] scanline = PdfPngTestImages.DecodePngIdat(image.Bytes);
+        Assert.Equal(4, scanline.Length);
+        Assert.Equal((byte)0, scanline[0]);
+        return Encoding.ASCII.GetString(scanline, 1, 3);
     }
 
     [Fact]

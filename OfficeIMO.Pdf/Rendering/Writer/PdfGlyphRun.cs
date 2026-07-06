@@ -26,21 +26,31 @@ internal sealed class PdfGlyphRun {
 }
 
 internal readonly struct PdfGlyphInfo {
-    public PdfGlyphInfo(int glyphId, int unicodeScalar, int textIndex, int advanceWidth1000) {
+    public PdfGlyphInfo(int glyphId, int unicodeScalar, int textIndex, int advanceWidth1000)
+        : this(glyphId, char.ConvertFromUtf32(unicodeScalar), unicodeScalar, textIndex, advanceWidth1000) {
+    }
+
+    public PdfGlyphInfo(int glyphId, string unicodeText, int textIndex, int advanceWidth1000)
+        : this(glyphId, unicodeText, unicodeText != null && unicodeText.Length > 0 ? char.ConvertToUtf32(unicodeText, 0) : 0, textIndex, advanceWidth1000) {
+    }
+
+    private PdfGlyphInfo(int glyphId, string unicodeText, int unicodeScalar, int textIndex, int advanceWidth1000) {
         GlyphId = glyphId;
+        UnicodeText = unicodeText ?? string.Empty;
         UnicodeScalar = unicodeScalar;
         TextIndex = textIndex;
         AdvanceWidth1000 = advanceWidth1000;
     }
 
     public int GlyphId { get; }
+    public string UnicodeText { get; }
     public int UnicodeScalar { get; }
     public int TextIndex { get; }
     public int AdvanceWidth1000 { get; }
 }
 
 internal readonly struct PdfTextShapingOptions {
-    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) {
+    public PdfTextShapingOptions(bool recordGlyphUsage, bool throwOnMissingGlyph, bool skipLayoutControls, bool reportControlCharacters, string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null) {
         RecordGlyphUsage = recordGlyphUsage;
         ThrowOnMissingGlyph = throwOnMissingGlyph;
         SkipLayoutControls = skipLayoutControls;
@@ -48,6 +58,8 @@ internal readonly struct PdfTextShapingOptions {
         Source = source ?? string.Empty;
         FontName = fontName ?? string.Empty;
         ShapingMode = shapingMode;
+        ShapingProvider = shapingProvider;
+        ProviderShapedTextRecorder = providerShapedTextRecorder;
     }
 
     public bool RecordGlyphUsage { get; }
@@ -57,12 +69,14 @@ internal readonly struct PdfTextShapingOptions {
     public string Source { get; }
     public string FontName { get; }
     public PdfTextShapingMode ShapingMode { get; }
+    public IPdfTextShapingProvider? ShapingProvider { get; }
+    public Action<string, string, bool>? ProviderShapedTextRecorder { get; }
 
-    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
-        new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode);
+    public static PdfTextShapingOptions ForRendering(string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null, Action<string, string, bool>? providerShapedTextRecorder = null) =>
+        new PdfTextShapingOptions(recordGlyphUsage: true, throwOnMissingGlyph: true, skipLayoutControls: false, reportControlCharacters: false, source: string.Empty, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider, providerShapedTextRecorder: providerShapedTextRecorder);
 
-    public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar) =>
-        new PdfTextShapingOptions(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true, reportControlCharacters: true, source: source, fontName: fontName, shapingMode: shapingMode);
+    public static PdfTextShapingOptions ForDiagnostics(string source, string fontName, PdfTextShapingMode shapingMode = PdfTextShapingMode.UnicodeScalar, IPdfTextShapingProvider? shapingProvider = null) =>
+        new PdfTextShapingOptions(recordGlyphUsage: false, throwOnMissingGlyph: false, skipLayoutControls: true, reportControlCharacters: true, source: source, fontName: fontName, shapingMode: shapingMode, shapingProvider: shapingProvider);
 }
 
 internal interface IPdfTextShaper {

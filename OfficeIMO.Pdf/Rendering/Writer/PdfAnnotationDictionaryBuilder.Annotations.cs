@@ -2,6 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfAnnotationDictionaryBuilder {
     private static readonly char[] SpaceSeparators = { ' ' };
+    private static readonly double[] DefaultBorderDashPattern = { 3D };
 
     internal static string BuildTextAnnotation(double x1, double y1, double x2, double y2, string contents, PdfTextAnnotationIcon icon = PdfTextAnnotationIcon.Comment, PdfColor? color = null, bool open = false) {
         ValidateRectangle(x1, y1, x2, y2);
@@ -82,7 +83,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             " >>\n";
     }
 
-    internal static string BuildFreeTextAppearanceContent(double width, double height, string contents, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null) {
+    internal static string BuildFreeTextAppearanceContent(double width, double height, string contents, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NotNull(contents, nameof(contents));
@@ -95,9 +96,10 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         PdfColor resolvedTextColor = textColor ?? PdfColor.Black;
+        ResolveFreeTextInnerRectangle(width, height, rectangleDifferences, out double innerX, out double innerY, out double innerWidth, out double innerHeight);
         double effectiveLineHeight = lineHeight ?? fontSize * 1.2D;
-        double availableWidth = Math.Max(0D, width - padding * 2D);
-        double availableHeight = Math.Max(0D, height - padding * 2D);
+        double availableWidth = Math.Max(0D, innerWidth - padding * 2D);
+        double availableHeight = Math.Max(0D, innerHeight - padding * 2D);
         List<string> lines = BuildFreeTextAppearanceLines(contents, fontSize, availableWidth);
         int maxVisibleLines = availableHeight > 0D ? Math.Max(1, (int)Math.Floor(availableHeight / effectiveLineHeight)) : 0;
         if (maxVisibleLines > 0 && lines.Count > maxVisibleLines) {
@@ -111,17 +113,28 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
         string content = "q\n";
         if (fillColor.HasValue) {
-            content += FormatColor(fillColor.Value) + " rg 0 0 " + FormatCoordinate(width) + " " + FormatCoordinate(height) + " re f\n";
+            content += FormatColor(fillColor.Value) + " rg " + FormatCoordinate(innerX) + " " + FormatCoordinate(innerY) + " " + FormatCoordinate(innerWidth) + " " + FormatCoordinate(innerHeight) + " re f\n";
+        }
+
+        if (calloutLine != null && calloutLine.Count >= 2) {
+            PdfColor calloutColor = borderColor ?? resolvedTextColor;
+            double calloutWidth = borderWidth > 0D ? borderWidth : 1D;
+            content += BuildFreeTextCalloutLineContent(calloutLine, calloutColor, calloutWidth, borderDashPattern, calloutLineEnding);
         }
 
         if (borderColor.HasValue && borderWidth > 0D) {
-            double inset = Math.Max(0.5D, borderWidth * 0.5D);
-            content += FormatColor(borderColor.Value) + " RG " + FormatCoordinate(borderWidth) + " w " +
-                FormatCoordinate(inset) + " " + FormatCoordinate(inset) + " " + FormatCoordinate(Math.Max(0D, width - inset * 2D)) + " " + FormatCoordinate(Math.Max(0D, height - inset * 2D)) + " re S\n";
+            IReadOnlyList<double>? effectiveDashPattern = borderStyle == PdfFormFieldBorderStyle.Dashed && (borderDashPattern == null || borderDashPattern.Count == 0)
+                ? DefaultBorderDashPattern
+                : borderDashPattern;
+            string borderContent = string.Equals(borderEffectStyle, "C", StringComparison.Ordinal) && borderEffectIntensity > 0D
+                ? BuildShapeAppearanceContent(innerWidth, innerHeight, "Square", borderColor.Value, null, borderWidth, effectiveDashPattern, borderEffectStyle, borderEffectIntensity)
+                : PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(innerWidth, innerHeight, borderColor.Value, borderWidth, effectiveDashPattern, borderStyle);
+            content += TranslateContent(borderContent, innerX, innerY);
         }
 
-        double baseline = height - padding - fontSize;
-        for (int i = 0; i < lines.Count && baseline >= padding - fontSize * 0.25D; i++) {
+        double baseline = innerY + innerHeight - padding - fontSize;
+        double minimumBaseline = innerY + padding - fontSize * 0.25D;
+        for (int i = 0; i < lines.Count && baseline >= minimumBaseline; i++) {
             string line = lines[i];
             if (!PdfWinAnsiEncoding.CanEncode(line, out _)) {
                 baseline -= effectiveLineHeight;
@@ -129,12 +142,136 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             }
 
             double lineWidth = EstimateWinAnsiTextWidth(line, fontSize);
-            double textX = ResolveFreeTextLineX(textAlign, padding, availableWidth, lineWidth);
+            double textX = innerX + ResolveFreeTextLineX(textAlign, padding, availableWidth, lineWidth);
             content += "BT /Helv " + FormatCoordinate(fontSize) + " Tf " + FormatColor(resolvedTextColor) + " rg " + FormatCoordinate(textX) + " " + FormatCoordinate(Math.Max(0D, baseline)) + " Td " + PdfSyntaxEscaper.WinAnsiHexString(line) + " Tj ET\n";
             baseline -= effectiveLineHeight;
         }
 
         return content + "Q\n";
+    }
+
+    internal static string BuildFreeTextRichAppearanceContent(double width, double height, IReadOnlyList<PdfFreeTextRichTextRun> runs, out IReadOnlyList<(string Name, PdfStandardFont Font)> fontResources, double fontSize = 10D, PdfColor? textColor = null, PdfColor? borderColor = null, double borderWidth = 1D, PdfColor? fillColor = null, PdfAlign textAlign = PdfAlign.Left, double padding = 3D, double? lineHeight = null, IReadOnlyList<double>? borderDashPattern = null, PdfFormFieldBorderStyle borderStyle = PdfFormFieldBorderStyle.Solid, IReadOnlyList<PdfAnnotationPathPoint>? calloutLine = null, string? calloutLineEnding = null, IReadOnlyList<double>? rectangleDifferences = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
+        Guard.Positive(width, nameof(width));
+        Guard.Positive(height, nameof(height));
+        Guard.NotNull(runs, nameof(runs));
+        Guard.Positive(fontSize, nameof(fontSize));
+        Guard.NonNegative(borderWidth, nameof(borderWidth));
+        Guard.LeftCenterRightAlign(textAlign, nameof(textAlign), "PDF free text annotation text");
+        Guard.NonNegative(padding, nameof(padding));
+        if (lineHeight.HasValue) {
+            Guard.Positive(lineHeight.Value, nameof(lineHeight));
+        }
+
+        PdfColor resolvedTextColor = textColor ?? PdfColor.Black;
+        ResolveFreeTextInnerRectangle(width, height, rectangleDifferences, out double innerX, out double innerY, out double innerWidth, out double innerHeight);
+        double effectiveLineHeight = lineHeight ?? fontSize * 1.2D;
+        double availableWidth = Math.Max(0D, innerWidth - padding * 2D);
+        double availableHeight = Math.Max(0D, innerHeight - padding * 2D);
+        List<List<PdfFreeTextRichTextRun>> lines = BuildFreeTextRichAppearanceLines(runs, fontSize, availableWidth);
+        int maxVisibleLines = availableHeight > 0D ? Math.Max(1, (int)Math.Floor(availableHeight / effectiveLineHeight)) : 0;
+        if (maxVisibleLines > 0 && lines.Count > maxVisibleLines) {
+            lines = lines.GetRange(0, maxVisibleLines);
+        }
+
+        var resources = new List<(string Name, PdfStandardFont Font)>();
+        var content = new StringBuilder();
+        content.Append("q\n");
+        if (fillColor.HasValue) {
+            content.Append(FormatColor(fillColor.Value)).Append(" rg ")
+                .Append(FormatCoordinate(innerX)).Append(' ')
+                .Append(FormatCoordinate(innerY)).Append(' ')
+                .Append(FormatCoordinate(innerWidth)).Append(' ')
+                .Append(FormatCoordinate(innerHeight)).Append(" re f\n");
+        }
+
+        if (calloutLine != null && calloutLine.Count >= 2) {
+            PdfColor calloutColor = borderColor ?? resolvedTextColor;
+            double calloutWidth = borderWidth > 0D ? borderWidth : 1D;
+            content.Append(BuildFreeTextCalloutLineContent(calloutLine, calloutColor, calloutWidth, borderDashPattern, calloutLineEnding));
+        }
+
+        if (borderColor.HasValue && borderWidth > 0D) {
+            IReadOnlyList<double>? effectiveDashPattern = borderStyle == PdfFormFieldBorderStyle.Dashed && (borderDashPattern == null || borderDashPattern.Count == 0)
+                ? DefaultBorderDashPattern
+                : borderDashPattern;
+            string borderContent = string.Equals(borderEffectStyle, "C", StringComparison.Ordinal) && borderEffectIntensity > 0D
+                ? BuildShapeAppearanceContent(innerWidth, innerHeight, "Square", borderColor.Value, null, borderWidth, effectiveDashPattern, borderEffectStyle, borderEffectIntensity)
+                : PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(innerWidth, innerHeight, borderColor.Value, borderWidth, effectiveDashPattern, borderStyle);
+            content.Append(TranslateContent(borderContent, innerX, innerY));
+        }
+
+        double baseline = innerY + innerHeight - padding - fontSize;
+        double minimumBaseline = innerY + padding - fontSize * 0.25D;
+        for (int i = 0; i < lines.Count && baseline >= minimumBaseline; i++) {
+            List<PdfFreeTextRichTextRun> line = lines[i];
+            if (!CanEncodeFreeTextRichLine(line)) {
+                baseline -= effectiveLineHeight;
+                continue;
+            }
+
+            double lineWidth = MeasureFreeTextRichLine(line, fontSize);
+            double textX = innerX + ResolveFreeTextLineX(textAlign, padding, availableWidth, lineWidth);
+            AppendFreeTextRichLine(content, line, textX, Math.Max(0D, baseline), fontSize, resolvedTextColor, resources);
+            baseline -= effectiveLineHeight;
+        }
+
+        content.Append("Q\n");
+        fontResources = resources.Count == 0
+            ? new[] { ("Helv", PdfStandardFont.Helvetica) }
+            : resources;
+        return content.ToString();
+    }
+
+    private static void ResolveFreeTextInnerRectangle(double width, double height, IReadOnlyList<double>? rectangleDifferences, out double x, out double y, out double innerWidth, out double innerHeight) {
+        x = 0D;
+        y = 0D;
+        innerWidth = width;
+        innerHeight = height;
+        if (rectangleDifferences == null || rectangleDifferences.Count < 4) {
+            return;
+        }
+
+        double left = rectangleDifferences[0];
+        double top = rectangleDifferences[1];
+        double right = rectangleDifferences[2];
+        double bottom = rectangleDifferences[3];
+        if (!IsValidRectangleDifference(left) ||
+            !IsValidRectangleDifference(top) ||
+            !IsValidRectangleDifference(right) ||
+            !IsValidRectangleDifference(bottom) ||
+            left + right >= width ||
+            top + bottom >= height) {
+            return;
+        }
+
+        x = left;
+        y = bottom;
+        innerWidth = width - left - right;
+        innerHeight = height - top - bottom;
+    }
+
+    private static bool IsValidRectangleDifference(double value) =>
+        value >= 0D && !double.IsNaN(value) && !double.IsInfinity(value);
+
+    private static string TranslateContent(string content, double x, double y) {
+        if (string.IsNullOrEmpty(content) || (Math.Abs(x) <= 0.0001D && Math.Abs(y) <= 0.0001D)) {
+            return content;
+        }
+
+        return "q\n1 0 0 1 " + FormatCoordinate(x) + " " + FormatCoordinate(y) + " cm\n" + content + "Q\n";
+    }
+
+    private static string BuildFreeTextCalloutLineContent(IReadOnlyList<PdfAnnotationPathPoint> calloutLine, PdfColor color, double borderWidth, IReadOnlyList<double>? borderDashPattern, string? lineEnding) {
+        var builder = new StringBuilder();
+        builder.Append(BuildBorderStrokeOperators(color, borderWidth, borderDashPattern));
+        builder.Append(FormatCoordinate(calloutLine[0].X)).Append(' ').Append(FormatCoordinate(calloutLine[0].Y)).Append(" m ");
+        for (int i = 1; i < calloutLine.Count; i++) {
+            builder.Append(FormatCoordinate(calloutLine[i].X)).Append(' ').Append(FormatCoordinate(calloutLine[i].Y)).Append(" l ");
+        }
+
+        builder.Append("S\n");
+        AppendLineEnding(builder, lineEnding, calloutLine[0].X, calloutLine[0].Y, calloutLine[1].X, calloutLine[1].Y, borderWidth, color, color);
+        return builder.ToString();
     }
 
     internal static string BuildHighlightAppearanceContent(double width, double height, PdfColor? color = null) {
@@ -229,10 +366,11 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         return builder.ToString();
     }
 
-    internal static string BuildShapeAppearanceContent(double width, double height, string subtype, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D) {
+    internal static string BuildShapeAppearanceContent(double width, double height, string subtype, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? borderEffectStyle = null, double borderEffectIntensity = 0D) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
+        Guard.NonNegative(borderEffectIntensity, nameof(borderEffectIntensity));
         ValidateShapeSubtype(subtype);
 
         bool hasStroke = borderWidth > 0D;
@@ -242,29 +380,50 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
         PdfColor resolvedStrokeColor = strokeColor ?? PdfColor.Black;
         double inset = hasStroke ? borderWidth * 0.5D : 0D;
+        bool useCloudyBorder = hasStroke &&
+            borderEffectIntensity > 0D &&
+            string.Equals(borderEffectStyle, "C", StringComparison.Ordinal);
         var builder = new StringBuilder();
         builder.Append("q\n");
-        if (fillColor.HasValue) {
+        if (fillColor.HasValue && useCloudyBorder) {
+            builder.Append(FormatColor(fillColor.Value)).Append(" rg ");
+            if (string.Equals(subtype, "Square", StringComparison.Ordinal)) {
+                AppendSquarePath(builder, inset, inset, Math.Max(0D, width - inset * 2D), Math.Max(0D, height - inset * 2D));
+            } else {
+                AppendCirclePath(builder, inset, inset, Math.Max(0D, width - inset * 2D), Math.Max(0D, height - inset * 2D));
+            }
+
+            builder.Append("f\n");
+        } else if (fillColor.HasValue) {
             builder.Append(FormatColor(fillColor.Value)).Append(" rg ");
         }
 
         if (hasStroke) {
-            builder.Append(FormatColor(resolvedStrokeColor)).Append(" RG ")
-                .Append(FormatCoordinate(borderWidth)).Append(" w ");
+            builder.Append(BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern));
         }
 
-        if (string.Equals(subtype, "Square", StringComparison.Ordinal)) {
+        if (useCloudyBorder) {
+            double cloudyInset = inset + ResolveCloudyBorderAmplitude(borderWidth, borderEffectIntensity);
+            if (string.Equals(subtype, "Square", StringComparison.Ordinal)) {
+                AppendCloudyRectanglePath(builder, cloudyInset, cloudyInset, Math.Max(0D, width - cloudyInset * 2D), Math.Max(0D, height - cloudyInset * 2D), borderWidth, borderEffectIntensity);
+            } else {
+                AppendCloudyCirclePath(builder, cloudyInset, cloudyInset, Math.Max(0D, width - cloudyInset * 2D), Math.Max(0D, height - cloudyInset * 2D), borderWidth, borderEffectIntensity);
+            }
+
+            builder.Append("S\n");
+        } else if (string.Equals(subtype, "Square", StringComparison.Ordinal)) {
             AppendSquarePath(builder, inset, inset, Math.Max(0D, width - inset * 2D), Math.Max(0D, height - inset * 2D));
+            builder.Append(fillColor.HasValue && hasStroke ? "B\n" : fillColor.HasValue ? "f\n" : "S\n");
         } else {
             AppendCirclePath(builder, inset, inset, Math.Max(0D, width - inset * 2D), Math.Max(0D, height - inset * 2D));
+            builder.Append(fillColor.HasValue && hasStroke ? "B\n" : fillColor.HasValue ? "f\n" : "S\n");
         }
 
-        builder.Append(fillColor.HasValue && hasStroke ? "B\n" : fillColor.HasValue ? "f\n" : "S\n");
         builder.Append("Q\n");
         return builder.ToString();
     }
 
-    internal static string BuildLineAppearanceContent(double width, double height, double x1, double y1, double x2, double y2, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, string? startEnding = null, string? endEnding = null) {
+    internal static string BuildLineAppearanceContent(double width, double height, double x1, double y1, double x2, double y2, PdfColor? strokeColor = null, PdfColor? fillColor = null, double borderWidth = 1D, IReadOnlyList<double>? borderDashPattern = null, string? startEnding = null, string? endEnding = null) {
         Guard.Positive(width, nameof(width));
         Guard.Positive(height, nameof(height));
         Guard.NonNegative(borderWidth, nameof(borderWidth));
@@ -284,8 +443,7 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         PdfColor resolvedFillColor = fillColor ?? resolvedStrokeColor;
         var builder = new StringBuilder();
         builder.Append("q\n")
-            .Append(FormatColor(resolvedStrokeColor)).Append(" RG ")
-            .Append(FormatCoordinate(borderWidth)).Append(" w ")
+            .Append(BuildBorderStrokeOperators(resolvedStrokeColor, borderWidth, borderDashPattern))
             .Append(FormatCoordinate(x1)).Append(' ').Append(FormatCoordinate(y1)).Append(" m ")
             .Append(FormatCoordinate(x2)).Append(' ').Append(FormatCoordinate(y2)).Append(" l S\n");
 
@@ -308,6 +466,194 @@ internal static partial class PdfAnnotationDictionaryBuilder {
         }
 
         return lines;
+    }
+
+    private static List<List<PdfFreeTextRichTextRun>> BuildFreeTextRichAppearanceLines(IReadOnlyList<PdfFreeTextRichTextRun> runs, double defaultFontSize, double availableWidth) {
+        var lines = new List<List<PdfFreeTextRichTextRun>>();
+        var current = new List<PdfFreeTextRichTextRun>();
+        double currentWidth = 0D;
+
+        for (int i = 0; i < runs.Count; i++) {
+            PdfFreeTextRichTextRun run = runs[i];
+            if (run.IsLineBreak) {
+                lines.Add(current);
+                current = new List<PdfFreeTextRichTextRun>();
+                currentWidth = 0D;
+                continue;
+            }
+
+            AppendFreeTextRichWrappedRun(lines, current, ref currentWidth, run, defaultFontSize, availableWidth);
+        }
+
+        lines.Add(current);
+        if (lines.Count == 0) {
+            lines.Add(new List<PdfFreeTextRichTextRun>());
+        }
+
+        return lines;
+    }
+
+    private static void AppendFreeTextRichWrappedRun(List<List<PdfFreeTextRichTextRun>> lines, List<PdfFreeTextRichTextRun> current, ref double currentWidth, PdfFreeTextRichTextRun run, double defaultFontSize, double availableWidth) {
+        string text = run.Text.Replace("\r\n", "\n").Replace('\r', '\n');
+        int tokenStart = 0;
+        bool tokenIsSpace = false;
+        bool hasToken = false;
+        for (int i = 0; i <= text.Length; i++) {
+            bool atEnd = i == text.Length;
+            bool isSpace = !atEnd && char.IsWhiteSpace(text[i]) && text[i] != '\n';
+            bool isLineBreak = !atEnd && text[i] == '\n';
+            if (!hasToken && !atEnd && !isLineBreak) {
+                tokenStart = i;
+                tokenIsSpace = isSpace;
+                hasToken = true;
+                continue;
+            }
+
+            if (hasToken && (atEnd || isLineBreak || isSpace != tokenIsSpace)) {
+                string token = text.Substring(tokenStart, i - tokenStart);
+                AppendFreeTextRichToken(lines, current, ref currentWidth, run, tokenIsSpace ? " " : token, tokenIsSpace, defaultFontSize, availableWidth);
+                hasToken = false;
+            }
+
+            if (isLineBreak) {
+                lines.Add(new List<PdfFreeTextRichTextRun>(current));
+                current.Clear();
+                currentWidth = 0D;
+            }
+        }
+    }
+
+    private static void AppendFreeTextRichToken(List<List<PdfFreeTextRichTextRun>> lines, List<PdfFreeTextRichTextRun> current, ref double currentWidth, PdfFreeTextRichTextRun template, string token, bool isWhitespace, double defaultFontSize, double availableWidth) {
+        if (token.Length == 0 || (isWhitespace && current.Count == 0)) {
+            return;
+        }
+
+        double tokenWidth = EstimateWinAnsiTextWidth(token, template.FontSize ?? defaultFontSize);
+        if (!isWhitespace && availableWidth > 0D && current.Count > 0 && currentWidth + tokenWidth > availableWidth) {
+            TrimTrailingWhitespace(current, ref currentWidth, defaultFontSize);
+            lines.Add(new List<PdfFreeTextRichTextRun>(current));
+            current.Clear();
+            currentWidth = 0D;
+        }
+
+        PdfFreeTextRichTextRun segment = new PdfFreeTextRichTextRun(token, template.Bold, template.Italic, template.Underline, template.Strike, template.Color, template.FontSize, isLineBreak: false);
+        current.Add(segment);
+        currentWidth += tokenWidth;
+    }
+
+    private static void TrimTrailingWhitespace(List<PdfFreeTextRichTextRun> line, ref double width, double defaultFontSize) {
+        while (line.Count > 0 && string.IsNullOrWhiteSpace(line[line.Count - 1].Text)) {
+            PdfFreeTextRichTextRun run = line[line.Count - 1];
+            width -= EstimateWinAnsiTextWidth(run.Text, run.FontSize ?? defaultFontSize);
+            line.RemoveAt(line.Count - 1);
+        }
+    }
+
+    private static bool CanEncodeFreeTextRichLine(List<PdfFreeTextRichTextRun> line) {
+        for (int i = 0; i < line.Count; i++) {
+            if (!PdfWinAnsiEncoding.CanEncode(line[i].Text, out _)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static double MeasureFreeTextRichLine(List<PdfFreeTextRichTextRun> line, double defaultFontSize) {
+        double width = 0D;
+        for (int i = 0; i < line.Count; i++) {
+            width += EstimateWinAnsiTextWidth(line[i].Text, line[i].FontSize ?? defaultFontSize);
+        }
+
+        return width;
+    }
+
+    private static void AppendFreeTextRichLine(StringBuilder content, List<PdfFreeTextRichTextRun> line, double x, double y, double defaultFontSize, PdfColor defaultTextColor, List<(string Name, PdfStandardFont Font)> resources) {
+        double xCursor = 0D;
+        for (int i = 0; i < line.Count; i++) {
+            PdfFreeTextRichTextRun run = line[i];
+            if (run.Text.Length == 0) {
+                continue;
+            }
+
+            double runFontSize = run.FontSize ?? defaultFontSize;
+            PdfColor runColor = run.Color ?? defaultTextColor;
+            PdfStandardFont font = ResolveFreeTextRichFont(run);
+            string resourceName = ResolveFreeTextRichFontResourceName(font);
+            RegisterFreeTextRichFontResource(resources, resourceName, font);
+            double segmentWidth = EstimateWinAnsiTextWidth(run.Text, runFontSize);
+            content.Append("BT /")
+                .Append(PdfSyntaxEscaper.Name(resourceName))
+                .Append(' ')
+                .Append(FormatCoordinate(runFontSize))
+                .Append(" Tf ")
+                .Append(FormatColor(runColor))
+                .Append(" rg ")
+                .Append(FormatCoordinate(x + xCursor))
+                .Append(' ')
+                .Append(FormatCoordinate(y))
+                .Append(" Td ")
+                .Append(PdfSyntaxEscaper.WinAnsiHexString(run.Text))
+                .Append(" Tj ET\n");
+            if (run.Underline || run.Strike) {
+                AppendFreeTextRichDecoration(content, x + xCursor, y, segmentWidth, runFontSize, runColor, run.Underline, run.Strike);
+            }
+
+            xCursor += segmentWidth;
+        }
+    }
+
+    private static void AppendFreeTextRichDecoration(StringBuilder content, double x, double y, double width, double fontSize, PdfColor color, bool underline, bool strike) {
+        double strokeWidth = Math.Max(0.35D, fontSize / 18D);
+        if (underline) {
+            double underlineY = y - Math.Max(1D, fontSize * 0.12D);
+            content.Append("q ").Append(FormatColor(color)).Append(" RG ")
+                .Append(FormatCoordinate(strokeWidth)).Append(" w ")
+                .Append(FormatCoordinate(x)).Append(' ')
+                .Append(FormatCoordinate(underlineY)).Append(" m ")
+                .Append(FormatCoordinate(x + width)).Append(' ')
+                .Append(FormatCoordinate(underlineY)).Append(" l S Q\n");
+        }
+
+        if (strike) {
+            double strikeY = y + fontSize * 0.32D;
+            content.Append("q ").Append(FormatColor(color)).Append(" RG ")
+                .Append(FormatCoordinate(strokeWidth)).Append(" w ")
+                .Append(FormatCoordinate(x)).Append(' ')
+                .Append(FormatCoordinate(strikeY)).Append(" m ")
+                .Append(FormatCoordinate(x + width)).Append(' ')
+                .Append(FormatCoordinate(strikeY)).Append(" l S Q\n");
+        }
+    }
+
+    private static PdfStandardFont ResolveFreeTextRichFont(PdfFreeTextRichTextRun run) {
+        if (run.Bold && run.Italic) {
+            return PdfStandardFont.HelveticaBoldOblique;
+        }
+
+        if (run.Bold) {
+            return PdfStandardFont.HelveticaBold;
+        }
+
+        return run.Italic ? PdfStandardFont.HelveticaOblique : PdfStandardFont.Helvetica;
+    }
+
+    private static string ResolveFreeTextRichFontResourceName(PdfStandardFont font) =>
+        font switch {
+            PdfStandardFont.HelveticaBold => "HelvB",
+            PdfStandardFont.HelveticaOblique => "HelvI",
+            PdfStandardFont.HelveticaBoldOblique => "HelvBI",
+            _ => "Helv"
+        };
+
+    private static void RegisterFreeTextRichFontResource(List<(string Name, PdfStandardFont Font)> resources, string name, PdfStandardFont font) {
+        for (int i = 0; i < resources.Count; i++) {
+            if (string.Equals(resources[i].Name, name, StringComparison.Ordinal)) {
+                return;
+            }
+        }
+
+        resources.Add((name, font));
     }
 
     private static void AddWrappedFreeTextParagraph(List<string> lines, string paragraph, double fontSize, double availableWidth) {
@@ -466,6 +812,83 @@ internal static partial class PdfAnnotationDictionaryBuilder {
             .Append(FormatCoordinate(cx + rx)).Append(' ').Append(FormatCoordinate(cy)).Append(" c ");
     }
 
+    private static double ResolveCloudyBorderAmplitude(double borderWidth, double intensity) =>
+        Math.Max(borderWidth, 2D + intensity * 1.5D);
+
+    private static double ResolveCloudyBorderStep(double borderWidth, double intensity) =>
+        Math.Max(6D, borderWidth * 3D + intensity * 4D);
+
+    private static void AppendCloudyRectanglePath(StringBuilder builder, double x, double y, double width, double height, double borderWidth, double intensity) {
+        double amplitude = ResolveCloudyBorderAmplitude(borderWidth, intensity);
+        double step = ResolveCloudyBorderStep(borderWidth, intensity);
+        builder.Append(FormatCoordinate(x)).Append(' ').Append(FormatCoordinate(y)).Append(" m ");
+        AppendCloudyEdge(builder, x, y, x + width, y, 0D, amplitude, step);
+        AppendCloudyEdge(builder, x + width, y, x + width, y + height, -amplitude, 0D, step);
+        AppendCloudyEdge(builder, x + width, y + height, x, y + height, 0D, -amplitude, step);
+        AppendCloudyEdge(builder, x, y + height, x, y, amplitude, 0D, step);
+        builder.Append("h ");
+    }
+
+    private static void AppendCloudyCirclePath(StringBuilder builder, double x, double y, double width, double height, double borderWidth, double intensity) {
+        double rx = width / 2D;
+        double ry = height / 2D;
+        double cx = x + rx;
+        double cy = y + ry;
+        double amplitude = ResolveCloudyBorderAmplitude(borderWidth, intensity);
+        double circumference = Math.PI * (3D * (rx + ry) - Math.Sqrt(Math.Max(0D, (3D * rx + ry) * (rx + 3D * ry))));
+        int segments = Math.Max(12, (int)Math.Ceiling(circumference / ResolveCloudyBorderStep(borderWidth, intensity)));
+        double startX = cx + rx;
+        double startY = cy;
+        builder.Append(FormatCoordinate(startX)).Append(' ').Append(FormatCoordinate(startY)).Append(" m ");
+        for (int i = 0; i < segments; i++) {
+            double startAngle = i * Math.PI * 2D / segments;
+            double endAngle = (i + 1) * Math.PI * 2D / segments;
+            double midAngle = (startAngle + endAngle) / 2D;
+            double endX = cx + Math.Cos(endAngle) * rx;
+            double endY = cy + Math.Sin(endAngle) * ry;
+            double controlX = cx + Math.Cos(midAngle) * Math.Max(0D, rx - amplitude);
+            double controlY = cy + Math.Sin(midAngle) * Math.Max(0D, ry - amplitude);
+            AppendQuadraticCurve(builder, startX, startY, controlX, controlY, endX, endY);
+            startX = endX;
+            startY = endY;
+        }
+
+        builder.Append("h ");
+    }
+
+    private static void AppendCloudyEdge(StringBuilder builder, double startX, double startY, double endX, double endY, double normalX, double normalY, double step) {
+        double dx = endX - startX;
+        double dy = endY - startY;
+        double length = Math.Sqrt(dx * dx + dy * dy);
+        if (length <= 0.0001D) {
+            return;
+        }
+
+        int segments = Math.Max(1, (int)Math.Ceiling(length / step));
+        double currentX = startX;
+        double currentY = startY;
+        for (int i = 1; i <= segments; i++) {
+            double t = i / (double)segments;
+            double nextX = startX + dx * t;
+            double nextY = startY + dy * t;
+            double controlX = (currentX + nextX) / 2D + normalX;
+            double controlY = (currentY + nextY) / 2D + normalY;
+            AppendQuadraticCurve(builder, currentX, currentY, controlX, controlY, nextX, nextY);
+            currentX = nextX;
+            currentY = nextY;
+        }
+    }
+
+    private static void AppendQuadraticCurve(StringBuilder builder, double startX, double startY, double controlX, double controlY, double endX, double endY) {
+        double firstControlX = startX + (controlX - startX) * 2D / 3D;
+        double firstControlY = startY + (controlY - startY) * 2D / 3D;
+        double secondControlX = endX + (controlX - endX) * 2D / 3D;
+        double secondControlY = endY + (controlY - endY) * 2D / 3D;
+        builder.Append(FormatCoordinate(firstControlX)).Append(' ').Append(FormatCoordinate(firstControlY)).Append(' ')
+            .Append(FormatCoordinate(secondControlX)).Append(' ').Append(FormatCoordinate(secondControlY)).Append(' ')
+            .Append(FormatCoordinate(endX)).Append(' ').Append(FormatCoordinate(endY)).Append(" c ");
+    }
+
     private static void AppendLineEnding(StringBuilder builder, string? ending, double tipX, double tipY, double oppositeX, double oppositeY, double borderWidth, PdfColor strokeColor, PdfColor fillColor) {
         if (string.IsNullOrWhiteSpace(ending) ||
             string.Equals(ending, "None", StringComparison.Ordinal)) {
@@ -582,4 +1005,24 @@ internal static partial class PdfAnnotationDictionaryBuilder {
 
     private static string FormatColor(PdfColor color) =>
         FormatCoordinate(color.R) + " " + FormatCoordinate(color.G) + " " + FormatCoordinate(color.B);
+
+    private static string BuildBorderStrokeOperators(PdfColor color, double borderWidth, IReadOnlyList<double>? dashPattern) {
+        string operators = FormatColor(color) + " RG " + FormatCoordinate(borderWidth) + " w ";
+        if (dashPattern == null || dashPattern.Count == 0) {
+            return operators;
+        }
+
+        var builder = new StringBuilder(operators);
+        builder.Append('[');
+        for (int i = 0; i < dashPattern.Count; i++) {
+            if (i > 0) {
+                builder.Append(' ');
+            }
+
+            builder.Append(FormatCoordinate(dashPattern[i]));
+        }
+
+        builder.Append("] 0 d ");
+        return builder.ToString();
+    }
 }

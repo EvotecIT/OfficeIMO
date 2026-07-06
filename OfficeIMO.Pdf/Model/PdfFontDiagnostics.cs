@@ -60,29 +60,59 @@ public static class PdfFontDiagnostics {
         }
     }
 
-    internal static IReadOnlyList<PdfFontEmbeddingDiagnostic> AnalyzeOpenTypeCffFullFontEmbedding(PdfOpenTypeCffFontProgram font, string source) {
+    internal static IReadOnlyList<PdfFontEmbeddingDiagnostic> AnalyzeOpenTypeCffCompactEmbedding(PdfOpenTypeCffFontProgram font, string source) {
         Guard.NotNull(font, nameof(font));
+        return AnalyzeOpenTypeCffCompactEmbedding(font, source, font.BuildCompactOpenTypeFontFilePlan());
+    }
+
+    internal static IReadOnlyList<PdfFontEmbeddingDiagnostic> AnalyzeOpenTypeCffCompactEmbedding(PdfOpenTypeCffFontProgram font, string source, PdfOpenTypeCffCompactFontFile compactFontFile) {
+        Guard.NotNull(font, nameof(font));
+        Guard.NotNull(compactFontFile, nameof(compactFontFile));
         IReadOnlyList<int> usedGlyphIds = font.GetUsedGlyphIds();
         var details = new Dictionary<string, string> {
             ["glyphCount"] = font.GlyphCount.ToString(CultureInfo.InvariantCulture),
             ["usedGlyphCount"] = usedGlyphIds.Count.ToString(CultureInfo.InvariantCulture),
+            ["retainedCffGlyphCount"] = font.GlyphCount.ToString(CultureInfo.InvariantCulture),
+            ["unusedCffGlyphCount"] = Math.Max(0, font.GlyphCount - usedGlyphIds.Count).ToString(CultureInfo.InvariantCulture),
             ["fontFileLength"] = font.FontDataLength.ToString(CultureInfo.InvariantCulture),
-            ["cffTableLength"] = font.CffTableLength.ToString(CultureInfo.InvariantCulture)
+            ["embeddedFontFileLength"] = compactFontFile.Data.Length.ToString(CultureInfo.InvariantCulture),
+            ["cffTableLength"] = font.CffTableLength.ToString(CultureInfo.InvariantCulture),
+            ["embeddingMode"] = compactFontFile.IsCompact ? "compact-opentype-cff" : "full-opentype-cff",
+            ["openTypeTablesEmbedded"] = JoinTags(compactFontFile.EmbeddedTables),
+            ["openTypeTablesRemoved"] = JoinTags(compactFontFile.RemovedTables),
+            ["openTypeLayoutTablesEmbedded"] = compactFontFile.RemovedLayoutTables.Count == 0 ? "unchanged" : "false",
+            ["openTypeLayoutTablesRemoved"] = JoinTags(compactFontFile.RemovedLayoutTables),
+            ["cffCharstringsSubset"] = "false",
+            ["cffCharstringsRetained"] = "true",
+            ["usedGlyphIdsPreview"] = BuildGlyphIdPreview(usedGlyphIds),
+            ["usedGlyphIdsPreviewTruncated"] = (usedGlyphIds.Count > 16).ToString().ToLowerInvariant()
         };
 
-        string message = "OpenType/CFF font '" + font.FontName + "' is embedded as a full /FontFile3 stream because OfficeIMO.Pdf does not yet subset CFF charstrings. Used-glyph widths and /ToUnicode mappings remain limited to the generated glyph usage.";
+        string modeDescription = compactFontFile.IsCompact ? "compact" : "full";
+        string message = "OpenType/CFF font '" + font.FontName + "' is embedded as a " + modeDescription + " /FontFile3 OpenType stream, but the CFF charstrings are still kept intact because OfficeIMO.Pdf does not yet rewrite CFF charstrings. Used-glyph widths and /ToUnicode mappings remain limited to the generated glyph usage.";
         return new[] {
             new PdfFontEmbeddingDiagnostic(
                 source,
                 font.FontName,
                 "OpenType/CFF",
-                "opentype-cff-full-font-embedded",
+                "opentype-cff-charstrings-not-subset",
                 message,
                 PdfConversionWarningSeverity.Warning,
                 PdfLayoutDiagnosticKind.SimplifiedContent,
                 details)
         };
     }
+
+    private static string BuildGlyphIdPreview(IReadOnlyList<int> glyphIds) {
+        if (glyphIds.Count == 0) {
+            return string.Empty;
+        }
+
+        return string.Join(",", glyphIds.Take(16).Select(glyphId => glyphId.ToString(CultureInfo.InvariantCulture)).ToArray());
+    }
+
+    private static string JoinTags(IReadOnlyList<string> tags) =>
+        tags.Count == 0 ? string.Empty : string.Join(",", tags.Select(tag => tag.Trim()).ToArray());
 
     internal static bool IsFontProgramException(Exception exception) =>
         exception is NotSupportedException ||

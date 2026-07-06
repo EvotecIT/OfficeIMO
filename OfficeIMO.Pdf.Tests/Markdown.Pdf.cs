@@ -168,6 +168,28 @@ Console.WriteLine("OfficeIMO");
     }
 
     [Fact]
+    public void Markdown_ToPdfDocumentResult_ReturnsPdfDocumentAndReportSnapshot() {
+        var options = new MarkdownPdfSaveOptions();
+        string markdown = """
+# Remote Asset
+
+![OfficeIMO logo](https://example.com/logo.png)
+""";
+
+        PdfCore.PdfDocumentConversionResult result = markdown.ToPdfDocumentResult(options);
+        PdfCore.PdfDocument processed = result.Document.AppendMetadataRevision(title: "Processed Markdown PDF");
+
+        options.ConversionReport.Clear();
+
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.Warnings, item => item.Code == "UnsupportedImage");
+        Assert.True(result.HasWarnings);
+        Assert.False(options.ConversionReport.HasWarnings);
+        Assert.Equal("OfficeIMO.Markdown.Pdf", warning.Converter);
+        Assert.Equal("Processed Markdown PDF", processed.Inspect().Metadata.Title);
+        Assert.Contains("OfficeIMO logo", result.Document.Read.Text(), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void Markdown_SaveAsPdf_BlocksLocalImagesByDefault() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Markdown.Pdf.LocalImages", Guid.NewGuid().ToString("N"));
         Directory.CreateDirectory(directory);

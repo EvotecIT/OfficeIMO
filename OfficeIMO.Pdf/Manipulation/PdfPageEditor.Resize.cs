@@ -80,7 +80,7 @@ public static partial class PdfPageEditor {
             overrides[pageObjectNumber] = pageOverrides;
         }
 
-        PdfFileVersion fileVersion = PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
+        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
         PdfPageExtractor.CatalogRewriteState catalogState = PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw);
         var destinationVisitedReferences = new HashSet<int>();
         var transformedDestinationArrays = new HashSet<PdfArray>();

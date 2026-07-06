@@ -182,7 +182,10 @@ internal static partial class PdfWriter {
             fontProgram != null) {
             string value = text ?? string.Empty;
             if (options.HasDiagnosticsReport) {
-                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName));
+                options.AddTextShapingDiagnostics(
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName),
+                    value,
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
             IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, fontProgram);
@@ -191,7 +194,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot);
+            return fontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot);
         }
 
         if (options != null &&
@@ -199,7 +202,10 @@ internal static partial class PdfWriter {
             cffFontProgram != null) {
             string value = text ?? string.Empty;
             if (options.HasDiagnosticsReport) {
-                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName));
+                options.AddTextShapingDiagnostics(
+                    PdfTextDiagnostics.AnalyzeAdvancedTextLayout(value, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName),
+                    value,
+                    deferProviderCoverable: options.TextShapingProviderSnapshot != null);
             }
 
             IReadOnlyList<PdfTextEncodingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeEmbeddedFontText(value, cffFontProgram);
@@ -208,7 +214,7 @@ internal static partial class PdfWriter {
                 throw CreateTextEncodingException(diagnostics[0], nameof(text));
             }
 
-            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot);
+            return cffFontProgram.MeasureTextWidth(text, fontSize, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot);
         }
 
         return EstimateSimpleTextWidth(text, font, fontSize);

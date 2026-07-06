@@ -30,7 +30,7 @@ public sealed partial class PdfDocumentInfo {
     private IReadOnlyDictionary<string, IReadOnlyList<PdfFormWidget>>? _formWidgetsByFieldName;
     private IReadOnlyDictionary<int, IReadOnlyList<PdfFormWidget>>? _formWidgetsByPageNumber;
 
-    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, IReadOnlyList<PdfCatalogAction> catalogActions, IReadOnlyList<PdfAttachmentInfo> attachments, IReadOnlyList<PdfOutputIntentInfo> outputIntents, PdfXmpMetadataInfo? xmpMetadata, PdfTaggedContentInfo? taggedContent, PdfOptionalContentProperties? optionalContent, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, int? acroFormQuadding, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, PdfDocumentSecurityInfo security, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
+    internal PdfDocumentInfo(IReadOnlyList<PdfPageInfo> pages, PdfMetadata metadata, IReadOnlyList<PdfOutlineItem> outlines, IReadOnlyList<PdfPageLabel> pageLabels, IReadOnlyList<PdfNamedDestination> namedDestinations, IReadOnlyList<PdfCatalogAction> catalogActions, IReadOnlyList<PdfAttachmentInfo> attachments, IReadOnlyList<PdfOutputIntentInfo> outputIntents, PdfXmpMetadataInfo? xmpMetadata, PdfTaggedContentInfo? taggedContent, PdfOptionalContentProperties? optionalContent, PdfDocumentOpenAction? openAction, PdfViewerPreferences? viewerPreferences, IReadOnlyList<PdfFormField> formFields, string? acroFormDefaultAppearance, int? acroFormQuadding, PdfAcroFormXfaInfo? acroFormXfa, bool? acroFormNeedAppearances, int? acroFormSignatureFlags, PdfDocumentSecurityInfo security, string? headerVersion, string? catalogPageMode, string? catalogPageLayout, string? catalogVersion, string? catalogLanguage, bool hasSignatures, bool hasForms, bool hasAnnotations, bool hasOutlines, bool hasCatalogViewSettings, bool hasPageLabels, bool hasCatalogNameTrees, bool hasNamedDestinations, bool hasOpenActions, bool hasViewerPreferences, bool hasTaggedContent, bool hasXmpMetadata, bool hasCatalogUri, bool hasOutputIntents, bool hasEmbeddedFiles, bool hasOptionalContent, bool hasActiveContent) {
         Pages = pages;
         Metadata = metadata;
         Outlines = outlines;
@@ -47,6 +47,7 @@ public sealed partial class PdfDocumentInfo {
         FormFields = formFields;
         AcroFormDefaultAppearance = acroFormDefaultAppearance;
         AcroFormQuadding = acroFormQuadding;
+        AcroFormXfa = acroFormXfa;
         AcroFormNeedAppearances = acroFormNeedAppearances;
         AcroFormSignatureFlags = acroFormSignatureFlags;
         Security = security;
@@ -819,6 +820,12 @@ public sealed partial class PdfDocumentInfo {
 
     /// <summary>Common AcroForm default text alignment inferred from /Q quadding.</summary>
     public PdfFormFieldTextAlignment AcroFormTextAlignment => ToTextAlignment(AcroFormQuadding);
+
+    /// <summary>AcroForm XFA packet metadata when /AcroForm /XFA is present.</summary>
+    public PdfAcroFormXfaInfo? AcroFormXfa { get; }
+
+    /// <summary>True when the AcroForm contains an XFA packet entry.</summary>
+    public bool HasAcroFormXfa => AcroFormXfa is not null;
 
     /// <summary>AcroForm NeedAppearances flag, when present.</summary>
     public bool? AcroFormNeedAppearances { get; }

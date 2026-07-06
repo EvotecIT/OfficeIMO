@@ -397,6 +397,9 @@ public partial class PdfInspectorTests {
         Assert.True(report.CanExtractImages);
         Assert.True(report.CanReadLogicalObjects);
         Assert.True(report.CanManipulatePages);
+        Assert.True(report.CanAppendMetadataRevision);
+        Assert.True(report.CanAppendFormFieldRevision);
+        Assert.True(report.CanPrepareExternalSignatureRevision);
         Assert.False(report.CanFillSimpleFormFields);
         Assert.False(report.CanFlattenSimpleFormFields);
         Assert.False(report.CanFillAndFlattenSimpleFormFields);
@@ -404,11 +407,17 @@ public partial class PdfInspectorTests {
         Assert.True(report.Can(PdfPreflightCapability.ExtractImages));
         Assert.True(report.Can(PdfPreflightCapability.ReadLogicalObjects));
         Assert.True(report.Can(PdfPreflightCapability.ManipulatePages));
+        Assert.True(report.Can(PdfPreflightCapability.AppendMetadataRevision));
+        Assert.True(report.Can(PdfPreflightCapability.AppendFormFieldRevision));
+        Assert.True(report.Can(PdfPreflightCapability.PrepareExternalSignatureRevision));
         Assert.False(report.Can(PdfPreflightCapability.FillSimpleFormFields));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractImages));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ReadLogicalObjects));
         Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.AppendMetadataRevision));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.AppendFormFieldRevision));
+        Assert.Empty(report.GetCapabilityDiagnostics(PdfPreflightCapability.PrepareExternalSignatureRevision));
         Assert.Contains(
             "PDF does not contain named text, choice, or button AcroForm fields supported for simple form filling by OfficeIMO.Pdf.",
             report.GetCapabilityDiagnostics(PdfPreflightCapability.FillSimpleFormFields));
@@ -433,8 +442,15 @@ public partial class PdfInspectorTests {
         Assert.True(result.CanExtractImages);
         Assert.True(result.CanReadLogicalObjects);
         Assert.True(result.CanManipulatePages);
+        Assert.True(result.CanAppendMetadataRevision);
+        Assert.True(result.CanAppendFormFieldRevision);
+        Assert.True(result.CanPrepareExternalSignatureRevision);
         Assert.True(result.Can(PdfPreflightCapability.ExtractText));
+        Assert.True(result.Can(PdfPreflightCapability.AppendMetadataRevision));
+        Assert.True(result.Can(PdfPreflightCapability.AppendFormFieldRevision));
+        Assert.True(result.Can(PdfPreflightCapability.PrepareExternalSignatureRevision));
         Assert.Empty(result.GetCapabilityDiagnostics(PdfPreflightCapability.ExtractText));
+        Assert.Empty(result.GetCapabilityDiagnostics(PdfPreflightCapability.AppendMetadataRevision));
         Assert.Equal("1.4", result.HeaderVersion);
         Assert.Equal(2, result.PageCount);
         Assert.Empty(result.Diagnostics);
