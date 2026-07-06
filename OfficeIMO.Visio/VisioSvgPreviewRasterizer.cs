@@ -339,7 +339,10 @@ namespace OfficeIMO.Visio {
             }, transform);
             using IDisposable clipScope = canvas.PushClipPolygon(clip);
             using IDisposable viewportScope = context.PushViewportBounds(new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight));
-            return RenderChildren(canvas, symbol, inherited, contentTransform, context);
+            using IDisposable textStyleScope = context.PushTextStyle(SvgTextStyle.Resolve(symbol, context.CurrentTextStyle, context));
+            using IDisposable fillRuleScope = context.PushFillRule(ResolveFillRule(symbol, context));
+            SvgPaint symbolPaint = SvgPaint.Resolve(symbol, inherited, context);
+            return RenderChildren(canvas, symbol, symbolPaint, contentTransform, context);
         }
 
         private static bool RenderNestedSvg(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
@@ -422,14 +425,14 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            if (paint.Stroke.A > 0 && paint.StrokeWidth > 0D) {
+            if (paint.HasStroke && paint.StrokeWidth > 0D) {
                 double strokeScale = GetStrokeScale(paint, transform);
                 double strokeWidth = Math.Max(1D, paint.StrokeWidth * strokeScale);
                 IReadOnlyList<double>? dashPattern = ScaleDashPattern(paint.DashPattern, strokeScale);
                 StrokeClosedContour(canvas, ellipsePoints, paint, strokeWidth, dashPattern);
             }
 
-            return paint.HasFill || paint.Stroke.A > 0;
+            return paint.HasFill || paint.HasStroke;
         }
 
         private static bool RenderPath(OfficeRasterCanvas canvas, XElement element, IReadOnlyList<SvgPathContour> contours, SvgPaint paint, SvgTransform transform, SvgRenderContext context) {
@@ -472,7 +475,7 @@ namespace OfficeIMO.Visio {
                 rendered = true;
             }
 
-            if (paint.Stroke.A > 0 && paint.StrokeWidth > 0D) {
+            if (paint.HasStroke && paint.StrokeWidth > 0D) {
                 double strokeScale = GetStrokeScale(paint, transform);
                 double strokeWidth = Math.Max(1D, paint.StrokeWidth * strokeScale);
                 IReadOnlyList<double>? dashPattern = ScaleDashPattern(paint.DashPattern, strokeScale);
@@ -534,7 +537,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            if (paint.Stroke.A > 0 && paint.StrokeWidth > 0D) {
+            if (paint.HasStroke && paint.StrokeWidth > 0D) {
                 double strokeScale = GetStrokeScale(paint, transform);
                 double strokeWidth = Math.Max(1D, paint.StrokeWidth * strokeScale);
                 IReadOnlyList<double>? dashPattern = ScaleDashPattern(paint.DashPattern, strokeScale);
@@ -545,7 +548,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            return (closed && paint.HasFill) || paint.Stroke.A > 0;
+            return (closed && paint.HasFill) || paint.HasStroke;
         }
 
         private static void StrokeOpenContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, IReadOnlyList<double>? dashPattern) {
@@ -564,8 +567,9 @@ namespace OfficeIMO.Visio {
             DrawJoinedPolyline(canvas, strokePoints, paint, strokeWidth, closed: false);
 
             if (paint.StrokeLineCap == SvgStrokeLineCap.Round) {
-                DrawRoundStrokeCap(canvas, points[0], paint.Stroke, strokeWidth);
-                DrawRoundStrokeCap(canvas, points[points.Count - 1], paint.Stroke, strokeWidth);
+                OfficeColor capColor = GetStrokeFallbackColor(paint);
+                DrawRoundStrokeCap(canvas, points[0], capColor, strokeWidth);
+                DrawRoundStrokeCap(canvas, points[points.Count - 1], capColor, strokeWidth);
             }
         }
 
@@ -594,21 +598,21 @@ namespace OfficeIMO.Visio {
         }
 
         private static void DrawJoinedPolyline(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, bool closed) {
-            DrawFlatPolyline(canvas, points, paint.Stroke, strokeWidth, closed);
-            DrawStrokeLineJoins(canvas, points, paint.Stroke, strokeWidth, paint.StrokeLineJoin, closed);
+            DrawFlatPolyline(canvas, points, paint, strokeWidth, closed);
+            DrawStrokeLineJoins(canvas, points, GetStrokeFallbackColor(paint), strokeWidth, paint.StrokeLineJoin, closed);
         }
 
-        private static void DrawFlatPolyline(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, bool closed) {
+        private static void DrawFlatPolyline(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, bool closed) {
             for (int i = 1; i < points.Count; i++) {
-                DrawFlatStrokeSegment(canvas, points[i - 1], points[i], color, strokeWidth);
+                DrawFlatStrokeSegment(canvas, points[i - 1], points[i], paint, strokeWidth);
             }
 
             if (closed && points.Count > 2) {
-                DrawFlatStrokeSegment(canvas, points[points.Count - 1], points[0], color, strokeWidth);
+                DrawFlatStrokeSegment(canvas, points[points.Count - 1], points[0], paint, strokeWidth);
             }
         }
 
-        private static void DrawFlatStrokeSegment(OfficeRasterCanvas canvas, OfficePoint start, OfficePoint end, OfficeColor color, double strokeWidth) {
+        private static void DrawFlatStrokeSegment(OfficeRasterCanvas canvas, OfficePoint start, OfficePoint end, SvgPaint paint, double strokeWidth) {
             double dx = end.X - start.X;
             double dy = end.Y - start.Y;
             double length = Math.Sqrt((dx * dx) + (dy * dy));
@@ -619,14 +623,32 @@ namespace OfficeIMO.Visio {
             double half = strokeWidth / 2D;
             double offsetX = (-dy / length) * half;
             double offsetY = (dx / length) * half;
-            canvas.FillPolygon(
-                new[] {
+            OfficePoint[] polygon = {
                     new OfficePoint(start.X + offsetX, start.Y + offsetY),
                     new OfficePoint(end.X + offsetX, end.Y + offsetY),
                     new OfficePoint(end.X - offsetX, end.Y - offsetY),
                     new OfficePoint(start.X - offsetX, start.Y - offsetY)
-                },
-                color);
+                };
+            if (paint.StrokeRadialGradient != null) {
+                canvas.FillRadialGradientPolygon(polygon, paint.StrokeRadialGradient);
+            } else if (paint.StrokeGradient != null) {
+                canvas.FillLinearGradientPolygon(polygon, paint.StrokeGradient);
+            } else {
+                canvas.FillPolygon(polygon, paint.Stroke);
+            }
+        }
+
+        private static OfficeColor GetStrokeFallbackColor(SvgPaint paint) {
+            if (paint.Stroke.A > 0) {
+                return paint.Stroke;
+            }
+
+            OfficeGradientStop? stop = paint.StrokeGradient?.Stops.Count > 0
+                ? paint.StrokeGradient.Stops[paint.StrokeGradient.Stops.Count - 1]
+                : paint.StrokeRadialGradient?.Stops.Count > 0
+                    ? paint.StrokeRadialGradient.Stops[paint.StrokeRadialGradient.Stops.Count - 1]
+                    : null;
+            return stop?.Color ?? OfficeColor.Transparent;
         }
 
         private static void DrawStrokeLineJoins(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, SvgStrokeLineJoin lineJoin, bool closed) {

@@ -7,13 +7,15 @@ using OfficeIMO.Drawing;
 namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private readonly struct SvgPaint {
-            internal static SvgPaint Default => new(OfficeColor.Black, null, null, OfficeColor.Transparent, 1D, null, 1D, 1D, 1D, OfficeColor.Black, SvgStrokeLineCap.Butt, SvgStrokeLineJoin.Miter, false);
+            internal static SvgPaint Default => new(OfficeColor.Black, null, null, OfficeColor.Transparent, null, null, 1D, null, 1D, 1D, 1D, OfficeColor.Black, SvgStrokeLineCap.Butt, SvgStrokeLineJoin.Miter, false);
 
-            private SvgPaint(OfficeColor fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor stroke, double strokeWidth, IReadOnlyList<double>? dashPattern, double opacity, double fillOpacity, double strokeOpacity, OfficeColor currentColor, SvgStrokeLineCap strokeLineCap, SvgStrokeLineJoin strokeLineJoin, bool nonScalingStroke) {
+            private SvgPaint(OfficeColor fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, IReadOnlyList<double>? dashPattern, double opacity, double fillOpacity, double strokeOpacity, OfficeColor currentColor, SvgStrokeLineCap strokeLineCap, SvgStrokeLineJoin strokeLineJoin, bool nonScalingStroke) {
                 Fill = fill;
                 FillGradient = fillGradient;
                 FillRadialGradient = fillRadialGradient;
                 Stroke = stroke;
+                StrokeGradient = strokeGradient;
+                StrokeRadialGradient = strokeRadialGradient;
                 StrokeWidth = strokeWidth;
                 DashPattern = dashPattern;
                 Opacity = opacity;
@@ -32,6 +34,10 @@ namespace OfficeIMO.Visio {
             internal OfficeRadialGradient? FillRadialGradient { get; }
 
             internal OfficeColor Stroke { get; }
+
+            internal OfficeLinearGradient? StrokeGradient { get; }
+
+            internal OfficeRadialGradient? StrokeRadialGradient { get; }
 
             internal double StrokeWidth { get; }
 
@@ -52,6 +58,8 @@ namespace OfficeIMO.Visio {
             internal bool NonScalingStroke { get; }
 
             internal bool HasFill => Fill.A > 0 || FillGradient != null || FillRadialGradient != null;
+
+            internal bool HasStroke => Stroke.A > 0 || StrokeGradient != null || StrokeRadialGradient != null;
 
             internal static double ReadOwnOpacity(XElement element, SvgRenderContext context) {
                 Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
@@ -79,11 +87,18 @@ namespace OfficeIMO.Visio {
                 double opacity = inherited.Opacity * ownOpacity;
                 fill = ApplyAlpha(fill, fillMultiplier);
                 stroke = ApplyAlpha(stroke, strokeMultiplier);
-                OfficeLinearGradient? fillGradient = string.IsNullOrWhiteSpace(rawFill) ? inherited.FillGradient : null;
-                OfficeRadialGradient? fillRadialGradient = string.IsNullOrWhiteSpace(rawFill) ? inherited.FillRadialGradient : null;
+                OfficeLinearGradient? fillGradient = string.IsNullOrWhiteSpace(rawFill) ? ApplyAlpha(inherited.FillGradient, fillMultiplier) : null;
+                OfficeRadialGradient? fillRadialGradient = string.IsNullOrWhiteSpace(rawFill) ? ApplyAlpha(inherited.FillRadialGradient, fillMultiplier) : null;
                 if (TryResolveFillGradient(rawFill, context, fillMultiplier, currentColor, out OfficeLinearGradient? resolvedFillGradient, out OfficeRadialGradient? resolvedFillRadialGradient)) {
                     fillGradient = resolvedFillGradient;
                     fillRadialGradient = resolvedFillRadialGradient;
+                }
+
+                OfficeLinearGradient? strokeGradient = string.IsNullOrWhiteSpace(rawStroke) ? ApplyAlpha(inherited.StrokeGradient, strokeMultiplier) : null;
+                OfficeRadialGradient? strokeRadialGradient = string.IsNullOrWhiteSpace(rawStroke) ? ApplyAlpha(inherited.StrokeRadialGradient, strokeMultiplier) : null;
+                if (TryResolveFillGradient(rawStroke, context, strokeMultiplier, currentColor, out OfficeLinearGradient? resolvedStrokeGradient, out OfficeRadialGradient? resolvedStrokeRadialGradient)) {
+                    strokeGradient = resolvedStrokeGradient;
+                    strokeRadialGradient = resolvedStrokeRadialGradient;
                 }
 
                 double strokeWidth = ReadLength(element, "stroke-width", inherited.StrokeWidth, context, SvgLengthAxis.Diagonal);
@@ -95,7 +110,7 @@ namespace OfficeIMO.Visio {
                 SvgStrokeLineCap strokeLineCap = ReadStrokeLineCap(element, style, inherited.StrokeLineCap);
                 SvgStrokeLineJoin strokeLineJoin = ReadStrokeLineJoin(element, style, inherited.StrokeLineJoin);
                 bool nonScalingStroke = ReadNonScalingStroke(element, style, inherited.NonScalingStroke);
-                return new SvgPaint(fill, fillGradient, fillRadialGradient, stroke, strokeWidth, dashPattern, opacity, fillOpacity, strokeOpacity, currentColor, strokeLineCap, strokeLineJoin, nonScalingStroke);
+                return new SvgPaint(fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashPattern, opacity, fillOpacity, strokeOpacity, currentColor, strokeLineCap, strokeLineJoin, nonScalingStroke);
             }
 
             private static string? ReadPaint(XElement element, Dictionary<string, string> style, string name) =>
@@ -233,6 +248,34 @@ namespace OfficeIMO.Visio {
 
             private static OfficeColor ApplyAlpha(OfficeColor color, double opacity) =>
                 OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * Math.Max(0D, Math.Min(1D, opacity))));
+
+            private static OfficeLinearGradient? ApplyAlpha(OfficeLinearGradient? gradient, double opacity) {
+                if (gradient == null || opacity.Equals(1D)) {
+                    return gradient;
+                }
+
+                List<OfficeGradientStop> stops = new(gradient.Stops.Count);
+                for (int i = 0; i < gradient.Stops.Count; i++) {
+                    OfficeGradientStop stop = gradient.Stops[i];
+                    stops.Add(new OfficeGradientStop(stop.Offset, ApplyAlpha(stop.Color, opacity)));
+                }
+
+                return new OfficeLinearGradient(gradient.StartX, gradient.StartY, gradient.EndX, gradient.EndY, stops);
+            }
+
+            private static OfficeRadialGradient? ApplyAlpha(OfficeRadialGradient? gradient, double opacity) {
+                if (gradient == null || opacity.Equals(1D)) {
+                    return gradient;
+                }
+
+                List<OfficeGradientStop> stops = new(gradient.Stops.Count);
+                for (int i = 0; i < gradient.Stops.Count; i++) {
+                    OfficeGradientStop stop = gradient.Stops[i];
+                    stops.Add(new OfficeGradientStop(stop.Offset, ApplyAlpha(stop.Color, opacity)));
+                }
+
+                return new OfficeRadialGradient(gradient.StartX, gradient.StartY, gradient.StartRadius, gradient.EndX, gradient.EndY, gradient.EndRadius, stops);
+            }
 
             private static byte ToByte(double value) => (byte)Math.Max(0D, Math.Min(255D, Math.Round(value)));
         }

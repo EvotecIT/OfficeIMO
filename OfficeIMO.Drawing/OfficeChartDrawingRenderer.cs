@@ -441,10 +441,11 @@ public static partial class OfficeChartDrawingRenderer {
                     valueAxisUsesPercentDefaults);
             }
 
-                if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
-                    if (IsScatterChart(snapshot.ChartKind)) {
-                        IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
-                    ValueRange scatterXRange = ApplyValueAxisScale(GetScatterPointRanges(snapshot.Data.Series, sharedXValues).XRange, layout, horizontal: true);
+            if (layout.ShowCategoryAxis && layout.ShowCategoryAxisLabels) {
+                if (IsScatterChart(snapshot.ChartKind)) {
+                    IReadOnlyList<double> sharedXValues = GetScatterXValues(snapshot.Data.Categories);
+                    List<OfficeChartSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
+                    ValueRange scatterXRange = ApplyValueAxisScale(GetScatterPointRanges(scatterSeries, sharedXValues).XRange, layout, horizontal: true);
                     AddHorizontalValueAxisLabels(
                         drawing,
                         scatterXRange,

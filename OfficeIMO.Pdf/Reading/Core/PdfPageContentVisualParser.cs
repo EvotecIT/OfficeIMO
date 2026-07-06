@@ -38,12 +38,19 @@ internal static class PdfPageContentVisualParser {
         PdfPageClipPath? initialClipPath = null,
         OfficeColor? initialFillColor = null,
         PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
-        double? initialFillOpacity = null) {
+        double? initialFillOpacity = null,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialStrokeOpacity = null,
+        double? initialStrokeWidth = null,
+        OfficeStrokeDashStyle? initialStrokeDashStyle = null,
+        OfficeStrokeLineCap? initialStrokeLineCap = null,
+        OfficeStrokeLineJoin? initialStrokeLineJoin = null) {
         if (string.IsNullOrEmpty(content)) {
             return Array.Empty<PdfPageVisualPrimitive>();
         }
 
-        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity);
+        var parser = new Parser(content, pageWidth, pageHeight, graphicsStates, colorSpaces, shadings, shadingPatterns, optionalContentVisibility, paintOrderBase, paintOrderScale, paintOrderOffset, initialClipPath, initialFillColor, initialFillColorSpace, initialFillOpacity, initialStrokeColor, initialStrokeColorSpace, initialStrokeOpacity, initialStrokeWidth, initialStrokeDashStyle, initialStrokeLineCap, initialStrokeLineJoin);
         return parser.Parse();
     }
 
@@ -94,7 +101,14 @@ internal static class PdfPageContentVisualParser {
             PdfPageClipPath? initialClipPath,
             OfficeColor? initialFillColor,
             PdfPageColorSpaceKind initialFillColorSpace,
-            double? initialFillOpacity) {
+            double? initialFillOpacity,
+            OfficeColor? initialStrokeColor,
+            PdfPageColorSpaceKind initialStrokeColorSpace,
+            double? initialStrokeOpacity,
+            double? initialStrokeWidth,
+            OfficeStrokeDashStyle? initialStrokeDashStyle,
+            OfficeStrokeLineCap? initialStrokeLineCap,
+            OfficeStrokeLineJoin? initialStrokeLineJoin) {
             _content = content;
             _pageWidth = pageWidth;
             _pageHeight = pageHeight;
@@ -111,6 +125,30 @@ internal static class PdfPageContentVisualParser {
                 : GraphicsState.Default;
             if (initialFillOpacity.HasValue) {
                 initialState = initialState.WithOpacity(initialFillOpacity, null);
+            }
+
+            if (initialStrokeColor.HasValue) {
+                initialState = initialState.WithStrokeColor(initialStrokeColor.Value, initialStrokeColorSpace);
+            }
+
+            if (initialStrokeOpacity.HasValue) {
+                initialState = initialState.WithOpacity(null, initialStrokeOpacity);
+            }
+
+            if (initialStrokeWidth.HasValue) {
+                initialState = initialState.WithStrokeWidth(ResolveStrokeWidth(initialStrokeWidth.Value));
+            }
+
+            if (initialStrokeDashStyle.HasValue) {
+                initialState = initialState.WithStrokeDashStyle(initialStrokeDashStyle.Value);
+            }
+
+            if (initialStrokeLineCap.HasValue) {
+                initialState = initialState.WithStrokeLineCap(initialStrokeLineCap);
+            }
+
+            if (initialStrokeLineJoin.HasValue) {
+                initialState = initialState.WithStrokeLineJoin(initialStrokeLineJoin);
             }
 
             _initialState = initialClipPath.HasValue
@@ -499,7 +537,7 @@ internal static class PdfPageContentVisualParser {
                     CreateShadingGradients(_state.StrokePattern.Value.Shading, strokePathX, strokePathY, strokePathWidth, strokePathHeight, _state.StrokePattern.Value.Matrix, out strokeGradient, out strokeRadialGradient);
                 }
 
-                IReadOnlyList<OfficePathCommand> pathCommands = fill && !stroke
+                IReadOnlyList<OfficePathCommand> pathCommands = fill
                     ? CloseFilledSubpaths(_pathCommands)
                     : _pathCommands;
                 if (PdfPageVisualPrimitive.TryCreatePath(

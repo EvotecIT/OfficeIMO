@@ -311,7 +311,14 @@ public sealed partial class PdfReadPage {
         PdfPageClipPath? initialClipPath = null,
         OfficeColor? initialFillColor = null,
         PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
-        double? initialFillOpacity = null) {
+        double? initialFillOpacity = null,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialStrokeOpacity = null,
+        double? initialStrokeWidth = null,
+        OfficeStrokeDashStyle? initialStrokeDashStyle = null,
+        OfficeStrokeLineCap? initialStrokeLineCap = null,
+        OfficeStrokeLineJoin? initialStrokeLineJoin = null) {
         string transformedContent = WrapContentWithTransform(content, baseTransform, out int transformedContentOffset);
         primitives.AddRange(PdfPageContentVisualParser.Parse(
             transformedContent,
@@ -328,7 +335,14 @@ public sealed partial class PdfReadPage {
             initialClipPath,
             initialFillColor,
             initialFillColorSpace,
-            initialFillOpacity));
+            initialFillOpacity,
+            initialStrokeColor,
+            initialStrokeColorSpace,
+            initialStrokeOpacity,
+            initialStrokeWidth,
+            initialStrokeDashStyle,
+            initialStrokeLineCap,
+            initialStrokeLineJoin));
 
         foreach (PdfPageXObjectInvocation invocation in PdfPageXObjectInvocationParser.Parse(
                      content,
@@ -343,7 +357,14 @@ public sealed partial class PdfReadPage {
                       initialClipPath: initialClipPath,
                       initialFillColor: initialFillColor,
                       initialFillColorSpace: initialFillColorSpace,
-                      initialFillOpacity: initialFillOpacity)) {
+                      initialFillOpacity: initialFillOpacity,
+                      initialStrokeColor: initialStrokeColor,
+                      initialStrokeColorSpace: initialStrokeColorSpace,
+                      initialStrokeOpacity: initialStrokeOpacity,
+                      initialStrokeWidth: initialStrokeWidth,
+                      initialStrokeDashStyle: initialStrokeDashStyle,
+                      initialStrokeLineCap: initialStrokeLineCap,
+                      initialStrokeLineJoin: initialStrokeLineJoin)) {
             if (!TryGetFormStream(resources, invocation.Name, out PdfStream formStream)) {
                 continue;
             }
@@ -370,7 +391,14 @@ public sealed partial class PdfReadPage {
                     initialClipPath: invocation.ClipPath,
                     initialFillColor: invocation.FillColor,
                     initialFillColorSpace: invocation.FillColorSpace,
-                    initialFillOpacity: invocation.FillOpacity);
+                    initialFillOpacity: invocation.FillOpacity,
+                    initialStrokeColor: invocation.StrokeColor,
+                    initialStrokeColorSpace: invocation.StrokeColorSpace,
+                    initialStrokeOpacity: invocation.StrokeOpacity,
+                    initialStrokeWidth: invocation.StrokeWidth,
+                    initialStrokeDashStyle: invocation.StrokeDashStyle,
+                    initialStrokeLineCap: invocation.StrokeLineCap,
+                    initialStrokeLineJoin: invocation.StrokeLineJoin);
             } finally {
                 activeForms.Remove(formStream);
             }

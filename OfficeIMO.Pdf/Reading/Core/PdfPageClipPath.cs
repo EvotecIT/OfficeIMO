@@ -229,8 +229,43 @@ internal readonly struct PdfPageClipPath {
             return false;
         }
 
-        clipPath = new PdfPageClipPath(left, top, width, height, false, fillRule, new List<OfficePathCommand>(commands));
+        clipPath = new PdfPageClipPath(left, top, width, height, false, fillRule, CloseFilledSubpaths(commands));
         return true;
+    }
+
+    private static List<OfficePathCommand> CloseFilledSubpaths(IReadOnlyList<OfficePathCommand> commands) {
+        var closed = new List<OfficePathCommand>(commands.Count + 4);
+        bool hasOpenSubpath = false;
+        bool subpathHasDraw = false;
+        for (int i = 0; i < commands.Count; i++) {
+            OfficePathCommand command = commands[i];
+            if (command.Kind == OfficePathCommandKind.MoveTo) {
+                if (hasOpenSubpath && subpathHasDraw) {
+                    closed.Add(OfficePathCommand.Close());
+                }
+
+                hasOpenSubpath = true;
+                subpathHasDraw = false;
+                closed.Add(command);
+                continue;
+            }
+
+            closed.Add(command);
+            if (command.Kind == OfficePathCommandKind.Close) {
+                hasOpenSubpath = false;
+                subpathHasDraw = false;
+            } else if (command.Kind == OfficePathCommandKind.LineTo ||
+                command.Kind == OfficePathCommandKind.QuadraticBezierTo ||
+                command.Kind == OfficePathCommandKind.CubicBezierTo) {
+                subpathHasDraw = true;
+            }
+        }
+
+        if (hasOpenSubpath && subpathHasDraw) {
+            closed.Add(OfficePathCommand.Close());
+        }
+
+        return closed;
     }
 
     public double X { get; }
