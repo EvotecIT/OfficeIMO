@@ -219,6 +219,17 @@ internal static class PdfPageXObjectInvocationParser {
                 case "n":
                     ClearPath();
                     break;
+                case "S":
+                case "s":
+                case "f":
+                case "F":
+                case "f*":
+                case "B":
+                case "B*":
+                case "b":
+                case "b*":
+                    ClearPath();
+                    break;
                 case "gs":
                     if (_args.Count >= 1 && _args[_args.Count - 1] is string graphicsStateName) {
                         ApplyGraphicsStateResource(graphicsStateName);

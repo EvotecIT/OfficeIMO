@@ -1163,6 +1163,7 @@ public sealed partial class PdfReadPage {
         }
 
         if (!activeClipPath.HasValue || (activeClipPath.Value.IsRectangle && !projection.HasTransform)) {
+            // Plain axis-aligned rectangle clips are converted into source crops by TryCreateImageProjection.
             return false;
         }
 

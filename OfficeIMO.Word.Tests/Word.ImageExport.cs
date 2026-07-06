@@ -5517,7 +5517,7 @@ namespace OfficeIMO.Tests {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.PageSettings.Width = (UInt32Value)4000U;
-            document.PageSettings.Height = (UInt32Value)3600U;
+            document.PageSettings.Height = (UInt32Value)5000U;
             document.Margins.Type = WordMargin.Narrow;
             document.AddParagraph("Line one before rotated image.");
             document.AddParagraph("Line two before rotated image.");

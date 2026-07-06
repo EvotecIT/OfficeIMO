@@ -43,14 +43,21 @@ namespace OfficeIMO.Word {
             }
 
             FitImageToWidth(context.ContentWidth, ref width, ref height);
-            if (!EnsureVerticalSpace(context, height, diagnostics)) {
-                return false;
-            }
-
             double left = context.Left;
             double top = context.Y;
             OfficeImageProjection projection = CreateImageProjection(image, left, top, width, height);
             (double boundsLeft, double boundsTop, double boundsRight, double boundsBottom) = projection.GetDestinationBounds();
+            double requiredHeight = Math.Max(height, boundsBottom - context.Y);
+            if (!EnsureVerticalSpace(context, requiredHeight, diagnostics)) {
+                return false;
+            }
+
+            if (Math.Abs(top - context.Y) > 0.000001D) {
+                top = context.Y;
+                projection = CreateImageProjection(image, left, top, width, height);
+                (boundsLeft, boundsTop, boundsRight, boundsBottom) = projection.GetDestinationBounds();
+            }
+
             if (boundsLeft < 0D || boundsTop < 0D || boundsRight > context.Drawing.Width || boundsBottom > context.Drawing.Height) {
                 AddDiagnostic(
                     diagnostics,
