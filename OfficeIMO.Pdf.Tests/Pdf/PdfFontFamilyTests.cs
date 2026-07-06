@@ -2518,8 +2518,8 @@ public class PdfFontFamilyTests {
             var fallbackSet = new PdfEmbeddedFontFallbackSet(
                 new[] {
                     new PdfEmbeddedFontFallbackCandidate("Emoji Fallback", fallback),
-                    new PdfEmbeddedFontFallbackCandidate("Unused Secondary Fallback", fallback),
-                    new PdfEmbeddedFontFallbackCandidate("Unused Tertiary Fallback", fallback)
+                    new PdfEmbeddedFontFallbackCandidate("Unused Secondary Fallback", CreateMinimalOpenTypeCffFont()),
+                    new PdfEmbeddedFontFallbackCandidate("Unused Tertiary Fallback", CreateMinimalOpenTypeCffFont())
                 },
                 new[] {
                     PdfStandardFont.Helvetica,

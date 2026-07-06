@@ -159,6 +159,38 @@ public partial class Excel {
     }
 
     [Fact]
+    public void SaveAsPdf_ExcelWorkbook_DoesNotReserve_Escaped_HeaderFooter_Font_Tokens() {
+        string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterEscapedFontToken.xlsx");
+
+        var options = new ExcelPdfSaveOptions {
+            IncludeSheetHeadings = false,
+            HeaderRowCount = 0,
+            PageSize = new PdfCore.PageSize(420, 320),
+            Margins = PdfCore.PageMargins.Uniform(54),
+            AllowSystemFontEmbedding = true
+        };
+
+        byte[] bytes;
+        using (ExcelDocument document = ExcelDocument.Create(workbookPath, "EscapedFontToken")) {
+            ExcelSheet sheet = document.Sheets[0];
+            sheet.Cell(1, 1, "EscapedHeaderFooterBody");
+            sheet.SetHeaderFooter(headerCenter: "&&\"Times New Roman\" Literal Header");
+            document.Save(false);
+
+            bytes = document.SaveAsPdf(options);
+        }
+
+        using PdfPigDocument pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = pdf.GetPage(1).Text;
+        Assert.Contains("\"Times New Roman\" Literal Header", text);
+        Assert.Contains("EscapedHeaderFooterBody", text);
+
+        string rawPdf = Encoding.ASCII.GetString(bytes);
+        Assert.DoesNotContain("TimesNewRoman", rawPdf, StringComparison.Ordinal);
+        Assert.DoesNotContain("/Times-Roman", rawPdf, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void SaveAsPdf_ExcelWorkbook_Warns_For_Mixed_Worksheet_HeaderFooter_Formatting() {
         string workbookPath = Path.Combine(_directoryWithFiles, "ExcelPdfHeaderFooterMixedFormatting.xlsx");
 

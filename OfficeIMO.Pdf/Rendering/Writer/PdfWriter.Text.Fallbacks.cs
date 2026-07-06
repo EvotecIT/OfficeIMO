@@ -127,15 +127,16 @@ internal static partial class PdfWriter {
         var resolved = new System.Collections.Generic.Dictionary<int, PdfStandardFont>();
         var used = new System.Collections.Generic.HashSet<PdfStandardFont>();
         var reservedDocumentSlots = CreateReservedDocumentFontSlots(options);
+        var plannedCandidateIndexes = plan.Segments
+            .Select(segment => segment.FontIndex)
+            .Where(index => index >= 0 && index < fallbackSet.Candidates.Count)
+            .Distinct()
+            .ToHashSet();
 
-        foreach (int index in plan.Segments
-                     .Select(segment => segment.FontIndex)
-                     .Where(index => index >= 0 && index < fallbackSet.Candidates.Count)
-                     .Distinct()
-                     .OrderBy(index => index)) {
+        foreach (int index in plannedCandidateIndexes.OrderBy(index => index)) {
             PdfEmbeddedFontFallbackCandidate candidate = fallbackSet.Candidates[index];
             PdfStandardFont requested = PdfStandardFontMapper.GetFontFamily(fallbackSet.FontSlots[index]);
-            if (CanUseFallbackFontSlot(requested, candidate, selectedFamily, used, reservedDocumentSlots, options)) {
+            if (CanUseFallbackFontSlot(requested, candidate, fallbackSet, plannedCandidateIndexes, selectedFamily, used, reservedDocumentSlots, options)) {
                 resolved[index] = requested;
                 used.Add(requested);
                 continue;
@@ -143,7 +144,7 @@ internal static partial class PdfWriter {
 
             PdfStandardFont? replacement = null;
             foreach (PdfStandardFont family in FallbackFontSlotFamilies) {
-                if (CanUseFallbackFontSlot(family, candidate, selectedFamily, used, reservedDocumentSlots, options)) {
+                if (CanUseFallbackFontSlot(family, candidate, fallbackSet, plannedCandidateIndexes, selectedFamily, used, reservedDocumentSlots, options)) {
                     replacement = family;
                     break;
                 }
@@ -165,6 +166,8 @@ internal static partial class PdfWriter {
     private static bool CanUseFallbackFontSlot(
         PdfStandardFont family,
         PdfEmbeddedFontFallbackCandidate candidate,
+        PdfEmbeddedFontFallbackSet fallbackSet,
+        System.Collections.Generic.HashSet<int> plannedCandidateIndexes,
         PdfStandardFont selectedFamily,
         System.Collections.Generic.HashSet<PdfStandardFont> used,
         System.Collections.Generic.HashSet<PdfStandardFont> reservedDocumentSlots,
@@ -173,7 +176,7 @@ internal static partial class PdfWriter {
         return normalized != selectedFamily &&
                !used.Contains(normalized) &&
                !reservedDocumentSlots.Contains(normalized) &&
-               FontFamilySlotIsEmptyOrCandidate(normalized, candidate, options);
+               FontFamilySlotIsEmptyOrCandidate(normalized, candidate, fallbackSet, plannedCandidateIndexes, options);
     }
 
     private static System.Collections.Generic.HashSet<PdfStandardFont> CreateReservedDocumentFontSlots(PdfOptions? options) {
@@ -218,7 +221,12 @@ internal static partial class PdfWriter {
         return 1;
     }
 
-    private static bool FontFamilySlotIsEmptyOrCandidate(PdfStandardFont family, PdfEmbeddedFontFallbackCandidate candidate, PdfOptions? options) {
+    private static bool FontFamilySlotIsEmptyOrCandidate(
+        PdfStandardFont family,
+        PdfEmbeddedFontFallbackCandidate candidate,
+        PdfEmbeddedFontFallbackSet fallbackSet,
+        System.Collections.Generic.HashSet<int> plannedCandidateIndexes,
+        PdfOptions? options) {
         if (options == null) {
             return true;
         }
@@ -226,12 +234,28 @@ internal static partial class PdfWriter {
         foreach (PdfStandardFont variant in EnumerateFontFamilyVariants(family)) {
             if (options.TryGetEmbeddedStandardFont(variant, out PdfEmbeddedFont? embeddedFont) &&
                 embeddedFont != null &&
-                !embeddedFont.DataSnapshot.SequenceEqual(candidate.DataSnapshot)) {
+                !embeddedFont.DataSnapshot.SequenceEqual(candidate.DataSnapshot) &&
+                !EmbeddedFontMatchesUnusedFallbackCandidate(embeddedFont, fallbackSet, plannedCandidateIndexes)) {
                 return false;
             }
         }
 
         return true;
+    }
+
+    private static bool EmbeddedFontMatchesUnusedFallbackCandidate(
+        PdfEmbeddedFont embeddedFont,
+        PdfEmbeddedFontFallbackSet fallbackSet,
+        System.Collections.Generic.HashSet<int> plannedCandidateIndexes) {
+        byte[] embeddedData = embeddedFont.DataSnapshot;
+        for (int index = 0; index < fallbackSet.Candidates.Count; index++) {
+            if (!plannedCandidateIndexes.Contains(index) &&
+                embeddedData.SequenceEqual(fallbackSet.Candidates[index].DataSnapshot)) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static System.Collections.Generic.IEnumerable<PdfStandardFont> EnumerateFontFamilyVariants(PdfStandardFont family) {

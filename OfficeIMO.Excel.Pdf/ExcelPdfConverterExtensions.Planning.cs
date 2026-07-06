@@ -128,6 +128,11 @@ namespace OfficeIMO.Excel.Pdf {
             }
 
             for (int i = 0; i < text!.Length - 1; i++) {
+                if (text[i] == '&' && text[i + 1] == '&') {
+                    i++;
+                    continue;
+                }
+
                 if (text[i] != '&' || text[i + 1] != '"') {
                     continue;
                 }
