@@ -47,6 +47,50 @@ public class MarkdownSaveAsPdfOptionsTests {
     }
 
     [Fact]
+    public void ToPdfDocument_Markdown_FontFamilyHonorsSystemFontEmbeddingOptOut() {
+        var options = new MarkdownPdfSaveOptions {
+            FontFamily = "Georgia",
+            AllowSystemFontEmbedding = false
+        };
+
+        PdfCore.PdfDocument document = "# Heading\n\nBody".ToPdfDocument(options);
+
+        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, document.Options.DefaultFont);
+        Assert.False(document.Options.HasEmbeddedStandardFontFamily(PdfCore.PdfStandardFont.TimesRoman));
+    }
+
+    [Fact]
+    public void ToPdfDocument_Markdown_TextFallbacksPreserveCallerPdfOptionsFontSlots() {
+        var options = new MarkdownPdfSaveOptions {
+            VisualTheme = MarkdownPdfVisualTheme.Plain(),
+            PdfOptions = new PdfCore.PdfOptions {
+                DefaultFont = PdfCore.PdfStandardFont.TimesRoman,
+                HeaderFont = PdfCore.PdfStandardFont.Courier,
+                FooterFont = PdfCore.PdfStandardFont.Helvetica
+            }
+        };
+
+        PdfCore.PdfDocument document = "# Heading\n\nBody".ToPdfDocument(options);
+
+        Assert.Equal(PdfCore.PdfStandardFont.TimesRoman, document.Options.DefaultFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Courier, document.Options.HeaderFont);
+        Assert.Equal(PdfCore.PdfStandardFont.Helvetica, document.Options.FooterFont);
+    }
+
+    [Fact]
+    public void ToPdfDocument_Markdown_TextFallbacksReserveCourierForCodeText() {
+        PdfCore.PdfDocument document = "`code` text".ToPdfDocument(new MarkdownPdfSaveOptions());
+        PdfCore.PdfEmbeddedFontFallbackSet? fallbackSet = document.Options.EmbeddedFontFallbacks;
+        if (fallbackSet == null) {
+            return;
+        }
+
+        Assert.DoesNotContain(
+            PdfCore.PdfStandardFont.Courier,
+            fallbackSet.FontSlots.Select(PdfCore.PdfStandardFontMapper.GetFontFamily));
+    }
+
+    [Fact]
     public void ToPdfDocument_Markdown_DefaultsUseSharedUnicodeFallbackWhenAvailable() {
         var probe = new PdfCore.PdfOptions();
         if (!probe.TryUseDefaultDocumentFontFallback(requireEmbeddedFont: true)) {
