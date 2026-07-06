@@ -15,6 +15,7 @@ public sealed partial class OfficeDrawing {
     private readonly ReadOnlyCollection<OfficeDrawingImage> _imagesView;
     private readonly List<OfficeDrawingElement> _elements = new List<OfficeDrawingElement>();
     private readonly ReadOnlyCollection<OfficeDrawingElement> _elementsView;
+    private readonly HashSet<OfficeDrawingElement> _behindContentElements = new HashSet<OfficeDrawingElement>();
 
     /// <summary>Drawing width in the caller's layout unit.</summary>
     public double Width { get; }
@@ -63,7 +64,7 @@ public sealed partial class OfficeDrawing {
         }
 
         _shapes.Insert(0, item);
-        _elements.Insert(GetBehindContentInsertIndex(), item);
+        AddBehindContentElement(item);
         return this;
     }
 
@@ -85,7 +86,7 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
 
-        _elements.Insert(GetBehindContentInsertIndex(), item);
+        AddBehindContentElement(item);
         return this;
     }
 
@@ -107,7 +108,7 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(runs), "Drawing rich text must fit inside the drawing bounds.");
         }
 
-        _elements.Insert(GetBehindContentInsertIndex(), item);
+        AddBehindContentElement(item);
         return this;
     }
 
@@ -158,7 +159,7 @@ public sealed partial class OfficeDrawing {
         }
 
         _images.Insert(0, item);
-        _elements.Insert(GetBehindContentInsertIndex(), item);
+        AddBehindContentElement(item);
         return this;
     }
 
@@ -409,6 +410,7 @@ public sealed partial class OfficeDrawing {
             return 0;
         }
 
+        int index = 0;
         if (_elements[0] is OfficeDrawingShape shape &&
             shape.X == 0D &&
             shape.Y == 0D &&
@@ -416,10 +418,19 @@ public sealed partial class OfficeDrawing {
             shape.Shape.Width == Width &&
             shape.Shape.Height == Height &&
             shape.Shape.StrokeWidth <= 0D) {
-            return 1;
+            index = 1;
         }
 
-        return 0;
+        while (index < _elements.Count && _behindContentElements.Contains(_elements[index])) {
+            index++;
+        }
+
+        return index;
+    }
+
+    private void AddBehindContentElement(OfficeDrawingElement item) {
+        _behindContentElements.Add(item);
+        _elements.Insert(GetBehindContentInsertIndex(), item);
     }
 
     /// <summary>Creates a detached copy of this drawing and all positioned elements.</summary>
@@ -428,6 +439,10 @@ public sealed partial class OfficeDrawing {
         for (int i = 0; i < _elements.Count; i++) {
             OfficeDrawingElement element = _elements[i].CloneElement();
             clone._elements.Add(element);
+            if (_behindContentElements.Contains(_elements[i])) {
+                clone._behindContentElements.Add(element);
+            }
+
             if (element is OfficeDrawingShape shape) {
                 clone._shapes.Add(shape);
             } else if (element is OfficeDrawingImage image) {

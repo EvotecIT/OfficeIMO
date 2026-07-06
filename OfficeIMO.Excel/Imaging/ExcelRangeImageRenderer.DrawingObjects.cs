@@ -185,6 +185,7 @@ namespace OfficeIMO.Excel {
                 : new OfficeShadow(shadow.Color, shadow.Opacity, shadow.OffsetX * scale, shadow.OffsetY * scale, shadow.BlurRadius * scale);
 
         private static void ExpandEffectBounds(OfficeShape shape, ref double offsetX, ref double offsetY) {
+            bool hasRotatedShapePadding = offsetX > 0D || offsetY > 0D;
             if (shape.Glow != null) {
                 offsetX = Math.Max(offsetX, shape.Glow.Radius);
                 offsetY = Math.Max(offsetY, shape.Glow.Radius);
@@ -193,8 +194,13 @@ namespace OfficeIMO.Excel {
             if (shape.Shadow != null) {
                 double horizontal = Math.Abs(shape.Shadow.OffsetX) + shape.Shadow.BlurRadius;
                 double vertical = Math.Abs(shape.Shadow.OffsetY) + shape.Shadow.BlurRadius;
-                offsetX = Math.Max(offsetX, horizontal);
-                offsetY = Math.Max(offsetY, vertical);
+                if (hasRotatedShapePadding) {
+                    offsetX += horizontal;
+                    offsetY += vertical;
+                } else {
+                    offsetX = Math.Max(offsetX, horizontal);
+                    offsetY = Math.Max(offsetY, vertical);
+                }
             }
         }
 
