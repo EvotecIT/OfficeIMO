@@ -50,27 +50,96 @@ namespace OfficeIMO.Excel.Pdf {
 
         private static HashSet<PdfCore.PdfStandardFont> RegisterWorksheetFonts(PdfCore.PdfOptions pdfOptions, IReadOnlyList<WorksheetPdfExportPlan> exportPlans, ExcelPdfSaveOptions options, bool preserveConfiguredFontSlots) {
             HashSet<PdfCore.PdfStandardFont> registeredFontSlots = pdfOptions.CreateRegisteredFontFamilySlots(preserveConfiguredFontSlots);
-            if (!options.UseWorksheetCellStyles) {
-                return registeredFontSlots;
-            }
 
             var registeredFamilies = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-            foreach (WorksheetPdfExportPlan plan in exportPlans) {
-                ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
-                if (styles == null) {
-                    continue;
-                }
+            RegisterWorksheetHeaderFooterFonts(exportPlans, options, registeredFamilies, registeredFontSlots, pdfOptions);
 
-                int rows = Math.Min(plan.ExportedRows, styles.GetLength(0));
-                int columns = styles.GetLength(1);
-                for (int row = 0; row < rows; row++) {
-                    for (int column = 0; column < columns; column++) {
-                        RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
+            if (options.UseWorksheetCellStyles) {
+                foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                    ExcelCellStyleSnapshot?[,]? styles = plan.ExportData.Styles;
+                    if (styles == null) {
+                        continue;
+                    }
+
+                    int rows = Math.Min(plan.ExportedRows, styles.GetLength(0));
+                    int columns = styles.GetLength(1);
+                    for (int row = 0; row < rows; row++) {
+                        for (int column = 0; column < columns; column++) {
+                            RegisterWorksheetFontCandidate(styles[row, column]?.FontName, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
+                        }
                     }
                 }
             }
 
             return registeredFontSlots;
+        }
+
+        private static void RegisterWorksheetHeaderFooterFonts(
+            IReadOnlyList<WorksheetPdfExportPlan> exportPlans,
+            ExcelPdfSaveOptions options,
+            HashSet<string> registeredFamilies,
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
+            PdfCore.PdfOptions pdfOptions) {
+            if (!options.UseWorksheetHeadersAndFooters) {
+                return;
+            }
+
+            foreach (WorksheetPdfExportPlan plan in exportPlans) {
+                ExcelSheet.HeaderFooterSnapshot? headerFooter = plan.HeaderFooter;
+                if (headerFooter == null) {
+                    continue;
+                }
+
+                foreach (string? text in EnumerateHeaderFooterTextZones(headerFooter)) {
+                    RegisterWorksheetHeaderFooterFontCandidate(text, pdfOptions, registeredFamilies, registeredFontSlots, options.AllowSystemFontEmbedding);
+                }
+            }
+        }
+
+        private static IEnumerable<string?> EnumerateHeaderFooterTextZones(ExcelSheet.HeaderFooterSnapshot headerFooter) {
+            yield return headerFooter.HeaderLeft;
+            yield return headerFooter.HeaderCenter;
+            yield return headerFooter.HeaderRight;
+            yield return headerFooter.FooterLeft;
+            yield return headerFooter.FooterCenter;
+            yield return headerFooter.FooterRight;
+            yield return headerFooter.FirstHeaderLeft;
+            yield return headerFooter.FirstHeaderCenter;
+            yield return headerFooter.FirstHeaderRight;
+            yield return headerFooter.FirstFooterLeft;
+            yield return headerFooter.FirstFooterCenter;
+            yield return headerFooter.FirstFooterRight;
+            yield return headerFooter.EvenHeaderLeft;
+            yield return headerFooter.EvenHeaderCenter;
+            yield return headerFooter.EvenHeaderRight;
+            yield return headerFooter.EvenFooterLeft;
+            yield return headerFooter.EvenFooterCenter;
+            yield return headerFooter.EvenFooterRight;
+        }
+
+        private static void RegisterWorksheetHeaderFooterFontCandidate(
+            string? text,
+            PdfCore.PdfOptions pdfOptions,
+            HashSet<string> registeredFamilies,
+            HashSet<PdfCore.PdfStandardFont> registeredFontSlots,
+            bool embedSystemFont) {
+            if (string.IsNullOrWhiteSpace(text)) {
+                return;
+            }
+
+            for (int i = 0; i < text!.Length - 1; i++) {
+                if (text[i] != '&' || text[i + 1] != '"') {
+                    continue;
+                }
+
+                if (!TryReadHeaderFooterQuotedToken(text, i + 1, out string token, out int endIndex)) {
+                    continue;
+                }
+
+                string familyName = token.Split(new[] { ',' }, 2)[0];
+                RegisterWorksheetFontCandidate(familyName, pdfOptions, registeredFamilies, registeredFontSlots, embedSystemFont);
+                i = endIndex;
+            }
         }
 
         private static void RegisterWorksheetFontCandidate(string? familyName, PdfCore.PdfOptions pdfOptions, HashSet<string> registeredFamilies, HashSet<PdfCore.PdfStandardFont> registeredFontSlots, bool embedSystemFont) {

@@ -24,16 +24,26 @@ public sealed partial class PdfOptions {
             return this;
         }
 
+        var reservedSlots = new HashSet<PdfStandardFont>();
+        foreach (PdfStandardFont slot in reservedFontSlots) {
+            AddRegisteredFontFamilySlot(reservedSlots, slot);
+        }
+
         if ((features & PdfTextFallbackFeatures.DocumentFont) != 0) {
-            TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
+            PdfStandardFont documentSlot = PdfStandardFontMapper.GetFontFamily(DefaultFont);
+            if (!reservedSlots.Contains(documentSlot)) {
+                TryUseDefaultDocumentFontFallback(requireEmbeddedFont: false);
+            }
         }
 
         if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0) {
-            TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
+            if (!reservedSlots.Contains(PdfStandardFont.Courier)) {
+                TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
+            }
         }
 
         if ((features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
-            TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback, reservedFontSlots: reservedFontSlots);
+            TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback, reservedFontSlots: reservedSlots);
         }
 
         return this;
