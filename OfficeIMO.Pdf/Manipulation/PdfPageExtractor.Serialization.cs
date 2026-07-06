@@ -185,6 +185,10 @@ public static partial class PdfPageExtractor {
     internal static byte[] Assemble(List<byte[]> objects, int catalogId, int infoId, PdfFileVersion fileVersion = PdfFileVersion.Pdf14) {
         return PdfFileAssembler.Assemble(objects, catalogId, infoId, fileVersion);
     }
+
+    internal static PdfFileVersion GetSourceFileVersion(byte[] pdf) {
+        return PdfFileAssembler.ParseHeaderVersionOrDefault(PdfSyntax.GetHeaderVersion(pdf));
+    }
     
     private static string FormatNumber(double value) {
         if (Math.Abs(value % 1) < 0.0000001) {

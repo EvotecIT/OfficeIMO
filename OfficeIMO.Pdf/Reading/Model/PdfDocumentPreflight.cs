@@ -39,6 +39,9 @@ public sealed partial class PdfDocumentPreflight {
     /// <summary>True when OfficeIMO.Pdf can attempt image XObject extraction for this PDF.</summary>
     public bool CanExtractImages => DocumentInfo is not null && !HasImageExtractionBlocker();
 
+    /// <summary>True when OfficeIMO.Pdf can attempt embedded-file and associated-file attachment extraction for this PDF.</summary>
+    public bool CanExtractAttachments => DocumentInfo is not null && !HasAttachmentExtractionBlocker();
+
     /// <summary>True when OfficeIMO.Pdf can attempt logical object readback through PdfLogicalDocument for this PDF.</summary>
     public bool CanReadLogicalObjects => CanRead;
 
@@ -92,10 +95,18 @@ public sealed partial class PdfDocumentPreflight {
                 return CanExtractText;
             case PdfPreflightCapability.ExtractImages:
                 return CanExtractImages;
+            case PdfPreflightCapability.ExtractAttachments:
+                return CanExtractAttachments;
             case PdfPreflightCapability.ReadLogicalObjects:
                 return CanReadLogicalObjects;
             case PdfPreflightCapability.ManipulatePages:
                 return CanManipulatePages;
+            case PdfPreflightCapability.AppendMetadataRevision:
+                return CanAppendMetadataRevision;
+            case PdfPreflightCapability.AppendFormFieldRevision:
+                return CanAppendFormFieldRevision;
+            case PdfPreflightCapability.PrepareExternalSignatureRevision:
+                return CanPrepareExternalSignatureRevision;
             case PdfPreflightCapability.FillSimpleFormFields:
                 return CanFillSimpleFormFields;
             case PdfPreflightCapability.FlattenSimpleFormFields:
@@ -118,10 +129,18 @@ public sealed partial class PdfDocumentPreflight {
                 return GetReadCapabilityDiagnostics("PDF text extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
             case PdfPreflightCapability.ExtractImages:
                 return GetImageExtractionDiagnostics();
+            case PdfPreflightCapability.ExtractAttachments:
+                return GetAttachmentExtractionDiagnostics();
             case PdfPreflightCapability.ReadLogicalObjects:
                 return GetReadCapabilityDiagnostics("PDF logical object extraction is not available because OfficeIMO.Pdf cannot read this PDF.");
             case PdfPreflightCapability.ManipulatePages:
                 return GetPageManipulationDiagnostics();
+            case PdfPreflightCapability.AppendMetadataRevision:
+                return GetAppendOnlyCapabilityDiagnostics("Metadata", "PDF append-only metadata revision is not available for this PDF.");
+            case PdfPreflightCapability.AppendFormFieldRevision:
+                return GetAppendOnlyCapabilityDiagnostics("FormFill", "PDF append-only form-field revision is not available for this PDF.");
+            case PdfPreflightCapability.PrepareExternalSignatureRevision:
+                return GetAppendOnlyCapabilityDiagnostics("SignaturePrepare", "PDF append-only external-signature preparation is not available for this PDF.");
             case PdfPreflightCapability.FillSimpleFormFields:
                 return GetSimpleFormCapabilityDiagnostics(requireFillableField: true, requireFlattenableWidget: false);
             case PdfPreflightCapability.FlattenSimpleFormFields:
@@ -145,6 +164,12 @@ public sealed partial class PdfDocumentPreflight {
         return HasReadBlocker(PdfReadBlockerKind.MissingHeader) ||
             HasReadBlocker(PdfReadBlockerKind.Encryption) ||
             HasReadBlocker(PdfReadBlockerKind.NoPages) ||
+            HasReadBlocker(PdfReadBlockerKind.ParserUnsupported);
+    }
+
+    private bool HasAttachmentExtractionBlocker() {
+        return HasReadBlocker(PdfReadBlockerKind.MissingHeader) ||
+            HasReadBlocker(PdfReadBlockerKind.Encryption) ||
             HasReadBlocker(PdfReadBlockerKind.ParserUnsupported);
     }
 
@@ -239,6 +264,27 @@ public sealed partial class PdfDocumentPreflight {
         return messages.AsReadOnly();
     }
 
+    private IReadOnlyList<string> GetAttachmentExtractionDiagnostics() {
+        if (ReadBlockers.Count == 0) {
+            return new[] { "PDF attachment extraction is not available because OfficeIMO.Pdf cannot inspect this PDF." };
+        }
+
+        var messages = new List<string>(ReadBlockers.Count);
+        for (int i = 0; i < ReadBlockers.Count; i++) {
+            if (ReadBlockers[i].Kind != PdfReadBlockerKind.NoPages &&
+                ReadBlockers[i].Kind != PdfReadBlockerKind.UnsupportedContentStreamFilter) {
+                AddDistinct(messages, ReadBlockers[i].Message);
+            }
+        }
+
+        AddRange(messages, SecurityDiagnostics);
+        if (messages.Count == 0) {
+            AddDistinct(messages, "PDF attachment extraction is not available for this PDF.");
+        }
+
+        return messages.AsReadOnly();
+    }
+
     private System.Collections.ObjectModel.ReadOnlyCollection<string> GetPageManipulationDiagnostics() {
         var messages = new List<string>(ReadBlockers.Count + RewriteBlockers.Count);
         for (int i = 0; i < ReadBlockers.Count; i++) {
@@ -252,6 +298,34 @@ public sealed partial class PdfDocumentPreflight {
         AddRange(messages, SecurityDiagnostics);
         if (messages.Count == 0) {
             AddDistinct(messages, "PDF page manipulation is not available for this PDF.");
+        }
+
+        return messages.AsReadOnly();
+    }
+
+    private System.Collections.ObjectModel.ReadOnlyCollection<string> GetAppendOnlyCapabilityDiagnostics(string action, string fallbackMessage) {
+        var messages = new List<string>();
+        PdfAppendOnlyMutationReport report = AppendOnlyMutationReport;
+        if (report.BlockedActions.Contains(action, StringComparer.Ordinal)) {
+            AddDistinct(messages, fallbackMessage);
+        }
+
+        if (!CanRead) {
+            AddRange(messages, GetReadCapabilityDiagnostics(fallbackMessage));
+        } else {
+            AddRange(messages, SecurityDiagnostics);
+        }
+
+        for (int i = 0; i < report.Blockers.Count; i++) {
+            AddDistinct(messages, "Append-only blocker: " + report.Blockers[i] + ".");
+        }
+
+        for (int i = 0; i < report.Warnings.Count; i++) {
+            AddDistinct(messages, "Append-only warning: " + report.Warnings[i] + ".");
+        }
+
+        if (messages.Count == 0) {
+            AddDistinct(messages, fallbackMessage);
         }
 
         return messages.AsReadOnly();

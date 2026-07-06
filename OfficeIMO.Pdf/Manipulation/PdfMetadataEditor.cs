@@ -188,7 +188,8 @@ public static class PdfMetadataEditor {
         }
 
         var pageObjectNumbers = document.Pages.Select(page => page.ObjectNumber).ToArray();
-        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw));
+        PdfFileVersion fileVersion = PdfPageExtractor.GetSourceFileVersion(pdf);
+        return PdfPageExtractor.ExtractPages(objects, metadata, pageObjectNumbers, catalogState: PdfPageExtractor.ExtractCatalogRewriteState(objects, trailerRaw), fileVersion: fileVersion);
     }
 
     private static byte[] ReadStream(Stream stream, string paramName) {

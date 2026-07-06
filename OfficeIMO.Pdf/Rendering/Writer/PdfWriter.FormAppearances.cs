@@ -2,6 +2,7 @@ namespace OfficeIMO.Pdf;
 
 internal static partial class PdfWriter {
     private static readonly char[] FormTextFieldLineSeparators = { '\n' };
+    private static readonly double[] FormFieldDefaultBorderDashPattern = { 3D };
 
     private static string BuildFormFieldTextAppearanceContent(
         double width,
@@ -36,19 +37,7 @@ internal static partial class PdfWriter {
         }
 
         if (effectiveStyle.BorderColor.HasValue && effectiveStyle.BorderWidth > 0D) {
-            double inset = Math.Max(0.5D, effectiveStyle.BorderWidth * 0.5D);
-            sb.Append(FormatAppearanceColor(effectiveStyle.BorderColor.Value))
-                .Append(" RG ")
-                .Append(FormatAppearanceNumber(effectiveStyle.BorderWidth))
-                .Append(" w ")
-                .Append(FormatAppearanceNumber(inset))
-                .Append(' ')
-                .Append(FormatAppearanceNumber(inset))
-                .Append(' ')
-                .Append(FormatAppearanceNumber(Math.Max(0D, width - inset * 2D)))
-                .Append(' ')
-                .Append(FormatAppearanceNumber(Math.Max(0D, height - inset * 2D)))
-                .Append(" re S\n");
+            AppendFormFieldBorderAppearance(sb, width, height, effectiveStyle);
         }
 
         if (effectiveStyle.IsMultiline) {
@@ -93,6 +82,28 @@ internal static partial class PdfWriter {
         sb.Append("Q\n");
         fontResources = resources;
         return sb.ToString();
+    }
+
+    private static void AppendFormFieldBorderAppearance(StringBuilder sb, double width, double height, PdfFormFieldStyle style) {
+        if (style.BorderColor == null || style.BorderWidth <= 0D) {
+            return;
+        }
+
+        sb.Append(PdfAcroFormDictionaryBuilder.BuildRectangularBorderAppearanceContent(
+            width,
+            height,
+            style.BorderColor.Value,
+            style.BorderWidth,
+            ResolveFormFieldBorderDashPattern(style),
+            style.BorderStyle));
+    }
+
+    private static IReadOnlyList<double>? ResolveFormFieldBorderDashPattern(PdfFormFieldStyle style) {
+        if (style.BorderDashPattern != null && style.BorderDashPattern.Count > 0) {
+            return style.BorderDashPattern;
+        }
+
+        return style.BorderStyle == PdfFormFieldBorderStyle.Dashed ? FormFieldDefaultBorderDashPattern : null;
     }
 
     private static void AppendMultilineFormFieldTextAppearance(

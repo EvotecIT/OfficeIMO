@@ -73,6 +73,37 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Preflight_ExposesAppendOnlyPolicyForUnsignedPdf() {
+        byte[] pdf = PdfDocument.Create()
+            .Meta(title: "Append-only policy")
+            .Paragraph(paragraph => paragraph.Text("Unsigned append-only policy proof."))
+            .ToBytes();
+
+        PdfDocumentPreflight report = PdfInspector.Preflight(pdf);
+        PdfAppendOnlyMutationReport policy = report.AppendOnlyMutationReport;
+        PdfValidationResult validation = PdfValidator.Validate(pdf);
+
+        Assert.True(report.CanRead);
+        Assert.True(report.CanRewrite);
+        Assert.False(report.RequiresAppendOnlyMutation);
+        Assert.False(report.CanAppendOnlyMutate);
+        Assert.True(report.CanAppendMetadataRevision);
+        Assert.True(report.CanPrepareExternalSignatureRevision);
+        Assert.True(policy.CanAppendMetadata);
+        Assert.True(policy.CanPrepareExternalSignature);
+        Assert.Contains("Metadata", policy.SupportedActions);
+        Assert.Contains("SignaturePrepare", policy.SupportedActions);
+        Assert.Contains("Annotations", policy.BlockedActions);
+        Assert.Empty(policy.Blockers);
+        Assert.Empty(policy.Warnings);
+        Assert.Contains("full rewrites may also be possible", policy.Summary, System.StringComparison.Ordinal);
+        Assert.Same(policy, report.AppendOnlyMutationReport);
+        Assert.True(validation.CanAppendMetadataRevision);
+        Assert.True(validation.CanPrepareExternalSignatureRevision);
+        Assert.Equal(policy.SupportedActions, validation.AppendOnlyMutationReport.SupportedActions);
+    }
+
+    [Fact]
     public void Inspect_ReadsSignatureAndRevisionSecurityState() {
         PdfDocumentInfo info = PdfInspector.Inspect(BuildSignedIncrementalPdf());
 
@@ -167,12 +198,19 @@ public partial class PdfInspectorTests {
 
     [Fact]
     public void Preflight_ReportsSignatureAndRevisionSecurityDiagnostics() {
-        PdfDocumentPreflight report = PdfInspector.Preflight(BuildSignedIncrementalPdf());
+        byte[] pdf = BuildSignedIncrementalPdf();
+        PdfDocumentPreflight report = PdfInspector.Preflight(pdf);
 
         Assert.True(report.CanRead);
         Assert.False(report.CanRewrite);
         Assert.True(report.RequiresAppendOnlyMutation);
         Assert.False(report.CanAppendOnlyMutate);
+        Assert.False(report.CanAppendMetadataRevision);
+        Assert.False(report.CanAppendFormFieldRevision);
+        Assert.False(report.CanPrepareExternalSignatureRevision);
+        Assert.False(report.Can(PdfPreflightCapability.AppendMetadataRevision));
+        Assert.False(report.Can(PdfPreflightCapability.AppendFormFieldRevision));
+        Assert.False(report.Can(PdfPreflightCapability.PrepareExternalSignatureRevision));
         Assert.True(report.HasSecurityDiagnostics);
         Assert.Contains("PDF signature markers were detected in 1 signature field (Approval); rewrite would invalidate signatures unless append-only signature preservation is implemented.", report.SecurityDiagnostics);
         Assert.Contains("Signature /ByteRange markers were detected with 2 segments.", report.SecurityDiagnostics);
@@ -183,6 +221,50 @@ public partial class PdfInspectorTests {
         Assert.Contains("Document Security Store (/DSS) was detected with 1 VRI entry; signature validation evidence must be preserved during mutation.", report.SecurityDiagnostics);
         Assert.Contains("Incremental update markers were detected (2 startxref sections); safe mutation requires append-only revision preservation.", report.SecurityDiagnostics);
         Assert.Contains("Usage-rights entries must be preserved before append-only mutation.", report.AppendOnlyMutationDiagnostics);
+
+        PdfAppendOnlyMutationReport policy = report.AppendOnlyMutationReport;
+        Assert.False(policy.CanAppendAny);
+        Assert.False(policy.CanAppendMetadata);
+        Assert.False(policy.CanAppendFormFields);
+        Assert.False(policy.CanPrepareExternalSignature);
+        Assert.True(policy.BlocksAllAppendOnlyMutation);
+        Assert.Contains("Metadata", policy.BlockedActions);
+        Assert.Contains("FormFill", policy.BlockedActions);
+        Assert.Contains("SignaturePrepare", policy.BlockedActions);
+        Assert.Contains("Attachments", policy.BlockedActions);
+        Assert.Contains("UsageRights", policy.Blockers);
+        Assert.Contains("Signed", policy.Blockers);
+        Assert.Contains("DocMDPAllowsFormFill", policy.Warnings);
+        Assert.Contains("SignedDocMDPFormFill", policy.Warnings);
+        Assert.Contains("ExistingIncrementalRevisions", policy.Warnings);
+        Assert.Contains("AcroFormAppendOnly", policy.Warnings);
+        Assert.Contains("Append-only mutation is blocked for this input", policy.Summary, System.StringComparison.Ordinal);
+
+        PdfAppendOnlyMutationReport directPolicy = PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(report.Probe.Security);
+        Assert.Equal(policy.SupportedActions, directPolicy.SupportedActions);
+        Assert.Equal(policy.BlockedActions, directPolicy.BlockedActions);
+        Assert.Equal(policy.Blockers, directPolicy.Blockers);
+        Assert.Equal(policy.Warnings, directPolicy.Warnings);
+
+        IReadOnlyList<string> appendMetadataDiagnostics = report.GetCapabilityDiagnostics(PdfPreflightCapability.AppendMetadataRevision);
+        Assert.Contains("PDF append-only metadata revision is not available for this PDF.", appendMetadataDiagnostics);
+        Assert.Contains("Append-only blocker: UsageRights.", appendMetadataDiagnostics);
+        Assert.Contains("Append-only blocker: Signed.", appendMetadataDiagnostics);
+        Assert.Contains("Append-only warning: ExistingIncrementalRevisions.", appendMetadataDiagnostics);
+
+        IReadOnlyList<string> appendSignatureDiagnostics = report.GetCapabilityDiagnostics(PdfPreflightCapability.PrepareExternalSignatureRevision);
+        Assert.Contains("PDF append-only external-signature preparation is not available for this PDF.", appendSignatureDiagnostics);
+        Assert.Contains("Append-only blocker: UsageRights.", appendSignatureDiagnostics);
+        Assert.Contains("Append-only warning: AcroFormAppendOnly.", appendSignatureDiagnostics);
+
+        PdfValidationResult validation = PdfValidator.Validate(pdf);
+        Assert.False(validation.CanAppendMetadataRevision);
+        Assert.False(validation.CanAppendFormFieldRevision);
+        Assert.False(validation.CanPrepareExternalSignatureRevision);
+        Assert.False(validation.Can(PdfPreflightCapability.AppendMetadataRevision));
+        Assert.False(validation.Can(PdfPreflightCapability.AppendFormFieldRevision));
+        Assert.False(validation.Can(PdfPreflightCapability.PrepareExternalSignatureRevision));
+        Assert.Equal(policy.Blockers, validation.AppendOnlyMutationReport.Blockers);
 
         IReadOnlyList<string> pageDiagnostics = report.GetCapabilityDiagnostics(PdfPreflightCapability.ManipulatePages);
         Assert.Contains("Signed PDF files are not supported for rewriting by OfficeIMO.Pdf yet.", pageDiagnostics);

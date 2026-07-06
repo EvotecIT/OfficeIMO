@@ -10,6 +10,7 @@ public static partial class PdfFormFiller {
         int? inheritedQuadding,
         int? inheritedMaxLength,
         PdfDictionary? inheritedDefaultResources,
+        string? inheritedDefaultAppearance,
         PdfArray? inheritedChoiceOptions,
         IReadOnlyDictionary<string, PdfFormFieldValue> fieldValues,
         PdfFormFillerOptions? options,
@@ -31,9 +32,10 @@ public static partial class PdfFormFiller {
         int? fieldQuadding = ReadFieldQuadding(objects, field, inheritedQuadding);
         int? fieldMaxLength = ReadFieldMaxLength(objects, field, inheritedMaxLength);
         PdfDictionary? defaultResources = TryReadDefaultResources(objects, field) ?? inheritedDefaultResources;
+        string? defaultAppearance = TryReadText(objects, field, "DA") ?? inheritedDefaultAppearance;
         PdfArray? choiceOptions = TryReadChoiceOptions(objects, field) ?? inheritedChoiceOptions;
         if (fullName is not null && remaining.Contains(fullName) && fieldValues.TryGetValue(fullName, out PdfFormFieldValue? value)) {
-            SetFieldValue(objects, field, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, choiceOptions, value, options, ref nextObjectNumber);
+            SetFieldValue(objects, field, fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, value, options, ref nextObjectNumber);
             remaining.Remove(fullName);
         }
 
@@ -43,11 +45,11 @@ public static partial class PdfFormFiller {
         }
 
         for (int i = 0; i < kids.Items.Count; i++) {
-            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, choiceOptions, fieldValues, options, remaining, visited, ref nextObjectNumber);
+            FillField(objects, kids.Items[i], fullName, fieldType, fieldFlags, fieldQuadding, fieldMaxLength, defaultResources, defaultAppearance, choiceOptions, fieldValues, options, remaining, visited, ref nextObjectNumber);
         }
     }
 
-    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string fieldName, string? fieldType, int fieldFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, PdfArray? choiceOptions, PdfFormFieldValue value, PdfFormFillerOptions? options, ref int nextObjectNumber) {
+    private static void SetFieldValue(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, string fieldName, string? fieldType, int fieldFlags, int? inheritedQuadding, int? inheritedMaxLength, PdfDictionary? inheritedDefaultResources, string? inheritedDefaultAppearance, PdfArray? choiceOptions, PdfFormFieldValue value, PdfFormFillerOptions? options, ref int nextObjectNumber) {
         IReadOnlyList<string> values = value.Values;
         string firstValue = values[0];
         if (string.Equals(fieldType, "Btn", StringComparison.Ordinal)) {
@@ -81,18 +83,18 @@ public static partial class PdfFormFiller {
             IReadOnlyList<ChoiceFillValue> choiceValues = ResolveChoiceFillValues(objects, choiceOptions, (fieldFlags & EditableChoiceFlag) != 0, values);
             if (isMultiSelectChoice) {
                 field.Items["V"] = CreateStringArray(choiceValues.Select(item => item.ExportValue));
-                SetTextWidgetAppearances(objects, field, string.Join(", ", choiceValues.Select(item => item.DisplayValue)), fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, options, new HashSet<int>(), ref nextObjectNumber);
+                SetTextWidgetAppearances(objects, field, string.Join("\n", choiceValues.Select(item => item.DisplayValue)), fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, true, options, new HashSet<int>(), ref nextObjectNumber);
                 return;
             }
 
             ChoiceFillValue choiceValue = choiceValues[0];
             field.Items["V"] = new PdfStringObj(choiceValue.ExportValue, useTextStringEncoding: true);
-            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, options, new HashSet<int>(), ref nextObjectNumber);
+            SetTextWidgetAppearances(objects, field, choiceValue.DisplayValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber);
             return;
         }
 
         field.Items["V"] = new PdfStringObj(firstValue, useTextStringEncoding: true);
-        SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, options, new HashSet<int>(), ref nextObjectNumber);
+        SetTextWidgetAppearances(objects, field, firstValue, fieldName, fieldFlags, inheritedQuadding, inheritedMaxLength, inheritedDefaultResources, inheritedDefaultAppearance, false, options, new HashSet<int>(), ref nextObjectNumber);
     }
 
     private static int ReadFieldFlags(Dictionary<int, PdfIndirectObject> objects, PdfDictionary field, int inheritedFlags) {

@@ -16,6 +16,15 @@ public static partial class RtfPdfConverterExtensions {
         return RtfDocument.Load(path, readOptions, encoding).Document.ToPdfDocument(options);
     }
 
+    /// <summary>Converts an RTF file to PDF and returns the generated document with a snapshot of conversion diagnostics.</summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResultFromRtfFile(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null) {
+        if (path == null) {
+            throw new ArgumentNullException(nameof(path));
+        }
+
+        return RtfDocument.Load(path, readOptions, encoding).Document.ToPdfDocumentResult(options);
+    }
+
     /// <summary>Converts an RTF file to a first-party OfficeIMO PDF document model asynchronously.</summary>
     public static async Task<PdfCore.PdfDocument> ToPdfDocumentFromRtfFileAsync(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
         if (path == null) {
@@ -26,6 +35,18 @@ public static partial class RtfPdfConverterExtensions {
         RtfReadResult readResult = await RtfDocument.LoadAsync(path, readOptions, encoding, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
         return readResult.Document.ToPdfDocument(options);
+    }
+
+    /// <summary>Converts an RTF file to PDF asynchronously and returns the generated document with a snapshot of conversion diagnostics.</summary>
+    public static async Task<PdfCore.PdfDocumentConversionResult> ToPdfDocumentResultFromRtfFileAsync(this string path, RtfReadOptions? readOptions = null, RtfPdfSaveOptions? options = null, Encoding? encoding = null, CancellationToken cancellationToken = default) {
+        if (path == null) {
+            throw new ArgumentNullException(nameof(path));
+        }
+
+        cancellationToken.ThrowIfCancellationRequested();
+        RtfReadResult readResult = await RtfDocument.LoadAsync(path, readOptions, encoding, cancellationToken).ConfigureAwait(false);
+        cancellationToken.ThrowIfCancellationRequested();
+        return readResult.Document.ToPdfDocumentResult(options);
     }
 
     /// <summary>Converts an RTF file to PDF bytes.</summary>

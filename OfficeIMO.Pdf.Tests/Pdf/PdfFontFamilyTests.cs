@@ -748,6 +748,93 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfDocumentConversionResult_SnapshotsConversionReport() {
+        var report = new PdfConversionReport();
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "sample-warning",
+            "source[1]",
+            "Sample warning."));
+
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Conversion result")),
+            report);
+
+        report.Clear();
+
+        PdfConversionWarning warning = Assert.Single(result.Warnings);
+        Assert.True(result.HasWarnings);
+        Assert.False(report.HasWarnings);
+        Assert.Equal("sample-warning", warning.Code);
+        Assert.Contains("Conversion result", PdfReadDocument.Load(result.ToBytes()).ExtractText(), StringComparison.Ordinal);
+
+        PdfDocumentConversionResult processed = result.Process(document => document.UpdateMetadata(title: "Processed conversion result"));
+
+        PdfConversionWarning processedWarning = Assert.Single(processed.Warnings);
+        Assert.Equal("sample-warning", processedWarning.Code);
+        Assert.Equal("Processed conversion result", processed.Document.Inspect().Metadata.Title);
+        Assert.Contains("Conversion result", PdfReadDocument.Load(processed.ToBytes()).ExtractText(), StringComparison.Ordinal);
+
+        using var output = new MemoryStream();
+        PdfSaveResult saveResult = processed.TrySave(output);
+
+        Assert.True(saveResult.Succeeded);
+        Assert.True(saveResult.BytesWritten > 0);
+        Assert.True(output.Length > 0);
+        Assert.Same(processed, processed.Save(new MemoryStream()));
+    }
+
+    [Fact]
+    public async System.Threading.Tasks.Task PdfDocumentConversionResult_AsyncSavePreservesConversionReportSnapshot() {
+        var report = new PdfConversionReport();
+        report.Add(new PdfConversionWarning(
+            "OfficeIMO.Tests",
+            "async-sample-warning",
+            "source[async]",
+            "Async sample warning."));
+
+        var result = new PdfDocumentConversionResult(
+            PdfDocument.Create().Paragraph(paragraph => paragraph.Text("Async conversion result")),
+            report);
+
+        report.Clear();
+
+        using var stream = new MemoryStream();
+        PdfSaveResult streamResult = await result.TrySaveAsync(stream);
+
+        Assert.True(streamResult.Succeeded);
+        Assert.True(streamResult.BytesWritten > 0);
+        Assert.True(stream.Length > 0);
+        Assert.True(result.HasWarnings);
+        Assert.Equal("async-sample-warning", Assert.Single(result.Warnings).Code);
+
+        using var chainedStream = new MemoryStream();
+        PdfDocumentConversionResult chained = await result.SaveAsync(chainedStream);
+        Assert.Same(result, chained);
+        Assert.True(chainedStream.Length > 0);
+
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Pdf.ConversionResult.Async", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string tryPath = Path.Combine(directory, "try-save.pdf");
+            string savePath = Path.Combine(directory, "save.pdf");
+
+            PdfSaveResult pathResult = await result.TrySaveAsync(tryPath);
+            PdfDocumentConversionResult pathChained = await result.SaveAsync(savePath);
+
+            Assert.True(pathResult.Succeeded);
+            Assert.True(File.Exists(tryPath));
+            Assert.True(new FileInfo(tryPath).Length > 0);
+            Assert.Same(result, pathChained);
+            Assert.True(File.Exists(savePath));
+            Assert.True(new FileInfo(savePath).Length > 0);
+            Assert.Equal("async-sample-warning", Assert.Single(pathChained.Warnings).Code);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void PdfTextDiagnostics_AnalyzeAdvancedTextLayoutReportsComplexScriptRequirements() {
         IReadOnlyList<PdfTextShapingDiagnostic> diagnostics = PdfTextDiagnostics.AnalyzeAdvancedTextLayout(
             "\u0645\u0631\u062D\u0628\u0627 office",
@@ -1031,16 +1118,25 @@ public class PdfFontFamilyTests {
         Assert.Contains("CFF Łódź A", extracted, StringComparison.Ordinal);
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "opentype-cff-font-output-not-enabled");
         Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-opentype-cff-font");
-        PdfConversionWarning fullFontWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-full-font-embedded");
-        Assert.Equal("OfficeIMO.Tests", fullFontWarning.Converter);
-        Assert.Equal(PdfConversionWarningSeverity.Warning, fullFontWarning.Severity);
-        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, fullFontWarning.LayoutDiagnostic!.Kind);
-        Assert.Equal("embedded-font:Helvetica", fullFontWarning.Source);
-        Assert.Equal("OpenType/CFF", fullFontWarning.Details["format"]);
-        Assert.Equal("OfficeIMOSourceSerifCFF", fullFontWarning.Details["fontName"]);
-        Assert.True(int.Parse(fullFontWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(fullFontWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
-        Assert.True(int.Parse(fullFontWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(fullFontWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+        PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
+        Assert.Equal("OfficeIMO.Tests", cffWarning.Converter);
+        Assert.Equal(PdfConversionWarningSeverity.Warning, cffWarning.Severity);
+        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, cffWarning.LayoutDiagnostic!.Kind);
+        Assert.Equal("embedded-font:Helvetica", cffWarning.Source);
+        Assert.Equal("OpenType/CFF", cffWarning.Details["format"]);
+        Assert.Equal("OfficeIMOSourceSerifCFF", cffWarning.Details["fontName"]);
+        Assert.Equal("compact-opentype-cff", cffWarning.Details["embeddingMode"]);
+        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
+        Assert.Equal("false", cffWarning.Details["cffCharstringsSubset"]);
+        Assert.Contains("CFF", cffWarning.Details["openTypeTablesEmbedded"], StringComparison.Ordinal);
+        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
+        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
+        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
+        Assert.True(int.Parse(cffWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(cffWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
+        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], CultureInfo.InvariantCulture) > 0);
+        Assert.False(string.IsNullOrWhiteSpace(cffWarning.Details["usedGlyphIdsPreview"]));
+        Assert.True(int.Parse(cffWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(cffWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
     }
 
     [Fact]

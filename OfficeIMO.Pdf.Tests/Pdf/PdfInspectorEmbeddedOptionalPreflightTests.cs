@@ -342,6 +342,31 @@ public partial class PdfInspectorTests {
     }
 
     [Fact]
+    public void Reader_ExposesCatalogActionDiagnostics() {
+        using PdfDocument document = PdfDocument.Open(BuildCatalogActiveActionSlotsPdf());
+
+        IReadOnlyList<PdfCatalogAction> actions = document.Read.CatalogActions();
+        Assert.Equal(4, actions.Count);
+        Assert.True(document.Read.TryCatalogActions().Succeeded);
+
+        PdfCatalogAction openAction = Assert.Single(document.Read.CatalogActionsByActionType("JavaScript"));
+        Assert.Equal("OpenAction", openAction.Name);
+        Assert.Equal("OpenAction", openAction.Source);
+        Assert.Null(openAction.TriggerName);
+
+        PdfCatalogAction submitAction = Assert.Single(document.Read.CatalogActionsByActionType("SubmitForm"));
+        Assert.Equal("AA.DS", submitAction.Name);
+        Assert.Equal("AA", submitAction.Source);
+        Assert.Equal("DS", submitAction.TriggerName);
+
+        Assert.Equal(2, document.Read.CatalogActionsBySource("OpenAction").Count);
+        Assert.Equal(2, document.Read.CatalogActionsBySource("AA").Count);
+        Assert.Empty(document.Read.CatalogActionsBySource("Names/JavaScript"));
+        Assert.True(document.Read.TryCatalogActionsByActionType("Launch").Succeeded);
+        Assert.True(document.Read.TryCatalogActionsBySource("AA").Succeeded);
+    }
+
+    [Fact]
     public void Inspect_ReadsAnnotationActionMetadataWithoutTreatingItAsNavigationLinks() {
         PdfDocumentPreflight report = PdfInspector.Preflight(BuildActiveAnnotationActionsPdf());
 
@@ -420,6 +445,42 @@ public partial class PdfInspectorTests {
         Assert.Equal(2, report.DocumentInfo.PageActionsByActionPath.Count);
         Assert.Empty(report.DocumentInfo.Pages[0].Annotations);
         AssertRewriteBlocker(report, PdfRewriteBlockerKind.ActiveContent, "PDF active content is not supported for rewriting by OfficeIMO.Pdf yet.");
+    }
+
+    [Fact]
+    public void Reader_ExposesPageActionDiagnostics() {
+        using PdfDocument document = PdfDocument.Open(BuildPageAdditionalActionsPdf());
+
+        IReadOnlyList<PdfPageAction> actions = document.Read.PageActions();
+        Assert.Equal(2, actions.Count);
+        Assert.True(document.Read.TryPageActions().Succeeded);
+
+        IReadOnlyList<PdfPageAction> pageActions = document.Read.PageActions(1);
+        Assert.Equal(2, pageActions.Count);
+
+        PdfPageAction openAction = Assert.Single(document.Read.PageActionsByTriggerName("O"));
+        Assert.Equal(1, openAction.PageNumber);
+        Assert.Equal("O", openAction.ActionPath);
+        Assert.Equal("JavaScript", openAction.ActionType);
+        Assert.False(openAction.IsChainedAction);
+
+        PdfPageAction actionTypeMatch = Assert.Single(document.Read.PageActionsByActionType("JavaScript"));
+        Assert.Equal(openAction.PageNumber, actionTypeMatch.PageNumber);
+        Assert.Equal(openAction.TriggerName, actionTypeMatch.TriggerName);
+        Assert.Equal(openAction.ActionPath, actionTypeMatch.ActionPath);
+
+        PdfPageAction actionPathMatch = Assert.Single(document.Read.PageActionsByActionPath("O"));
+        Assert.Equal(openAction.PageNumber, actionPathMatch.PageNumber);
+        Assert.Equal(openAction.TriggerName, actionPathMatch.TriggerName);
+        Assert.Equal(openAction.ActionType, actionPathMatch.ActionType);
+        Assert.Empty(document.Read.PageActions(2));
+        Assert.Empty(document.Read.PageActionsByActionType("GoTo"));
+        Assert.Empty(document.Read.PageActionsByTriggerName("D"));
+        Assert.Empty(document.Read.PageActionsByActionPath("O.Next"));
+        Assert.True(document.Read.TryPageActions(1).Succeeded);
+        Assert.True(document.Read.TryPageActionsByActionType("Launch").Succeeded);
+        Assert.True(document.Read.TryPageActionsByTriggerName("C").Succeeded);
+        Assert.True(document.Read.TryPageActionsByActionPath("C").Succeeded);
     }
 
     [Fact]

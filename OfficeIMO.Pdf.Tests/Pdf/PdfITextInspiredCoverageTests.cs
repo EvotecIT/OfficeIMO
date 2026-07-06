@@ -113,6 +113,232 @@ public class PdfITextInspiredCoverageTests {
     }
 
     [Fact]
+    public void IncrementalUpdater_WrapsGeneratedMultilineFormAppearanceStreams() {
+        byte[] pdf = BuildMultilineFormPdf();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Notes"] = "Alpha Bravo Charlie Delta"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfDocumentInfo info = PdfInspector.Inspect(updated);
+        PdfFormField field = Assert.Single(info.FormFields);
+
+        Assert.True(field.IsMultiline);
+        Assert.Equal("Alpha Bravo Charlie Delta", field.Value);
+        Assert.Equal(false, info.AcroFormNeedAppearances);
+        Assert.Contains("/AP", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("<416C70686120427261766F20436861726C69652044656C7461> Tj", appended, StringComparison.Ordinal);
+        Assert.True(System.Text.RegularExpressions.Regex.Matches(appended, @"BT /Helv 12 Tf .* Tj ET").Count > 1);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_UsesCmykDefaultAppearanceTextColor() {
+        byte[] pdf = BuildDefaultAppearanceFormPdf("/Helv 12 Tf 0.1 0.2 0 0.1 k");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Color"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Color", field.Value);
+        Assert.Contains("0.81 0.72 0.9 rg", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_UsesDefaultAppearanceFontSize() {
+        byte[] pdf = BuildDefaultAppearanceFormPdf("/Helv 7.5 Tf 0.1 0.2 0 0.1 k");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Small"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Small", field.Value);
+        Assert.Contains("BT /Helv 7.5 Tf 0.81 0.72 0.9 rg", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 12 Tf 0.81 0.72 0.9 rg", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesWidgetBorderArrayWidthInGeneratedAppearance() {
+        byte[] pdf = BuildDefaultAppearanceFormPdf(
+            "/Helv 12 Tf 0 g",
+            " /MK << /BC [0 0 1] /BG [0.95 0.95 1] >> /Border [0 0 2.5]");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Border"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Border", field.Value);
+        Assert.Contains("0.95 0.95 1 rg", appended, StringComparison.Ordinal);
+        Assert.Contains("0 0 1 RG 2.5 w", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 0 1 RG 1 w", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesWidgetBorderStyleDashPatternInGeneratedAppearance() {
+        byte[] pdf = BuildDefaultAppearanceFormPdf(
+            "/Helv 12 Tf 0 g",
+            " /MK << /BC [0 0 1] /BG [0.95 0.95 1] >> /BS << /S /D /W 2 /D [5 1] >>");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Dash"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Dash", field.Value);
+        Assert.Contains("0 0 1 RG 2 w [5 1] 0 d", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesWidgetUnderlineBorderStyleInGeneratedAppearance() {
+        byte[] pdf = BuildDefaultAppearanceFormPdf(
+            "/Helv 12 Tf 0 g",
+            " /MK << /BC [0 0 1] /BG [0.95 0.95 1] >> /BS << /S /U /W 2 >>");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Underline"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Underline", field.Value);
+        Assert.Contains("0 0 1 RG 2 w 0 1 m 130 1 l S", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 0 1 RG 2 w 1 1 128 18 re S", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_PreservesWidgetInsetBorderStyleInGeneratedAppearance() {
+        byte[] pdf = BuildDefaultAppearanceFormPdf(
+            "/Helv 12 Tf 0 g",
+            " /MK << /BC [0 0 0] /BG [0.95 0.95 1] >> /BS << /S /I /W 2 >>");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Inset"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Inset", field.Value);
+        Assert.Contains("0 0 0 RG 2 w 1 1 m 1 19 l 129 19 l S", appended, StringComparison.Ordinal);
+        Assert.Contains("0.55 0.55 0.55 RG 2 w 1 1 m 129 1 l 129 19 l S", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 0 0 RG 2 w 1 1 128 18 re S", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_UsesInheritedDefaultAppearanceFontSizeAndTextColor() {
+        byte[] pdf = BuildAcroFormDefaultAppearanceFormPdf("/Helv 8.5 Tf 0.1 0.2 0.3 rg");
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Inherited"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Inherited", field.Value);
+        Assert.Contains("BT /Helv 8.5 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 12 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_UsesInheritedDefaultAppearanceFontResourceName() {
+        byte[] pdf = BuildAcroFormDefaultAppearanceFormPdf("/F1 8.5 Tf 0.1 0.2 0.3 rg", includeFontResource: true);
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "Resource"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("Resource", field.Value);
+        Assert.Contains("BT /F1 8.5 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 8.5 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+        Assert.Contains("/Font << /F1 4 0 R >>", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_UsesWidgetPageDefaultAppearanceFontResourceName() {
+        byte[] pdf = BuildAcroFormDefaultAppearanceFormPdf("/F1 8.5 Tf 0.1 0.2 0.3 rg", includeWidgetPageReference: true);
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "PageResource"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("PageResource", field.Value);
+        Assert.Contains("BT /F1 8.5 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 8.5 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+        Assert.Contains("/Font << /F1 4 0 R >>", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /Helvetica /Encoding /WinAnsiEncoding", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void IncrementalUpdater_UsesWidgetAppearanceDefaultAppearanceFontResourceName() {
+        byte[] pdf = BuildAcroFormDefaultAppearanceFormPdf("/FAP 8.5 Tf 0.1 0.2 0.3 rg", includeWidgetAppearanceResource: true);
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
+            ["Name"] = "AppearanceResource"
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal("AppearanceResource", field.Value);
+        Assert.Contains("BT /FAP 8.5 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 8.5 Tf 0.1 0.2 0.3 rg", appended, StringComparison.Ordinal);
+        Assert.Contains("/Font << /FAP 4 0 R >>", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("/BaseFont /Helvetica /Encoding /WinAnsiEncoding", appended, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void IncrementalUpdater_UpdatesButtonAppearanceStateWithoutRegeneratingAppearances() {
         byte[] pdf = PdfDocument.Create()
             .CheckBox("Accept", isChecked: false)
@@ -169,8 +395,12 @@ public class PdfITextInspiredCoverageTests {
             KeepNeedAppearances = false
         });
 
+        string appended = PdfEncoding.Latin1GetString(updatedAgain).Substring(PdfEncoding.Latin1GetString(updated).Length);
         PdfFormField field = Assert.Single(PdfInspector.Inspect(updatedAgain).FormFields);
         Assert.Equal("Card", field.Value);
+        Assert.Contains(" c S", appended, StringComparison.Ordinal);
+        Assert.Contains(" c f", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("1.25 w", appended, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -182,6 +412,30 @@ public class PdfITextInspiredCoverageTests {
         Assert.Throws<ArgumentException>(() => PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, string> {
             ["Country"] = "US"
         }));
+    }
+
+    [Fact]
+    public void IncrementalUpdater_AppendsMultiSelectChoiceArrayAndRowAppearances() {
+        byte[] pdf = PdfDocument.Create()
+            .MultiSelectChoiceField("Countries", new[] { "Poland", "Germany", "United States" }, values: new[] { "Poland" }, width: 190, height: 72)
+            .ToBytes();
+
+        byte[] updated = PdfIncrementalUpdater.UpdateFormFields(pdf, new Dictionary<string, PdfFormFieldValue> {
+            ["Countries"] = PdfFormFieldValue.FromValues("Germany", "United States")
+        }, new PdfIncrementalFormFieldUpdateOptions {
+            GenerateAppearanceStreams = true,
+            KeepNeedAppearances = false
+        });
+
+        string appended = PdfEncoding.Latin1GetString(updated).Substring(PdfEncoding.Latin1GetString(pdf).Length);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(updated).FormFields);
+
+        Assert.Equal(new[] { "Germany", "United States" }, field.Values);
+        Assert.Equal(new[] { "Germany", "United States" }, field.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        Assert.Contains("/V [", appended, StringComparison.Ordinal);
+        Assert.Contains("<4765726D616E79> Tj", appended, StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", appended, StringComparison.Ordinal);
+        Assert.DoesNotContain("<4765726D616E792C20556E6974656420537461746573> Tj", appended, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -712,6 +966,60 @@ public class PdfITextInspiredCoverageTests {
         return Encoding.ASCII.GetBytes(BuildPdf(objects));
     }
 
+    private static byte[] BuildMultilineFormPdf() {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R] /Contents 7 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Notes) /V () /Ff 4096 /Rect [50 50 120 122] /F 4 >>",
+            "<< /Fields [5 0 R] /SigFlags 2 >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Multiline form) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildDefaultAppearanceFormPdf(string defaultAppearance, string widgetEntries = "") {
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R] /Contents 7 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /DA (" + defaultAppearance + ") /Rect [50 50 180 70] /F 4" + widgetEntries + " >>",
+            "<< /Fields [5 0 R] /SigFlags 2 >>",
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Default appearance form) Tj ET"))
+        };
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
+    private static byte[] BuildAcroFormDefaultAppearanceFormPdf(string defaultAppearance, bool includeFontResource = false, bool includeWidgetPageReference = false, bool includeWidgetAppearanceResource = false) {
+        string acroForm = includeFontResource
+            ? "<< /Fields [5 0 R] /SigFlags 2 /DA (" + defaultAppearance + ") /DR << /Font << /F1 4 0 R >> >> >>"
+            : "<< /Fields [5 0 R] /SigFlags 2 /DA (" + defaultAppearance + ") >>";
+        string widget = "<< /Type /Annot /Subtype /Widget /FT /Tx /T (Name) /V (Ada) /Rect [50 50 180 70] /F 4" +
+            (includeWidgetPageReference ? " /P 3 0 R" : string.Empty) +
+            (includeWidgetAppearanceResource ? " /AP << /N 8 0 R >>" : string.Empty) +
+            " >>";
+        var objects = new List<string> {
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 6 0 R >>",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Resources << /Font << /F1 4 0 R >> >> /Annots [5 0 R] /Contents 7 0 R >>",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            widget,
+            acroForm,
+            BuildStream(Encoding.ASCII.GetBytes("BT /F1 12 Tf 72 720 Td (Default appearance form) Tj ET"))
+        };
+        if (includeWidgetAppearanceResource) {
+            objects.Add(BuildStream(
+                Encoding.ASCII.GetBytes("BT /FAP 8.5 Tf 0 0 Td (Old appearance) Tj ET"),
+                "/Type /XObject /Subtype /Form /BBox [0 0 130 20] /Resources << /Font << /FAP 4 0 R >> >>"));
+        }
+
+        return Encoding.ASCII.GetBytes(BuildPdf(objects));
+    }
+
     private static byte[] BuildAnnotationEditPdf() {
         byte[] contentBytes = Encoding.ASCII.GetBytes("BT\n/F1 12 Tf\n72 720 Td\n(Annotation editing) Tj\nET\n");
         byte[] appearanceBytes = Encoding.ASCII.GetBytes("BT /F1 12 Tf 0 0 Td (Old note appearance) Tj ET");
@@ -980,6 +1288,11 @@ public class PdfITextInspiredCoverageTests {
 
     private static string BuildStream(byte[] data) =>
         "<< /Length " + data.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" +
+        Encoding.ASCII.GetString(data) +
+        "\nendstream";
+
+    private static string BuildStream(byte[] data, string dictionaryEntries) =>
+        "<< " + dictionaryEntries + " /Length " + data.Length.ToString(CultureInfo.InvariantCulture) + " >>\nstream\n" +
         Encoding.ASCII.GetString(data) +
         "\nendstream";
 

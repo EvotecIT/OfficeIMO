@@ -6,6 +6,8 @@ namespace OfficeIMO.Reader.Pdf;
 /// PDF ingestion adapter for <see cref="DocumentReader"/>.
 /// </summary>
 public static partial class DocumentReaderPdfExtensions {
+    private const double HighConfidenceTableThreshold = 0.95D;
+
     /// <summary>
     /// Reads a PDF file and emits normalized page-aware chunks.
     /// </summary>
@@ -68,6 +70,18 @@ public static partial class DocumentReaderPdfExtensions {
     }
 
     /// <summary>
+    /// Reads PDF bytes and emits normalized page-aware chunks.
+    /// </summary>
+    public static IEnumerable<ReaderChunk> ReadPdf(byte[] pdfBytes, string? sourceName = null, ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
+        if (pdfBytes == null) throw new ArgumentNullException(nameof(pdfBytes));
+
+        using var stream = new MemoryStream(pdfBytes, writable: false);
+        foreach (var chunk in ReadPdf(stream, sourceName, readerOptions, pdfOptions, cancellationToken)) {
+            yield return chunk;
+        }
+    }
+
+    /// <summary>
     /// Converts an already loaded logical PDF model into normalized Reader chunks.
     /// </summary>
     public static IEnumerable<ReaderChunk> ReadPdf(PdfLogicalDocument document, string sourceName = "document.pdf", ReaderOptions? readerOptions = null, ReaderPdfOptions? pdfOptions = null, CancellationToken cancellationToken = default) {
@@ -100,7 +114,7 @@ public static partial class DocumentReaderPdfExtensions {
             var documentVisuals = BuildVisuals(pages);
             var documentFormFields = BuildFormFields(document, pages, page: null);
             var documentActions = BuildActions(document, pages, page: null);
-            ReaderChunkDiagnostics documentDiagnostics = BuildChunkDiagnostics(document, pages, page: null, documentTableExtractions);
+            ReaderChunkDiagnostics documentDiagnostics = BuildChunkDiagnostics(document, pages, page: null, documentTableExtractions, documentActions);
             foreach (var chunk in BuildChunksFromText(
                 markdown,
                 source,
@@ -137,7 +151,7 @@ public static partial class DocumentReaderPdfExtensions {
             var pageVisuals = BuildVisuals(new[] { page }, pageIndex);
             var pageFormFields = BuildFormFields(document, pages, page);
             var pageActions = BuildActions(document, pages, page);
-            ReaderChunkDiagnostics pageDiagnostics = BuildChunkDiagnostics(document, pages, page, pageTableExtractions);
+            ReaderChunkDiagnostics pageDiagnostics = BuildChunkDiagnostics(document, pages, page, pageTableExtractions, pageActions);
             foreach (var chunk in BuildChunksFromText(
                 markdown,
                 source,
@@ -170,7 +184,7 @@ public static partial class DocumentReaderPdfExtensions {
                     SourceBlockKind = "warning"
                 },
                 Text = warning,
-                Diagnostics = BuildChunkDiagnostics(document, pages, page: null, Array.Empty<PdfLogicalTableExtraction>()),
+                Diagnostics = BuildChunkDiagnostics(document, pages, page: null, Array.Empty<PdfLogicalTableExtraction>(), actions: null),
                 Warnings = new[] { warning }
             }, source, readerOptions.ComputeHashes);
         }
@@ -257,7 +271,7 @@ public static partial class DocumentReaderPdfExtensions {
         }
     }
 
-    private static ReaderChunkDiagnostics BuildChunkDiagnostics(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, IReadOnlyList<PdfLogicalTableExtraction> tableExtractions) {
+    private static ReaderChunkDiagnostics BuildChunkDiagnostics(PdfLogicalDocument document, IReadOnlyList<PdfLogicalPage> selectedPages, PdfLogicalPage? page, IReadOnlyList<PdfLogicalTableExtraction> tableExtractions, IReadOnlyList<ReaderActionSummary>? actions) {
         IReadOnlyList<PdfLogicalPage> scope = page is null ? selectedPages : new[] { page };
         PdfDocumentSecurityInfo security = document.Security;
         bool hasScopedOpenAction = GetScopedOpenAction(document.OpenAction, scope) is not null;
@@ -266,9 +280,13 @@ public static partial class DocumentReaderPdfExtensions {
         int selectedAnnotationActionCount = CountAnnotationActions(scope);
         int imageCount = CountImages(scope);
         int imageGeometryCount = CountImageGeometry(scope);
+        int imageNonAxisAlignedCount = CountNonAxisAlignedImages(scope);
         int selectedFormWidgetCount = CountFormWidgets(scope);
         int selectedFormWidgetAppearanceStateCount = CountFormWidgetAppearanceStates(scope);
         TableDiagnosticSummary tableSummary = SummarizeTables(tableExtractions);
+        ActionDiagnosticSummary actionSummary = SummarizeActions(actions);
+        PdfTaggedContentInfo? taggedContent = document.TaggedContent;
+        PdfOptionalContentProperties? optionalContent = document.OptionalContent;
         return new ReaderChunkDiagnostics {
             SourceKind = "pdf",
             PageCount = document.PageCount,
@@ -279,15 +297,35 @@ public static partial class DocumentReaderPdfExtensions {
             TableGeometryCoverage = GetCoverage(tableSummary.GeometryCount, tableExtractions.Count),
             MinTableConfidence = tableSummary.MinConfidence,
             AverageTableConfidence = tableSummary.AverageConfidence,
+            LowConfidenceTableCount = tableSummary.LowConfidenceCount,
+            NumericTableColumnCount = tableSummary.NumericColumnCount,
+            FallbackTableColumnNameCount = tableSummary.FallbackColumnNameCount,
+            MissingTableCellCount = tableSummary.MissingCellCount,
             ImageCount = imageCount,
             ImageGeometryCount = imageGeometryCount,
             ImageGeometryCoverage = GetCoverage(imageGeometryCount, imageCount),
+            ImageNonAxisAlignedCount = imageNonAxisAlignedCount,
+            ImageNonAxisAlignedCoverage = GetCoverage(imageNonAxisAlignedCount, imageGeometryCount),
             LinkCount = CountLinks(scope),
+            HasXmpMetadata = document.XmpMetadata != null,
+            OutputIntentCount = document.OutputIntents.Count,
+            AttachmentCount = document.Attachments.Count,
+            HasTaggedContent = taggedContent != null,
+            TaggedStructureElementCount = taggedContent?.StructureElementCount ?? 0,
+            TaggedMarkedContentReferenceCount = taggedContent?.MarkedContentReferenceCount ?? 0,
+            OptionalContentGroupCount = optionalContent?.GroupCount ?? 0,
+            OptionalContentInitiallyHiddenCount = CountInitiallyHiddenOptionalContentGroups(optionalContent),
+            OptionalContentLockedCount = CountLockedOptionalContentGroups(optionalContent),
             HasOpenAction = hasScopedOpenAction,
             HasCatalogActions = selectedCatalogActionCount > 0,
             HasPageActions = selectedPageActionCount > 0,
             HasAnnotationActions = selectedAnnotationActionCount > 0,
             HasActiveContent = selectedCatalogActionCount > 0 || selectedPageActionCount > 0 || selectedAnnotationActionCount > 0,
+            PotentiallyUnsafeActionCount = actionSummary.PotentiallyUnsafeCount,
+            JavaScriptActionCount = actionSummary.JavaScriptCount,
+            LaunchActionCount = actionSummary.LaunchCount,
+            SubmitFormActionCount = actionSummary.SubmitFormCount,
+            ImportDataActionCount = actionSummary.ImportDataCount,
             CatalogActionCount = selectedCatalogActionCount,
             PageActionCount = document.PageActionCount,
             SelectedPageActionCount = selectedPageActionCount,
@@ -308,11 +346,95 @@ public static partial class DocumentReaderPdfExtensions {
         };
     }
 
+    private static int CountInitiallyHiddenOptionalContentGroups(PdfOptionalContentProperties? optionalContent) {
+        if (optionalContent == null) {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = 0; i < optionalContent.Groups.Count; i++) {
+            if (optionalContent.Groups[i].IsInitiallyVisible == false) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountLockedOptionalContentGroups(PdfOptionalContentProperties? optionalContent) {
+        if (optionalContent == null) {
+            return 0;
+        }
+
+        int count = 0;
+        for (int i = 0; i < optionalContent.Groups.Count; i++) {
+            if (optionalContent.Groups[i].IsLocked == true) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    private readonly struct ActionDiagnosticSummary {
+        public ActionDiagnosticSummary(int potentiallyUnsafeCount, int javaScriptCount, int launchCount, int submitFormCount, int importDataCount) {
+            PotentiallyUnsafeCount = potentiallyUnsafeCount;
+            JavaScriptCount = javaScriptCount;
+            LaunchCount = launchCount;
+            SubmitFormCount = submitFormCount;
+            ImportDataCount = importDataCount;
+        }
+
+        public int PotentiallyUnsafeCount { get; }
+
+        public int JavaScriptCount { get; }
+
+        public int LaunchCount { get; }
+
+        public int SubmitFormCount { get; }
+
+        public int ImportDataCount { get; }
+    }
+
+    private static ActionDiagnosticSummary SummarizeActions(IReadOnlyList<ReaderActionSummary>? actions) {
+        if (actions == null || actions.Count == 0) {
+            return new ActionDiagnosticSummary(0, 0, 0, 0, 0);
+        }
+
+        int potentiallyUnsafeCount = 0;
+        int javaScriptCount = 0;
+        int launchCount = 0;
+        int submitFormCount = 0;
+        int importDataCount = 0;
+        for (int i = 0; i < actions.Count; i++) {
+            ReaderActionSummary action = actions[i];
+            if (action.IsPotentiallyUnsafe) {
+                potentiallyUnsafeCount++;
+            }
+
+            if (string.Equals(action.ActionType, "JavaScript", StringComparison.Ordinal)) {
+                javaScriptCount++;
+            } else if (string.Equals(action.ActionType, "Launch", StringComparison.Ordinal)) {
+                launchCount++;
+            } else if (string.Equals(action.ActionType, "SubmitForm", StringComparison.Ordinal)) {
+                submitFormCount++;
+            } else if (string.Equals(action.ActionType, "ImportData", StringComparison.Ordinal)) {
+                importDataCount++;
+            }
+        }
+
+        return new ActionDiagnosticSummary(potentiallyUnsafeCount, javaScriptCount, launchCount, submitFormCount, importDataCount);
+    }
+
     private readonly struct TableDiagnosticSummary {
-        public TableDiagnosticSummary(int geometryCount, double? minConfidence, double? averageConfidence) {
+        public TableDiagnosticSummary(int geometryCount, double? minConfidence, double? averageConfidence, int lowConfidenceCount, int numericColumnCount, int fallbackColumnNameCount, int missingCellCount) {
             GeometryCount = geometryCount;
             MinConfidence = minConfidence;
             AverageConfidence = averageConfidence;
+            LowConfidenceCount = lowConfidenceCount;
+            NumericColumnCount = numericColumnCount;
+            FallbackColumnNameCount = fallbackColumnNameCount;
+            MissingCellCount = missingCellCount;
         }
 
         public int GeometryCount { get; }
@@ -320,31 +442,79 @@ public static partial class DocumentReaderPdfExtensions {
         public double? MinConfidence { get; }
 
         public double? AverageConfidence { get; }
+
+        public int LowConfidenceCount { get; }
+
+        public int NumericColumnCount { get; }
+
+        public int FallbackColumnNameCount { get; }
+
+        public int MissingCellCount { get; }
     }
 
     private static TableDiagnosticSummary SummarizeTables(IReadOnlyList<PdfLogicalTableExtraction> tables) {
         if (tables.Count == 0) {
-            return new TableDiagnosticSummary(0, null, null);
+            return new TableDiagnosticSummary(0, null, null, 0, 0, 0, 0);
         }
 
         int geometryCount = 0;
+        int lowConfidenceCount = 0;
+        int numericColumnCount = 0;
+        int fallbackColumnNameCount = 0;
+        int missingCellCount = 0;
         double minConfidence = double.MaxValue;
         double totalConfidence = 0D;
         for (int i = 0; i < tables.Count; i++) {
-            PdfLogicalTableDiagnostics diagnostics = tables[i].Data.Diagnostics;
+            PdfLogicalTableData data = tables[i].Data;
+            PdfLogicalTableDiagnostics diagnostics = data.Diagnostics;
             if (diagnostics.HasGeometry) {
                 geometryCount++;
             }
 
             double confidence = diagnostics.Confidence;
+            if (confidence < HighConfidenceTableThreshold) {
+                lowConfidenceCount++;
+            }
+
             if (confidence < minConfidence) {
                 minConfidence = confidence;
             }
 
             totalConfidence += confidence;
+
+            missingCellCount += diagnostics.MissingCellCount;
+            for (int profileIndex = 0; profileIndex < data.ColumnProfiles.Count; profileIndex++) {
+                PdfLogicalTableColumnProfile profile = data.ColumnProfiles[profileIndex];
+                if (profile.IsNumeric) {
+                    numericColumnCount++;
+                }
+
+                if (IsFallbackColumnName(profile.Name, profile.Index)) {
+                    fallbackColumnNameCount++;
+                }
+            }
         }
 
-        return new TableDiagnosticSummary(geometryCount, minConfidence, totalConfidence / tables.Count);
+        return new TableDiagnosticSummary(
+            geometryCount,
+            minConfidence,
+            totalConfidence / tables.Count,
+            lowConfidenceCount,
+            numericColumnCount,
+            fallbackColumnNameCount,
+            missingCellCount);
+    }
+
+    private static bool IsFallbackColumnName(string? name, int columnIndex) {
+        if (string.IsNullOrWhiteSpace(name)) {
+            return false;
+        }
+
+        string trimmed = name!.Trim();
+        return string.Equals(
+            trimmed,
+            "Column " + (columnIndex + 1).ToString(CultureInfo.InvariantCulture),
+            StringComparison.Ordinal);
     }
 
     private static double GetCoverage(int countWithSignal, int totalCount) {
@@ -357,6 +527,21 @@ public static partial class DocumentReaderPdfExtensions {
             IReadOnlyList<PdfLogicalImage> images = pages[i].Images;
             for (int j = 0; j < images.Count; j++) {
                 if (images[j].PrimaryPlacement is not null) {
+                    count++;
+                }
+            }
+        }
+
+        return count;
+    }
+
+    private static int CountNonAxisAlignedImages(IReadOnlyList<PdfLogicalPage> pages) {
+        int count = 0;
+        for (int i = 0; i < pages.Count; i++) {
+            IReadOnlyList<PdfLogicalImage> images = pages[i].Images;
+            for (int j = 0; j < images.Count; j++) {
+                PdfImagePlacement? placement = images[j].PrimaryPlacement;
+                if (placement is not null && !placement.IsAxisAligned) {
                     count++;
                 }
             }

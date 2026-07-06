@@ -23,6 +23,19 @@ namespace OfficeIMO.Word.Pdf {
         }
 
         /// <summary>
+        /// Converts the specified <see cref="WordDocument"/> to a PDF document and returns conversion diagnostics with it.
+        /// </summary>
+        public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this WordDocument document, PdfSaveOptions? options = null) {
+            if (document == null) {
+                throw new ArgumentNullException(nameof(document));
+            }
+
+            options ??= new PdfSaveOptions();
+            PdfCore.PdfDocument pdf = document.ToPdfDocument(options);
+            return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+        }
+
+        /// <summary>
         /// Saves the specified <see cref="WordDocument"/> as a PDF at the given <paramref name="path"/>.
         /// </summary>
         /// <param name="document">The document to convert.</param>

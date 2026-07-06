@@ -19,7 +19,25 @@ internal static partial class PdfWriter {
         Func<string, double> measure,
         double firstMaxWidth,
         double subsequentMaxWidth) {
-        int[] breakpoints = GetMultilingualBreakpoints(token);
+        return TryBuildTokenChunks(token, GetMultilingualBreakpoints(token), measure, firstMaxWidth, subsequentMaxWidth);
+    }
+
+    private static System.Collections.Generic.List<PdfTextTokenChunk>? TryBuildSoftLineBreakTokenChunks(
+        string token,
+        PdfOptions? options,
+        Func<string, double> measure,
+        double firstMaxWidth,
+        double subsequentMaxWidth) {
+        return TryBuildTokenChunks(token, GetValidSoftLineBreakpoints(token, options), measure, firstMaxWidth, subsequentMaxWidth, allowFinalOverflow: true);
+    }
+
+    private static System.Collections.Generic.List<PdfTextTokenChunk>? TryBuildTokenChunks(
+        string token,
+        int[] breakpoints,
+        Func<string, double> measure,
+        double firstMaxWidth,
+        double subsequentMaxWidth,
+        bool allowFinalOverflow = false) {
         if (breakpoints.Length == 0) {
             return null;
         }
@@ -43,6 +61,10 @@ internal static partial class PdfWriter {
                     selectedBreak = candidate;
                     selectedText = chunkText;
                     selectedWidth = chunkWidth;
+                } else if (allowFinalOverflow && candidate == token.Length && chunks.Count > 0 && selectedBreak < 0) {
+                    selectedBreak = candidate;
+                    selectedText = chunkText;
+                    selectedWidth = chunkWidth;
                 } else if (selectedBreak >= 0) {
                     break;
                 }
@@ -57,6 +79,24 @@ internal static partial class PdfWriter {
         }
 
         return chunks.Count > 1 ? chunks : null;
+    }
+
+    private static int[] GetValidSoftLineBreakpoints(string token, PdfOptions? options) {
+        PdfTextLineBreakCallback? callback = options?.TextLineBreakCallbackSnapshot;
+        if (callback == null || string.IsNullOrEmpty(token)) {
+            return Array.Empty<int>();
+        }
+
+        System.Collections.Generic.IReadOnlyList<int>? points = callback(token);
+        if (points == null || points.Count == 0) {
+            return Array.Empty<int>();
+        }
+
+        return points
+            .Where(point => IsValidTokenBreakIndex(token, point))
+            .Distinct()
+            .OrderBy(point => point)
+            .ToArray();
     }
 
     private static System.Collections.Generic.IEnumerable<int> EnumerateTokenBreakCandidates(int[] breakpoints, int position, int tokenLength) {

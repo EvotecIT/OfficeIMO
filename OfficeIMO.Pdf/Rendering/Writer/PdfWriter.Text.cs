@@ -27,27 +27,29 @@ internal static partial class PdfWriter {
         if (options != null &&
             options.TryGetEmbeddedStandardFontProgram(font, out PdfTrueTypeFontProgram? fontProgram) &&
             fontProgram != null) {
-            if (options.HasDiagnosticsReport) {
-                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName));
-            }
-
+            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, fontProgram.FontDataSnapshot, fontName: fontProgram.FontName)
+                : Array.Empty<PdfTextShapingDiagnostic>();
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, fontProgram));
-            return fontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot);
+            string glyphHex = fontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.RecordProviderShapedTextRun);
+            options.AddTextShapingDiagnostics(shapingDiagnostics, text, fontProgram.FontName, isOpenTypeCff: false);
+            return glyphHex;
         }
 
         if (options != null &&
             options.TryGetEmbeddedStandardOpenTypeCffFontProgram(font, out PdfOpenTypeCffFontProgram? cffFontProgram) &&
             cffFontProgram != null) {
-            if (options.HasDiagnosticsReport) {
-                options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName));
-            }
-
+            IReadOnlyList<PdfTextShapingDiagnostic> shapingDiagnostics = options.HasDiagnosticsReport
+                ? PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text, cffFontProgram.FontDataSnapshot, fontName: cffFontProgram.FontName)
+                : Array.Empty<PdfTextShapingDiagnostic>();
             options.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeEmbeddedFontText(text, cffFontProgram));
-            return cffFontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot);
+            string glyphHex = cffFontProgram.EncodeTextAsGlyphHex(text, options.TextShapingModeSnapshot, options.TextShapingProviderSnapshot, options.RecordProviderShapedTextRun);
+            options.AddTextShapingDiagnostics(shapingDiagnostics, text, cffFontProgram.FontName, isOpenTypeCff: true);
+            return glyphHex;
         }
 
         if (options?.HasDiagnosticsReport == true) {
-            options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text));
+            options.AddTextShapingDiagnostics(PdfTextDiagnostics.AnalyzeAdvancedTextLayout(text), text, deferProviderCoverable: false);
         }
 
         options?.AddTextDiagnostics(PdfTextDiagnostics.AnalyzeWinAnsiText(text));
@@ -181,21 +183,24 @@ internal static partial class PdfWriter {
 
         void AppendLongToken(string token, StringBuilder current, ref double currentWidth) {
             FlushLine(current, ref currentWidth);
+            var softLineBreakChunks = TryBuildSoftLineBreakTokenChunks(
+                token,
+                options,
+                part => EstimateSimpleTextWidthForOptions(part, font, fontSize, options),
+                maxWidth,
+                maxWidth);
+            if (softLineBreakChunks != null) {
+                AppendTokenChunks(softLineBreakChunks, current, ref currentWidth);
+                return;
+            }
+
             var multilingualChunks = TryBuildMultilingualTokenChunks(
                 token,
                 part => EstimateSimpleTextWidthForOptions(part, font, fontSize, options),
                 maxWidth,
                 maxWidth);
             if (multilingualChunks != null) {
-                for (int chunkIndex = 0; chunkIndex < multilingualChunks.Count; chunkIndex++) {
-                    PdfTextTokenChunk chunk = multilingualChunks[chunkIndex];
-                    current.Append(chunk.Text);
-                    currentWidth += chunk.Width;
-                    if (chunkIndex + 1 < multilingualChunks.Count) {
-                        FlushLine(current, ref currentWidth);
-                    }
-                }
-
+                AppendTokenChunks(multilingualChunks, current, ref currentWidth);
                 return;
             }
 
@@ -210,6 +215,17 @@ internal static partial class PdfWriter {
                 current.Append(scalar);
                 currentWidth += characterWidth;
                 i += scalarLength - 1;
+            }
+        }
+
+        void AppendTokenChunks(System.Collections.Generic.IReadOnlyList<PdfTextTokenChunk> chunks, StringBuilder current, ref double currentWidth) {
+            for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                PdfTextTokenChunk chunk = chunks[chunkIndex];
+                current.Append(chunk.Text);
+                currentWidth += chunk.Width;
+                if (chunkIndex + 1 < chunks.Count) {
+                    FlushLine(current, ref currentWidth);
+                }
             }
         }
 
@@ -622,6 +638,18 @@ internal static partial class PdfWriter {
                 if (tokenW > currentMaxWidth) {
                     if (lastLine.Count > 0) { StartNewLine(); lastLine = lines[lines.Count - 1]; }
                     ResetPendingLeading();
+                    if (TryAppendSoftLineBreakLongToken(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
+                        if (hadNewline) {
+                            MarkCurrentLineHardBreak();
+                            StartNewLine();
+                            ResetPendingLeading();
+                        } else if (nextWs != -1) {
+                            bool hadTab = text[nextWs] == '\t';
+                            SetPendingSeparator(hadTab, spaceW, tabAlignment, tabLeader);
+                        }
+                        continue;
+                    }
+
                     if (TryAppendDelimitedLongToken(token, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, fontForRun, runFontSize, baseline)) {
                         if (hadNewline) {
                             MarkCurrentLineHardBreak();
@@ -739,6 +767,44 @@ internal static partial class PdfWriter {
         if (lines.Count > 0 && lines[lines.Count - 1].Count == 0) { lines.RemoveAt(lines.Count - 1); }
         if (heights.Count < lines.Count) heights.Add(currentLineHeight);
         return (lines, heights);
+
+        bool TryAppendSoftLineBreakLongToken(
+            string token,
+            bool bold,
+            bool italic,
+            bool underline,
+            bool strike,
+            PdfColor? color,
+            PdfColor? backgroundColor,
+            string? uri,
+            string? destinationName,
+            string? contents,
+            PdfStandardFont font,
+            double runFontSize,
+            PdfTextBaseline baseline) {
+            var chunks = TryBuildSoftLineBreakTokenChunks(
+                token,
+                options,
+                part => MeasureRichText(part, font, runFontSize, baseline, options),
+                CurrentMaxWidth(),
+                maxWidthPts);
+
+            if (chunks == null) {
+                return false;
+            }
+
+            for (int chunkIndex = 0; chunkIndex < chunks.Count; chunkIndex++) {
+                PdfTextTokenChunk chunk = chunks[chunkIndex];
+                lines[lines.Count - 1].Add(new RichSeg(chunk.Text, bold, italic, underline, strike, color, backgroundColor, uri, destinationName, contents, font, runFontSize, baseline));
+                RegisterLineHeight(runFontSize);
+                lineWidth += chunk.Width;
+                if (chunkIndex + 1 < chunks.Count) {
+                    StartNewLine();
+                }
+            }
+
+            return true;
+        }
 
         bool TryAppendHyphenatedLongToken(
             string token,

@@ -161,10 +161,15 @@ public static partial class PdfHtmlConverter {
             AppendMetadataSection(builder, document);
         }
 
+        AppendOutlineNavigation(builder, document, pages, options);
+        AppendAcroFormXfaNotice(builder, document, options);
+
         for (int i = 0; i < pages.Count; i++) {
             PdfCore.PdfLogicalPage page = pages[i];
             if (options.IncludePageContainers) {
-                builder.Append("<section class=\"pdf-page\" data-page-number=\"");
+                builder.Append("<section class=\"pdf-page\" id=\"");
+                builder.Append(GetPageAnchorId(page.PageNumber));
+                builder.Append("\" data-page-number=\"");
                 builder.Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
                 builder.AppendLine("\">");
             }
@@ -192,6 +197,9 @@ public static partial class PdfHtmlConverter {
         } else {
             AppendPositionedStyles(builder);
         }
+
+        AppendOutlineNavigation(builder, document, pages, options);
+        AppendAcroFormXfaNotice(builder, document, options);
 
         for (int i = 0; i < pages.Count; i++) {
             AppendPositionedPage(builder, pages[i], options);
@@ -302,7 +310,186 @@ public static partial class PdfHtmlConverter {
         builder.AppendLine(".pdf-table td,.pdf-table th{border:1px solid #cbd5e1;padding:2pt 4pt;}");
         builder.AppendLine(".pdf-link,.pdf-form-widget{position:absolute;border:1px dashed #2563eb;background:rgba(37,99,235,.08);font-size:8pt;overflow:hidden;}");
         builder.AppendLine(".pdf-image-placeholder{font:8pt Arial,sans-serif;color:#475569;border:1px dashed #64748b;background:rgba(100,116,139,.08);box-sizing:border-box;overflow:hidden;}");
+        builder.AppendLine(".pdf-outline{margin:1rem auto;max-width:60rem;font:9pt Arial,sans-serif;box-sizing:border-box;}");
+        builder.AppendLine(".pdf-outline ol{margin:.25rem 0 .25rem 1.25rem;padding:0;}");
+        builder.AppendLine(".pdf-outline a{color:#1d4ed8;text-decoration:none;}");
+        builder.AppendLine(".pdf-xfa-notice{margin:1rem auto;padding:.5rem .75rem;max-width:60rem;border:1px solid #b45309;background:#fffbeb;color:#713f12;font:9pt Arial,sans-serif;box-sizing:border-box;}");
         builder.AppendLine("</style>");
+    }
+
+    private static void AppendOutlineNavigation(StringBuilder builder, PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, PdfHtmlSaveOptions options) {
+        if (!options.IncludeOutlines || document.Outlines.Count == 0) {
+            return;
+        }
+
+        int renderedOutlineCount = CountRenderedOutlines(document, pages);
+        if (renderedOutlineCount == 0) {
+            return;
+        }
+
+        builder.Append("<nav class=\"pdf-outline\" aria-label=\"PDF outline\" data-outline-count=\"");
+        builder.Append(CountOutlines(document.Outlines).ToString(CultureInfo.InvariantCulture));
+        builder.Append("\" data-rendered-outline-count=\"");
+        builder.Append(renderedOutlineCount.ToString(CultureInfo.InvariantCulture));
+        builder.AppendLine("\">");
+        builder.AppendLine("<ol>");
+        AppendOutlineItems(builder, document.Outlines, document, pages);
+        builder.AppendLine("</ol>");
+        builder.AppendLine("</nav>");
+    }
+
+    private static void AppendOutlineItems(StringBuilder builder, IReadOnlyList<PdfCore.PdfOutlineItem> outlines, PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        for (int i = 0; i < outlines.Count; i++) {
+            PdfCore.PdfOutlineItem outline = outlines[i];
+            if (!ShouldRenderOutline(outline, document, pages)) {
+                continue;
+            }
+
+            AppendOutlineItem(builder, outline, document, pages);
+        }
+    }
+
+    private static void AppendOutlineItem(StringBuilder builder, PdfCore.PdfOutlineItem outline, PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        builder.Append("<li data-outline-level=\"");
+        builder.Append(outline.Level.ToString(CultureInfo.InvariantCulture));
+        builder.Append("\" data-expanded=\"");
+        builder.Append(outline.IsExpanded ? "true" : "false");
+        builder.Append('"');
+        if (outline.PageNumber.HasValue) {
+            builder.Append(" data-page-number=\"");
+            builder.Append(outline.PageNumber.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+        }
+
+        AppendOptionalDoubleAttribute(builder, "data-destination-top", outline.DestinationTop);
+        AppendOptionalDoubleAttribute(builder, "data-destination-left", outline.DestinationLeft);
+        AppendOptionalDoubleAttribute(builder, "data-destination-bottom", outline.DestinationBottom);
+        AppendOptionalDoubleAttribute(builder, "data-destination-right", outline.DestinationRight);
+        if (outline.DestinationMode.HasValue) {
+            builder.Append(" data-destination-mode=\"");
+            builder.Append(HtmlAttribute(outline.DestinationMode.Value.ToString()));
+            builder.Append('"');
+        }
+
+        builder.Append('>');
+        if (outline.PageNumber.HasValue && IsPageInRenderScope(outline.PageNumber.Value, pages)) {
+            builder.Append("<a href=\"#");
+            builder.Append(HtmlAttribute(GetPageAnchorId(outline.PageNumber.Value)));
+            builder.Append("\">");
+            builder.Append(HtmlText(outline.Title));
+            builder.Append("</a>");
+        } else {
+            builder.Append("<span>");
+            builder.Append(HtmlText(outline.Title));
+            builder.Append("</span>");
+        }
+
+        if (HasRenderableOutlineChildren(outline, document, pages)) {
+            builder.AppendLine();
+            builder.AppendLine("<ol>");
+            AppendOutlineItems(builder, outline.Children, document, pages);
+            builder.AppendLine("</ol>");
+        }
+
+        builder.AppendLine("</li>");
+    }
+
+    private static void AppendOptionalDoubleAttribute(StringBuilder builder, string name, double? value) {
+        if (!value.HasValue) {
+            return;
+        }
+
+        builder.Append(' ');
+        builder.Append(name);
+        builder.Append("=\"");
+        builder.Append(value.Value.ToString("0.###", CultureInfo.InvariantCulture));
+        builder.Append('"');
+    }
+
+    private static int CountOutlines(IReadOnlyList<PdfCore.PdfOutlineItem> outlines) {
+        int count = 0;
+        for (int i = 0; i < outlines.Count; i++) {
+            count++;
+            count += CountOutlines(outlines[i].Children);
+        }
+
+        return count;
+    }
+
+    private static int CountRenderedOutlines(PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        int count = 0;
+        CountRenderedOutlines(document.Outlines, document, pages, ref count);
+        return count;
+    }
+
+    private static void CountRenderedOutlines(IReadOnlyList<PdfCore.PdfOutlineItem> outlines, PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages, ref int count) {
+        for (int i = 0; i < outlines.Count; i++) {
+            PdfCore.PdfOutlineItem outline = outlines[i];
+            if (!ShouldRenderOutline(outline, document, pages)) {
+                continue;
+            }
+
+            count++;
+            CountRenderedOutlines(outline.Children, document, pages, ref count);
+        }
+    }
+
+    private static bool ShouldRenderOutline(PdfCore.PdfOutlineItem outline, PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        if (outline.PageNumber.HasValue) {
+            return IsPageInRenderScope(outline.PageNumber.Value, pages) || HasRenderableOutlineChildren(outline, document, pages);
+        }
+
+        return AreAllDocumentPagesSelected(document, pages) || HasRenderableOutlineChildren(outline, document, pages);
+    }
+
+    private static bool HasRenderableOutlineChildren(PdfCore.PdfOutlineItem outline, PdfCore.PdfLogicalDocument document, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        for (int i = 0; i < outline.Children.Count; i++) {
+            if (ShouldRenderOutline(outline.Children[i], document, pages)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsPageInRenderScope(int pageNumber, IReadOnlyList<PdfCore.PdfLogicalPage> pages) {
+        for (int i = 0; i < pages.Count; i++) {
+            if (pages[i].PageNumber == pageNumber) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static string GetPageAnchorId(int pageNumber) =>
+        "pdf-page-" + pageNumber.ToString(CultureInfo.InvariantCulture);
+
+    private static void AppendAcroFormXfaNotice(StringBuilder builder, PdfCore.PdfLogicalDocument document, PdfHtmlSaveOptions options) {
+        if (!document.HasAcroFormXfa || document.AcroFormXfa is null) {
+            return;
+        }
+
+        AddWarning(options, "AcroFormXfaDetected", "AcroForm XFA packets are represented as inert review metadata; OfficeIMO.Html.Pdf does not render or fill XFA.");
+        PdfCore.PdfAcroFormXfaInfo xfa = document.AcroFormXfa;
+        builder.Append("<aside class=\"pdf-xfa-notice\" role=\"note\" data-xfa-object-kind=\"");
+        builder.Append(HtmlAttribute(xfa.ObjectKind));
+        builder.Append("\" data-xfa-packet-count=\"");
+        builder.Append(xfa.PacketCount.ToString(CultureInfo.InvariantCulture));
+        builder.Append("\" data-xfa-stream-count=\"");
+        builder.Append(xfa.StreamCount.ToString(CultureInfo.InvariantCulture));
+        builder.Append("\" data-xfa-payload-byte-count=\"");
+        builder.Append(xfa.TotalPayloadBytes.ToString(CultureInfo.InvariantCulture));
+        builder.Append('"');
+        string? packetNames = FormatStringList(xfa.PacketNames);
+        if (!string.IsNullOrWhiteSpace(packetNames)) {
+            builder.Append(" data-xfa-packet-names=\"");
+            builder.Append(HtmlAttribute(packetNames!));
+            builder.Append('"');
+        }
+
+        builder.Append(">XFA form packets detected. OfficeIMO exposes packet metadata for review but does not render or fill XFA.</aside>");
+        builder.AppendLine();
     }
 
     private static void AppendMeta(StringBuilder builder, string name, string? value) {
@@ -350,6 +537,27 @@ public static partial class PdfHtmlConverter {
         builder.Append(":</strong> ");
         builder.Append(HtmlText(value!));
         builder.AppendLine("</p>");
+    }
+
+    private static string? FormatStringList(IReadOnlyList<string> values) {
+        if (values.Count == 0) {
+            return null;
+        }
+
+        var builder = new StringBuilder();
+        for (int i = 0; i < values.Count; i++) {
+            if (string.IsNullOrWhiteSpace(values[i])) {
+                continue;
+            }
+
+            if (builder.Length > 0) {
+                builder.Append(',');
+            }
+
+            builder.Append(values[i]);
+        }
+
+        return builder.Length == 0 ? null : builder.ToString();
     }
 
     private static void AppendSemanticPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfHtmlSaveOptions options) {
@@ -412,19 +620,28 @@ public static partial class PdfHtmlConverter {
         if (options.IncludeLinkAnnotations) {
             for (int i = 0; i < page.Links.Count; i++) {
                 PdfCore.PdfLogicalLinkAnnotation link = page.Links[i];
-                string target = link.Uri ?? link.DestinationName ?? string.Empty;
-                if (target.Length == 0) {
+                if (!HasHtmlLinkTarget(link)) {
                     continue;
                 }
 
-                string label = !string.IsNullOrWhiteSpace(link.Contents) ? link.Contents! : target;
+                string label = GetLinkLabel(link);
                 string html;
-                if (link.Uri is not null) {
-                    html = IsSafeLinkUri(link.Uri)
-                        ? "<p class=\"pdf-link\"><a href=\"" + HtmlAttribute(link.Uri) + "\">" + HtmlText(label) + "</a></p>"
-                        : "<p class=\"pdf-link\" data-unsafe-href=\"" + HtmlAttribute(link.Uri) + "\">" + HtmlText(label) + "</p>";
+                if (link.Uri is not null && IsSafeLinkUri(link.Uri)) {
+                    var linkBuilder = new StringBuilder();
+                    linkBuilder.Append("<p class=\"pdf-link\"><a");
+                    AppendLinkTargetAttributes(linkBuilder, link);
+                    linkBuilder.Append('>');
+                    linkBuilder.Append(HtmlText(label));
+                    linkBuilder.Append("</a></p>");
+                    html = linkBuilder.ToString();
                 } else {
-                    html = "<p class=\"pdf-link\" data-destination=\"" + HtmlAttribute(target) + "\">" + HtmlText(label) + "</p>";
+                    var linkBuilder = new StringBuilder();
+                    linkBuilder.Append("<p class=\"pdf-link\"");
+                    AppendLinkTargetAttributes(linkBuilder, link);
+                    linkBuilder.Append('>');
+                    linkBuilder.Append(HtmlText(label));
+                    linkBuilder.Append("</p>");
+                    html = linkBuilder.ToString();
                 }
 
                 items.Add(new HtmlItem(link.Y2, link.X1, sequence++, html));
@@ -756,6 +973,86 @@ public static partial class PdfHtmlConverter {
         return string.Equals(parsed.Scheme, Uri.UriSchemeHttp, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(parsed.Scheme, Uri.UriSchemeHttps, StringComparison.OrdinalIgnoreCase) ||
             string.Equals(parsed.Scheme, Uri.UriSchemeMailto, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static bool HasHtmlLinkTarget(PdfCore.PdfLogicalLinkAnnotation link) {
+        return link.Uri is not null ||
+            !string.IsNullOrWhiteSpace(link.DestinationName) ||
+            link.DestinationPageNumber.HasValue;
+    }
+
+    private static string GetLinkLabel(PdfCore.PdfLogicalLinkAnnotation link) {
+        if (!string.IsNullOrWhiteSpace(link.Contents)) {
+            return link.Contents!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(link.Uri)) {
+            return link.Uri!;
+        }
+
+        if (!string.IsNullOrWhiteSpace(link.DestinationName)) {
+            return link.DestinationName!;
+        }
+
+        if (link.DestinationPageNumber.HasValue) {
+            return "Page " + link.DestinationPageNumber.Value.ToString(CultureInfo.InvariantCulture);
+        }
+
+        return "Link";
+    }
+
+    private static void AppendLinkTargetAttributes(StringBuilder builder, PdfCore.PdfLogicalLinkAnnotation link) {
+        if (link.Uri is not null && IsSafeLinkUri(link.Uri)) {
+            builder.Append(" href=\"");
+            builder.Append(HtmlAttribute(link.Uri));
+            builder.Append("\" rel=\"noopener noreferrer\"");
+            return;
+        }
+
+        if (link.Uri is not null) {
+            builder.Append(" data-unsafe-href=\"");
+            builder.Append(HtmlAttribute(link.Uri));
+            builder.Append('"');
+            return;
+        }
+
+        if (!string.IsNullOrWhiteSpace(link.DestinationName)) {
+            builder.Append(" data-destination=\"");
+            builder.Append(HtmlAttribute(link.DestinationName!));
+            builder.Append('"');
+            return;
+        }
+
+        if (link.DestinationPageNumber.HasValue) {
+            builder.Append(" data-destination-page-number=\"");
+            builder.Append(link.DestinationPageNumber.Value.ToString(CultureInfo.InvariantCulture));
+            builder.Append('"');
+            AppendOptionalDestinationAttribute(builder, "data-destination-mode", link.DestinationMode?.ToString());
+            AppendOptionalDestinationAttribute(builder, "data-destination-left", link.DestinationLeft);
+            AppendOptionalDestinationAttribute(builder, "data-destination-bottom", link.DestinationBottom);
+            AppendOptionalDestinationAttribute(builder, "data-destination-right", link.DestinationRight);
+            AppendOptionalDestinationAttribute(builder, "data-destination-top", link.DestinationTop);
+        }
+    }
+
+    private static void AppendOptionalDestinationAttribute(StringBuilder builder, string name, string? value) {
+        if (string.IsNullOrWhiteSpace(value)) {
+            return;
+        }
+
+        builder.Append(' ');
+        builder.Append(name);
+        builder.Append("=\"");
+        builder.Append(HtmlAttribute(value!));
+        builder.Append('"');
+    }
+
+    private static void AppendOptionalDestinationAttribute(StringBuilder builder, string name, double? value) {
+        if (!value.HasValue) {
+            return;
+        }
+
+        AppendOptionalDestinationAttribute(builder, name, value.Value.ToString("0.###", CultureInfo.InvariantCulture));
     }
 
     private static void AddWarning(PdfHtmlSaveOptions options, string code, string message) {

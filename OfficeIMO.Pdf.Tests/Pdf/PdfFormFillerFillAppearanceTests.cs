@@ -58,6 +58,25 @@ public partial class PdfFormFillerTests {
     }
 
     [Fact]
+    public void FlattenFields_SynthesizesRichTextWidgetAppearanceFromRichValue() {
+        byte[] flattened = PdfFormFiller.FlattenFields(BuildRichTextWidgetFormPdfWithoutAppearance());
+        string output = Encoding.ASCII.GetString(flattened);
+
+        Assert.Empty(PdfInspector.Inspect(flattened).FormFields);
+        Assert.DoesNotContain("/Subtype /Widget", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("/AcroForm", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("<body>", output, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Helvetica-Bold", output, StringComparison.Ordinal);
+        Assert.Contains("/BaseFont /Helvetica-Oblique", output, StringComparison.Ordinal);
+        Assert.Contains("BT /Helv 12 Tf 0.2 0 0.2 rg", output, StringComparison.Ordinal);
+        Assert.Contains("BT /HelvB 12 Tf 0.2 0 0.2 rg", output, StringComparison.Ordinal);
+        Assert.Contains("BT /HelvI 10 Tf 0 0.4 0.8 rg", output, StringComparison.Ordinal);
+        Assert.Contains("0 0.4 0.8 RG", output, StringComparison.Ordinal);
+        Assert.Contains("0.95 0.98 1 rg", output, StringComparison.Ordinal);
+        Assert.Contains("[3 2] 0 d", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void FillFields_GeneratesTextAppearanceWithInheritedQuadding() {
         byte[] filled = PdfFormFiller.FillFields(BuildRightAlignedChildTextWidgetFormPdf(), new Dictionary<string, string> {
             ["Person.Name"] = "Right"
@@ -72,6 +91,129 @@ public partial class PdfFormFillerTests {
         Assert.True(textPosition.Success);
         Assert.True(double.Parse(textPosition.Groups["x"].Value, System.Globalization.CultureInfo.InvariantCulture) > 3D);
         Assert.DoesNotContain(" 3 10.64 Td <5269676874> Tj", output);
+    }
+
+    [Fact]
+    public void FillFields_UsesGrayDefaultAppearanceTextColor() {
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdfWithDefaultAppearance("/Helv 10 Tf 0.25 g"), new Dictionary<string, string> {
+            ["Name"] = "Gray"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Gray", field.Value);
+        Assert.Contains("0.25 0.25 0.25 rg", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_UsesDefaultAppearanceFontSize() {
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdfWithDefaultAppearance("/Helv 8 Tf 0.25 g"), new Dictionary<string, string> {
+            ["Name"] = "Small"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Small", field.Value);
+        Assert.Contains("BT /Helv 8 Tf 0.25 0.25 0.25 rg", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 12 Tf 0.25 0.25 0.25 rg", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_PreservesWidgetBorderStyleWidthInGeneratedAppearance() {
+        byte[] filled = PdfFormFiller.FillFields(
+            BuildTextWidgetFormPdfWithWidgetAppearanceStyle(" /MK << /BC [1 0 0] /BG [0.8 0.9 1] >> /BS << /S /D /W 3 /D [4 2] >>"),
+            new Dictionary<string, string> {
+                ["Name"] = "Border"
+            });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Border", field.Value);
+        Assert.Contains("0.8 0.9 1 rg", output, StringComparison.Ordinal);
+        Assert.Contains("1 0 0 RG 3 w", output, StringComparison.Ordinal);
+        Assert.Contains("[4 2] 0 d", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("1 0 0 RG 1 w", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_PreservesWidgetUnderlineBorderStyleInGeneratedAppearance() {
+        byte[] filled = PdfFormFiller.FillFields(
+            BuildTextWidgetFormPdfWithWidgetAppearanceStyle(" /MK << /BC [1 0 0] /BG [0.8 0.9 1] >> /BS << /S /U /W 2 >>"),
+            new Dictionary<string, string> {
+                ["Name"] = "Underline"
+            });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Underline", field.Value);
+        Assert.Contains("1 0 0 RG 2 w 0 1 m 160 1 l S", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("1 0 0 RG 2 w 1 1 158 18 re S", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_PreservesWidgetBeveledBorderStyleInGeneratedAppearance() {
+        byte[] filled = PdfFormFiller.FillFields(
+            BuildTextWidgetFormPdfWithWidgetAppearanceStyle(" /MK << /BC [0 0 0] /BG [0.8 0.9 1] >> /BS << /S /B /W 2 >>"),
+            new Dictionary<string, string> {
+                ["Name"] = "Beveled"
+            });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Beveled", field.Value);
+        Assert.Contains("0.55 0.55 0.55 RG 2 w 1 1 m 1 19 l 159 19 l S", output, StringComparison.Ordinal);
+        Assert.Contains("0 0 0 RG 2 w 1 1 m 159 1 l 159 19 l S", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("0 0 0 RG 2 w 1 1 158 18 re S", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_UsesInheritedDefaultAppearanceFontSizeAndTextColor() {
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdfWithAcroFormDefaultAppearance("/Helv 8.5 Tf 0.1 0.2 0.3 rg"), new Dictionary<string, string> {
+            ["Name"] = "Inherited"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Inherited", field.Value);
+        Assert.Contains("BT /Helv 8.5 Tf 0.1 0.2 0.3 rg", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 12 Tf 0.1 0.2 0.3 rg", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_UsesInheritedDefaultAppearanceFontResourceName() {
+        byte[] filled = PdfFormFiller.FillFields(BuildTextWidgetFormPdfWithAcroFormDefaultAppearanceFontResource("/F1 8.5 Tf 0.1 0.2 0.3 rg"), new Dictionary<string, string> {
+            ["Name"] = "Resource"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Resource", field.Value);
+        Assert.Contains("BT /F1 8.5 Tf 0.1 0.2 0.3 rg", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("BT /Helv 8.5 Tf 0.1 0.2 0.3 rg", output, StringComparison.Ordinal);
+        Assert.Contains("/Font << /F1 6 0 R >>", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void FillFields_WrapsLongMultilineTextWidgetAppearance() {
+        byte[] filled = PdfFormFiller.FillFields(BuildMultilineTextWidgetFormPdf(), new Dictionary<string, string> {
+            ["Notes"] = "Alpha Bravo Charlie Delta"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.True(field.IsMultiline);
+        Assert.Equal("Alpha Bravo Charlie Delta", field.Value);
+        Assert.Contains("/AP << /N", output);
+        Assert.DoesNotContain("<416C70686120427261766F20436861726C69652044656C7461> Tj", output);
+        Assert.True(System.Text.RegularExpressions.Regex.Matches(output, @"BT /Helv 12 Tf .* Tj ET").Count > 1);
     }
 
     [Fact]
@@ -153,16 +295,24 @@ public partial class PdfFormFillerTests {
         Assert.Contains("/ToUnicode", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/FontFile2", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
-        PdfConversionWarning fullFontWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-full-font-embedded");
-        Assert.Equal("OfficeIMO.Tests", fullFontWarning.Converter);
-        Assert.Equal(PdfConversionWarningSeverity.Warning, fullFontWarning.Severity);
-        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, fullFontWarning.LayoutDiagnostic!.Kind);
-        Assert.Equal("form field 'Name' appearance", fullFontWarning.Source);
-        Assert.Equal("OpenType/CFF", fullFontWarning.Details["format"]);
-        Assert.Equal("OfficeIMOFillCFFFont", fullFontWarning.Details["fontName"]);
-        Assert.True(int.Parse(fullFontWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(fullFontWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
-        Assert.True(int.Parse(fullFontWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(fullFontWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+        PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
+        Assert.Equal("OfficeIMO.Tests", cffWarning.Converter);
+        Assert.Equal(PdfConversionWarningSeverity.Warning, cffWarning.Severity);
+        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, cffWarning.LayoutDiagnostic!.Kind);
+        Assert.Equal("form field 'Name' appearance", cffWarning.Source);
+        Assert.Equal("OpenType/CFF", cffWarning.Details["format"]);
+        Assert.Equal("OfficeIMOFillCFFFont", cffWarning.Details["fontName"]);
+        Assert.Equal("compact-opentype-cff", cffWarning.Details["embeddingMode"]);
+        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
+        Assert.Equal("false", cffWarning.Details["cffCharstringsSubset"]);
+        Assert.Contains("CFF", cffWarning.Details["openTypeTablesEmbedded"], StringComparison.Ordinal);
+        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
+        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
+        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
+        Assert.True(int.Parse(cffWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(cffWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
+        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(cffWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(cffWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
     }
 
     [Fact]
@@ -331,16 +481,24 @@ public partial class PdfFormFillerTests {
         Assert.Contains("/Subtype /OpenType", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/FontFile2", output, StringComparison.Ordinal);
         Assert.DoesNotContain("/Subtype /Type1 /BaseFont /Helvetica", output, StringComparison.Ordinal);
-        PdfConversionWarning fullFontWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-full-font-embedded");
-        Assert.Equal("OfficeIMO.Tests", fullFontWarning.Converter);
-        Assert.Equal(PdfConversionWarningSeverity.Warning, fullFontWarning.Severity);
-        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, fullFontWarning.LayoutDiagnostic!.Kind);
-        Assert.Equal("form field 'Name' appearance", fullFontWarning.Source);
-        Assert.Equal("OpenType/CFF", fullFontWarning.Details["format"]);
-        Assert.Equal("FallbackFillCFFFont", fullFontWarning.Details["fontName"]);
-        Assert.True(int.Parse(fullFontWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(fullFontWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
-        Assert.True(int.Parse(fullFontWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
-        Assert.True(int.Parse(fullFontWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
+        PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
+        Assert.Equal("OfficeIMO.Tests", cffWarning.Converter);
+        Assert.Equal(PdfConversionWarningSeverity.Warning, cffWarning.Severity);
+        Assert.Equal(PdfLayoutDiagnosticKind.SimplifiedContent, cffWarning.LayoutDiagnostic!.Kind);
+        Assert.Equal("form field 'Name' appearance", cffWarning.Source);
+        Assert.Equal("OpenType/CFF", cffWarning.Details["format"]);
+        Assert.Equal("FallbackFillCFFFont", cffWarning.Details["fontName"]);
+        Assert.Equal("compact-opentype-cff", cffWarning.Details["embeddingMode"]);
+        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
+        Assert.Equal("false", cffWarning.Details["cffCharstringsSubset"]);
+        Assert.Contains("CFF", cffWarning.Details["openTypeTablesEmbedded"], StringComparison.Ordinal);
+        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
+        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
+        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
+        Assert.True(int.Parse(cffWarning.Details["glyphCount"], CultureInfo.InvariantCulture) > int.Parse(cffWarning.Details["usedGlyphCount"], CultureInfo.InvariantCulture));
+        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(cffWarning.Details["fontFileLength"], CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(cffWarning.Details["cffTableLength"], CultureInfo.InvariantCulture) > 0);
     }
 
     [Fact]
@@ -743,6 +901,22 @@ public partial class PdfFormFillerTests {
         Assert.Contains("1.25 w", output);
     }
 
+    [Fact]
+    public void FillFields_GeneratesRadioButtonWidgetAppearances() {
+        byte[] filled = PdfFormFiller.FillFields(BuildRadioWidgetGroupWithoutOffAppearancePdf(), new Dictionary<string, string> {
+            ["Payment.Method"] = "Wire"
+        });
+
+        string output = Encoding.ASCII.GetString(filled);
+        PdfFormField field = Assert.Single(PdfInspector.Inspect(filled).FormFields);
+
+        Assert.Equal("Wire", field.Value);
+        Assert.Contains(field.Widgets, widget => widget.AppearanceState == "Wire");
+        Assert.Equal(2, field.Widgets.Count(widget => widget.AppearanceState == "Off"));
+        Assert.Contains(" c S", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("1.25 w", output, StringComparison.Ordinal);
+    }
+
     private static byte[] BuildEmbeddedUnicodeTextFieldPdf(string value, PdfFormFieldStyle? style = null) {
         string? fontPath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
         if (fontPath == null) {
@@ -819,7 +993,7 @@ endbfchar
         Assert.Equal("U+0066", ligature.Details["codePoint"]);
         Assert.Equal("OpenType GPOS mark", mark.Details["script"]);
         Assert.Equal("U+0301", mark.Details["codePoint"]);
-        Assert.Contains(report.Warnings, warning => warning.Code == "opentype-cff-full-font-embedded");
+        Assert.Contains(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
     }
 
     private static byte[] BuildEmbeddedUnicodeTextFieldPdfWithResourceName(string value, string resourceName) {

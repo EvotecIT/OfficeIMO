@@ -383,6 +383,51 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Html_SaveAsPdf_ProvidesSharedDocumentAndStreamOutputOverloads() {
+        HtmlConversionDocument conversion = HtmlConversionDocumentBuilder.Build(
+            "<main><h1>Document overload profile</h1><p>Shared conversion document path.</p></main>",
+            new HtmlConversionDocumentOptions {
+                Profile = HtmlConversionProfile.Document
+            });
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.Pdf.Overloads", Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try {
+            string documentPath = Path.Combine(directory, "document.pdf");
+            string streamPath = Path.Combine(directory, "stream.pdf");
+            string tryPath = Path.Combine(directory, "try-stream.pdf");
+
+            conversion.SaveAsPdf(documentPath, HtmlPdfSaveOptions.CreateSemanticProfile());
+            using var documentStream = new MemoryStream();
+            PdfCore.PdfSaveResult documentStreamResult = conversion.TrySaveAsPdf(documentStream, HtmlPdfSaveOptions.CreateSemanticProfile());
+
+            using var htmlStream = new MemoryStream(Encoding.UTF8.GetBytes("<main><h1>Stream overload profile</h1><p>HTML stream content.</p></main>"));
+            byte[] streamBytes = htmlStream.SaveAsPdf(HtmlPdfSaveOptions.CreateDocumentProfile());
+
+            using var streamForPath = new MemoryStream(Encoding.UTF8.GetBytes("<main><h1>Stream path overload</h1><p>Saved from input stream.</p></main>"));
+            streamForPath.SaveAsPdf(streamPath, HtmlPdfSaveOptions.CreateDocumentProfile());
+
+            using var streamForTryPath = new MemoryStream(Encoding.UTF8.GetBytes("<main><h1>Stream try overload</h1><p>Try-saved from input stream.</p></main>"));
+            PdfCore.PdfSaveResult tryPathResult = streamForTryPath.TrySaveAsPdf(tryPath, HtmlPdfSaveOptions.CreateDocumentProfile());
+
+            Assert.True(File.Exists(documentPath));
+            Assert.True(new FileInfo(documentPath).Length > 0);
+            Assert.True(documentStreamResult.Succeeded);
+            Assert.True(documentStream.Length > 0);
+            Assert.True(streamBytes.Length > 0);
+            Assert.True(File.Exists(streamPath));
+            Assert.True(new FileInfo(streamPath).Length > 0);
+            Assert.True(tryPathResult.Succeeded);
+            Assert.True(File.Exists(tryPath));
+            Assert.Contains("Document overload profile", PdfCore.PdfReadDocument.Load(File.ReadAllBytes(documentPath)).ExtractText(), StringComparison.Ordinal);
+            Assert.Contains("Stream overload profile", PdfCore.PdfReadDocument.Load(streamBytes).ExtractText(), StringComparison.Ordinal);
+            Assert.Contains("Stream path overload", PdfCore.PdfReadDocument.Load(File.ReadAllBytes(streamPath)).ExtractText(), StringComparison.Ordinal);
+            Assert.Contains("Stream try overload", PdfCore.PdfReadDocument.Load(File.ReadAllBytes(tryPath)).ExtractText(), StringComparison.Ordinal);
+        } finally {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
     public void HtmlPdfSaveOptions_TrustedDocumentProfile_ExposesResourcePolicySummary() {
         HtmlPdfSaveOptions options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
         options.WordHtmlOptions!.AllowedStylesheetHosts.Add("cdn.example.test");
@@ -619,7 +664,7 @@ public sealed class HtmlPdfTests {
         string html = PdfHtmlConverter.ToHtml(PdfCore.PdfReadDocument.Load(pdf), options);
 
         Assert.Contains(".pdf-page{position:relative", html, StringComparison.Ordinal);
-        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:420pt;height:360pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:420pt;height:360pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-text pdf-heading\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:", html, StringComparison.Ordinal);
         Assert.Contains("Logical Heading", html, StringComparison.Ordinal);
@@ -658,6 +703,77 @@ public sealed class HtmlPdfTests {
         Assert.Equal(PdfHtmlImageExportMode.EmbeddedDataUri, result.Summary.ImageExportMode);
         Assert.Contains("positioned", result.Summary.FidelityContract, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("not a full PDF renderer", result.Summary.UnsupportedScope, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_PositionedReviewProfile_RendersOutlinesAsNavigationMetadata() {
+        byte[] pdf = CreateOutlineSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+
+        Assert.Contains("class=\"pdf-outline\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("aria-label=\"PDF outline\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-outline-count=\"3\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-rendered-outline-count=\"3\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-outline-level=\"1\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-outline-level=\"2\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("href=\"#pdf-page-1\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("href=\"#pdf-page-2\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("id=\"pdf-page-1\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("id=\"pdf-page-2\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("Executive summary", result.Html, StringComparison.Ordinal);
+        Assert.Contains("Risk posture", result.Html, StringComparison.Ordinal);
+        Assert.Contains("Appendix", result.Html, StringComparison.Ordinal);
+        Assert.Equal(3, result.Summary.OutlineCount);
+        Assert.Equal(3, result.Summary.RenderedOutlineCount);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_CanSuppressOutlineNavigation() {
+        byte[] pdf = CreateOutlineSamplePdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeOutlines = false,
+            LayoutOptions = new PdfCore.PdfTextLayoutOptions {
+                ForceSingleColumn = true
+            }
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+
+        Assert.DoesNotContain("class=\"pdf-outline\"", result.Html, StringComparison.Ordinal);
+        Assert.Equal(3, result.Summary.OutlineCount);
+        Assert.Equal(0, result.Summary.RenderedOutlineCount);
+    }
+
+    [Fact]
+    public void Pdf_ToHtmlResult_ReportsAcroFormXfaAsInertReviewMetadata() {
+        byte[] pdf = CreateAcroFormXfaPdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+
+        Assert.Contains("class=\"pdf-xfa-notice\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-xfa-packet-count=\"2\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-xfa-packet-names=\"template,datasets\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("does not render or fill XFA", result.Html, StringComparison.Ordinal);
+        Assert.True(result.Summary.HasAcroFormXfa);
+        Assert.Equal(2, result.Summary.AcroFormXfaPacketCount);
+        Assert.Equal(2, result.Summary.AcroFormXfaStreamCount);
+        Assert.True(result.Summary.AcroFormXfaPayloadByteCount > 0);
+        Assert.Equal(1, result.Summary.WarningCount);
+        PdfCore.PdfConversionWarning warning = Assert.Single(result.ConversionReport.Warnings, item => item.Code == "AcroFormXfaDetected");
+        Assert.Equal("OfficeIMO.Html.Pdf", warning.Converter);
+        Assert.Contains("does not render or fill XFA", warning.Message, StringComparison.Ordinal);
+        Assert.Single(options.ConversionReport.Warnings, item => item.Code == "AcroFormXfaDetected");
     }
 
     [Fact]
@@ -758,7 +874,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains("<style>", html, StringComparison.Ordinal);
         Assert.Contains(".pdf-page{position:relative", html, StringComparison.Ordinal);
         Assert.Contains(".pdf-text{position:absolute", html, StringComparison.Ordinal);
-        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", html, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -909,7 +1025,7 @@ public sealed class HtmlPdfTests {
 
         string html = PdfHtmlConverter.ToHtml(pdf, options);
 
-        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:220pt;height:320pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:220pt;height:320pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:38pt;top:40pt;width:22pt;height:140pt\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"https://example.com/rotated\"", html, StringComparison.Ordinal);
     }
@@ -924,7 +1040,7 @@ public sealed class HtmlPdfTests {
 
         string html = PdfHtmlConverter.ToHtml(pdf, options);
 
-        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\" style=\"width:320pt;height:220pt;\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\" style=\"width:320pt;height:220pt;\"", html, StringComparison.Ordinal);
         Assert.Contains("style=\"left:140pt;top:38pt;width:140pt;height:22pt\"", html, StringComparison.Ordinal);
         Assert.Contains("href=\"https://example.com/rotated-180\"", html, StringComparison.Ordinal);
     }
@@ -952,6 +1068,35 @@ public sealed class HtmlPdfTests {
     }
 
     [Fact]
+    public void Pdf_ToHtmlResult_ReportsActiveActionDiagnosticsWithoutPayloads() {
+        byte[] pdf = CreateActiveContentDiagnosticsPdf();
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(pdf, options);
+
+        Assert.True(result.Summary.HasOpenAction);
+        Assert.True(result.Summary.HasCatalogActions);
+        Assert.True(result.Summary.HasPageActions);
+        Assert.True(result.Summary.HasAnnotationActions);
+        Assert.True(result.Summary.HasActiveContent);
+        Assert.Equal(4, result.Summary.PotentiallyUnsafeActionCount);
+        Assert.Equal(2, result.Summary.JavaScriptActionCount);
+        Assert.Equal(1, result.Summary.LaunchActionCount);
+        Assert.Equal(1, result.Summary.SubmitFormActionCount);
+        Assert.Equal(1, result.Summary.CatalogActionCount);
+        Assert.Equal(1, result.Summary.PageActionCount);
+        Assert.Equal(1, result.Summary.SelectedPageActionCount);
+        Assert.Equal(2, result.Summary.AnnotationActionCount);
+        Assert.Equal(2, result.Summary.SelectedAnnotationActionCount);
+        Assert.DoesNotContain("app.alert", result.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", result.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", result.Html, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void HtmlPdf_BaselineArtifacts_ExposeStableRoundTripShape() {
         string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.Html.Pdf." + Guid.NewGuid().ToString("N"));
         string pdfPath = Path.Combine(directory, "practical-html.pdf");
@@ -972,13 +1117,56 @@ public sealed class HtmlPdfTests {
             Assert.True(new FileInfo(pdfPath).Length > 0);
             Assert.True(new FileInfo(htmlPath).Length > 0);
             Assert.True(PdfCore.PdfInspector.Inspect(pdf).PageCount >= 2);
-            Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", html, StringComparison.Ordinal);
+            Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", html, StringComparison.Ordinal);
             Assert.Contains("class=\"pdf-link\"", html, StringComparison.Ordinal);
             Assert.Contains("href=\"" + linkUri + "\"", html, StringComparison.Ordinal);
             Assert.Contains("data:image/png;base64,", html, StringComparison.Ordinal);
         } finally {
             Directory.Delete(directory, recursive: true);
         }
+    }
+
+    private static byte[] CreateAcroFormXfaPdf() {
+        const string template = "<template/>";
+        const string datasets = "<datasets/>";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [] /XFA [(template) 6 0 R (datasets) 7 0 R] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + template.Length + " >>",
+            "stream",
+            template,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Length " + datasets.Length + " >>",
+            "stream",
+            datasets,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] CreateImageSamplePdf() {
@@ -1017,6 +1205,44 @@ public sealed class HtmlPdfTests {
         }) + "\n";
 
         return System.Text.Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateActiveContentDiagnosticsPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] /AA << /O 7 0 R >> >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Action link) /A << /S /Launch /F (tool.exe) >> /AA << /E 8 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /JavaScript /JS (app.alert('catalog')) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('page')) >>",
+            "endobj",
+            "8 0 obj",
+            "<< /S /SubmitForm /F (https://example.com/submit) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static int CountOrdinal(string value, string search) {
@@ -1081,6 +1307,27 @@ public sealed class HtmlPdfTests {
                 CellPaddingX = 6,
                 CellPaddingY = 4
             })
+            .ToBytes();
+    }
+
+    private static byte[] CreateOutlineSamplePdf() {
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                CreateOutlineFromHeadings = true,
+                PageWidth = 420,
+                PageHeight = 360,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .H1("Executive summary")
+            .Paragraph(paragraph => paragraph.Text("Summary body."))
+            .H2("Risk posture")
+            .Paragraph(paragraph => paragraph.Text("Risk body."))
+            .PageBreak()
+            .H1("Appendix")
+            .Paragraph(paragraph => paragraph.Text("Appendix body."))
             .ToBytes();
     }
 

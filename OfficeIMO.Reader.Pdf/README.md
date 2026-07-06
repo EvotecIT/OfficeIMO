@@ -82,7 +82,8 @@ var chunks = DocumentReader.ReadFolder("KnowledgeBase", new ReaderFolderOptions 
 
 - Page-aware chunks with `ReaderLocation.Page`.
 - Markdown text, logical tables, column profiles, table diagnostics, and confidence signals.
-- Source/security/form/open-action/active-content counters in `ReaderChunk.Diagnostics`.
+- Source/security/form/catalog-metadata/open-action/active-content counters in `ReaderChunk.Diagnostics`.
+- Document metadata for XMP, output intents, tagged structure, optional content/layers, attachments, security/signatures, navigation, links, forms, annotations, and passive actions.
 - Passive action summaries without executable payloads.
 - Image placeholders and visual geometry when available.
 - Link annotations and typed form fields when available.

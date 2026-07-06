@@ -29,6 +29,7 @@ public sealed partial class PdfReadDocument {
         ViewerPreferences = ExtractViewerPreferences();
         AcroFormDefaultAppearance = ExtractAcroFormText("DA");
         AcroFormQuadding = ExtractAcroFormInteger("Q");
+        AcroFormXfa = ExtractAcroFormXfaInfo();
         FormFields = ExtractFormFields();
         AcroFormNeedAppearances = ExtractAcroFormBoolean("NeedAppearances");
         AcroFormSignatureFlags = ExtractAcroFormInteger("SigFlags");
@@ -76,6 +77,9 @@ public sealed partial class PdfReadDocument {
 
     /// <summary>Raw AcroForm signature flags from /SigFlags, when present.</summary>
     public int? AcroFormSignatureFlags { get; }
+
+    /// <summary>AcroForm XFA packet metadata when the document catalog exposes /AcroForm /XFA.</summary>
+    public PdfAcroFormXfaInfo? AcroFormXfa { get; }
 
     /// <summary>Catalog page mode, for example UseOutlines or FullScreen, when present.</summary>
     public string? CatalogPageMode { get; }

@@ -10,6 +10,7 @@ on:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
+      - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
       - '.github/workflows/pdf-compliance-proof.yml'
@@ -22,6 +23,7 @@ on:
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfCompliance*.cs'
       - 'OfficeIMO.Pdf.Tests/Pdf/PdfExternalValidator.cs'
       - 'Build/Export-PdfComplianceProof.ps1'
+      - 'Docs/pdf-conversion-scenarios.json'
       - 'Docs/officeimo.pdf*.md'
       - '.github/scripts/Assert-PdfComplianceProof.ps1'
       - '.github/workflows/pdf-compliance-proof.yml'
@@ -72,6 +74,7 @@ env:
     10.0.103
   BUILD_CONFIGURATION: Release
   PROOF_PATH: artifacts/pdf-compliance-proof
+  VERAPDF_CLI_IMAGE: ghcr.io/verapdf/cli:v1.31.102
 
 jobs:
   pdf-compliance-proof:
@@ -98,6 +101,40 @@ jobs:
       - name: Restore dependencies
         run: dotnet restore OfficeIMO.sln
 
+      - name: Prepare veraPDF validator
+        if: github.event_name != 'workflow_dispatch' || inputs.verapdf_path == '' || inputs.pdfua_validator_path == ''
+        shell: bash
+        run: |
+          set -euo pipefail
+          docker pull "$VERAPDF_CLI_IMAGE"
+          wrapper="$RUNNER_TEMP/verapdf-docker"
+          cat > "$wrapper" <<'BASH'
+          #!/usr/bin/env bash
+          set -euo pipefail
+
+          image="${VERAPDF_CLI_IMAGE:-ghcr.io/verapdf/cli:v1.31.102}"
+          mount_args=()
+          mapped_args=()
+          mount_index=0
+
+          for arg in "$@"; do
+            if [[ -f "$arg" ]]; then
+              dir="$(cd "$(dirname "$arg")" && pwd)"
+              base="$(basename "$arg")"
+              target="/work${mount_index}"
+              mount_args+=("-v" "${dir}:${target}:ro")
+              mapped_args+=("${target}/${base}")
+              mount_index=$((mount_index + 1))
+            else
+              mapped_args+=("$arg")
+            fi
+          done
+
+          docker run --rm "${mount_args[@]}" "$image" "${mapped_args[@]}"
+          BASH
+          chmod +x "$wrapper"
+          echo "OFFICEIMO_VERAPDF_DOCKER=$wrapper" >> "$GITHUB_ENV"
+
       - name: Generate PDF compliance proof
         shell: pwsh
         env:
@@ -120,6 +157,10 @@ jobs:
             $parameters.RequireValidators = $true
           }
 
+          if ([string]::IsNullOrWhiteSpace($env:VERAPDF_PATH) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_DOCKER)) {
+            $parameters.VeraPdfPath = $env:OFFICEIMO_VERAPDF_DOCKER
+          }
+
           if (-not [string]::IsNullOrWhiteSpace($env:VERAPDF_PATH)) {
             $parameters.VeraPdfPath = $env:VERAPDF_PATH
           }
@@ -128,8 +169,16 @@ jobs:
             $parameters.VeraPdfArgs = $env:VERAPDF_ARGS
           }
 
+          if ([string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_PATH) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_DOCKER)) {
+            $parameters.PdfUaValidatorPath = $env:OFFICEIMO_VERAPDF_DOCKER
+          }
+
           if (-not [string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_PATH)) {
             $parameters.PdfUaValidatorPath = $env:PDFUA_VALIDATOR_PATH
+          }
+
+          if ([string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_ARGS) -and -not [string]::IsNullOrWhiteSpace($env:OFFICEIMO_VERAPDF_DOCKER)) {
+            $parameters.PdfUaValidatorArgs = '-f ua1 {pdf}'
           }
 
           if (-not [string]::IsNullOrWhiteSpace($env:PDFUA_VALIDATOR_ARGS)) {

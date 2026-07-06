@@ -93,6 +93,7 @@ public static partial class DocumentReaderPdfExtensions {
             Scope = ReaderActionScope.DocumentOpen,
             ActionType = action.ActionType,
             Source = "OpenAction",
+            IsPotentiallyUnsafe = IsPotentiallyUnsafeActionType(action.ActionType),
             DestinationPageNumber = action.PageNumber,
             DestinationMode = action.DestinationMode?.ToString(),
             DestinationTop = action.DestinationTop,
@@ -108,7 +109,10 @@ public static partial class DocumentReaderPdfExtensions {
             ActionType = action.ActionType,
             Source = action.Source,
             Name = action.Name,
-            TriggerName = action.TriggerName
+            TriggerName = action.TriggerName,
+            ActionPath = action.ActionPath,
+            IsChainedAction = action.IsChainedAction,
+            IsPotentiallyUnsafe = IsPotentiallyUnsafeActionType(action.ActionType)
         };
     }
 
@@ -120,7 +124,8 @@ public static partial class DocumentReaderPdfExtensions {
             TriggerName = action.TriggerName,
             ActionPath = action.ActionPath,
             PageNumber = action.PageNumber,
-            IsChainedAction = action.IsChainedAction
+            IsChainedAction = action.IsChainedAction,
+            IsPotentiallyUnsafe = IsPotentiallyUnsafeActionType(action.ActionType)
         };
     }
 
@@ -133,7 +138,8 @@ public static partial class DocumentReaderPdfExtensions {
                 Name = annotation.Subtype,
                 ActionPath = "A",
                 PageNumber = annotation.PageNumber,
-                IsChainedAction = false
+                IsChainedAction = false,
+                IsPotentiallyUnsafe = IsPotentiallyUnsafeActionType(annotation.ActionType)
             });
         }
 
@@ -147,7 +153,8 @@ public static partial class DocumentReaderPdfExtensions {
                 TriggerName = action.TriggerName,
                 ActionPath = "AA." + action.TriggerName,
                 PageNumber = annotation.PageNumber,
-                IsChainedAction = false
+                IsChainedAction = false,
+                IsPotentiallyUnsafe = IsPotentiallyUnsafeActionType(action.ActionType)
             });
         }
 
@@ -161,8 +168,17 @@ public static partial class DocumentReaderPdfExtensions {
                 TriggerName = action.SourceName,
                 ActionPath = action.ActionPath,
                 PageNumber = annotation.PageNumber,
-                IsChainedAction = true
+                IsChainedAction = true,
+                IsPotentiallyUnsafe = IsPotentiallyUnsafeActionType(action.ActionType)
             });
         }
     }
+
+    private static bool IsPotentiallyUnsafeActionType(string? actionType) =>
+        string.Equals(actionType, "JavaScript", StringComparison.Ordinal) ||
+        string.Equals(actionType, "Launch", StringComparison.Ordinal) ||
+        string.Equals(actionType, "SubmitForm", StringComparison.Ordinal) ||
+        string.Equals(actionType, "ImportData", StringComparison.Ordinal) ||
+        string.Equals(actionType, "Movie", StringComparison.Ordinal) ||
+        string.Equals(actionType, "Rendition", StringComparison.Ordinal);
 }

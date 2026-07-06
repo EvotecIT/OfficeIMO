@@ -72,7 +72,7 @@ internal static partial class RtfPdfConverter {
     }
 
     private static void RenderImage(RtfImage image, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options) {
-        if (!options.IncludeImages || !IsPdfSupportedImage(image) || image.Data.Length == 0) {
+        if (!TryReportRenderableImage(image, options, "Image")) {
             return;
         }
 
@@ -98,13 +98,9 @@ internal static partial class RtfPdfConverter {
 
     private static List<PdfCore.PdfTableCellImage> BuildCellImages(RtfTableCell cell, RtfPdfSaveOptions options) {
         List<PdfCore.PdfTableCellImage> images = new List<PdfCore.PdfTableCellImage>();
-        if (!options.IncludeImages) {
-            return images;
-        }
-
         foreach (RtfParagraph paragraph in cell.Paragraphs) {
             foreach (IRtfInline inline in paragraph.Inlines) {
-                if (inline is RtfImage image && IsPdfSupportedImage(image) && image.Data.Length > 0) {
+                if (inline is RtfImage image && TryReportRenderableImage(image, options, "TableCell/Image")) {
                     images.Add(new PdfCore.PdfTableCellImage(image.Data, GetImageWidth(image, options), GetImageHeight(image, options)));
                 }
             }
@@ -114,6 +110,46 @@ internal static partial class RtfPdfConverter {
     }
 
     private static bool IsPdfSupportedImage(RtfImage image) => image.Format == RtfImageFormat.Png || image.Format == RtfImageFormat.Jpeg;
+
+    private static bool TryReportRenderableImage(RtfImage image, RtfPdfSaveOptions options, string source) {
+        if (!options.IncludeImages) {
+            AddConversionWarning(
+                options,
+                "ImageSkipped",
+                source,
+                "An RTF image was skipped because IncludeImages is false.",
+                new Dictionary<string, string> {
+                    ["Format"] = image.Format.ToString()
+                });
+            return false;
+        }
+
+        if (image.Data.Length == 0) {
+            AddConversionWarning(
+                options,
+                "ImageSkipped",
+                source,
+                "An RTF image was skipped because it does not contain image data.",
+                new Dictionary<string, string> {
+                    ["Format"] = image.Format.ToString()
+                });
+            return false;
+        }
+
+        if (!IsPdfSupportedImage(image)) {
+            AddConversionWarning(
+                options,
+                "UnsupportedImage",
+                source,
+                "Only PNG and JPEG RTF images can be embedded directly in PDF output.",
+                new Dictionary<string, string> {
+                    ["Format"] = image.Format.ToString()
+                });
+            return false;
+        }
+
+        return true;
+    }
 
     private static double GetImageWidth(RtfImage image, RtfPdfSaveOptions options) {
         if (image.DesiredWidthTwips.HasValue && image.DesiredWidthTwips.Value > 0) {

@@ -1,5 +1,7 @@
 using System.Text;
 using System.Text.Json;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Wordprocessing;
 using OfficeIMO.Excel;
 using OfficeIMO.Excel.Pdf;
 using OfficeIMO.Html.Pdf;
@@ -8,6 +10,8 @@ using OfficeIMO.PowerPoint;
 using OfficeIMO.PowerPoint.Pdf;
 using OfficeIMO.Reader;
 using OfficeIMO.Reader.Pdf;
+using OfficeIMO.Rtf;
+using OfficeIMO.Rtf.Pdf;
 using OfficeIMO.Word.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using TransformGroup = DocumentFormat.OpenXml.Drawing.TransformGroup;
@@ -25,15 +29,25 @@ public sealed class PdfConversionScenarioManifestTests {
         "html-to-pdf",
         "html-css-resource-policy-to-pdf",
         "html-pdf-roundtrip",
+        "rtf-pdf-roundtrip",
+        "pdf-rewrite-preservation-matrix",
+        "pdf-redaction-removal-proof",
+        "pdf-form-appearance-semantics",
+        "pdf-provider-shaped-text",
         "powerpoint-to-pdf",
         "powerpoint-layout-theme-groups-to-pdf",
+        "cross-converter-typography-to-pdf",
         "pdf-to-logical",
         "pdf-logical-diagnostics-readback",
         "pdf-reader-degradation-corpus",
+        "pdf-reader-hostile-action-corpus",
         "pdf-reader-hostile-layout-corpus",
         "pdf-reader-hostile-table-corpus",
+        "pdf-reader-ocr-handoff-corpus",
+        "pdf-reader-xfa-form-corpus",
+        "pdf-standard-security-roundtrip",
         "pdf-to-html",
-        "pdf-to-editable-office-tables"
+        "pdf-to-editable-office"
     };
 
     [Fact]
@@ -67,6 +81,8 @@ public sealed class PdfConversionScenarioManifestTests {
             Assert.True(proof.GetProperty("visualPages").GetInt32() > 0, "Scenario " + id + " must declare visual page evidence.");
             Assert.NotEmpty(ReadStringArray(proof, "validatorEvidence"));
         }
+
+        AssertPremiumQualityContract(root.GetProperty("qualityContract"), seenIds);
 
         foreach (string requiredPath in RequiredPaths) {
             Assert.Contains(requiredPath, seenPaths);
@@ -102,7 +118,17 @@ public sealed class PdfConversionScenarioManifestTests {
             IncludeLinkAnnotations = true
         };
 
-        string html = PdfHtmlConverter.ToHtml(logical, options);
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
+        string html = result.Html;
+        byte[] activeContentPdf = CreatePdfToHtmlActiveContentProofPdf();
+        PdfHtmlConversionResult activeContentResult = PdfHtmlConverter.ToHtmlResult(activeContentPdf, new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        });
+        byte[] xfaPdf = CreateReaderXfaFormCorpusPdf();
+        PdfHtmlConversionResult xfaResult = PdfHtmlConverter.ToHtmlResult(xfaPdf, new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview
+        });
 
         Assert.Equal(1, logical.PageCount);
         Assert.Contains(logical.Headings, heading => heading.Text == "Logical Heading");
@@ -110,14 +136,51 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.NotEmpty(logical.Tables);
         Assert.Contains(logical.GetLinksByUri("https://example.com/logical-proof"), link => link.Contents == "Logical PDF sample");
         Assert.Contains(logical.Images, image => image.Width > 0D && image.Height > 0D);
-        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-text pdf-heading\"", html, StringComparison.Ordinal);
         Assert.Contains("Logical Heading", html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-image-placeholder\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-outline\"", html, StringComparison.Ordinal);
+        Assert.Contains("href=\"#pdf-page-1\"", html, StringComparison.Ordinal);
         Assert.False(options.ConversionReport.HasWarnings);
+        Assert.Equal(1, result.Summary.RenderedPageCount);
+        Assert.Equal(3, result.Summary.OutlineCount);
+        Assert.Equal(3, result.Summary.RenderedOutlineCount);
+        Assert.True(result.Summary.HasAnnotationActions);
+        Assert.Equal(1, result.Summary.RenderedSafeUriLinkCount);
+        Assert.Equal(0, result.Summary.PotentiallyUnsafeActionCount);
+        Assert.True(activeContentResult.Summary.HasActiveContent);
+        Assert.Equal(4, activeContentResult.Summary.PotentiallyUnsafeActionCount);
+        Assert.Equal(2, activeContentResult.Summary.JavaScriptActionCount);
+        Assert.Equal(1, activeContentResult.Summary.LaunchActionCount);
+        Assert.Equal(1, activeContentResult.Summary.SubmitFormActionCount);
+        Assert.DoesNotContain("app.alert", activeContentResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", activeContentResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", activeContentResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.True(xfaResult.Summary.HasAcroFormXfa);
+        Assert.Equal(2, xfaResult.Summary.AcroFormXfaPacketCount);
+        Assert.Equal(2, xfaResult.Summary.AcroFormXfaStreamCount);
+        Assert.True(xfaResult.Summary.AcroFormXfaPayloadByteCount > 0);
+        Assert.Contains("class=\"pdf-xfa-notice\"", xfaResult.Html, StringComparison.Ordinal);
+        Assert.Contains("data-xfa-packet-names=\"template,datasets\"", xfaResult.Html, StringComparison.Ordinal);
+        Assert.Single(xfaResult.ConversionReport.Warnings, warning => warning.Code == "AcroFormXfaDetected");
+
+        var summary = new {
+            scenario = "pdf-to-html-positioned-review",
+            positioned = result.Summary,
+            activeContent = activeContentResult.Summary,
+            activeContentPayloadPolicy = "Catalog, page, and annotation actions are counted as inert diagnostics; action payloads are not emitted into review HTML.",
+            xfaForm = xfaResult.Summary,
+            xfaWarningCodes = xfaResult.ConversionReport.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray()
+        };
 
         WriteReviewArtifact("pdf-to-html-logical-source.pdf", pdf);
-        WriteReviewArtifact("pdf-to-html-positioned-review.html", System.Text.Encoding.UTF8.GetBytes(html));
+        WriteReviewArtifact("pdf-to-html-positioned-review.html", Encoding.UTF8.GetBytes(html));
+        WriteReviewArtifact("pdf-to-html-active-content-source.pdf", activeContentPdf);
+        WriteReviewArtifact("pdf-to-html-active-content-positioned-review.html", Encoding.UTF8.GetBytes(activeContentResult.Html));
+        WriteReviewArtifact("pdf-to-html-xfa-form-source.pdf", xfaPdf);
+        WriteReviewArtifact("pdf-to-html-xfa-form-positioned-review.html", Encoding.UTF8.GetBytes(xfaResult.Html));
+        WriteReviewArtifact("pdf-to-html-positioned-review-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     [Fact]
@@ -196,6 +259,436 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void RtfPdfRoundtrip_ProducesManifestedReviewProof() {
+        RtfDocument source = CreateRtfRoundtripDocument();
+        byte[] pdf = source.SaveAsPdf();
+        PdfCore.PdfTextLayoutOptions layoutOptions = new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        };
+        PdfCore.PdfReadDocument read = PdfCore.PdfReadDocument.Load(pdf);
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, layoutOptions);
+        RtfDocument imported = pdf.ToRtfDocumentFromPdf(new PdfRtfReadOptions {
+            LayoutOptions = layoutOptions
+        });
+        string importedRtf = imported.ToRtf(new RtfWriteOptions { IncludeGenerator = false });
+        string importedText = string.Join("\n", imported.Paragraphs.Select(paragraph => paragraph.ToPlainText()));
+
+        Assert.StartsWith("%PDF-", Encoding.ASCII.GetString(pdf, 0, 5), StringComparison.Ordinal);
+        Assert.Equal("RTF PDF Roundtrip Gate", imported.Info.Title);
+        Assert.Contains("RTF PDF Roundtrip Gate", read.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Rich run marker", read.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Table cell marker", read.ExtractText(), StringComparison.Ordinal);
+        Assert.Contains("Imported second page marker", read.ExtractText(), StringComparison.Ordinal);
+        Assert.True(read.Pages.Count >= 2);
+        Assert.Contains(logical.TextBlocks, block => block.Text.Contains("RTF PDF Roundtrip Gate", StringComparison.Ordinal));
+        Assert.Contains(logical.TextBlocks, block => block.Text.Contains("Table cell marker", StringComparison.Ordinal));
+        Assert.Contains("RTF PDF Roundtrip Gate", importedText, StringComparison.Ordinal);
+        Assert.Contains("Rich run marker", importedText, StringComparison.Ordinal);
+        Assert.Contains("Table cell marker", importedText, StringComparison.Ordinal);
+        Assert.Contains("Imported second page marker", importedText, StringComparison.Ordinal);
+        Assert.Contains(@"\rtf1", importedRtf, StringComparison.Ordinal);
+
+        var summary = new {
+            scenario = "rtf-pdf-roundtrip",
+            pdfBytes = pdf.Length,
+            read.Pages.Count,
+            logical.PageCount,
+            headingCount = logical.Headings.Count,
+            tableCount = logical.Tables.Count,
+            importedParagraphCount = imported.Paragraphs.Count,
+            importedTitle = imported.Info.Title,
+            acceptedDegradation = "PDF to RTF import is semantic logical text reconstruction, not lossless fixed-layout visual reconstruction."
+        };
+
+        WriteReviewArtifact("rtf-roundtrip-source.pdf", pdf);
+        WriteReviewArtifact("rtf-roundtrip-imported.rtf", Encoding.UTF8.GetBytes(importedRtf));
+        WriteReviewArtifact("rtf-roundtrip-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Fact]
+    public void PdfRewritePreservationMatrix_ProducesManifestedReviewProof() {
+        byte[] source = PdfRewritePreservationTestSupport.BuildPreservationProofPdf();
+        byte[] updated = PdfCore.PdfMetadataEditor.UpdateMetadata(source, title: "Updated preservation title");
+
+        PdfCore.PdfRewritePreservationOptions options = new PdfCore.PdfRewritePreservationOptions()
+            .AllowMetadataChanges("Title")
+            .RequireTextMarkers("PreservationMarker", "SecondPageMarker");
+        PdfCore.PdfRewritePreservationReport preserved = PdfCore.PdfRewritePreservation.AssertPreserved(source, updated, options);
+        PdfCore.PdfRewritePreservationReport detectedLoss = PdfCore.PdfRewritePreservation.Assess(
+            source,
+            PdfCore.PdfPageEditor.DeletePages(source, 2),
+            new PdfCore.PdfRewritePreservationOptions().RequireTextMarkers("SecondPageMarker"));
+
+        Assert.True(preserved.IsPreserved);
+        Assert.False(detectedLoss.IsPreserved);
+        Assert.Contains(detectedLoss.Issues, issue => issue.Feature == "PageCount");
+        Assert.Contains(detectedLoss.Issues, issue => issue.Feature == "TextMarker");
+
+        PdfCore.PdfRewritePreservationMatrixReport matrix = PdfCore.PdfRewritePreservationMatrix.AssertExpected(
+            PdfRewritePreservationMatrixScenarioSupport.BuildPremiumFeatureScenarios());
+
+        Assert.True(matrix.Passed, matrix.Summary);
+        Assert.Contains(matrix.Entries, entry =>
+            entry.Id == "source-structure-drift-detected" &&
+            entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.PreservationFailed &&
+            entry.PreservationReport is not null &&
+            entry.PreservationReport.Issues.Any(issue => issue.Feature == "SourceStructure.XrefStreams"));
+        Assert.Contains(matrix.Entries, entry =>
+            entry.Id == "optional-content-drift-detected" &&
+            entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.PreservationFailed &&
+            entry.PreservationReport is not null &&
+            entry.PreservationReport.Issues.Any(issue => issue.Feature == "OptionalContent.Groups[0].Name"));
+        Assert.Contains(matrix.Entries, entry =>
+            entry.Id == "form-fill-safe" &&
+            entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.RewriteSafe);
+        Assert.Contains(matrix.Entries, entry =>
+            entry.Id == "forms-full-rewrite-blocked" &&
+            entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.Blocked &&
+            entry.FailureMessage is not null &&
+            entry.FailureMessage.Contains("PDF form fields are not supported for rewriting", StringComparison.Ordinal));
+        Assert.Contains(matrix.Entries, entry =>
+            entry.Id == "tagged-full-rewrite-blocked" &&
+            entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.Blocked &&
+            entry.FailureMessage is not null &&
+            entry.FailureMessage.Contains("PDF tagged content structure is not supported for rewriting", StringComparison.Ordinal));
+        Assert.Contains(matrix.Entries, entry =>
+            entry.Id == "active-content-full-rewrite-blocked" &&
+            entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.Blocked &&
+            entry.FailureMessage is not null &&
+            entry.FailureMessage.Contains("PDF active content is not supported for rewriting", StringComparison.Ordinal));
+        Assert.Contains(matrix.Entries, entry =>
+            entry.Id == "signed-full-rewrite-blocked" &&
+            entry.ActualClassification == PdfCore.PdfRewritePreservationMatrixClassification.Blocked &&
+            entry.FailureMessage is not null &&
+            entry.FailureMessage.Contains("Signed PDF files are not supported for rewriting", StringComparison.Ordinal));
+
+        PdfCore.PdfRewritePreservationMatrixSummary matrixSummary = matrix.ToSummary();
+        var summary = new {
+            scenario = "pdf-rewrite-preservation-matrix",
+            preserved = preserved.IsPreserved,
+            matrix = new {
+                passed = matrixSummary.Passed,
+                matrixSummary.Summary,
+                rows = matrixSummary.Rows
+            },
+            source = new {
+                preserved.Original.PageCount,
+                preserved.Original.LinkAnnotationCount,
+                namedDestinations = preserved.Original.NamedDestinations.Count,
+                attachments = preserved.Original.Attachments.Count,
+                outputIntents = preserved.Original.OutputIntents.Count,
+                preserved.Original.HasXmpMetadata,
+                preserved.Original.CatalogPageMode,
+                preserved.Original.CatalogPageLayout,
+                preserved.Original.CatalogLanguage
+            },
+            updated = new {
+                preserved.Rewritten.PageCount,
+                preserved.Rewritten.LinkAnnotationCount,
+                namedDestinations = preserved.Rewritten.NamedDestinations.Count,
+                attachments = preserved.Rewritten.Attachments.Count,
+                outputIntents = preserved.Rewritten.OutputIntents.Count,
+                preserved.Rewritten.HasXmpMetadata,
+                preserved.Rewritten.CatalogPageMode,
+                preserved.Rewritten.CatalogPageLayout,
+                preserved.Rewritten.CatalogLanguage,
+                preserved.Rewritten.Metadata.Title
+            },
+            detectedIssues = detectedLoss.Issues.Select(issue => new {
+                issue.Feature,
+                issue.Expected,
+                issue.Actual,
+                issue.Message
+            }).ToArray()
+        };
+
+        byte[] summaryBytes = JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true });
+        using (JsonDocument summaryDocument = JsonDocument.Parse(summaryBytes)) {
+            JsonElement root = summaryDocument.RootElement;
+            Assert.True(root.GetProperty("matrix").GetProperty("passed").GetBoolean());
+            JsonElement rows = root.GetProperty("matrix").GetProperty("rows");
+            Assert.Equal(PdfRewritePreservationMatrixScenarioSupport.PremiumScenarioCount, rows.GetArrayLength());
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "metadata-update-safe" &&
+                RequireString(row, "ActualClassification") == "RewriteSafe");
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "source-structure-drift-detected" &&
+                RequireString(row, "ActualClassification") == "PreservationFailed" &&
+                HasIssueFeature(row, "SourceStructure.XrefStreams"));
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "optional-content-drift-detected" &&
+                RequireString(row, "ActualClassification") == "PreservationFailed" &&
+                HasIssueFeature(row, "OptionalContent.Groups[0].Name"));
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "form-fill-safe" &&
+                RequireString(row, "ActualClassification") == "RewriteSafe");
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "forms-full-rewrite-blocked" &&
+                RequireString(row, "ActualClassification") == "Blocked" &&
+                RequireString(row, "FailureMessage").Contains("PDF form fields are not supported for rewriting", StringComparison.Ordinal));
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "tagged-full-rewrite-blocked" &&
+                RequireString(row, "ActualClassification") == "Blocked" &&
+                RequireString(row, "FailureMessage").Contains("PDF tagged content structure is not supported for rewriting", StringComparison.Ordinal));
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "active-content-full-rewrite-blocked" &&
+                RequireString(row, "ActualClassification") == "Blocked" &&
+                RequireString(row, "FailureMessage").Contains("PDF active content is not supported for rewriting", StringComparison.Ordinal));
+            Assert.Contains(rows.EnumerateArray(), row =>
+                RequireString(row, "Id") == "signed-full-rewrite-blocked" &&
+                RequireString(row, "ActualClassification") == "Blocked" &&
+                RequireString(row, "FailureMessage").Contains("Signed PDF files are not supported for rewriting", StringComparison.Ordinal));
+        }
+
+        WriteReviewArtifact("pdf-rewrite-preservation-source.pdf", source);
+        WriteReviewArtifact("pdf-rewrite-preservation-updated.pdf", updated);
+        WriteReviewArtifact("pdf-rewrite-preservation-summary.json", summaryBytes);
+    }
+
+    [Fact]
+    public void PdfRedactionRemovalProof_ProducesManifestedReviewProof() {
+        PdfRedactionProofResult proof = PdfRedactionProofTestSupport.BuildAndVerifyRedactionRemovalProof();
+        PdfCore.PdfRedactionVerificationReport unredactedCheck = PdfCore.PdfRedactionVerification.Verify(
+            proof.Source,
+            PdfRedactionProofTestSupport.CreateVerificationOptions());
+
+        Assert.True(proof.Plan.HasMatches);
+        Assert.True(proof.Verification.IsVerified);
+        Assert.False(unredactedCheck.IsVerified);
+        Assert.Contains(proof.Plan.Matches, match => match.Text != null && match.Text.Contains("PAY-SECRET-2026", StringComparison.Ordinal));
+        Assert.DoesNotContain("PAY-SECRET-2026", proof.Verification.ExtractedText, StringComparison.Ordinal);
+        Assert.Contains("Visible compliance marker", proof.Verification.ExtractedText, StringComparison.Ordinal);
+        Assert.Contains("Public summary marker", proof.Verification.ExtractedText, StringComparison.Ordinal);
+
+        var summary = new {
+            scenario = "pdf-redaction-removal-proof",
+            plan = new {
+                proof.Plan.HasMatches,
+                matchCount = proof.Plan.Matches.Count,
+                matchedKinds = proof.Plan.Matches.Select(match => match.Kind.ToString()).Distinct(StringComparer.Ordinal).ToArray()
+            },
+            area = new {
+                proof.Area.PageNumber,
+                proof.Area.X,
+                proof.Area.Y,
+                proof.Area.Width,
+                proof.Area.Height,
+                proof.Area.Label
+            },
+            verification = new {
+                proof.Verification.IsVerified,
+                proof.Verification.RawPdfBytesChecked,
+                retainedMarkers = new[] { "Visible compliance marker", "Public summary marker" },
+                removedMarkers = new[] { "Sensitive payroll token", "PAY-SECRET-2026" }
+            },
+            unredactedIssues = unredactedCheck.Issues.Select(issue => new {
+                issue.Feature,
+                issue.Marker,
+                issue.Message
+            }).ToArray()
+        };
+
+        WriteReviewArtifact("pdf-redaction-removal-source.pdf", proof.Source);
+        WriteReviewArtifact("pdf-redaction-removal-redacted.pdf", proof.Redacted);
+        WriteReviewArtifact("pdf-redaction-removal-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Fact]
+    public void PdfFormAppearanceSemantics_ProducesManifestedReviewProof() {
+        PdfFormAppearanceProofResult proof = PdfFormAppearanceProofTestSupport.BuildFormAppearanceProof();
+
+        PdfCore.PdfFormField name = proof.FilledInfo.FormFieldsByName["Name"];
+        PdfCore.PdfFormField country = proof.FilledInfo.FormFieldsByName["Country"];
+        PdfCore.PdfFormField acceptTerms = proof.FilledInfo.FormFieldsByName["AcceptTerms"];
+        PdfCore.PdfFormField paymentMethod = proof.FilledInfo.FormFieldsByName["Payment.Method"];
+        PdfCore.PdfFormField notes = proof.FilledInfo.FormFieldsByName["Notes"];
+        PdfCore.PdfFormField code = proof.FilledInfo.FormFieldsByName["Code"];
+        PdfCore.PdfFormField countries = proof.FilledInfo.FormFieldsByName["Countries"];
+        string countryDisplay = Assert.Single(country.SelectedOptions).DisplayText;
+
+        Assert.Equal(false, proof.FilledInfo.AcroFormNeedAppearances);
+        Assert.Equal("Visible Value", name.Value);
+        Assert.Equal("PL", country.Value);
+        Assert.Equal("Poland", countryDisplay);
+        Assert.Equal("Yes", acceptTerms.Value);
+        Assert.True(acceptTerms.IsCheckBox);
+        Assert.Equal("Yes", Assert.Single(acceptTerms.Widgets).AppearanceState);
+        Assert.Contains("Yes", Assert.Single(acceptTerms.Widgets).NormalAppearanceStates);
+        Assert.Equal("Wire", paymentMethod.Value);
+        Assert.True(paymentMethod.IsRadioButton);
+        Assert.Contains(paymentMethod.Widgets, widget => widget.AppearanceState == "Wire");
+        Assert.Contains(paymentMethod.Widgets, widget => widget.AppearanceState == "Off");
+        Assert.True(notes.IsMultiline);
+        Assert.Equal(PdfCore.PdfFormFieldTextAlignment.Center, notes.TextAlignment);
+        Assert.Equal("Line one\nLine two", notes.Value);
+        Assert.True(code.IsComb);
+        Assert.Equal(4, code.MaxLength);
+        Assert.Equal("ZX91", code.Value);
+        Assert.True(countries.AllowsMultipleSelection);
+        Assert.Equal(new[] { "DE", "US" }, countries.Values);
+        Assert.Equal(new[] { "Germany", "United States" }, countries.SelectedOptions.Select(option => option.DisplayText).ToArray());
+        Assert.Contains("<56697369626C652056616C7565> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<506F6C616E64> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<4C696E65206F6E65> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<4C696E652074776F> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<5A> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<58> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<39> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<31> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.DoesNotContain("<5A583931> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<4765726D616E79> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("/AS /Yes", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.Contains("/AS /Wire", proof.FilledRaw, StringComparison.Ordinal);
+        Assert.False(proof.FlattenedInfo.HasForms);
+        Assert.Contains("<56697369626C652056616C7565> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<506F6C616E64> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<4C696E65206F6E65> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<4C696E652074776F> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<5A> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<58> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<39> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<31> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("<5A583931> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<4765726D616E79> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("1.25 w", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+        Assert.Contains("Wire selected", proof.FlattenedAppearanceText, StringComparison.Ordinal);
+
+        var summary = new {
+            scenario = "pdf-form-appearance-semantics",
+            filled = new {
+                proof.FilledInfo.HasReadableFormFields,
+                proof.FilledInfo.AcroFormNeedAppearances,
+                fields = proof.FilledInfo.FormFields.Select(field => new {
+                    field.Name,
+                    field.Kind,
+                    field.Value,
+                    field.Values,
+                    field.Flags,
+                    field.MaxLength,
+                    field.IsMultiline,
+                    field.IsComb,
+                    field.AllowsMultipleSelection,
+                    field.TextAlignment,
+                    selectedDisplayText = field.SelectedOptions.Select(option => option.DisplayText).ToArray(),
+                    widgetAppearanceStates = field.Widgets.Select(widget => widget.AppearanceState).ToArray(),
+                    widgetNormalAppearanceStates = field.Widgets.Select(widget => widget.NormalAppearanceStates.ToArray()).ToArray()
+                }).ToArray(),
+                hasAppearanceStreams = proof.FilledRaw.Contains("/AP << /N", StringComparison.Ordinal)
+            },
+            flattened = new {
+                proof.FlattenedInfo.HasForms,
+                containsTextAppearance = proof.FlattenedAppearanceText.Contains("<56697369626C652056616C7565> Tj", StringComparison.Ordinal),
+                containsChoiceAppearance = proof.FlattenedAppearanceText.Contains("<506F6C616E64> Tj", StringComparison.Ordinal),
+                containsCheckBoxAppearance = proof.FlattenedAppearanceText.Contains("1.25 w", StringComparison.Ordinal),
+                containsRadioAppearance = proof.FlattenedAppearanceText.Contains("Wire selected", StringComparison.Ordinal),
+                containsMultilineAppearance = proof.FlattenedAppearanceText.Contains("<4C696E65206F6E65> Tj", StringComparison.Ordinal) &&
+                    proof.FlattenedAppearanceText.Contains("<4C696E652074776F> Tj", StringComparison.Ordinal),
+                containsCombAppearance = proof.FlattenedAppearanceText.Contains("<5A> Tj", StringComparison.Ordinal) &&
+                    proof.FlattenedAppearanceText.Contains("<58> Tj", StringComparison.Ordinal) &&
+                    proof.FlattenedAppearanceText.Contains("<39> Tj", StringComparison.Ordinal) &&
+                    proof.FlattenedAppearanceText.Contains("<31> Tj", StringComparison.Ordinal) &&
+                    !proof.FlattenedAppearanceText.Contains("<5A583931> Tj", StringComparison.Ordinal),
+                containsMultiSelectChoiceAppearance = proof.FlattenedAppearanceText.Contains("<4765726D616E79> Tj", StringComparison.Ordinal) &&
+                    proof.FlattenedAppearanceText.Contains("<556E6974656420537461746573> Tj", StringComparison.Ordinal)
+            }
+        };
+
+        WriteReviewArtifact("pdf-form-appearance-source.pdf", proof.Source);
+        WriteReviewArtifact("pdf-form-appearance-filled.pdf", proof.Filled);
+        WriteReviewArtifact("pdf-form-appearance-flattened.pdf", proof.Flattened);
+        WriteReviewArtifact("pdf-form-appearance-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Fact]
+    public void PdfProviderShapedText_ProducesManifestedReviewProof() {
+        string? trueTypePath = PdfComplianceTestFonts.FindLocalTrueTypeFont();
+        string? cffPath = PdfComplianceTestFonts.FindBundledOpenTypeCffFont();
+        if (trueTypePath == null || cffPath == null) {
+            return;
+        }
+
+        const string complexText = "\u0633\u0644\u0627\u0645";
+        byte[] trueTypeBytes = File.ReadAllBytes(trueTypePath);
+        byte[] cffBytes = File.ReadAllBytes(cffPath);
+        PdfCore.PdfTrueTypeFontProgram trueTypeFont = PdfCore.PdfTrueTypeFontProgram.Parse(trueTypeBytes, "OfficeIMO Provider TrueType");
+        PdfCore.PdfOpenTypeCffFontProgram cffFont = PdfCore.PdfOpenTypeCffFontProgram.Parse(cffBytes, "OfficeIMO Provider CFF");
+        if (PdfCore.PdfTextDiagnostics.AnalyzeEmbeddedFontText(complexText, trueTypeFont).Count > 0 ||
+            !TryCreateCffOfficeLigatureGlyphs(cffFont, out IReadOnlyList<PdfCore.PdfShapedGlyph>? officeGlyphs)) {
+            return;
+        }
+
+        var provider = new ManifestTextShapingProvider(
+            complexText,
+            CreateTrueTypeGlyphMap(complexText, trueTypeFont),
+            "office",
+            officeGlyphs);
+        var report = new PdfCore.PdfConversionReport();
+        var options = new PdfCore.PdfOptions {
+                CompressContentStreams = false,
+                CompressEmbeddedFonts = false
+            }
+            .ReportDiagnosticsTo(report, "OfficeIMO.Tests")
+            .EmbedStandardFont(PdfCore.PdfStandardFont.Helvetica, trueTypeBytes, "OfficeIMO Provider TrueType")
+            .EmbedStandardFont(PdfCore.PdfStandardFont.TimesRoman, cffBytes, "OfficeIMO Provider CFF")
+            .SetTextShapingProvider(provider);
+
+        byte[] pdf = PdfCore.PdfDocument.Create(options)
+            .H1("Provider Shaped Text Gate")
+            .Paragraph(paragraph => paragraph.Text(complexText))
+            .Paragraph(paragraph => paragraph.Font(PdfCore.PdfStandardFont.TimesRoman).Text("office"))
+            .ToBytes();
+
+        string raw = Encoding.ASCII.GetString(pdf);
+        string extracted = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+
+        Assert.True(provider.TrueTypeCalls >= 1);
+        Assert.True(provider.OpenTypeCffCalls >= 1);
+        Assert.Contains(complexText, extracted, StringComparison.Ordinal);
+        Assert.Contains("office", extracted, StringComparison.Ordinal);
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-complex-script-shaping");
+        Assert.DoesNotContain(report.Warnings, warning => warning.Code == "unsupported-bidirectional-text-layout");
+        Assert.Contains("006600660069", raw, StringComparison.Ordinal);
+        PdfCore.PdfConversionWarning cffWarning = Assert.Single(report.Warnings, warning => warning.Code == "opentype-cff-charstrings-not-subset");
+        Assert.True(
+            int.Parse(cffWarning.Details["embeddedFontFileLength"], System.Globalization.CultureInfo.InvariantCulture) <
+            int.Parse(cffWarning.Details["fontFileLength"], System.Globalization.CultureInfo.InvariantCulture));
+        Assert.Equal("true", cffWarning.Details["cffCharstringsRetained"]);
+        Assert.Equal(cffWarning.Details["glyphCount"], cffWarning.Details["retainedCffGlyphCount"]);
+        Assert.True(int.Parse(cffWarning.Details["unusedCffGlyphCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.Contains("GSUB", cffWarning.Details["openTypeTablesRemoved"], StringComparison.Ordinal);
+        Assert.Contains("GPOS", cffWarning.Details["openTypeLayoutTablesRemoved"], StringComparison.Ordinal);
+
+        var summary = new {
+            scenario = "pdf-provider-shaped-text",
+            provider.CallCount,
+            provider.TrueTypeCalls,
+            provider.OpenTypeCffCalls,
+            extractedMarkers = new[] { complexText, "office" },
+            suppressedWarnings = new[] { "unsupported-complex-script-shaping", "unsupported-bidirectional-text-layout" },
+            cffLigatureMappedToUnicode = raw.Contains("006600660069", StringComparison.Ordinal),
+            cffCharstringsSubset = cffWarning.Details["cffCharstringsSubset"],
+            cffCharstringsRetained = cffWarning.Details["cffCharstringsRetained"],
+            compactCffEmbedding = new {
+                originalFontFileLength = cffWarning.Details["fontFileLength"],
+                embeddedFontFileLength = cffWarning.Details["embeddedFontFileLength"],
+                cffTableLength = cffWarning.Details["cffTableLength"],
+                retainedCffGlyphCount = cffWarning.Details["retainedCffGlyphCount"],
+                usedGlyphCount = cffWarning.Details["usedGlyphCount"],
+                unusedCffGlyphCount = cffWarning.Details["unusedCffGlyphCount"],
+                openTypeTablesEmbedded = cffWarning.Details["openTypeTablesEmbedded"],
+                openTypeTablesRemoved = cffWarning.Details["openTypeTablesRemoved"],
+                openTypeLayoutTablesRemoved = cffWarning.Details["openTypeLayoutTablesRemoved"]
+            },
+            warningCodes = report.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray()
+        };
+
+        WriteReviewArtifact("pdf-provider-shaped-text.pdf", pdf);
+        WriteReviewArtifact("pdf-provider-shaped-text-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Fact]
     public void ExcelDashboardReport_ProducesManifestedReviewProof() {
         byte[] pdf = CreateExcelDashboardReportPdf();
         PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
@@ -268,7 +761,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1D, extraction.Data.Diagnostics.ColumnGeometryConfidence, 3);
         Assert.Equal(PdfCore.PdfLogicalTableColumnKind.Numeric, scoreProfile.Kind);
         Assert.Equal(1D, scoreProfile.Confidence, 3);
-        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", html, StringComparison.Ordinal);
         Assert.Contains("Revenue Readback Diagnostics", html, StringComparison.Ordinal);
         Assert.False(options.ConversionReport.HasWarnings);
         Assert.NotNull(readerChunk.Tables);
@@ -411,6 +904,11 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(1, chunk.Diagnostics.SelectedPageActionCount);
         Assert.Equal(1, chunk.Diagnostics.AnnotationActionCount);
         Assert.Equal(1, chunk.Diagnostics.SelectedAnnotationActionCount);
+        Assert.Equal(1, chunk.Diagnostics.PotentiallyUnsafeActionCount);
+        Assert.Equal(1, chunk.Diagnostics.JavaScriptActionCount);
+        Assert.Equal(0, chunk.Diagnostics.LaunchActionCount);
+        Assert.Equal(0, chunk.Diagnostics.SubmitFormActionCount);
+        Assert.Equal(0, chunk.Diagnostics.ImportDataActionCount);
         Assert.NotNull(chunk.Actions);
         Assert.Equal(2, chunk.Actions!.Count);
         ReaderActionSummary action = Assert.Single(chunk.Actions, item => item.Scope == ReaderActionScope.Page);
@@ -421,6 +919,7 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal("O", action.ActionPath);
         Assert.Equal(1, action.PageNumber);
         Assert.False(action.IsChainedAction);
+        Assert.True(action.IsPotentiallyUnsafe);
         Assert.DoesNotContain("app.alert", action.ActionType, StringComparison.Ordinal);
         Assert.DoesNotContain("app.alert", action.Source ?? string.Empty, StringComparison.Ordinal);
         Assert.DoesNotContain("app.alert", action.ActionPath ?? string.Empty, StringComparison.Ordinal);
@@ -431,6 +930,27 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal("A", annotationAction.ActionPath);
         Assert.Equal(1, annotationAction.PageNumber);
         Assert.False(annotationAction.IsChainedAction);
+        Assert.False(annotationAction.IsPotentiallyUnsafe);
+
+        OfficeDocumentReadResult readResult = DocumentReaderPdfExtensions.ReadPdfDocument(
+            logical,
+            sourceName: "pdf-reader-degradation-corpus.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-potentially-unsafe-count" && entry.Value == "1");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-type-javascript-count" && entry.Value == "1");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-type-uri-count" && entry.Value == "1");
+
+        using JsonDocument chunkJson = JsonDocument.Parse(new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Pdf,
+            Chunks = new[] { chunk }
+        }.ToJson());
+        JsonElement jsonDiagnostics = chunkJson.RootElement.GetProperty("chunks")[0].GetProperty("diagnostics");
+        Assert.Equal(4, chunkJson.RootElement.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(1, jsonDiagnostics.GetProperty("potentiallyUnsafeActionCount").GetInt32());
+        Assert.Equal(1, jsonDiagnostics.GetProperty("javaScriptActionCount").GetInt32());
+        JsonElement jsonActions = chunkJson.RootElement.GetProperty("chunks")[0].GetProperty("actions");
+        Assert.True(jsonActions[0].GetProperty("isPotentiallyUnsafe").GetBoolean());
+        Assert.False(jsonActions[1].GetProperty("isPotentiallyUnsafe").GetBoolean());
 
         var summary = new {
             scenario = "pdf-reader-degradation-corpus",
@@ -449,7 +969,12 @@ public sealed class PdfConversionScenarioManifestTests {
                 chunk.Diagnostics.PageActionCount,
                 chunk.Diagnostics.SelectedPageActionCount,
                 chunk.Diagnostics.AnnotationActionCount,
-                chunk.Diagnostics.SelectedAnnotationActionCount
+                chunk.Diagnostics.SelectedAnnotationActionCount,
+                chunk.Diagnostics.PotentiallyUnsafeActionCount,
+                chunk.Diagnostics.JavaScriptActionCount,
+                chunk.Diagnostics.LaunchActionCount,
+                chunk.Diagnostics.SubmitFormActionCount,
+                chunk.Diagnostics.ImportDataActionCount
             },
             actions = chunk.Actions!.Select(item => new {
                 Scope = item.Scope.ToString(),
@@ -458,7 +983,8 @@ public sealed class PdfConversionScenarioManifestTests {
                 item.TriggerName,
                 item.ActionPath,
                 item.PageNumber,
-                item.IsChainedAction
+                item.IsChainedAction,
+                item.IsPotentiallyUnsafe
             }).ToArray(),
             formFields = chunk.FormFields!.Select(item => new {
                 item.Name,
@@ -471,6 +997,166 @@ public sealed class PdfConversionScenarioManifestTests {
 
         WriteReviewArtifact("pdf-reader-degradation-corpus.pdf", pdf);
         WriteReviewArtifact("pdf-reader-degradation-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
+            WriteIndented = true
+        }));
+    }
+
+    [Fact]
+    public void PdfReaderHostileActionCorpus_ProducesManifestedReaderAndHtmlProof() {
+        byte[] pdf = CreateReaderHostileActionCorpusPdf();
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf, new PdfCore.PdfTextLayoutOptions {
+            ForceSingleColumn = true
+        });
+        var htmlOptions = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            logical,
+            sourceName: "pdf-reader-hostile-action-corpus.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 },
+            pdfOptions: new ReaderPdfOptions { ChunkByPage = false }).ToList());
+        PdfHtmlConversionResult htmlResult = PdfHtmlConverter.ToHtmlResult(logical, htmlOptions);
+
+        string text = chunk.Markdown ?? chunk.Text;
+        Assert.Contains("Hostile Action Corpus", text, StringComparison.Ordinal);
+        Assert.Contains("Passive diagnostics marker", text, StringComparison.Ordinal);
+        Assert.DoesNotContain("app.alert", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("payload.fdf", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("name-tree-data.fdf", text, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("preview.mov", text, StringComparison.OrdinalIgnoreCase);
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.True(chunk.Diagnostics!.HasOpenAction);
+        Assert.True(chunk.Diagnostics.HasCatalogActions);
+        Assert.True(chunk.Diagnostics.HasPageActions);
+        Assert.True(chunk.Diagnostics.HasAnnotationActions);
+        Assert.True(chunk.Diagnostics.HasActiveContent);
+        Assert.Equal(5, chunk.Diagnostics.CatalogActionCount);
+        Assert.Equal(2, chunk.Diagnostics.PageActionCount);
+        Assert.Equal(2, chunk.Diagnostics.SelectedPageActionCount);
+        Assert.Equal(3, chunk.Diagnostics.AnnotationActionCount);
+        Assert.Equal(3, chunk.Diagnostics.SelectedAnnotationActionCount);
+        Assert.Equal(10, chunk.Diagnostics.PotentiallyUnsafeActionCount);
+        Assert.Equal(4, chunk.Diagnostics.JavaScriptActionCount);
+        Assert.Equal(2, chunk.Diagnostics.LaunchActionCount);
+        Assert.Equal(1, chunk.Diagnostics.SubmitFormActionCount);
+        Assert.Equal(2, chunk.Diagnostics.ImportDataActionCount);
+
+        Assert.NotNull(chunk.Actions);
+        Assert.Equal(11, chunk.Actions!.Count);
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.DocumentOpen && action.ActionType == "Destination");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Catalog && action.ActionType == "JavaScript" && action.Name == "Startup");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Catalog && action.ActionType == "JavaScript" && action.Name == "Deferred");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Catalog && action.ActionType == "JavaScript" && action.Name == "AA.WC" && action.TriggerName == "WC" && action.ActionPath == "AA.WC");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Catalog && action.ActionType == "ImportData" && action.Name == "AA.WC.Next.0" && action.IsChainedAction && action.ActionPath == "AA.WC.Next.0");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Catalog && action.ActionType == "Movie" && action.Name == "AA.WC.Next.1" && action.IsChainedAction && action.ActionPath == "AA.WC.Next.1");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Page && action.ActionType == "JavaScript" && action.TriggerName == "O");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Page && action.ActionType == "Launch" && action.TriggerName == "C");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Annotation && action.ActionType == "SubmitForm" && action.Source == "Annotation/A");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Annotation && action.ActionType == "Launch" && action.Source == "Annotation/AA");
+        Assert.Contains(chunk.Actions, action => action.Scope == ReaderActionScope.Annotation && action.ActionType == "ImportData" && action.Source == "Annotation/Next" && action.IsChainedAction);
+        Assert.Equal(10, chunk.Actions.Count(action => action.IsPotentiallyUnsafe));
+        Assert.Equal(3, chunk.Actions.Count(action => action.IsChainedAction));
+        Assert.All(chunk.Actions, action => {
+            Assert.DoesNotContain("app.alert", action.ActionType, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("tool.exe", action.ActionType, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("https://example.com/submit", action.ActionType, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("payload.fdf", action.ActionType, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("name-tree-data.fdf", action.ActionType, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain("preview.mov", action.ActionType, StringComparison.OrdinalIgnoreCase);
+        });
+
+        OfficeDocumentReadResult readResult = DocumentReaderPdfExtensions.ReadPdfDocument(
+            logical,
+            sourceName: "pdf-reader-hostile-action-corpus.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-count" && entry.Value == "11");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-active-action-count" && entry.Value == "10");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-chained-count" && entry.Value == "3");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-potentially-unsafe-count" && entry.Value == "10");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-type-javascript-count" && entry.Value == "4");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-type-launch-count" && entry.Value == "2");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-type-submitform-count" && entry.Value == "1");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-type-importdata-count" && entry.Value == "2");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-action-type-movie-count" && entry.Value == "1");
+        string resultJson = readResult.ToJson();
+        Assert.DoesNotContain("app.alert", resultJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", resultJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", resultJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("payload.fdf", resultJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("name-tree-data.fdf", resultJson, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("preview.mov", resultJson, StringComparison.OrdinalIgnoreCase);
+
+        Assert.True(htmlResult.Summary.HasOpenAction);
+        Assert.True(htmlResult.Summary.HasCatalogActions);
+        Assert.True(htmlResult.Summary.HasPageActions);
+        Assert.True(htmlResult.Summary.HasAnnotationActions);
+        Assert.True(htmlResult.Summary.HasActiveContent);
+        Assert.Equal(5, htmlResult.Summary.CatalogActionCount);
+        Assert.Equal(2, htmlResult.Summary.PageActionCount);
+        Assert.Equal(2, htmlResult.Summary.SelectedPageActionCount);
+        Assert.Equal(3, htmlResult.Summary.AnnotationActionCount);
+        Assert.Equal(3, htmlResult.Summary.SelectedAnnotationActionCount);
+        Assert.Equal(10, htmlResult.Summary.PotentiallyUnsafeActionCount);
+        Assert.Equal(4, htmlResult.Summary.JavaScriptActionCount);
+        Assert.Equal(2, htmlResult.Summary.LaunchActionCount);
+        Assert.Equal(1, htmlResult.Summary.SubmitFormActionCount);
+        Assert.Equal(2, htmlResult.Summary.ImportDataActionCount);
+        Assert.Contains("Hostile Action Corpus", htmlResult.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain("app.alert", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("tool.exe", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("https://example.com/submit", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("payload.fdf", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("name-tree-data.fdf", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("preview.mov", htmlResult.Html, StringComparison.OrdinalIgnoreCase);
+
+        var summary = new {
+            scenario = "pdf-reader-hostile-action-corpus",
+            acceptedDegradations = new[] {
+                "nested catalog JavaScript name trees, catalog additional actions, page actions, and annotation actions are exposed only as passive diagnostics",
+                "document-open actions are summarized without executing or embedding action payload text",
+                "JavaScript, Launch, SubmitForm, ImportData, and Movie actions are counted as potentially unsafe but remain inert in Reader and HTML output",
+                "catalog chained actions carry stable action paths and chained-action flags in Reader summaries"
+            },
+            readerDiagnostics = new {
+                chunk.Diagnostics.HasOpenAction,
+                chunk.Diagnostics.HasCatalogActions,
+                chunk.Diagnostics.HasPageActions,
+                chunk.Diagnostics.HasAnnotationActions,
+                chunk.Diagnostics.HasActiveContent,
+                chunk.Diagnostics.CatalogActionCount,
+                chunk.Diagnostics.PageActionCount,
+                chunk.Diagnostics.SelectedPageActionCount,
+                chunk.Diagnostics.AnnotationActionCount,
+                chunk.Diagnostics.SelectedAnnotationActionCount,
+                chunk.Diagnostics.PotentiallyUnsafeActionCount,
+                chunk.Diagnostics.JavaScriptActionCount,
+                chunk.Diagnostics.LaunchActionCount,
+                chunk.Diagnostics.SubmitFormActionCount,
+                chunk.Diagnostics.ImportDataActionCount
+            },
+            htmlSummary = htmlResult.Summary,
+            actions = chunk.Actions.Select(item => new {
+                Scope = item.Scope.ToString(),
+                item.ActionType,
+                item.Source,
+                item.Name,
+                item.TriggerName,
+                item.ActionPath,
+                item.PageNumber,
+                item.IsChainedAction,
+                item.IsPotentiallyUnsafe
+            }).ToArray(),
+            payloadPolicy = "Executable action payloads are not emitted into Reader text, Reader JSON, or positioned review HTML."
+        };
+
+        WriteReviewArtifact("pdf-reader-hostile-action-corpus.pdf", pdf);
+        WriteReviewArtifact("pdf-reader-hostile-action-positioned-review.html", Encoding.UTF8.GetBytes(htmlResult.Html));
+        WriteReviewArtifact("pdf-reader-hostile-action-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
             WriteIndented = true
         }));
     }
@@ -597,6 +1283,10 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.True(chunk.Diagnostics.MinTableConfidence < 0.95D);
         Assert.True(chunk.Diagnostics.AverageTableConfidence >= 0.80D);
         Assert.True(chunk.Diagnostics.AverageTableConfidence < 0.95D);
+        Assert.Equal(1, chunk.Diagnostics.LowConfidenceTableCount);
+        Assert.Equal(1, chunk.Diagnostics.NumericTableColumnCount);
+        Assert.Equal(3, chunk.Diagnostics.FallbackTableColumnNameCount);
+        Assert.Equal(0, chunk.Diagnostics.MissingTableCellCount);
         Assert.NotNull(chunk.Tables);
         ReaderTable table = Assert.Single(chunk.Tables!);
         Assert.Equal(new[] { "Column 1", "Column 2", "Column 3" }, table.Columns);
@@ -604,6 +1294,25 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.True(table.Diagnostics!.Confidence >= 0.80D);
         Assert.True(table.Diagnostics.Confidence < 0.95D);
         Assert.Equal(ReaderTableColumnKind.Numeric, table.ColumnProfiles[2].Kind);
+
+        OfficeDocumentReadResult readResult = DocumentReaderPdfExtensions.ReadPdfDocument(
+            logical,
+            sourceName: "pdf-reader-hostile-table-corpus.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-count" && entry.Value == "1");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-low-confidence-count" && entry.Value == "1");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-numeric-column-count" && entry.Value == "1");
+        Assert.Contains(readResult.Metadata, entry => entry.Id == "pdf-table-fallback-column-name-count" && entry.Value == "3");
+
+        using JsonDocument chunkJson = JsonDocument.Parse(new OfficeDocumentReadResult {
+            Kind = ReaderInputKind.Pdf,
+            Chunks = new[] { chunk }
+        }.ToJson());
+        JsonElement jsonDiagnostics = chunkJson.RootElement.GetProperty("chunks")[0].GetProperty("diagnostics");
+        Assert.Equal(1, jsonDiagnostics.GetProperty("lowConfidenceTableCount").GetInt32());
+        Assert.Equal(1, jsonDiagnostics.GetProperty("numericTableColumnCount").GetInt32());
+        Assert.Equal(3, jsonDiagnostics.GetProperty("fallbackTableColumnNameCount").GetInt32());
+        Assert.Equal(0, jsonDiagnostics.GetProperty("missingTableCellCount").GetInt32());
 
         var summary = new {
             scenario = "pdf-reader-hostile-table-corpus",
@@ -617,7 +1326,11 @@ public sealed class PdfConversionScenarioManifestTests {
                 chunk.Diagnostics.TableGeometryCount,
                 chunk.Diagnostics.TableGeometryCoverage,
                 chunk.Diagnostics.MinTableConfidence,
-                chunk.Diagnostics.AverageTableConfidence
+                chunk.Diagnostics.AverageTableConfidence,
+                chunk.Diagnostics.LowConfidenceTableCount,
+                chunk.Diagnostics.NumericTableColumnCount,
+                chunk.Diagnostics.FallbackTableColumnNameCount,
+                chunk.Diagnostics.MissingTableCellCount
             },
             table = new {
                 table.Kind,
@@ -644,6 +1357,243 @@ public sealed class PdfConversionScenarioManifestTests {
 
         WriteReviewArtifact("pdf-reader-hostile-table-corpus.pdf", pdf);
         WriteReviewArtifact("pdf-reader-hostile-table-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
+            WriteIndented = true
+        }));
+    }
+
+    [Fact]
+    public void PdfReaderOcrHandoffCorpus_ProducesManifestedReaderProof() {
+        byte[] pdf = CreateReaderOcrHandoffCorpusPdf();
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "pdf-reader-ocr-handoff-corpus.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        OfficeDocumentOcrCandidate candidate = Assert.Single(result.OcrCandidates);
+        OfficeDocumentAsset asset = Assert.Single(result.Assets);
+        OfficeDocumentDiagnostic diagnostic = Assert.Single(result.Diagnostics, item => item.Code == "ocr-needed");
+        OfficeDocumentPage page = Assert.Single(result.Pages);
+        OfficeDocumentOcrEnrichmentResult enrichment = result.ApplyOcrResults(new[] {
+            new OfficeDocumentOcrTextResult {
+                CandidateId = candidate.Id,
+                Text = "Scanned statement\nAmount due 123.45 EUR",
+                Confidence = 0.96D,
+                Language = "en",
+                Provider = "external-ocr-contract",
+                Model = "fixture"
+            }
+        });
+        OfficeDocumentReadResult enriched = enrichment.Document;
+
+        Assert.Equal("image", candidate.Kind);
+        Assert.Equal(1, candidate.Location.Page);
+        Assert.Equal(1, candidate.ImageCount);
+        Assert.Equal(0, candidate.TextBlockCount);
+        Assert.Equal(asset.Id, candidate.AssetId);
+        Assert.NotNull(candidate.Region);
+        Assert.True(candidate.Region!.Width > 0D);
+        Assert.True(candidate.Region.Height > 0D);
+        Assert.NotNull(asset.Region);
+        Assert.True(asset.Region!.Width > 0D);
+        Assert.True(asset.Region.Height > 0D);
+        Assert.Same(candidate, Assert.Single(page.OcrCandidates));
+        Assert.Equal(1, diagnostic.Location?.Page);
+        Assert.Contains("no meaningful native text", diagnostic.Message, StringComparison.Ordinal);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-candidate-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-image-candidate-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-asset-linked-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-candidate-geometry-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-candidate-geometry-coverage").Value);
+        Assert.Equal(1, enrichment.Report.AppliedResultCount);
+        Assert.Equal(0, enrichment.Report.UnresolvedCandidateCount);
+        Assert.Empty(enriched.OcrCandidates);
+        Assert.DoesNotContain(enriched.Diagnostics, item => item.Code == "ocr-needed");
+        Assert.Contains("officeimo.reader.ocr-enrichment", enriched.CapabilitiesUsed);
+        OfficeDocumentBlock ocrBlock = Assert.Single(enriched.Blocks, item => item.Kind == "ocr-text");
+        Assert.Equal("Scanned statement\nAmount due 123.45 EUR", ocrBlock.Text);
+        Assert.Equal(candidate.Location.Page, ocrBlock.Location.Page);
+        Assert.Equal("1", Assert.Single(enriched.Metadata, metadata => metadata.Id == "reader-ocr-applied-count").Value);
+        Assert.Equal("0", Assert.Single(enriched.Metadata, metadata => metadata.Id == "reader-ocr-unresolved-candidate-count").Value);
+
+        var metadata = result.Metadata
+            .Where(entry => entry.Id.StartsWith("pdf-ocr-", StringComparison.Ordinal) || entry.Id.StartsWith("pdf-image-", StringComparison.Ordinal))
+            .Select(entry => new {
+                entry.Id,
+                entry.Category,
+                entry.Name,
+                entry.Value,
+                entry.ValueType
+            })
+            .ToArray();
+        var summary = new {
+            scenario = "pdf-reader-ocr-handoff-corpus",
+            acceptedDegradations = new[] {
+                "image-only PDF pages are surfaced as OCR candidates rather than treated as successfully extracted native text",
+                "OfficeIMO.Reader.Pdf reports candidate geometry, linked image asset metadata, and ocr-needed diagnostics but does not run OCR inside the dependency-light core",
+                "callers can route the stable read-result OCR candidate contract to an external OCR service or UI review workflow",
+                "external OCR text can be merged back through OfficeIMO.Reader as generic ocr-text blocks/chunks with traceable reader.ocr metadata"
+            },
+            readResult = new {
+                result.SchemaId,
+                result.SchemaVersion,
+                pageCount = result.Pages.Count,
+                chunkCount = result.Chunks.Count,
+                assetCount = result.Assets.Count,
+                ocrCandidateCount = result.OcrCandidates.Count,
+                diagnosticCodes = result.Diagnostics.Select(item => item.Code).ToArray()
+            },
+            candidate = new {
+                candidate.Id,
+                candidate.Kind,
+                candidate.Reason,
+                candidate.Confidence,
+                candidate.AssetId,
+                candidate.ImageCount,
+                candidate.TextBlockCount,
+                candidate.Location.Page,
+                candidate.Region.X,
+                candidate.Region.Y,
+                candidate.Region.Width,
+                candidate.Region.Height
+            },
+            asset = new {
+                asset.Id,
+                asset.Kind,
+                asset.MediaType,
+                asset.Extension,
+                asset.FileName,
+                asset.Width,
+                asset.Height,
+                asset.LengthBytes,
+                asset.PayloadHash,
+                placedX = asset.Region!.X,
+                placedY = asset.Region.Y,
+                placedWidth = asset.Region.Width,
+                placedHeight = asset.Region.Height
+            },
+            enrichment = new {
+                enrichment.Report.CandidateCount,
+                enrichment.Report.ResultCount,
+                enrichment.Report.AppliedResultCount,
+                enrichment.Report.UnresolvedCandidateCount,
+                enrichment.Report.UnmatchedResultCount,
+                enrichment.Report.EnrichedBlockCount,
+                enrichment.Report.EnrichedChunkCount,
+                enrichment.Report.AppliedCandidateIds,
+                enrichedCandidateCount = enriched.OcrCandidates.Count,
+                diagnosticCodes = enriched.Diagnostics.Select(item => item.Code).ToArray(),
+                capabilities = enriched.CapabilitiesUsed,
+                block = new {
+                    ocrBlock.Id,
+                    ocrBlock.Kind,
+                    ocrBlock.Text,
+                    ocrBlock.Location.Page,
+                    ocrBlock.Region!.X,
+                    ocrBlock.Region.Y,
+                    ocrBlock.Region.Width,
+                    ocrBlock.Region.Height
+                },
+                metadata = enriched.Metadata
+                    .Where(entry => entry.Id.StartsWith("reader-ocr-", StringComparison.Ordinal))
+                    .Select(entry => new {
+                        entry.Id,
+                        entry.Category,
+                        entry.Name,
+                        entry.Value,
+                        entry.ValueType,
+                        entry.SourceObjectId,
+                        entry.Attributes
+                    })
+                    .ToArray()
+            },
+            metadata
+        };
+
+        WriteReviewArtifact("pdf-reader-ocr-handoff-corpus.pdf", pdf);
+        WriteReviewArtifact("pdf-reader-ocr-handoff-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
+            WriteIndented = true
+        }));
+    }
+
+    [Fact]
+    public void PdfReaderXfaFormCorpus_ProducesManifestedReaderProof() {
+        byte[] pdf = CreateReaderXfaFormCorpusPdf();
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(pdf);
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "pdf-reader-xfa-form-corpus.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        Assert.NotNull(logical.AcroFormXfa);
+        Assert.True(logical.HasAcroFormXfa);
+        Assert.Equal("array", logical.AcroFormXfa!.ObjectKind);
+        Assert.Equal(2, logical.AcroFormXfa.PacketCount);
+        Assert.Equal(new[] { "template", "datasets" }, logical.AcroFormXfa.PacketNames);
+        Assert.Equal(2, logical.AcroFormXfa.StreamCount);
+        Assert.True(logical.AcroFormXfa.TotalPayloadBytes > 0);
+        Assert.True(logical.AcroFormXfa.HasTemplatePacket);
+        Assert.True(logical.AcroFormXfa.HasDatasetsPacket);
+        Assert.True(info.HasForms);
+        Assert.True(info.HasAcroFormXfa);
+        Assert.Equal("true", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa-present").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa-packet-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa-stream-count").Value);
+        OfficeDocumentMetadataEntry xfa = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa");
+        Assert.Equal("array", xfa.Value);
+        Assert.Equal("template,datasets", xfa.Attributes["packetNames"]);
+        Assert.Equal("true", xfa.Attributes["hasTemplatePacket"]);
+        Assert.Equal("true", xfa.Attributes["hasDatasetsPacket"]);
+
+        var metadata = result.Metadata
+            .Where(entry => entry.Id.StartsWith("pdf-acroform-xfa", StringComparison.Ordinal))
+            .Select(entry => new {
+                entry.Id,
+                entry.Category,
+                entry.Name,
+                entry.Value,
+                entry.ValueType,
+                entry.Attributes
+            })
+            .ToArray();
+        var summary = new {
+            scenario = "pdf-reader-xfa-form-corpus",
+            acceptedDegradations = new[] {
+                "AcroForm XFA packets are detected and reported as metadata without claiming XFA rendering or filling",
+                "OfficeIMO.Pdf exposes XFA packet names, payload counts, and template/datasets flags through the logical model and inspector",
+                "OfficeIMO.Reader.Pdf carries the same XFA facts in stable reader metadata for downstream routing"
+            },
+            logical = new {
+                logical.HasAcroFormXfa,
+                logical.AcroFormXfa.ObjectKind,
+                logical.AcroFormXfa.PacketCount,
+                logical.AcroFormXfa.PacketNames,
+                logical.AcroFormXfa.StreamCount,
+                logical.AcroFormXfa.StringCount,
+                logical.AcroFormXfa.DictionaryCount,
+                logical.AcroFormXfa.TotalPayloadBytes,
+                logical.AcroFormXfa.HasTemplatePacket,
+                logical.AcroFormXfa.HasDatasetsPacket
+            },
+            inspector = new {
+                info.HasForms,
+                info.HasAcroFormXfa,
+                info.FormFieldCount,
+                info.AcroFormXfa!.PacketCount
+            },
+            readResult = new {
+                result.SchemaId,
+                result.SchemaVersion,
+                pageCount = result.Pages.Count,
+                formCount = result.Forms.Count,
+                metadataCount = metadata.Length
+            },
+            metadata
+        };
+
+        WriteReviewArtifact("pdf-reader-xfa-form-corpus.pdf", pdf);
+        WriteReviewArtifact("pdf-reader-xfa-form-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions {
             WriteIndented = true
         }));
     }
@@ -702,6 +1652,118 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void Html_ToPdfDocumentResult_ReturnsPdfDocumentAndReportSnapshot() {
+        string tempDirectory = CreateTemporaryDirectory("OfficeIMOPdfHtmlResult");
+        try {
+            string stylesheetPath = Path.Combine(tempDirectory, "policy.css");
+            File.WriteAllText(stylesheetPath, "p.policy-note { color:#123456; }", Encoding.UTF8);
+            var options = HtmlPdfSaveOptions.CreateTrustedDocumentProfile();
+            options.WordHtmlOptions!.AllowedStylesheetHosts.Add("allowed.example.test");
+
+            PdfCore.PdfDocumentConversionResult result = CreateCssResourcePolicyHtml(new Uri(stylesheetPath).AbsoluteUri)
+                .ToPdfDocumentResult(options);
+            PdfCore.PdfDocumentConversionResult processed = result.Process(document => document.AppendMetadataRevision(title: "Processed HTML PDF"));
+
+            options.ConversionReport.Clear();
+
+            PdfCore.PdfConversionWarning stylesheetWarning = Assert.Single(result.Warnings, warning => warning.Code == "StylesheetResourceRejectedByPolicy");
+            Assert.True(result.HasWarnings);
+            Assert.True(processed.HasWarnings);
+            Assert.False(options.ConversionReport.HasWarnings);
+            Assert.Equal("OfficeIMO.Word.Html", stylesheetWarning.Converter);
+            Assert.Equal("Processed HTML PDF", processed.Document.Inspect().Metadata.Title);
+            Assert.Contains("HTML CSS Resource Policy Gate", result.Document.Read.Text(), StringComparison.Ordinal);
+            Assert.Contains(PdfCore.PdfImageExtractor.ExtractImages(result.ToBytes()), image => image.IsImageFile && image.MimeType == "image/png");
+
+            PdfCore.PdfConversionProofReport proof = processed.AssessProof(new PdfCore.PdfConversionProofOptions()
+                .RequireTextMarkers("HTML CSS Resource Policy Gate", "Local stylesheet marker")
+                .RequireMetadata(title: "Processed HTML PDF")
+                .RequireLinkUris("https://example.com/pdf-resource-policy")
+                .RequirePageCount(1)
+                .RequireLogicalSignals("page-geometry", "metadata", "links")
+                .RequireWarningCodes("StylesheetResourceRejectedByPolicy")
+                .AcceptWarningCodes("StylesheetResourceRejectedByPolicy")
+                .RequireNoUnexpectedWarningCodes());
+
+            Assert.True(proof.IsSatisfied, proof.Summary);
+            Assert.Equal("Processed HTML PDF", proof.DocumentInfo!.Metadata.Title);
+            Assert.Equal(1, proof.DocumentInfo.PageCount);
+            Assert.Contains("https://example.com/pdf-resource-policy", proof.DocumentInfo.LinkUris);
+            Assert.Contains("page-geometry", proof.LogicalSignals);
+            Assert.Contains("metadata", proof.LogicalSignals);
+            Assert.Contains("links", proof.LogicalSignals);
+            Assert.Equal(64, proof.ArtifactSha256.Length);
+            Assert.True(proof.ArtifactByteCount > 0);
+            Assert.True(processed.AssessProof(new PdfCore.PdfConversionProofOptions()
+                .RequireArtifactSha256(proof.ArtifactSha256)).IsSatisfied);
+        } finally {
+            Directory.Delete(tempDirectory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void PdfStandardSecurityRoundtrip_ProducesManifestedReviewProof() {
+        byte[] encrypted = PdfCore.PdfDocument.Create(new PdfCore.PdfOptions().SetEncryption("open", "owner"))
+            .Meta(title: "PDF Standard Security Gate", author: "OfficeIMO")
+            .H1("PDF Standard Security Gate")
+            .Paragraph(paragraph => paragraph.Text("Credential protected marker"))
+            .Paragraph(paragraph => paragraph.Text("Extracted page marker"))
+            .ToBytes();
+
+        PdfCore.PdfDocumentPreflight blockedPreflight = PdfCore.PdfInspector.Preflight(encrypted);
+        var readOptions = new PdfCore.PdfReadOptions { Password = "open" };
+        PdfCore.PdfDocumentPreflight readablePreflight = PdfCore.PdfInspector.Preflight(encrypted, readOptions);
+        PdfCore.PdfDocumentInfo info = PdfCore.PdfInspector.Inspect(encrypted, readOptions);
+        string text = PdfCore.PdfTextExtractor.ExtractAllText(encrypted, (PdfCore.PdfTextLayoutOptions?)null, readOptions);
+        PdfCore.PdfDocument opened = PdfCore.PdfDocument.Open(encrypted, readOptions);
+        IReadOnlyList<PdfCore.PdfDocument> splitPages = opened.Pages.Split();
+        byte[] extractedPage = Assert.Single(splitPages).ToBytes();
+
+        Assert.True(PdfCore.PdfInspector.Probe(encrypted).HasEncryption);
+        Assert.False(blockedPreflight.CanRead);
+        Assert.Contains(blockedPreflight.ReadBlockers, blocker => blocker.Kind == PdfCore.PdfReadBlockerKind.Encryption);
+        Assert.Throws<PdfCore.PdfPasswordRequiredException>(() => PdfCore.PdfReadDocument.Load(encrypted));
+        Assert.Throws<PdfCore.PdfInvalidPasswordException>(() => PdfCore.PdfReadDocument.Load(encrypted, new PdfCore.PdfReadOptions { Password = "wrong" }));
+        Assert.True(readablePreflight.CanRead);
+        Assert.False(readablePreflight.CanRewrite);
+        Assert.True(info.Security.HasEncryption);
+        Assert.Equal("Standard", info.Security.EncryptionFilter);
+        Assert.Equal(3, info.Security.EncryptionRevision);
+        Assert.Equal(128, info.Security.EncryptionLengthBits);
+        Assert.Contains("Credential protected marker", text, StringComparison.Ordinal);
+        Assert.Contains("Credential protected marker", opened.Read.Text(), StringComparison.Ordinal);
+        Assert.False(PdfCore.PdfInspector.Probe(extractedPage).HasEncryption);
+        Assert.Contains("Extracted page marker", PdfCore.PdfTextExtractor.ExtractAllText(extractedPage), StringComparison.Ordinal);
+        Assert.Contains(readablePreflight.RewriteBlockers, blocker => blocker.Kind == PdfCore.PdfRewriteBlockerKind.Encryption);
+
+        var summary = new {
+            scenario = "pdf-standard-security-roundtrip",
+            blockedWithoutPassword = new {
+                blockedPreflight.CanRead,
+                readBlockers = blockedPreflight.ReadBlockers.Select(blocker => blocker.Kind.ToString()).ToArray()
+            },
+            openedWithPassword = new {
+                readablePreflight.CanRead,
+                readablePreflight.CanRewrite,
+                info.Security.HasEncryption,
+                info.Security.EncryptionFilter,
+                info.Security.EncryptionRevision,
+                info.Security.EncryptionLengthBits,
+                textMarkers = new[] { "Credential protected marker", "Extracted page marker" }
+            },
+            extractedPage = new {
+                hasEncryption = PdfCore.PdfInspector.Probe(extractedPage).HasEncryption,
+                byteLength = extractedPage.Length
+            },
+            acceptedLimit = "OfficeIMO.Pdf supports Standard security password read/decrypt and password-backed page extraction; encrypted rewrite and form mutation still fail closed."
+        };
+
+        WriteReviewArtifact("pdf-standard-security-roundtrip.pdf", encrypted);
+        WriteReviewArtifact("pdf-standard-security-extracted-page.pdf", extractedPage);
+        WriteReviewArtifact("pdf-standard-security-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
+    }
+
+    [Fact]
     public void HtmlPdfRoundTripProfiles_ProduceManifestedReviewProof() {
         const string linkUri = "https://example.com/html-pdf-roundtrip";
         HtmlPdfSaveOptions htmlOptions = HtmlPdfSaveOptions.CreateDocumentProfile();
@@ -734,15 +1796,27 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Contains(logical.Images, image => image.PlacementCount > 0);
         Assert.Contains("Practical HTML", semantic.Html, StringComparison.Ordinal);
         Assert.Contains("Report link", semantic.Html, StringComparison.Ordinal);
-        Assert.Contains("class=\"pdf-page\" data-page-number=\"1\"", positioned.Html, StringComparison.Ordinal);
+        Assert.Contains("rel=\"noopener noreferrer\"", semantic.Html, StringComparison.Ordinal);
+        Assert.Contains("class=\"pdf-page\" id=\"pdf-page-1\" data-page-number=\"1\"", positioned.Html, StringComparison.Ordinal);
         Assert.Contains("class=\"pdf-image-placeholder\"", positioned.Html, StringComparison.Ordinal);
+        Assert.Contains("rel=\"noopener noreferrer\"", positioned.Html, StringComparison.Ordinal);
         Assert.Equal(PdfHtmlProfile.Semantic, semantic.Summary.Profile);
         Assert.Equal(PdfHtmlProfile.PositionedReview, positioned.Summary.Profile);
         Assert.True(semantic.Summary.RenderedPageCount >= 2);
         Assert.True(positioned.Summary.RenderedPageCount >= 2);
         Assert.True(positioned.Summary.TextBlockCount > 0);
         Assert.True(positioned.Summary.ImagePlacementCount > 0);
+        Assert.True(semantic.Summary.ImagePlaceholderCount > 0);
+        Assert.True(positioned.Summary.ImagePlaceholderCount > 0);
         Assert.True(positioned.Summary.LinkCount > 0);
+        Assert.True(semantic.Summary.RenderedLinkCount > 0);
+        Assert.True(positioned.Summary.RenderedLinkCount > 0);
+        Assert.Equal(semantic.Summary.RenderedLinkCount, semantic.Summary.RenderedSafeUriLinkCount);
+        Assert.Equal(positioned.Summary.RenderedLinkCount, positioned.Summary.RenderedSafeUriLinkCount);
+        Assert.Equal(0, semantic.Summary.RenderedUnsafeUriLinkCount);
+        Assert.Equal(0, positioned.Summary.RenderedUnsafeUriLinkCount);
+        Assert.Equal(0, semantic.Summary.SkippedLinkCount);
+        Assert.Equal(0, positioned.Summary.SkippedLinkCount);
         Assert.False(semantic.ConversionReport.HasWarnings);
         Assert.False(positioned.ConversionReport.HasWarnings);
 
@@ -772,6 +1846,57 @@ public sealed class PdfConversionScenarioManifestTests {
     }
 
     [Fact]
+    public void PdfToHtmlResult_PreservesUnsafeLinksAsInertReviewMetadata() {
+        byte[] pdf = CreateLinkAnnotationPdf("javascript:alert(1)");
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
+
+        Assert.Contains("class=\"pdf-link\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-unsafe-href=\"javascript:alert(1)\"", result.Html, StringComparison.Ordinal);
+        Assert.DoesNotContain(" href=\"javascript:alert(1)\"", result.Html, StringComparison.Ordinal);
+        Assert.Equal(1, result.Summary.LinkCount);
+        Assert.Equal(1, result.Summary.RenderedLinkCount);
+        Assert.Equal(0, result.Summary.RenderedSafeUriLinkCount);
+        Assert.Equal(1, result.Summary.RenderedUnsafeUriLinkCount);
+        Assert.Equal(0, result.Summary.RenderedInternalDestinationLinkCount);
+        Assert.Equal(0, result.Summary.SkippedLinkCount);
+        Assert.False(result.ConversionReport.HasWarnings);
+    }
+
+    [Fact]
+    public void PdfToHtmlResult_PreservesDirectDestinationLinksAsReviewMetadata() {
+        byte[] pdf = CreateDirectDestinationLinkPdf();
+        PdfCore.PdfLogicalDocument logical = PdfCore.PdfLogicalDocument.Load(pdf);
+        var options = new PdfHtmlSaveOptions {
+            Profile = PdfHtmlProfile.PositionedReview,
+            IncludeLinkAnnotations = true
+        };
+
+        PdfHtmlConversionResult result = PdfHtmlConverter.ToHtmlResult(logical, options);
+
+        Assert.Contains(logical.GetLinksByDestinationPageNumber(2), link => link.Contents == "Jump to page two");
+        Assert.Contains("data-destination-page-number=\"2\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-destination-mode=\"FitRectangle\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-destination-left=\"10\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-destination-bottom=\"20\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-destination-right=\"90\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains("data-destination-top=\"144\"", result.Html, StringComparison.Ordinal);
+        Assert.Contains(">Jump to page two</a>", result.Html, StringComparison.Ordinal);
+        Assert.Equal(1, result.Summary.LinkCount);
+        Assert.Equal(1, result.Summary.RenderedLinkCount);
+        Assert.Equal(0, result.Summary.RenderedSafeUriLinkCount);
+        Assert.Equal(0, result.Summary.RenderedUnsafeUriLinkCount);
+        Assert.Equal(1, result.Summary.RenderedInternalDestinationLinkCount);
+        Assert.Equal(0, result.Summary.SkippedLinkCount);
+        Assert.False(result.ConversionReport.HasWarnings);
+    }
+
+    [Fact]
     public void PdfTableImportProfiles_ProduceManifestedEditableOfficeProof() {
         byte[] pdf = CreateLogicalProofPdf();
         var layoutOptions = new PdfCore.PdfTextLayoutOptions {
@@ -785,6 +1910,11 @@ public sealed class PdfConversionScenarioManifestTests {
             new PdfWordTableImportOptions {
                 LayoutOptions = layoutOptions
             });
+        using var semanticWordStream = new MemoryStream();
+        var semanticWordOptions = new PdfWordReadOptions {
+            LayoutOptions = layoutOptions
+        };
+        pdf.SavePdfAsWord(semanticWordStream, semanticWordOptions);
 
         using var excelStream = new MemoryStream();
         IReadOnlyList<PdfExcelTableImportResult> excelResults = PdfExcelTableConverterExtensions.SavePdfTablesAsExcel(
@@ -814,19 +1944,52 @@ public sealed class PdfConversionScenarioManifestTests {
         Assert.Equal(2, excelResult.RowCount);
         Assert.Equal(2, powerPointResult.RowCount);
         Assert.True(wordStream.Length > 0);
+        Assert.True(semanticWordStream.Length > 0);
         Assert.True(excelStream.Length > 0);
         Assert.True(powerPointStream.Length > 0);
+        using (WordprocessingDocument semanticWordPackage = WordprocessingDocument.Open(new MemoryStream(semanticWordStream.ToArray()), false)) {
+            Assert.Single(semanticWordPackage.MainDocumentPart!.ImageParts);
+            Body body = semanticWordPackage.MainDocumentPart.Document.Body!;
+            Hyperlink internalLink = Assert.Single(body.Descendants<Hyperlink>(), link => !string.IsNullOrWhiteSpace(link.Anchor?.Value));
+            string anchor = Assert.IsType<string>(internalLink.Anchor?.Value);
+            Assert.StartsWith("OfficeIMO_Pdf_Dest_Details", anchor, StringComparison.Ordinal);
+            Assert.Contains(body.Descendants<BookmarkStart>(), bookmark => bookmark.Name?.Value == anchor);
+        }
+
+        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfImageEmbedded");
+        Assert.DoesNotContain(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfImagePlaceholder");
+        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfUriLinkReconstructed");
+        Assert.Contains(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfInternalLinkReconstructed");
+        Assert.DoesNotContain(semanticWordOptions.ConversionReport.Warnings, warning => warning.Code == "PdfLinkAnnotationNotReconstructed");
+
+        var summary = new {
+            scenario = "pdf-table-import-editable-office",
+            semanticWordWarningCodes = semanticWordOptions.ConversionReport.Warnings.Select(warning => warning.Code).Distinct(StringComparer.Ordinal).ToArray(),
+            tableWord = wordResult,
+            excel = excelResult,
+            powerPoint = powerPointResult
+        };
 
         WriteReviewArtifact("pdf-table-import-source.pdf", pdf);
+        WriteReviewArtifact("pdf-semantic-import-word.docx", semanticWordStream.ToArray());
         WriteReviewArtifact("pdf-table-import-word.docx", wordStream.ToArray());
         WriteReviewArtifact("pdf-table-import-excel.xlsx", excelStream.ToArray());
         WriteReviewArtifact("pdf-table-import-powerpoint.pptx", powerPointStream.ToArray());
+        WriteReviewArtifact("pdf-table-import-editable-office-summary.json", JsonSerializer.SerializeToUtf8Bytes(summary, new JsonSerializerOptions { WriteIndented = true }));
     }
 
     private static string RequireString(JsonElement element, string propertyName) {
         string? value = element.GetProperty(propertyName).GetString();
         Assert.False(string.IsNullOrWhiteSpace(value), propertyName + " cannot be empty.");
         return value!;
+    }
+
+    private static bool HasIssueFeature(JsonElement row, string feature) {
+        if (!row.TryGetProperty("Issues", out JsonElement issues) || issues.ValueKind != JsonValueKind.Array) {
+            return false;
+        }
+
+        return issues.EnumerateArray().Any(issue => RequireString(issue, "Feature") == feature);
     }
 
     private static IReadOnlyList<string> ReadStringArray(JsonElement element, string propertyName) {
@@ -841,10 +2004,86 @@ public sealed class PdfConversionScenarioManifestTests {
         return values;
     }
 
+    private static void AssertPremiumQualityContract(JsonElement qualityContract, ISet<string> scenarioIds) {
+        Assert.DoesNotContain("TestimoX", RequireString(qualityContract, "goal"), StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("OfficeIMO.Pdf", RequireString(qualityContract, "runtimeOwnership"), StringComparison.Ordinal);
+        Assert.Contains("thin", RequireString(qualityContract, "runtimeOwnership"), StringComparison.OrdinalIgnoreCase);
+        Assert.NotEmpty(ReadStringArray(qualityContract, "nonGoals"));
+        Assert.Contains("No TestimoX-specific rendering logic.", ReadStringArray(qualityContract, "nonGoals"));
+
+        IReadOnlyList<string> requiredProof = ReadStringArray(qualityContract, "requiredProof");
+        Assert.Contains("artifact-hash", requiredProof);
+        Assert.Contains("warning-contract", requiredProof);
+        Assert.Contains("accepted-degradation-policy", requiredProof);
+        Assert.Contains("engine-owner", requiredProof);
+        Assert.Contains("thin-adapter-boundary", requiredProof);
+
+        var fidelityTiers = new HashSet<string>(ReadStringArray(qualityContract, "fidelityTiers"), StringComparer.Ordinal);
+        Assert.Contains("premium-core", fidelityTiers);
+        Assert.Contains("premium-adapter", fidelityTiers);
+        Assert.Contains("accepted-degradation", fidelityTiers);
+
+        var qualityIds = new HashSet<string>(StringComparer.Ordinal);
+        foreach (JsonElement quality in qualityContract.GetProperty("scenarioQuality").EnumerateArray()) {
+            string id = RequireString(quality, "id");
+            Assert.True(qualityIds.Add(id), "Scenario quality ids must be unique. Duplicate: " + id);
+            Assert.Contains(id, scenarioIds);
+            Assert.Contains(RequireString(quality, "tier"), fidelityTiers);
+            Assert.False(string.IsNullOrWhiteSpace(RequireString(quality, "owner")));
+            Assert.NotEmpty(ReadStringArray(quality, "closureFocus"));
+        }
+
+        Assert.Equal(scenarioIds.OrderBy(id => id, StringComparer.Ordinal), qualityIds.OrderBy(id => id, StringComparer.Ordinal));
+        Assert.Contains("pdf-rewrite-preservation-matrix", scenarioIds);
+        Assert.Contains("pdf-redaction-removal-proof", scenarioIds);
+        Assert.Contains("pdf-form-appearance-semantics", scenarioIds);
+        Assert.Contains("pdf-provider-shaped-text", scenarioIds);
+
+        IReadOnlyList<string> premiumBacklog = ReadStringArray(qualityContract, "premiumBacklog");
+        Assert.Contains("validator-backed-pdfa-profile", premiumBacklog);
+        Assert.Contains("validator-backed-pdfua-profile", premiumBacklog);
+        Assert.Contains("opentype-cff-charstring-subsetting", premiumBacklog);
+        Assert.DoesNotContain("opentype-cff-subsetting", premiumBacklog);
+        Assert.DoesNotContain("provider-backed-complex-script-shaping", premiumBacklog);
+    }
+
+    private static RtfDocument CreateRtfRoundtripDocument() {
+        RtfDocument document = RtfDocument.Create();
+        document.Info.Title = "RTF PDF Roundtrip Gate";
+        document.Info.Author = "OfficeIMO";
+        document.Info.Subject = "RTF PDF semantic proof";
+        document.Info.Keywords = "rtf,pdf,roundtrip";
+        document.PageSetup.SetPaperSize(7200, 7200);
+        document.PageSetup.SetMargins(leftTwips: 720, rightTwips: 720, topTwips: 720, bottomTwips: 720);
+
+        int accentColor = document.AddColor(68, 114, 196);
+        document.AddParagraph("RTF PDF Roundtrip Gate").SetStyle(1);
+
+        RtfParagraph rich = document.AddParagraph();
+        rich.AddText("Rich run marker ");
+        rich.AddText("bold").SetBold().SetForegroundColor(accentColor);
+        rich.AddText(" and plain text.");
+
+        document.AddParagraph("Review bullet").SetList(kind: RtfListKind.Bullet).SetIndentation(leftTwips: 720, firstLineTwips: -360);
+
+        RtfTable table = document.AddTable(2, 2);
+        table.Rows[0].RepeatHeader = true;
+        table.Rows[0].Cells[0].AddParagraph("Area");
+        table.Rows[0].Cells[1].AddParagraph("Status");
+        table.Rows[1].Cells[0].AddParagraph("Table cell marker");
+        table.Rows[1].Cells[1].AddParagraph("Ready");
+
+        RtfParagraph secondPage = document.AddParagraph("Imported second page marker");
+        secondPage.PageBreakBefore = true;
+
+        return document;
+    }
+
     private static byte[] CreateLogicalProofPdf() {
         return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                CreateOutlineFromHeadings = true,
                 PageWidth = 420,
-                PageHeight = 360,
+                PageHeight = 460,
                 MarginLeft = 36,
                 MarginRight = 36,
                 MarginTop = 36,
@@ -855,6 +2094,9 @@ public sealed class PdfConversionScenarioManifestTests {
             .H1("Logical Heading", linkUri: "https://example.com/logical-proof", linkContents: "Logical PDF sample")
             .Paragraph(paragraph => paragraph.Text("Logical readback marker."))
             .Bullets(new[] { "Detected logical bullet" })
+            .H2("Jump to details", linkDestinationName: "Details", linkContents: "Jump to details")
+            .Bookmark("Details")
+            .H2("Details")
             .Table(new[] {
                 new[] { "Code", "Name", "Qty" },
                 new[] { "A-100", "Alpha", "2" },
@@ -867,6 +2109,94 @@ public sealed class PdfConversionScenarioManifestTests {
             })
             .Image(PdfPngTestImages.CreateRgbPng(1, 1), 24, 24, alternativeText: "Logical proof pixel")
             .ToBytes();
+    }
+
+    private static byte[] CreateLinkAnnotationPdf(string uri) {
+        string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            $"<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Unsafe link) /A << /S /URI /URI ({escapedUri}) >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreatePdfToHtmlActiveContentProofPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] /Names << /JavaScript << /Names [(Open) 6 0 R] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Contents 4 0 R /Annots [5 0 R] /AA << /O 7 0 R >> >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Action link) /A << /S /Launch /F (tool.exe) >> /AA << /E 8 0 R >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /JavaScript /JS (app.alert('catalog')) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('page')) >>",
+            "endobj",
+            "8 0 obj",
+            "<< /S /SubmitForm /F (https://example.com/submit) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateDirectDestinationLinkPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 2 /Kids [3 0 R 5 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Annots [4 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [40 160 180 182] /Contents (Jump to page two) /A << /S /GoTo /D [5 0 R /FitR 10 20 90 144] >> >>",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
     }
 
     private static byte[] CreateExcelDashboardReportPdf() {
@@ -992,6 +2322,62 @@ public sealed class PdfConversionScenarioManifestTests {
             .ToBytes();
     }
 
+    private static byte[] CreateReaderOcrHandoffCorpusPdf() {
+        return PdfCore.PdfDocument.Create(new PdfCore.PdfOptions {
+                PageWidth = 300,
+                PageHeight = 220,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24
+            })
+            .Image(PdfPngTestImages.CreateRgbPng(3, 2), 180, 120, alternativeText: "Scanned statement page")
+            .ToBytes();
+    }
+
+    private static byte[] CreateReaderXfaFormCorpusPdf() {
+        const string template = "<template/>";
+        const string datasets = "<datasets/>";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 240 180] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [] /XFA [(template) 6 0 R (datasets) 7 0 R] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + template.Length + " >>",
+            "stream",
+            template,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Length " + datasets.Length + " >>",
+            "stream",
+            datasets,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] CreateCatalogActionsMultiPagePdf() {
         string firstContent = string.Join("\n", new[] {
             "BT",
@@ -1095,6 +2481,84 @@ public sealed class PdfConversionScenarioManifestTests {
             "endobj",
             "trailer",
             "<< /Root 1 0 R /Size 9 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] CreateReaderHostileActionCorpusPdf() {
+        string content = string.Join("\n", new[] {
+            "BT",
+            "/F1 12 Tf",
+            "50 180 Td",
+            "(Hostile Action Corpus) Tj",
+            "0 -18 Td",
+            "(Passive diagnostics marker) Tj",
+            "ET"
+        });
+
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OpenAction [3 0 R /Fit] /Names << /JavaScript << /Kids [13 0 R 14 0 R] >> >> /AA << /WC 15 0 R >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 320 220] /Resources << /Font << /F1 12 0 R >> >> /Contents 4 0 R /Annots [5 0 R 10 0 R] /AA << /O 7 0 R /C 8 0 R >> >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content,
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Link /Rect [50 132 210 150] /Contents (Submit review) /A 9 0 R >>",
+            "endobj",
+            "6 0 obj",
+            "<< /S /JavaScript /JS (app.alert('catalog')) >>",
+            "endobj",
+            "7 0 obj",
+            "<< /S /JavaScript /JS (app.alert('page-open')) >>",
+            "endobj",
+            "8 0 obj",
+            "<< /S /Launch /F (tool.exe) >>",
+            "endobj",
+            "9 0 obj",
+            "<< /S /SubmitForm /F (https://example.com/submit) /Next 11 0 R >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Type /Annot /Subtype /Text /Rect [50 96 80 126] /Contents (Launch review note) /AA << /E << /S /Launch /F (hover.exe) >> >> >>",
+            "endobj",
+            "11 0 obj",
+            "<< /S /ImportData /F (payload.fdf) >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Names [(Startup) 6 0 R] >>",
+            "endobj",
+            "14 0 obj",
+            "<< /Names [(Deferred) 16 0 R] >>",
+            "endobj",
+            "15 0 obj",
+            "<< /S /JavaScript /JS (app.alert('catalog-close')) /Next [17 0 R 18 0 R] >>",
+            "endobj",
+            "16 0 obj",
+            "<< /S /JavaScript /JS (app.alert('deferred')) >>",
+            "endobj",
+            "17 0 obj",
+            "<< /S /ImportData /F (name-tree-data.fdf) >>",
+            "endobj",
+            "18 0 obj",
+            "<< /S /Movie /T (preview.mov) >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 19 >>",
             "%%EOF"
         }) + "\n";
 
@@ -1272,6 +2736,7 @@ public sealed class PdfConversionScenarioManifestTests {
 <body>
   <h1>HTML CSS Resource Policy Gate</h1>
   <p class="policy-note">Local stylesheet marker</p>
+  <p><a href="https://example.com/pdf-resource-policy">Policy link</a></p>
   <p>Blocked remote stylesheet marker</p>
   <p><img src="data:image/png;base64,{{pixel}}" alt="Policy pixel" width="24" height="24"></p>
   <table>
@@ -1315,6 +2780,85 @@ Bill to: Contoso Finance Review
 
 Thank you for reviewing the OfficeIMO PDF conversion statement.
 """;
+    }
+
+    private static IReadOnlyList<PdfCore.PdfShapedGlyph> CreateTrueTypeGlyphMap(string text, PdfCore.PdfTrueTypeFontProgram fontProgram) {
+        var glyphs = new List<PdfCore.PdfShapedGlyph>();
+        for (int index = 0; index < text.Length;) {
+            int scalarStart = index;
+            int scalar = ReadScalar(text, ref index);
+            if (!fontProgram.TryGetGlyphId(scalar, out int glyphId)) {
+                throw new InvalidOperationException("The selected TrueType font does not cover " + scalar.ToString("X", System.Globalization.CultureInfo.InvariantCulture) + ".");
+            }
+
+            glyphs.Add(new PdfCore.PdfShapedGlyph(glyphId, char.ConvertFromUtf32(scalar), scalarStart));
+        }
+
+        return glyphs;
+    }
+
+    private static bool TryCreateCffOfficeLigatureGlyphs(PdfCore.PdfOpenTypeCffFontProgram fontProgram, out IReadOnlyList<PdfCore.PdfShapedGlyph>? glyphs) {
+        glyphs = null;
+        if (!fontProgram.TryGetGlyphId('o', out int oGlyphId) ||
+            !fontProgram.TryGetGlyphId(0xFB03, out int ffiGlyphId) ||
+            !fontProgram.TryGetGlyphId('c', out int cGlyphId) ||
+            !fontProgram.TryGetGlyphId('e', out int eGlyphId)) {
+            return false;
+        }
+
+        glyphs = new[] {
+            new PdfCore.PdfShapedGlyph(oGlyphId, "o", 0),
+            new PdfCore.PdfShapedGlyph(ffiGlyphId, "ffi", 1),
+            new PdfCore.PdfShapedGlyph(cGlyphId, "c", 4),
+            new PdfCore.PdfShapedGlyph(eGlyphId, "e", 5)
+        };
+        return true;
+    }
+
+    private static int ReadScalar(string text, ref int index) {
+        char ch = text[index++];
+        if (char.IsHighSurrogate(ch) && index < text.Length && char.IsLowSurrogate(text[index])) {
+            return char.ConvertToUtf32(ch, text[index++]);
+        }
+
+        return ch;
+    }
+
+    private sealed class ManifestTextShapingProvider : PdfCore.IPdfTextShapingProvider {
+        private readonly string _trueTypeText;
+        private readonly IReadOnlyList<PdfCore.PdfShapedGlyph> _trueTypeGlyphs;
+        private readonly string _cffText;
+        private readonly IReadOnlyList<PdfCore.PdfShapedGlyph> _cffGlyphs;
+
+        public ManifestTextShapingProvider(
+            string trueTypeText,
+            IReadOnlyList<PdfCore.PdfShapedGlyph> trueTypeGlyphs,
+            string cffText,
+            IReadOnlyList<PdfCore.PdfShapedGlyph> cffGlyphs) {
+            _trueTypeText = trueTypeText;
+            _trueTypeGlyphs = trueTypeGlyphs;
+            _cffText = cffText;
+            _cffGlyphs = cffGlyphs;
+        }
+
+        public int CallCount { get; private set; }
+        public int TrueTypeCalls { get; private set; }
+        public int OpenTypeCffCalls { get; private set; }
+
+        public PdfCore.PdfTextShapingResult? ShapeText(PdfCore.PdfTextShapingRequest request) {
+            CallCount++;
+            if (!request.IsOpenTypeCff && string.Equals(request.Text, _trueTypeText, StringComparison.Ordinal)) {
+                TrueTypeCalls++;
+                return new PdfCore.PdfTextShapingResult(_trueTypeGlyphs);
+            }
+
+            if (request.IsOpenTypeCff && string.Equals(request.Text, _cffText, StringComparison.Ordinal)) {
+                OpenTypeCffCalls++;
+                return new PdfCore.PdfTextShapingResult(_cffGlyphs);
+            }
+
+            return null;
+        }
     }
 
     private static string CreateTemporaryDirectory(string prefix) {

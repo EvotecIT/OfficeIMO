@@ -16,6 +16,20 @@ public sealed partial class PdfDocument {
     }
 
     /// <summary>
+    /// Validates signature structure, byte ranges, and preservation markers for this PDF.
+    /// </summary>
+    public PdfSignatureValidationReport ValidateSignatures(PdfReadOptions? options = null) {
+        return PdfSignatureValidator.Validate(Snapshot(), options ?? ReadOptions);
+    }
+
+    /// <summary>
+    /// Analyzes which append-only mutation actions OfficeIMO.Pdf can safely attempt for this PDF.
+    /// </summary>
+    public PdfAppendOnlyMutationReport AnalyzeAppendOnlyMutation(PdfReadOptions? options = null) {
+        return PdfIncrementalUpdater.AnalyzeAppendOnlyMutation(Inspect(options).Security);
+    }
+
+    /// <summary>
     /// Builds a combined PDF diagnostic report for this document.
     /// </summary>
     public PdfDiagnosticReport Diagnostics(PdfReadOptions? options = null) {
@@ -153,6 +167,34 @@ public sealed partial class PdfDocument {
     /// </summary>
     public PdfOperationResult<PdfDocument> TryFlattenVisualAnnotations(PdfReadOptions? options = null) {
         return TryOperation("Flatten visual annotations", PdfPreflightCapability.ManipulatePages, FlattenVisualAnnotations, options);
+    }
+
+    /// <summary>
+    /// Appends a metadata-only incremental revision without rewriting the existing PDF bytes.
+    /// </summary>
+    public PdfDocument AppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null) {
+        return FromBytes(PdfIncrementalUpdater.UpdateMetadata(Snapshot(), title, author, subject, keywords));
+    }
+
+    /// <summary>
+    /// Attempts to append a metadata-only incremental revision, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfDocument> TryAppendMetadataRevision(string? title = null, string? author = null, string? subject = null, string? keywords = null, PdfReadOptions? options = null) {
+        return TryOperation("Append metadata revision", PdfPreflightCapability.AppendMetadataRevision, () => AppendMetadataRevision(title, author, subject, keywords), options);
+    }
+
+    /// <summary>
+    /// Appends an external-signature placeholder as an incremental revision for a later CMS, CAdES, or timestamp signature.
+    /// </summary>
+    public PdfExternalSignaturePreparation PrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null) {
+        return PdfIncrementalUpdater.PrepareExternalSignature(Snapshot(), signatureOptions);
+    }
+
+    /// <summary>
+    /// Attempts to append an external-signature placeholder revision, returning diagnostics when blocked or failed.
+    /// </summary>
+    public PdfOperationResult<PdfExternalSignaturePreparation> TryPrepareExternalSignature(PdfExternalSignatureOptions? signatureOptions = null, PdfReadOptions? options = null) {
+        return TryOperation("Prepare external signature", PdfPreflightCapability.PrepareExternalSignatureRevision, () => PrepareExternalSignature(signatureOptions), options);
     }
 
     /// <summary>

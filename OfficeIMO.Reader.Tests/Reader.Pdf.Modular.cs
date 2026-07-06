@@ -58,6 +58,15 @@ public sealed class ReaderPdfModularTests {
             Assert.Equal(0, c.Diagnostics.ImageCount);
             Assert.Equal(0, c.Diagnostics.ImageGeometryCount);
             Assert.Equal(0D, c.Diagnostics.ImageGeometryCoverage);
+            Assert.False(c.Diagnostics.HasXmpMetadata);
+            Assert.Equal(0, c.Diagnostics.OutputIntentCount);
+            Assert.Equal(0, c.Diagnostics.AttachmentCount);
+            Assert.False(c.Diagnostics.HasTaggedContent);
+            Assert.Equal(0, c.Diagnostics.TaggedStructureElementCount);
+            Assert.Equal(0, c.Diagnostics.TaggedMarkedContentReferenceCount);
+            Assert.Equal(0, c.Diagnostics.OptionalContentGroupCount);
+            Assert.Equal(0, c.Diagnostics.OptionalContentInitiallyHiddenCount);
+            Assert.Equal(0, c.Diagnostics.OptionalContentLockedCount);
             Assert.Equal(0, c.Diagnostics.FormFieldCount);
             Assert.Equal(0, c.Diagnostics.FormWidgetCount);
             Assert.Equal(0, c.Diagnostics.SelectedFormWidgetCount);
@@ -67,6 +76,46 @@ public sealed class ReaderPdfModularTests {
         });
         Assert.Contains(chunks, c => c.Location.Page == 1 && (c.Markdown ?? c.Text).Contains("Reader PDF page one", StringComparison.Ordinal));
         Assert.Contains(chunks, c => c.Location.Page == 2 && (c.Markdown ?? c.Text).Contains("Reader PDF page two", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfBytes_ProvidesChunksDocumentAndJsonOverloads() {
+        byte[] pdf = BuildTwoPagePdf();
+
+        var chunks = DocumentReaderPdfExtensions.ReadPdf(
+            pdf,
+            sourceName: " bytes.pdf ",
+            readerOptions: new ReaderOptions { MaxChars = 8_000, ComputeHashes = true }).ToList();
+
+        Assert.Equal(2, chunks.Count);
+        Assert.All(chunks, chunk => {
+            Assert.Equal(ReaderInputKind.Pdf, chunk.Kind);
+            Assert.Equal("bytes.pdf", chunk.Location.Path);
+            Assert.Equal(pdf.Length, chunk.SourceLengthBytes);
+            Assert.False(string.IsNullOrWhiteSpace(chunk.SourceHash));
+        });
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            pdf,
+            sourceName: " bytes-result.pdf ",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        Assert.Equal("bytes-result.pdf", result.Source.Path);
+        Assert.Equal(pdf.Length, result.Source.LengthBytes);
+        Assert.Contains("Reader PDF page one", result.Markdown, StringComparison.Ordinal);
+        Assert.Equal(2, result.Pages.Count);
+        Assert.Equal(2, result.Chunks.Count);
+
+        string json = DocumentReaderPdfExtensions.ReadPdfDocumentJson(
+            pdf,
+            sourceName: " bytes-json.pdf ",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement root = document.RootElement;
+        Assert.Equal("Pdf", root.GetProperty("kind").GetString());
+        Assert.Equal("bytes-json.pdf", root.GetProperty("source").GetProperty("path").GetString());
+        Assert.Contains("Reader PDF page two", root.GetProperty("markdown").GetString(), StringComparison.Ordinal);
     }
 
     [Fact]
@@ -208,7 +257,7 @@ public sealed class ReaderPdfModularTests {
         using JsonDocument document = JsonDocument.Parse(json);
         JsonElement root = document.RootElement;
         Assert.Equal("officeimo.document.read-result", root.GetProperty("schemaId").GetString());
-        Assert.Equal(1, root.GetProperty("schemaVersion").GetInt32());
+        Assert.Equal(OfficeDocumentReadResultSchema.Version, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("Pdf", root.GetProperty("kind").GetString());
         Assert.Equal("sample.pdf", root.GetProperty("source").GetProperty("path").GetString());
         Assert.Equal("officeimo.reader.pdf", root.GetProperty("capabilitiesUsed")[0].GetString());
@@ -267,6 +316,111 @@ public sealed class ReaderPdfModularTests {
         Assert.Contains(chunk.GetProperty("actions").EnumerateArray(), action =>
             action.GetProperty("scope").GetString() == "Catalog" &&
             action.GetProperty("name").GetString() == "Startup");
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesOpenAndCatalogActionMetadata() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildOpenAndCatalogActionsPdf(), writable: false),
+            sourceName: "open-catalog-actions.pdf");
+
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-active-action-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-document-open-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-catalog-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-type-destination-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-type-javascript-count").Value);
+        Assert.DoesNotContain(result.Metadata, metadata => metadata.Id == "pdf-action-chained-count");
+
+        string json = result.ToJson();
+        Assert.DoesNotContain("app.alert", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesAnnotationActionMetadataWithoutPayloads() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildAnnotationActionsPdf(), writable: false),
+            sourceName: "annotation-actions.pdf");
+
+        Assert.Equal("3", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-count").Value);
+        Assert.Equal("3", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-active-action-count").Value);
+        Assert.Equal("3", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-annotation-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-chained-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-type-javascript-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-action-type-launch-count").Value);
+
+        string json = result.ToJson();
+        Assert.DoesNotContain("app.alert", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("tool.exe", json, StringComparison.Ordinal);
+        Assert.DoesNotContain("chain.exe", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesFreeTextAnnotationAppearanceMetadata() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildFreeTextAppearanceMetadataPdf(), writable: false),
+            sourceName: "freetext-appearance.pdf");
+
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-annotation-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-annotation-freetext-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-annotation-visual-style-metadata-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-annotation-freetext-appearance-metadata-count").Value);
+
+        OfficeDocumentMetadataEntry annotation = Assert.Single(result.Metadata, metadata =>
+            metadata.Category == "pdf.annotation.freeText" &&
+            metadata.Name == "FreeText");
+        Assert.Equal("FreeText", annotation.Name);
+        Assert.Equal("Reader styled note", annotation.Value);
+        Assert.Equal("5", annotation.SourceObjectId);
+        Assert.Equal(1, annotation.Location!.Page);
+        Assert.Equal("annotation", annotation.Location.SourceBlockKind);
+        Assert.Equal("5", annotation.Attributes["objectNumber"]);
+        Assert.Equal("FreeText", annotation.Attributes["subtype"]);
+        Assert.Equal("false", annotation.Attributes["hasNormalAppearance"]);
+        Assert.Equal("font-size: 14pt; color: rgb(51, 102, 153); text-align: center", annotation.Attributes["defaultStyle"]);
+        Assert.Equal("Rich reader note", annotation.Attributes["richContentsPlainText"]);
+        Assert.Equal("14", annotation.Attributes["effectiveFontSize"]);
+        Assert.Equal("0.2,0.4,0.6", annotation.Attributes["effectiveTextColor"]);
+        Assert.Equal("Center", annotation.Attributes["effectiveTextAlign"]);
+        Assert.Equal("0.2,0.4,0.8", annotation.Attributes["color"]);
+        Assert.Equal("0.95,0.98,1", annotation.Attributes["interiorColor"]);
+        Assert.Equal("0.5", annotation.Attributes["opacity"]);
+        Assert.Equal("1", annotation.Attributes["borderWidth"]);
+
+        string json = result.ToJson();
+        Assert.Contains("\"category\":\"pdf.annotation.freeText\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"richContentsPlainText\":\"Rich reader note\"", json, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesAnnotationPathGeometryMetadata() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildAnnotationPathGeometryMetadataPdf(), writable: false),
+            sourceName: "annotation-paths.pdf");
+
+        Assert.Equal("3", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-annotation-count").Value);
+        Assert.Equal("3", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-annotation-path-geometry-metadata-count").Value);
+
+        OfficeDocumentMetadataEntry highlight = Assert.Single(result.Metadata, metadata =>
+            metadata.Category == "pdf.annotation" &&
+            metadata.Name == "Highlight");
+        Assert.Equal("30,100,90,100,30,92,90,92", highlight.Attributes["quadPoints"]);
+
+        OfficeDocumentMetadataEntry line = Assert.Single(result.Metadata, metadata =>
+            metadata.Category == "pdf.annotation" &&
+            metadata.Name == "Line");
+        Assert.Equal("40,100,140,100", line.Attributes["lineCoordinates"]);
+        Assert.Equal("OpenArrow", line.Attributes["lineStartEnding"]);
+        Assert.Equal("ClosedArrow", line.Attributes["lineEndEnding"]);
+
+        OfficeDocumentMetadataEntry ink = Assert.Single(result.Metadata, metadata =>
+            metadata.Category == "pdf.annotation" &&
+            metadata.Name == "Ink");
+        Assert.Equal("30,30,60,45,90,30;100,30,130,45,160,30", ink.Attributes["inkList"]);
+
+        string json = result.ToJson();
+        Assert.Contains("\"id\":\"pdf-annotation-path-geometry-metadata-count\"", json, StringComparison.Ordinal);
+        Assert.Contains("\"inkList\":\"30,30,60,45,90,30;100,30,130,45,160,30\"", json, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -358,6 +512,309 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesOutputIntentMetadata() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions().SetSrgbOutputIntent())
+            .Paragraph(p => p.Text("Output intent metadata proof."))
+            .ToBytes();
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "output-intent.pdf");
+
+        ReaderChunkDiagnostics diagnostics = Assert.Single(result.Chunks).Diagnostics!;
+        Assert.False(diagnostics.HasXmpMetadata);
+        Assert.Equal(1, diagnostics.OutputIntentCount);
+        Assert.Equal(0, diagnostics.AttachmentCount);
+        Assert.False(diagnostics.HasTaggedContent);
+        Assert.Equal(0, diagnostics.OptionalContentGroupCount);
+
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-output-intent-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-output-intent-profile-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-output-intent-icc-signature-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-output-intent-subtype-gts-pdfa1-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-output-intent-profile-color-space-rgb-count").Value);
+
+        OfficeDocumentMetadataEntry outputIntent = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-output-intent-0000");
+        Assert.Equal("pdf.outputIntent", outputIntent.Category);
+        Assert.Equal("GTS_PDFA1", outputIntent.Name);
+        Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, outputIntent.Value);
+        Assert.NotNull(outputIntent.SourceObjectId);
+        Assert.Equal("GTS_PDFA1", outputIntent.Attributes["subtype"]);
+        Assert.Equal(PdfIccProfiles.SrgbIec6196621OutputConditionIdentifier, outputIntent.Attributes["outputConditionIdentifier"]);
+        Assert.Equal("3", outputIntent.Attributes["destinationOutputProfileColorComponents"]);
+        Assert.Equal("RGB ", outputIntent.Attributes["destinationOutputProfileColorSpace"]);
+        Assert.Equal("true", outputIntent.Attributes["destinationOutputProfileHasIccSignature"]);
+        Assert.True(int.Parse(outputIntent.Attributes["destinationOutputProfileSizeBytes"], System.Globalization.CultureInfo.InvariantCulture) > 128);
+        Assert.Equal(
+            outputIntent.Attributes["destinationOutputProfileSizeBytes"],
+            outputIntent.Attributes["destinationOutputProfileDeclaredSizeBytes"]);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonOutputIntent = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-output-intent-0000");
+        Assert.Equal("pdf.outputIntent", jsonOutputIntent.GetProperty("category").GetString());
+        Assert.Equal("GTS_PDFA1", jsonOutputIntent.GetProperty("attributes").GetProperty("subtype").GetString());
+        Assert.Equal("true", jsonOutputIntent.GetProperty("attributes").GetProperty("destinationOutputProfileHasIccSignature").GetString());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesTaggedContentMetadata() {
+        byte[] pdf = PdfDocument.Create()
+            .TaggedPdfCatalogMarkers()
+            .Language("en-US")
+            .H1("Reader tagged heading")
+            .Paragraph(p => p.Text("Reader tagged paragraph."))
+            .ToBytes();
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "tagged-content.pdf");
+
+        ReaderChunkDiagnostics diagnostics = Assert.Single(result.Chunks).Diagnostics!;
+        Assert.True(diagnostics.HasTaggedContent);
+        Assert.True(diagnostics.TaggedStructureElementCount >= 3);
+        Assert.True(diagnostics.TaggedMarkedContentReferenceCount > 0);
+
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content-count").Value);
+        Assert.True(int.Parse(Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content-structure-element-count").Value!, System.Globalization.CultureInfo.InvariantCulture) >= 3);
+        Assert.True(int.Parse(Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content-parent-tree-entry-count").Value!, System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content-marked-content-reference-count").Value!, System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content-type-document-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content-type-h1-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content-type-p-count").Value);
+
+        OfficeDocumentMetadataEntry tagged = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-tagged-content");
+        Assert.Equal("pdf.taggedContent", tagged.Category);
+        Assert.Equal("TaggedContent", tagged.Name);
+        Assert.Equal("true", tagged.Value);
+        Assert.Equal("true", tagged.Attributes["marked"]);
+        Assert.Contains("Document", tagged.Attributes["structureTypes"], StringComparison.Ordinal);
+        Assert.Contains("H1", tagged.Attributes["structureTypes"], StringComparison.Ordinal);
+        Assert.Contains("P", tagged.Attributes["structureTypes"], StringComparison.Ordinal);
+        Assert.Equal("true", tagged.Attributes["hasDocumentStructureElement"]);
+        Assert.Equal("true", tagged.Attributes["hasMarkedContentReferences"]);
+        Assert.NotNull(tagged.SourceObjectId);
+
+        Assert.Contains(result.Metadata, metadata =>
+            metadata.Category == "pdf.taggedContent.element" &&
+            metadata.Name == "Document" &&
+            metadata.Attributes["language"] == "en-US");
+
+        Assert.Contains(result.Metadata, metadata =>
+            metadata.Category == "pdf.taggedContent.element" &&
+            metadata.Name == "P" &&
+            int.Parse(metadata.Attributes["markedContentReferenceCount"], System.Globalization.CultureInfo.InvariantCulture) > 0);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonTagged = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-tagged-content");
+        Assert.Equal("pdf.taggedContent", jsonTagged.GetProperty("category").GetString());
+        Assert.Equal("true", jsonTagged.GetProperty("attributes").GetProperty("marked").GetString());
+        Assert.Contains("Document", jsonTagged.GetProperty("attributes").GetProperty("structureTypes").GetString(), StringComparison.Ordinal);
+
+        JsonElement jsonDiagnostics = document.RootElement.GetProperty("chunks")[0].GetProperty("diagnostics");
+        Assert.True(jsonDiagnostics.GetProperty("hasTaggedContent").GetBoolean());
+        Assert.True(jsonDiagnostics.GetProperty("taggedStructureElementCount").GetInt32() >= 3);
+        Assert.True(jsonDiagnostics.GetProperty("taggedMarkedContentReferenceCount").GetInt32() > 0);
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesOptionalContentMetadata() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildOptionalContentMetadataPdf(), writable: false),
+            sourceName: "optional-content.pdf");
+
+        ReaderChunkDiagnostics diagnostics = Assert.Single(result.Chunks).Diagnostics!;
+        Assert.Equal(2, diagnostics.OptionalContentGroupCount);
+        Assert.Equal(1, diagnostics.OptionalContentInitiallyHiddenCount);
+        Assert.Equal(1, diagnostics.OptionalContentLockedCount);
+
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-group-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-initially-visible-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-initially-hidden-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-locked-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-default-order-count").Value);
+
+        OfficeDocumentMetadataEntry configuration = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-configuration");
+        Assert.Equal("pdf.optionalContent", configuration.Category);
+        Assert.Equal("DefaultConfiguration", configuration.Name);
+        Assert.Equal("Default layers", configuration.Value);
+        Assert.Equal("Default layers", configuration.Attributes["name"]);
+        Assert.Equal("OfficeIMO fixture", configuration.Attributes["creator"]);
+        Assert.Equal("ON", configuration.Attributes["baseState"]);
+        Assert.Equal("5", configuration.Attributes["onGroupObjectNumbers"]);
+        Assert.Equal("6", configuration.Attributes["offGroupObjectNumbers"]);
+        Assert.Equal("6", configuration.Attributes["lockedGroupObjectNumbers"]);
+        Assert.Equal("5,6", configuration.Attributes["orderGroupObjectNumbers"]);
+
+        OfficeDocumentMetadataEntry printLayer = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-group-0000");
+        Assert.Equal("pdf.optionalContent.group", printLayer.Category);
+        Assert.Equal("Print layer", printLayer.Name);
+        Assert.Equal("true", printLayer.Value);
+        Assert.Equal("5", printLayer.SourceObjectId);
+        Assert.Equal("5", printLayer.Attributes["objectNumber"]);
+        Assert.Equal("View,Design", printLayer.Attributes["intents"]);
+        Assert.Equal("true", printLayer.Attributes["isInitiallyVisible"]);
+        Assert.Equal("false", printLayer.Attributes["isLocked"]);
+        Assert.Equal("true", printLayer.Attributes["isInDefaultOrder"]);
+        Assert.Equal("ON", printLayer.Attributes["viewState"]);
+        Assert.Equal("ON", printLayer.Attributes["printState"]);
+        Assert.Equal("OFF", printLayer.Attributes["exportState"]);
+        Assert.Equal("OfficeIMO", printLayer.Attributes["usageCreator"]);
+        Assert.Equal("Artwork", printLayer.Attributes["usageSubtype"]);
+
+        OfficeDocumentMetadataEntry hiddenLayer = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-optional-content-group-0001");
+        Assert.Equal("Hidden layer", hiddenLayer.Name);
+        Assert.Equal("false", hiddenLayer.Value);
+        Assert.Equal("6", hiddenLayer.SourceObjectId);
+        Assert.Equal("false", hiddenLayer.Attributes["isInitiallyVisible"]);
+        Assert.Equal("true", hiddenLayer.Attributes["isLocked"]);
+        Assert.Equal("ON", hiddenLayer.Attributes["exportState"]);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonLayer = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-optional-content-group-0001");
+        Assert.Equal("pdf.optionalContent.group", jsonLayer.GetProperty("category").GetString());
+        Assert.Equal("Hidden layer", jsonLayer.GetProperty("name").GetString());
+        Assert.Equal("true", jsonLayer.GetProperty("attributes").GetProperty("isLocked").GetString());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesXmpMetadata() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions()
+                .SetPdfAIdentification(3, "B")
+                .SetPdfUaIdentification()
+                .SetElectronicInvoiceMetadata("EN 16931"))
+            .Meta(title: "Reader XMP readback", author: "OfficeIMO", subject: "Reader metadata", keywords: "delta, epsilon")
+            .Paragraph(p => p.Text("Reader generated XMP readback."))
+            .ToBytes();
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "xmp-metadata.pdf");
+
+        ReaderChunkDiagnostics diagnostics = Assert.Single(result.Chunks).Diagnostics!;
+        Assert.True(diagnostics.HasXmpMetadata);
+        Assert.Equal(0, diagnostics.OutputIntentCount);
+        Assert.False(diagnostics.HasTaggedContent);
+
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-xmp-metadata-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-xmp-pdfa-identification-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-xmp-pdfua-identification-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-xmp-electronic-invoice-metadata-count").Value);
+        Assert.DoesNotContain(result.Metadata, metadata => metadata.Id == "pdf-xmp-unsupported-filter-count");
+
+        OfficeDocumentMetadataEntry xmp = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-xmp-metadata");
+        Assert.Equal("pdf.xmp", xmp.Category);
+        Assert.Equal("XmpMetadata", xmp.Name);
+        Assert.Equal("Reader XMP readback", xmp.Value);
+        Assert.NotNull(xmp.SourceObjectId);
+        Assert.Equal("Reader XMP readback", xmp.Attributes["title"]);
+        Assert.Equal("OfficeIMO", xmp.Attributes["creator"]);
+        Assert.Equal("Reader metadata", xmp.Attributes["description"]);
+        Assert.Equal("delta,epsilon", xmp.Attributes["subjects"]);
+        Assert.Equal("OfficeIMO.Pdf", xmp.Attributes["producer"]);
+        Assert.Equal("3", xmp.Attributes["pdfAPart"]);
+        Assert.Equal("B", xmp.Attributes["pdfAConformance"]);
+        Assert.Equal("1", xmp.Attributes["pdfUaPart"]);
+        Assert.Equal("INVOICE", xmp.Attributes["electronicInvoiceDocumentType"]);
+        Assert.Equal("factur-x.xml", xmp.Attributes["electronicInvoiceDocumentFileName"]);
+        Assert.Equal("1.0", xmp.Attributes["electronicInvoiceVersion"]);
+        Assert.Equal("EN 16931", xmp.Attributes["electronicInvoiceConformanceLevel"]);
+        Assert.Equal("true", xmp.Attributes["isWellFormedXml"]);
+        Assert.True(int.Parse(xmp.Attributes["streamSizeBytes"], System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(xmp.Attributes["decodedSizeBytes"], System.Globalization.CultureInfo.InvariantCulture) > 0);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonXmp = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-xmp-metadata");
+        Assert.Equal("pdf.xmp", jsonXmp.GetProperty("category").GetString());
+        Assert.Equal("Reader XMP readback", jsonXmp.GetProperty("attributes").GetProperty("title").GetString());
+        Assert.Equal("EN 16931", jsonXmp.GetProperty("attributes").GetProperty("electronicInvoiceConformanceLevel").GetString());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesSecuritySignatureAndDssMetadata() {
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(BuildSignedSecurityMetadataPdf(), writable: false),
+            sourceName: "signed-security.pdf");
+
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-state-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-signature-field-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-signature-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-byte-range-segment-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-dss-vri-count").Value);
+        Assert.Equal("8", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-dss-evidence-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-startxref-count").Value);
+        Assert.Equal("false", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-preflight-can-append-metadata-revision").Value);
+        Assert.Equal("false", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-preflight-can-append-form-field-revision").Value);
+        Assert.Equal("false", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-preflight-can-prepare-external-signature-revision").Value);
+
+        OfficeDocumentMetadataEntry security = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-state");
+        Assert.Equal("pdf.security", security.Category);
+        Assert.Equal("AppendOnlyRequired", security.Value);
+        Assert.Equal("true", security.Attributes["hasSignatures"]);
+        Assert.Equal("true", security.Attributes["acroFormAppendOnly"]);
+        Assert.Equal("true", security.Attributes["hasDocMDPPermissions"]);
+        Assert.Equal("2", security.Attributes["docMDPPermissionLevel"]);
+        Assert.Equal("true", security.Attributes["hasUsageRights"]);
+        Assert.Equal("6", security.Attributes["usageRightsObjectNumbers"]);
+        Assert.Equal("true", security.Attributes["hasDocumentSecurityStore"]);
+        Assert.Equal("true", security.Attributes["hasLongTermValidationEvidence"]);
+        Assert.Equal("true", security.Attributes["requiresAppendOnlyMutation"]);
+        Assert.Equal("true", security.Attributes["hasIncrementalUpdates"]);
+        Assert.Equal("100,200", security.Attributes["startXrefOffsets"]);
+
+        OfficeDocumentMetadataEntry signature = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-signature-0000");
+        Assert.Equal("pdf.security.signature", signature.Category);
+        Assert.Equal("Approval", signature.Name);
+        Assert.Equal("Alice", signature.Value);
+        Assert.Equal("6", signature.SourceObjectId);
+        Assert.Equal("5", signature.Attributes["fieldObjectNumber"]);
+        Assert.Equal("Approval", signature.Attributes["fieldName"]);
+        Assert.Equal("Adobe.PPKLite", signature.Attributes["filter"]);
+        Assert.Equal("adbe.pkcs7.detached", signature.Attributes["subFilter"]);
+        Assert.Equal("Alice", signature.Attributes["signerName"]);
+        Assert.Equal("Warsaw", signature.Attributes["location"]);
+        Assert.Equal("Approval", signature.Attributes["reason"]);
+        Assert.Equal("0,10,20,30", signature.Attributes["byteRangeValues"]);
+        Assert.Equal("Include", signature.Attributes["fieldLockAction"]);
+        Assert.Equal("Total,Approver", signature.Attributes["fieldLockFields"]);
+        Assert.Equal("Adobe.PPKLite", signature.Attributes["seedValueFilter"]);
+        Assert.Equal("adbe.pkcs7.detached", signature.Attributes["seedValueSubFilters"]);
+        Assert.Equal("SHA256,SHA512", signature.Attributes["seedValueDigestMethods"]);
+        Assert.Equal("Approval,Final", signature.Attributes["seedValueReasons"]);
+        Assert.Equal("true", signature.Attributes["seedValueAddRevInfo"]);
+        Assert.Equal("2", signature.Attributes["seedValueMdpPermissionLevel"]);
+
+        OfficeDocumentMetadataEntry dss = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-security-dss");
+        Assert.Equal("pdf.security.dss", dss.Category);
+        Assert.Equal("DocumentSecurityStore", dss.Name);
+        Assert.Equal("ABCDEF", dss.Value);
+        Assert.Equal("9", dss.SourceObjectId);
+        Assert.Equal("ABCDEF", dss.Attributes["vriKeys"]);
+        Assert.Equal("10,11", dss.Attributes["certificateObjectNumbers"]);
+        Assert.Equal("12", dss.Attributes["ocspObjectNumbers"]);
+        Assert.Equal("13", dss.Attributes["crlObjectNumbers"]);
+        Assert.Equal("10", dss.Attributes["vriCertificateObjectNumbers"]);
+        Assert.Equal("12", dss.Attributes["vriOcspObjectNumbers"]);
+        Assert.Equal("13", dss.Attributes["vriCrlObjectNumbers"]);
+        Assert.Equal("14", dss.Attributes["timestampObjectNumbers"]);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonSignature = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-security-signature-0000");
+        Assert.Equal("pdf.security.signature", jsonSignature.GetProperty("category").GetString());
+        Assert.Equal("Alice", jsonSignature.GetProperty("attributes").GetProperty("signerName").GetString());
+        Assert.Equal("SHA256,SHA512", jsonSignature.GetProperty("attributes").GetProperty("seedValueDigestMethods").GetString());
+
+        JsonElement jsonAppendPolicy = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-preflight-can-prepare-external-signature-revision");
+        Assert.Equal("pdf.preflight.capability", jsonAppendPolicy.GetProperty("category").GetString());
+        Assert.Equal("false", jsonAppendPolicy.GetProperty("value").GetString());
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfDocument_FiltersLogicalMetadataToSelectedPages() {
         byte[] pdf = PdfDocument.Create(new PdfOptions {
                 CreateOutlineFromHeadings = true
@@ -412,6 +869,39 @@ public sealed class ReaderPdfModularTests {
 
         Assert.Empty(result.Forms);
         Assert.DoesNotContain(result.Metadata, entry => entry.Id == "pdf-form-field-count");
+        Assert.DoesNotContain(result.Metadata, entry => entry.Id == "pdf-form-widget-count");
+        Assert.DoesNotContain(result.Metadata, entry => entry.Id == "pdf-form-widget-geometry-count");
+        Assert.DoesNotContain(result.Metadata, entry => entry.Id == "pdf-form-widget-geometry-coverage");
+        Assert.DoesNotContain(result.Metadata, entry => entry.Id == "pdf-form-text-count");
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesFormWidgetMetadata() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 420,
+                PageHeight = 240,
+                MarginLeft = 36,
+                MarginRight = 36,
+                MarginTop = 36,
+                MarginBottom = 36,
+                DefaultFontSize = 10
+            })
+            .Paragraph(p => p.Text("Reader PDF form metadata."))
+            .TextField("Contact.Email", value: "info@example.com", width: 180, height: 24)
+            .ChoiceField("Contact.Country", new[] { "PL", "DE" }, value: "PL", width: 180, height: 24)
+            .ToBytes();
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "form-metadata.pdf");
+
+        Assert.Equal(2, result.Forms.Count);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-form-field-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-form-widget-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-form-widget-geometry-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-form-widget-geometry-coverage").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-form-text-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-form-choice-count").Value);
     }
 
     [Fact]
@@ -427,6 +917,10 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(2, link.RemoteDestinationPageNumber);
         Assert.Equal(nameof(PdfOpenActionDestinationMode.FitHorizontal), link.RemoteDestinationMode);
         Assert.Equal(144D, link.RemoteDestinationTop);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-geometry-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-geometry-coverage").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-remote-count").Value);
 
         using JsonDocument document = JsonDocument.Parse(result.ToJson());
         JsonElement jsonLink = document.RootElement.GetProperty("links")[0];
@@ -448,6 +942,10 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(nameof(PdfOpenActionDestinationMode.Xyz), link.DestinationMode);
         Assert.Equal(24D, link.DestinationLeft);
         Assert.Equal(144D, link.DestinationTop);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-geometry-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-geometry-coverage").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-link-destination-count").Value);
 
         using JsonDocument document = JsonDocument.Parse(result.ToJson());
         JsonElement jsonLink = document.RootElement.GetProperty("links")[0];
@@ -455,6 +953,65 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(nameof(PdfOpenActionDestinationMode.Xyz), jsonLink.GetProperty("destinationMode").GetString());
         Assert.Equal(24D, jsonLink.GetProperty("destinationLeft").GetDouble());
         Assert.Equal(144D, jsonLink.GetProperty("destinationTop").GetDouble());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesAttachmentMetadata() {
+        byte[] invoiceXml = Encoding.UTF8.GetBytes("<invoice>42</invoice>");
+        byte[] sourceBytes = Encoding.UTF8.GetBytes("Source payload");
+        byte[] pdf = PdfDocument.Create()
+            .AttachFile("invoice.xml", invoiceXml, "application/xml", PdfAssociatedFileRelationship.Data, "Structured invoice XML")
+            .AttachFile("source.txt", sourceBytes, "text/plain", PdfAssociatedFileRelationship.Source)
+            .Paragraph(p => p.Text("Attachment metadata proof."))
+            .ToBytes();
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "attachments.pdf");
+
+        ReaderChunkDiagnostics diagnostics = Assert.Single(result.Chunks).Diagnostics!;
+        Assert.Equal(2, diagnostics.AttachmentCount);
+        Assert.False(diagnostics.HasXmpMetadata);
+        Assert.Equal(0, diagnostics.OutputIntentCount);
+
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-count").Value);
+        Assert.DoesNotContain(result.Metadata, metadata => metadata.Id == "pdf-attachment-associated-count");
+        Assert.Equal(
+            (invoiceXml.Length + sourceBytes.Length).ToString(System.Globalization.CultureInfo.InvariantCulture),
+            Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-total-size-bytes").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-relationship-data-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-relationship-source-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-source-names-embeddedfiles-count").Value);
+
+        OfficeDocumentMetadataEntry invoice = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-0000");
+        Assert.Equal("pdf.attachment", invoice.Category);
+        Assert.Equal("invoice.xml", invoice.Name);
+        Assert.Equal("invoice.xml", invoice.Value);
+        Assert.NotNull(invoice.SourceObjectId);
+        Assert.Equal("invoice.xml", invoice.Attributes["name"]);
+        Assert.Equal("invoice.xml", invoice.Attributes["fileName"]);
+        Assert.Equal("invoice.xml", invoice.Attributes["unicodeFileName"]);
+        Assert.Equal("Structured invoice XML", invoice.Attributes["description"]);
+        Assert.Equal("application/xml", invoice.Attributes["mimeType"]);
+        Assert.Equal(nameof(PdfAssociatedFileRelationship.Data), invoice.Attributes["relationship"]);
+        Assert.Equal("Names/EmbeddedFiles", invoice.Attributes["source"]);
+        Assert.Equal("false", invoice.Attributes["isAssociatedFile"]);
+        Assert.Equal(invoiceXml.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), invoice.Attributes["sizeBytes"]);
+        Assert.True(int.Parse(invoice.Attributes["fileSpecObjectNumber"], System.Globalization.CultureInfo.InvariantCulture) > 0);
+        Assert.True(int.Parse(invoice.Attributes["embeddedFileObjectNumber"], System.Globalization.CultureInfo.InvariantCulture) > 0);
+
+        OfficeDocumentMetadataEntry source = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-attachment-0001");
+        Assert.Equal("source.txt", source.Name);
+        Assert.Equal("text/plain", source.Attributes["mimeType"]);
+        Assert.Equal(nameof(PdfAssociatedFileRelationship.Source), source.Attributes["relationship"]);
+        Assert.Equal(sourceBytes.Length.ToString(System.Globalization.CultureInfo.InvariantCulture), source.Attributes["sizeBytes"]);
+
+        using JsonDocument document = JsonDocument.Parse(result.ToJson());
+        JsonElement jsonAttachment = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-attachment-0000");
+        Assert.Equal("pdf.attachment", jsonAttachment.GetProperty("category").GetString());
+        Assert.Equal("application/xml", jsonAttachment.GetProperty("attributes").GetProperty("mimeType").GetString());
+        Assert.Equal(nameof(PdfAssociatedFileRelationship.Data), jsonAttachment.GetProperty("attributes").GetProperty("relationship").GetString());
     }
 
     [Fact]
@@ -764,6 +1321,27 @@ public sealed class ReaderPdfModularTests {
         Assert.Contains("A-100,Alpha,2", export.Csv, StringComparison.Ordinal);
         using JsonDocument exportJson = JsonDocument.Parse(export.Json);
         Assert.True(exportJson.RootElement.GetProperty("diagnostics").GetProperty("hasGeometry").GetBoolean());
+
+        IReadOnlyList<ReaderTable> byteTables = DocumentReaderPdfExtensions.ReadPdfTables(
+            pdf,
+            sourceName: "tables-bytes.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                }
+            });
+        Assert.Equal("tables-bytes.pdf", Assert.Single(byteTables).Location?.Path);
+
+        ReaderTableExportBundle byteExport = Assert.Single(DocumentReaderPdfExtensions.ReadPdfTableExports(
+            pdf,
+            sourceName: "tables-bytes.pdf",
+            pdfOptions: new ReaderPdfOptions {
+                LayoutOptions = new PdfTextLayoutOptions {
+                    ForceSingleColumn = true
+                }
+            }));
+        Assert.Equal("tables-bytes-page-0001-table-0000", byteExport.Id);
+        Assert.Contains("B-200,Beta,14", byteExport.Csv, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -868,6 +1446,48 @@ public sealed class ReaderPdfModularTests {
     }
 
     [Fact]
+    public void DocumentReaderPdf_ReadPdfDocument_ExposesAcroFormXfaMetadataWithoutRenderingXfa() {
+        byte[] pdf = BuildAcroFormXfaPdf();
+
+        PdfLogicalDocument logical = PdfLogicalDocument.Load(pdf);
+        Assert.NotNull(logical.AcroFormXfa);
+        Assert.True(logical.HasAcroFormXfa);
+        Assert.Equal("array", logical.AcroFormXfa!.ObjectKind);
+        Assert.Equal(2, logical.AcroFormXfa.PacketCount);
+        Assert.Equal(new[] { "template", "datasets" }, logical.AcroFormXfa.PacketNames);
+        Assert.Equal(2, logical.AcroFormXfa.StreamCount);
+        Assert.True(logical.AcroFormXfa.TotalPayloadBytes > 0);
+        Assert.True(logical.AcroFormXfa.HasTemplatePacket);
+        Assert.True(logical.AcroFormXfa.HasDatasetsPacket);
+
+        PdfDocumentInfo info = PdfInspector.Inspect(pdf);
+        Assert.True(info.HasForms);
+        Assert.True(info.HasAcroFormXfa);
+        Assert.Equal(2, info.AcroFormXfa!.PacketCount);
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "xfa-form.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+
+        Assert.Equal("true", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa-present").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa-packet-count").Value);
+        Assert.Equal("2", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa-stream-count").Value);
+        OfficeDocumentMetadataEntry xfa = Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-acroform-xfa");
+        Assert.Equal("pdf.form.xfa", xfa.Category);
+        Assert.Equal("array", xfa.Value);
+        Assert.Equal("template,datasets", xfa.Attributes["packetNames"]);
+        Assert.Equal("true", xfa.Attributes["hasTemplatePacket"]);
+        Assert.Equal("true", xfa.Attributes["hasDatasetsPacket"]);
+
+        string json = result.ToJson();
+        using JsonDocument document = JsonDocument.Parse(json);
+        JsonElement jsonXfa = document.RootElement.GetProperty("metadata").EnumerateArray()
+            .Single(entry => entry.GetProperty("id").GetString() == "pdf-acroform-xfa");
+        Assert.Equal("template,datasets", jsonXfa.GetProperty("attributes").GetProperty("packetNames").GetString());
+    }
+
+    [Fact]
     public void DocumentReaderPdf_ReadPdfStream_ChunkHashIncludesActionMetadata() {
         ReaderOptions readerOptions = new() {
             MaxChars = 8_000,
@@ -918,6 +1538,8 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(1, chunk.Diagnostics!.ImageCount);
         Assert.Equal(1, chunk.Diagnostics.ImageGeometryCount);
         Assert.Equal(1D, chunk.Diagnostics.ImageGeometryCoverage, 3);
+        Assert.Equal(0, chunk.Diagnostics.ImageNonAxisAlignedCount);
+        Assert.Equal(0D, chunk.Diagnostics.ImageNonAxisAlignedCoverage);
         Assert.Equal(0, chunk.Diagnostics.TableCount);
         Assert.Equal(0, chunk.Diagnostics.TableGeometryCount);
         Assert.Equal(0D, chunk.Diagnostics.TableGeometryCoverage);
@@ -953,6 +1575,46 @@ public sealed class ReaderPdfModularTests {
         using JsonDocument visualJson = JsonDocument.Parse(extracted.ToJson());
         Assert.Equal("image/png", visualJson.RootElement.GetProperty("mimeType").GetString());
         Assert.True(visualJson.RootElement.GetProperty("hasGeometry").GetBoolean());
+        Assert.True(visualJson.RootElement.GetProperty("isAxisAligned").GetBoolean());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ReadPdfStream_ExposesNonAxisAlignedImageDiagnostics() {
+        byte[] pdf = BuildSkewedImagePdf();
+        using var stream = new MemoryStream(pdf, writable: false);
+
+        ReaderChunk chunk = Assert.Single(DocumentReaderPdfExtensions.ReadPdf(
+            stream,
+            sourceName: "skewed-image.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 }).ToList());
+
+        Assert.NotNull(chunk.Diagnostics);
+        Assert.Equal(1, chunk.Diagnostics!.ImageCount);
+        Assert.Equal(1, chunk.Diagnostics.ImageGeometryCount);
+        Assert.Equal(1D, chunk.Diagnostics.ImageGeometryCoverage, 3);
+        Assert.Equal(1, chunk.Diagnostics.ImageNonAxisAlignedCount);
+        Assert.Equal(1D, chunk.Diagnostics.ImageNonAxisAlignedCoverage, 3);
+
+        ReaderVisual visual = Assert.Single(chunk.Visuals!);
+        Assert.True(visual.HasGeometry);
+        Assert.False(visual.IsAxisAligned);
+        Assert.True(visual.PlacedWidth > 0D);
+        Assert.True(visual.PlacedHeight > 0D);
+
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            new MemoryStream(pdf, writable: false),
+            sourceName: "skewed-image.pdf");
+
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-geometry-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-non-axis-aligned-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-non-axis-aligned-coverage").Value);
+
+        using JsonDocument resultJson = JsonDocument.Parse(result.ToJson());
+        JsonElement diagnostics = resultJson.RootElement.GetProperty("chunks")[0].GetProperty("diagnostics");
+        Assert.Equal(1, diagnostics.GetProperty("imageNonAxisAlignedCount").GetInt32());
+        Assert.Equal(1D, diagnostics.GetProperty("imageNonAxisAlignedCoverage").GetDouble());
+        Assert.False(resultJson.RootElement.GetProperty("visuals")[0].GetProperty("isAxisAligned").GetBoolean());
     }
 
     [Fact]
@@ -1113,6 +1775,17 @@ public sealed class ReaderPdfModularTests {
         OfficeDocumentAsset asset = Assert.Single(result.Assets);
         Assert.Equal(OfficeDocumentAssetNaming.BuildFileName(asset.Id, asset.Extension), asset.FileName);
         Assert.NotNull(asset.PayloadBytes);
+        Assert.NotNull(asset.Region);
+        Assert.True(asset.Region!.Width > 0);
+        Assert.True(asset.Region.Height > 0);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-geometry-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-image-geometry-coverage").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-candidate-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-image-candidate-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-asset-linked-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-candidate-geometry-count").Value);
+        Assert.Equal("1", Assert.Single(result.Metadata, metadata => metadata.Id == "pdf-ocr-candidate-geometry-coverage").Value);
         Assert.Equal("image", candidate.Kind);
         Assert.Equal(1, candidate.Location.Page);
         Assert.Equal(1, candidate.ImageCount);
@@ -1133,8 +1806,79 @@ public sealed class ReaderPdfModularTests {
         Assert.Equal(OfficeDocumentReadResultSchema.Version, root.GetProperty("schemaVersion").GetInt32());
         Assert.Equal("ocr-needed", root.GetProperty("diagnostics")[0].GetProperty("code").GetString());
         Assert.Equal(asset.FileName, root.GetProperty("assets")[0].GetProperty("fileName").GetString());
+        Assert.True(root.GetProperty("assets")[0].GetProperty("region").GetProperty("width").GetDouble() > 0D);
         Assert.Equal("image", root.GetProperty("ocrCandidates")[0].GetProperty("kind").GetString());
         Assert.Equal("image", root.GetProperty("pages")[0].GetProperty("ocrCandidates")[0].GetProperty("kind").GetString());
+    }
+
+    [Fact]
+    public void DocumentReaderPdf_ApplyOcrResults_EnrichesImageOnlyPagesWithoutRunningOcrInCore() {
+        byte[] pdf = PdfDocument.Create(new PdfOptions {
+                PageWidth = 300,
+                PageHeight = 220,
+                MarginLeft = 24,
+                MarginRight = 24,
+                MarginTop = 24,
+                MarginBottom = 24
+            })
+            .Image(CreateMinimalRgbPng(), 180, 120)
+            .ToBytes();
+        using var stream = new MemoryStream(pdf, writable: false);
+        OfficeDocumentReadResult result = DocumentReaderPdfExtensions.ReadPdfDocument(
+            stream,
+            sourceName: "scan-candidate.pdf",
+            readerOptions: new ReaderOptions { MaxChars = 8_000 });
+        OfficeDocumentOcrCandidate candidate = Assert.Single(result.OcrCandidates);
+
+        OfficeDocumentOcrEnrichmentResult enrichment = result.ApplyOcrResults(new[] {
+            new OfficeDocumentOcrTextResult {
+                CandidateId = candidate.Id,
+                Text = "Invoice 1042\nTotal 123.45 EUR",
+                Confidence = 0.97D,
+                Language = "en",
+                Provider = "external-ocr-contract",
+                Model = "fixture"
+            }
+        });
+
+        OfficeDocumentReadResult enriched = enrichment.Document;
+        Assert.Equal(1, enrichment.Report.CandidateCount);
+        Assert.Equal(1, enrichment.Report.ResultCount);
+        Assert.Equal(1, enrichment.Report.AppliedResultCount);
+        Assert.Equal(0, enrichment.Report.UnresolvedCandidateCount);
+        Assert.Equal(0, enrichment.Report.UnmatchedResultCount);
+        Assert.Equal(1, enrichment.Report.EnrichedBlockCount);
+        Assert.Equal(1, enrichment.Report.EnrichedChunkCount);
+        Assert.Equal(candidate.Id, Assert.Single(enrichment.Report.AppliedCandidateIds));
+        Assert.Empty(enriched.OcrCandidates);
+        Assert.DoesNotContain(enriched.Diagnostics, diagnostic => diagnostic.Code == "ocr-needed");
+        Assert.Contains("officeimo.reader.ocr-enrichment", enriched.CapabilitiesUsed);
+        Assert.Contains("Invoice 1042", enriched.Markdown, StringComparison.Ordinal);
+
+        OfficeDocumentBlock block = Assert.Single(enriched.Blocks, item => item.Kind == "ocr-text");
+        Assert.Equal("Invoice 1042\nTotal 123.45 EUR", block.Text);
+        Assert.Equal(candidate.Location.Page, block.Location.Page);
+        Assert.Equal(candidate.Region!.Width, block.Region!.Width);
+        ReaderChunk chunk = Assert.Single(enriched.Chunks, item => item.Id == candidate.Id + "-chunk");
+        Assert.Equal(block.Text, chunk.Text);
+        Assert.Equal(ReaderInputKind.Pdf, chunk.Kind);
+        OfficeDocumentPage page = Assert.Single(enriched.Pages);
+        Assert.Contains(page.Blocks, item => item.Id == block.Id);
+        Assert.Empty(page.OcrCandidates);
+
+        Assert.Equal("1", Assert.Single(enriched.Metadata, metadata => metadata.Id == "reader-ocr-applied-count").Value);
+        Assert.Equal("0", Assert.Single(enriched.Metadata, metadata => metadata.Id == "reader-ocr-unresolved-candidate-count").Value);
+        OfficeDocumentMetadataEntry applied = Assert.Single(enriched.Metadata, metadata => metadata.Id == "reader-ocr-applied-0001");
+        Assert.Equal(candidate.Id, applied.Value);
+        Assert.Equal("external-ocr-contract", applied.Attributes["provider"]);
+        Assert.Equal("fixture", applied.Attributes["model"]);
+        Assert.Equal("en", applied.Attributes["language"]);
+        Assert.Equal("0.97", applied.Attributes["confidence"]);
+
+        using JsonDocument document = JsonDocument.Parse(enriched.ToJson());
+        JsonElement root = document.RootElement;
+        Assert.Equal("Invoice 1042\nTotal 123.45 EUR", root.GetProperty("blocks").EnumerateArray().Single(item => item.GetProperty("kind").GetString() == "ocr-text").GetProperty("text").GetString());
+        Assert.Empty(root.GetProperty("ocrCandidates").EnumerateArray());
     }
 
     [Fact]
@@ -1480,6 +2224,39 @@ public sealed class ReaderPdfModularTests {
 
     private static byte[] CreateMinimalRgbPng() => PdfPngTestImages.CreateRgbPng(1, 1);
 
+    private static byte[] BuildSkewedImagePdf() {
+        string content = "q\n48 18 16 32 80 120 cm\n/Im1 Do\nQ\n";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 260 220] /Resources << /XObject << /Im1 5 0 R >> >> /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length " + Encoding.ASCII.GetByteCount(content).ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            content.TrimEnd('\n'),
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /XObject /Subtype /Image /Width 1 /Height 1 /ColorSpace /DeviceRGB /BitsPerComponent 8 /Length 3 >>",
+            "stream",
+            "abc",
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] CreateLinkAnnotationPdf(string uri) {
         string escapedUri = uri.Replace("\\", "\\\\").Replace("(", "\\(").Replace(")", "\\)");
         string pdf = string.Join("\n", new[] {
@@ -1728,6 +2505,49 @@ public sealed class ReaderPdfModularTests {
         return Encoding.ASCII.GetBytes(pdf);
     }
 
+    private static byte[] BuildAcroFormXfaPdf() {
+        string template = "<template/>";
+        string datasets = "<datasets/>";
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 5 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Fields [] /XFA [(template) 6 0 R (datasets) 7 0 R] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Length " + template.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            template,
+            "endstream",
+            "endobj",
+            "7 0 obj",
+            "<< /Length " + datasets.Length.ToString(System.Globalization.CultureInfo.InvariantCulture) + " >>",
+            "stream",
+            datasets,
+            "endstream",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
     private static byte[] BuildOpenActionHashPdf(double destinationTop) {
         string destinationTopText = destinationTop.ToString(System.Globalization.CultureInfo.InvariantCulture);
         string content = string.Join("\n", new[] {
@@ -1848,6 +2668,163 @@ public sealed class ReaderPdfModularTests {
             "<< /Root 1 0 R /Size 9 >>",
             "%%EOF"
         }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildFreeTextAppearanceMetadataPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /FreeText /Rect [10 20 190 100] /Contents (Reader styled note) /DS (font-size: 14pt; color: rgb(51, 102, 153); text-align: center) /RC (<body><p>Rich <b>reader</b> note</p></body>) /Border [0 0 1] /C [0.2 0.4 0.8] /IC [0.95 0.98 1] /CA 0.5 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 6 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildAnnotationPathGeometryMetadataPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.4",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 300 300] /Contents 4 0 R /Annots [5 0 R 6 0 R 7 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /Annot /Subtype /Highlight /Rect [20 80 160 110] /Contents (Reader highlight) /C [1 0.8 0.1] /QuadPoints [30 100 90 100 30 92 90 92] >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Annot /Subtype /Line /Rect [20 80 160 120] /Contents (Reader line) /L [40 100 140 100] /C [0.1 0.2 0.7] /Border [0 0 2] /LE [/OpenArrow /ClosedArrow] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Type /Annot /Subtype /Ink /Rect [20 20 180 60] /Contents (Reader ink) /InkList [[30 30 60 45 90 30] [100 30 130 45 160 30]] /C [0.1 0.2 0.7] /Border [0 0 2] >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 8 >>",
+            "%%EOF"
+        }) + "\n";
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildOptionalContentMetadataPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.5",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /OCProperties << /OCGs [5 0 R 6 0 R] /D << /Name (Default layers) /Creator (OfficeIMO fixture) /BaseState /ON /ON [5 0 R] /OFF [6 0 R] /Locked [6 0 R] /Order [(Layers) [5 0 R 6 0 R]] >> >> >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /Type /OCG /Name (Print layer) /Intent [/View /Design] /Usage << /CreatorInfo << /Creator (OfficeIMO) /Subtype /Artwork >> /View << /ViewState /ON >> /Print << /PrintState /ON >> /Export << /ExportState /OFF >> >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /OCG /Name (Hidden layer) /Intent /View /Usage << /View << /ViewState /OFF >> /Print << /PrintState /OFF >> /Export << /ExportState /ON >> >> >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Size 7 >>",
+            "%%EOF"
+        });
+
+        return Encoding.ASCII.GetBytes(pdf);
+    }
+
+    private static byte[] BuildSignedSecurityMetadataPdf() {
+        string pdf = string.Join("\n", new[] {
+            "%PDF-1.7",
+            "1 0 obj",
+            "<< /Type /Catalog /Pages 2 0 R /AcroForm 7 0 R /Perms << /DocMDP 6 0 R /UR3 6 0 R >> /DSS 9 0 R >>",
+            "endobj",
+            "2 0 obj",
+            "<< /Type /Pages /Count 1 /Kids [3 0 R] >>",
+            "endobj",
+            "3 0 obj",
+            "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Contents 4 0 R /Annots [5 0 R] >>",
+            "endobj",
+            "4 0 obj",
+            "<< /Length 0 >>",
+            "stream",
+            "",
+            "endstream",
+            "endobj",
+            "5 0 obj",
+            "<< /FT /Sig /T (Approval) /V 6 0 R /Subtype /Widget /Rect [10 10 120 40] /Lock << /Type /SigFieldLock /Action /Include /Fields [(Total) (Approver)] >> /SV << /Filter /Adobe.PPKLite /SubFilter [/adbe.pkcs7.detached] /DigestMethod [/SHA256 /SHA512] /Reasons [(Approval) (Final)] /Ff 3 /AddRevInfo true /MDP << /P 2 >> >> >>",
+            "endobj",
+            "6 0 obj",
+            "<< /Type /Sig /Filter /Adobe.PPKLite /SubFilter /adbe.pkcs7.detached /Name (Alice) /Location (Warsaw) /Reason (Approval) /ContactInfo (alice@example.test) /M (D:20260607120000+02'00') /ByteRange [0 10 20 30] /Contents <001122> /Reference [<< /TransformMethod /DocMDP /TransformParams << /Type /TransformParams /V /1.2 /P 2 >> >>] >>",
+            "endobj",
+            "7 0 obj",
+            "<< /Fields [5 0 R] /SigFlags 3 >>",
+            "endobj",
+            "8 0 obj",
+            "<< /Producer (OfficeIMO signed fixture) >>",
+            "endobj",
+            "9 0 obj",
+            "<< /Certs [10 0 R 11 0 R] /OCSPs [12 0 R] /CRLs [13 0 R] /VRI << /ABCDEF << /Cert [10 0 R] /OCSP [12 0 R] /CRL [13 0 R] /TS 14 0 R >> >> >>",
+            "endobj",
+            "10 0 obj",
+            "<< /Type /EmbeddedFile /Length 0 >>",
+            "endobj",
+            "11 0 obj",
+            "<< /Type /EmbeddedFile /Length 0 >>",
+            "endobj",
+            "12 0 obj",
+            "<< /Type /EmbeddedFile /Length 0 >>",
+            "endobj",
+            "13 0 obj",
+            "<< /Type /EmbeddedFile /Length 0 >>",
+            "endobj",
+            "14 0 obj",
+            "<< /Type /TimestampEvidence /Length 0 >>",
+            "endobj",
+            "trailer",
+            "<< /Root 1 0 R /Info 8 0 R /ID [(abc) (def)] /Size 15 /Prev 100 >>",
+            "startxref",
+            "100",
+            "%%EOF",
+            "startxref",
+            "200",
+            "%%EOF"
+        });
 
         return Encoding.ASCII.GetBytes(pdf);
     }

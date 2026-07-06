@@ -111,6 +111,14 @@ internal static partial class RtfPdfConverter {
 
     private static void AppendRun(RtfDocument document, RtfRun run, List<PdfCore.TextRun> runs, RtfPdfSaveOptions options, PdfRenderState state, bool collectNotes = true, string? inheritedLinkUri = null, string? inheritedLinkDestinationName = null, string? inheritedLinkContents = null) {
         if (run.Hidden && !options.IncludeHiddenText) {
+            AddConversionWarning(
+                options,
+                "HiddenTextSkipped",
+                "Run",
+                "An RTF hidden text run was skipped because IncludeHiddenText is false.",
+                new Dictionary<string, string> {
+                    ["Length"] = (run.Text ?? string.Empty).Length.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                });
             return;
         }
 

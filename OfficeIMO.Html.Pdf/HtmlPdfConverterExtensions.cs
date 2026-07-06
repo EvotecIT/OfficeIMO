@@ -75,6 +75,33 @@ public static class HtmlPdfConverterExtensions {
     }
 
     /// <summary>
+    /// Converts HTML text to a first-party OfficeIMO PDF document model with a snapshot of conversion diagnostics.
+    /// </summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this string html, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        PdfCore.PdfDocument pdf = html.ToPdfDocument(options);
+        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+    }
+
+    /// <summary>
+    /// Converts a shared OfficeIMO HTML conversion document to a first-party OfficeIMO PDF document model with a snapshot of conversion diagnostics.
+    /// </summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this HtmlConversionDocument document, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        PdfCore.PdfDocument pdf = document.ToPdfDocument(options);
+        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+    }
+
+    /// <summary>
+    /// Converts HTML stream content to a first-party OfficeIMO PDF document model with a snapshot of conversion diagnostics.
+    /// </summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this Stream htmlStream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        PdfCore.PdfDocument pdf = htmlStream.ToPdfDocument(options);
+        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+    }
+
+    /// <summary>
     /// Converts HTML text to PDF bytes.
     /// </summary>
     public static byte[] SaveAsPdf(this string html, HtmlPdfSaveOptions? options = null) {
@@ -101,11 +128,40 @@ public static class HtmlPdfConverterExtensions {
     }
 
     /// <summary>
+    /// Converts HTML stream content to PDF bytes using UTF-8.
+    /// </summary>
+    public static byte[] SaveAsPdf(this Stream htmlStream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        PdfCore.PdfDocument pdf = htmlStream.ToPdfDocument(options);
+        byte[] bytes = pdf.ToBytes();
+        SyncSelectedProfileReport(options);
+        return bytes;
+    }
+
+    /// <summary>
     /// Saves HTML text as a PDF file.
     /// </summary>
     public static void SaveAsPdf(this string html, string path, HtmlPdfSaveOptions? options = null) {
         options ??= new HtmlPdfSaveOptions();
         html.ToPdfDocument(options).Save(path);
+        SyncSelectedProfileReport(options);
+    }
+
+    /// <summary>
+    /// Saves a shared OfficeIMO HTML conversion document as a PDF file.
+    /// </summary>
+    public static void SaveAsPdf(this HtmlConversionDocument document, string path, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        document.ToPdfDocument(options).Save(path);
+        SyncSelectedProfileReport(options);
+    }
+
+    /// <summary>
+    /// Saves HTML stream content as a PDF file using UTF-8.
+    /// </summary>
+    public static void SaveAsPdf(this Stream htmlStream, string path, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        htmlStream.ToPdfDocument(options).Save(path);
         SyncSelectedProfileReport(options);
     }
 
@@ -125,11 +181,59 @@ public static class HtmlPdfConverterExtensions {
     }
 
     /// <summary>
+    /// Attempts to save a shared OfficeIMO HTML conversion document as a PDF file and returns output diagnostics instead of throwing.
+    /// </summary>
+    public static PdfCore.PdfSaveResult TrySaveAsPdf(this HtmlConversionDocument document, string path, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        try {
+            PdfCore.PdfSaveResult result = document.ToPdfDocument(options).TrySave(path);
+            SyncSelectedProfileReport(options);
+            return result;
+        } catch (Exception ex) {
+            SyncSelectedProfileReport(options);
+            return PdfCore.PdfSaveResult.FromFailure(path, ex);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to save HTML stream content as a PDF file using UTF-8 and returns output diagnostics instead of throwing.
+    /// </summary>
+    public static PdfCore.PdfSaveResult TrySaveAsPdf(this Stream htmlStream, string path, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        try {
+            PdfCore.PdfSaveResult result = htmlStream.ToPdfDocument(options).TrySave(path);
+            SyncSelectedProfileReport(options);
+            return result;
+        } catch (Exception ex) {
+            SyncSelectedProfileReport(options);
+            return PdfCore.PdfSaveResult.FromFailure(path, ex);
+        }
+    }
+
+    /// <summary>
     /// Writes HTML text as PDF to a stream.
     /// </summary>
     public static void SaveAsPdf(this string html, Stream stream, HtmlPdfSaveOptions? options = null) {
         options ??= new HtmlPdfSaveOptions();
         html.ToPdfDocument(options).Save(stream);
+        SyncSelectedProfileReport(options);
+    }
+
+    /// <summary>
+    /// Writes a shared OfficeIMO HTML conversion document as PDF to a stream.
+    /// </summary>
+    public static void SaveAsPdf(this HtmlConversionDocument document, Stream stream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        document.ToPdfDocument(options).Save(stream);
+        SyncSelectedProfileReport(options);
+    }
+
+    /// <summary>
+    /// Writes HTML stream content as PDF to a stream using UTF-8.
+    /// </summary>
+    public static void SaveAsPdf(this Stream htmlStream, Stream pdfStream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        htmlStream.ToPdfDocument(options).Save(pdfStream);
         SyncSelectedProfileReport(options);
     }
 
@@ -140,6 +244,36 @@ public static class HtmlPdfConverterExtensions {
         options ??= new HtmlPdfSaveOptions();
         try {
             PdfCore.PdfSaveResult result = html.ToPdfDocument(options).TrySave(stream);
+            SyncSelectedProfileReport(options);
+            return result;
+        } catch (Exception ex) {
+            SyncSelectedProfileReport(options);
+            return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to write a shared OfficeIMO HTML conversion document as PDF to a stream and returns output diagnostics instead of throwing.
+    /// </summary>
+    public static PdfCore.PdfSaveResult TrySaveAsPdf(this HtmlConversionDocument document, Stream stream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        try {
+            PdfCore.PdfSaveResult result = document.ToPdfDocument(options).TrySave(stream);
+            SyncSelectedProfileReport(options);
+            return result;
+        } catch (Exception ex) {
+            SyncSelectedProfileReport(options);
+            return PdfCore.PdfSaveResult.FromFailure(outputPath: null, ex);
+        }
+    }
+
+    /// <summary>
+    /// Attempts to write HTML stream content as PDF to a stream using UTF-8 and returns output diagnostics instead of throwing.
+    /// </summary>
+    public static PdfCore.PdfSaveResult TrySaveAsPdf(this Stream htmlStream, Stream pdfStream, HtmlPdfSaveOptions? options = null) {
+        options ??= new HtmlPdfSaveOptions();
+        try {
+            PdfCore.PdfSaveResult result = htmlStream.ToPdfDocument(options).TrySave(pdfStream);
             SyncSelectedProfileReport(options);
             return result;
         } catch (Exception ex) {

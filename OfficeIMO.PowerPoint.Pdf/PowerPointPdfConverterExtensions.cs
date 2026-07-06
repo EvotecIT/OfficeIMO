@@ -50,6 +50,19 @@ public static partial class PowerPointPdfConverterExtensions {
     }
 
     /// <summary>
+    /// Converts a PowerPoint presentation to a PDF document and returns conversion diagnostics with it.
+    /// </summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {
+        if (presentation == null) {
+            throw new ArgumentNullException(nameof(presentation));
+        }
+
+        options ??= new PowerPointPdfSaveOptions();
+        PdfCore.PdfDocument pdf = presentation.ToPdfDocument(options);
+        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+    }
+
+    /// <summary>
     /// Converts a PowerPoint presentation to PDF bytes.
     /// </summary>
     public static byte[] SaveAsPdf(this PptCore.PowerPointPresentation presentation, PowerPointPdfSaveOptions? options = null) {

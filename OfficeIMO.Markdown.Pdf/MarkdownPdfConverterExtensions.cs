@@ -22,6 +22,19 @@ public static partial class MarkdownPdfConverterExtensions {
     }
 
     /// <summary>
+    /// Converts Markdown text to a PDF document and returns conversion diagnostics with it.
+    /// </summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this string markdown, MarkdownPdfSaveOptions? options = null) {
+        if (markdown == null) {
+            throw new ArgumentNullException(nameof(markdown));
+        }
+
+        options ??= new MarkdownPdfSaveOptions();
+        PdfCore.PdfDocument pdf = markdown.ToPdfDocument(options);
+        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
+    }
+
+    /// <summary>
     /// Converts a Markdown file to a first-party OfficeIMO PDF document model.
     /// </summary>
     public static PdfCore.PdfDocument ToPdfDocumentFromMarkdownFile(this string path, MarkdownPdfSaveOptions? options = null) {
@@ -33,6 +46,19 @@ public static partial class MarkdownPdfConverterExtensions {
         string fullPath = Path.GetFullPath(path);
         string markdown = File.ReadAllText(fullPath, Encoding.UTF8);
         return MarkdownPdfConverter.ConvertFileMarkdown(markdown, fullPath, options);
+    }
+
+    /// <summary>
+    /// Converts a Markdown file to a PDF document and returns conversion diagnostics with it.
+    /// </summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResultFromMarkdownFile(this string path, MarkdownPdfSaveOptions? options = null) {
+        if (string.IsNullOrWhiteSpace(path)) {
+            throw new ArgumentException("Markdown file path cannot be empty.", nameof(path));
+        }
+
+        options ??= new MarkdownPdfSaveOptions();
+        PdfCore.PdfDocument pdf = path.ToPdfDocumentFromMarkdownFile(options);
+        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
     }
 
     /// <summary>
@@ -81,6 +107,19 @@ public static partial class MarkdownPdfConverterExtensions {
         }
 
         return pdf;
+    }
+
+    /// <summary>
+    /// Converts a Markdown document model to a PDF document and returns conversion diagnostics with it.
+    /// </summary>
+    public static PdfCore.PdfDocumentConversionResult ToPdfDocumentResult(this MarkdownDoc document, MarkdownPdfSaveOptions? options = null) {
+        if (document == null) {
+            throw new ArgumentNullException(nameof(document));
+        }
+
+        options ??= new MarkdownPdfSaveOptions();
+        PdfCore.PdfDocument pdf = document.ToPdfDocument(options);
+        return new PdfCore.PdfDocumentConversionResult(pdf, options.ConversionReport);
     }
 
     private static void ApplyMarkdownDefaultFont(PdfCore.PdfDocument pdf, MarkdownPdfSaveOptions options) {

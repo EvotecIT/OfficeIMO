@@ -4,7 +4,19 @@ namespace OfficeIMO.Rtf.Pdf;
 
 internal static partial class RtfPdfConverter {
     private static void RenderNotes(RtfDocument document, PdfCore.PdfDocument pdf, RtfPdfSaveOptions options, PdfRenderState state) {
-        if (!options.IncludeNotes || state.NoteReferences.Count == 0) {
+        if (state.NoteReferences.Count == 0) {
+            return;
+        }
+
+        if (!options.IncludeNotes) {
+            AddConversionWarning(
+                options,
+                "NotesSkipped",
+                "Notes",
+                "RTF note bodies were skipped because IncludeNotes is false.",
+                new Dictionary<string, string> {
+                    ["Count"] = state.NoteReferences.Count.ToString(System.Globalization.CultureInfo.InvariantCulture)
+                });
             return;
         }
 

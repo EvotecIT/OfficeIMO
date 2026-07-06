@@ -9,7 +9,9 @@ namespace OfficeIMO.Html.Pdf;
 public static partial class PdfHtmlConverter {
     private static void AppendPositionedPage(StringBuilder builder, PdfCore.PdfLogicalPage page, PdfHtmlSaveOptions options) {
         PositionedPageGeometry geometry = PositionedPageGeometry.From(page);
-        builder.Append("<section class=\"pdf-page\" data-page-number=\"");
+        builder.Append("<section class=\"pdf-page\" id=\"");
+        builder.Append(GetPageAnchorId(page.PageNumber));
+        builder.Append("\" data-page-number=\"");
         builder.Append(page.PageNumber.ToString(CultureInfo.InvariantCulture));
         builder.Append("\" style=\"width:");
         builder.Append(Points(geometry.Width));
@@ -88,11 +90,11 @@ public static partial class PdfHtmlConverter {
     }
 
     private static void AppendPositionedLink(StringBuilder builder, PositionedPageGeometry geometry, PdfCore.PdfLogicalLinkAnnotation link) {
-        string target = link.Uri ?? link.DestinationName ?? string.Empty;
-        if (target.Length == 0) {
+        if (!HasHtmlLinkTarget(link)) {
             return;
         }
 
+        string label = GetLinkLabel(link);
         PositionedBox box = geometry.TransformBox(link.X1, link.Y1, Math.Max(1D, link.Width), Math.Max(1D, link.Height));
         builder.Append("<a class=\"pdf-link\" style=\"left:");
         builder.Append(Points(box.Left));
@@ -103,22 +105,9 @@ public static partial class PdfHtmlConverter {
         builder.Append(";height:");
         builder.Append(Points(Math.Max(1D, box.Height)));
         builder.Append("\"");
-        if (link.Uri is not null && IsSafeLinkUri(link.Uri)) {
-            builder.Append(" href=\"");
-            builder.Append(HtmlAttribute(link.Uri));
-            builder.Append('"');
-        } else if (link.Uri is not null) {
-            builder.Append(" data-unsafe-href=\"");
-            builder.Append(HtmlAttribute(link.Uri));
-            builder.Append('"');
-        } else {
-            builder.Append(" data-destination=\"");
-            builder.Append(HtmlAttribute(target));
-            builder.Append('"');
-        }
-
+        AppendLinkTargetAttributes(builder, link);
         builder.Append('>');
-        builder.Append(HtmlText(!string.IsNullOrWhiteSpace(link.Contents) ? link.Contents! : target));
+        builder.Append(HtmlText(label));
         builder.AppendLine("</a>");
     }
 

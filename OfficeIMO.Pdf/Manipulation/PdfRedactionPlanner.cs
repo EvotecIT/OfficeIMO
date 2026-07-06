@@ -30,6 +30,7 @@ public static class PdfRedactionPlanner {
 
         foreach (PdfRedactionArea area in areaArray) {
             AddTextMatches(area, logical.TextBlocks, matches);
+            AddImageMatches(area, logical.Images, matches, findings);
             AddAnnotationMatches(area, info.Pages, matches);
         }
 
@@ -116,6 +117,40 @@ public static class PdfRedactionPlanner {
                     annotation.Contents,
                     annotation.Subtype,
                     annotation.ObjectNumber));
+            }
+        }
+    }
+
+    private static void AddImageMatches(PdfRedactionArea area, IReadOnlyList<PdfLogicalImage> images, List<PdfRedactionMatch> matches, List<PdfDiagnosticFinding> findings) {
+        foreach (PdfLogicalImage image in images) {
+            if (image.PageNumber != area.PageNumber) {
+                continue;
+            }
+
+            foreach (PdfImagePlacement placement in image.Placements) {
+                if (!Intersects(area.X, area.Y, area.Width, area.Height, placement.X, placement.Y, placement.Width, placement.Height)) {
+                    continue;
+                }
+
+                matches.Add(new PdfRedactionMatch(
+                    PdfRedactionMatchKind.ImagePlacement,
+                    area,
+                    placement.PageNumber,
+                    placement.X,
+                    placement.Y,
+                    placement.Width,
+                    placement.Height,
+                    null,
+                    null,
+                    placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
+                    placement.ResourceName));
+
+                findings.Add(new PdfDiagnosticFinding(
+                    PdfDiagnosticSeverity.Warning,
+                    "RedactionPlanImageIntersection",
+                    "Redaction area intersects an image placement. The current redaction applier can paint the rectangle, but image pixel/resource rewriting must be handled by a safe image-redaction flow before treating the image content as removed.",
+                    placement.ObjectNumber == 0 ? null : placement.ObjectNumber,
+                    placement.PageNumber));
             }
         }
     }

@@ -85,7 +85,9 @@ public sealed partial class PdfReadDocument {
         string? triggerName,
         PdfObject obj,
         List<PdfCatalogAction> result,
-        HashSet<int> visitedReferences) {
+        HashSet<int> visitedReferences,
+        string? actionPath = null,
+        bool isChainedAction = false) {
         HashSet<int> pathReferences = visitedReferences;
         PdfObject? resolved = ResolveObject(obj);
         if (obj is PdfReference reference) {
@@ -102,7 +104,7 @@ public sealed partial class PdfReadDocument {
 
         if (TryReadCatalogActionType(dictionary, out string? actionType) &&
             IsActiveCatalogActionType(actionType!)) {
-            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName));
+            result.Add(new PdfCatalogAction(name, actionType!, source, triggerName, actionPath ?? GetDefaultCatalogActionPath(name, source), isChainedAction));
         }
 
         if (dictionary.Items.TryGetValue("Next", out var nextAction)) {
@@ -131,7 +133,8 @@ public sealed partial class PdfReadDocument {
             int activeIndex = 0;
             for (int i = 0; i < actions.Items.Count; i++) {
                 int before = result.Count;
-                AddCatalogAction(name + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture), source, triggerName, actions.Items[i], result, new HashSet<int>(pathReferences));
+                string nextPath = name + "." + activeIndex.ToString(System.Globalization.CultureInfo.InvariantCulture);
+                AddCatalogAction(nextPath, source, triggerName, actions.Items[i], result, new HashSet<int>(pathReferences), nextPath, isChainedAction: true);
                 if (result.Count > before) {
                     activeIndex++;
                 }
@@ -141,8 +144,17 @@ public sealed partial class PdfReadDocument {
         }
 
         if (resolved is PdfDictionary) {
-            AddCatalogAction(name, source, triggerName, resolved, result, pathReferences);
+            AddCatalogAction(name, source, triggerName, resolved, result, pathReferences, name, isChainedAction: true);
         }
+    }
+
+    private static string? GetDefaultCatalogActionPath(string name, string source) {
+        if (string.Equals(source, "AA", StringComparison.Ordinal) ||
+            string.Equals(source, "OpenAction", StringComparison.Ordinal)) {
+            return name;
+        }
+
+        return null;
     }
 
     private bool TryReadCatalogActionType(PdfDictionary dictionary, out string? actionType) {
@@ -162,6 +174,9 @@ public sealed partial class PdfReadDocument {
             case "JavaScript":
             case "Launch":
             case "SubmitForm":
+            case "ImportData":
+            case "Movie":
+            case "Rendition":
             case "RichMedia":
                 return true;
             default:

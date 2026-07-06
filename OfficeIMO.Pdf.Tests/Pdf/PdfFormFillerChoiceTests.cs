@@ -141,7 +141,10 @@ public partial class PdfFormFillerTests {
         PdfFormField filledField = Assert.Single(filledInfo.FormFields);
         Assert.Equal(new[] { "PL", "US" }, filledField.Values);
         Assert.Equal(new[] { "Poland", "United States" }, filledField.SelectedOptions.Select(option => option.DisplayText).ToArray());
-        Assert.Contains("<506F6C616E642C20556E6974656420537461746573> Tj", Encoding.ASCII.GetString(filled), StringComparison.Ordinal);
+        string output = Encoding.ASCII.GetString(filled);
+        Assert.Contains("<506F6C616E64> Tj", output, StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", output, StringComparison.Ordinal);
+        Assert.DoesNotContain("<506F6C616E642C20556E6974656420537461746573> Tj", output, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -156,7 +159,10 @@ public partial class PdfFormFillerTests {
         Assert.DoesNotContain("/AcroForm", output);
         Assert.DoesNotContain("/Subtype /Widget", output);
         Assert.Contains("/OfficeIMOForm1 Do", output);
-        Assert.Contains("<4765726D616E792C20556E6974656420537461746573> Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
+        string appearanceText = GetFlattenedAppearanceStreamText(flattened);
+        Assert.Contains("<4765726D616E79> Tj", appearanceText, StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", appearanceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("<4765726D616E792C20556E6974656420537461746573> Tj", appearanceText, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -178,7 +184,10 @@ public partial class PdfFormFillerTests {
         Assert.DoesNotContain("/Subtype /Widget", output);
         Assert.DoesNotContain("/Annots", output);
         Assert.Contains("/OfficeIMOForm1 Do", output);
-        Assert.Contains("<506F6C616E642C20556E6974656420537461746573> Tj", GetFlattenedAppearanceStreamText(flattened), StringComparison.Ordinal);
+        string appearanceText = GetFlattenedAppearanceStreamText(flattened);
+        Assert.Contains("<506F6C616E64> Tj", appearanceText, StringComparison.Ordinal);
+        Assert.Contains("<556E6974656420537461746573> Tj", appearanceText, StringComparison.Ordinal);
+        Assert.DoesNotContain("<506F6C616E642C20556E6974656420537461746573> Tj", appearanceText, StringComparison.Ordinal);
     }
 
     [Fact]

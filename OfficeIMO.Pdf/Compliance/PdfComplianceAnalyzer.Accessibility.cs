@@ -25,11 +25,7 @@ public static partial class PdfComplianceAnalyzer {
         requirements.Add(BuildGeneratedDocumentStructureRootRequirement(options));
         requirements.Add(BuildGeneratedDocumentStructureLanguageRequirement(options));
 
-        requirements.Add(new PdfComplianceRequirement(
-            "tagged-structure",
-            "Tagged PDF structure tree",
-            PdfComplianceRequirementStatus.Unsupported,
-            "Full tagged PDF structure, role mapping, reading-order generation, and complete marked-content reference coverage are not implemented yet. Tagged generated PDFs can emit a generated /Document structure root with document language metadata, paragraphs, headings, list labels and bodies, table captions, table cell slices, table header scope attributes, rich-text link marked-content references with link annotation OBJR references, form widget OBJR references, decorative running page text, flow rule, layout, and drawing artifact markers, page structure-order tab hints, and images plus drawings with alternate text as limited structure and parent-tree references groundwork."));
+        requirements.Add(BuildTaggedStructureRequirement(options, hasDocumentMetadataEvidence, generatedImages, generatedDrawings, generatedForms));
         requirements.Add(BuildGeneratedTextBlockStructureReferenceRequirement(options));
         requirements.Add(BuildGeneratedListStructureReferenceRequirement(options));
         requirements.Add(BuildGeneratedListContainerStructureRequirement(options));
@@ -68,6 +64,49 @@ public static partial class PdfComplianceAnalyzer {
             "Tagged page tab order",
             PdfComplianceRequirementStatus.Satisfied,
             "Tagged generated pages will emit /Tabs /S so annotation and keyboard tab order follows the structure tree as PDF/UA groundwork.");
+    }
+
+    private static PdfComplianceRequirement BuildTaggedStructureRequirement(PdfOptions options, bool hasDocumentMetadataEvidence, PdfGeneratedImageAccessibilityEvidence[]? generatedImages, PdfGeneratedDrawingAccessibilityEvidence[]? generatedDrawings, PdfGeneratedFormAccessibilityEvidence[]? generatedForms) {
+        if (!hasDocumentMetadataEvidence || generatedImages == null || generatedDrawings == null || generatedForms == null) {
+            return new PdfComplianceRequirement(
+                "tagged-structure",
+                "Tagged PDF structure tree",
+                PdfComplianceRequirementStatus.Unsupported,
+                "Generated structure evidence was not supplied for this options-only readiness assessment. Use PdfDocument.AssessCompliance(...) to verify OfficeIMO-generated structure coverage; external PDF/UA/PDF/A-a validation is still required before claiming conformance.");
+        }
+
+        if (options.TaggedStructureMode != PdfTaggedStructureMode.CatalogMarkers) {
+            return new PdfComplianceRequirement(
+                "tagged-structure",
+                "Tagged PDF structure tree",
+                PdfComplianceRequirementStatus.Missing,
+                "Set PdfOptions.TaggedStructureMode or PdfDocument.TaggedPdfCatalogMarkers() so generated content can emit a tagged structure tree with parent-tree references.");
+        }
+
+        if (!IsValidPdfLanguageTag(options.Language)) {
+            return new PdfComplianceRequirement(
+                "tagged-structure",
+                "Tagged PDF structure tree",
+                PdfComplianceRequirementStatus.Missing,
+                "Set PdfOptions.Language or PdfDocument.Language(...) to a valid language tag so generated /Document structure elements can carry /Lang metadata.");
+        }
+
+        int missingImageAlternativeText = generatedImages.Count(image => !image.IsDecorativeArtifact && !image.HasAlternativeText);
+        int missingDrawingAlternativeText = generatedDrawings.Count(drawing => !drawing.IsDecorativeArtifact && !drawing.HasAlternativeText);
+        int missingFormAccessibleNames = generatedForms.Count(form => !form.HasAccessibleName);
+        if (missingImageAlternativeText > 0 || missingDrawingAlternativeText > 0 || missingFormAccessibleNames > 0) {
+            return new PdfComplianceRequirement(
+                "tagged-structure",
+                "Tagged PDF structure tree",
+                PdfComplianceRequirementStatus.Missing,
+                "Generated tagged structure is enabled, but meaningful generated images, drawings, or form fields still need alternate text/accessibility names before the generated structure coverage can be treated as complete groundwork.");
+        }
+
+        return new PdfComplianceRequirement(
+            "tagged-structure",
+            "Tagged PDF structure tree",
+            PdfComplianceRequirementStatus.Satisfied,
+            "OfficeIMO-generated content has tagged-structure groundwork: /Document structure root, document language metadata, parent-tree references, paragraph and heading marked content, list containers, table containers and cell references, link text and annotation references, form widget references, image and drawing figure/artifact handling, decorative page text/artifact markers, and structure-order tab hints. External PDF/UA/PDF/A-a validation is still required before claiming formal conformance.");
     }
 
     private static PdfComplianceRequirement BuildTaggedParentTreeNextKeyRequirement(PdfOptions options) {
