@@ -20,6 +20,8 @@ namespace OfficeIMO.Visio {
 
             internal SvgPaintBounds? CurrentPaintBounds { get; private set; }
 
+            internal bool IsVisible { get; private set; } = true;
+
             internal static SvgRenderContext Create(XElement root, Func<string, byte[]?>? imageResolver = null) =>
                 new(SvgStyleSheet.Parse(root), ReadDefinitions(root), imageResolver);
 
@@ -34,6 +36,15 @@ namespace OfficeIMO.Visio {
                 SvgPaintBounds? previous = CurrentPaintBounds;
                 CurrentPaintBounds = bounds;
                 return new PaintBoundsScope(this, previous);
+            }
+
+            internal IDisposable PushVisibility(bool? visible) {
+                bool previous = IsVisible;
+                if (visible.HasValue) {
+                    IsVisible = visible.Value;
+                }
+
+                return new VisibilityScope(this, previous);
             }
 
             internal bool TryGetImageBytes(string href, out byte[]? bytes) {
@@ -69,6 +80,26 @@ namespace OfficeIMO.Visio {
                     }
 
                     _context.CurrentPaintBounds = _previous;
+                    _disposed = true;
+                }
+            }
+
+            private sealed class VisibilityScope : IDisposable {
+                private readonly SvgRenderContext _context;
+                private readonly bool _previous;
+                private bool _disposed;
+
+                internal VisibilityScope(SvgRenderContext context, bool previous) {
+                    _context = context;
+                    _previous = previous;
+                }
+
+                public void Dispose() {
+                    if (_disposed) {
+                        return;
+                    }
+
+                    _context.IsVisible = _previous;
                     _disposed = true;
                 }
             }

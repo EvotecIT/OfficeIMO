@@ -70,16 +70,26 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            if (IsElementHidden(element, context)) {
+            if (IsElementDisplayNone(element, context)) {
                 return false;
             }
 
             SvgTransform localTransform = transform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
+            using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(element, context));
             using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, out SvgPaintBounds bounds) ? bounds : null);
             SvgPaint paint = SvgPaint.Resolve(element, inherited, context);
             using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
+            if (!context.IsVisible && !CanHiddenElementHaveVisibleDescendants(name)) {
+                return false;
+            }
+
             return RenderElementCore(canvas, element, name, paint, localTransform, context);
         }
+
+        private static bool CanHiddenElementHaveVisibleDescendants(string name) =>
+            string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "use", StringComparison.OrdinalIgnoreCase);
 
         private static bool TryGetElementPaintBounds(XElement element, string name, out SvgPaintBounds bounds) {
             bounds = default;
@@ -335,15 +345,12 @@ namespace OfficeIMO.Visio {
             }
 
             if (paint.HasFill && closedContours.Count > 0) {
+                bool useEvenOddFill = UseEvenOddFill(element, context.StyleSheet);
                 if (paint.FillRadialGradient != null) {
-                    for (int i = 0; i < closedContours.Count; i++) {
-                        canvas.FillRadialGradientPolygon(closedContours[i], paint.FillRadialGradient);
-                    }
+                    FillGradientContours(canvas, closedContours, null, paint.FillRadialGradient, useEvenOddFill);
                 } else if (paint.FillGradient != null) {
-                    for (int i = 0; i < closedContours.Count; i++) {
-                        canvas.FillLinearGradientPolygon(closedContours[i], paint.FillGradient);
-                    }
-                } else if (UseEvenOddFill(element, context.StyleSheet) && closedContours.Count > 1) {
+                    FillGradientContours(canvas, closedContours, paint.FillGradient, null, useEvenOddFill);
+                } else if (useEvenOddFill && closedContours.Count > 1) {
                     canvas.FillPolygonsEvenOdd(closedContours, paint.Fill);
                 } else if (closedContours.Count > 1) {
                     canvas.FillPolygonsNonZero(closedContours, paint.Fill);
@@ -372,6 +379,33 @@ namespace OfficeIMO.Visio {
             }
 
             return rendered;
+        }
+
+        private static void FillGradientContours(
+            OfficeRasterCanvas canvas,
+            IReadOnlyList<IReadOnlyList<OfficePoint>> contours,
+            OfficeLinearGradient? linearGradient,
+            OfficeRadialGradient? radialGradient,
+            bool useEvenOddFill) {
+            if (contours.Count == 1) {
+                FillGradientContour(canvas, contours[0], linearGradient, radialGradient);
+                return;
+            }
+
+            using IDisposable clipScope = useEvenOddFill
+                ? canvas.PushClipPolygonsEvenOdd(contours)
+                : canvas.PushClipPolygonsNonZero(contours);
+            for (int i = 0; i < contours.Count; i++) {
+                FillGradientContour(canvas, contours[i], linearGradient, radialGradient);
+            }
+        }
+
+        private static void FillGradientContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> contour, OfficeLinearGradient? linearGradient, OfficeRadialGradient? radialGradient) {
+            if (radialGradient != null) {
+                canvas.FillRadialGradientPolygon(contour, radialGradient);
+            } else if (linearGradient != null) {
+                canvas.FillLinearGradientPolygon(contour, linearGradient);
+            }
         }
 
         private static bool RenderPolyline(OfficeRasterCanvas canvas, IReadOnlyList<(double X, double Y)> points, bool closed, SvgPaint paint, SvgTransform transform) {
@@ -672,13 +706,10 @@ namespace OfficeIMO.Visio {
         }
 
         private static bool UseEvenOddFill(XElement element, SvgStyleSheet styleSheet) {
-            string? fillRule = element.Attribute("fill-rule")?.Value;
-            if (string.IsNullOrWhiteSpace(fillRule) && TryReadStyleValue(element.Attribute("style")?.Value, "fill-rule", out string? styleValue)) {
-                fillRule = styleValue;
-            }
-            if (string.IsNullOrWhiteSpace(fillRule) && styleSheet.TryGetValue(element, "fill-rule", out string? classValue)) {
-                fillRule = classValue;
-            }
+            Dictionary<string, string> style = styleSheet.CreateStyle(element);
+            string? fillRule = style.TryGetValue("fill-rule", out string? styleValue)
+                ? styleValue
+                : element.Attribute("fill-rule")?.Value;
 
             return string.Equals(fillRule, "evenodd", StringComparison.OrdinalIgnoreCase);
         }

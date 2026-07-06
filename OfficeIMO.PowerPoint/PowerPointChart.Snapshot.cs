@@ -340,7 +340,7 @@ namespace OfficeIMO.PowerPoint {
             }
 
             OfficeColor? fillColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
-            if (IsFilledChartKind(chartKind) && fillColor.HasValue) {
+            if (IsFilledChartKind(chartKind)) {
                 return fillColor;
             }
 
