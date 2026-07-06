@@ -83,14 +83,14 @@ namespace OfficeIMO.Word {
         private static int EstimateSectionContentPageCount(WordDocument document, WordSection section, IReadOnlyList<OpenXmlElement> sectionElements) {
             (double width, double height) = GetPageSizePoints(section);
             var drawing = new OfficeDrawing(width, height);
-            WordHeaderFooterPageFrame headerFooterFrame = CreateHeaderFooterPageFrame(section, drawing, 0, document.Sections.IndexOf(section), 0, 1, 1);
+            WordHeaderFooterPageFrame headerFooterFrame = CreateHeaderFooterPageFrame(section, drawing, 0, document.Sections.IndexOf(section), 1, 0, 1, 1);
             WordImageFlowContext context = CreateFlowContext(
                 section,
                 drawing,
                 int.MaxValue,
                 contentTop: headerFooterFrame.BodyTop,
                 contentBottom: headerFooterFrame.BodyBottom,
-                bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 0, headerFooterFrame));
+                bodyFrameProvider: CreateBodyFrameProvider(section, drawing, document.Sections.IndexOf(section), 1, 1, 1, 0, headerFooterFrame));
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)> listMarkers = DocumentTraversal.BuildListMarkers(document);
             var diagnostics = new List<OfficeImageExportDiagnostic>();
 

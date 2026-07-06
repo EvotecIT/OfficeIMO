@@ -841,6 +841,9 @@ namespace OfficeIMO.Visio {
                 }
 
                 offset = close + 1;
+                while (offset < value.Length && (char.IsWhiteSpace(value[offset]) || value[offset] == ',')) {
+                    offset++;
+                }
             }
 
             return transform;

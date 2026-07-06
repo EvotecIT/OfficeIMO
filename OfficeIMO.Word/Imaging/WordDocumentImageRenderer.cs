@@ -60,6 +60,7 @@ namespace OfficeIMO.Word {
 
         private static OfficeDrawing CreateDrawing(WordDocument document, WordImageExportOptions options, List<OfficeImageExportDiagnostic> diagnostics) {
             IReadOnlyList<int> sectionPageCounts = EstimateSectionPageCounts(document);
+            IReadOnlyList<int> sectionPageNumberStarts = ResolveSectionPageNumberStarts(document, sectionPageCounts);
             WordImagePageContext pageContext = ResolvePageContext(document, options.PageIndex, sectionPageCounts);
             (double width, double height) = GetPageSizePoints(pageContext.Section);
             OfficeDrawing drawing = new OfficeDrawing(width, height);
@@ -70,11 +71,14 @@ namespace OfficeIMO.Word {
                 int sectionPageCount = pageContext.SectionIndex < sectionPageCounts.Count
                     ? sectionPageCounts[pageContext.SectionIndex]
                     : 1;
+                int sectionPageNumberStart = pageContext.SectionIndex < sectionPageNumberStarts.Count
+                    ? sectionPageNumberStarts[pageContext.SectionIndex]
+                    : options.PageIndex + 1;
                 (int pageNumberValue, string pageNumberText) = pageContext.Section != null
-                    ? ResolveSectionPageNumber(pageContext.Section, pageContext.SectionPageIndex)
+                    ? ResolveSectionPageNumber(pageContext.Section, sectionPageNumberStart, pageContext.SectionPageIndex)
                     : (options.PageIndex + 1, (options.PageIndex + 1).ToString(CultureInfo.InvariantCulture));
                 WordHeaderFooterPageFrame? headerFooterFrame = pageContext.Section != null
-                    ? AddSupportedHeaderFooterContent(pageContext.Section, drawing, diagnostics, options.PageIndex, pageContext.SectionIndex, pageContext.SectionPageIndex, totalPageCount, sectionPageCount)
+                    ? AddSupportedHeaderFooterContent(pageContext.Section, drawing, diagnostics, options.PageIndex, pageContext.SectionIndex, sectionPageNumberStart, pageContext.SectionPageIndex, totalPageCount, sectionPageCount)
                     : null;
 
                 AddSupportedBodyContent(
@@ -93,11 +97,27 @@ namespace OfficeIMO.Word {
                     contentTop: headerFooterFrame?.BodyTop,
                     contentBottom: headerFooterFrame?.BodyBottom,
                     bodyFrameProvider: pageContext.Section != null
-                        ? CreateBodyFrameProvider(pageContext.Section, drawing, pageContext.SectionIndex, totalPageCount, sectionPageCount, pageContext.SectionPageIndex, headerFooterFrame)
+                        ? CreateBodyFrameProvider(pageContext.Section, drawing, pageContext.SectionIndex, sectionPageNumberStart, totalPageCount, sectionPageCount, pageContext.SectionPageIndex, headerFooterFrame)
                         : null);
             }
 
             return drawing;
+        }
+
+        private static IReadOnlyList<int> ResolveSectionPageNumberStarts(WordDocument document, IReadOnlyList<int> sectionPageCounts) {
+            var starts = new List<int>(document.Sections.Count);
+            int nextImplicitStart = 1;
+            for (int i = 0; i < document.Sections.Count; i++) {
+                PageNumberType? pageNumberType = document.Sections[i]._sectionProperties.GetFirstChild<PageNumberType>();
+                int start = pageNumberType?.Start?.Value ?? nextImplicitStart;
+                start = Math.Max(1, start);
+                starts.Add(start);
+
+                int sectionPages = i < sectionPageCounts.Count ? Math.Max(0, sectionPageCounts[i]) : 1;
+                nextImplicitStart = Math.Max(1, start + sectionPages);
+            }
+
+            return starts;
         }
 
         private static WordImageFlowContext AddSupportedBodyContent(

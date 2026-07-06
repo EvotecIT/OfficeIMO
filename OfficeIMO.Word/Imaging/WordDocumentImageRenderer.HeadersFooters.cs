@@ -9,8 +9,8 @@ namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         private const double DefaultHeaderFooterLineHeightPoints = 18D;
 
-        private static WordHeaderFooterPageFrame AddSupportedHeaderFooterContent(WordSection section, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, int pageIndex, int sectionIndex, int sectionPageIndex, int totalPageCount, int sectionPageCount) {
-            WordHeaderFooterPageFrame frame = CreateHeaderFooterPageFrame(section, drawing, pageIndex, sectionIndex, sectionPageIndex, totalPageCount, sectionPageCount);
+        private static WordHeaderFooterPageFrame AddSupportedHeaderFooterContent(WordSection section, OfficeDrawing drawing, List<OfficeImageExportDiagnostic> diagnostics, int pageIndex, int sectionIndex, int sectionPageNumberStart, int sectionPageIndex, int totalPageCount, int sectionPageCount) {
+            WordHeaderFooterPageFrame frame = CreateHeaderFooterPageFrame(section, drawing, pageIndex, sectionIndex, sectionPageNumberStart, sectionPageIndex, totalPageCount, sectionPageCount);
             if (frame.Header != null) {
                 WordImageFlowContext context = CreateFlowContext(
                     drawing,
@@ -54,7 +54,7 @@ namespace OfficeIMO.Word {
             return frame;
         }
 
-        private static WordHeaderFooterPageFrame CreateHeaderFooterPageFrame(WordSection section, OfficeDrawing drawing, int pageIndex, int sectionIndex, int sectionPageIndex, int totalPageCount, int sectionPageCount) {
+        private static WordHeaderFooterPageFrame CreateHeaderFooterPageFrame(WordSection section, OfficeDrawing drawing, int pageIndex, int sectionIndex, int sectionPageNumberStart, int sectionPageIndex, int totalPageCount, int sectionPageCount) {
             WordMargins margins = section.Margins;
             double left = ToPoints(margins.Left?.Value, DefaultMarginPoints);
             double right = ToPoints(margins.Right?.Value, DefaultMarginPoints);
@@ -64,7 +64,7 @@ namespace OfficeIMO.Word {
             double bodyTop = topMargin;
             double bodyBottom = Math.Max(bodyTop, drawing.Height - bottomMargin);
 
-            (int pageNumberValue, string pageNumberText) = ResolveSectionPageNumber(section, sectionPageIndex);
+            (int pageNumberValue, string pageNumberText) = ResolveSectionPageNumber(section, sectionPageNumberStart, sectionPageIndex);
             WordHeaderFooter? header = SelectPageHeader(section, pageIndex, sectionPageIndex, pageNumberValue);
             double headerTop = 0D;
             double headerRenderBottom = 0D;
@@ -113,6 +113,7 @@ namespace OfficeIMO.Word {
             WordSection section,
             OfficeDrawing drawing,
             int sectionIndex,
+            int sectionPageNumberStart,
             int totalPageCount,
             int sectionPageCount,
             int knownSectionPageIndex,
@@ -128,15 +129,16 @@ namespace OfficeIMO.Word {
                     drawing,
                     normalizedSectionPageIndex,
                     sectionIndex,
+                    sectionPageNumberStart,
                     normalizedSectionPageIndex,
                     totalPageCount,
                     sectionPageCount);
                 return frame.BodyFrame;
             };
 
-        private static (int Value, string Text) ResolveSectionPageNumber(WordSection section, int sectionPageIndex) {
+        private static (int Value, string Text) ResolveSectionPageNumber(WordSection section, int sectionPageNumberStart, int sectionPageIndex) {
             PageNumberType? pageNumberType = section._sectionProperties.GetFirstChild<PageNumberType>();
-            int start = pageNumberType?.Start?.Value ?? 1;
+            int start = pageNumberType?.Start?.Value ?? sectionPageNumberStart;
             int value = Math.Max(1, start + Math.Max(0, sectionPageIndex));
             return (value, FormatPageNumber(value, pageNumberType?.Format?.Value));
         }

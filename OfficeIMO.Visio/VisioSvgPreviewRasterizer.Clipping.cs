@@ -7,7 +7,7 @@ namespace OfficeIMO.Visio {
     internal static partial class VisioSvgPreviewRasterizer {
         private static IDisposable? PushClipPath(OfficeRasterCanvas canvas, XElement element, SvgTransform transform, SvgRenderContext context) {
             Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
-            string? rawClip = element.Attribute("clip-path")?.Value ?? (style.TryGetValue("clip-path", out string? styleClip) ? styleClip : null);
+            string? rawClip = style.TryGetValue("clip-path", out string? styleClip) ? styleClip : element.Attribute("clip-path")?.Value;
             if (!TryReadUrlId(rawClip, out string? id) ||
                 id == null ||
                 !context.TryGetDefinition(id, out XElement? definition) ||

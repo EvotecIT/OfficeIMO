@@ -7,12 +7,12 @@ using DocumentFormat.OpenXml.Wordprocessing;
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
         private static string ResolveImageExportText(WordParagraph paragraph, WordImageFlowContext? context) {
-            if (TryResolveDocumentMetadataFieldText(paragraph, out string? documentFieldText)) {
-                return documentFieldText ?? string.Empty;
-            }
-
             if (context != null && TryResolvePageFieldText(paragraph, context, out string? fieldText)) {
                 return fieldText ?? string.Empty;
+            }
+
+            if (TryResolveDocumentMetadataFieldText(paragraph, out string? documentFieldText)) {
+                return documentFieldText ?? string.Empty;
             }
 
             return paragraph.Text ?? string.Empty;
@@ -29,7 +29,7 @@ namespace OfficeIMO.Word {
                 return TryResolvePageFieldInstruction(simpleInstruction!, context, out text);
             }
 
-            if (TryResolveComplexPageFieldText(paragraph, context, out text)) {
+            if (TryResolveComplexFieldText(paragraph, (string instruction, out string? resolved) => TryResolvePageFieldInstruction(instruction, context, out resolved), out text)) {
                 return true;
             }
 
@@ -69,7 +69,9 @@ namespace OfficeIMO.Word {
             return false;
         }
 
-        private static bool TryResolveComplexPageFieldText(WordParagraph paragraph, WordImageFlowContext context, out string? text) {
+        private delegate bool FieldInstructionResolver(string instruction, out string? text);
+
+        private static bool TryResolveComplexFieldText(WordParagraph paragraph, FieldInstructionResolver resolver, out string? text) {
             text = null;
             if (paragraph._runs == null || paragraph._runs.Count == 0) {
                 return false;
@@ -98,7 +100,7 @@ namespace OfficeIMO.Word {
                         }
 
                         if (fieldCharType == FieldCharValues.Separate && fieldDepth > 0) {
-                            if (fieldDepth == 1 && TryResolvePageFieldInstruction(instruction.ToString(), context, out string? resolvedText)) {
+                            if (fieldDepth == 1 && resolver(instruction.ToString(), out string? resolvedText)) {
                                 output.Append(resolvedText);
                                 skipCurrentFieldResult = true;
                                 resolvedAnyField = true;
@@ -111,7 +113,7 @@ namespace OfficeIMO.Word {
                         }
 
                         if (fieldCharType == FieldCharValues.End && fieldDepth > 0) {
-                            if (fieldDepth == 1 && !inFieldResult && TryResolvePageFieldInstruction(instruction.ToString(), context, out string? resolvedText)) {
+                            if (fieldDepth == 1 && !inFieldResult && resolver(instruction.ToString(), out string? resolvedText)) {
                                 output.Append(resolvedText);
                                 resolvedAnyField = true;
                             }
@@ -174,10 +176,19 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
+            if (TryResolveComplexFieldText(paragraph, (string instruction, out string? resolved) => TryResolveDocumentMetadataFieldInstruction(document, instruction, out resolved), out text)) {
+                return true;
+            }
+
             if (!TryReadFieldInstruction(paragraph, out string? instruction)) {
                 return false;
             }
 
+            return TryResolveDocumentMetadataFieldInstruction(document, instruction!, out text);
+        }
+
+        private static bool TryResolveDocumentMetadataFieldInstruction(WordDocument document, string instruction, out string? text) {
+            text = null;
             WordFieldInventory.ParsedFieldInstruction parsed = WordFieldInventory.ParseInstruction(instruction!);
             if (parsed.Diagnostics.Count > 0 || parsed.FieldType == null) {
                 return false;

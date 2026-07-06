@@ -636,7 +636,15 @@ internal static class PdfPageContentVisualParser {
                 return false;
             }
 
-            if (CountMoveCommands() != 1) {
+            if (_path.Count != 5 ||
+                _pathCommands.Count != 5 ||
+                _pathCommands[0].Kind != OfficePathCommandKind.MoveTo ||
+                _pathCommands[1].Kind != OfficePathCommandKind.LineTo ||
+                _pathCommands[2].Kind != OfficePathCommandKind.LineTo ||
+                _pathCommands[3].Kind != OfficePathCommandKind.LineTo ||
+                _pathCommands[4].Kind != OfficePathCommandKind.Close ||
+                !NearlyEqual(_path[0].X, _path[4].X) ||
+                !NearlyEqual(ToTop(_path[0].Y), ToTop(_path[4].Y))) {
                 return false;
             }
 
@@ -654,6 +662,18 @@ internal static class PdfPageContentVisualParser {
                 bool onVertical = NearlyEqual(_path[i].X, left) || NearlyEqual(_path[i].X, right);
                 bool onHorizontal = NearlyEqual(ToTop(_path[i].Y), top) || NearlyEqual(ToTop(_path[i].Y), bottom);
                 if (!onVertical || !onHorizontal) {
+                    return false;
+                }
+            }
+
+            for (int i = 0; i < 4; i++) {
+                double x1 = _path[i].X;
+                double y1 = ToTop(_path[i].Y);
+                double x2 = _path[i + 1].X;
+                double y2 = ToTop(_path[i + 1].Y);
+                bool horizontal = NearlyEqual(y1, y2) && !NearlyEqual(x1, x2);
+                bool vertical = NearlyEqual(x1, x2) && !NearlyEqual(y1, y2);
+                if (!horizontal && !vertical) {
                     return false;
                 }
             }

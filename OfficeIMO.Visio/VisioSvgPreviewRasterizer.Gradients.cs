@@ -68,7 +68,11 @@ namespace OfficeIMO.Visio {
                 x2 = x1 < 1D ? 1D : 0D;
             }
 
-            gradient = new OfficeLinearGradient(ClampUnit(x1), ClampUnit(y1), ClampUnit(x2), ClampUnit(y2), stops);
+            if (!TryClipLinearGradientToUnitBox(x1, y1, x2, y2, stops, out OfficePoint clippedStart, out OfficePoint clippedEnd, out IReadOnlyList<OfficeGradientStop> clippedStops)) {
+                return false;
+            }
+
+            gradient = new OfficeLinearGradient(clippedStart.X, clippedStart.Y, clippedEnd.X, clippedEnd.Y, clippedStops);
             return true;
         }
 
@@ -331,6 +335,99 @@ namespace OfficeIMO.Visio {
             OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * ClampUnit(opacity)));
 
         private static byte ToByte(double value) => (byte)Math.Max(0D, Math.Min(255D, Math.Round(value)));
+
+        private static bool TryClipLinearGradientToUnitBox(
+            double x1,
+            double y1,
+            double x2,
+            double y2,
+            IReadOnlyList<OfficeGradientStop> stops,
+            out OfficePoint clippedStart,
+            out OfficePoint clippedEnd,
+            out IReadOnlyList<OfficeGradientStop> clippedStops) {
+            clippedStart = default;
+            clippedEnd = default;
+            clippedStops = Array.Empty<OfficeGradientStop>();
+            double dx = x2 - x1;
+            double dy = y2 - y1;
+            double t0 = 0D;
+            double t1 = 1D;
+            if (!ClipLinearGradientEdge(-dx, x1, ref t0, ref t1) ||
+                !ClipLinearGradientEdge(dx, 1D - x1, ref t0, ref t1) ||
+                !ClipLinearGradientEdge(-dy, y1, ref t0, ref t1) ||
+                !ClipLinearGradientEdge(dy, 1D - y1, ref t0, ref t1) ||
+                t1 <= t0) {
+                return false;
+            }
+
+            clippedStart = new OfficePoint(ClampUnit(x1 + dx * t0), ClampUnit(y1 + dy * t0));
+            clippedEnd = new OfficePoint(ClampUnit(x1 + dx * t1), ClampUnit(y1 + dy * t1));
+            var adjusted = new List<OfficeGradientStop>();
+            adjusted.Add(new OfficeGradientStop(0D, InterpolateGradientColor(stops, t0)));
+            for (int i = 0; i < stops.Count; i++) {
+                double offset = stops[i].Offset;
+                if (offset <= t0 || offset >= t1) {
+                    continue;
+                }
+
+                adjusted.Add(new OfficeGradientStop((offset - t0) / (t1 - t0), stops[i].Color));
+            }
+
+            adjusted.Add(new OfficeGradientStop(1D, InterpolateGradientColor(stops, t1)));
+            clippedStops = NormalizeStops(adjusted);
+            return clippedStops.Count >= 2 && !(clippedStart.X.Equals(clippedEnd.X) && clippedStart.Y.Equals(clippedEnd.Y));
+        }
+
+        private static bool ClipLinearGradientEdge(double p, double q, ref double t0, ref double t1) {
+            if (Math.Abs(p) < 0.0000001D) {
+                return q >= 0D;
+            }
+
+            double r = q / p;
+            if (p < 0D) {
+                if (r > t1) {
+                    return false;
+                }
+
+                if (r > t0) {
+                    t0 = r;
+                }
+            } else {
+                if (r < t0) {
+                    return false;
+                }
+
+                if (r < t1) {
+                    t1 = r;
+                }
+            }
+
+            return true;
+        }
+
+        private static OfficeColor InterpolateGradientColor(IReadOnlyList<OfficeGradientStop> stops, double offset) {
+            if (offset <= stops[0].Offset) {
+                return stops[0].Color;
+            }
+
+            for (int i = 1; i < stops.Count; i++) {
+                if (offset > stops[i].Offset) {
+                    continue;
+                }
+
+                OfficeGradientStop left = stops[i - 1];
+                OfficeGradientStop right = stops[i];
+                double span = right.Offset - left.Offset;
+                double t = span <= 0D ? 0D : (offset - left.Offset) / span;
+                return OfficeColor.FromRgba(
+                    ToByte(left.Color.R + (right.Color.R - left.Color.R) * t),
+                    ToByte(left.Color.G + (right.Color.G - left.Color.G) * t),
+                    ToByte(left.Color.B + (right.Color.B - left.Color.B) * t),
+                    ToByte(left.Color.A + (right.Color.A - left.Color.A) * t));
+            }
+
+            return stops[stops.Count - 1].Color;
+        }
 
         private static double ClampUnit(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
     }

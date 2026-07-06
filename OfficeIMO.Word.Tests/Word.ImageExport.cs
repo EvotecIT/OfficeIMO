@@ -2841,7 +2841,7 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
             Assert.Empty(snapshot.Diagnostics);
-            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section 02 page 1");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section 02 page 2");
             Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section 9 page 9");
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Section", svgText, StringComparison.Ordinal);
