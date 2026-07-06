@@ -75,7 +75,7 @@ public static partial class MarkdownPdfConverterExtensions {
         PdfCore.PdfOptions pdfOptions = options.PdfOptions?.Clone() ?? new PdfCore.PdfOptions();
         pdfOptions.ReportDiagnosticsTo(options.ConversionReport, "OfficeIMO.Markdown.Pdf");
 
-        ApplyMarkdownTextFallbackOptions(pdfOptions, options);
+        ApplyMarkdownTextFallbackOptions(pdfOptions, options, document);
 
         if (options.CreateOutlineFromHeadings) {
             pdfOptions.CreateOutlineFromHeadings = true;
@@ -118,55 +118,6 @@ public static partial class MarkdownPdfConverterExtensions {
         if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(options.FontFamily, out PdfCore.PdfStandardFont font)) {
             pdf.DefaultTextStyle(style => style.Font(PdfCore.PdfStandardFontMapper.GetFontFamily(font)));
         }
-    }
-
-    private static void ApplyMarkdownTextFallbackOptions(PdfCore.PdfOptions pdfOptions, MarkdownPdfSaveOptions options) {
-        bool hasCallerPdfOptions = options.PdfOptions != null;
-        bool hasExplicitFontFamily = !string.IsNullOrWhiteSpace(options.FontFamily);
-        if (hasExplicitFontFamily) {
-            pdfOptions.TryUseOfficeFontFamily(options.FontFamily, options.AllowSystemFontEmbedding);
-        }
-
-        if (options.TextFallbacks == PdfCore.PdfTextFallbackFeatures.None) {
-            return;
-        }
-
-        PdfCore.PdfTextFallbackFeatures fallbackFeatures = options.TextFallbacks;
-        bool preserveDocumentFontSlots = hasCallerPdfOptions || hasExplicitFontFamily;
-        if (preserveDocumentFontSlots) {
-            fallbackFeatures &= ~PdfCore.PdfTextFallbackFeatures.DocumentFont;
-        }
-
-        PdfCore.PdfTextFallbackFeatures documentAndMonospaceFallbacks =
-            fallbackFeatures & (PdfCore.PdfTextFallbackFeatures.DocumentFont | PdfCore.PdfTextFallbackFeatures.MonospaceFont);
-        if (documentAndMonospaceFallbacks != PdfCore.PdfTextFallbackFeatures.None) {
-            pdfOptions.UseTextFallbacks(
-                documentAndMonospaceFallbacks,
-                CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: false),
-                options.AllowSystemFontEmbedding);
-        }
-
-        if ((fallbackFeatures & PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
-            pdfOptions.UseTextFallbacks(
-                PdfCore.PdfTextFallbackFeatures.SymbolAndEmojiFonts,
-                CreateMarkdownReservedFontSlots(pdfOptions, preserveDocumentFontSlots, reserveCourier: true),
-                options.AllowSystemFontEmbedding);
-        }
-    }
-
-    private static IReadOnlyList<PdfCore.PdfStandardFont> CreateMarkdownReservedFontSlots(PdfCore.PdfOptions pdfOptions, bool includeDocumentFontSlots, bool reserveCourier) {
-        var slots = new List<PdfCore.PdfStandardFont>();
-        if (reserveCourier) {
-            slots.Add(PdfCore.PdfStandardFont.Courier);
-        }
-
-        if (includeDocumentFontSlots) {
-            slots.Add(pdfOptions.DefaultFont);
-            slots.Add(pdfOptions.HeaderFont);
-            slots.Add(pdfOptions.FooterFont);
-        }
-
-        return slots;
     }
 
     private static MarkdownReaderOptions ResolveReaderOptions(MarkdownPdfSaveOptions options) {
