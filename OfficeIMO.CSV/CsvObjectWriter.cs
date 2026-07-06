@@ -303,7 +303,7 @@ public sealed class CsvObjectWriter : IDisposable
 
         if (_useDefaultWritePath)
         {
-            CsvWriter.WriteRecordDefaultAdaptive(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
             return;
         }
 
@@ -554,7 +554,7 @@ public sealed class CsvObjectWriter : IDisposable
     {
         if (_useDefaultWritePath)
         {
-            CsvWriter.WriteRecordDefaultAdaptive(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
             return;
         }
 
