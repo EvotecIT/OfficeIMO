@@ -251,6 +251,23 @@ internal static partial class CsvParser
                 if (((quoteMask >> terminalOffset) & 1u) != 0)
                 {
                     encounteredQuote = true;
+                    if (delimiterCount <= 2 &&
+                        TryReadTextQuoteAwareRecordFieldSpansAvx2(
+                            text,
+                            delimiter,
+                            allowEmpty,
+                            emitFields,
+                            recordIndex,
+                            start,
+                            ref position,
+                            ref fieldVisitor,
+                            ref scratch,
+                            out fieldCount,
+                            out firstFieldLength))
+                    {
+                        return true;
+                    }
+
                     var quoteIndex = pos + terminalOffset;
                     if (delimiterCount >= TextQuotedPrefixReuseMinimumDelimiterCount &&
                         (TryReadTextQuotedRecordFieldSpansFromPrefix(
