@@ -1019,6 +1019,8 @@ public static class OfficeDrawingRasterRenderer {
             glowShape.FillGradient = null;
             glowShape.FillRadialGradient = null;
             glowShape.StrokeColor = glow.Color;
+            glowShape.StrokeGradient = null;
+            glowShape.StrokeRadialGradient = null;
             glowShape.StrokeWidth = Math.Max(1D, baseStrokeWidth + glow.Radius * 2D * factor);
             glowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
             glowShape.StrokeStartMarker = null;
@@ -1074,6 +1076,8 @@ public static class OfficeDrawingRasterRenderer {
         shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
         shadowShape.FillOpacity = opacity;
         shadowShape.StrokeColor = hasStroke ? shadow.Color : null;
+        shadowShape.StrokeGradient = null;
+        shadowShape.StrokeRadialGradient = null;
         shadowShape.StrokeWidth = strokeWidth;
         shadowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
         shadowShape.StrokeStartMarker = null;

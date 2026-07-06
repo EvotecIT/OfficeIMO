@@ -258,7 +258,16 @@ public static partial class OfficeSvgFormatting {
             .Append(FormatNumber(gradient.StartX * 100D))
             .Append("%\" fy=\"")
             .Append(FormatNumber(gradient.StartY * 100D))
-            .Append("%\">");
+            .Append('%')
+            .Append('"');
+
+        if (gradient.StartRadius > 0D) {
+            builder.Append(" fr=\"")
+                .Append(FormatNumber(gradient.StartRadius * 100D))
+                .Append("%\"");
+        }
+
+        builder.Append('>');
 
         for (int i = 0; i < gradient.Stops.Count; i++) {
             OfficeGradientStop stop = gradient.Stops[i];

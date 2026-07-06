@@ -786,11 +786,13 @@ public sealed partial class PdfReadPage {
             return false;
         }
 
+        if (x + width <= clip.X || y + height <= clip.Y || x >= clipRight || y >= clipBottom) {
+            return true;
+        }
+
         double localX = x - clip.X;
         double localY = y - clip.Y;
-        if (localX < 0D ||
-            localY < 0D ||
-            clip.X < 0D ||
+        if (clip.X < 0D ||
             clip.Y < 0D ||
             clip.Width <= 0D ||
             clip.Height <= 0D ||

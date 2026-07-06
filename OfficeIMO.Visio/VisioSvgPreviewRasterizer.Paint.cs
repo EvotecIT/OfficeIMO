@@ -51,14 +51,20 @@ namespace OfficeIMO.Visio {
                 Dictionary<string, string> style = context.StyleSheet.CreateStyle(element);
                 OfficeColor currentColor = ResolveColor(ReadPaint(element, style, "color"), inherited.CurrentColor, inherited.CurrentColor);
                 string? rawFill = ReadPaint(element, style, "fill");
+                string? rawStroke = ReadPaint(element, style, "stroke");
+                double ownOpacity = ReadOwnUnit(element, style, "opacity", 1D);
+                double fillOpacity = ReadUnit(element, style, "fill-opacity", 1D);
+                double strokeOpacity = ReadUnit(element, style, "stroke-opacity", 1D);
+                double explicitFillMultiplier = string.IsNullOrWhiteSpace(rawFill) ? 1D : inherited.Opacity;
+                double explicitStrokeMultiplier = string.IsNullOrWhiteSpace(rawStroke) ? 1D : inherited.Opacity;
                 OfficeColor fill = ResolveColor(rawFill, inherited.Fill, currentColor);
-                OfficeColor stroke = ResolveColor(ReadPaint(element, style, "stroke"), inherited.Stroke, currentColor);
-                double opacity = ReadUnit(element, style, "opacity", inherited.Opacity);
-                fill = ApplyAlpha(fill, opacity * ReadUnit(element, style, "fill-opacity", 1D));
-                stroke = ApplyAlpha(stroke, opacity * ReadUnit(element, style, "stroke-opacity", 1D));
+                OfficeColor stroke = ResolveColor(rawStroke, inherited.Stroke, currentColor);
+                double opacity = inherited.Opacity * ownOpacity;
+                fill = ApplyAlpha(fill, explicitFillMultiplier * ownOpacity * fillOpacity);
+                stroke = ApplyAlpha(stroke, explicitStrokeMultiplier * ownOpacity * strokeOpacity);
                 OfficeLinearGradient? fillGradient = string.IsNullOrWhiteSpace(rawFill) ? inherited.FillGradient : null;
                 OfficeRadialGradient? fillRadialGradient = string.IsNullOrWhiteSpace(rawFill) ? inherited.FillRadialGradient : null;
-                if (TryResolveFillGradient(rawFill, context, opacity * ReadUnit(element, style, "fill-opacity", 1D), currentColor, out OfficeLinearGradient? resolvedFillGradient, out OfficeRadialGradient? resolvedFillRadialGradient)) {
+                if (TryResolveFillGradient(rawFill, context, explicitFillMultiplier * ownOpacity * fillOpacity, currentColor, out OfficeLinearGradient? resolvedFillGradient, out OfficeRadialGradient? resolvedFillRadialGradient)) {
                     fillGradient = resolvedFillGradient;
                     fillRadialGradient = resolvedFillRadialGradient;
                 }
@@ -86,6 +92,9 @@ namespace OfficeIMO.Visio {
 
                 return Math.Max(0D, Math.Min(1D, parsed));
             }
+
+            private static double ReadOwnUnit(XElement element, Dictionary<string, string> style, string name, double fallback) =>
+                ReadUnit(element, style, name, fallback);
 
             private static IReadOnlyList<double>? ReadDashPattern(XElement element, Dictionary<string, string> style, IReadOnlyList<double>? inherited) {
                 string? raw = element.Attribute("stroke-dasharray")?.Value ?? (style.TryGetValue("stroke-dasharray", out string? value) ? value : null);

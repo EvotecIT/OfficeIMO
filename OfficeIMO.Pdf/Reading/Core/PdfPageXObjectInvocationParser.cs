@@ -558,8 +558,9 @@ internal static class PdfPageXObjectInvocationParser {
                 return false;
             }
 
-            long bitCount = (long)width * height * components * bitsPerComponent;
-            long byteCount = (bitCount + 7L) / 8L;
+            long rowBitCount = (long)width * components * bitsPerComponent;
+            long rowByteCount = (rowBitCount + 7L) / 8L;
+            long byteCount = rowByteCount * height;
             if (byteCount <= 0L || byteCount > int.MaxValue) {
                 return false;
             }

@@ -937,23 +937,29 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        double slot = plotWidth / categories.Count;
-        double groupWidth = slot * 0.68D;
-        bool horizontal = IsBarChart(snapshot.ChartKind);
-        bool stacked = IsStackedBarOrColumnChart(snapshot.ChartKind) || IsPercentStackedBarOrColumnChart(snapshot.ChartKind);
-        bool percentStacked = IsPercentStackedBarOrColumnChart(snapshot.ChartKind);
-        int barSeriesCount = HasMixedCartesianSeriesKinds(snapshot)
-            ? series.Count(item => ShouldRenderSeriesAsBarOrColumn(snapshot, item))
-            : series.Count;
-        if (barSeriesCount == 0) {
+        var barSeries = new List<(OfficeChartSeries Series, int SourceIndex)>();
+        for (int i = 0; i < series.Count; i++) {
+            if (ShouldRenderSeriesAsBarOrColumn(snapshot, series[i])) {
+                barSeries.Add((series[i], i));
+            }
+        }
+
+        if (barSeries.Count == 0) {
             return;
         }
 
+        IReadOnlyList<OfficeChartSeries> barSeriesValues = barSeries.Select(item => item.Series).ToArray();
+        double slot = plotWidth / categories.Count;
+        double groupWidth = slot * 0.68D;
+        bool horizontal = barSeries.Any(item => IsBarChart(GetEffectiveSeriesKind(snapshot, item.Series)));
+        bool stacked = barSeries.Any(item => IsStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)) || IsPercentStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)));
+        bool percentStacked = barSeries.Any(item => IsPercentStackedBarOrColumnChart(GetEffectiveSeriesKind(snapshot, item.Series)));
+        int barSeriesCount = barSeries.Count;
         double barWidth = Math.Max(2D, stacked ? groupWidth : groupWidth / barSeriesCount);
         ValueRange range = percentStacked
-            ? GetPercentStackedSeriesRange(series, categories.Count)
+            ? GetPercentStackedSeriesRange(barSeriesValues, categories.Count)
             : stacked
-                ? GetStackedSeriesRange(series, categories.Count)
+                ? GetStackedSeriesRange(barSeriesValues, categories.Count)
                 : GetCartesianValueRange(snapshot);
         range = ApplyValueAxisScale(range, layout, horizontal);
         bool hasValueAxisScale = HasValueAxisScale(layout, horizontal);
@@ -967,17 +973,16 @@ public static partial class OfficeChartDrawingRenderer {
             double positiveBase = 0D;
             double negativeBase = 0D;
             int barSeriesOrdinal = 0;
-            for (int s = 0; s < series.Count; s++) {
-                if (!ShouldRenderSeriesAsBarOrColumn(snapshot, series[s])) {
-                    continue;
-                }
+            for (int s = 0; s < barSeries.Count; s++) {
+                OfficeChartSeries currentSeries = barSeries[s].Series;
+                int sourceSeriesIndex = barSeries[s].SourceIndex;
 
-                if (!TryGetSeriesValue(series[s], category, out double value)) {
+                if (!TryGetSeriesValue(currentSeries, category, out double value)) {
                     barSeriesOrdinal++;
                     continue;
                 }
 
-                if (value == 0D && !ShouldShowDataLabel(layout, s, category)) {
+                if (value == 0D && !ShouldShowDataLabel(layout, sourceSeriesIndex, category)) {
                     continue;
                 }
 
@@ -985,7 +990,7 @@ public static partial class OfficeChartDrawingRenderer {
                 double plottedValue = value;
                 if (stacked) {
                     if (percentStacked) {
-                        plottedValue = NormalizePercentStackedValue(series, category, value);
+                        plottedValue = NormalizePercentStackedValue(barSeriesValues, category, value);
                     }
 
                     baseline = plottedValue >= 0D ? positiveBase : negativeBase;
@@ -996,9 +1001,9 @@ public static partial class OfficeChartDrawingRenderer {
                     }
                 }
 
-                OfficeColor color = GetSeriesColor(style, series, s);
-                if (series[s].PointColors != null && category < series[s].PointColors!.Count && series[s].PointColors![category].HasValue) {
-                    color = GetPointColor(style, series[s].PointColors, category);
+                OfficeColor color = GetSeriesColor(style, series, sourceSeriesIndex);
+                if (currentSeries.PointColors != null && category < currentSeries.PointColors!.Count && currentSeries.PointColors![category].HasValue) {
+                    color = GetPointColor(style, currentSeries.PointColors, category);
                 }
 
                 if (horizontal) {
@@ -1022,14 +1027,14 @@ public static partial class OfficeChartDrawingRenderer {
                         layout,
                         style,
                         categories[category],
-                        series[s],
+                        currentSeries,
                         value,
-                        GetDataLabelCategoryTotal(series, category),
+                        GetDataLabelCategoryTotal(barSeriesValues, category),
                         x,
                         x + w,
                         y,
                         y + rowHeight,
-                        s,
+                        sourceSeriesIndex,
                         category);
                 } else {
                     int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
@@ -1049,13 +1054,13 @@ public static partial class OfficeChartDrawingRenderer {
                         layout,
                         style,
                         categories[category],
-                        series[s],
+                        currentSeries,
                         value,
-                        GetDataLabelCategoryTotal(series, category),
+                        GetDataLabelCategoryTotal(barSeriesValues, category),
                         x + barWidth * 0.44D,
                         y,
                         y + h,
-                        s,
+                        sourceSeriesIndex,
                         category);
                 }
 

@@ -685,9 +685,8 @@ namespace OfficeIMO.Word {
                     } else if (element is DeletedRun || element is MoveFromRun) {
                         // Image export follows Word's final view by default: inserted/moved-to text is visible, deleted/moved-from text is hidden.
                     } else if (element is Hyperlink hyperlink) {
-                        foreach (OpenXmlElement child in hyperlink.ChildElements) {
-                            ProcessElement(child, hyperlink);
-                        }
+                        wordParagraph = new WordParagraph(document, paragraph, hyperlink);
+                        list.Add(wordParagraph);
                     } else if (element is SimpleField simpleField) {
                         if (!ProcessSimpleFieldWithHardBreaks(simpleField, hyperlinkContext)) {
                             wordParagraph = new WordParagraph(document, paragraph, simpleField);
@@ -707,9 +706,7 @@ namespace OfficeIMO.Word {
                         wordParagraph = new WordParagraph(document, paragraph, mathParagraph);
                         list.Add(wordParagraph);
                     } else if (element is SdtRun sdtRun) {
-                        if (!ProcessInlineContentControl(sdtRun, hyperlinkContext)) {
-                            list.Add(new WordParagraph(document, paragraph, sdtRun));
-                        }
+                        list.Add(new WordParagraph(document, paragraph, sdtRun));
                     } else if (element is ProofError) {
 
                     } else if (element is ParagraphProperties) {
@@ -717,23 +714,6 @@ namespace OfficeIMO.Word {
                     } else {
                         Debug.WriteLine("Please implement me! " + element.GetType().Name);
                     }
-                }
-
-                bool ProcessInlineContentControl(SdtRun sdtRun, Hyperlink? hyperlinkContext) {
-                    SdtContentRun? contentRun = sdtRun.SdtContentRun;
-                    if (contentRun == null || contentRun.ChildElements.Count == 0) {
-                        return false;
-                    }
-
-                    bool processed = false;
-                    foreach (OpenXmlElement child in contentRun.ChildElements) {
-                        if (CanProcessInlineContentControlChild(child)) {
-                            ProcessElement(child, hyperlinkContext);
-                            processed = true;
-                        }
-                    }
-
-                    return processed;
                 }
 
                 bool ProcessSimpleFieldWithHardBreaks(SimpleField simpleField, Hyperlink? hyperlinkContext) {
@@ -760,15 +740,6 @@ namespace OfficeIMO.Word {
 
                     return true;
                 }
-
-                static bool CanProcessInlineContentControlChild(OpenXmlElement child) =>
-                    child is Run ||
-                    child is InsertedRun ||
-                    child is MoveToRun ||
-                    child is DeletedRun ||
-                    child is MoveFromRun ||
-                    child is Hyperlink ||
-                    child is SdtRun;
 
                 foreach (var element in paragraph.ChildElements) {
                     ProcessElement(element);

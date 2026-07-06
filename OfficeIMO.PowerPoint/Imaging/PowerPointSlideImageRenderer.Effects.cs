@@ -45,7 +45,8 @@ namespace OfficeIMO.PowerPoint {
         private static bool TryCreateShadow(A.OuterShadow shadow, A.ColorScheme? colorScheme, PowerPointShapeBoundsMapping mapping, out OfficeShadow? officeShadow) {
             officeShadow = null;
             double distance = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.Distance?.Value ?? 0L));
-            if (distance <= 0D) {
+            double blurRadius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.BlurRadius?.Value ?? 0L));
+            if (distance <= 0D && blurRadius <= 0D) {
                 return false;
             }
 
@@ -58,7 +59,6 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
-            double blurRadius = mapping.MapHorizontalLength(PowerPointUnits.ToPoints(shadow.BlurRadius?.Value ?? 0L));
             double angleDegrees = (shadow.Direction?.Value ?? 0) / DrawingMlAngleUnitsPerDegree;
             double radians = angleDegrees * Math.PI / 180D;
             double offsetX = Math.Cos(radians) * distance;
