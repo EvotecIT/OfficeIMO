@@ -127,11 +127,10 @@ internal static partial class PdfWriter {
         var resolved = new System.Collections.Generic.Dictionary<int, PdfStandardFont>();
         var used = new System.Collections.Generic.HashSet<PdfStandardFont>();
         var reservedDocumentSlots = CreateReservedDocumentFontSlots(options);
-        var plannedCandidateIndexes = plan.Segments
+        var plannedCandidateIndexes = new System.Collections.Generic.HashSet<int>(plan.Segments
             .Select(segment => segment.FontIndex)
             .Where(index => index >= 0 && index < fallbackSet.Candidates.Count)
-            .Distinct()
-            .ToHashSet();
+            .Distinct());
 
         foreach (int index in plannedCandidateIndexes.OrderBy(index => index)) {
             PdfEmbeddedFontFallbackCandidate candidate = fallbackSet.Candidates[index];
