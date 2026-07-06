@@ -53,7 +53,9 @@ namespace OfficeIMO.Word.Pdf {
                 }
 
                 if (PdfCore.PdfStandardFontMapper.TryMapFontFamily(trimmedFamilyName, out PdfCore.PdfStandardFont mappedFont)) {
-                    nativeFontMap.Register(trimmedFamilyName, PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont));
+                    PdfCore.PdfStandardFont mappedFamily = PdfCore.PdfStandardFontMapper.GetFontFamily(mappedFont);
+                    registeredFontSlots.Add(mappedFamily);
+                    nativeFontMap.Register(trimmedFamilyName, mappedFamily);
                 }
             }
         }
