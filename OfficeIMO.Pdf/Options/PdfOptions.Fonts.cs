@@ -69,6 +69,10 @@ public sealed partial class PdfOptions {
     /// <param name="requireEmbeddedFont">When true, returns true only when an installed monospace fallback face was embedded.</param>
     /// <returns>True when the fallback changed the generated font state and, when requested, embedded a monospace font mapping.</returns>
     public bool TryRegisterDefaultDocumentMonospaceFontFallback(bool requireEmbeddedFont = false) {
+        if (_embeddedFontFallbacks?.FontSlots.Any(slot => PdfStandardFontMapper.GetFontFamily(slot) == PdfStandardFont.Courier) == true) {
+            return false;
+        }
+
         string beforeEmbeddedFonts = CaptureEmbeddedFontState();
         RegisterOfficeFontFamily(DefaultDocumentMonospaceFontFamilyFallback, PdfStandardFont.Courier);
         bool changed = !string.Equals(beforeEmbeddedFonts, CaptureEmbeddedFontState(), StringComparison.Ordinal);

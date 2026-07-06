@@ -122,6 +122,27 @@ public class PdfFontFamilyTests {
     }
 
     [Fact]
+    public void PdfOptions_UseTextFallbacksKeepsSymbolFallbackSlotAheadOfMonospaceFallback() {
+        if (!DefaultTextSymbolFallbackFontIsAvailable()) {
+            return;
+        }
+
+        var options = new PdfOptions()
+            .UseOfficeFontFamily(PdfOptions.DefaultDocumentFontFamilyFallback)
+            .UseTextFallbacks();
+
+        PdfEmbeddedFontFallbackSet? fallbackSet = options.EmbeddedFontFallbacks;
+        if (fallbackSet == null) {
+            return;
+        }
+
+        Assert.Contains(
+            PdfStandardFont.Courier,
+            fallbackSet.FontSlots.Select(PdfStandardFontMapper.GetFontFamily));
+        Assert.False(options.TryRegisterDefaultDocumentMonospaceFontFallback());
+    }
+
+    [Fact]
     public void PdfOptions_TryUseDefaultDocumentFontFallbackEmbedsUnicodeCapableGeneratedText() {
         var options = new PdfOptions {
             CompressContentStreams = false

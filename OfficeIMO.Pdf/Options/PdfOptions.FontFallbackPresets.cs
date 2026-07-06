@@ -36,15 +36,15 @@ public sealed partial class PdfOptions {
             }
         }
 
+        if ((features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
+            AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.TimesRoman);
+            TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback, reservedFontSlots: reservedSlots);
+        }
+
         if ((features & PdfTextFallbackFeatures.MonospaceFont) != 0) {
             if (!reservedSlots.Contains(PdfStandardFont.Courier)) {
                 TryRegisterDefaultDocumentMonospaceFontFallback(requireEmbeddedFont: false);
             }
-        }
-
-        if ((features & PdfTextFallbackFeatures.SymbolAndEmojiFonts) != 0) {
-            AddRegisteredFontFamilySlot(reservedSlots, PdfStandardFont.TimesRoman);
-            TryRegisterEmbeddedFontFallbacksFromSystem(DefaultDocumentSymbolAndEmojiFontFamilyFallback, reservedFontSlots: reservedSlots);
         }
 
         return this;
