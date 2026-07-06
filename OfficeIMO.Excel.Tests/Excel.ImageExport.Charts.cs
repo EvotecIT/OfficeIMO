@@ -139,7 +139,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void ExcelRange_ImageExportReportsComboChartSeriesTypeApproximation() {
+        public void ExcelRange_ImageExportRendersSupportedComboChartSeriesTypesIndependently() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
             ExcelSheet sheet = document.AddWorkSheet("Combo");
@@ -149,13 +149,29 @@ namespace OfficeIMO.Tests {
                     new ExcelChartSeries("Sales", new[] { 10D, 20D, 30D }, ExcelChartType.ColumnClustered),
                     new ExcelChartSeries("Trend", new[] { 12D, 18D, 28D }, ExcelChartType.Line)
                 });
-            sheet.AddChart(data, row: 1, column: 4, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo");
+            ExcelChart chart = sheet.AddChart(data, row: 1, column: 4, widthPixels: 260, heightPixels: 170, type: ExcelChartType.ColumnClustered, title: "Combo");
+            chart.SetSeriesLineColor(1, "DC2626", widthPoints: 2.5D);
 
-            OfficeImageExportResult png = sheet.Range("A1:H10").ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelRange range = sheet.Range("A1:H10");
+            var options = new ExcelImageExportOptions { ShowGridlines = false, Scale = 3D };
+            ExcelVisualChart visualChart = Assert.Single(range.CreateVisualSnapshot(options).Charts);
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
 
-            Assert.Contains(png.Diagnostics, diagnostic =>
+            Assert.DoesNotContain(png.Diagnostics, diagnostic =>
                 diagnostic.Code == ExcelImageExportDiagnosticCodes.ChartKindApproximated &&
                 diagnostic.Message.Contains("combo chart", StringComparison.OrdinalIgnoreCase));
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            Assert.True(
+                ContainsPixelNear(
+                    rendered!,
+                    visualChart.X * options.Scale,
+                    visualChart.Y * options.Scale,
+                    (visualChart.X + visualChart.Width) * options.Scale,
+                    (visualChart.Y + visualChart.Height) * options.Scale,
+                    OfficeColor.FromRgb(220, 38, 38),
+                    tolerance: 36),
+                "Expected the supported combo chart to render the line-series color over the column series.");
         }
 
         [Fact]

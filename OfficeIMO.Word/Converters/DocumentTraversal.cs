@@ -171,6 +171,8 @@ namespace OfficeIMO.Word {
             foreach (KeyValuePair<int, List<WordParagraph>> listItems in itemsByNumberId) {
                 Dictionary<int, int> indices = new();
                 Dictionary<int, NumberFormatValues?> formats = new();
+                int lastLevel = 0;
+                bool first = true;
                 foreach (WordParagraph item in listItems.Value) {
                     ListInfo? info = GetListInfo(item, definitions);
                     if (info == null) {
@@ -178,6 +180,19 @@ namespace OfficeIMO.Word {
                     }
 
                     int level = info.Value.Level;
+                    if (first) {
+                        lastLevel = level;
+                        first = false;
+                    }
+
+                    if (level < lastLevel) {
+                        foreach (int key in indices.Keys.Where(key => key > level).ToList()) {
+                            indices.Remove(key);
+                            formats.Remove(key);
+                        }
+                    }
+
+                    lastLevel = level;
                     if (!indices.ContainsKey(level)) {
                         indices[level] = info.Value.Start;
                         formats[level] = info.Value.NumberFormat;

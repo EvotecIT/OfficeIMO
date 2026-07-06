@@ -11,7 +11,7 @@ namespace OfficeIMO.Word {
     /// <summary>
     /// Represents a SmartArt diagram in a <see cref="WordDocument"/>.
     /// </summary>
-    public class WordSmartArt : WordElement {
+    public partial class WordSmartArt : WordElement {
         private static int _docPrIdSeed = 1;
 
         private static UInt32Value GenerateDocPrId() {
@@ -382,6 +382,8 @@ namespace OfficeIMO.Word {
         /// Indicates whether this SmartArt type supports adding/removing/reordering nodes.
         /// </summary>
         public bool CanModifyNodes => _type == SmartArtType.BasicProcess || _type == SmartArtType.Cycle;
+
+        internal SmartArtType? LayoutType => _type;
 
         private (XDocument xdoc, (XNamespace dgm, XNamespace a) ns, List<XElement> paras) LoadNodeParagraphs() {
             var dataPart = GetDiagramDataPart();

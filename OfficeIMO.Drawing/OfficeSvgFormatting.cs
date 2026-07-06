@@ -235,6 +235,52 @@ public static partial class OfficeSvgFormatting {
     }
 
     /// <summary>
+    /// Appends a reusable SVG radial-gradient definition.
+    /// </summary>
+    /// <param name="builder">Markup builder.</param>
+    /// <param name="id">Gradient identifier.</param>
+    /// <param name="gradient">Gradient definition.</param>
+    /// <returns>The supplied builder for call chaining.</returns>
+    public static StringBuilder AppendRadialGradientDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) {
+        if (gradient == null) {
+            throw new ArgumentNullException(nameof(gradient));
+        }
+
+        builder.Append("<defs><radialGradient id=\"")
+            .Append(Escape(id))
+            .Append("\" cx=\"")
+            .Append(FormatNumber(gradient.EndX * 100D))
+            .Append("%\" cy=\"")
+            .Append(FormatNumber(gradient.EndY * 100D))
+            .Append("%\" r=\"")
+            .Append(FormatNumber(gradient.EndRadius * 100D))
+            .Append("%\" fx=\"")
+            .Append(FormatNumber(gradient.StartX * 100D))
+            .Append("%\" fy=\"")
+            .Append(FormatNumber(gradient.StartY * 100D))
+            .Append("%\">");
+
+        for (int i = 0; i < gradient.Stops.Count; i++) {
+            OfficeGradientStop stop = gradient.Stops[i];
+            builder.Append("<stop offset=\"")
+                .Append(FormatNumber(stop.Offset * 100D))
+                .Append("%\" stop-color=\"")
+                .Append(ToCssColor(stop.Color))
+                .Append('"');
+
+            double opacity = ToOpacity(stop.Color);
+            if (opacity < 1D) {
+                builder.AppendNumberAttribute("stop-opacity", opacity);
+            }
+
+            builder.Append("/>");
+        }
+
+        builder.Append("</radialGradient></defs>");
+        return builder;
+    }
+
+    /// <summary>
     /// Converts a stroke line cap value to an SVG attribute value.
     /// </summary>
     /// <param name="cap">Stroke line cap.</param>

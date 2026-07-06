@@ -86,10 +86,10 @@ public sealed partial class OfficeRasterCanvas {
                 SlantContours(contours, top, size);
             }
 
-            FillContours(contours, color);
+            FillContours(contours, color, OfficeFillRule.EvenOdd);
             if ((style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
                 OffsetContours(contours, 0.45D, 0D);
-                FillContours(contours, color);
+                FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
 
             if ((style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline) {
@@ -164,7 +164,7 @@ public sealed partial class OfficeRasterCanvas {
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
-            FillContours(contours, color);
+            FillContours(contours, color, OfficeFillRule.EvenOdd);
             if (bold) {
                 contours = TransformTextContours(
                     font.GetTextContours(value, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
@@ -175,7 +175,7 @@ public sealed partial class OfficeRasterCanvas {
                     rotationCenterY,
                     flipHorizontal,
                     flipVertical);
-                FillContours(contours, color);
+                FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
 
             DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);

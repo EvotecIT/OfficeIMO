@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     /// <summary>
@@ -101,6 +102,18 @@ namespace OfficeIMO.PowerPoint {
         /// Initializes a new chart series with optional numeric X-axis values for scatter charts.
         /// </summary>
         public PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues) {
+            Initialize(name, values, xValues, chartKind: null);
+        }
+
+        internal PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, PowerPointChartSnapshotKind? chartKind) {
+            Initialize(name, values, xValues, chartKind, color: null, strokeWidth: null);
+        }
+
+        internal PowerPointChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, PowerPointChartSnapshotKind? chartKind, OfficeColor? color, double? strokeWidth) {
+            Initialize(name, values, xValues, chartKind, color, strokeWidth);
+        }
+
+        private void Initialize(string name, IEnumerable<double> values, IEnumerable<double>? xValues, PowerPointChartSnapshotKind? chartKind, OfficeColor? color = null, double? strokeWidth = null) {
             if (name == null) {
                 throw new System.ArgumentNullException(nameof(name));
             }
@@ -117,22 +130,41 @@ namespace OfficeIMO.PowerPoint {
                     throw new ArgumentException("Series X-axis values must match the number of series values.", nameof(xValues));
                 }
             }
+
+            ChartKind = chartKind;
+            Color = color;
+            StrokeWidth = strokeWidth;
         }
 
         /// <summary>
         /// Series display name.
         /// </summary>
-        public string Name { get; }
+        public string Name { get; private set; } = string.Empty;
 
         /// <summary>
         /// Series values aligned with chart categories.
         /// </summary>
-        public IReadOnlyList<double> Values { get; }
+        public IReadOnlyList<double> Values { get; private set; } = Array.Empty<double>();
 
         /// <summary>
         /// Optional numeric X-axis values for this series.
         /// </summary>
-        public IReadOnlyList<double>? XValues { get; }
+        public IReadOnlyList<double>? XValues { get; private set; }
+
+        /// <summary>
+        /// Optional chart kind for mixed/combo chart rendering.
+        /// </summary>
+        public PowerPointChartSnapshotKind? ChartKind { get; private set; }
+
+        /// <summary>
+        /// Optional source-defined series color for exported snapshots.
+        /// </summary>
+        public OfficeColor? Color { get; private set; }
+
+        /// <summary>
+        /// Optional source-defined series stroke width for exported snapshots.
+        /// </summary>
+        public double? StrokeWidth { get; private set; }
     }
 
     /// <summary>

@@ -971,6 +971,7 @@ namespace OfficeIMO.Excel {
             HorizontalAlignment != null ||
             VerticalAlignment != null ||
             TextRotation.HasValue ||
+            TextIndent.HasValue ||
             ShrinkToFit;
 
         /// <summary>
@@ -987,6 +988,11 @@ namespace OfficeIMO.Excel {
         /// Vertical alignment value, when specified.
         /// </summary>
         public string? VerticalAlignment { get; internal set; }
+
+        /// <summary>
+        /// Indentation level from the resolved cell alignment, when specified.
+        /// </summary>
+        public uint? TextIndent { get; internal set; }
 
         /// <summary>
         /// Whether wrap text is enabled.

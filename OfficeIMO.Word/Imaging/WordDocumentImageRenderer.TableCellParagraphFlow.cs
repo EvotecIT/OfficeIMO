@@ -18,7 +18,8 @@ namespace OfficeIMO.Word {
             IReadOnlyList<IReadOnlyList<WordParagraph>> paragraphRuns,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
             A.ColorScheme? colorScheme,
-            List<OfficeImageExportDiagnostic> diagnostics) {
+            List<OfficeImageExportDiagnostic> diagnostics,
+            WordImageFlowContext? parentContext = null) {
             double flowHeight = EstimateTableCellParagraphFlowHeight(paragraphRuns, contentWidth, listMarkers, colorScheme);
             double flowTop = contentTop + ResolveTableCellVerticalOffset(cell.VerticalAlignment, contentHeight, flowHeight);
             WordImageFlowContext context = CreateFlowContext(
@@ -28,7 +29,13 @@ namespace OfficeIMO.Word {
                 contentWidth,
                 contentBottom,
                 "unsupported-word-table-cell-text-overflow",
-                "Skipped Word table cell text because it does not fit within the cell content area.");
+                "Skipped Word table cell text because it does not fit within the cell content area.",
+                resolveDynamicPageFields: parentContext?.ResolveDynamicPageFields ?? false,
+                totalPageCount: parentContext?.TotalPageCount ?? 1,
+                sectionNumber: parentContext?.SectionNumber ?? 1,
+                sectionPageCount: parentContext?.SectionPageCount ?? 1,
+                pageNumberValue: parentContext?.PageNumberValue ?? 0,
+                pageNumberText: parentContext?.PageNumberText);
 
             AddTableCellParagraphRuns(paragraphRuns, context, diagnostics, listMarkers, colorScheme);
         }
@@ -102,6 +109,7 @@ namespace OfficeIMO.Word {
             var paragraphs = new List<List<WordParagraph>>();
             foreach (Paragraph paragraph in cell._tableCell.ChildElements.OfType<Paragraph>()) {
                 List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph)
+                    .Where(run => !run.IsPageBreak && !run.IsColumnBreak)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
                 if (paragraphRuns.Count > 0) {

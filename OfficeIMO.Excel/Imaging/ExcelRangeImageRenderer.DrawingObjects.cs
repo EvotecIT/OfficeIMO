@@ -55,6 +55,11 @@ namespace OfficeIMO.Excel {
             shape.FillColor = ResolveArgb(drawingObject.FillColorArgb);
             shape.StrokeColor = ResolveArgb(drawingObject.StrokeColorArgb);
             shape.StrokeWidth = drawingObject.StrokeWidth <= 0D ? 0D : Math.Max(1D, drawingObject.StrokeWidth * scale);
+            shape.StrokeDashStyle = drawingObject.StrokeDashStyle;
+            shape.StrokeLineCap = drawingObject.StrokeLineCap;
+            shape.StrokeLineJoin = drawingObject.StrokeLineJoin;
+            shape.Glow = ScaleGlow(drawingObject.Glow, scale);
+            shape.Shadow = ScaleShadow(drawingObject.Shadow, scale);
             double offsetX = 0D;
             double offsetY = 0D;
             if (drawingObject.HasRotation) {
@@ -62,6 +67,7 @@ namespace OfficeIMO.Excel {
                 ExpandRotatedShapeBounds(width, height, drawingObject.RotationDegrees, shape.StrokeWidth, out offsetX, out offsetY);
             }
 
+            ExpandEffectBounds(shape, ref offsetX, ref offsetY);
             var drawing = new OfficeDrawing(width + (offsetX * 2D), height + (offsetY * 2D));
             drawing.AddShape(shape, offsetX, offsetY);
 
@@ -166,6 +172,30 @@ namespace OfficeIMO.Excel {
             return normalized < 0D
                 ? normalized + 360D
                 : normalized;
+        }
+
+        private static OfficeGlow? ScaleGlow(OfficeGlow? glow, double scale) =>
+            glow == null
+                ? null
+                : new OfficeGlow(glow.Color, glow.Opacity, glow.Radius * scale);
+
+        private static OfficeShadow? ScaleShadow(OfficeShadow? shadow, double scale) =>
+            shadow == null
+                ? null
+                : new OfficeShadow(shadow.Color, shadow.Opacity, shadow.OffsetX * scale, shadow.OffsetY * scale, shadow.BlurRadius * scale);
+
+        private static void ExpandEffectBounds(OfficeShape shape, ref double offsetX, ref double offsetY) {
+            if (shape.Glow != null) {
+                offsetX = Math.Max(offsetX, shape.Glow.Radius);
+                offsetY = Math.Max(offsetY, shape.Glow.Radius);
+            }
+
+            if (shape.Shadow != null) {
+                double horizontal = Math.Abs(shape.Shadow.OffsetX) + shape.Shadow.BlurRadius;
+                double vertical = Math.Abs(shape.Shadow.OffsetY) + shape.Shadow.BlurRadius;
+                offsetX = Math.Max(offsetX, horizontal);
+                offsetY = Math.Max(offsetY, vertical);
+            }
         }
 
         private static void AddTextAutoFitUnsupportedDiagnostic(ExcelVisualDrawingObject drawingObject, List<OfficeImageExportDiagnostic>? diagnostics) {

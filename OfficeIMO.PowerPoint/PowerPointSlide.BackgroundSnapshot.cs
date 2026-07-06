@@ -108,6 +108,11 @@ namespace OfficeIMO.PowerPoint {
                 return PowerPointSlideBackground.SolidColor(solidColor!);
             }
 
+            A.GradientFill? gradientFill = fill as A.GradientFill ?? fill.GetFirstChild<A.GradientFill>();
+            if (gradientFill != null) {
+                return GetBackgroundGradient(gradientFill, colorScheme, styleReference.GetFirstChild<A.SchemeColor>());
+            }
+
             return PowerPointSlideBackground.Unsupported("The slide background references a theme background fill type that is not currently supported by OfficeIMO exporters.");
         }
 

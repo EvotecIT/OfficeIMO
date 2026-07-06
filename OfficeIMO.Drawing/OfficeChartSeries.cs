@@ -63,7 +63,8 @@ public sealed class OfficeChartSeries {
     /// <param name="markerOutlineWidth">Optional source-defined marker outline width in drawing units.</param>
     /// <param name="strokeWidth">Optional source-defined series stroke width in drawing units.</param>
     /// <param name="strokeDashStyle">Optional source-defined series stroke dash style.</param>
-    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null) {
+    /// <param name="renderKind">Optional per-series chart kind used by mixed/combo chart renderers.</param>
+    public OfficeChartSeries(string name, IEnumerable<double> values, IEnumerable<double>? xValues, OfficeColor? color, IEnumerable<OfficeColor?>? pointColors, bool showMarkers, bool showInLegend = true, bool connectLine = true, int? markerSize = null, OfficeChartMarkerShape? markerShape = null, OfficeColor? markerOutlineColor = null, double? markerOutlineWidth = null, double? strokeWidth = null, OfficeStrokeDashStyle? strokeDashStyle = null, OfficeChartKind? renderKind = null) {
         if (values == null) {
             throw new ArgumentNullException(nameof(values));
         }
@@ -96,6 +97,7 @@ public sealed class OfficeChartSeries {
         MarkerOutlineWidth = markerOutlineWidth;
         StrokeWidth = strokeWidth;
         StrokeDashStyle = strokeDashStyle;
+        RenderKind = renderKind;
         if (pointColors != null) {
             PointColors = new ReadOnlyCollection<OfficeColor?>(new List<OfficeColor?>(pointColors));
             if (PointColors.Count != Values.Count) {
@@ -139,6 +141,9 @@ public sealed class OfficeChartSeries {
 
     /// <summary>Optional source-defined series stroke dash style.</summary>
     public OfficeStrokeDashStyle? StrokeDashStyle { get; }
+
+    /// <summary>Optional per-series chart kind for mixed/combo chart rendering.</summary>
+    public OfficeChartKind? RenderKind { get; }
 
     /// <summary>Whether this series should appear in rendered legends.</summary>
     public bool ShowInLegend { get; }

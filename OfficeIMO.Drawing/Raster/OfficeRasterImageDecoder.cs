@@ -5,6 +5,11 @@ namespace OfficeIMO.Drawing;
 /// </summary>
 public static class OfficeRasterImageDecoder {
     /// <summary>
+    /// Human-readable summary of raster formats currently decoded by the managed renderer.
+    /// </summary>
+    public const string SupportedFormatDescription = "PNG, uncompressed BMP, and first-frame GIF image bytes";
+
+    /// <summary>
     /// Attempts to decode image bytes into an RGBA raster buffer supported by dependency-free export.
     /// </summary>
     public static bool TryDecode(byte[]? bytes, out OfficeRasterImage? image) =>

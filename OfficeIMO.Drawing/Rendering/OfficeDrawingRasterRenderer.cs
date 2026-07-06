@@ -70,7 +70,7 @@ public static class OfficeDrawingRasterRenderer {
         if (contours.Count > 0) {
             return contours.Count == 1
                 ? canvas.PushClipPolygon(contours[0])
-                : canvas.PushClipPolygonsEvenOdd(contours);
+                : PushClipPolygons(canvas, contours, drawingGroup.ClipPath.FillRule);
         }
 
         if (drawingGroup.FrameTransform.HasValue && drawingGroup.FrameTransform.Value.HasTransform) {
@@ -94,8 +94,14 @@ public static class OfficeDrawingRasterRenderer {
         new OfficePoint(point.X * scale, point.Y * scale);
 
     private static void RenderShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
-        if (TryCreateShadowShape(drawingShape, out OfficeDrawingShape shadowShape)) {
-            RenderShape(canvas, shadowShape, scale);
+        IReadOnlyList<OfficeDrawingShape> glowShapes = CreateGlowShapes(drawingShape);
+        for (int i = 0; i < glowShapes.Count; i++) {
+            RenderShape(canvas, glowShapes[i], scale);
+        }
+
+        IReadOnlyList<OfficeDrawingShape> shadowShapes = CreateShadowShapes(drawingShape);
+        for (int i = 0; i < shadowShapes.Count; i++) {
+            RenderShape(canvas, shadowShapes[i], scale);
         }
 
         IDisposable? clipScope = PushShapeClip(canvas, drawingShape, scale);
@@ -119,64 +125,79 @@ public static class OfficeDrawingRasterRenderer {
         double height = shape.Height * scale;
         OfficeColor? fill = ApplyOpacity(shape.FillColor, shape.FillOpacity);
         OfficeColor? stroke = ApplyOpacity(shape.StrokeColor, shape.StrokeOpacity);
+        OfficeRadialGradient? radialGradient = shape.FillRadialGradient == null ? null : ApplyOpacity(shape.FillRadialGradient, shape.FillOpacity);
+        OfficeLinearGradient? linearGradient = shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity);
+        OfficeRadialGradient? strokeRadialGradient = shape.StrokeRadialGradient == null ? null : ApplyOpacity(shape.StrokeRadialGradient, shape.StrokeOpacity);
+        OfficeLinearGradient? strokeLinearGradient = shape.StrokeGradient == null ? null : ApplyOpacity(shape.StrokeGradient, shape.StrokeOpacity);
         double strokeWidth = shape.StrokeWidth * scale;
 
         switch (shape.Kind) {
             case OfficeShapeKind.Rectangle:
-                if (shape.FillGradient != null) {
-                    canvas.FillLinearGradientRectangle(x, y, width, height, ApplyOpacity(shape.FillGradient, shape.FillOpacity));
+                if (radialGradient != null) {
+                    canvas.FillRadialGradientRectangle(x, y, width, height, radialGradient);
+                } else if (linearGradient != null) {
+                    canvas.FillLinearGradientRectangle(x, y, width, height, linearGradient);
                 } else if (fill.HasValue) {
                     canvas.FillRectangle(x, y, width, height, fill.Value);
                 }
 
-                if (stroke.HasValue && strokeWidth > 0D) {
+                if ((stroke.HasValue || strokeLinearGradient != null || strokeRadialGradient != null) && strokeWidth > 0D) {
                     if (shape.StrokeDashStyle == OfficeStrokeDashStyle.Solid) {
-                        canvas.DrawRectangle(x, y, width, height, stroke.Value, strokeWidth);
+                        DrawGradientOrSolidPolyline(canvas, CreateRectangleContour(x, y, width, height), stroke, strokeLinearGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: true);
                     } else {
-                        canvas.DrawStyledPolygon(CreateRectangleContour(x, y, width, height), stroke.Value, strokeWidth, shape.StrokeDashStyle);
+                        DrawGradientOrSolidPolyline(canvas, CreateRectangleContour(x, y, width, height), stroke, strokeLinearGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: true);
                     }
                 }
 
                 break;
             case OfficeShapeKind.RoundedRectangle:
                 IReadOnlyList<OfficePoint> rounded = OffsetPoints(CreateRoundedRectangleContour(width, height, shape.CornerRadius * scale, 8), x, y, 1D);
-                if (shape.FillGradient != null) {
+                if (radialGradient != null) {
                     using (canvas.PushClipPolygon(rounded)) {
-                        canvas.FillLinearGradientRectangle(x, y, width, height, ApplyOpacity(shape.FillGradient, shape.FillOpacity));
+                        canvas.FillRadialGradientRectangle(x, y, width, height, radialGradient);
+                    }
+                } else if (linearGradient != null) {
+                    using (canvas.PushClipPolygon(rounded)) {
+                        canvas.FillLinearGradientRectangle(x, y, width, height, linearGradient);
                     }
                 } else if (fill.HasValue) {
                     canvas.FillPolygon(rounded, fill.Value);
                 }
 
-                if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(rounded, stroke.Value, strokeWidth, shape.StrokeDashStyle);
+                DrawGradientOrSolidPolyline(canvas, rounded, stroke, strokeLinearGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: true);
                 break;
             case OfficeShapeKind.Ellipse:
-                if (shape.FillGradient != null) {
+                if (radialGradient != null) {
                     IReadOnlyList<OfficePoint> ellipse = OffsetPoints(CreateEllipseContour(width, height, 96), x, y, 1D);
                     using (canvas.PushClipPolygon(ellipse)) {
-                        canvas.FillLinearGradientRectangle(x, y, width, height, ApplyOpacity(shape.FillGradient, shape.FillOpacity));
+                        canvas.FillRadialGradientRectangle(x, y, width, height, radialGradient);
+                    }
+                } else if (linearGradient != null) {
+                    IReadOnlyList<OfficePoint> ellipse = OffsetPoints(CreateEllipseContour(width, height, 96), x, y, 1D);
+                    using (canvas.PushClipPolygon(ellipse)) {
+                        canvas.FillLinearGradientRectangle(x, y, width, height, linearGradient);
                     }
                 } else if (fill.HasValue) {
                     canvas.FillEllipse(x, y, width, height, fill.Value);
                 }
 
-                if (stroke.HasValue && strokeWidth > 0D) {
+                if ((stroke.HasValue || strokeLinearGradient != null || strokeRadialGradient != null) && strokeWidth > 0D) {
                     if (shape.StrokeDashStyle == OfficeStrokeDashStyle.Solid) {
-                        canvas.DrawEllipse(x, y, width, height, stroke.Value, strokeWidth);
+                        DrawGradientOrSolidPolyline(canvas, OffsetPoints(CreateEllipseContour(width, height, 96), x, y, 1D), stroke, strokeLinearGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: true);
                     } else {
-                        canvas.DrawStyledPolygon(OffsetPoints(CreateEllipseContour(width, height, 96), x, y, 1D), stroke.Value, strokeWidth, shape.StrokeDashStyle);
+                        DrawGradientOrSolidPolyline(canvas, OffsetPoints(CreateEllipseContour(width, height, 96), x, y, 1D), stroke, strokeLinearGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: true);
                     }
                 }
 
                 break;
             case OfficeShapeKind.Line:
-                if (strokeWidth > 0D) RenderLine(canvas, shape, x, y, scale, stroke ?? fill ?? OfficeColor.Black, strokeWidth);
+                if (strokeWidth > 0D) RenderLine(canvas, shape, x, y, scale, stroke ?? fill ?? OfficeColor.Black, strokeLinearGradient, strokeRadialGradient, strokeWidth);
                 break;
             case OfficeShapeKind.Polygon:
-                RenderPolygon(canvas, shape, x, y, scale, fill, shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity), stroke, strokeWidth);
+                RenderPolygon(canvas, shape, x, y, scale, fill, linearGradient, radialGradient, stroke, strokeLinearGradient, strokeRadialGradient, strokeWidth);
                 break;
             case OfficeShapeKind.Path:
-                RenderPath(canvas, shape, x, y, scale, fill, shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity), stroke, strokeWidth, shape.StrokeDashStyle);
+                RenderPath(canvas, shape, x, y, scale, fill, linearGradient, radialGradient, stroke, strokeLinearGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle);
                 break;
         }
     }
@@ -335,61 +356,82 @@ public static class OfficeDrawingRasterRenderer {
 
     private static void RenderImage(OfficeRasterCanvas canvas, OfficeDrawingImage drawingImage, double scale) {
         if (OfficeRasterImageDecoder.TryDecode(drawingImage.Bytes, out OfficeRasterImage? image) && image != null) {
+            if (drawingImage.Opacity < 1D) {
+                image = ApplyImageOpacity(image, drawingImage.Opacity);
+            }
+
             canvas.DrawImage(image, drawingImage.Projection.Scale(scale));
         }
+    }
+
+    private static OfficeRasterImage ApplyImageOpacity(OfficeRasterImage image, double opacity) {
+        var result = new OfficeRasterImage(image.Width, image.Height);
+        for (int y = 0; y < image.Height; y++) {
+            for (int x = 0; x < image.Width; x++) {
+                OfficeColor pixel = image.GetPixel(x, y);
+                byte alpha = (byte)Math.Round(pixel.A * opacity);
+                result.SetPixel(x, y, OfficeColor.FromRgba(pixel.R, pixel.G, pixel.B, alpha));
+            }
+        }
+
+        return result;
     }
 
     private static void RenderTransformedShape(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale) {
         OfficeShape shape = drawingShape.Shape;
         OfficeColor? fill = ApplyOpacity(shape.FillColor, shape.FillOpacity);
         OfficeLinearGradient? fillGradient = shape.FillGradient == null ? null : ApplyOpacity(shape.FillGradient, shape.FillOpacity);
+        OfficeRadialGradient? fillRadialGradient = shape.FillRadialGradient == null ? null : ApplyOpacity(shape.FillRadialGradient, shape.FillOpacity);
 
         OfficeColor? stroke = ApplyOpacity(shape.StrokeColor, shape.StrokeOpacity);
+        OfficeLinearGradient? strokeGradient = shape.StrokeGradient == null ? null : ApplyOpacity(shape.StrokeGradient, shape.StrokeOpacity);
+        OfficeRadialGradient? strokeRadialGradient = shape.StrokeRadialGradient == null ? null : ApplyOpacity(shape.StrokeRadialGradient, shape.StrokeOpacity);
         double strokeWidth = shape.StrokeWidth * scale;
 
         switch (shape.Kind) {
             case OfficeShapeKind.Rectangle:
             case OfficeShapeKind.RoundedRectangle:
             case OfficeShapeKind.Ellipse:
-                RenderTransformedClosedContour(canvas, drawingShape, scale, CreateShapeContour(shape), fill, fillGradient, stroke, strokeWidth);
+                RenderTransformedClosedContour(canvas, drawingShape, scale, CreateShapeContour(shape), fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth);
                 break;
             case OfficeShapeKind.Line:
-                if (strokeWidth > 0D) RenderTransformedLine(canvas, drawingShape, scale, stroke ?? fill ?? OfficeColor.Black, strokeWidth);
+                if (strokeWidth > 0D) RenderTransformedLine(canvas, drawingShape, scale, stroke ?? fill ?? OfficeColor.Black, strokeGradient, strokeRadialGradient, strokeWidth);
                 break;
             case OfficeShapeKind.Polygon:
-                RenderTransformedClosedContour(canvas, drawingShape, scale, shape.Points, fill, fillGradient, stroke, strokeWidth);
+                RenderTransformedClosedContour(canvas, drawingShape, scale, shape.Points, fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth);
                 break;
             case OfficeShapeKind.Path:
-                RenderTransformedPath(canvas, drawingShape, scale, fill, fillGradient, stroke, strokeWidth, shape.StrokeDashStyle);
+                RenderTransformedPath(canvas, drawingShape, scale, fill, fillGradient, fillRadialGradient, stroke, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle);
                 break;
         }
     }
 
-    private static void RenderTransformedLine(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor color, double strokeWidth) {
+    private static void RenderTransformedLine(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor color, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth) {
         OfficeShape shape = drawingShape.Shape;
         if (shape.Points.Count >= 2) {
             OfficePoint a = TransformShapePoint(drawingShape, shape.Points[0], scale);
             OfficePoint b = TransformShapePoint(drawingShape, shape.Points[1], scale);
-            canvas.DrawStyledLine(a.X, a.Y, b.X, b.Y, color, strokeWidth, shape.StrokeDashStyle);
+            DrawGradientOrSolidPolyline(canvas, new[] { a, b }, color, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: false);
             RenderLineMarkers(canvas, shape, a, b, color, scale);
         }
     }
 
-    private static void RenderTransformedClosedContour(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, IReadOnlyList<OfficePoint> contour, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth) {
+    private static void RenderTransformedClosedContour(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, IReadOnlyList<OfficePoint> contour, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth) {
         if (contour.Count < 3) {
             return;
         }
 
         List<OfficePoint> points = TransformShapePoints(drawingShape, contour, scale);
-        if (fillGradient != null) canvas.FillLinearGradientPolygon(points, fillGradient);
+        if (fillRadialGradient != null) canvas.FillRadialGradientPolygon(points, fillRadialGradient);
+        else if (fillGradient != null) canvas.FillLinearGradientPolygon(points, fillGradient);
         else if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
-        if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, drawingShape.Shape.StrokeDashStyle);
+        DrawGradientOrSolidPolyline(canvas, points, stroke, strokeGradient, strokeRadialGradient, strokeWidth, drawingShape.Shape.StrokeDashStyle, close: true);
     }
 
-    private static void RenderTransformedPath(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
+    private static void RenderTransformedPath(OfficeRasterCanvas canvas, OfficeDrawingShape drawingShape, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
         OfficeShape shape = drawingShape.Shape;
         IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, 0D, 0D, 1D);
-        if (fillGradient != null || fill.HasValue) {
+        if (fillRadialGradient != null || fillGradient != null || fill.HasValue) {
             List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
                 if (contours[i].Closed && contours[i].Points.Count >= 3) {
@@ -398,35 +440,39 @@ public static class OfficeDrawingRasterRenderer {
             }
 
             if (closedContours.Count > 0) {
-                if (fillGradient != null) {
+                if (fillRadialGradient != null) {
+                    for (int i = 0; i < closedContours.Count; i++) {
+                        canvas.FillRadialGradientPolygon(closedContours[i], fillRadialGradient);
+                    }
+                } else if (fillGradient != null) {
                     for (int i = 0; i < closedContours.Count; i++) {
                         canvas.FillLinearGradientPolygon(closedContours[i], fillGradient);
                     }
                 } else {
-                    canvas.FillPolygonsEvenOdd(closedContours, fill!.Value);
+                    FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
             }
         }
 
-        if (stroke.HasValue && strokeWidth > 0D) {
+        if ((stroke.HasValue || strokeGradient != null || strokeRadialGradient != null) && strokeWidth > 0D) {
             for (int i = 0; i < contours.Count; i++) {
                 IReadOnlyList<OfficePoint> points = contours[i].Closed
                     ? CloseContour(contours[i].Points)
                     : contours[i].Points;
-                canvas.DrawStyledPolyline(TransformShapePoints(drawingShape, points, scale), stroke.Value, strokeWidth, dashStyle);
+                DrawGradientOrSolidPolyline(canvas, TransformShapePoints(drawingShape, points, scale), stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashStyle, close: false);
             }
 
-            RenderPathMarkers(canvas, shape, contours, stroke.Value, scale, point => TransformShapePoint(drawingShape, point, scale));
+            RenderPathMarkers(canvas, shape, contours, stroke ?? SampleStrokeGradient(strokeGradient, strokeRadialGradient, 0D, 0D, 1D, 1D, 0D, 0D) ?? OfficeColor.Black, scale, point => TransformShapePoint(drawingShape, point, scale));
         }
     }
 
-    private static void RenderLine(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor color, double strokeWidth) {
+    private static void RenderLine(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor color, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth) {
         if (shape.Points.Count >= 2) {
             OfficePoint a = shape.Points[0];
             OfficePoint b = shape.Points[1];
             OfficePoint start = new OfficePoint(x + (a.X * scale), y + (a.Y * scale));
             OfficePoint end = new OfficePoint(x + (b.X * scale), y + (b.Y * scale));
-            canvas.DrawStyledLine(start.X, start.Y, end.X, end.Y, color, strokeWidth, shape.StrokeDashStyle);
+            DrawGradientOrSolidPolyline(canvas, new[] { start, end }, color, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: false);
             RenderLineMarkers(canvas, shape, start, end, color, scale);
         }
     }
@@ -443,19 +489,203 @@ public static class OfficeDrawingRasterRenderer {
         }
     }
 
+    private static void DrawGradientOrSolidPolyline(
+        OfficeRasterCanvas canvas,
+        IReadOnlyList<OfficePoint> points,
+        OfficeColor? stroke,
+        OfficeLinearGradient? strokeGradient,
+        OfficeRadialGradient? strokeRadialGradient,
+        double strokeWidth,
+        OfficeStrokeDashStyle dashStyle,
+        bool close) {
+        if (strokeWidth <= 0D || points.Count < 2) {
+            return;
+        }
+
+        if ((strokeGradient == null && strokeRadialGradient == null) || dashStyle != OfficeStrokeDashStyle.Solid) {
+            if (!stroke.HasValue) {
+                return;
+            }
+
+            if (close) {
+                canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, dashStyle);
+            } else {
+                canvas.DrawStyledPolyline(points, stroke.Value, strokeWidth, dashStyle);
+            }
+
+            return;
+        }
+
+        IReadOnlyList<OfficePoint> strokePoints = close ? CloseContour(points) : points;
+        GetPointBounds(strokePoints, out double x, out double y, out double width, out double height);
+        for (int i = 1; i < strokePoints.Count; i++) {
+            DrawGradientLineSegment(canvas, strokePoints[i - 1], strokePoints[i], strokeGradient, strokeRadialGradient, x, y, width, height, strokeWidth);
+        }
+    }
+
+    private static void DrawGradientLineSegment(
+        OfficeRasterCanvas canvas,
+        OfficePoint start,
+        OfficePoint end,
+        OfficeLinearGradient? strokeGradient,
+        OfficeRadialGradient? strokeRadialGradient,
+        double x,
+        double y,
+        double width,
+        double height,
+        double strokeWidth) {
+        double length = Distance(start.X, start.Y, end.X, end.Y);
+        if (length <= 0D) {
+            return;
+        }
+
+        int segments = Math.Max(1, (int)Math.Ceiling(length / 4D));
+        for (int segment = 0; segment < segments; segment++) {
+            double startRatio = segment / (double)segments;
+            double endRatio = (segment + 1) / (double)segments;
+            double midRatio = (startRatio + endRatio) / 2D;
+            double x1 = start.X + ((end.X - start.X) * startRatio);
+            double y1 = start.Y + ((end.Y - start.Y) * startRatio);
+            double x2 = start.X + ((end.X - start.X) * endRatio);
+            double y2 = start.Y + ((end.Y - start.Y) * endRatio);
+            OfficeColor? color = SampleStrokeGradient(strokeGradient, strokeRadialGradient, x, y, width, height, start.X + ((end.X - start.X) * midRatio), start.Y + ((end.Y - start.Y) * midRatio));
+            if (color.HasValue) {
+                canvas.DrawLine(x1, y1, x2, y2, color.Value, strokeWidth);
+            }
+        }
+    }
+
+    private static OfficeColor? SampleStrokeGradient(OfficeLinearGradient? linearGradient, OfficeRadialGradient? radialGradient, double x, double y, double width, double height, double sampleX, double sampleY) {
+        width = Math.Max(width, 0.0001D);
+        height = Math.Max(height, 0.0001D);
+        double nx = (sampleX - x) / width;
+        double ny = (sampleY - y) / height;
+        if (radialGradient != null) {
+            return InterpolateGradient(radialGradient, ComputeRadialRatio(radialGradient, nx, ny));
+        }
+
+        if (linearGradient == null) {
+            return null;
+        }
+
+        double dx = linearGradient.EndX - linearGradient.StartX;
+        double dy = linearGradient.EndY - linearGradient.StartY;
+        double lengthSquared = (dx * dx) + (dy * dy);
+        if (lengthSquared <= double.Epsilon) {
+            return linearGradient.Stops[0].Color;
+        }
+
+        double ratio = (((nx - linearGradient.StartX) * dx) + ((ny - linearGradient.StartY) * dy)) / lengthSquared;
+        return InterpolateGradient(linearGradient, Clamp(ratio, 0D, 1D));
+    }
+
+    private static void GetPointBounds(IReadOnlyList<OfficePoint> points, out double x, out double y, out double width, out double height) {
+        double left = points[0].X;
+        double top = points[0].Y;
+        double right = points[0].X;
+        double bottom = points[0].Y;
+        for (int i = 1; i < points.Count; i++) {
+            left = Math.Min(left, points[i].X);
+            top = Math.Min(top, points[i].Y);
+            right = Math.Max(right, points[i].X);
+            bottom = Math.Max(bottom, points[i].Y);
+        }
+
+        x = left;
+        y = top;
+        width = right - left;
+        height = bottom - top;
+    }
+
+    private static double Distance(double x1, double y1, double x2, double y2) {
+        double dx = x2 - x1;
+        double dy = y2 - y1;
+        return Math.Sqrt((dx * dx) + (dy * dy));
+    }
+
+    private static OfficeColor InterpolateGradient(OfficeLinearGradient gradient, double ratio) =>
+        InterpolateGradientStops(gradient.Stops, ratio);
+
+    private static OfficeColor InterpolateGradient(OfficeRadialGradient gradient, double ratio) =>
+        InterpolateGradientStops(gradient.Stops, ratio);
+
+    private static OfficeColor InterpolateGradientStops(IReadOnlyList<OfficeGradientStop> stops, double ratio) {
+        if (ratio <= stops[0].Offset) {
+            return stops[0].Color;
+        }
+
+        for (int i = 1; i < stops.Count; i++) {
+            OfficeGradientStop next = stops[i];
+            if (ratio <= next.Offset) {
+                OfficeGradientStop previous = stops[i - 1];
+                double span = next.Offset - previous.Offset;
+                double localRatio = span <= double.Epsilon ? 0D : (ratio - previous.Offset) / span;
+                return Interpolate(previous.Color, next.Color, Clamp(localRatio, 0D, 1D));
+            }
+        }
+
+        return stops[stops.Count - 1].Color;
+    }
+
+    private static OfficeColor Interpolate(OfficeColor start, OfficeColor end, double ratio) =>
+        OfficeColor.FromRgba(
+            InterpolateByte(start.R, end.R, ratio),
+            InterpolateByte(start.G, end.G, ratio),
+            InterpolateByte(start.B, end.B, ratio),
+            InterpolateByte(start.A, end.A, ratio));
+
+    private static byte InterpolateByte(byte start, byte end, double ratio) =>
+        (byte)Math.Round(start + ((end - start) * Clamp(ratio, 0D, 1D)));
+
+    private static double ComputeRadialRatio(OfficeRadialGradient gradient, double x, double y) {
+        double vx = x - gradient.StartX;
+        double vy = y - gradient.StartY;
+        double dx = gradient.EndX - gradient.StartX;
+        double dy = gradient.EndY - gradient.StartY;
+        double dr = gradient.EndRadius - gradient.StartRadius;
+        double a = (dx * dx) + (dy * dy) - (dr * dr);
+        double b = -2D * ((vx * dx) + (vy * dy) + (gradient.StartRadius * dr));
+        double c = (vx * vx) + (vy * vy) - (gradient.StartRadius * gradient.StartRadius);
+        if (Math.Abs(a) < 0.0000001D) {
+            if (Math.Abs(b) < 0.0000001D) {
+                return 0D;
+            }
+
+            return Clamp(-c / b, 0D, 1D);
+        }
+
+        double discriminant = (b * b) - (4D * a * c);
+        if (discriminant < 0D) {
+            return 0D;
+        }
+
+        double root = Math.Sqrt(discriminant);
+        double first = (-b - root) / (2D * a);
+        double second = (-b + root) / (2D * a);
+        if (first >= 0D && first <= 1D) {
+            return first;
+        }
+
+        return Clamp(second, 0D, 1D);
+    }
+
+    private static double Clamp(double value, double min, double max) =>
+        value < min ? min : value > max ? max : value;
+
     private static OfficeLineMarker? ScaleLineMarker(OfficeLineMarker? marker, double scale) =>
         marker == null ? null : new OfficeLineMarker(marker.Kind, marker.Width * scale, marker.Length * scale);
 
-    private static void RenderPolygon(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth) {
+    private static void RenderPolygon(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth) {
         List<OfficePoint> points = OffsetPoints(shape.Points, x, y, scale);
-        if (fillGradient != null) canvas.FillLinearGradientPolygon(points, fillGradient);
+        if (fillRadialGradient != null) canvas.FillRadialGradientPolygon(points, fillRadialGradient);
+        else if (fillGradient != null) canvas.FillLinearGradientPolygon(points, fillGradient);
         else if (fill.HasValue) canvas.FillPolygon(points, fill.Value);
-        if (stroke.HasValue && strokeWidth > 0D) canvas.DrawStyledPolygon(points, stroke.Value, strokeWidth, shape.StrokeDashStyle);
+        DrawGradientOrSolidPolyline(canvas, points, stroke, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: true);
     }
 
-    private static void RenderPath(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeColor? stroke, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
+    private static void RenderPath(OfficeRasterCanvas canvas, OfficeShape shape, double x, double y, double scale, OfficeColor? fill, OfficeLinearGradient? fillGradient, OfficeRadialGradient? fillRadialGradient, OfficeColor? stroke, OfficeLinearGradient? strokeGradient, OfficeRadialGradient? strokeRadialGradient, double strokeWidth, OfficeStrokeDashStyle dashStyle) {
         IReadOnlyList<OfficeFlattenedPathContour> contours = OfficePathFlattener.Flatten(shape.PathCommands, x, y, scale);
-        if (fillGradient != null || fill.HasValue) {
+        if (fillRadialGradient != null || fillGradient != null || fill.HasValue) {
             List<IReadOnlyList<OfficePoint>> closedContours = new List<IReadOnlyList<OfficePoint>>();
             for (int i = 0; i < contours.Count; i++) {
                 if (contours[i].Closed && contours[i].Points.Count >= 3) {
@@ -464,25 +694,29 @@ public static class OfficeDrawingRasterRenderer {
             }
 
             if (closedContours.Count > 0) {
-                if (fillGradient != null) {
+                if (fillRadialGradient != null) {
+                    for (int i = 0; i < closedContours.Count; i++) {
+                        canvas.FillRadialGradientPolygon(closedContours[i], fillRadialGradient);
+                    }
+                } else if (fillGradient != null) {
                     for (int i = 0; i < closedContours.Count; i++) {
                         canvas.FillLinearGradientPolygon(closedContours[i], fillGradient);
                     }
                 } else {
-                    canvas.FillPolygonsEvenOdd(closedContours, fill!.Value);
+                    FillPathContours(canvas, closedContours, fill!.Value, shape.FillRule);
                 }
             }
         }
 
-        if (stroke.HasValue && strokeWidth > 0D) {
+        if ((stroke.HasValue || strokeGradient != null || strokeRadialGradient != null) && strokeWidth > 0D) {
             for (int i = 0; i < contours.Count; i++) {
                 IReadOnlyList<OfficePoint> points = contours[i].Closed
                     ? CloseContour(contours[i].Points)
                     : contours[i].Points;
-                canvas.DrawStyledPolyline(points, stroke.Value, strokeWidth, dashStyle);
+                DrawGradientOrSolidPolyline(canvas, points, stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashStyle, close: false);
             }
 
-            RenderPathMarkers(canvas, shape, contours, stroke.Value, scale);
+            RenderPathMarkers(canvas, shape, contours, stroke ?? SampleStrokeGradient(strokeGradient, strokeRadialGradient, x, y, shape.Width * scale, shape.Height * scale, x, y) ?? OfficeColor.Black, scale);
         }
     }
 
@@ -552,7 +786,7 @@ public static class OfficeDrawingRasterRenderer {
 
         return contours.Count == 1
             ? canvas.PushClipPolygon(contours[0])
-            : canvas.PushClipPolygonsEvenOdd(contours);
+            : PushClipPolygons(canvas, contours, drawingShape.Shape.ClipPath!.FillRule);
     }
 
     private static IReadOnlyList<IReadOnlyList<OfficePoint>> CreateClipContours(OfficeDrawingShape drawingShape, OfficeClipPath clipPath, double scale) {
@@ -596,6 +830,19 @@ public static class OfficeDrawingRasterRenderer {
                 return Array.Empty<IReadOnlyList<OfficePoint>>();
         }
     }
+
+    private static void FillPathContours(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeColor color, OfficeFillRule fillRule) {
+        if (fillRule == OfficeFillRule.NonZero) {
+            canvas.FillPolygonsNonZero(contours, color);
+        } else {
+            canvas.FillPolygonsEvenOdd(contours, color);
+        }
+    }
+
+    private static IDisposable PushClipPolygons(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule) =>
+        fillRule == OfficeFillRule.NonZero
+            ? canvas.PushClipPolygonsNonZero(contours)
+            : canvas.PushClipPolygonsEvenOdd(contours);
 
     private static IReadOnlyList<OfficePoint> TransformClipContour(OfficeDrawingShape drawingShape, IReadOnlyList<OfficePoint> contour, double scale) =>
         HasNonIdentityTransform(drawingShape.Shape.Transform)
@@ -730,31 +977,112 @@ public static class OfficeDrawingRasterRenderer {
             stops);
     }
 
-    private static bool TryCreateShadowShape(OfficeDrawingShape drawingShape, out OfficeDrawingShape shadowDrawingShape) {
+    private static OfficeRadialGradient ApplyOpacity(OfficeRadialGradient gradient, double? opacity) {
+        if (!opacity.HasValue) {
+            return gradient;
+        }
+
+        var stops = new List<OfficeGradientStop>(gradient.Stops.Count);
+        for (int i = 0; i < gradient.Stops.Count; i++) {
+            OfficeGradientStop stop = gradient.Stops[i];
+            stops.Add(new OfficeGradientStop(
+                stop.Offset,
+                ApplyOpacity(stop.Color, opacity) ?? stop.Color));
+        }
+
+        return new OfficeRadialGradient(
+            gradient.StartX,
+            gradient.StartY,
+            gradient.StartRadius,
+            gradient.EndX,
+            gradient.EndY,
+            gradient.EndRadius,
+            stops);
+    }
+
+    private static IReadOnlyList<OfficeDrawingShape> CreateGlowShapes(OfficeDrawingShape drawingShape) {
+        OfficeShape shape = drawingShape.Shape;
+        OfficeGlow? glow = shape.Glow;
+        if (glow == null || glow.Radius <= 0D || glow.Opacity <= 0D || glow.Color.A == 0) {
+            return Array.Empty<OfficeDrawingShape>();
+        }
+
+        const int layers = 4;
+        var glowShapes = new List<OfficeDrawingShape>(layers);
+        double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
+        for (int i = layers; i >= 1; i--) {
+            double factor = i / (double)layers;
+            OfficeShape glowShape = shape.Clone();
+            glowShape.Shadow = null;
+            glowShape.Glow = null;
+            glowShape.FillColor = null;
+            glowShape.FillGradient = null;
+            glowShape.FillRadialGradient = null;
+            glowShape.StrokeColor = glow.Color;
+            glowShape.StrokeWidth = Math.Max(1D, baseStrokeWidth + glow.Radius * 2D * factor);
+            glowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
+            glowShape.StrokeStartMarker = null;
+            glowShape.StrokeEndMarker = null;
+            glowShape.StrokeOpacity = glow.Opacity * (0.08D + (layers - i + 1) * 0.07D);
+            glowShapes.Add(new OfficeDrawingShape(glowShape, drawingShape.X, drawingShape.Y));
+        }
+
+        return glowShapes;
+    }
+
+    private static IReadOnlyList<OfficeDrawingShape> CreateShadowShapes(OfficeDrawingShape drawingShape) {
         OfficeShape shape = drawingShape.Shape;
         OfficeShadow? shadow = shape.Shadow;
         if (shadow == null || shadow.Opacity <= 0D || shadow.Color.A == 0) {
-            shadowDrawingShape = drawingShape;
-            return false;
+            return Array.Empty<OfficeDrawingShape>();
         }
 
         bool hasStroke = shape.Kind == OfficeShapeKind.Line ||
             (shape.StrokeColor.HasValue && shape.StrokeWidth > 0D && shape.StrokeColor.Value.A > 0);
         bool hasFill = shape.Kind != OfficeShapeKind.Line &&
-            (shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
+            (shape.FillRadialGradient != null || shape.FillGradient != null || (shape.FillColor.HasValue && shape.FillColor.Value.A > 0));
+        OfficeDrawingShape coreShadow = CreateShadowShape(drawingShape, shadow, hasStroke, hasFill, Math.Max(0D, shape.StrokeWidth), shadow.Opacity);
+        if (shadow.BlurRadius <= 0D) {
+            return new[] { coreShadow };
+        }
 
+        const int layers = 4;
+        var shadowShapes = new List<OfficeDrawingShape>(layers + 1);
+        double baseStrokeWidth = Math.Max(0D, shape.StrokeWidth);
+        for (int i = layers; i >= 1; i--) {
+            double factor = i / (double)layers;
+            double opacity = shadow.Opacity * (0.04D + (layers - i + 1) * 0.05D);
+            shadowShapes.Add(CreateShadowShape(
+                drawingShape,
+                shadow,
+                hasStroke: true,
+                hasFill: hasFill,
+                strokeWidth: Math.Max(1D, baseStrokeWidth + shadow.BlurRadius * 2D * factor),
+                opacity: opacity));
+        }
+
+        shadowShapes.Add(coreShadow);
+        return shadowShapes;
+    }
+
+    private static OfficeDrawingShape CreateShadowShape(OfficeDrawingShape drawingShape, OfficeShadow shadow, bool hasStroke, bool hasFill, double strokeWidth, double opacity) {
+        OfficeShape shape = drawingShape.Shape;
         OfficeShape shadowShape = shape.Clone();
         shadowShape.Shadow = null;
         shadowShape.FillGradient = null;
+        shadowShape.FillRadialGradient = null;
         shadowShape.FillColor = hasFill || !hasStroke ? shadow.Color : null;
-        shadowShape.FillOpacity = shadow.Opacity;
+        shadowShape.FillOpacity = opacity;
         shadowShape.StrokeColor = hasStroke ? shadow.Color : null;
-        shadowShape.StrokeOpacity = shadow.Opacity;
+        shadowShape.StrokeWidth = strokeWidth;
+        shadowShape.StrokeDashStyle = OfficeStrokeDashStyle.Solid;
+        shadowShape.StrokeStartMarker = null;
+        shadowShape.StrokeEndMarker = null;
+        shadowShape.StrokeOpacity = opacity;
 
-        shadowDrawingShape = new OfficeDrawingShape(
+        return new OfficeDrawingShape(
             shadowShape,
             drawingShape.X + shadow.OffsetX,
             drawingShape.Y + shadow.OffsetY);
-        return true;
     }
 }

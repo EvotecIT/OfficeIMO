@@ -28,6 +28,11 @@ namespace OfficeIMO.Word {
             double[] columnWidths = ResolveColumnWidths(table, columnCount, context.ContentWidth);
             double[] rowHeights = ResolveRowHeights(rows, columnWidths, listMarkers);
             double tableHeight = rowHeights.Sum();
+            double remainingHeight = Math.Max(0D, context.ContentBottom - context.Y);
+            if ((tableHeight > remainingHeight || HasTableRowStartBreak(table, rows)) && context.CanAdvancePageForOverflow) {
+                return AddPaginatedTableRows(table, rows, columnWidths, rowHeights, GetRepeatingHeaderRowCount(rows), context, diagnostics, listMarkers);
+            }
+
             if (!EnsureVerticalSpace(context, tableHeight, diagnostics)) {
                 return false;
             }
@@ -35,17 +40,211 @@ namespace OfficeIMO.Word {
             double tableWidth = columnWidths.Sum();
             double tableLeft = ResolveTableLeft(table, context.Left, context.ContentWidth, tableWidth);
             double rowTop = context.Y;
-            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
-                AddTableRow(context.Drawing, table, rows, rowIndex, tableLeft, rowTop, columnWidths, rowHeights, diagnostics, listMarkers);
-                rowTop += rowHeights[rowIndex];
+            if (context.IsTargetPage) {
+                for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                    AddTableRow(context, table, rows, rowIndex, tableLeft, rowTop, columnWidths, rowHeights, diagnostics, listMarkers);
+                    rowTop += rowHeights[rowIndex];
+                }
             }
 
             context.Y += tableHeight + ParagraphGapPoints;
             return true;
         }
 
+        private static bool AddPaginatedTableRows(
+            WordTable table,
+            IReadOnlyList<WordTableRow> rows,
+            IReadOnlyList<double> columnWidths,
+            IReadOnlyList<double> rowHeights,
+            int repeatingHeaderRowCount,
+            WordImageFlowContext context,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            double tableWidth = columnWidths.Sum();
+            bool consumedRows = false;
+            for (int rowIndex = 0; rowIndex < rows.Count; rowIndex++) {
+                if (!TryAdvanceForTableRowStartPageBreak(table, rows, rowIndex, columnWidths, rowHeights, repeatingHeaderRowCount, tableWidth, context, diagnostics, listMarkers)) {
+                    return consumedRows;
+                }
+
+                double rowHeight = rowHeights[rowIndex];
+                if (rowHeight > context.ContentHeight) {
+                    if (TryAddPaginatedSplitTableRow(table, rows, rowIndex, columnWidths, rowHeights, repeatingHeaderRowCount, tableWidth, context, diagnostics, listMarkers)) {
+                        consumedRows = true;
+                        continue;
+                    }
+
+                    if (context.IsTargetPage) {
+                        AddDiagnostic(diagnostics, "unsupported-word-table-row-pagination", "Skipped a Word table row because splitting an individual row across pages is not implemented yet.");
+                    }
+
+                    return consumedRows;
+                }
+
+                if (context.Y + rowHeight > context.ContentBottom) {
+                    if (context.Y > context.Top && context.CanAdvancePageForOverflow) {
+                        if (rows[rowIndex].AllowRowToBreakAcrossPages &&
+                            TryAddPaginatedSplitTableRow(table, rows, rowIndex, columnWidths, rowHeights, repeatingHeaderRowCount, tableWidth, context, diagnostics, listMarkers)) {
+                            consumedRows = true;
+                            continue;
+                        }
+
+                        context.AdvanceColumnOrPage();
+                        if (context.PastTargetPage) {
+                            return consumedRows;
+                        }
+
+                        if (!AddRepeatingTableHeaderRows(table, rows, columnWidths, rowHeights, repeatingHeaderRowCount, tableWidth, context, diagnostics, listMarkers)) {
+                            return consumedRows;
+                        }
+
+                        if (context.Y + rowHeight > context.ContentBottom && rows[rowIndex].AllowRowToBreakAcrossPages) {
+                            if (TryAddPaginatedSplitTableRow(table, rows, rowIndex, columnWidths, rowHeights, repeatingHeaderRowCount, tableWidth, context, diagnostics, listMarkers)) {
+                                consumedRows = true;
+                                continue;
+                            }
+                        }
+                    } else {
+                        if (context.IsTargetPage && !context.StoppedForPagination) {
+                            AddDiagnostic(diagnostics, context.OverflowDiagnosticCode, context.OverflowDiagnosticMessage);
+                            context.StoppedForPagination = true;
+                        }
+
+                        return consumedRows;
+                    }
+                }
+
+                double tableLeft = ResolveTableLeft(table, context.Left, context.ContentWidth, tableWidth);
+                if (context.IsTargetPage) {
+                    AddTableRow(context, table, rows, rowIndex, tableLeft, context.Y, columnWidths, rowHeights, diagnostics, listMarkers);
+                }
+
+                context.Y += rowHeight;
+                consumedRows = true;
+            }
+
+            context.Y += ParagraphGapPoints;
+            return consumedRows;
+        }
+
+        private static bool TryAdvanceForTableRowStartPageBreak(
+            WordTable table,
+            IReadOnlyList<WordTableRow> rows,
+            int rowIndex,
+            IReadOnlyList<double> columnWidths,
+            IReadOnlyList<double> rowHeights,
+            int repeatingHeaderRowCount,
+            double tableWidth,
+            WordImageFlowContext context,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            TableRowStartBreakKind breakKind = ResolveTableRowStartBreak(table, rows[rowIndex]);
+            if (breakKind == TableRowStartBreakKind.None) {
+                return true;
+            }
+
+            int previousPageIndex = context.PageIndex;
+            if (breakKind == TableRowStartBreakKind.Column) {
+                context.AdvanceColumnOrPage();
+            } else {
+                AdvanceForPageBreakBefore(context);
+            }
+
+            if (context.PastTargetPage) {
+                return false;
+            }
+
+            if (context.PageIndex != previousPageIndex &&
+                rowIndex >= repeatingHeaderRowCount &&
+                !AddRepeatingTableHeaderRows(table, rows, columnWidths, rowHeights, repeatingHeaderRowCount, tableWidth, context, diagnostics, listMarkers)) {
+                return false;
+            }
+
+            return true;
+        }
+
+        private static bool HasTableRowStartBreak(WordTable table, IReadOnlyList<WordTableRow> rows) =>
+            rows.Any(row => ResolveTableRowStartBreak(table, row) != TableRowStartBreakKind.None);
+
+        private static TableRowStartBreakKind ResolveTableRowStartBreak(WordTable table, WordTableRow row) {
+            foreach (WordTableCell cell in row.GetCells(readOnly: true)) {
+                WordParagraph? firstParagraph = cell.Paragraphs.FirstOrDefault();
+                if (firstParagraph != null && ResolvePageBreakBefore(table.Document, firstParagraph._paragraph)) {
+                    return TableRowStartBreakKind.Page;
+                }
+
+                Paragraph? firstOpenXmlParagraph = cell._tableCell.ChildElements.OfType<Paragraph>().FirstOrDefault();
+                WordParagraph? firstRun = firstOpenXmlParagraph == null
+                    ? null
+                    : WordSection.ConvertParagraphToWordParagraphs(cell.Document, firstOpenXmlParagraph).FirstOrDefault();
+                if (firstRun?.IsPageBreak == true) {
+                    return TableRowStartBreakKind.Page;
+                }
+
+                if (firstRun?.IsColumnBreak == true) {
+                    return TableRowStartBreakKind.Column;
+                }
+            }
+
+            return TableRowStartBreakKind.None;
+        }
+
+        private enum TableRowStartBreakKind {
+            None,
+            Page,
+            Column
+        }
+
+        private static bool AddRepeatingTableHeaderRows(
+            WordTable table,
+            IReadOnlyList<WordTableRow> rows,
+            IReadOnlyList<double> columnWidths,
+            IReadOnlyList<double> rowHeights,
+            int repeatingHeaderRowCount,
+            double tableWidth,
+            WordImageFlowContext context,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            if (repeatingHeaderRowCount == 0) {
+                return true;
+            }
+
+            double headerHeight = SumHeights(rowHeights, 0, repeatingHeaderRowCount);
+            if (headerHeight >= context.ContentHeight) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-table-header-pagination", "Skipped repeating Word table header rows because they do not fit within the page content area.");
+                }
+
+                return false;
+            }
+
+            double tableLeft = ResolveTableLeft(table, context.Left, context.ContentWidth, tableWidth);
+            for (int headerIndex = 0; headerIndex < repeatingHeaderRowCount; headerIndex++) {
+                if (context.IsTargetPage) {
+                    AddTableRow(context, table, rows, headerIndex, tableLeft, context.Y, columnWidths, rowHeights, diagnostics, listMarkers);
+                }
+
+                context.Y += rowHeights[headerIndex];
+            }
+
+            return true;
+        }
+
+        private static int GetRepeatingHeaderRowCount(IReadOnlyList<WordTableRow> rows) {
+            int count = 0;
+            for (int i = 0; i < rows.Count; i++) {
+                if (!rows[i].RepeatHeaderRowAtTheTopOfEachPage) {
+                    break;
+                }
+
+                count++;
+            }
+
+            return count;
+        }
+
         private static void AddTableRow(
-            OfficeDrawing drawing,
+            WordImageFlowContext context,
             WordTable table,
             IReadOnlyList<WordTableRow> rows,
             int rowIndex,
@@ -70,14 +269,14 @@ namespace OfficeIMO.Word {
                 int rowSpan = Math.Max(1, cell.RowSpan);
                 double cellWidth = SumWidths(columnWidths, columnIndex, columnSpan);
                 double cellHeight = SumHeights(rowHeights, rowIndex, rowSpan);
-                AddTableCell(drawing, table, cell, rowIndex, columnIndex, rowSpan, columnSpan, rows.Count, columnWidths.Count, cellLeft, rowTop, cellWidth, cellHeight, diagnostics, listMarkers);
+                AddTableCell(context, table, cell, rowIndex, columnIndex, rowSpan, columnSpan, rows.Count, columnWidths.Count, cellLeft, rowTop, cellWidth, cellHeight, diagnostics, listMarkers);
                 columnIndex += columnSpan;
                 cellLeft += cellWidth;
             }
         }
 
         private static void AddTableCell(
-            OfficeDrawing drawing,
+            WordImageFlowContext context,
             WordTable table,
             WordTableCell cell,
             int rowIndex,
@@ -93,6 +292,7 @@ namespace OfficeIMO.Word {
             List<OfficeImageExportDiagnostic> diagnostics,
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
             A.ColorScheme? colorScheme = GetDocumentColorScheme(cell.Document);
+            OfficeDrawing drawing = context.Drawing;
             drawing.AddBorderBox(
                 left,
                 top,
@@ -110,7 +310,7 @@ namespace OfficeIMO.Word {
             double contentLeft = left + marginLeft;
             double contentTop = top + marginTop;
             double textTop = AddTableCellImages(cell, drawing, contentLeft, contentTop, contentWidth, contentBottom, diagnostics);
-            textTop = Math.Max(textTop, AddNestedTables(cell, drawing, contentLeft, textTop, contentWidth, contentBottom, diagnostics, listMarkers));
+            textTop = Math.Max(textTop, AddNestedTables(cell, drawing, contentLeft, textTop, contentWidth, contentBottom, diagnostics, listMarkers, context));
 
             List<List<WordParagraph>> paragraphRuns = CreateTableCellParagraphRuns(cell);
             if (paragraphRuns.Count > 1) {
@@ -125,11 +325,12 @@ namespace OfficeIMO.Word {
                     paragraphRuns,
                     listMarkers,
                     colorScheme,
-                    diagnostics);
+                    diagnostics,
+                    context);
                 return;
             }
 
-            string text = GetCellText(cell);
+            string text = GetCellText(cell, context);
             if (string.IsNullOrWhiteSpace(text)) {
                 return;
             }
@@ -145,7 +346,7 @@ namespace OfficeIMO.Word {
             bool textFlowAdvanced = textTop > contentTop + 0.000001D;
             double textBoxTop = textFlowAdvanced ? textTop - marginTop : top;
             double textBoxHeight = textFlowAdvanced ? Math.Max(1D, contentBottom - textBoxTop) : height;
-            List<OfficeRichTextRun> richRuns = CreateTableCellRichTextRuns(cell, colorScheme);
+            List<OfficeRichTextRun> richRuns = CreateTableCellRichTextRuns(cell, colorScheme, context);
             if (ShouldRenderTableCellAsRichText(richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double lineHeight = Math.Max(maxFontSize * 1.25D, 12D);
@@ -186,7 +387,8 @@ namespace OfficeIMO.Word {
             double contentWidth,
             double contentBottom,
             List<OfficeImageExportDiagnostic> diagnostics,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            WordImageFlowContext? parentContext = null) {
             List<WordTable> nestedTables = GetDirectNestedTables(cell);
             if (nestedTables.Count == 0) {
                 return top;
@@ -199,7 +401,13 @@ namespace OfficeIMO.Word {
                 contentWidth,
                 contentBottom,
                 "unsupported-word-nested-table-overflow",
-                "Skipped a nested Word table inside a rendered table cell because it does not fit within the cell content area.");
+                "Skipped a nested Word table inside a rendered table cell because it does not fit within the cell content area.",
+                resolveDynamicPageFields: parentContext?.ResolveDynamicPageFields ?? false,
+                totalPageCount: parentContext?.TotalPageCount ?? 1,
+                sectionNumber: parentContext?.SectionNumber ?? 1,
+                sectionPageCount: parentContext?.SectionPageCount ?? 1,
+                pageNumberValue: parentContext?.PageNumberValue ?? 0,
+                pageNumberText: parentContext?.PageNumberText);
 
             for (int i = 0; i < nestedTables.Count; i++) {
                 AddTable(nestedTables[i], nestedContext, diagnostics, listMarkers, allowNestedTable: true);
@@ -214,10 +422,11 @@ namespace OfficeIMO.Word {
         private static bool ShouldRenderTableCellAsRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
             richRuns.Count > 1 || richRuns.Any(run => run.BackgroundColor.HasValue);
 
-        private static List<OfficeRichTextRun> CreateTableCellRichTextRuns(WordTableCell cell, A.ColorScheme? colorScheme) {
+        private static List<OfficeRichTextRun> CreateTableCellRichTextRuns(WordTableCell cell, A.ColorScheme? colorScheme, WordImageFlowContext? context = null) {
             var richRuns = new List<OfficeRichTextRun>();
             foreach (Paragraph paragraph in cell._tableCell.ChildElements.OfType<Paragraph>()) {
                 List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(cell.Document, paragraph)
+                    .Where(run => !run.IsPageBreak && !run.IsColumnBreak)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
                 if (paragraphRuns.Count == 0) {
@@ -229,7 +438,11 @@ namespace OfficeIMO.Word {
                 }
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
-                    richRuns.Add(CreateRichTextRun(paragraphRuns[runIndex], colorScheme));
+                    WordParagraph run = paragraphRuns[runIndex];
+                    string text = ResolveImageExportText(run, context);
+                    if (!string.IsNullOrEmpty(text)) {
+                        richRuns.Add(CreateRichTextRun(run, colorScheme, text));
+                    }
                 }
             }
 
@@ -250,6 +463,7 @@ namespace OfficeIMO.Word {
                 top,
                 contentWidth,
                 contentBottom,
+                Array.Empty<WordImageColumnFrame>(),
                 "unsupported-word-table-image-overflow",
                 "Skipped a Word image inside a rendered table cell because it does not fit within the cell content area.");
 
@@ -299,13 +513,36 @@ namespace OfficeIMO.Word {
             IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
             double[] rowHeights = new double[rows.Count];
             for (int i = 0; i < rows.Count; i++) {
-                double explicitHeight = ToPoints(rows[i].Height, 0D);
-                rowHeights[i] = explicitHeight > 0D
-                    ? explicitHeight
-                    : Math.Max(MinimumTableRowHeightPoints, EstimateRowHeight(rows[i], columnWidths, listMarkers));
+                rowHeights[i] = ResolveRowHeight(rows[i], columnWidths, listMarkers);
             }
 
             return rowHeights;
+        }
+
+        private static double ResolveRowHeight(
+            WordTableRow row,
+            IReadOnlyList<double> columnWidths,
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            TableRowHeight? rowHeight = row._tableRow.TableRowProperties?.OfType<TableRowHeight>().FirstOrDefault();
+            double explicitHeight = ResolveTableRowHeightPoints(rowHeight);
+            double estimatedHeight = Math.Max(MinimumTableRowHeightPoints, EstimateRowHeight(row, columnWidths, listMarkers));
+            if (explicitHeight <= 0D) {
+                return estimatedHeight;
+            }
+
+            if (rowHeight?.HeightType?.Value == HeightRuleValues.Exact) {
+                return explicitHeight;
+            }
+
+            return Math.Max(explicitHeight, estimatedHeight);
+        }
+
+        private static double ResolveTableRowHeightPoints(TableRowHeight? rowHeight) {
+            if (rowHeight?.Val == null) {
+                return 0D;
+            }
+
+            return rowHeight.Val.Value / TwipsPerPoint;
         }
 
         private static double EstimateRowHeight(
@@ -384,11 +621,11 @@ namespace OfficeIMO.Word {
             return contentLeft;
         }
 
-        private static string GetCellText(WordTableCell cell) =>
+        private static string GetCellText(WordTableCell cell, WordImageFlowContext? context = null) =>
             string.Join(
                 "\n",
-                cell._tableCell.ChildElements.OfType<Paragraph>()
-                    .Select(paragraph => paragraph.InnerText)
+                CreateTableCellParagraphRuns(cell)
+                    .Select(runs => string.Concat(runs.Select(run => ResolveImageExportText(run, context))))
                     .Where(text => !string.IsNullOrWhiteSpace(text)));
 
         private static List<WordTable> GetDirectNestedTables(WordTableCell cell) =>

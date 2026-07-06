@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -18,7 +20,12 @@ public sealed class PdfImagePlacement {
         double x,
         double y,
         double width,
-        double height) {
+        double height,
+        PdfPageClipPath? clipPath = null,
+        OfficeColor? imageMaskColor = null,
+        double? imageOpacity = null,
+        PdfStream? inlineImageStream = null,
+        PdfDictionary? inlineImageResources = null) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -33,6 +40,11 @@ public sealed class PdfImagePlacement {
         Y = y;
         Width = width;
         Height = height;
+        ClipPath = clipPath;
+        ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
+        ImageOpacity = imageOpacity;
+        InlineImageStream = inlineImageStream;
+        InlineImageResources = inlineImageResources;
     }
 
     /// <summary>One-based source page number containing the image invocation.</summary>
@@ -76,6 +88,16 @@ public sealed class PdfImagePlacement {
 
     /// <summary>Bounding-box height in PDF points.</summary>
     public double Height { get; }
+
+    internal PdfPageClipPath? ClipPath { get; }
+
+    internal OfficeColor ImageMaskColor { get; }
+
+    internal double? ImageOpacity { get; }
+
+    internal PdfStream? InlineImageStream { get; }
+
+    internal PdfDictionary? InlineImageResources { get; }
 
     /// <summary>True when the placement matrix is axis-aligned within a small tolerance.</summary>
     public bool IsAxisAligned => Math.Abs(B) <= 0.001D && Math.Abs(C) <= 0.001D;

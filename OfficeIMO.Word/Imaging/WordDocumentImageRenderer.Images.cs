@@ -11,6 +11,10 @@ namespace OfficeIMO.Word {
             WrapTextImage? wrapText = image.WrapText;
             if (wrapText.HasValue && wrapText.Value != WrapTextImage.InLineWithText) {
                 if (IsNoWrapAnchoredImage(wrapText.Value)) {
+                    if (!context.IsTargetPage) {
+                        return false;
+                    }
+
                     return AddNoWrapAnchoredImage(image, context, diagnostics);
                 }
 
@@ -39,6 +43,10 @@ namespace OfficeIMO.Word {
             }
 
             FitImageToWidth(context.ContentWidth, ref width, ref height);
+            if (!EnsureVerticalSpace(context, height, diagnostics)) {
+                return false;
+            }
+
             double left = context.Left;
             double top = context.Y;
             OfficeImageProjection projection = CreateImageProjection(image, left, top, width, height);
@@ -52,11 +60,10 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            if (!EnsureVerticalSpace(context, boundsBottom - context.Y, diagnostics)) {
-                return false;
+            if (context.IsTargetPage) {
+                context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
             }
 
-            context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
             context.Y += boundsBottom - context.Y + ParagraphGapPoints;
             return true;
         }
@@ -111,6 +118,22 @@ namespace OfficeIMO.Word {
             }
 
             top = Math.Max(top, context.Y);
+            double distanceFromBottom = GetAnchorDistancePoints(image._Image.Anchor?.DistanceFromBottom);
+            double requiredHeight = top + height + distanceFromBottom - context.Y;
+            if (!EnsureVerticalSpace(context, requiredHeight, diagnostics)) {
+                return false;
+            }
+
+            if (!TryGetNoWrapAnchorPlacement(image, context, width, height, out left, out top)) {
+                AddDiagnostic(
+                    diagnostics,
+                    "unsupported-word-floating-image",
+                    "Skipped a Word image because its top-and-bottom anchor position could not be resolved.",
+                    DescribeImage(image));
+                return false;
+            }
+
+            top = Math.Max(top, context.Y);
             OfficeImageProjection projection = CreateImageProjection(image, left, top, width, height);
             (double boundsLeft, double boundsTop, double boundsRight, double boundsBottom) = projection.GetDestinationBounds();
             if (boundsLeft < 0D || boundsTop < 0D || boundsRight > context.Drawing.Width || boundsBottom > context.Drawing.Height) {
@@ -122,12 +145,10 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            double distanceFromBottom = GetAnchorDistancePoints(image._Image.Anchor?.DistanceFromBottom);
-            if (!EnsureVerticalSpace(context, boundsBottom + distanceFromBottom - context.Y, diagnostics)) {
-                return false;
+            if (context.IsTargetPage) {
+                context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
             }
 
-            context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
             context.Y = boundsBottom + distanceFromBottom + ParagraphGapPoints;
             return true;
         }
@@ -158,15 +179,31 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
+            if (context.IsTargetPage) {
+                context.Drawing.AddImage(bytes, image.ContentType, projection, DescribeImage(image));
+            }
+
             Anchor? anchor = image._Image.Anchor;
-            context.AddTextExclusion(
-                Math.Max(context.Left, boundsLeft - GetAnchorDistancePoints(anchor?.DistanceFromLeft)),
-                Math.Max(0D, boundsTop - GetAnchorDistancePoints(anchor?.DistanceFromTop)),
-                Math.Min(context.Left + context.ContentWidth, boundsRight + GetAnchorDistancePoints(anchor?.DistanceFromRight)),
-                Math.Min(context.ContentBottom, boundsBottom + GetAnchorDistancePoints(anchor?.DistanceFromBottom)),
-                GetTextWrapSide(anchor, wrapText));
-            if (wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through) {
+            double exclusionLeft = Math.Max(context.Left, boundsLeft - GetAnchorDistancePoints(anchor?.DistanceFromLeft));
+            double exclusionTop = Math.Max(0D, boundsTop - GetAnchorDistancePoints(anchor?.DistanceFromTop));
+            double exclusionRight = Math.Min(context.Left + context.ContentWidth, boundsRight + GetAnchorDistancePoints(anchor?.DistanceFromRight));
+            double exclusionBottom = Math.Min(context.ContentBottom, boundsBottom + GetAnchorDistancePoints(anchor?.DistanceFromBottom));
+            WordTextWrapSide wrapSide = GetTextWrapSide(anchor, wrapText);
+            IReadOnlyList<OfficePoint> polygon = Array.Empty<OfficePoint>();
+            bool usedAuthoredPolygon = (wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through) &&
+                TryCreateAuthoredWrapPolygonTextExclusion(anchor, exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, out polygon);
+            bool usedTransparentPolygon = false;
+            if (usedAuthoredPolygon) {
+                context.AddTextExclusion(polygon, wrapSide);
+            } else if ((wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through) &&
+                TryCreateTransparentImageWrapPolygon(bytes, projection, out IReadOnlyList<OfficePoint> transparentPolygon)) {
+                context.AddTextExclusion(transparentPolygon, wrapSide);
+                usedTransparentPolygon = true;
+            } else {
+                context.AddTextExclusion(exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, wrapSide);
+            }
+
+            if (context.IsTargetPage && (wrapText == WrapTextImage.Tight || wrapText == WrapTextImage.Through) && !usedAuthoredPolygon && !usedTransparentPolygon) {
                 AddDiagnostic(
                     diagnostics,
                     "limited-word-floating-image-wrap",
@@ -296,69 +333,104 @@ namespace OfficeIMO.Word {
         private static double ResolveHorizontalAnchorPosition(HorizontalPosition? position, WordImageFlowContext context, double width) {
             double offset = GetPositionOffsetPoints(position?.PositionOffset);
             string? alignment = position?.HorizontalAlignment?.Text;
+            (double ContainerLeft, double ContainerWidth) container = ResolveHorizontalAnchorContainer(position, context);
             if (!string.IsNullOrWhiteSpace(alignment)) {
-                double containerLeft = IsPageRelative(position) ? 0D : context.Left;
-                double containerWidth = IsPageRelative(position) ? context.Drawing.Width : context.ContentWidth;
-                if (IsMarginRelative(position)) {
-                    containerLeft = context.Left;
-                    containerWidth = context.ContentWidth;
-                }
-
                 if (string.Equals(alignment, "center", StringComparison.OrdinalIgnoreCase)) {
-                    return containerLeft + ((containerWidth - width) / 2D) + offset;
+                    return container.ContainerLeft + ((container.ContainerWidth - width) / 2D) + offset;
                 }
 
                 if (string.Equals(alignment, "right", StringComparison.OrdinalIgnoreCase)) {
-                    return containerLeft + containerWidth - width + offset;
+                    return container.ContainerLeft + container.ContainerWidth - width + offset;
                 }
 
                 if (string.Equals(alignment, "left", StringComparison.OrdinalIgnoreCase)) {
-                    return containerLeft + offset;
+                    return container.ContainerLeft + offset;
                 }
             }
 
-            return IsPageRelative(position) ? offset : context.Left + offset;
+            return container.ContainerLeft + offset;
         }
 
         private static double ResolveVerticalAnchorPosition(VerticalPosition? position, WordImageFlowContext context, double height) {
             double offset = GetPositionOffsetPoints(position?.PositionOffset);
             string? alignment = position?.VerticalAlignment?.Text;
+            (double ContainerTop, double ContainerHeight) container = ResolveVerticalAnchorContainer(position, context);
             if (!string.IsNullOrWhiteSpace(alignment)) {
-                double containerTop = IsPageRelative(position) ? 0D : context.Y;
-                double containerBottom = IsPageRelative(position) ? context.Drawing.Height : context.ContentBottom;
-                if (IsMarginRelative(position)) {
-                    containerTop = context.Top;
-                    containerBottom = context.ContentBottom;
-                }
-
-                double containerHeight = Math.Max(0D, containerBottom - containerTop);
                 if (string.Equals(alignment, "center", StringComparison.OrdinalIgnoreCase)) {
-                    return containerTop + ((containerHeight - height) / 2D) + offset;
+                    return container.ContainerTop + ((container.ContainerHeight - height) / 2D) + offset;
                 }
 
                 if (string.Equals(alignment, "bottom", StringComparison.OrdinalIgnoreCase)) {
-                    return containerBottom - height + offset;
+                    return container.ContainerTop + container.ContainerHeight - height + offset;
                 }
 
                 if (string.Equals(alignment, "top", StringComparison.OrdinalIgnoreCase)) {
-                    return containerTop + offset;
+                    return container.ContainerTop + offset;
                 }
             }
 
-            return IsPageRelative(position) ? offset : context.Y + offset;
+            return container.ContainerTop + offset;
         }
 
-        private static bool IsPageRelative(HorizontalPosition? position) =>
-            position?.RelativeFrom?.Value == HorizontalRelativePositionValues.Page;
+        private static (double ContainerLeft, double ContainerWidth) ResolveHorizontalAnchorContainer(HorizontalPosition? position, WordImageFlowContext context) {
+            HorizontalRelativePositionValues? relativeFrom = position?.RelativeFrom?.Value;
+            if (relativeFrom == HorizontalRelativePositionValues.Page) {
+                return (0D, context.Drawing.Width);
+            }
 
-        private static bool IsPageRelative(VerticalPosition? position) =>
-            position?.RelativeFrom?.Value == VerticalRelativePositionValues.Page;
+            if (relativeFrom == HorizontalRelativePositionValues.Margin) {
+                return (context.Left, context.ContentWidth);
+            }
 
-        private static bool IsMarginRelative(HorizontalPosition? position) =>
-            position?.RelativeFrom?.Value == HorizontalRelativePositionValues.Margin;
+            if (relativeFrom == HorizontalRelativePositionValues.LeftMargin) {
+                return (0D, context.Left);
+            }
 
-        private static bool IsMarginRelative(VerticalPosition? position) =>
-            position?.RelativeFrom?.Value == VerticalRelativePositionValues.Margin;
+            if (relativeFrom == HorizontalRelativePositionValues.RightMargin) {
+                double left = context.Left + context.ContentWidth;
+                return (left, Math.Max(0D, context.Drawing.Width - left));
+            }
+
+            if (relativeFrom == HorizontalRelativePositionValues.InsideMargin) {
+                return IsOddWordPageIndex(context.PageIndex)
+                    ? (0D, context.Left)
+                    : GetRightMarginContainer(context);
+            }
+
+            if (relativeFrom == HorizontalRelativePositionValues.OutsideMargin) {
+                return IsOddWordPageIndex(context.PageIndex)
+                    ? GetRightMarginContainer(context)
+                    : (0D, context.Left);
+            }
+
+            return (context.Left, context.ContentWidth);
+        }
+
+        private static (double ContainerLeft, double ContainerWidth) GetRightMarginContainer(WordImageFlowContext context) {
+            double left = context.Left + context.ContentWidth;
+            return (left, Math.Max(0D, context.Drawing.Width - left));
+        }
+
+        private static (double ContainerTop, double ContainerHeight) ResolveVerticalAnchorContainer(VerticalPosition? position, WordImageFlowContext context) {
+            VerticalRelativePositionValues? relativeFrom = position?.RelativeFrom?.Value;
+            if (relativeFrom == VerticalRelativePositionValues.Page) {
+                return (0D, context.Drawing.Height);
+            }
+
+            if (relativeFrom == VerticalRelativePositionValues.Margin) {
+                return (context.Top, Math.Max(0D, context.ContentBottom - context.Top));
+            }
+
+            if (relativeFrom == VerticalRelativePositionValues.TopMargin) {
+                return (0D, context.Top);
+            }
+
+            if (relativeFrom == VerticalRelativePositionValues.BottomMargin) {
+                return (context.ContentBottom, Math.Max(0D, context.Drawing.Height - context.ContentBottom));
+            }
+
+            return (context.Y, Math.Max(0D, context.ContentBottom - context.Y));
+        }
 
         private static double GetPositionOffsetPoints(PositionOffset? positionOffset) {
             if (positionOffset == null || string.IsNullOrWhiteSpace(positionOffset.Text)) {
@@ -395,7 +467,7 @@ namespace OfficeIMO.Word {
                     AddImageDiagnostic(
                         diagnostics,
                         "unsupported-word-image-raster",
-                        "Skipped a Word image in PNG output because dependency-free raster export currently decodes PNG and uncompressed BMP image bytes only.",
+                        "Skipped a Word image in PNG output because dependency-free raster export currently decodes " + OfficeRasterImageDecoder.SupportedFormatDescription + " only.",
                         image);
                 }
             }

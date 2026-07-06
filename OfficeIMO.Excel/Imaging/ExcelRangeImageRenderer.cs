@@ -231,11 +231,13 @@ namespace OfficeIMO.Excel {
                     sheetName + "!" + snapshot.Name));
             }
 
-            if (snapshot.Data.Series.Any(series => series.ChartType.HasValue && series.ChartType.Value != snapshot.ChartType)) {
+            if (snapshot.Data.Series.Any(series => series.ChartType.HasValue &&
+                series.ChartType.Value != snapshot.ChartType &&
+                (!TryMapSeriesRenderKind(series.ChartType.Value, out _, out string? seriesApproximation) || seriesApproximation != null))) {
                 diagnostics?.Add(new OfficeImageExportDiagnostic(
                     OfficeImageExportDiagnosticSeverity.Warning,
                     ExcelImageExportDiagnosticCodes.ChartKindApproximated,
-                    "Excel combo chart series types are not rendered independently yet; image export uses the chart's primary kind for all series.",
+                    "Excel combo chart includes a series type that is rendered through a fallback chart kind.",
                     sheetName + "!" + snapshot.Name));
             }
 
@@ -262,9 +264,30 @@ namespace OfficeIMO.Excel {
                     markerOutlineColor: ResolveArgb(series.MarkerOutlineColorArgb),
                     markerOutlineWidth: series.MarkerOutlineWidth,
                     strokeWidth: series.SeriesLineWidth,
-                    strokeDashStyle: series.SeriesLineDashStyle)));
+                    strokeDashStyle: series.SeriesLineDashStyle,
+                    renderKind: TryMapSeriesRenderKind(series.ChartType ?? snapshot.ChartType, out OfficeChartKind seriesKind, out _) ? seriesKind : null)));
             officeSnapshot = new OfficeChartSnapshot(snapshot.Name, snapshot.Title, kind, data, Math.Max(1D, width), Math.Max(1D, height), snapshot.Style, snapshot.Layout);
             return true;
+        }
+
+        private static bool TryMapSeriesRenderKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {
+            if (!TryMapChartKind(type, out kind, out approximation)) {
+                return false;
+            }
+
+            return kind == OfficeChartKind.ColumnClustered ||
+                kind == OfficeChartKind.ColumnStacked ||
+                kind == OfficeChartKind.ColumnStacked100 ||
+                kind == OfficeChartKind.BarClustered ||
+                kind == OfficeChartKind.BarStacked ||
+                kind == OfficeChartKind.BarStacked100 ||
+                kind == OfficeChartKind.Line ||
+                kind == OfficeChartKind.LineStacked ||
+                kind == OfficeChartKind.LineStacked100 ||
+                kind == OfficeChartKind.Area ||
+                kind == OfficeChartKind.AreaStacked ||
+                kind == OfficeChartKind.AreaStacked100 ||
+                kind == OfficeChartKind.Scatter;
         }
 
         private static bool TryMapChartKind(ExcelChartType type, out OfficeChartKind kind, out string? approximation) {

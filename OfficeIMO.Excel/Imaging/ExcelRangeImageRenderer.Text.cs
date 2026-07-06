@@ -42,7 +42,6 @@ namespace OfficeIMO.Excel {
             double h = viewport.Height;
             double paddingX = CellTextHorizontalPadding * scale;
             double paddingY = CellTextVerticalPadding * scale;
-            double availableWidth = Math.Max(1D, w - (paddingX * 2D));
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
@@ -54,11 +53,13 @@ namespace OfficeIMO.Excel {
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
+            CellTextInsets textInsets = ResolveCellTextInsets(cell, fontSize, paddingX, w, rotated || stacked);
+            double availableWidth = Math.Max(1D, w - textInsets.Left - textInsets.Right);
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
             OfficeTextBlockRenderPlan plan = CreateCellTextRenderPlan(
                 cell,
-                x + paddingX,
+                x + textInsets.Left,
                 y + paddingY,
                 availableWidth,
                 availableHeight,
@@ -74,7 +75,7 @@ namespace OfficeIMO.Excel {
 
             using (canvas.PushClipRectangle(x, y, w, h)) {
                 if (cell.RichTextRuns.Count > 0) {
-                    if (richTextSupported && TryDrawRasterRichText(canvas, cell, options, scale, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, out OfficeRichTextBlockLayout richLayout)) {
+                    if (richTextSupported && TryDrawRasterRichText(canvas, cell, options, scale, x, y, w, h, textInsets.Left, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, out OfficeRichTextBlockLayout richLayout)) {
                         AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, diagnostics);
                         AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
                         if (rotated || stacked) {
@@ -180,7 +181,6 @@ namespace OfficeIMO.Excel {
             double h = viewport.Height;
             double paddingX = CellTextHorizontalPadding * scale;
             double paddingY = CellTextVerticalPadding * scale;
-            double availableWidth = Math.Max(1D, w - (paddingX * 2D));
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
@@ -192,11 +192,13 @@ namespace OfficeIMO.Excel {
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
+            CellTextInsets textInsets = ResolveCellTextInsets(cell, fontSize, paddingX, w, rotated || stacked);
+            double availableWidth = Math.Max(1D, w - textInsets.Left - textInsets.Right);
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
             OfficeTextBlockRenderPlan plan = CreateCellTextRenderPlan(
                 cell,
-                x + paddingX,
+                x + textInsets.Left,
                 y + paddingY,
                 availableWidth,
                 availableHeight,
@@ -211,7 +213,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cell.RichTextRuns.Count > 0) {
-                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, paddingX, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => MeasureSvgText(textMeasurer, text, size, family), out OfficeRichTextBlockLayout richLayout)) {
+                if (richTextSupported && TryAppendSvgRichText(builder, cell, options, x, y, w, h, textInsets.Left, paddingY, availableWidth, availableHeight, rotationDegrees, stacked, (text, size, family) => MeasureSvgText(textMeasurer, text, size, family), out OfficeRichTextBlockLayout richLayout)) {
                     AddRichTextFontFamilyFallbackDiagnostics(snapshot, cell, diagnostics);
                     AddTextClippingDiagnosticIfNeeded(richLayout, snapshot, cell, diagnostics);
                     if (rotated || stacked) {
@@ -348,6 +350,24 @@ namespace OfficeIMO.Excel {
                 forceSingleLine: rotated,
                 shrinkToFit: cell.Style.ShrinkToFit,
                 overflowBehavior: OfficeTextOverflowBehavior.Clip);
+        }
+
+        private static CellTextInsets ResolveCellTextInsets(ExcelVisualCell cell, double fontSize, double basePadding, double viewportWidth, bool transformedText) {
+            if (transformedText || !cell.Style.TextIndent.HasValue || cell.Style.TextIndent.Value == 0U) {
+                return new CellTextInsets(basePadding, basePadding);
+            }
+
+            double indent = Math.Min(Math.Max(0D, viewportWidth - (basePadding * 2D)), cell.Style.TextIndent.Value * fontSize);
+            OfficeTextAlignment alignment = ResolveCellTextAlignment(cell);
+            if (alignment == OfficeTextAlignment.Right) {
+                return new CellTextInsets(basePadding, basePadding + indent);
+            }
+
+            if (alignment == OfficeTextAlignment.Center) {
+                return new CellTextInsets(basePadding, basePadding);
+            }
+
+            return new CellTextInsets(basePadding + indent, basePadding);
         }
 
         private static bool TryDrawRasterRichText(
@@ -938,6 +958,17 @@ namespace OfficeIMO.Excel {
 
         private static string GetCellDiagnosticSource(ExcelRangeVisualSnapshot snapshot, ExcelVisualCell cell) =>
             snapshot.SheetName + "!" + A1.ColumnIndexToLetters(cell.Column) + cell.Row.ToString(System.Globalization.CultureInfo.InvariantCulture);
+
+        private readonly struct CellTextInsets {
+            internal CellTextInsets(double left, double right) {
+                Left = left;
+                Right = right;
+            }
+
+            internal double Left { get; }
+
+            internal double Right { get; }
+        }
 
         private readonly struct CellTextViewport {
             internal CellTextViewport(double x, double y, double width, double height) {

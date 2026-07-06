@@ -1,0 +1,872 @@
+using System;
+using System.Collections.Generic;
+using System.Globalization;
+using System.Text;
+using System.Xml.Linq;
+using OfficeIMO.Drawing;
+
+namespace OfficeIMO.Visio {
+    internal static partial class VisioSvgPreviewRasterizer {
+        private const int DefaultSize = 256;
+        private const int MaximumSize = 1024;
+
+        internal static bool TryRasterize(byte[]? data, out OfficeRasterImage? image) =>
+            TryRasterize(data, null, out image);
+
+        internal static bool TryRasterize(byte[]? data, Func<string, byte[]?>? imageResolver, out OfficeRasterImage? image) {
+            image = null;
+            if (data == null || data.Length == 0) {
+                return false;
+            }
+
+            XDocument document;
+            try {
+                document = XDocument.Parse(Encoding.UTF8.GetString(data), LoadOptions.None);
+            } catch {
+                return false;
+            }
+
+            XElement? root = document.Root;
+            if (root == null || !string.Equals(root.Name.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            ResolveViewport(root, out double viewLeft, out double viewTop, out double viewWidth, out double viewHeight, out int width, out int height);
+            if (viewWidth <= 0D || viewHeight <= 0D || width <= 0 || height <= 0) {
+                return false;
+            }
+
+            OfficeRasterImage raster = new(width, height, OfficeColor.Transparent);
+            OfficeRasterCanvas canvas = new(raster);
+            SvgPaint inherited = SvgPaint.Default;
+            SvgRenderContext context = SvgRenderContext.Create(root, imageResolver);
+            SvgTransform transform = SvgTransform.Create(width / viewWidth, 0D, 0D, height / viewHeight, -viewLeft * width / viewWidth, -viewTop * height / viewHeight);
+            bool rendered = RenderChildren(canvas, root, inherited, transform, context);
+            if (!rendered) {
+                return false;
+            }
+
+            image = raster;
+            return true;
+        }
+
+        private static bool RenderChildren(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+            bool rendered = false;
+            foreach (XElement child in element.Elements()) {
+                if (RenderElement(canvas, child, inherited, transform, context)) {
+                    rendered = true;
+                }
+            }
+
+            return rendered;
+        }
+
+        private static bool RenderElement(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+            string name = element.Name.LocalName;
+            if (string.Equals(name, "defs", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "style", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "title", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "desc", StringComparison.OrdinalIgnoreCase)) {
+                return false;
+            }
+
+            if (IsElementHidden(element, context)) {
+                return false;
+            }
+
+            SvgPaint paint = SvgPaint.Resolve(element, inherited, context);
+            SvgTransform localTransform = transform.Multiply(ReadTransform(element.Attribute("transform")?.Value));
+            using IDisposable? clipScope = PushClipPath(canvas, element, localTransform, context);
+            return RenderElementCore(canvas, element, name, paint, localTransform, context);
+        }
+
+        private static bool RenderElementCore(OfficeRasterCanvas canvas, XElement element, string name, SvgPaint paint, SvgTransform localTransform, SvgRenderContext context) {
+            if (string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase)) {
+                return RenderChildren(canvas, element, paint, localTransform, context);
+            }
+
+            if (string.Equals(name, "use", StringComparison.OrdinalIgnoreCase)) {
+                return RenderUse(canvas, element, paint, localTransform, context);
+            }
+
+            if (string.Equals(name, "image", StringComparison.OrdinalIgnoreCase)) {
+                return RenderImage(canvas, element, paint, localTransform, context);
+            }
+
+            if (string.Equals(name, "text", StringComparison.OrdinalIgnoreCase)) {
+                return RenderText(canvas, element, paint, localTransform, context);
+            }
+
+            if (string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase)) {
+                return RenderRectangle(canvas, element, paint, localTransform);
+            }
+
+            if (string.Equals(name, "circle", StringComparison.OrdinalIgnoreCase)) {
+                double radius = ReadLength(element, "r", 0D);
+                return RenderEllipse(canvas, ReadLength(element, "cx", 0D), ReadLength(element, "cy", 0D), radius, radius, paint, localTransform);
+            }
+
+            if (string.Equals(name, "ellipse", StringComparison.OrdinalIgnoreCase)) {
+                return RenderEllipse(canvas, ReadLength(element, "cx", 0D), ReadLength(element, "cy", 0D), ReadLength(element, "rx", 0D), ReadLength(element, "ry", 0D), paint, localTransform);
+            }
+
+            if (string.Equals(name, "line", StringComparison.OrdinalIgnoreCase)) {
+                return RenderPolyline(canvas, new[] {
+                    (ReadLength(element, "x1", 0D), ReadLength(element, "y1", 0D)),
+                    (ReadLength(element, "x2", 0D), ReadLength(element, "y2", 0D))
+                }, closed: false, paint, localTransform);
+            }
+
+            if (string.Equals(name, "polyline", StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(name, "polygon", StringComparison.OrdinalIgnoreCase)) {
+                if (!TryParsePoints(element.Attribute("points")?.Value, out List<(double X, double Y)> points)) {
+                    return false;
+                }
+
+                return RenderPolyline(canvas, points, string.Equals(name, "polygon", StringComparison.OrdinalIgnoreCase), paint, localTransform);
+            }
+
+            if (string.Equals(name, "path", StringComparison.OrdinalIgnoreCase)) {
+                if (!TryParsePath(element.Attribute("d")?.Value, out List<SvgPathContour> contours)) {
+                    return false;
+                }
+
+                return RenderPath(canvas, element, contours, paint, localTransform, context);
+            }
+
+            return RenderChildren(canvas, element, paint, localTransform, context);
+        }
+
+        private static bool RenderUse(OfficeRasterCanvas canvas, XElement element, SvgPaint inherited, SvgTransform transform, SvgRenderContext context) {
+            string? href = ReadHref(element);
+            if (string.IsNullOrWhiteSpace(href) || href![0] != '#') {
+                return false;
+            }
+
+            string id = href.Substring(1);
+            if (id.Length == 0 || !context.TryGetDefinition(id, out XElement? definition) || definition == null || !context.TryEnterUse(id)) {
+                return false;
+            }
+
+            try {
+                SvgTransform useTransform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, ReadLength(element, "x", 0D), ReadLength(element, "y", 0D)));
+                string definitionName = definition.Name.LocalName;
+                if ((string.Equals(definitionName, "symbol", StringComparison.OrdinalIgnoreCase) ||
+                     string.Equals(definitionName, "svg", StringComparison.OrdinalIgnoreCase)) &&
+                    TryReadViewBoxTransform(definition, element, out SvgTransform viewBoxTransform)) {
+                    useTransform = useTransform.Multiply(viewBoxTransform);
+                }
+
+                if (string.Equals(definitionName, "symbol", StringComparison.OrdinalIgnoreCase)) {
+                    return RenderChildren(canvas, definition, inherited, useTransform, context);
+                }
+
+                return RenderElement(canvas, definition, inherited, useTransform, context);
+            } finally {
+                context.ExitUse(id);
+            }
+        }
+
+        private static bool RenderRectangle(OfficeRasterCanvas canvas, XElement element, SvgPaint paint, SvgTransform transform) {
+            double x = ReadLength(element, "x", 0D);
+            double y = ReadLength(element, "y", 0D);
+            double width = ReadLength(element, "width", 0D);
+            double height = ReadLength(element, "height", 0D);
+            if (width <= 0D || height <= 0D) {
+                return false;
+            }
+
+            bool hasRx = TryParseLength(element.Attribute("rx")?.Value, out double rx);
+            bool hasRy = TryParseLength(element.Attribute("ry")?.Value, out double ry);
+            if (hasRx && !hasRy) {
+                ry = rx;
+            } else if (!hasRx && hasRy) {
+                rx = ry;
+            }
+
+            rx = Math.Min(Math.Abs(rx), width / 2D);
+            ry = Math.Min(Math.Abs(ry), height / 2D);
+            List<(double X, double Y)> points = rx > 0D && ry > 0D
+                ? CreateRoundedRectanglePoints(x, y, width, height, rx, ry)
+                : new List<(double X, double Y)> {
+                    (x, y),
+                    (x + width, y),
+                    (x + width, y + height),
+                    (x, y + height)
+                };
+
+            return RenderPolyline(canvas, points, closed: true, paint, transform);
+        }
+
+        private static bool RenderEllipse(OfficeRasterCanvas canvas, double cx, double cy, double rx, double ry, SvgPaint paint, SvgTransform transform) {
+            if (rx <= 0D || ry <= 0D) {
+                return false;
+            }
+
+            OfficePoint center = transform.Apply(cx, cy);
+            double scaledRx = Math.Abs(rx * transform.ScaleX);
+            double scaledRy = Math.Abs(ry * transform.ScaleY);
+            if (paint.HasFill) {
+                if (paint.FillRadialGradient != null || paint.FillGradient != null) {
+                    IReadOnlyList<OfficePoint> ellipsePoints = CreateEllipsePoints(cx, cy, rx, ry, transform);
+                    if (paint.FillRadialGradient != null) {
+                        canvas.FillRadialGradientPolygon(ellipsePoints, paint.FillRadialGradient);
+                    } else {
+                        canvas.FillLinearGradientPolygon(ellipsePoints, paint.FillGradient!);
+                    }
+                } else {
+                    canvas.DrawEllipse(center.X, center.Y, scaledRx, scaledRy, paint.Fill, OfficeColor.Transparent, 0D);
+                }
+            }
+
+            if (paint.Stroke.A > 0 && paint.StrokeWidth > 0D) {
+                double strokeScale = GetStrokeScale(paint, transform);
+                double strokeWidth = Math.Max(1D, paint.StrokeWidth * strokeScale);
+                IReadOnlyList<double>? dashPattern = ScaleDashPattern(paint.DashPattern, strokeScale);
+                if (dashPattern != null) {
+                    canvas.DrawPatternedEllipse(center.X, center.Y, scaledRx, scaledRy, paint.Stroke, strokeWidth, dashPattern);
+                } else {
+                    canvas.DrawEllipse(center.X, center.Y, scaledRx, scaledRy, OfficeColor.Transparent, paint.Stroke, strokeWidth);
+                }
+            }
+
+            return paint.HasFill || paint.Stroke.A > 0;
+        }
+
+        private static bool RenderPath(OfficeRasterCanvas canvas, XElement element, IReadOnlyList<SvgPathContour> contours, SvgPaint paint, SvgTransform transform, SvgRenderContext context) {
+            if (contours.Count == 0) {
+                return false;
+            }
+
+            bool rendered = false;
+            List<IReadOnlyList<OfficePoint>> closedContours = new();
+            List<(IReadOnlyList<OfficePoint> Points, bool Closed)> projectedContours = new(contours.Count);
+            for (int i = 0; i < contours.Count; i++) {
+                List<OfficePoint> projected = ProjectPoints(contours[i].Points, transform);
+                if (projected.Count < 2) {
+                    continue;
+                }
+
+                bool closed = contours[i].IsClosed && projected.Count >= 3;
+                projectedContours.Add((projected, closed));
+                if (closed) {
+                    closedContours.Add(projected);
+                }
+            }
+
+            if (paint.HasFill && closedContours.Count > 0) {
+                if (paint.FillRadialGradient != null) {
+                    for (int i = 0; i < closedContours.Count; i++) {
+                        canvas.FillRadialGradientPolygon(closedContours[i], paint.FillRadialGradient);
+                    }
+                } else if (paint.FillGradient != null) {
+                    for (int i = 0; i < closedContours.Count; i++) {
+                        canvas.FillLinearGradientPolygon(closedContours[i], paint.FillGradient);
+                    }
+                } else if (UseEvenOddFill(element, context.StyleSheet) && closedContours.Count > 1) {
+                    canvas.FillPolygonsEvenOdd(closedContours, paint.Fill);
+                } else {
+                    for (int i = 0; i < closedContours.Count; i++) {
+                        canvas.FillPolygon(closedContours[i], paint.Fill);
+                    }
+                }
+
+                rendered = true;
+            }
+
+            if (paint.Stroke.A > 0 && paint.StrokeWidth > 0D) {
+                double strokeScale = GetStrokeScale(paint, transform);
+                double strokeWidth = Math.Max(1D, paint.StrokeWidth * strokeScale);
+                IReadOnlyList<double>? dashPattern = ScaleDashPattern(paint.DashPattern, strokeScale);
+                for (int i = 0; i < projectedContours.Count; i++) {
+                    if (projectedContours[i].Closed) {
+                        StrokeClosedContour(canvas, projectedContours[i].Points, paint, strokeWidth, dashPattern);
+                    } else {
+                        StrokeOpenContour(canvas, projectedContours[i].Points, paint, strokeWidth, dashPattern);
+                    }
+                }
+
+                rendered = true;
+            }
+
+            return rendered;
+        }
+
+        private static bool RenderPolyline(OfficeRasterCanvas canvas, IReadOnlyList<(double X, double Y)> points, bool closed, SvgPaint paint, SvgTransform transform) {
+            if (points.Count < 2) {
+                return false;
+            }
+
+            List<OfficePoint> projected = ProjectPoints(points, transform);
+
+            if (closed && projected.Count >= 3 && paint.HasFill) {
+                if (paint.FillRadialGradient != null) {
+                    canvas.FillRadialGradientPolygon(projected, paint.FillRadialGradient);
+                } else if (paint.FillGradient != null) {
+                    canvas.FillLinearGradientPolygon(projected, paint.FillGradient);
+                } else {
+                    canvas.FillPolygon(projected, paint.Fill);
+                }
+            }
+
+            if (paint.Stroke.A > 0 && paint.StrokeWidth > 0D) {
+                double strokeScale = GetStrokeScale(paint, transform);
+                double strokeWidth = Math.Max(1D, paint.StrokeWidth * strokeScale);
+                IReadOnlyList<double>? dashPattern = ScaleDashPattern(paint.DashPattern, strokeScale);
+                if (closed && projected.Count >= 3) {
+                    StrokeClosedContour(canvas, projected, paint, strokeWidth, dashPattern);
+                } else {
+                    StrokeOpenContour(canvas, projected, paint, strokeWidth, dashPattern);
+                }
+            }
+
+            return (closed && paint.HasFill) || paint.Stroke.A > 0;
+        }
+
+        private static void StrokeOpenContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, IReadOnlyList<double>? dashPattern) {
+            if (points.Count < 2) {
+                return;
+            }
+
+            if (dashPattern != null) {
+                canvas.DrawPatternedPolyline(points, paint.Stroke, strokeWidth, dashPattern);
+                return;
+            }
+
+            IReadOnlyList<OfficePoint> strokePoints = paint.StrokeLineCap == SvgStrokeLineCap.Square
+                ? ExtendOpenStrokeForSquareCap(points, strokeWidth)
+                : points;
+            DrawJoinedPolyline(canvas, strokePoints, paint, strokeWidth, closed: false);
+
+            if (paint.StrokeLineCap == SvgStrokeLineCap.Round) {
+                DrawRoundStrokeCap(canvas, points[0], paint.Stroke, strokeWidth);
+                DrawRoundStrokeCap(canvas, points[points.Count - 1], paint.Stroke, strokeWidth);
+            }
+        }
+
+        private static IReadOnlyList<OfficePoint> ExtendOpenStrokeForSquareCap(IReadOnlyList<OfficePoint> points, double strokeWidth) {
+            double distance = strokeWidth / 2D;
+            List<OfficePoint> extended = new(points.Count);
+            extended.Add(ExtendCapPoint(points[0], points[1], distance));
+            for (int i = 1; i < points.Count - 1; i++) {
+                extended.Add(points[i]);
+            }
+
+            extended.Add(ExtendCapPoint(points[points.Count - 1], points[points.Count - 2], distance));
+            return extended;
+        }
+
+        private static OfficePoint ExtendCapPoint(OfficePoint endpoint, OfficePoint neighbor, double distance) {
+            double dx = endpoint.X - neighbor.X;
+            double dy = endpoint.Y - neighbor.Y;
+            double length = Math.Sqrt((dx * dx) + (dy * dy));
+            if (length <= double.Epsilon) {
+                return endpoint;
+            }
+
+            double scale = distance / length;
+            return new OfficePoint(endpoint.X + (dx * scale), endpoint.Y + (dy * scale));
+        }
+
+        private static void DrawJoinedPolyline(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, bool closed) {
+            DrawFlatPolyline(canvas, points, paint.Stroke, strokeWidth, closed);
+            DrawStrokeLineJoins(canvas, points, paint.Stroke, strokeWidth, paint.StrokeLineJoin, closed);
+        }
+
+        private static void DrawFlatPolyline(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, bool closed) {
+            for (int i = 1; i < points.Count; i++) {
+                DrawFlatStrokeSegment(canvas, points[i - 1], points[i], color, strokeWidth);
+            }
+
+            if (closed && points.Count > 2) {
+                DrawFlatStrokeSegment(canvas, points[points.Count - 1], points[0], color, strokeWidth);
+            }
+        }
+
+        private static void DrawFlatStrokeSegment(OfficeRasterCanvas canvas, OfficePoint start, OfficePoint end, OfficeColor color, double strokeWidth) {
+            double dx = end.X - start.X;
+            double dy = end.Y - start.Y;
+            double length = Math.Sqrt((dx * dx) + (dy * dy));
+            if (length <= double.Epsilon) {
+                return;
+            }
+
+            double half = strokeWidth / 2D;
+            double offsetX = (-dy / length) * half;
+            double offsetY = (dx / length) * half;
+            canvas.FillPolygon(
+                new[] {
+                    new OfficePoint(start.X + offsetX, start.Y + offsetY),
+                    new OfficePoint(end.X + offsetX, end.Y + offsetY),
+                    new OfficePoint(end.X - offsetX, end.Y - offsetY),
+                    new OfficePoint(start.X - offsetX, start.Y - offsetY)
+                },
+                color);
+        }
+
+        private static void DrawStrokeLineJoins(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, OfficeColor color, double strokeWidth, SvgStrokeLineJoin lineJoin, bool closed) {
+            if (points.Count < 3) {
+                return;
+            }
+
+            int start = closed ? 0 : 1;
+            int end = closed ? points.Count : points.Count - 1;
+            for (int i = start; i < end; i++) {
+                OfficePoint previous = points[(i - 1 + points.Count) % points.Count];
+                OfficePoint current = points[i];
+                OfficePoint next = points[(i + 1) % points.Count];
+                if (lineJoin == SvgStrokeLineJoin.Round) {
+                    DrawRoundStrokeCap(canvas, current, color, strokeWidth);
+                } else if (lineJoin == SvgStrokeLineJoin.Miter) {
+                    if (!DrawMiterStrokeJoin(canvas, previous, current, next, color, strokeWidth)) {
+                        DrawBevelStrokeJoin(canvas, previous, current, next, color, strokeWidth);
+                    }
+                } else {
+                    DrawBevelStrokeJoin(canvas, previous, current, next, color, strokeWidth);
+                }
+            }
+        }
+
+        private static void DrawRoundStrokeCap(OfficeRasterCanvas canvas, OfficePoint point, OfficeColor color, double strokeWidth) =>
+            canvas.DrawEllipse(point.X, point.Y, strokeWidth / 2D, strokeWidth / 2D, color, OfficeColor.Transparent, 0D);
+
+        private static bool DrawMiterStrokeJoin(OfficeRasterCanvas canvas, OfficePoint previous, OfficePoint current, OfficePoint next, OfficeColor color, double strokeWidth) {
+            if (!TryCreateOuterJoin(previous, current, next, strokeWidth, out OfficePoint outerA, out OfficePoint outerB, out OfficePoint incomingUnit, out OfficePoint outgoingUnit)) {
+                return false;
+            }
+
+            if (!TryIntersectLines(outerA, incomingUnit, outerB, outgoingUnit, out OfficePoint miter)) {
+                return false;
+            }
+
+            double distance = Distance(current, miter);
+            if (distance > strokeWidth * 4D) {
+                return false;
+            }
+
+            canvas.FillPolygon(new[] { current, outerA, miter, outerB }, color);
+            return true;
+        }
+
+        private static void DrawBevelStrokeJoin(OfficeRasterCanvas canvas, OfficePoint previous, OfficePoint current, OfficePoint next, OfficeColor color, double strokeWidth) {
+            if (!TryCreateOuterJoin(previous, current, next, strokeWidth, out OfficePoint outerA, out OfficePoint outerB, out _, out _)) {
+                return;
+            }
+
+            canvas.FillPolygon(new[] { current, outerA, outerB }, color);
+        }
+
+        private static bool TryCreateOuterJoin(
+            OfficePoint previous,
+            OfficePoint current,
+            OfficePoint next,
+            double strokeWidth,
+            out OfficePoint outerA,
+            out OfficePoint outerB,
+            out OfficePoint incomingUnit,
+            out OfficePoint outgoingUnit) {
+            outerA = current;
+            outerB = current;
+            incomingUnit = current;
+            outgoingUnit = current;
+            double incomingLength = Distance(previous, current);
+            double outgoingLength = Distance(current, next);
+            if (incomingLength <= double.Epsilon || outgoingLength <= double.Epsilon) {
+                return false;
+            }
+
+            incomingUnit = new OfficePoint((current.X - previous.X) / incomingLength, (current.Y - previous.Y) / incomingLength);
+            outgoingUnit = new OfficePoint((next.X - current.X) / outgoingLength, (next.Y - current.Y) / outgoingLength);
+            double turn = Cross(incomingUnit, outgoingUnit);
+            if (Math.Abs(turn) <= 0.0001D) {
+                return false;
+            }
+
+            double side = turn > 0D ? -1D : 1D;
+            double half = strokeWidth / 2D;
+            OfficePoint incomingNormal = new(-incomingUnit.Y * side, incomingUnit.X * side);
+            OfficePoint outgoingNormal = new(-outgoingUnit.Y * side, outgoingUnit.X * side);
+            outerA = new OfficePoint(current.X + (incomingNormal.X * half), current.Y + (incomingNormal.Y * half));
+            outerB = new OfficePoint(current.X + (outgoingNormal.X * half), current.Y + (outgoingNormal.Y * half));
+            return true;
+        }
+
+        private static bool TryIntersectLines(OfficePoint pointA, OfficePoint directionA, OfficePoint pointB, OfficePoint directionB, out OfficePoint intersection) {
+            intersection = pointA;
+            double denominator = Cross(directionA, directionB);
+            if (Math.Abs(denominator) <= 0.0001D) {
+                return false;
+            }
+
+            OfficePoint delta = new(pointB.X - pointA.X, pointB.Y - pointA.Y);
+            double t = Cross(delta, directionB) / denominator;
+            intersection = new OfficePoint(pointA.X + (directionA.X * t), pointA.Y + (directionA.Y * t));
+            return true;
+        }
+
+        private static double Cross(OfficePoint a, OfficePoint b) =>
+            (a.X * b.Y) - (a.Y * b.X);
+
+        private static double Distance(OfficePoint a, OfficePoint b) {
+            double dx = b.X - a.X;
+            double dy = b.Y - a.Y;
+            return Math.Sqrt((dx * dx) + (dy * dy));
+        }
+
+        private static void StrokeClosedContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, IReadOnlyList<double>? dashPattern) {
+            if (dashPattern == null) {
+                DrawJoinedPolyline(canvas, points, paint, strokeWidth, closed: true);
+                return;
+            }
+
+            List<OfficePoint> closed = new(points.Count + 1);
+            for (int i = 0; i < points.Count; i++) {
+                closed.Add(points[i]);
+            }
+
+            closed.Add(points[0]);
+            canvas.DrawPatternedPolyline(closed, paint.Stroke, strokeWidth, dashPattern);
+        }
+
+        private static IReadOnlyList<double>? ScaleDashPattern(IReadOnlyList<double>? pattern, double scale) {
+            if (pattern == null || pattern.Count == 0) {
+                return null;
+            }
+
+            List<double> scaled = new(pattern.Count);
+            for (int i = 0; i < pattern.Count; i++) {
+                double value = pattern[i] * Math.Max(0.0001D, scale);
+                if (value > 0D && !double.IsNaN(value) && !double.IsInfinity(value)) {
+                    scaled.Add(value);
+                }
+            }
+
+            return scaled.Count == 0 ? null : scaled;
+        }
+
+        private static double GetStrokeScale(SvgPaint paint, SvgTransform transform) =>
+            paint.NonScalingStroke ? 1D : transform.StrokeScale;
+
+        private static IReadOnlyList<OfficePoint> CreateEllipsePoints(double cx, double cy, double rx, double ry, SvgTransform transform) {
+            const int segments = 72;
+            List<OfficePoint> points = new(segments);
+            for (int i = 0; i < segments; i++) {
+                double angle = (Math.PI * 2D * i) / segments;
+                points.Add(transform.Apply(cx + (Math.Cos(angle) * rx), cy + (Math.Sin(angle) * ry)));
+            }
+
+            return points;
+        }
+
+        private static List<(double X, double Y)> CreateRoundedRectanglePoints(double x, double y, double width, double height, double rx, double ry) {
+            const int quarterSegments = 8;
+            List<(double X, double Y)> points = new(quarterSegments * 4);
+            AddArcPoints(points, x + width - rx, y + ry, rx, ry, -Math.PI / 2D, 0D, quarterSegments);
+            AddArcPoints(points, x + width - rx, y + height - ry, rx, ry, 0D, Math.PI / 2D, quarterSegments);
+            AddArcPoints(points, x + rx, y + height - ry, rx, ry, Math.PI / 2D, Math.PI, quarterSegments);
+            AddArcPoints(points, x + rx, y + ry, rx, ry, Math.PI, Math.PI * 3D / 2D, quarterSegments);
+            return points;
+        }
+
+        private static void AddArcPoints(List<(double X, double Y)> points, double cx, double cy, double rx, double ry, double start, double end, int segments) {
+            for (int i = 0; i <= segments; i++) {
+                if (points.Count > 0 && i == 0) {
+                    continue;
+                }
+
+                double t = i / (double)segments;
+                double angle = start + ((end - start) * t);
+                points.Add((cx + Math.Cos(angle) * rx, cy + Math.Sin(angle) * ry));
+            }
+        }
+
+        private static List<OfficePoint> ProjectPoints(IReadOnlyList<(double X, double Y)> points, SvgTransform transform) {
+            List<OfficePoint> projected = new(points.Count);
+            for (int i = 0; i < points.Count; i++) {
+                projected.Add(transform.Apply(points[i].X, points[i].Y));
+            }
+
+            return projected;
+        }
+
+        private static bool UseEvenOddFill(XElement element, SvgStyleSheet styleSheet) {
+            string? fillRule = element.Attribute("fill-rule")?.Value;
+            if (string.IsNullOrWhiteSpace(fillRule) && TryReadStyleValue(element.Attribute("style")?.Value, "fill-rule", out string? styleValue)) {
+                fillRule = styleValue;
+            }
+            if (string.IsNullOrWhiteSpace(fillRule) && styleSheet.TryGetValue(element, "fill-rule", out string? classValue)) {
+                fillRule = classValue;
+            }
+
+            return string.Equals(fillRule, "evenodd", StringComparison.OrdinalIgnoreCase);
+        }
+
+        private static string? ReadHref(XElement element) {
+            foreach (XAttribute attribute in element.Attributes()) {
+                if (string.Equals(attribute.Name.LocalName, "href", StringComparison.OrdinalIgnoreCase)) {
+                    return attribute.Value;
+                }
+            }
+
+            return null;
+        }
+
+        private static bool TryReadViewBoxTransform(XElement definition, XElement useElement, out SvgTransform transform) {
+            transform = SvgTransform.Identity;
+            if (!TryParseNumbers(definition.Attribute("viewBox")?.Value, out List<double> viewBox) ||
+                viewBox.Count < 4 ||
+                viewBox[2] <= 0D ||
+                viewBox[3] <= 0D) {
+                return false;
+            }
+
+            double width = ReadLength(useElement, "width", viewBox[2]);
+            double height = ReadLength(useElement, "height", viewBox[3]);
+            if (width <= 0D || height <= 0D) {
+                return false;
+            }
+
+            transform = SvgTransform.Create(width / viewBox[2], 0D, 0D, height / viewBox[3], -viewBox[0] * width / viewBox[2], -viewBox[1] * height / viewBox[3]);
+            return true;
+        }
+
+        private static void ResolveViewport(XElement root, out double viewLeft, out double viewTop, out double viewWidth, out double viewHeight, out int width, out int height) {
+            viewLeft = 0D;
+            viewTop = 0D;
+            viewWidth = ReadLength(root, "width", DefaultSize);
+            viewHeight = ReadLength(root, "height", DefaultSize);
+            if (TryParseNumbers(root.Attribute("viewBox")?.Value, out List<double> viewBox) && viewBox.Count >= 4 && viewBox[2] > 0D && viewBox[3] > 0D) {
+                viewLeft = viewBox[0];
+                viewTop = viewBox[1];
+                viewWidth = viewBox[2];
+                viewHeight = viewBox[3];
+            }
+
+            double rawWidth = ReadLength(root, "width", viewWidth);
+            double rawHeight = ReadLength(root, "height", viewHeight);
+            if (rawWidth <= 0D) {
+                rawWidth = viewWidth;
+            }
+
+            if (rawHeight <= 0D) {
+                rawHeight = viewHeight;
+            }
+
+            width = ClampSize((int)Math.Round(rawWidth));
+            height = ClampSize((int)Math.Round(rawHeight));
+        }
+
+        private static int ClampSize(int value) => Math.Max(1, Math.Min(MaximumSize, value));
+
+        private static double ReadLength(XElement element, string name, double fallback) =>
+            TryParseLength(element.Attribute(name)?.Value, out double value) ? value : fallback;
+
+        private static SvgTransform ReadTransform(string? value) {
+            if (string.IsNullOrWhiteSpace(value)) {
+                return SvgTransform.Identity;
+            }
+
+            SvgTransform transform = SvgTransform.Identity;
+            int offset = 0;
+            while (offset < value!.Length) {
+                while (offset < value.Length && char.IsWhiteSpace(value[offset])) {
+                    offset++;
+                }
+
+                int nameStart = offset;
+                while (offset < value.Length && char.IsLetter(value[offset])) {
+                    offset++;
+                }
+
+                string name = value.Substring(nameStart, offset - nameStart);
+                if (string.IsNullOrEmpty(name) || offset >= value.Length || value[offset] != '(') {
+                    break;
+                }
+
+                int close = value.IndexOf(')', offset + 1);
+                if (close < 0) {
+                    break;
+                }
+
+                if (TryParseNumbers(value.Substring(offset + 1, close - offset - 1), out List<double> numbers)) {
+                    if (string.Equals(name, "translate", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 1) {
+                        transform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, numbers[0], numbers.Count > 1 ? numbers[1] : 0D));
+                    } else if (string.Equals(name, "scale", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 1) {
+                        transform = transform.Multiply(SvgTransform.Create(numbers[0], 0D, 0D, numbers.Count > 1 ? numbers[1] : numbers[0], 0D, 0D));
+                    } else if (string.Equals(name, "rotate", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 1) {
+                        transform = transform.Multiply(CreateRotationTransform(numbers));
+                    } else if (string.Equals(name, "matrix", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 6) {
+                        transform = transform.Multiply(SvgTransform.Create(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]));
+                    }
+                }
+
+                offset = close + 1;
+            }
+
+            return transform;
+        }
+
+        private static SvgTransform CreateRotationTransform(IReadOnlyList<double> numbers) {
+            double radians = OfficeGeometry.DegreesToRadians(numbers[0]);
+            double cos = Math.Cos(radians);
+            double sin = Math.Sin(radians);
+            SvgTransform rotate = SvgTransform.Create(cos, sin, -sin, cos, 0D, 0D);
+            if (numbers.Count < 3) {
+                return rotate;
+            }
+
+            double cx = numbers[1];
+            double cy = numbers[2];
+            return SvgTransform.Create(1D, 0D, 0D, 1D, cx, cy)
+                .Multiply(rotate)
+                .Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, -cx, -cy));
+        }
+
+        private static bool TryParseLength(string? value, out double result) {
+            result = 0D;
+            if (string.IsNullOrWhiteSpace(value)) {
+                return false;
+            }
+
+            string trimmed = value!.Trim();
+            if (trimmed.EndsWith("%", StringComparison.Ordinal)) {
+                return false;
+            }
+
+            int end = 0;
+            while (end < trimmed.Length && (char.IsDigit(trimmed[end]) || trimmed[end] == '-' || trimmed[end] == '+' || trimmed[end] == '.' || trimmed[end] == 'e' || trimmed[end] == 'E')) {
+                end++;
+            }
+
+            return end > 0 && double.TryParse(trimmed.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+        }
+
+        private static bool TryParsePoints(string? value, out List<(double X, double Y)> points) {
+            points = new List<(double X, double Y)>();
+            if (!TryParseNumbers(value, out List<double> numbers) || numbers.Count < 4) {
+                return false;
+            }
+
+            for (int i = 0; i + 1 < numbers.Count; i += 2) {
+                points.Add((numbers[i], numbers[i + 1]));
+            }
+
+            return points.Count >= 2;
+        }
+
+        private static bool TryParseNumbers(string? value, out List<double> numbers) {
+            numbers = new List<double>();
+            if (string.IsNullOrWhiteSpace(value)) {
+                return false;
+            }
+
+            int index = 0;
+            while (index < value!.Length) {
+                while (index < value.Length && (char.IsWhiteSpace(value[index]) || value[index] == ',')) {
+                    index++;
+                }
+
+                int start = index;
+                if (index < value.Length && (value[index] == '-' || value[index] == '+')) {
+                    index++;
+                }
+
+                while (index < value.Length && (char.IsDigit(value[index]) || value[index] == '.')) {
+                    index++;
+                }
+
+                if (index < value.Length && (value[index] == 'e' || value[index] == 'E')) {
+                    index++;
+                    if (index < value.Length && (value[index] == '-' || value[index] == '+')) {
+                        index++;
+                    }
+
+                    while (index < value.Length && char.IsDigit(value[index])) {
+                        index++;
+                    }
+                }
+
+                if (index == start) {
+                    break;
+                }
+
+                if (!double.TryParse(value.Substring(start, index - start), NumberStyles.Float, CultureInfo.InvariantCulture, out double number)) {
+                    return false;
+                }
+
+                numbers.Add(number);
+            }
+
+            return numbers.Count > 0;
+        }
+
+        private static bool TryReadStyleValue(string? raw, string name, out string? value) {
+            value = null;
+            if (string.IsNullOrWhiteSpace(raw)) {
+                return false;
+            }
+
+            string[] declarations = raw!.Split(';');
+            for (int i = 0; i < declarations.Length; i++) {
+                int separator = declarations[i].IndexOf(':');
+                if (separator <= 0) {
+                    continue;
+                }
+
+                if (string.Equals(declarations[i].Substring(0, separator).Trim(), name, StringComparison.OrdinalIgnoreCase)) {
+                    value = declarations[i].Substring(separator + 1).Trim();
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        private readonly struct SvgTransform {
+            internal static SvgTransform Identity => Create(1D, 0D, 0D, 1D, 0D, 0D);
+
+            private SvgTransform(double a, double b, double c, double d, double e, double f) {
+                A = a;
+                B = b;
+                C = c;
+                D = d;
+                E = e;
+                F = f;
+            }
+
+            internal double ScaleX => Math.Sqrt((A * A) + (B * B));
+
+            internal double ScaleY => Math.Sqrt((C * C) + (D * D));
+
+            internal double StrokeScale => Math.Max(0.0001D, (ScaleX + ScaleY) / 2D);
+
+            internal double RotationDegrees => OfficeGeometry.RadiansToDegrees(Math.Atan2(B, A));
+
+            private double A { get; }
+
+            private double B { get; }
+
+            private double C { get; }
+
+            private double D { get; }
+
+            private double E { get; }
+
+            private double F { get; }
+
+            internal static SvgTransform Create(double a, double b, double c, double d, double e, double f) => new(a, b, c, d, e, f);
+
+            internal SvgTransform Multiply(SvgTransform other) =>
+                new(
+                    (A * other.A) + (C * other.B),
+                    (B * other.A) + (D * other.B),
+                    (A * other.C) + (C * other.D),
+                    (B * other.C) + (D * other.D),
+                    (A * other.E) + (C * other.F) + E,
+                    (B * other.E) + (D * other.F) + F);
+
+            internal OfficePoint Apply(double x, double y) => new((A * x) + (C * y) + E, (B * x) + (D * y) + F);
+        }
+    }
+}

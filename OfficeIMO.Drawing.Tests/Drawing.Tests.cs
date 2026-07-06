@@ -1656,7 +1656,7 @@ public partial class DrawingTests {
 
     [Fact]
     public void OfficeShadowStoresReusableShapeEffectIntent() {
-        var shadow = new OfficeShadow(OfficeColor.FromRgb(10, 20, 30), 0.35, 4, 6);
+        var shadow = new OfficeShadow(OfficeColor.FromRgb(10, 20, 30), 0.35, 4, 6, 2.5);
 
         OfficeShadow clone = shadow.Clone();
 
@@ -1664,10 +1664,13 @@ public partial class DrawingTests {
         Assert.Equal(0.35, clone.Opacity);
         Assert.Equal(4, clone.OffsetX);
         Assert.Equal(6, clone.OffsetY);
+        Assert.Equal(2.5, clone.BlurRadius);
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, -0.1, 0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 1.1, 0, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, double.NaN, 0));
         Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, 0, double.PositiveInfinity));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, 0, 0, double.NaN));
+        Assert.Throws<ArgumentOutOfRangeException>(() => new OfficeShadow(OfficeColor.Black, 0.5, 0, 0, -0.1));
     }
 
     [Fact]
@@ -2656,6 +2659,108 @@ public partial class DrawingTests {
         Assert.NotNull(flowOffpageConnector);
         Assert.Equal(OfficeShapeKind.Polygon, flowOffpageConnector!.Kind);
         Assert.Equal(new OfficePoint(45, 70), flowOffpageConnector.Points[3]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartConnector", 64, 64, out OfficeShape? flowConnector));
+        Assert.NotNull(flowConnector);
+        Assert.Equal(OfficeShapeKind.Ellipse, flowConnector!.Kind);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartPunchedCard", 120, 70, out OfficeShape? flowPunchedCard));
+        Assert.NotNull(flowPunchedCard);
+        Assert.Equal(OfficeShapeKind.Polygon, flowPunchedCard!.Kind);
+        Assert.Equal(new OfficePoint(19.2, 0), flowPunchedCard.Points[0]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartPunchedTape", 120, 70, out OfficeShape? flowPunchedTape));
+        Assert.NotNull(flowPunchedTape);
+        Assert.Equal(OfficeShapeKind.Path, flowPunchedTape!.Kind);
+        Assert.Contains(flowPunchedTape.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartSummingJunction", 80, 80, out OfficeShape? flowSummingJunction));
+        Assert.NotNull(flowSummingJunction);
+        Assert.Equal(OfficeShapeKind.Path, flowSummingJunction!.Kind);
+        Assert.Equal(3, flowSummingJunction.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartOr", 80, 80, out OfficeShape? flowOr));
+        Assert.NotNull(flowOr);
+        Assert.Equal(OfficeShapeKind.Path, flowOr!.Kind);
+        Assert.Equal(3, flowOr.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartCollate", 90, 70, out OfficeShape? flowCollate));
+        Assert.NotNull(flowCollate);
+        Assert.Equal(OfficeShapeKind.Polygon, flowCollate!.Kind);
+        Assert.Equal(new OfficePoint(90, 0), flowCollate.Points[1]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartSort", 90, 70, out OfficeShape? flowSort));
+        Assert.NotNull(flowSort);
+        Assert.Equal(OfficeShapeKind.Path, flowSort!.Kind);
+        Assert.Equal(2, flowSort.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartExtract", 80, 60, out OfficeShape? flowExtract));
+        Assert.NotNull(flowExtract);
+        Assert.Equal(OfficeShapeKind.Polygon, flowExtract!.Kind);
+        Assert.Equal(new OfficePoint(40, 0), flowExtract.Points[0]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartMerge", 80, 60, out OfficeShape? flowMerge));
+        Assert.NotNull(flowMerge);
+        Assert.Equal(OfficeShapeKind.Polygon, flowMerge!.Kind);
+        Assert.Equal(new OfficePoint(40, 60), flowMerge.Points[2]);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartPredefinedProcess", 120, 60, out OfficeShape? flowPredefinedProcess));
+        Assert.NotNull(flowPredefinedProcess);
+        Assert.Equal(OfficeShapeKind.Path, flowPredefinedProcess!.Kind);
+        Assert.Equal(3, flowPredefinedProcess.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+        Assert.Equal(1, flowPredefinedProcess.PathCommands.Count(command => command.Kind == OfficePathCommandKind.Close));
+        Assert.Equal(new OfficePoint(16.8, 0), flowPredefinedProcess.PathCommands[5].Point);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartInternalStorage", 120, 60, out OfficeShape? flowInternalStorage));
+        Assert.NotNull(flowInternalStorage);
+        Assert.Equal(OfficeShapeKind.Path, flowInternalStorage!.Kind);
+        Assert.Equal(3, flowInternalStorage.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+        Assert.Equal(1, flowInternalStorage.PathCommands.Count(command => command.Kind == OfficePathCommandKind.Close));
+        Assert.Equal(new OfficePoint(0, 13.2), flowInternalStorage.PathCommands[7].Point);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartStoredData", 80, 60, out OfficeShape? flowStoredData));
+        Assert.NotNull(flowStoredData);
+        Assert.Equal(OfficeShapeKind.Path, flowStoredData!.Kind);
+        Assert.Contains(flowStoredData.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartMagneticDisk", 80, 60, out OfficeShape? flowMagneticDisk));
+        Assert.NotNull(flowMagneticDisk);
+        Assert.Equal(OfficeShapeKind.Path, flowMagneticDisk!.Kind);
+        Assert.Contains(flowMagneticDisk.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartOnlineStorage", 80, 60, out OfficeShape? flowOnlineStorage));
+        Assert.NotNull(flowOnlineStorage);
+        Assert.Equal(OfficeShapeKind.Path, flowOnlineStorage!.Kind);
+        Assert.Contains(flowOnlineStorage.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartOfflineStorage", 80, 60, out OfficeShape? flowOfflineStorage));
+        Assert.NotNull(flowOfflineStorage);
+        Assert.Equal(OfficeShapeKind.Path, flowOfflineStorage!.Kind);
+        Assert.Contains(flowOfflineStorage.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartMagneticTape", 80, 60, out OfficeShape? flowMagneticTape));
+        Assert.NotNull(flowMagneticTape);
+        Assert.Equal(OfficeShapeKind.Path, flowMagneticTape!.Kind);
+        Assert.Contains(flowMagneticTape.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartMagneticDrum", 80, 60, out OfficeShape? flowMagneticDrum));
+        Assert.NotNull(flowMagneticDrum);
+        Assert.Equal(OfficeShapeKind.Path, flowMagneticDrum!.Kind);
+        Assert.Equal(2, flowMagneticDrum.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+        Assert.Contains(flowMagneticDrum.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartMultidocument", 120, 80, out OfficeShape? flowMultiDocument));
+        Assert.NotNull(flowMultiDocument);
+        Assert.Equal(OfficeShapeKind.Path, flowMultiDocument!.Kind);
+        Assert.Equal(3, flowMultiDocument.PathCommands.Count(command => command.Kind == OfficePathCommandKind.MoveTo));
+        Assert.Equal(3, flowMultiDocument.PathCommands.Count(command => command.Kind == OfficePathCommandKind.Close));
+        Assert.Equal(120, flowMultiDocument.Width);
+        Assert.Equal(80, flowMultiDocument.Height);
+
+        Assert.True(OfficeShapePresets.TryCreate("flowChartDisplay", 100, 60, out OfficeShape? flowDisplay));
+        Assert.NotNull(flowDisplay);
+        Assert.Equal(OfficeShapeKind.Path, flowDisplay!.Kind);
+        Assert.Contains(flowDisplay.PathCommands, command => command.Kind == OfficePathCommandKind.CubicBezierTo);
 
         Assert.True(OfficeShapePresets.TryCreate("flowChartDocument", 120, 70, horizontalFlip: true, verticalFlip: false, out OfficeShape? flowDocument));
         Assert.NotNull(flowDocument);

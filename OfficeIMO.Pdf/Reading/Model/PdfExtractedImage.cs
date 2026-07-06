@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -17,7 +19,9 @@ public sealed class PdfExtractedImage {
         string? fileExtension,
         string? mimeType,
         bool isImageFile,
-        int directStreamIdentity = 0) {
+        int directStreamIdentity = 0,
+        bool isImageMask = false,
+        OfficeColor? imageMaskColor = null) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -31,6 +35,8 @@ public sealed class PdfExtractedImage {
         MimeType = mimeType;
         IsImageFile = isImageFile;
         DirectStreamIdentity = directStreamIdentity;
+        IsImageMask = isImageMask;
+        ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -74,4 +80,9 @@ public sealed class PdfExtractedImage {
 
     /// <summary>True when <see cref="Bytes"/> is a complete image file rather than a raw PDF image stream.</summary>
     public bool IsImageFile { get; }
+
+    /// <summary>True when this image came from a PDF /ImageMask stencil XObject.</summary>
+    public bool IsImageMask { get; }
+
+    internal OfficeColor ImageMaskColor { get; }
 }

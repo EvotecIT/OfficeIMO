@@ -2,15 +2,19 @@ using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
-internal static class ResourceResolver {
+internal static partial class ResourceResolver {
     private const int MaxCidWidthEntries = 65536;
     private const int MaxCidWidthRangeEntries = 4096;
 
     public static Dictionary<string, PdfFontResource> GetFontsForPage(PdfDictionary page, Dictionary<int, PdfIndirectObject> objects) {
-        var fonts = new Dictionary<string, PdfFontResource>(System.StringComparer.Ordinal);
         var dict = GetInheritedDictionary(page, "Resources", objects);
-        if (dict is null) return fonts;
-        if (!dict.Items.TryGetValue("Font", out var fontDictObj)) return fonts;
+        return GetFontsForResources(dict, objects);
+    }
+
+    public static Dictionary<string, PdfFontResource> GetFontsForResources(PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects) {
+        var fonts = new Dictionary<string, PdfFontResource>(System.StringComparer.Ordinal);
+        if (resources is null) return fonts;
+        if (!resources.Items.TryGetValue("Font", out var fontDictObj)) return fonts;
         var fontDict = ResolveDict(fontDictObj, objects);
         if (fontDict is null) return fonts;
         foreach (var kv in fontDict.Items) {
@@ -149,16 +153,10 @@ internal static class ResourceResolver {
         if (!formDict.Items.TryGetValue("Resources", out var resObj)) return map;
         var res = ResolveDict(resObj, objects);
         if (res is null) return map;
-        if (!res.Items.TryGetValue("Font", out var fontObj)) return map;
-        var fontDict = ResolveDict(fontObj, objects);
-        if (fontDict is null) return map;
-        foreach (var kv in fontDict.Items) {
-            var fontVal = ResolveDict(kv.Value, objects);
-            if (fontVal is null) continue;
-            var resName = kv.Key;
-            var dec = BuildDecoderForFont(CreateFontResource(resName, fontVal, objects));
-            map[resName] = dec;
+        foreach (var kv in GetFontsForResources(res, objects)) {
+            map[kv.Key] = BuildDecoderForFont(kv.Value);
         }
+
         return map;
     }
 
@@ -185,28 +183,34 @@ internal static class ResourceResolver {
         var result = new List<PdfExtractedImage>();
         var res = GetInheritedDictionary(page, "Resources", objects);
         if (res is null) return result;
-        HashSet<string>? placedImageKeys = null;
-        HashSet<string>? placedResourceNamesWithoutIdentity = null;
+        result.AddRange(GetImageXObjectsForResources(res, objects, pageNumber, imagePlacements));
+        return result;
+    }
+
+    internal static IReadOnlyList<PdfExtractedImage> GetImageXObjectsForResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements = null) {
+        var result = new List<PdfExtractedImage>();
+        Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey = null;
+        Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity = null;
         if (imagePlacements is not null) {
-            placedImageKeys = new HashSet<string>(System.StringComparer.Ordinal);
-            placedResourceNamesWithoutIdentity = new HashSet<string>(System.StringComparer.Ordinal);
+            placedImagesByKey = new Dictionary<string, List<PdfImagePlacement>>(System.StringComparer.Ordinal);
+            placedImagesByResourceNameWithoutIdentity = new Dictionary<string, List<PdfImagePlacement>>(System.StringComparer.Ordinal);
             for (int i = 0; i < imagePlacements.Count; i++) {
                 PdfImagePlacement placement = imagePlacements[i];
                 if (!string.IsNullOrEmpty(placement.ResourceName)) {
                     if (placement.ObjectNumber > 0 || placement.DirectStreamIdentity != 0) {
-                        placedImageKeys.Add(BuildImagePlacementKey(placement.ResourceName, placement.ObjectNumber, placement.DirectStreamIdentity));
+                        AddPlacedImage(placedImagesByKey, BuildImagePlacementKey(placement.ResourceName, placement.ObjectNumber, placement.DirectStreamIdentity), placement);
                     } else {
-                        placedResourceNamesWithoutIdentity.Add(placement.ResourceName);
+                        AddPlacedImage(placedImagesByResourceNameWithoutIdentity, placement.ResourceName, placement);
                     }
                 }
             }
         }
 
-        CollectImageXObjectsFromResources(res, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedImageKeys, placedResourceNamesWithoutIdentity);
+        CollectImageXObjectsFromResources(resources, objects, pageNumber, result, new HashSet<PdfStream>(), new HashSet<string>(System.StringComparer.Ordinal), placedImagesByKey, placedImagesByResourceNameWithoutIdentity);
         return result;
     }
 
-    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<string> addedImageKeys, HashSet<string>? placedImageKeys, HashSet<string>? placedResourceNamesWithoutIdentity) {
+    private static void CollectImageXObjectsFromResources(PdfDictionary resources, Dictionary<int, PdfIndirectObject> objects, int pageNumber, List<PdfExtractedImage> result, HashSet<PdfStream> activeForms, HashSet<string> addedImageKeys, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity) {
         if (!resources.Items.TryGetValue("XObject", out var xoObj)) return;
         var xo = ResolveDict(xoObj, objects);
         if (xo is null) return;
@@ -232,15 +236,29 @@ internal static class ResourceResolver {
                 int directStreamIdentity = objectNumber == 0
                     ? System.Runtime.CompilerServices.RuntimeHelpers.GetHashCode(stream)
                     : 0;
-                if (!IsPlacedImage(kv.Key, objectNumber, directStreamIdentity, placedImageKeys, placedResourceNamesWithoutIdentity)) {
+                IReadOnlyList<PdfImagePlacement>? matchingPlacements = GetPlacedImageMatches(kv.Key, objectNumber, directStreamIdentity, placedImagesByKey, placedImagesByResourceNameWithoutIdentity);
+                if (matchingPlacements is { Count: 0 }) {
                     continue;
                 }
 
-                if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity))) {
-                    continue;
+                bool isImageMask = IsTrue(stream.Dictionary.Items.TryGetValue("ImageMask", out var imageMaskObject) ? imageMaskObject : null, objects);
+                if (isImageMask && matchingPlacements is not null) {
+                    for (int placementIndex = 0; placementIndex < matchingPlacements.Count; placementIndex++) {
+                        OfficeColor imageMaskColor = matchingPlacements[placementIndex].ImageMaskColor;
+                        if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity, imageMaskColor))) {
+                            continue;
+                        }
+
+                        result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, imageMaskColor, resources));
+                    }
+                } else {
+                    if (!addedImageKeys.Add(BuildImageResourceKey(pageNumber, kv.Key, objectNumber, directStreamIdentity))) {
+                        continue;
+                    }
+
+                    result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects, resources: resources));
                 }
 
-                result.Add(BuildExtractedImage(pageNumber, kv.Key, objectNumber, directStreamIdentity, stream, objects));
                 continue;
             }
 
@@ -259,23 +277,38 @@ internal static class ResourceResolver {
                 }
 
                 formResources ??= resources;
-                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, addedImageKeys, placedImageKeys, placedResourceNamesWithoutIdentity);
+                CollectImageXObjectsFromResources(formResources, objects, pageNumber, result, activeForms, addedImageKeys, placedImagesByKey, placedImagesByResourceNameWithoutIdentity);
             } finally {
                 activeForms.Remove(stream);
             }
         }
     }
 
-    private static bool IsPlacedImage(string resourceName, int objectNumber, int directStreamIdentity, HashSet<string>? placedImageKeys, HashSet<string>? placedResourceNamesWithoutIdentity) {
-        if (placedImageKeys is null && placedResourceNamesWithoutIdentity is null) {
-            return true;
+    private static void AddPlacedImage(Dictionary<string, List<PdfImagePlacement>> placedImages, string key, PdfImagePlacement placement) {
+        if (!placedImages.TryGetValue(key, out List<PdfImagePlacement>? placements)) {
+            placements = new List<PdfImagePlacement>();
+            placedImages[key] = placements;
+        }
+
+        placements.Add(placement);
+    }
+
+    private static IReadOnlyList<PdfImagePlacement>? GetPlacedImageMatches(string resourceName, int objectNumber, int directStreamIdentity, Dictionary<string, List<PdfImagePlacement>>? placedImagesByKey, Dictionary<string, List<PdfImagePlacement>>? placedImagesByResourceNameWithoutIdentity) {
+        if (placedImagesByKey is null && placedImagesByResourceNameWithoutIdentity is null) {
+            return null;
         }
 
         if (objectNumber > 0 || directStreamIdentity != 0) {
-            return placedImageKeys?.Contains(BuildImagePlacementKey(resourceName, objectNumber, directStreamIdentity)) == true;
+            return placedImagesByKey != null &&
+                placedImagesByKey.TryGetValue(BuildImagePlacementKey(resourceName, objectNumber, directStreamIdentity), out List<PdfImagePlacement>? placements)
+                    ? placements
+                    : Array.Empty<PdfImagePlacement>();
         }
 
-        return placedResourceNamesWithoutIdentity?.Contains(resourceName) == true;
+        return placedImagesByResourceNameWithoutIdentity != null &&
+            placedImagesByResourceNameWithoutIdentity.TryGetValue(resourceName, out List<PdfImagePlacement>? namePlacements)
+                ? namePlacements
+                : Array.Empty<PdfImagePlacement>();
     }
 
     private static string BuildImagePlacementKey(string resourceName, int objectNumber, int directStreamIdentity) {
@@ -295,6 +328,17 @@ internal static class ResourceResolver {
             "|" +
             directStreamIdentity.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
+
+    private static string BuildImageResourceKey(int pageNumber, string resourceName, int objectNumber, int directStreamIdentity, OfficeColor imageMaskColor) =>
+        BuildImageResourceKey(pageNumber, resourceName, objectNumber, directStreamIdentity) +
+        "|" +
+        imageMaskColor.R.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        "," +
+        imageMaskColor.G.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        "," +
+        imageMaskColor.B.ToString(System.Globalization.CultureInfo.InvariantCulture) +
+        "," +
+        imageMaskColor.A.ToString(System.Globalization.CultureInfo.InvariantCulture);
 
     private static System.Func<byte[], string> BuildDecoderForFont(PdfFontResource font) {
         // Prefer font-specific ToUnicode map when present
@@ -707,30 +751,46 @@ internal static class ResourceResolver {
         return null;
     }
 
-    private static PdfExtractedImage BuildExtractedImage(
+    internal static PdfExtractedImage BuildExtractedImage(
         int pageNumber,
         string resourceName,
         int objectNumber,
         int directStreamIdentity,
         PdfStream stream,
-        Dictionary<int, PdfIndirectObject> objects) {
+        Dictionary<int, PdfIndirectObject> objects,
+        OfficeColor? imageMaskColor = null,
+        PdfDictionary? resources = null) {
         int width = (int)(stream.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
         int height = (int)(stream.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
         int bitsPerComponent = (int)(stream.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
-        string colorSpace = GetNameOrEmpty(stream.Dictionary.Items.TryGetValue("ColorSpace", out var colorSpaceObj) ? colorSpaceObj : null, objects);
-        string filter = GetFilterName(stream.Dictionary.Items.TryGetValue("Filter", out var filterObj) ? filterObj : null, objects);
+        PdfObject? colorSpaceObject = stream.Dictionary.Items.TryGetValue("ColorSpace", out var colorSpaceObj) ? colorSpaceObj : null;
+        PdfObject? resolvedColorSpaceObject = ResolveColorSpaceResource(colorSpaceObject, resources, objects);
+        string colorSpace = GetNameOrEmpty(resolvedColorSpaceObject ?? colorSpaceObject, objects);
+        PdfObject? filterObject = stream.Dictionary.Items.TryGetValue("Filter", out var filterObj) ? filterObj : null;
+        List<string> filterNames = GetFilterNames(filterObject, objects);
+        string filter = string.Join(",", filterNames);
 
         byte[] bytes = stream.Data;
         string? extension = null;
         string? mimeType = null;
         bool isImageFile = false;
+        bool isImageMask = IsTrue(stream.Dictionary.Items.TryGetValue("ImageMask", out var imageMaskObject) ? imageMaskObject : null, objects);
 
-        if (string.Equals(filter, "DCTDecode", System.StringComparison.Ordinal)) {
+        if (filterNames.Count == 1 && string.Equals(filterNames[0], "DCTDecode", System.StringComparison.Ordinal)) {
             extension = "jpg";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Jpeg);
             isImageFile = true;
-        } else if (string.Equals(filter, "FlateDecode", System.StringComparison.Ordinal) &&
-                   TryBuildPngFile(stream, width, height, bitsPerComponent, colorSpace, objects, out var pngBytes)) {
+        } else if (CanDecodeImageSamples(filterNames) &&
+                   TryBuildPngFile(
+                       stream,
+                       width,
+                       height,
+                       bitsPerComponent,
+                       colorSpace,
+                       resolvedColorSpaceObject ?? colorSpaceObject,
+                       objects,
+                       imageMaskColor ?? OfficeColor.Black,
+                       out var pngBytes)) {
             bytes = pngBytes;
             extension = "png";
             mimeType = OfficeImageInfo.GetMimeType(OfficeImageFormat.Png);
@@ -750,28 +810,46 @@ internal static class ResourceResolver {
             extension,
             mimeType,
             isImageFile,
-            directStreamIdentity);
+            directStreamIdentity,
+            isImageMask,
+            imageMaskColor ?? OfficeColor.Black);
     }
 
-    private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
+    private static string GetFilterName(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) =>
+        string.Join(",", GetFilterNames(obj, objects));
+
+    private static List<string> GetFilterNames(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
+        var filters = new List<string>();
         var resolved = ResolveObject(obj, objects);
         if (resolved is PdfName name) {
-            return name.Name;
+            filters.Add(name.Name);
+            return filters;
         }
 
         if (resolved is PdfArray array) {
-            var names = new List<string>();
             foreach (var item in array.Items) {
                 var itemResolved = ResolveObject(item, objects);
                 if (itemResolved is PdfName itemName) {
-                    names.Add(itemName.Name);
+                    filters.Add(itemName.Name);
                 }
             }
-
-            return string.Join(",", names);
         }
 
-        return string.Empty;
+        return filters;
+    }
+
+    private static bool CanDecodeImageSamples(List<string> filterNames) {
+        if (filterNames.Count == 0) {
+            return true;
+        }
+
+        for (int i = 0; i < filterNames.Count; i++) {
+            if (!Filters.StreamDecoder.IsSupportedFilter(filterNames[i])) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     private static string GetNameOrEmpty(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
@@ -790,6 +868,25 @@ internal static class ResourceResolver {
         return string.Empty;
     }
 
+    private static PdfObject? ResolveColorSpaceResource(PdfObject? colorSpaceObject, PdfDictionary? resources, Dictionary<int, PdfIndirectObject> objects) {
+        PdfObject? resolved = ResolveObject(colorSpaceObject, objects);
+        if (resolved is not PdfName name || resources == null) {
+            return resolved;
+        }
+
+        if (!resources.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceResourcesObject)) {
+            return resolved;
+        }
+
+        PdfDictionary? colorSpaceResources = ResolveDict(colorSpaceResourcesObject, objects);
+        if (colorSpaceResources == null ||
+            !colorSpaceResources.Items.TryGetValue(name.Name, out PdfObject? resourceColorSpaceObject)) {
+            return resolved;
+        }
+
+        return ResolveObject(resourceColorSpaceObject, objects) ?? resourceColorSpaceObject;
+    }
+
     private static PdfObject? ResolveObject(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         return PdfObjectLookup.Resolve(objects, obj);
     }
@@ -800,10 +897,25 @@ internal static class ResourceResolver {
         int height,
         int bitsPerComponent,
         string colorSpace,
+        PdfObject? colorSpaceObject,
         Dictionary<int, PdfIndirectObject> objects,
+        OfficeColor imageMaskColor,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
-        if (width <= 0 || height <= 0 || bitsPerComponent != 8) {
+        if (width <= 0 || height <= 0) {
+            return false;
+        }
+
+        if (IsTrue(stream.Dictionary.Items.TryGetValue("ImageMask", out var imageMaskObject) ? imageMaskObject : null, objects)) {
+            return TryBuildPngFileFromImageMask(stream, width, height, bitsPerComponent, objects, imageMaskColor, out pngBytes);
+        }
+
+        if (string.Equals(colorSpace, "Indexed", System.StringComparison.Ordinal) ||
+            string.Equals(colorSpace, "I", System.StringComparison.Ordinal)) {
+            return TryBuildPngFileFromIndexed(stream, width, height, bitsPerComponent, colorSpaceObject, objects, out pngBytes);
+        }
+
+        if (bitsPerComponent != 8) {
             return false;
         }
 
@@ -812,8 +924,15 @@ internal static class ResourceResolver {
             colorType = 0;
         } else if (string.Equals(colorSpace, "DeviceRGB", System.StringComparison.Ordinal)) {
             colorType = 2;
+        } else if (string.Equals(colorSpace, "DeviceCMYK", System.StringComparison.Ordinal)) {
+            return TryBuildPngFileFromCmyk(stream, width, height, bitsPerComponent, objects, out pngBytes);
         } else {
             return false;
+        }
+
+        if (stream.Dictionary.Items.ContainsKey("Decode") ||
+            stream.Dictionary.Items.ContainsKey("Mask")) {
+            return TryBuildPngFileFromDeviceColor(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
         }
 
         if (stream.Dictionary.Items.ContainsKey("SMask")) {
@@ -827,7 +946,7 @@ internal static class ResourceResolver {
 
         int predictor = (int)(decodeParms?.Get<PdfNumber>("Predictor")?.Value ?? 1);
         if (predictor < 10 || predictor > 15) {
-            return false;
+            return TryBuildPngFileFromDeviceColor(stream, width, height, bitsPerComponent, colorType, objects, out pngBytes);
         }
 
         pngBytes = OfficePngWriter.CreateFromCompressedScanlines(width, height, bitsPerComponent, colorType, stream.Data);
@@ -843,28 +962,6 @@ internal static class ResourceResolver {
         Dictionary<int, PdfIndirectObject> objects,
         out byte[] pngBytes) {
         pngBytes = Array.Empty<byte>();
-        if (!stream.Dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
-            return false;
-        }
-
-        PdfStream? softMask = ResolveStream(softMaskObj, objects);
-        if (softMask is null) {
-            return false;
-        }
-
-        int softMaskWidth = (int)(softMask.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
-        int softMaskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
-        int softMaskBitsPerComponent = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
-        string softMaskColorSpace = GetNameOrEmpty(softMask.Dictionary.Items.TryGetValue("ColorSpace", out var softMaskColorSpaceObj) ? softMaskColorSpaceObj : null, objects);
-        string softMaskFilter = GetFilterName(softMask.Dictionary.Items.TryGetValue("Filter", out var softMaskFilterObj) ? softMaskFilterObj : null, objects);
-        if (softMaskWidth != width ||
-            softMaskHeight != height ||
-            softMaskBitsPerComponent != bitsPerComponent ||
-            !string.Equals(softMaskColorSpace, "DeviceGray", System.StringComparison.Ordinal) ||
-            !string.Equals(softMaskFilter, "FlateDecode", System.StringComparison.Ordinal)) {
-            return false;
-        }
-
         int baseColors;
         int alphaColorType;
         if (colorType == 0) {
@@ -878,7 +975,10 @@ internal static class ResourceResolver {
         }
 
         byte[] basePixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
-        byte[] alphaPixels = Filters.StreamDecoder.Decode(softMask.Dictionary, softMask.Data, objects);
+        if (!TryDecodeSoftMask(stream, width, height, bitsPerComponent, objects, out var alphaPixels)) {
+            return false;
+        }
+
         int baseRowLength = width * baseColors;
         int alphaRowLength = width;
         int expectedBaseLength = baseRowLength * height;
@@ -915,6 +1015,124 @@ internal static class ResourceResolver {
             OfficePngCompression.Stored);
         return true;
     }
+
+    private static bool TryBuildPngFileFromCmyk(
+        PdfStream stream,
+        int width,
+        int height,
+        int bitsPerComponent,
+        Dictionary<int, PdfIndirectObject> objects,
+        out byte[] pngBytes) {
+        pngBytes = Array.Empty<byte>();
+        byte[] cmykPixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
+        int expectedCmykLength = width * height * 4;
+        if (cmykPixels.Length < expectedCmykLength) {
+            return false;
+        }
+
+        bool hasSoftMask = stream.Dictionary.Items.ContainsKey("SMask");
+        byte[]? alphaPixels = null;
+        if (hasSoftMask &&
+            !TryDecodeSoftMask(stream, width, height, bitsPerComponent, objects, out alphaPixels)) {
+            return false;
+        }
+
+        PdfColorKeyMask? colorKeyMask = TryReadColorKeyMask(stream.Dictionary, 4, objects, out PdfColorKeyMask parsedColorKeyMask)
+            ? parsedColorKeyMask
+            : null;
+        bool hasAlpha = hasSoftMask || colorKeyMask.HasValue;
+        int outputChannels = hasAlpha ? 4 : 3;
+        int colorType = hasAlpha ? 6 : 2;
+        byte[] scanlines = new byte[(1 + width * outputChannels) * height];
+        for (int row = 0; row < height; row++) {
+            int outputRow = row * (1 + width * outputChannels);
+            int cmykRow = row * width * 4;
+            int alphaRow = row * width;
+            scanlines[outputRow] = 0;
+
+            for (int pixel = 0; pixel < width; pixel++) {
+                int sourcePixel = cmykRow + pixel * 4;
+                int outputPixel = outputRow + 1 + pixel * outputChannels;
+                byte cyan = DecodeImageComponent(stream.Dictionary, 0, cmykPixels[sourcePixel], objects);
+                byte magenta = DecodeImageComponent(stream.Dictionary, 1, cmykPixels[sourcePixel + 1], objects);
+                byte yellow = DecodeImageComponent(stream.Dictionary, 2, cmykPixels[sourcePixel + 2], objects);
+                byte black = DecodeImageComponent(stream.Dictionary, 3, cmykPixels[sourcePixel + 3], objects);
+                scanlines[outputPixel] = ConvertCmykComponent(cyan, black);
+                scanlines[outputPixel + 1] = ConvertCmykComponent(magenta, black);
+                scanlines[outputPixel + 2] = ConvertCmykComponent(yellow, black);
+                if (hasAlpha) {
+                    if (alphaPixels is not null && alphaPixels.Length <= alphaRow + pixel) {
+                        return false;
+                    }
+
+                    scanlines[outputPixel + 3] = ResolveImageAlpha(cmykPixels, sourcePixel, 4, colorKeyMask, alphaPixels, alphaRow + pixel);
+                }
+            }
+        }
+
+        pngBytes = OfficePngWriter.EncodeScanlines(
+            width,
+            height,
+            bitsPerComponent,
+            colorType,
+            scanlines,
+            OfficePngCompression.Stored);
+        return true;
+    }
+
+    private static bool TryDecodeSoftMask(
+        PdfStream stream,
+        int width,
+        int height,
+        int bitsPerComponent,
+        Dictionary<int, PdfIndirectObject> objects,
+        out byte[] alphaPixels) {
+        alphaPixels = Array.Empty<byte>();
+        if (!stream.Dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
+            return false;
+        }
+
+        PdfStream? softMask = ResolveStream(softMaskObj, objects);
+        if (softMask is null) {
+            return false;
+        }
+
+        int softMaskWidth = (int)(softMask.Dictionary.Get<PdfNumber>("Width")?.Value ?? 0);
+        int softMaskHeight = (int)(softMask.Dictionary.Get<PdfNumber>("Height")?.Value ?? 0);
+        int softMaskBitsPerComponent = (int)(softMask.Dictionary.Get<PdfNumber>("BitsPerComponent")?.Value ?? 0);
+        string softMaskColorSpace = GetNameOrEmpty(softMask.Dictionary.Items.TryGetValue("ColorSpace", out var softMaskColorSpaceObj) ? softMaskColorSpaceObj : null, objects);
+        List<string> softMaskFilters = GetFilterNames(softMask.Dictionary.Items.TryGetValue("Filter", out var softMaskFilterObj) ? softMaskFilterObj : null, objects);
+        if (softMaskWidth != width ||
+            softMaskHeight != height ||
+            softMaskBitsPerComponent != bitsPerComponent ||
+            !string.Equals(softMaskColorSpace, "DeviceGray", System.StringComparison.Ordinal) ||
+            !CanDecodeImageSamples(softMaskFilters)) {
+            return false;
+        }
+
+        alphaPixels = Filters.StreamDecoder.Decode(softMask.Dictionary, softMask.Data, objects);
+        ApplySoftMaskDecode(softMask.Dictionary, alphaPixels, objects);
+        return true;
+    }
+
+    private static void ApplySoftMaskDecode(PdfDictionary softMaskDictionary, byte[] alphaPixels, Dictionary<int, PdfIndirectObject> objects) {
+        if (alphaPixels.Length == 0 ||
+            !softMaskDictionary.Items.ContainsKey("Decode")) {
+            return;
+        }
+
+        for (int i = 0; i < alphaPixels.Length; i++) {
+            alphaPixels[i] = DecodeImageComponent(softMaskDictionary, 0, alphaPixels[i], objects);
+        }
+    }
+
+    private static byte ConvertCmykComponent(byte component, byte black) {
+        double value = (1D - component / 255D) * (1D - black / 255D);
+        return (byte)System.Math.Round(value * 255D);
+    }
+
+    private static bool IsTrue(PdfObject? value, Dictionary<int, PdfIndirectObject> objects) =>
+        ResolveObject(value, objects) is PdfBoolean boolean && boolean.Value;
 
     private static PdfStream? ResolveStream(PdfObject? obj, Dictionary<int, PdfIndirectObject> objects) {
         var resolved = ResolveObject(obj, objects);

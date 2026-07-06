@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -37,6 +39,28 @@ public sealed partial class PdfReadPage {
         return (612, 792);
     }
 
+    private (double Width, double Height) GetVisualPageSize() {
+        (double Width, double Height) pageSize = GetPageSize();
+        int rotation = GetRotationDegrees();
+        return rotation == 90 || rotation == 270
+            ? (pageSize.Height, pageSize.Width)
+            : pageSize;
+    }
+
+    private Matrix2D GetVisualPageTransform() {
+        (double Width, double Height) pageSize = GetPageSize();
+        switch (GetRotationDegrees()) {
+            case 90:
+                return new Matrix2D(0D, 1D, -1D, 0D, pageSize.Height, 0D);
+            case 180:
+                return new Matrix2D(-1D, 0D, 0D, -1D, pageSize.Width, pageSize.Height);
+            case 270:
+                return new Matrix2D(0D, -1D, 1D, 0D, 0D, pageSize.Width);
+            default:
+                return Matrix2D.Identity;
+        }
+    }
+
     /// <summary>Gets inherited page rotation in degrees normalized to 0, 90, 180, or 270.</summary>
     public int GetRotationDegrees() {
         var rotate = GetInheritedValue("Rotate");
@@ -59,7 +83,9 @@ public sealed partial class PdfReadPage {
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var pageDecoders = ResourceResolver.GetFontDecoders(_pageDict, _objects);
         var pageWidthProviders = ResourceResolver.GetFontWidthProviders(_pageDict, _objects);
+        var pageFonts = ResourceResolver.GetFontsForResources(pageResources, _objects);
         var activeForms = new HashSet<PdfStream>();
+        double pageHeight = GetPageSize().Height;
 
         string content = GetContentStreamContent();
         if (content.Length > 0) {
@@ -68,8 +94,10 @@ public sealed partial class PdfReadPage {
                 pageResources,
                 pageDecoders,
                 pageWidthProviders,
+                pageFonts,
                 spans,
-                activeForms);
+                activeForms,
+                pageHeight);
         }
 
         return spans;
@@ -205,11 +233,37 @@ public sealed partial class PdfReadPage {
     public IReadOnlyList<PdfExtractedImage> GetImages() => GetImages(0);
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber) {
-        return GetImages(pageNumber, null);
+        return GetImages(pageNumber, GetImagePlacements(pageNumber));
     }
 
     internal IReadOnlyList<PdfExtractedImage> GetImages(int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
-        return ResourceResolver.GetImageXObjectsForPage(_pageDict, _objects, pageNumber, imagePlacements);
+        return GetImagesForResources(ResolveDictionary(GetInheritedValue("Resources")), pageNumber, imagePlacements);
+    }
+
+    private IReadOnlyList<PdfExtractedImage> GetImagesForResources(PdfDictionary? resources, int pageNumber, IReadOnlyList<PdfImagePlacement>? imagePlacements) {
+        var images = resources == null
+            ? new List<PdfExtractedImage>()
+            : new List<PdfExtractedImage>(ResourceResolver.GetImageXObjectsForResources(resources, _objects, pageNumber, imagePlacements));
+        if (imagePlacements is not null) {
+            for (int i = 0; i < imagePlacements.Count; i++) {
+                PdfImagePlacement placement = imagePlacements[i];
+                if (placement.InlineImageStream == null) {
+                    continue;
+                }
+
+                images.Add(ResourceResolver.BuildExtractedImage(
+                    pageNumber,
+                    placement.ResourceName,
+                    placement.ObjectNumber,
+                    placement.DirectStreamIdentity,
+                    placement.InlineImageStream,
+                    _objects,
+                    placement.ImageMaskColor,
+                    placement.InlineImageResources ?? resources));
+            }
+        }
+
+        return images.Count == 0 ? Array.Empty<PdfExtractedImage>() : images.AsReadOnly();
     }
 
     /// <summary>Extracts image XObject placement invocations from this page.</summary>
@@ -219,6 +273,7 @@ public sealed partial class PdfReadPage {
         var placements = new List<PdfImagePlacement>();
         var pageResources = ResolveDictionary(GetInheritedValue("Resources"));
         var activeForms = new HashSet<PdfStream>();
+        double pageHeight = GetPageSize().Height;
 
         string content = GetContentStreamContent();
         if (content.Length > 0) {
@@ -227,6 +282,7 @@ public sealed partial class PdfReadPage {
                 pageResources,
                 pageNumber,
                 Matrix2D.Identity,
+                pageHeight,
                 placements,
                 activeForms);
         }
@@ -298,18 +354,31 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         Dictionary<string, Func<byte[], string>> decoders,
         Dictionary<string, Func<byte[], double>> widthProviders,
+        Dictionary<string, PdfFontResource> fonts,
         List<PdfTextSpan> spans,
-        HashSet<PdfStream> activeForms) {
+        HashSet<PdfStream> activeForms,
+        double pageHeight) {
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontRes, byte[] bytes) =>
             widthProviders.TryGetValue(fontRes, out var wp) ? wp(bytes) : (bytes?.Length ?? 0) * 500.0;
+        string? ResolveBaseFont(string fontRes) =>
+            fonts.TryGetValue(fontRes, out PdfFontResource? font) ? font.BaseFont : null;
         string? ResolveActualTextProperty(string propertyName) =>
             GetMarkedContentActualText(resources, propertyName);
 
-        spans.AddRange(TextContentParser.Parse(content, DecodeWithFont, SumWidth1000, actualTextForProperty: ResolveActualTextProperty));
+        spans.AddRange(TextContentParser.Parse(
+            content,
+            DecodeWithFont,
+            SumWidth1000,
+            actualTextForProperty: ResolveActualTextProperty,
+            graphicsStates: GetGraphicsStateResources(resources),
+            colorSpaces: GetColorSpaceResources(resources),
+            baseFontForResource: ResolveBaseFont,
+            optionalContentVisibility: GetOptionalContentVisibility(resources),
+            pageHeight: pageHeight));
 
-        foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
+        foreach (var invocation in TextContentParser.ExtractFormInvocations(content, GetOptionalContentVisibility(resources))) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -323,10 +392,11 @@ public sealed partial class PdfReadPage {
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 var formDecoders = MergeDecoders(decoders, ResourceResolver.GetFontDecodersForForm(formDict, _objects));
                 var formWidths = MergeWidthProviders(widthProviders, ResourceResolver.GetFontWidthProviders(formDict, _objects));
+                var formFonts = MergeFonts(fonts, ResourceResolver.GetFontsForResources(formResources, _objects));
                 var combinedTransform = ApplyFormMatrix(invocation.Transform, formDict);
-                var formContent = WrapContentWithTransform(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), combinedTransform);
+                var formContent = WrapContentWithTransform(WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formDict), combinedTransform);
 
-                CollectTextAndForms(formContent, formResources, formDecoders, formWidths, spans, activeForms);
+                CollectTextAndForms(formContent, formResources, formDecoders, formWidths, formFonts, spans, activeForms, pageHeight);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -338,12 +408,40 @@ public sealed partial class PdfReadPage {
         PdfDictionary? resources,
         int pageNumber,
         Matrix2D baseTransform,
+        double pageHeight,
         List<PdfImagePlacement> placements,
-        HashSet<PdfStream> activeForms) {
-        foreach (var invocation in TextContentParser.ExtractFormInvocations(content)) {
-            Matrix2D invocationTransform = Matrix2D.Multiply(baseTransform, invocation.Transform);
+        HashSet<PdfStream> activeForms,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null) {
+        foreach (var invocation in PdfPageXObjectInvocationParser.Parse(
+                     content,
+                     baseTransform,
+                     pageHeight,
+                     GetGraphicsStateResources(resources),
+                     GetColorSpaceResources(resources),
+                     GetOptionalContentVisibility(resources),
+                     initialFillColor,
+                     initialFillColorSpace,
+                     initialFillOpacity)) {
+            Matrix2D invocationTransform = invocation.Transform;
+            if (invocation.InlineImage != null) {
+                placements.Add(BuildImagePlacement(
+                    pageNumber,
+                    invocation.InlineImage.ResourceName,
+                    0,
+                    invocation.InlineImage.DirectStreamIdentity,
+                    invocationTransform,
+                    invocation.ClipPath,
+                    invocation.FillColor,
+                    invocation.FillOpacity,
+                    invocation.InlineImage.Stream,
+                    resources));
+                continue;
+            }
+
             if (TryGetImageXObject(resources, invocation.Name, out int imageObjectNumber, out int directStreamIdentity)) {
-                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform));
+                placements.Add(BuildImagePlacement(pageNumber, invocation.Name, imageObjectNumber, directStreamIdentity, invocationTransform, invocation.ClipPath, invocation.FillColor, invocation.FillOpacity));
                 continue;
             }
 
@@ -359,8 +457,8 @@ public sealed partial class PdfReadPage {
                 var formDict = formStream.Dictionary;
                 var formResources = ResolveDictionary(formDict.Items.TryGetValue("Resources", out var resObj) ? resObj : null) ?? resources;
                 Matrix2D formTransform = ApplyFormMatrix(invocationTransform, formDict);
-                string formContent = PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream));
-                CollectImagePlacementsAndForms(formContent, formResources, pageNumber, formTransform, placements, activeForms);
+                string formContent = WrapFormContentWithBoundingBoxClip(PdfEncoding.Latin1GetString(DecodeIfNeeded(formStream)), formDict);
+                CollectImagePlacementsAndForms(formContent, formResources, pageNumber, formTransform, pageHeight, placements, activeForms, invocation.FillColor, invocation.FillColorSpace, invocation.FillOpacity);
             } finally {
                 activeForms.Remove(formStream);
             }
@@ -424,7 +522,17 @@ public sealed partial class PdfReadPage {
             string.Equals(stream.Dictionary.Get<PdfName>("Subtype")?.Name, "Image", StringComparison.Ordinal);
     }
 
-    private static PdfImagePlacement BuildImagePlacement(int pageNumber, string resourceName, int objectNumber, int directStreamIdentity, Matrix2D transform) {
+    private static PdfImagePlacement BuildImagePlacement(
+        int pageNumber,
+        string resourceName,
+        int objectNumber,
+        int directStreamIdentity,
+        Matrix2D transform,
+        PdfPageClipPath? clipPath,
+        OfficeColor imageMaskColor,
+        double? imageOpacity,
+        PdfStream? inlineImageStream = null,
+        PdfDictionary? inlineImageResources = null) {
         var p0 = transform.Transform(0D, 0D);
         var p1 = transform.Transform(1D, 0D);
         var p2 = transform.Transform(0D, 1D);
@@ -448,7 +556,12 @@ public sealed partial class PdfReadPage {
             left,
             bottom,
             Math.Max(0D, right - left),
-            Math.Max(0D, top - bottom));
+            Math.Max(0D, top - bottom),
+            clipPath,
+            imageMaskColor,
+            imageOpacity,
+            inlineImageStream,
+            inlineImageResources);
     }
 
     private string? GetMarkedContentActualText(PdfDictionary? resources, string propertyName) {
@@ -473,6 +586,9 @@ public sealed partial class PdfReadPage {
         return actualText.Value;
     }
 
+    private PdfPageOptionalContentVisibility? GetOptionalContentVisibility(PdfDictionary? resources) =>
+        PdfPageOptionalContentVisibility.Create(resources, _objects);
+
     private static Dictionary<string, Func<byte[], string>> MergeDecoders(
         Dictionary<string, Func<byte[], string>> parent,
         Dictionary<string, Func<byte[], string>> local) {
@@ -495,6 +611,17 @@ public sealed partial class PdfReadPage {
         return merged;
     }
 
+    private static Dictionary<string, PdfFontResource> MergeFonts(
+        Dictionary<string, PdfFontResource> parent,
+        Dictionary<string, PdfFontResource> local) {
+        var merged = new Dictionary<string, PdfFontResource>(parent, StringComparer.Ordinal);
+        foreach (var entry in local) {
+            merged[entry.Key] = entry.Value;
+        }
+
+        return merged;
+    }
+
     private static string WrapContentWithTransform(string content, Matrix2D transform) {
         string prefix = string.Format(
             System.Globalization.CultureInfo.InvariantCulture,
@@ -505,6 +632,28 @@ public sealed partial class PdfReadPage {
             transform.D,
             transform.E,
             transform.F);
+        return prefix + content + " Q";
+    }
+
+    private string WrapFormContentWithBoundingBoxClip(string content, PdfDictionary? formDict) {
+        if (formDict is null ||
+            !TryReadBox(formDict.Items.TryGetValue("BBox", out PdfObject? bboxObject) ? bboxObject : null, out (double X1, double Y1, double X2, double Y2) bbox)) {
+            return content;
+        }
+
+        double width = bbox.X2 - bbox.X1;
+        double height = bbox.Y2 - bbox.Y1;
+        if (width <= 0D || height <= 0D) {
+            return content;
+        }
+
+        string prefix = string.Format(
+            System.Globalization.CultureInfo.InvariantCulture,
+            "q {0} {1} {2} {3} re W n ",
+            bbox.X1,
+            bbox.Y1,
+            width,
+            height);
         return prefix + content + " Q";
     }
 

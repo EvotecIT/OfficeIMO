@@ -693,6 +693,9 @@ namespace OfficeIMO.Excel {
             string? fillColorArgb,
             string? strokeColorArgb,
             double strokeWidth,
+            OfficeStrokeDashStyle strokeDashStyle,
+            OfficeStrokeLineCap? strokeLineCap,
+            OfficeStrokeLineJoin? strokeLineJoin,
             string text,
             OfficeTextAlignment textAlignment,
             OfficeTextVerticalAlignment textVerticalAlignment,
@@ -708,6 +711,8 @@ namespace OfficeIMO.Excel {
             double textInsetTop,
             double textInsetRight,
             double textInsetBottom,
+            OfficeGlow? glow,
+            OfficeShadow? shadow,
             string source) {
             Name = name ?? string.Empty;
             Order = order;
@@ -723,6 +728,9 @@ namespace OfficeIMO.Excel {
             FillColorArgb = fillColorArgb;
             StrokeColorArgb = strokeColorArgb;
             StrokeWidth = strokeWidth;
+            StrokeDashStyle = strokeDashStyle;
+            StrokeLineCap = strokeLineCap;
+            StrokeLineJoin = strokeLineJoin;
             Text = text ?? string.Empty;
             TextAlignment = textAlignment;
             TextVerticalAlignment = textVerticalAlignment;
@@ -738,6 +746,8 @@ namespace OfficeIMO.Excel {
             TextInsetTop = textInsetTop;
             TextInsetRight = textInsetRight;
             TextInsetBottom = textInsetBottom;
+            Glow = glow;
+            Shadow = shadow;
             Source = source ?? string.Empty;
         }
 
@@ -786,6 +796,15 @@ namespace OfficeIMO.Excel {
         /// <summary>Stroke width in CSS pixels.</summary>
         public double StrokeWidth { get; }
 
+        /// <summary>Stroke dash style resolved from the DrawingML outline.</summary>
+        public OfficeStrokeDashStyle StrokeDashStyle { get; }
+
+        /// <summary>Stroke line cap resolved from the DrawingML outline, when specified.</summary>
+        public OfficeStrokeLineCap? StrokeLineCap { get; }
+
+        /// <summary>Stroke line join resolved from the DrawingML outline, when specified.</summary>
+        public OfficeStrokeLineJoin? StrokeLineJoin { get; }
+
         /// <summary>Plain text extracted from the drawing object.</summary>
         public string Text { get; }
 
@@ -830,6 +849,12 @@ namespace OfficeIMO.Excel {
 
         /// <summary>Bottom text inset in CSS pixels after DrawingML EMU conversion.</summary>
         public double TextInsetBottom { get; }
+
+        /// <summary>DrawingML glow effect mapped to the shared dependency-free Drawing renderer, when supported.</summary>
+        public OfficeGlow? Glow { get; }
+
+        /// <summary>DrawingML outer shadow effect mapped to the shared dependency-free Drawing renderer, when supported.</summary>
+        public OfficeShadow? Shadow { get; }
 
         /// <summary>Source reference used by export diagnostics.</summary>
         public string Source { get; }

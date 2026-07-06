@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
+using System.Linq;
 
 namespace OfficeIMO.Drawing;
 
@@ -384,7 +385,9 @@ public static partial class OfficeChartDrawingRenderer {
             }
         }
 
-        if (IsAreaChart(snapshot.ChartKind)) {
+        if (HasMixedCartesianSeriesKinds(snapshot)) {
+            AddMixedCartesianSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        } else if (IsAreaChart(snapshot.ChartKind)) {
             AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsScatterChart(snapshot.ChartKind)) {
             AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
@@ -487,6 +490,13 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         return drawing;
+    }
+
+    private static void AddMixedCartesianSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+        AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
     }
 
     /// <summary>
@@ -932,7 +942,14 @@ public static partial class OfficeChartDrawingRenderer {
         bool horizontal = IsBarChart(snapshot.ChartKind);
         bool stacked = IsStackedBarOrColumnChart(snapshot.ChartKind) || IsPercentStackedBarOrColumnChart(snapshot.ChartKind);
         bool percentStacked = IsPercentStackedBarOrColumnChart(snapshot.ChartKind);
-        double barWidth = Math.Max(2D, stacked ? groupWidth : groupWidth / series.Count);
+        int barSeriesCount = HasMixedCartesianSeriesKinds(snapshot)
+            ? series.Count(item => ShouldRenderSeriesAsBarOrColumn(snapshot, item))
+            : series.Count;
+        if (barSeriesCount == 0) {
+            return;
+        }
+
+        double barWidth = Math.Max(2D, stacked ? groupWidth : groupWidth / barSeriesCount);
         ValueRange range = percentStacked
             ? GetPercentStackedSeriesRange(series, categories.Count)
             : stacked
@@ -949,8 +966,14 @@ public static partial class OfficeChartDrawingRenderer {
         for (int category = 0; category < categories.Count; category++) {
             double positiveBase = 0D;
             double negativeBase = 0D;
+            int barSeriesOrdinal = 0;
             for (int s = 0; s < series.Count; s++) {
+                if (!ShouldRenderSeriesAsBarOrColumn(snapshot, series[s])) {
+                    continue;
+                }
+
                 if (!TryGetSeriesValue(series[s], category, out double value)) {
+                    barSeriesOrdinal++;
                     continue;
                 }
 
@@ -980,9 +1003,9 @@ public static partial class OfficeChartDrawingRenderer {
 
                 if (horizontal) {
                     double categoryHeight = plotHeight / categories.Count;
-                    double rowHeight = Math.Max(2D, categoryHeight * 0.68D / (stacked ? 1D : series.Count));
+                    double rowHeight = Math.Max(2D, categoryHeight * 0.68D / (stacked ? 1D : barSeriesCount));
                     int categorySlot = GetHorizontalBarCategorySlotIndex(category, categories.Count, layout);
-                    int seriesSlot = stacked ? 0 : series.Count - 1 - s;
+                    int seriesSlot = stacked ? 0 : barSeriesCount - 1 - barSeriesOrdinal;
                     double y = plotTop + categoryHeight * categorySlot + categoryHeight * 0.16D + (stacked ? 0D : rowHeight * seriesSlot);
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
                     double visibleValue = ClampValueToRange(stacked ? baseline + plottedValue : plottedValue, min, max);
@@ -1010,7 +1033,7 @@ public static partial class OfficeChartDrawingRenderer {
                         category);
                 } else {
                     int categorySlotIndex = GetCategorySlotIndex(category, categories.Count, layout);
-                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + (stacked ? 0D : barWidth * s);
+                    double x = plotLeft + slot * categorySlotIndex + (slot - groupWidth) / 2D + (stacked ? 0D : barWidth * barSeriesOrdinal);
                     double visibleBaseline = ClampValueToRange(baseline, min, max);
                     double visibleValue = ClampValueToRange(stacked ? baseline + plottedValue : plottedValue, min, max);
                     double y1 = ToPlotY(visibleBaseline, min, max, plotTop, plotHeight);
@@ -1035,6 +1058,8 @@ public static partial class OfficeChartDrawingRenderer {
                         s,
                         category);
                 }
+
+                barSeriesOrdinal++;
             }
         }
     }
@@ -1062,6 +1087,10 @@ public static partial class OfficeChartDrawingRenderer {
         var negativeCumulative = new double[categories.Count];
 
         for (int s = 0; s < series.Count; s++) {
+            if (!ShouldRenderSeriesAsArea(snapshot, series[s])) {
+                continue;
+            }
+
             OfficeColor color = GetSeriesColor(style, series, s);
             double strokeWidth = GetSeriesStrokeWidth(series[s], 1.4D);
             OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
@@ -1170,6 +1199,10 @@ public static partial class OfficeChartDrawingRenderer {
         var positiveCumulative = new double[categories.Count];
         var negativeCumulative = new double[categories.Count];
         for (int s = 0; s < series.Count; s++) {
+            if (!ShouldRenderSeriesAsLine(snapshot, series[s])) {
+                continue;
+            }
+
             OfficeColor color = GetSeriesColor(style, series, s);
             double strokeWidth = GetSeriesStrokeWidth(series[s], 1.75D);
             OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);
@@ -1260,6 +1293,10 @@ public static partial class OfficeChartDrawingRenderer {
         ValueRange xRange = ApplyValueAxisScale(pairedXRange, layout, horizontal: true);
         ValueRange yRange = ApplyValueAxisScale(pairedYRange, layout, horizontal: false);
         for (int s = 0; s < series.Count; s++) {
+            if (!ShouldRenderSeriesAsScatter(snapshot, series[s])) {
+                continue;
+            }
+
             OfficeColor color = GetSeriesColor(style, series, s);
             double strokeWidth = GetSeriesStrokeWidth(series[s], 1.25D);
             OfficeStrokeDashStyle dashStyle = GetSeriesStrokeDashStyle(series[s]);

@@ -12,6 +12,7 @@ using OfficeIMO.Word;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
 using DW = DocumentFormat.OpenXml.Drawing.Wordprocessing;
+using M = DocumentFormat.OpenXml.Math;
 using V = DocumentFormat.OpenXml.Vml;
 using Wps = DocumentFormat.OpenXml.Office2010.Word.DrawingShape;
 
@@ -214,6 +215,163 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_ProjectsNoWrapAnchoredDrawingShapesThroughSharedDrawingPresets() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 36D);
+            wordShape.FillColor = OfficeColor.FromRgb(14, 165, 233);
+            wordShape.StrokeColor = OfficeColor.FromRgb(12, 74, 110);
+            wordShape.StrokeWeight = 2D;
+            DW.Anchor anchor = wordShape._drawing!.GetFirstChild<DW.Anchor>()!;
+            anchor.RemoveAllChildren<DW.WrapSquare>();
+            anchor.Append(new DW.WrapNone());
+            document.AddParagraph("After no-wrap anchored shape remains in the normal text flow.");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingShape arrow = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>()
+                .First(shape => shape.Shape.FillColor == OfficeColor.FromRgb(14, 165, 233));
+            Assert.Equal(144D, arrow.X, 1);
+            Assert.Equal(36D, arrow.Y, 1);
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "After no-wrap anchored shape remains in the normal text flow.");
+            Assert.True(afterText.X < arrow.X);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.FromRgb(14, 165, 233)) > 50);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<polygon", svgText, StringComparison.Ordinal);
+            Assert.Contains("#0EA5E9", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#0C4A6E", svgText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsTightWrappedAnchoredDrawingShapesThroughShapeGeometryTextExclusion() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 18D);
+            wordShape.FillColor = OfficeColor.FromRgb(168, 85, 247);
+            wordShape.StrokeColor = OfficeColor.FromRgb(88, 28, 135);
+            wordShape.StrokeWeight = 2D;
+            DW.Anchor anchor = wordShape._drawing!.GetFirstChild<DW.Anchor>()!;
+            anchor.RemoveAllChildren<DW.WrapSquare>();
+            anchor.Append(new DW.WrapTight { WrapText = DW.WrapTextValues.BothSides });
+            document.AddParagraph("After tight anchored shape wraps beside the marker.");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-shape-wrap");
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-shape-wrap");
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-shape-wrap");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-shape");
+            OfficeDrawingShape arrow = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>()
+                .First(shape => shape.Shape.FillColor == OfficeColor.FromRgb(168, 85, 247));
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "After tight anchored shape wraps beside the marker.");
+            Assert.True(TryGetShapePolygonHorizontalSpan(arrow, afterText.Y, out _, out double polygonRight));
+            Assert.True(afterText.X >= polygonRight - 0.5D);
+            Assert.True(afterText.X < arrow.X + arrow.Shape.Width - 0.5D);
+            Assert.True(afterText.Y >= arrow.Y);
+            Assert.True(afterText.Y < arrow.Y + arrow.Shape.Height);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.FromRgb(168, 85, 247)) > 50);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<polygon", svgText, StringComparison.Ordinal);
+            Assert.Contains("#A855F7", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#581C87", svgText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsTopAndBottomAnchoredDrawingShapesThroughSharedDrawingFlow() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 36D);
+            wordShape.FillColor = OfficeColor.FromRgb(245, 158, 11);
+            wordShape.StrokeColor = OfficeColor.FromRgb(146, 64, 14);
+            wordShape.StrokeWeight = 2D;
+            DW.Anchor anchor = wordShape._drawing!.GetFirstChild<DW.Anchor>()!;
+            anchor.RemoveAllChildren<DW.WrapSquare>();
+            anchor.Append(new DW.WrapTopBottom());
+            document.AddParagraph("After top-bottom anchored shape flows below the marker.");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingShape arrow = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingShape>()
+                .First(shape => shape.Shape.FillColor == OfficeColor.FromRgb(245, 158, 11));
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "After top-bottom anchored shape flows below the marker.");
+            Assert.True(afterText.Y > arrow.Y + arrow.Shape.Height);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.FromRgb(245, 158, 11)) > 50);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<polygon", svgText, StringComparison.Ordinal);
+            Assert.Contains("#F59E0B", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#92400E", svgText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsBehindDocAnchoredDrawingShapesBehindExistingForegroundContent() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+
+            document.AddParagraph("Foreground text should paint above the behind shape.");
+            WordShape wordShape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 96D, 40D, 144D, 36D);
+            wordShape.FillColor = OfficeColor.FromRgb(59, 130, 246);
+            wordShape.StrokeColor = OfficeColor.FromRgb(30, 64, 175);
+            DW.Anchor anchor = wordShape._drawing!.GetFirstChild<DW.Anchor>()!;
+            anchor.RemoveAllChildren<DW.WrapSquare>();
+            anchor.Append(new DW.WrapNone());
+            anchor.BehindDoc = true;
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            List<OfficeDrawingElement> elements = snapshot.Drawing.Elements.ToList();
+            int shapeIndex = elements.FindIndex(element =>
+                element is OfficeDrawingShape shape && shape.Shape.FillColor == OfficeColor.FromRgb(59, 130, 246));
+            int foregroundTextIndex = elements.FindIndex(element =>
+                element is OfficeDrawingText text && text.Text == "Foreground text should paint above the behind shape.");
+            Assert.True(shapeIndex >= 0);
+            Assert.True(shapeIndex < foregroundTextIndex);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.FromRgb(59, 130, 246)) > 50);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<polygon", svgText, StringComparison.Ordinal);
+            Assert.Contains("#3B82F6", svgText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
         public void WordDocument_ProjectsShapeTransformsThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -349,6 +507,132 @@ namespace OfficeIMO.Tests {
             Assert.Contains("DrawingML", svgText, StringComparison.Ordinal);
             Assert.Contains("Legacy", svgText, StringComparison.Ordinal);
             Assert.Contains("<rect", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsTightWrappedAnchoredTextBoxesThroughFrameGeometryTextExclusion() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Tight floating text box", WrapTextImage.Tight);
+            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+            document.AddParagraph("After tight text box wraps beside the marker.");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-textbox-wrap");
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-textbox-wrap");
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-textbox-wrap");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-textbox");
+            OfficeDrawingText textBoxText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Tight floating text box");
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "After tight text box wraps beside the marker.");
+            Assert.True(afterText.X > textBoxText.X);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.Black) > 40);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Tight floating text box", svgText, StringComparison.Ordinal);
+            Assert.Contains("After tight text box", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsTopAndBottomAnchoredTextBoxesThroughSharedDrawingFlow() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Top-bottom floating text box", WrapTextImage.TopAndBottom);
+            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+            document.AddParagraph("After top-bottom text box flows below the marker.");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingText textBoxText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Top-bottom floating text box");
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "After top-bottom text box flows below the marker.");
+            Assert.True(afterText.Y > textBoxText.Y + textBoxText.Height);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.Black) > 40);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<rect", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsBehindTextBoxesBehindExistingForegroundContent() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+
+            document.AddParagraph("Foreground text should paint above the behind text box.");
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Behind box", WrapTextImage.BehindText);
+            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            int behindTextIndex = snapshot.Drawing.Elements.ToList().FindIndex(element =>
+                element is OfficeDrawingText text && text.Text == "Behind box");
+            int foregroundTextIndex = snapshot.Drawing.Elements.ToList().FindIndex(element =>
+                element is OfficeDrawingText text && text.Text == "Foreground text should paint above the behind text box.");
+            int behindFrameIndex = snapshot.Drawing.Elements.ToList().FindIndex(element =>
+                element is OfficeDrawingShape shape &&
+                shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                shape.Shape.Width < snapshot.Drawing.Width &&
+                shape.Shape.Height < snapshot.Drawing.Height);
+            Assert.True(behindFrameIndex >= 0);
+            Assert.True(behindFrameIndex < behindTextIndex);
+            Assert.True(behindTextIndex < foregroundTextIndex);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.True(CountPixelsNear(image!, OfficeColor.Black) > 40);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<rect", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsTextBoxesChangedToBehindTextBehindExistingForegroundContent() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+
+            document.AddParagraph("Foreground text should stay above the changed behind text box.");
+            WordTextBox textBox = document.AddParagraph().AddTextBox("Changed behind box", WrapTextImage.Square);
+            textBox.HorizontalAlignment = WordHorizontalAlignmentValues.Left;
+            textBox.WrapText = WrapTextImage.BehindText;
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Equal(WrapTextImage.BehindText, textBox.WrapText);
+            Assert.Empty(snapshot.Diagnostics);
+            List<OfficeDrawingElement> elements = snapshot.Drawing.Elements.ToList();
+            int behindTextIndex = elements.FindIndex(element =>
+                element is OfficeDrawingText text && text.Text == "Changed behind box");
+            int foregroundTextIndex = elements.FindIndex(element =>
+                element is OfficeDrawingText text && text.Text == "Foreground text should stay above the changed behind text box.");
+            Assert.True(behindTextIndex >= 0);
+            Assert.True(behindTextIndex < foregroundTextIndex);
         }
 
         [Fact]
@@ -1355,6 +1639,39 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_RestartsNestedListMarkersThroughSharedDrawingText() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            WordList list = document.AddCustomList();
+            list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+            list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.LowerLetterDot));
+            list.AddItem("First parent");
+            list.AddItem("First child", 1);
+            list.AddItem("Second parent");
+            list.AddItem("Second child", 1);
+
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(svg.Diagnostics);
+            Assert.Empty(snapshot.Diagnostics);
+            OfficeDrawingText firstParent = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "First parent");
+            OfficeDrawingText firstChild = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "First child");
+            OfficeDrawingText secondParent = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Second parent");
+            OfficeDrawingText secondChild = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Second child");
+            Assert.Equal("1.", FindMarkerText(snapshot, firstParent).Text);
+            Assert.Equal("a.", FindMarkerText(snapshot, firstChild).Text);
+            Assert.Equal("2.", FindMarkerText(snapshot, secondParent).Text);
+            Assert.Equal("a.", FindMarkerText(snapshot, secondChild).Text);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("First parent", svgText, StringComparison.Ordinal);
+            Assert.Contains("Second child", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain(">b.<", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordDocument_ProjectsRichRunsThroughSharedDrawingRichText() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -1951,6 +2268,1009 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_ProjectsBodyContentControlBlocksThroughSharedDrawing() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                CreateBlockContentControl(
+                    new Paragraph(new Run(new Text("Body content control paragraph"))),
+                    new Table(
+                        new TableRow(
+                            new TableCell(
+                                new Paragraph(new Run(new Text("Body content control table cell"))))))));
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-body-element");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Body content control paragraph");
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Body content control table cell");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Body content control paragraph", svgText, StringComparison.Ordinal);
+            Assert.Contains("Body content control table cell", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesHardPageBreakInsideSingleRun() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new Run(
+                        new RunProperties(new Bold()),
+                        new Text("Mixed run before break"),
+                        new Break { Type = BreakValues.Page },
+                        new Text("Mixed run after break"))));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingText firstPageText = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            OfficeDrawingText secondPageText = Assert.Single(secondPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal("Mixed run before break", firstPageText.Text);
+            Assert.Equal("Mixed run after break", secondPageText.Text);
+            Assert.True(secondPageText.Font.IsBold);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("Mixed run after break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Mixed run before break", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesLastRenderedPageBreakInsideSingleRun() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new Run(
+                        new RunProperties(new Italic()),
+                        new Text("Word rendered marker before break"),
+                        new LastRenderedPageBreak(),
+                        new Text("Word rendered marker after break"))));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingText firstPageText = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            OfficeDrawingText secondPageText = Assert.Single(secondPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal("Word rendered marker before break", firstPageText.Text);
+            Assert.Equal("Word rendered marker after break", secondPageText.Text);
+            Assert.True(secondPageText.Font.IsItalic);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("Word rendered marker after break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Word rendered marker before break", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesHardPageBreakInsideHyperlinkRun() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new Hyperlink(
+                        new Run(
+                            new RunProperties(new Color { Val = "0000FF" }),
+                            new Text("Linked text before break"),
+                            new Break { Type = BreakValues.Page },
+                            new Text("Linked text after break"))) {
+                        Anchor = "linked-target"
+                    }));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingText firstPageText = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            OfficeDrawingText secondPageText = Assert.Single(secondPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal("Linked text before break", firstPageText.Text);
+            Assert.Equal("Linked text after break", secondPageText.Text);
+            Assert.Equal(OfficeColor.FromRgb(0, 0, 255), secondPageText.Color);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("Linked text after break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Linked text before break", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesHardPageBreakInsideInlineContentControlRun() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new SdtRun(
+                        new SdtProperties(new Tag { Val = "inline-break-control" }),
+                        new SdtContentRun(
+                            new Run(
+                                new RunProperties(new Italic()),
+                                new Text("Content control before break"),
+                                new Break { Type = BreakValues.Page },
+                                new Text("Content control after break"))))));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingText firstPageText = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            OfficeDrawingText secondPageText = Assert.Single(secondPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal("Content control before break", firstPageText.Text);
+            Assert.Equal("Content control after break", secondPageText.Text);
+            Assert.True(secondPageText.Font.IsItalic);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("Content control after break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Content control before break", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesHardPageBreakInsideSimpleFieldResult() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new SimpleField(
+                        new Run(
+                            new RunProperties(new Underline { Val = UnderlineValues.Single }),
+                            new Text("Field result before break"),
+                            new Break { Type = BreakValues.Page },
+                            new Text("Field result after break"))) {
+                        Instruction = " QUOTE \"cached result\" "
+                    }));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingText firstPageText = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            OfficeDrawingText secondPageText = Assert.Single(secondPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal("Field result before break", firstPageText.Text);
+            Assert.Equal("Field result after break", secondPageText.Text);
+            Assert.True(secondPageText.Font.IsUnderline);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("Field result after break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Field result before break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("QUOTE", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesHardPageBreakInsideComplexFieldResult() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" QUOTE \"cached result\" ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(
+                        new RunProperties(new Underline { Val = UnderlineValues.Single }),
+                        new Text("Complex field before break"),
+                        new Break { Type = BreakValues.Page },
+                        new Text("Complex field after break")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingText firstPageText = Assert.Single(firstPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            OfficeDrawingText secondPageText = Assert.Single(secondPage.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal("Complex field before break", firstPageText.Text);
+            Assert.Equal("Complex field after break", secondPageText.Text);
+            Assert.True(secondPageText.Font.IsUnderline);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("Complex field after break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Complex field before break", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("QUOTE", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesFirstPageFieldsThroughSharedDrawingText() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new Run(new Text("Page ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("3")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" of ")),
+                    new SimpleField(new Run(new Text("8"))) { Instruction = " NUMPAGES " }));
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            OfficeDrawingRichText richText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
+            Assert.Equal("Page 1 of 1", richText.PlainText);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Page", svgText, StringComparison.Ordinal);
+            Assert.Contains("1", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Page 3", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain(">8<", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("PAGE", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("NUMPAGES", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesDocumentMetadataFieldsThroughSharedDrawingText() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".docx");
+
+            try {
+                using WordDocument document = WordDocument.Create(filePath);
+                document.Margins.Type = WordMargin.Narrow;
+                document.BuiltinDocumentProperties.Creator = "premium author";
+                document.BuiltinDocumentProperties.Title = "Premium Image Export";
+                document.CustomDocumentProperties.Add("ProjectCode", new WordCustomProperty("Alpha"));
+                AppendBodyElementBeforeSection(
+                    document,
+                    new Paragraph(
+                        new Run(new Text("By ")),
+                        new SimpleField(new Run(new Text("Stale Author"))) { Instruction = " AUTHOR \\* Caps " },
+                        new Run(new Text(" for ")),
+                        new SimpleField(new Run(new Text("Stale Title"))) { Instruction = " TITLE " },
+                        new Run(new Text(" code ")),
+                        new SimpleField(new Run(new Text("Stale Code"))) { Instruction = " DOCPROPERTY \"ProjectCode\" " },
+                        new Run(new Text(" file ")),
+                        new SimpleField(new Run(new Text("stale.docx"))) { Instruction = " FILENAME " }));
+
+                string expected = "By Premium Author for Premium Image Export code Alpha file " + Path.GetFileName(filePath);
+                WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+                OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+                Assert.Empty(snapshot.Diagnostics);
+                Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == expected);
+                string svgText = Encoding.UTF8.GetString(svg.Bytes);
+                Assert.Contains("Premium Author", svgText, StringComparison.Ordinal);
+                Assert.Contains("Premium Image Export", svgText, StringComparison.Ordinal);
+                Assert.Contains("Alpha", svgText, StringComparison.Ordinal);
+                Assert.Contains(Path.GetFileName(filePath), svgText, StringComparison.Ordinal);
+                Assert.DoesNotContain("Stale Author", svgText, StringComparison.Ordinal);
+                Assert.DoesNotContain("Stale Title", svgText, StringComparison.Ordinal);
+                Assert.DoesNotContain("Stale Code", svgText, StringComparison.Ordinal);
+                Assert.DoesNotContain("stale.docx", svgText, StringComparison.Ordinal);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesPageFieldsForRequestedBodyPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("First page marker");
+            document.AddPageBreak();
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new Run(new Text("Body page ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("9")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" of ")),
+                    new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " }));
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Body page 2 of 2");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Body page 9 of 9");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Body page", svgText, StringComparison.Ordinal);
+            Assert.Contains("2", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("PAGE", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("NUMPAGES", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesPageFieldsInsideTableCellsForRequestedPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("First page marker before table page");
+            document.AddPageBreak();
+            WordTable table = document.AddTable(1, 1);
+            Paragraph paragraph = table.Rows[0].Cells[0].Paragraphs[0]._paragraph;
+            paragraph.RemoveAllChildren<Run>();
+            paragraph.Append(
+                new Run(new Text("Cell page ")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                new Run(new Text("9")),
+                new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                new Run(new Text(" of ")),
+                new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " });
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Cell page 2 of 2");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Cell page 9 of 9");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Cell page", svgText, StringComparison.Ordinal);
+            Assert.Contains("2", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("PAGE", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("NUMPAGES", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesPageFieldsInsideTextBoxesForRequestedPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("First page marker before text box");
+            document.AddPageBreak();
+            WordTextBox textBox = document.AddParagraph().AddTextBox("placeholder", WrapTextImage.InLineWithText);
+            TextBoxContent content = textBox.Content!;
+            content.RemoveAllChildren<Paragraph>();
+            content.Append(
+                new Paragraph(
+                    new Run(new Text("Text box page ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("9")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" of ")),
+                    new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " }));
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Text box page 2 of 2");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Text box page 9 of 9");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Text box page", svgText, StringComparison.Ordinal);
+            Assert.Contains("2", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("PAGE", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("NUMPAGES", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesPageFieldsForRequestedHeaderFooterPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            document.FooterDefaultOrCreate._footer.Append(
+                new Paragraph(
+                    new Run(new Text("Page ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("1")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" of ")),
+                    new SimpleField(new Run(new Text("1"))) { Instruction = " NUMPAGES " }));
+            document.AddParagraph("First page marker");
+            document.AddPageBreak();
+            document.AddParagraph("Second page marker");
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page 2 of 2");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page 1 of 1");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Page", svgText, StringComparison.Ordinal);
+            Assert.Contains("2", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("PAGE", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("NUMPAGES", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesSectionFormattedPageFieldsForRequestedHeaderFooterPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddParagraph("First section body");
+            WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+            secondSection.PageSettings.PageSize = WordPageSize.A4;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.AddPageNumbering(3, NumberFormatValues.LowerRoman);
+            secondSection.GetOrCreateFooter(HeaderFooterValues.Default)._footer.Append(
+                new Paragraph(
+                    new Run(new Text("Section page ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" PAGE ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("1")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" of ")),
+                    new SimpleField(new Run(new Text("1"))) { Instruction = " NUMPAGES " }));
+            secondSection.AddParagraph("Second section body");
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page iii of 2");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section page 1 of 1");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Section page", svgText, StringComparison.Ordinal);
+            Assert.Contains("iii", svgText, StringComparison.Ordinal);
+            Assert.Contains("2", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_AppliesPageFieldFormatSwitchesForRequestedHeaderFooterPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            document.FooterDefaultOrCreate._footer.Append(
+                new Paragraph(
+                    new Run(new Text("Page ")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" PAGE \\* alphabetic ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("9")),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" of ")),
+                    new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES \\* roman " }));
+            document.AddParagraph("First page marker");
+            document.AddPageBreak();
+            document.AddParagraph("Second page marker");
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page b of ii");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Page 9 of 9");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Page", svgText, StringComparison.Ordinal);
+            Assert.Contains("b", svgText, StringComparison.Ordinal);
+            Assert.Contains("ii", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesSectionPagesFieldForRequestedHeaderFooterPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddParagraph("First section body");
+
+            WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+            secondSection.PageSettings.PageSize = WordPageSize.A4;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.GetOrCreateFooter(HeaderFooterValues.Default)._footer.Append(
+                new Paragraph(
+                    new Run(new Text("Section pages ")),
+                    new SimpleField(new Run(new Text("9"))) { Instruction = " SECTIONPAGES \\* ROMAN " }));
+            secondSection.AddParagraph("Second section first page");
+            document.AddPageBreak();
+            secondSection.AddParagraph("Second section second page");
+
+            var options = new WordImageExportOptions { PageIndex = 2, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section pages II");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section pages 9");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Section pages", svgText, StringComparison.Ordinal);
+            Assert.Contains("II", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesSectionFieldForRequestedHeaderFooterPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddParagraph("First section body");
+
+            WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+            secondSection.PageSettings.PageSize = WordPageSize.A4;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.GetOrCreateFooter(HeaderFooterValues.Default)._footer.Append(
+                new Paragraph(
+                    new Run(new Text("Section ")),
+                    new SimpleField(new Run(new Text("9"))) { Instruction = " SECTION \\* ArabicZero " },
+                    new Run(new Text(" page ")),
+                    new SimpleField(new Run(new Text("9"))) { Instruction = " PAGE " }));
+            secondSection.AddParagraph("Second section body");
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section 02 page 1");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Section 9 page 9");
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Section", svgText, StringComparison.Ordinal);
+            Assert.Contains("02", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ResolvesSectionPagesFieldFromAutomaticOverflowForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)10000U;
+            section.PageSettings.Height = (UInt32Value)6000U;
+            section.SetMargins(WordMargin.Narrow);
+            section.GetOrCreateFooter(HeaderFooterValues.Default)._footer.Append(
+                new Paragraph(
+                    new Run(new Text("Section pages ")),
+                    new SimpleField(new Run(new Text("1"))) { Instruction = " SECTIONPAGES " }));
+            for (int index = 1; index <= 7; index++) {
+                document.AddParagraph(
+                    "Automatic section page count marker " +
+                    index.ToString(CultureInfo.InvariantCulture) +
+                    " with enough words to wrap into multiple measured lines on the compact page preview.");
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            OfficeDrawingRichText footerText = Assert.Single(
+                snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(),
+                text => text.PlainText.StartsWith("Section pages ", StringComparison.Ordinal));
+            Assert.Matches(@"^Section pages [2-9]\d*$", footerText.PlainText);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Section pages", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain(">1<", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_KeepsAutomaticOverflowPagesInOriginalSectionBeforeSectionBreak() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+            firstSection.PageSettings.Width = (UInt32Value)5000U;
+            firstSection.PageSettings.Height = (UInt32Value)3000U;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddHeadersAndFooters();
+            firstSection.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("First automatic header");
+            firstSection.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("First automatic footer");
+            for (int index = 1; index <= 7; index++) {
+                firstSection.AddParagraph(
+                    "Automatic section routing marker " +
+                    index.ToString(CultureInfo.InvariantCulture) +
+                    " with enough words to wrap into multiple measured lines before the next section starts.");
+            }
+
+            secondSection.PageSettings.PageSize = WordPageSize.A5;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.AddParagraph("Second automatic body");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            List<string> text = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Select(element => element.Text).ToList();
+            Assert.Equal(5000D / 20D, snapshot.Width, 2);
+            Assert.Equal(3000D / 20D, snapshot.Height, 2);
+            Assert.Contains("First automatic header", text);
+            Assert.Contains("First automatic footer", text);
+            Assert.DoesNotContain("Second automatic body", text);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsOfficeMathTextFallbackThroughSharedDrawingText() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new M.OfficeMath(
+                        new M.Run(
+                            new M.Text("x+y=1")))));
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            OfficeDrawingText equationText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal("x+y=1", equationText.Text);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("x+y=1", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_LinearizesCommonOfficeMathStructuresForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:sSup><m:e><m:r><m:t>x</m:t></m:r></m:e><m:sup><m:r><m:t>2</m:t></m:r></m:sup></m:sSup><m:r><m:t>+</m:t></m:r><m:f><m:num><m:r><m:t>a</m:t></m:r></m:num><m:den><m:r><m:t>b</m:t></m:r></m:den></m:f><m:r><m:t>+</m:t></m:r><m:rad><m:deg/><m:e><m:r><m:t>y</m:t></m:r></m:e></m:rad><m:r><m:t>+</m:t></m:r><m:nary><m:naryPr><m:chr m:val=\"&#x222B;\"/></m:naryPr><m:e><m:r><m:t>z</m:t></m:r></m:e></m:nary></m:oMath></m:oMathPara>";
+            document.AddEquation(omml);
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            const string expected = "x^(2)+(a)/(b)+sqrt(y)+int(z)";
+            OfficeDrawingText equationText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal(expected, equationText.Text);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains(expected, svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_LinearizesDelimitedAccentAndMatrixOfficeMathForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:d><m:dPr><m:begChr m:val=\"[\"/><m:endChr m:val=\"]\"/></m:dPr><m:e><m:acc><m:accPr><m:chr m:val=\"^\"/></m:accPr><m:e><m:r><m:t>x</m:t></m:r></m:e></m:acc></m:e></m:d><m:r><m:t>+</m:t></m:r><m:m><m:mr><m:e><m:r><m:t>a</m:t></m:r></m:e><m:e><m:r><m:t>b</m:t></m:r></m:e></m:mr><m:mr><m:e><m:r><m:t>c</m:t></m:r></m:e><m:e><m:r><m:t>d</m:t></m:r></m:e></m:mr></m:m></m:oMath></m:oMathPara>";
+            document.AddEquation(omml);
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            const string expected = "[hat(x)]+matrix(a,b;c,d)";
+            OfficeDrawingText equationText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal(expected, equationText.Text);
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains(expected, svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_LinearizesPreSubSupOfficeMathForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            const string omml = "<m:oMathPara xmlns:m=\"http://schemas.openxmlformats.org/officeDocument/2006/math\"><m:oMath><m:sPre><m:sub><m:r><m:t>6</m:t></m:r></m:sub><m:sup><m:r><m:t>14</m:t></m:r></m:sup><m:e><m:r><m:t>C</m:t></m:r></m:e></m:sPre><m:r><m:t>+</m:t></m:r><m:sPre><m:sub><m:r><m:t>1</m:t></m:r></m:sub><m:sup><m:r><m:t>1</m:t></m:r></m:sup><m:e><m:r><m:t>H</m:t></m:r></m:e></m:sPre></m:oMath></m:oMathPara>";
+            document.AddEquation(omml);
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            const string expected = "^(14)_(6)C+^(1)_(1)H";
+            OfficeDrawingText equationText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Equal(expected, equationText.Text);
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains(expected, svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsInsertedRevisionRunsAndSkipsDeletedRunsForFinalView() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            var inserted = new InsertedRun {
+                Author = "OfficeIMO",
+                Date = new DateTime(2026, 7, 5),
+                Id = "1"
+            };
+            inserted.Append(new Run(new Text("accepted") { Space = SpaceProcessingModeValues.Preserve }));
+            var deleted = new DeletedRun {
+                Author = "OfficeIMO",
+                Date = new DateTime(2026, 7, 5),
+                Id = "2"
+            };
+            deleted.Append(new Run(new DeletedText("removed") { Space = SpaceProcessingModeValues.Preserve }));
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new Run(new Text("Before ") { Space = SpaceProcessingModeValues.Preserve }),
+                    inserted,
+                    deleted,
+                    new Run(new Text(" after") { Space = SpaceProcessingModeValues.Preserve })));
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            OfficeDrawingRichText revisionText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
+            Assert.Equal("Before accepted after", revisionText.PlainText);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Before", svgText, StringComparison.Ordinal);
+            Assert.Contains("accepted", svgText, StringComparison.Ordinal);
+            Assert.Contains("after", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("removed", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsInsertedRevisionParagraphsAndSkipsDeletedParagraphsForFinalView() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new ParagraphProperties(
+                        new ParagraphMarkRunProperties(
+                            new Inserted {
+                                Author = "OfficeIMO",
+                                Date = new DateTime(2026, 7, 6),
+                                Id = "1"
+                            })),
+                    new Run(new Text("Inserted paragraph"))));
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new ParagraphProperties(
+                        new ParagraphMarkRunProperties(
+                            new Deleted {
+                                Author = "OfficeIMO",
+                                Date = new DateTime(2026, 7, 6),
+                                Id = "2"
+                            })),
+                    new Run(new Text("Deleted paragraph"))));
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new ParagraphProperties(
+                        new ParagraphMarkRunProperties(
+                            new MoveTo {
+                                Author = "OfficeIMO",
+                                Date = new DateTime(2026, 7, 6),
+                                Id = "3"
+                            })),
+                    new Run(new Text("Moved-to paragraph"))));
+            AppendBodyElementBeforeSection(
+                document,
+                new Paragraph(
+                    new ParagraphProperties(
+                        new ParagraphMarkRunProperties(
+                            new MoveFrom {
+                                Author = "OfficeIMO",
+                                Date = new DateTime(2026, 7, 6),
+                                Id = "4"
+                            })),
+                    new Run(new Text("Moved-from paragraph"))));
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-body-element");
+            Assert.Empty(svg.Diagnostics);
+            IReadOnlyList<string> renderedText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToArray();
+            Assert.Contains("Inserted paragraph", renderedText);
+            Assert.Contains("Moved-to paragraph", renderedText);
+            Assert.DoesNotContain("Deleted paragraph", renderedText);
+            Assert.DoesNotContain("Moved-from paragraph", renderedText);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Inserted paragraph", svgText, StringComparison.Ordinal);
+            Assert.Contains("Moved-to paragraph", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Deleted paragraph", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Moved-from paragraph", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsSmartArtNodeTextThroughLimitedFallbackDrawing() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(SmartArtType.BasicProcess);
+            while (smartArt.NodeCount < 3) {
+                smartArt.AddNode("Node " + smartArt.NodeCount.ToString(CultureInfo.InvariantCulture));
+            }
+
+            smartArt.ReplaceTexts("Plan", "Build", "Ship");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Assert.Contains(svg.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-body-element");
+            Dictionary<string, OfficeDrawingText> nodeTexts = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Where(text => text.Text == "Plan" || text.Text == "Build" || text.Text == "Ship")
+                .ToDictionary(text => text.Text);
+            Assert.True(nodeTexts["Plan"].X < nodeTexts["Build"].X);
+            Assert.True(nodeTexts["Build"].X < nodeTexts["Ship"].X);
+            Assert.InRange(Math.Abs(nodeTexts["Plan"].Y - nodeTexts["Build"].Y), 0D, 1D);
+            Assert.InRange(Math.Abs(nodeTexts["Build"].Y - nodeTexts["Ship"].Y), 0D, 1D);
+            Assert.Equal(
+                2,
+                snapshot.Drawing.Shapes.Count(shape =>
+                    shape.Shape.Kind == OfficeShapeKind.Line &&
+                    shape.Shape.StrokeEndMarker?.Kind == OfficeLineMarkerKind.Triangle));
+            Assert.True(snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().Count() >= 6);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Plan", svgText, StringComparison.Ordinal);
+            Assert.Contains("Build", svgText, StringComparison.Ordinal);
+            Assert.Contains("Ship", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsPersistedCustomSmartArtLayoutThroughPackageBackedGeometry() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(SmartArtType.CustomSmartArt1);
+            smartArt.ReplaceTexts("One", "Two", "Three", "Four", "Five");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Dictionary<string, OfficeDrawingText> nodeTexts = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Where(text => text.Text == "One" || text.Text == "Two" || text.Text == "Three" || text.Text == "Four" || text.Text == "Five")
+                .ToDictionary(text => text.Text);
+            Assert.True(nodeTexts["One"].X < nodeTexts["Two"].X);
+            Assert.True(nodeTexts["Two"].X < nodeTexts["Three"].X);
+            Assert.True(nodeTexts["Four"].X < nodeTexts["Five"].X);
+            Assert.True(nodeTexts["Four"].Y > nodeTexts["One"].Y);
+            Assert.True(nodeTexts["Five"].Y > nodeTexts["Two"].Y);
+            Assert.Equal(
+                5,
+                snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().Count(shape =>
+                    shape.Shape.Kind == OfficeShapeKind.Rectangle &&
+                    shape.Shape.FillColor == OfficeColor.FromRgb(37, 99, 235)));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("One", svgText, StringComparison.Ordinal);
+            Assert.Contains("Two", svgText, StringComparison.Ordinal);
+            Assert.Contains("Three", svgText, StringComparison.Ordinal);
+            Assert.Contains("Four", svgText, StringComparison.Ordinal);
+            Assert.Contains("Five", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsCycleSmartArtNodeTextAroundFallbackCycleDrawing() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(SmartArtType.Cycle);
+            while (smartArt.NodeCount < 4) {
+                smartArt.AddNode("Cycle " + smartArt.NodeCount.ToString(CultureInfo.InvariantCulture));
+            }
+
+            smartArt.ReplaceTexts("North", "East", "South", "West");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Assert.Contains(svg.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Dictionary<string, OfficeDrawingText> nodeTexts = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Where(text => text.Text == "North" || text.Text == "East" || text.Text == "South" || text.Text == "West")
+                .ToDictionary(text => text.Text);
+            Assert.True(nodeTexts["North"].Y < nodeTexts["South"].Y);
+            Assert.True(nodeTexts["East"].X > nodeTexts["West"].X);
+            Assert.InRange(Math.Abs(nodeTexts["North"].X - nodeTexts["South"].X), 0D, 8D);
+            Assert.InRange(Math.Abs(nodeTexts["East"].Y - nodeTexts["West"].Y), 0D, 8D);
+            Assert.Equal(
+                4,
+                snapshot.Drawing.Shapes.Count(shape =>
+                    shape.Shape.Kind == OfficeShapeKind.Line &&
+                    shape.Shape.StrokeEndMarker?.Kind == OfficeLineMarkerKind.Triangle));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("North", svgText, StringComparison.Ordinal);
+            Assert.Contains("East", svgText, StringComparison.Ordinal);
+            Assert.Contains("South", svgText, StringComparison.Ordinal);
+            Assert.Contains("West", svgText, StringComparison.Ordinal);
+        }
+
+        [Theory]
+        [InlineData(SmartArtType.Hierarchy)]
+        [InlineData(SmartArtType.PictureOrgChart)]
+        public void WordDocument_ProjectsHierarchySmartArtNodeTextThroughFallbackOrganizationDrawing(SmartArtType type) {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            WordSmartArt smartArt = document.AddParagraph().AddSmartArt(type);
+            smartArt.ReplaceTexts("Manager", "Report A", "Report B");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Assert.Contains(svg.Diagnostics, diagnostic => diagnostic.Code == "limited-word-smartart");
+            Dictionary<string, OfficeDrawingText> nodeTexts = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Where(text => text.Text == "Manager" || text.Text == "Report A" || text.Text == "Report B")
+                .ToDictionary(text => text.Text);
+            Assert.True(nodeTexts["Manager"].Y < nodeTexts["Report A"].Y);
+            Assert.True(nodeTexts["Manager"].Y < nodeTexts["Report B"].Y);
+            Assert.True(nodeTexts["Report A"].X < nodeTexts["Report B"].X);
+            Assert.InRange(Math.Abs(nodeTexts["Report A"].Y - nodeTexts["Report B"].Y), 0D, 1D);
+            Assert.Equal(
+                2,
+                snapshot.Drawing.Shapes.Count(shape =>
+                    shape.Shape.Kind == OfficeShapeKind.Line &&
+                    shape.Shape.StrokeEndMarker == null));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Manager", svgText, StringComparison.Ordinal);
+            Assert.Contains("Report A", svgText, StringComparison.Ordinal);
+            Assert.Contains("Report B", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsCommentReferenceMarkersThroughSharedDrawingText() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            WordParagraph paragraph = document.AddParagraph("Comment target");
+            paragraph.AddComment("OfficeIMO", "OI", "Review this target.");
+            string commentMarker = "[c" + Assert.Single(document.Comments).Id + "]";
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.Empty(snapshot.Diagnostics);
+            OfficeDrawingRichText commentText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
+            Assert.Equal("Comment target" + commentMarker, commentText.PlainText);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Comment target", svgText, StringComparison.Ordinal);
+            Assert.Contains(commentMarker, svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordDocument_ProjectsFirstPageHeaderAndFooterThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -1979,6 +3299,33 @@ namespace OfficeIMO.Tests {
             Assert.Contains("First page footer", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("Default header", svgText, StringComparison.Ordinal);
             Assert.DoesNotContain("Default footer", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsHeaderFooterContentControlBlocksThroughSharedDrawing() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            document.DifferentFirstPage = true;
+            document.HeaderFirstOrCreate._header.Append(
+                CreateBlockContentControl(new Paragraph(new Run(new Text("Header content control marker")))));
+            document.FooterFirstOrCreate._footer.Append(
+                CreateBlockContentControl(new Paragraph(new Run(new Text("Footer content control marker")))));
+            document.AddParagraph("Body with content control header footer");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-header-element");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-footer-element");
+            OfficeDrawingText header = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Header content control marker");
+            OfficeDrawingText footer = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Footer content control marker");
+            OfficeDrawingText body = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Body with content control header footer");
+            Assert.True(header.Y < body.Y);
+            Assert.True(footer.Y > body.Y);
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Header content control marker", svgText, StringComparison.Ordinal);
+            Assert.Contains("Footer content control marker", svgText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -2052,6 +3399,46 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#DC2626", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#2563EB", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#16A34A", svgText, StringComparison.OrdinalIgnoreCase);
+        }
+
+        [Fact]
+        public void WordDocument_ProjectsMultiParagraphHeaderFooterWithoutOverflowDiagnostics() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            document.DifferentFirstPage = true;
+            document.HeaderFirstOrCreate.AddParagraph("Premium header line 1");
+            document.HeaderFirstOrCreate.AddParagraph("Premium header line 2");
+            document.HeaderFirstOrCreate.AddParagraph("Premium header line 3");
+            document.FooterFirstOrCreate.AddParagraph("Premium footer line 1");
+            document.FooterFirstOrCreate.AddParagraph("Premium footer line 2");
+            document.FooterFirstOrCreate.AddParagraph("Premium footer line 3");
+            document.AddParagraph("Body below measured header footer");
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-header-overflow");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-footer-overflow");
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-header-overflow");
+            Assert.DoesNotContain(svg.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-footer-overflow");
+
+            List<string> texts = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("Premium header line 1", texts);
+            Assert.Contains("Premium header line 2", texts);
+            Assert.Contains("Premium header line 3", texts);
+            Assert.Contains("Premium footer line 1", texts);
+            Assert.Contains("Premium footer line 2", texts);
+            Assert.Contains("Premium footer line 3", texts);
+            OfficeDrawingText headerLine3 = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Premium header line 3");
+            OfficeDrawingText body = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Body below measured header footer");
+            OfficeDrawingText footerLine1 = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Premium footer line 1");
+            Assert.True(body.Y > headerLine3.Y, $"Expected body to start below measured header content. Body y: {body.Y:0.##}, header y: {headerLine3.Y:0.##}.");
+            Assert.True(body.Y < footerLine1.Y, $"Expected body to remain above measured footer content. Body y: {body.Y:0.##}, footer y: {footerLine1.Y:0.##}.");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Premium header line 3", svgText, StringComparison.Ordinal);
+            Assert.Contains("Premium footer line 3", svgText, StringComparison.Ordinal);
         }
 
         [Fact]
@@ -2408,15 +3795,1696 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordDocument_ReportsUnsupportedPageIndexes() {
+        public void WordDocument_RendersExplicitPageBreakPageIndexes() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
-            document.AddTable(2, 2);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("First page marker");
+            document.AddPageBreak();
+            document.AddParagraph("Second page marker");
 
-            OfficeImageExportResult secondPage = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { PageIndex = 1 });
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
 
-            Assert.Contains(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
-            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-tables");
+            Assert.Equal(1, snapshot.PageIndex);
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Second page marker");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "First page marker");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Second page marker", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("First page marker", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersStylePageBreakBeforePageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            const string baseStyleId = "ImagePageBreakBeforeBase";
+            const string derivedStyleId = "ImagePageBreakBeforeDerived";
+            Styles styles = document._wordprocessingDocument.MainDocumentPart!.StyleDefinitionsPart!.Styles!;
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Image Page Break Before Base" },
+                    new StyleParagraphProperties(new PageBreakBefore())) {
+                    Type = StyleValues.Paragraph,
+                    StyleId = baseStyleId,
+                    CustomStyle = true
+                });
+            styles.Append(
+                new Style(
+                    new StyleName { Val = "Image Page Break Before Derived" },
+                    new BasedOn { Val = baseStyleId }) {
+                    Type = StyleValues.Paragraph,
+                    StyleId = derivedStyleId,
+                    CustomStyle = true
+                });
+
+            document.AddParagraph("Style first page marker");
+            document.AddParagraph("Style second page marker").SetStyleId(derivedStyleId);
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Equal(1, snapshot.PageIndex);
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Style second page marker");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Style first page marker");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Style second page marker", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Style first page marker", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_DoesNotCreateBlankFirstPageForLeadingPageBreakBeforeImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            document.FooterDefaultOrCreate._footer.Append(
+                new Paragraph(
+                    new Run(new Text("Pages ")),
+                    new SimpleField(new Run(new Text("9"))) { Instruction = " NUMPAGES " }));
+            WordParagraph first = document.AddParagraph("Leading page break before marker");
+            first.PageBreakBefore = true;
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White });
+
+            Assert.Contains(firstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Leading page break before marker");
+            Assert.Contains(firstPage.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Pages 1");
+            Assert.DoesNotContain(firstPage.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText == "Pages 2");
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_RendersColumnBreaksInSectionColumnsForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.PageSize = WordPageSize.A4;
+            section.SetMargins(WordMargin.Narrow);
+            section.ColumnCount = 2;
+            section.ColumnsSpace = 720;
+
+            document.AddParagraph("ImageLeftColumnMarker starts in the first Word image export column.")
+                .AddBreak(BreakValues.Column);
+            document.AddParagraph("ImageRightColumnMarker starts in the second Word image export column.");
+
+            var options = new WordImageExportOptions { BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingText left = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "ImageLeftColumnMarker starts in the first Word image export column.");
+            OfficeDrawingText right = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "ImageRightColumnMarker starts in the second Word image export column.");
+            Assert.True(right.X > left.X + 180D, $"Expected the second column text to render to the right. Left x: {left.X:0.##}, right x: {right.X:0.##}.");
+            Assert.InRange(Math.Abs(right.Y - left.Y), 0D, 2D);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(rendered!.Width > 0);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("ImageLeftColumnMarker", svgText, StringComparison.Ordinal);
+            Assert.Contains("ImageRightColumnMarker", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_FlowsOverflowingTextIntoNextSectionColumnForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.PageSize = WordPageSize.A4;
+            section.SetMargins(WordMargin.Narrow);
+            section.ColumnCount = 2;
+            section.ColumnsSpace = 720;
+
+            string text = string.Join(" ", Enumerable.Range(1, 180).Select(index => "AutoColumnWord" + index.ToString("000", CultureInfo.InvariantCulture)));
+            document.AddParagraph(text);
+
+            var options = new WordImageExportOptions { BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingText firstColumn = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(textBlock => textBlock.Text.Contains("AutoColumnWord001", StringComparison.Ordinal));
+            OfficeDrawingText secondColumn = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(textBlock => textBlock.Text.Contains("AutoColumnWord140", StringComparison.Ordinal));
+            Assert.True(secondColumn.X > firstColumn.X + 180D, $"Expected overflow text to continue in the second column. Left x: {firstColumn.X:0.##}, right x: {secondColumn.X:0.##}.");
+            Assert.InRange(Math.Abs(secondColumn.Y - firstColumn.Y), 0D, 2D);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("AutoColumnWord001", svgText, StringComparison.Ordinal);
+            Assert.Contains("AutoColumnWord140", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_FlowsPaginatedTableRowsIntoNextSectionColumnForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)8000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            section.ColumnCount = 2;
+            section.ColumnsSpace = 720;
+            WordTable table = document.AddTable(6, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 2400;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 2400 };
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                int rowNumber = rowIndex + 1;
+                table.Rows[rowIndex].Height = 480;
+                table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "Column table row " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+            }
+
+            var options = new WordImageExportOptions { BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingText firstColumn = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Column table row 01");
+            OfficeDrawingText secondColumn = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Column table row 04");
+            Assert.True(secondColumn.X > firstColumn.X + 120D, $"Expected paginated table rows to continue in the second column. Left x: {firstColumn.X:0.##}, right x: {secondColumn.X:0.##}.");
+            Assert.InRange(Math.Abs(secondColumn.Y - firstColumn.Y), 0D, 2D);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<svg", svgText, StringComparison.Ordinal);
+            Assert.Contains("</svg>", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_KeepsKeepWithNextParagraphWithFollowingParagraphForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            for (int index = 1; index <= 4; index++) {
+                document.AddParagraph("Keep prelude line " + index.ToString(CultureInfo.InvariantCulture));
+            }
+
+            WordParagraph heading = document.AddParagraph("KeepWithNext image heading");
+            heading.KeepWithNext = true;
+            document.AddParagraph("KeepWithNext image body");
+
+            var firstPageOptions = new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White };
+            var secondPageOptions = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(firstPageOptions);
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(secondPageOptions);
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, secondPageOptions);
+
+            List<string> firstPageTexts = firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            List<string> secondPageTexts = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.DoesNotContain("KeepWithNext image heading", firstPageTexts);
+            Assert.DoesNotContain("KeepWithNext image body", firstPageTexts);
+            Assert.Contains("KeepWithNext image heading", secondPageTexts);
+            Assert.Contains("KeepWithNext image body", secondPageTexts);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("<svg", svgText, StringComparison.Ordinal);
+            Assert.Contains("</svg>", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_KeepsKeepWithNextParagraphChainWithFollowingParagraphForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)4200U;
+            section.SetMargins(WordMargin.Narrow);
+            for (int index = 1; index <= 4; index++) {
+                document.AddParagraph("Keep chain prelude line " + index.ToString(CultureInfo.InvariantCulture));
+            }
+
+            WordParagraph firstHeading = document.AddParagraph("KeepWithNext chain first heading");
+            firstHeading.KeepWithNext = true;
+            WordParagraph secondHeading = document.AddParagraph("KeepWithNext chain second heading");
+            secondHeading.KeepWithNext = true;
+            document.AddParagraph("KeepWithNext chain body");
+
+            var firstPageOptions = new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White };
+            var secondPageOptions = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(firstPageOptions);
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(secondPageOptions);
+            OfficeImageExportResult secondPageSvg = document.ExportImage(OfficeImageExportFormat.Svg, secondPageOptions);
+
+            List<string> firstPageTexts = firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            List<string> secondPageTexts = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.DoesNotContain("KeepWithNext chain first heading", firstPageTexts);
+            Assert.DoesNotContain("KeepWithNext chain second heading", firstPageTexts);
+            Assert.DoesNotContain("KeepWithNext chain body", firstPageTexts);
+            Assert.Contains("KeepWithNext chain first heading", secondPageTexts);
+            Assert.Contains("KeepWithNext chain second heading", secondPageTexts);
+            Assert.Contains("KeepWithNext chain body", secondPageTexts);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPageSvg.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPageSvg.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(secondPageSvg.Bytes);
+            Assert.Contains("<svg", svgText, StringComparison.Ordinal);
+            Assert.Contains("</svg>", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_SplitsFittingParagraphWhenItOverflowsCurrentPageForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            for (int index = 1; index <= 2; index++) {
+                document.AddParagraph("Fitting split prelude " + index.ToString(CultureInfo.InvariantCulture));
+            }
+
+            document.AddParagraph(string.Join(
+                " ",
+                Enumerable.Range(1, 8).Select(index => "FitSplit" + index.ToString("00", CultureInfo.InvariantCulture))));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            string firstPageText = string.Join(" ", firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            string secondPageText = string.Join(" ", secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+
+            Assert.Contains("FitSplit01", firstPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain("FitSplit08", firstPageText, StringComparison.Ordinal);
+            Assert.Contains("FitSplit08", secondPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain("FitSplit01", secondPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_KeepsLinesTogetherWhenFittingParagraphOverflowsCurrentPageForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            for (int index = 1; index <= 2; index++) {
+                document.AddParagraph("Keep lines prelude " + index.ToString(CultureInfo.InvariantCulture));
+            }
+
+            WordParagraph paragraph = document.AddParagraph(string.Join(
+                " ",
+                Enumerable.Range(1, 8).Select(index => "KeepLine" + index.ToString("00", CultureInfo.InvariantCulture))));
+            paragraph.KeepLinesTogether = true;
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            string firstPageText = string.Join(" ", firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            string secondPageText = string.Join(" ", secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+
+            Assert.DoesNotContain("KeepLine01", firstPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain("KeepLine08", firstPageText, StringComparison.Ordinal);
+            Assert.Contains("KeepLine01", secondPageText, StringComparison.Ordinal);
+            Assert.Contains("KeepLine08", secondPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_AvoidsWidowLineWhenPaginatingParagraphForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)2500U;
+            section.PageSettings.Height = (UInt32Value)900U;
+            section.Margins.Top = 0;
+            section.Margins.Bottom = 0;
+            section.Margins.Left = (UInt32Value)720U;
+            section.Margins.Right = (UInt32Value)720U;
+            WordParagraph paragraph = document.AddParagraph(string.Join(
+                " ",
+                Enumerable.Range(1, 4).Select(index => "Widow" + index.ToString("00", CultureInfo.InvariantCulture))));
+            paragraph.AvoidWidowAndOrphan = true;
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            string firstPageText = string.Join(" ", firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            string secondPageText = string.Join(" ", secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+
+            Assert.Contains("Widow01", firstPageText, StringComparison.Ordinal);
+            Assert.Contains("Widow02", firstPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Widow03", firstPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Widow04", firstPageText, StringComparison.Ordinal);
+            Assert.Contains("Widow03", secondPageText, StringComparison.Ordinal);
+            Assert.Contains("Widow04", secondPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_RendersEvenHeaderFooterForExplicitSecondPageImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            WordSection section = document.Sections[0];
+            section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Default header marker");
+            section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Default footer marker");
+            section.GetOrCreateHeader(HeaderFooterValues.First).AddParagraph("First header marker");
+            section.GetOrCreateFooter(HeaderFooterValues.First).AddParagraph("First footer marker");
+            section.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Even header marker");
+            section.GetOrCreateFooter(HeaderFooterValues.Even).AddParagraph("Even footer marker");
+            document.AddParagraph("First page body");
+            document.AddPageBreak();
+            document.AddParagraph("Second page body");
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Even header marker");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Even footer marker");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "First header marker");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Default header marker");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Even header marker", svgText, StringComparison.Ordinal);
+            Assert.Contains("Even footer marker", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("First header marker", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Default header marker", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersEvenHeaderFooterWhenSectionPageNumberStartsEvenForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.PageSettings.PageSize = WordPageSize.A4;
+            document.Margins.Type = WordMargin.Narrow;
+            WordSection section = document.Sections[0];
+            section.AddPageNumbering(2);
+            section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Odd/default numbered header");
+            section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Odd/default numbered footer");
+            section.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Even-numbered header");
+            section.GetOrCreateFooter(HeaderFooterValues.Even).AddParagraph("Even-numbered footer");
+            document.AddParagraph("Even-numbered first page body");
+
+            var options = new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Even-numbered header");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Even-numbered footer");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd/default numbered header");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd/default numbered footer");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Even-numbered header", svgText, StringComparison.Ordinal);
+            Assert.Contains("Even-numbered footer", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Odd/default numbered header", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Odd/default numbered footer", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersFirstHeaderFooterForExplicitSecondSectionFirstPageImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Section one default header");
+            firstSection.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Section one default footer");
+            firstSection.AddParagraph("Section one first page body");
+
+            WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+            secondSection.PageSettings.PageSize = WordPageSize.A5;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.GetOrCreateHeader(HeaderFooterValues.First).AddParagraph("Section two first header");
+            secondSection.GetOrCreateFooter(HeaderFooterValues.First).AddParagraph("Section two first footer");
+            secondSection.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Section two even header");
+            secondSection.GetOrCreateFooter(HeaderFooterValues.Even).AddParagraph("Section two even footer");
+            secondSection.AddParagraph("Section two first page body");
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Equal(8391D / 20D, snapshot.Width, 2);
+            Assert.Equal(11906D / 20D, snapshot.Height, 2);
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two first header");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two first footer");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two first page body");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two even header");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two even footer");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section one first page body");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("width=\"419.55pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("Section two first header", svgText, StringComparison.Ordinal);
+            Assert.Contains("Section two first footer", svgText, StringComparison.Ordinal);
+            Assert.Contains("Section two first page body", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Section two even header", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Section two even footer", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Section one default header", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Section one first page body", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersExplicitSecondSectionPageWithSectionPageSetup() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Section one header");
+            firstSection.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Section one footer");
+            firstSection.AddParagraph("Section one body");
+
+            WordSection secondSection = document.AddSection(SectionMarkValues.NextPage);
+            secondSection.PageSettings.PageSize = WordPageSize.A5;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Section two header");
+            secondSection.GetOrCreateFooter(HeaderFooterValues.Even).AddParagraph("Section two footer");
+            secondSection.AddParagraph("Section two body");
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Equal(8391D / 20D, snapshot.Width, 2);
+            Assert.Equal(11906D / 20D, snapshot.Height, 2);
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two header");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two footer");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section two body");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Section one body");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("width=\"419.55pt\"", svgText, StringComparison.Ordinal);
+            Assert.Contains("Section two header", svgText, StringComparison.Ordinal);
+            Assert.Contains("Section two footer", svgText, StringComparison.Ordinal);
+            Assert.Contains("Section two body", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Section one header", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Section one body", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_KeepsCompatibleContinuousSectionsOnSameImageExportPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)10000U;
+            section.PageSettings.Height = (UInt32Value)6000U;
+            section.SetMargins(WordMargin.Narrow);
+            document.AddParagraph("Continuous image section before");
+            document.AddSection(SectionMarkValues.Continuous);
+            document.AddParagraph("Continuous image section after");
+
+            var options = new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            List<string> texts = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("Continuous image section before", texts);
+            Assert.Contains("Continuous image section after", texts);
+
+            OfficeDrawingText before = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Continuous image section before");
+            OfficeDrawingText after = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Continuous image section after");
+            Assert.True(after.Y > before.Y, $"Expected continuous-section content to continue below the previous paragraph on the same page. Before y: {before.Y:0.##}, after y: {after.Y:0.##}.");
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(rendered!.Width > 0);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Continuous image section before", svgText, StringComparison.Ordinal);
+            Assert.Contains("Continuous image section after", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_SplitsContinuousSectionsWithDifferentPageSetupForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.Width = (UInt32Value)5000U;
+            firstSection.PageSettings.Height = (UInt32Value)3000U;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddParagraph("Continuous setup before");
+
+            WordSection secondSection = document.AddSection(SectionMarkValues.Continuous);
+            secondSection.PageSettings.PageSize = WordPageSize.A5;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.AddParagraph("Continuous setup after");
+
+            var firstPageOptions = new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White };
+            var secondPageOptions = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(firstPageOptions);
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(secondPageOptions);
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, secondPageOptions);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, secondPageOptions);
+
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.Contains(firstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Continuous setup before");
+            Assert.DoesNotContain(firstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Continuous setup after");
+            Assert.Equal(5000D / 20D, firstPage.Width, 2);
+            Assert.Equal(3000D / 20D, firstPage.Height, 2);
+
+            Assert.Contains(secondPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Continuous setup after");
+            Assert.DoesNotContain(secondPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Continuous setup before");
+            Assert.Equal(8391D / 20D, secondPage.Width, 2);
+            Assert.Equal(11906D / 20D, secondPage.Height, 2);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(rendered!.Width > 0);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Continuous setup after", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Continuous setup before", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_FlowsCompatibleNextColumnSectionBreaksOnSameImageExportPage() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.AddParagraph("Next-column section before");
+
+            WordSection secondSection = document.AddSection(SectionMarkValues.NextColumn);
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.ColumnCount = 2;
+            firstSection.ColumnsSpace = 720;
+            secondSection.PageSettings.PageSize = WordPageSize.A4;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.ColumnCount = 2;
+            secondSection.ColumnsSpace = 720;
+            secondSection.AddParagraph("Next-column section after");
+
+            var options = new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingText before = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Next-column section before");
+            OfficeDrawingText after = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == "Next-column section after");
+            Assert.True(after.X > before.X + 180D, $"Expected the next-column section to continue in the next image-export column. Before x: {before.X:0.##}, after x: {after.X:0.##}.");
+            Assert.InRange(Math.Abs(after.Y - before.Y), 0D, 2D);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.True(rendered!.Width > 0);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Next-column section before", svgText, StringComparison.Ordinal);
+            Assert.Contains("Next-column section after", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersOddPageSectionBreakInsertedBlankPageForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection firstSection = document.Sections[0];
+            firstSection.PageSettings.PageSize = WordPageSize.A4;
+            firstSection.SetMargins(WordMargin.Narrow);
+            firstSection.AddHeadersAndFooters();
+            firstSection.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Odd section first default header");
+            firstSection.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Odd section first default footer");
+            firstSection.AddParagraph("Odd section first page body");
+
+            WordSection secondSection = document.AddSection(SectionMarkValues.OddPage);
+            secondSection.PageSettings.PageSize = WordPageSize.A5;
+            secondSection.SetMargins(WordMargin.Narrow);
+            secondSection.AddParagraph("Odd section second body");
+
+            WordDocumentVisualSnapshot insertedBlank = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondSectionFirstPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 2, BackgroundColor = OfficeColor.White });
+
+            List<string> blankTexts = insertedBlank.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Equal(11906D / 20D, insertedBlank.Width, 2);
+            Assert.Equal(16838D / 20D, insertedBlank.Height, 2);
+            Assert.Contains("Odd section first default header", blankTexts);
+            Assert.Contains("Odd section first default footer", blankTexts);
+            Assert.DoesNotContain("Odd section first page body", blankTexts);
+            Assert.DoesNotContain("Odd section second body", blankTexts);
+            Assert.DoesNotContain(insertedBlank.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(insertedBlank.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            Assert.Equal(8391D / 20D, secondSectionFirstPage.Width, 2);
+            Assert.Equal(11906D / 20D, secondSectionFirstPage.Height, 2);
+            Assert.Contains(secondSectionFirstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd section second body");
+            Assert.DoesNotContain(secondSectionFirstPage.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Odd section first default header");
+            Assert.DoesNotContain(secondSectionFirstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondSectionFirstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_RendersAutomaticParagraphOverflowPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            for (int index = 1; index <= 10; index++) {
+                document.AddParagraph(
+                    "Automatic overflow marker " +
+                    index.ToString(CultureInfo.InvariantCulture) +
+                    " with enough words to wrap into multiple measured lines on the compact page preview.");
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<string> renderedText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Select(text => text.Text)
+                .ToList();
+            Assert.DoesNotContain(renderedText, text => text.StartsWith("Automatic overflow marker 1 ", StringComparison.Ordinal));
+            Assert.Contains(renderedText, text => text.StartsWith("Automatic overflow marker ", StringComparison.Ordinal));
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Automatic overflow marker 1 with enough", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersEvenHeaderFooterForAutomaticSecondPageImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Automatic default header");
+            section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Automatic default footer");
+            section.GetOrCreateHeader(HeaderFooterValues.First).AddParagraph("Automatic first header");
+            section.GetOrCreateFooter(HeaderFooterValues.First).AddParagraph("Automatic first footer");
+            section.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Automatic even header");
+            section.GetOrCreateFooter(HeaderFooterValues.Even).AddParagraph("Automatic even footer");
+            for (int index = 1; index <= 10; index++) {
+                document.AddParagraph(
+                    "Automatic header footer body " +
+                    index.ToString(CultureInfo.InvariantCulture) +
+                    " with enough words to wrap into multiple measured lines on the compact page preview.");
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Automatic even header");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Automatic even footer");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Automatic first header");
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Automatic default header");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Automatic even header", svgText, StringComparison.Ordinal);
+            Assert.Contains("Automatic even footer", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Automatic first header", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Automatic default header", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_UsesEvenHeaderFooterBodyFrameForAutomaticOverflowImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)6000U;
+            section.PageSettings.Height = (UInt32Value)5000U;
+            section.SetMargins(WordMargin.Narrow);
+            section.GetOrCreateHeader(HeaderFooterValues.Default).AddParagraph("Frame default header");
+            section.GetOrCreateFooter(HeaderFooterValues.Default).AddParagraph("Frame default footer");
+            section.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Frame even header line 1");
+            section.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Frame even header line 2");
+            section.GetOrCreateHeader(HeaderFooterValues.Even).AddParagraph("Frame even header line 3");
+            section.GetOrCreateFooter(HeaderFooterValues.Even).AddParagraph("Frame even footer");
+            for (int index = 1; index <= 8; index++) {
+                document.AddParagraph("Frame body " + index.ToString(CultureInfo.InvariantCulture));
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            OfficeDrawingText headerLine3 = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Single(text => text.Text == "Frame even header line 3");
+            OfficeDrawingText body = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().First(text => text.Text.StartsWith("Frame body ", StringComparison.Ordinal));
+            Assert.True(body.Y > headerLine3.Y, $"Expected automatic second-page body to start below the measured even-page header. Body y: {body.Y:0.##}, header y: {headerLine3.Y:0.##}.");
+            Assert.Contains(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Frame even footer");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("Frame even header line 3", svgText, StringComparison.Ordinal);
+            Assert.Contains("Frame even footer", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesTopAndBottomAnchoredImagesAcrossAutomaticPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            document.AddParagraph("Automatic anchored image first page marker.");
+            byte[] sourcePng = CreateSolidPng(48, 96, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "automatic-top-bottom.png", 48, 96, WrapTextImage.TopAndBottom, "Automatic top bottom marker");
+            anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
+            anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(72D) };
+            anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
+            anchored.verticalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(36D) };
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            Assert.Equal("Automatic top bottom marker", drawingImage.AlternativeText);
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText drawingText && drawingText.Text == "Automatic anchored image first page marker.");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<image", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Automatic anchored image first page marker.", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_UsesAnchoredTextBoxWrapForAutomaticPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTextBox textBox = document.AddParagraph().AddTextBox("First page floating text box", WrapTextImage.Square);
+            textBox.Width = (long)Math.Round(250D * 12700D);
+            textBox.Height = (long)Math.Round(96D * 12700D);
+            textBox.HorizontalPositionRelativeFrom = DW.HorizontalRelativePositionValues.Page;
+            textBox.HorizontalPositionOffset = int.Parse(PointsToEmusText(36D), CultureInfo.InvariantCulture);
+            textBox.VerticalPositionRelativeFrom = DW.VerticalRelativePositionValues.Page;
+            textBox.VerticalPositionOffset = int.Parse(PointsToEmusText(36D), CultureInfo.InvariantCulture);
+            document.AddParagraph(
+                string.Join(
+                    " ",
+                    Enumerable.Range(1, 72).Select(index => "WrappedTextBoxToken" + index.ToString("00", CultureInfo.InvariantCulture))));
+
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            string renderedText = string.Join(
+                " ",
+                secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            Assert.Contains("WrappedTextBoxToken", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain("First page floating text box", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-textbox");
+        }
+
+        [Fact]
+        public void WordDocument_UsesAnchoredShapeWrapForAutomaticPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordShape shape = document.AddParagraph().AddShapeDrawing(ShapeType.RightArrow, 250D, 96D, 36D, 36D);
+            shape.FillColor = OfficeColor.FromRgb(248, 113, 113);
+            shape.StrokeColor = OfficeColor.FromRgb(127, 29, 29);
+            document.AddParagraph(
+                string.Join(
+                    " ",
+                    Enumerable.Range(1, 72).Select(index => "WrappedShapeToken" + index.ToString("00", CultureInfo.InvariantCulture))));
+
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            string renderedText = string.Join(
+                " ",
+                secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            Assert.Contains("WrappedShapeToken", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain(
+                secondPage.Drawing.Elements.OfType<OfficeDrawingShape>(),
+                drawingShape => drawingShape.Shape.FillColor == OfficeColor.FromRgb(248, 113, 113));
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-shape");
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedParagraphAcrossAutomaticPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            string paragraphText = string.Join(
+                " ",
+                Enumerable.Range(1, 20).Select(index => "SplitParagraphToken" + index.ToString("00", CultureInfo.InvariantCulture)));
+            document.AddParagraph(paragraphText);
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            OfficeDrawingText renderedText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Contains("SplitParagraphToken06", renderedText.Text, StringComparison.Ordinal);
+            Assert.Contains("SplitParagraphToken10", renderedText.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("SplitParagraphToken01", renderedText.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain("SplitParagraphToken05", renderedText.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("SplitParagraphToken01", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_UsesMeasuredTextWidthsForAutomaticParagraphPagination() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            string paragraphText = string.Join(
+                " ",
+                Enumerable.Range(1, 20).Select(index => "iiiiii" + index.ToString("00", CultureInfo.InvariantCulture)));
+            document.AddParagraph(paragraphText);
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingText renderedText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingText>());
+            Assert.Contains("iiiiii01", renderedText.Text, StringComparison.Ordinal);
+            Assert.Contains("iiiiii20", renderedText.Text, StringComparison.Ordinal);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedRichTextParagraphAcrossAutomaticPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordParagraph paragraph = document.AddParagraph(string.Empty);
+            for (int index = 1; index <= 40; index++) {
+                paragraph.AddFormattedText(
+                    "RichSplitToken" + index.ToString("00", CultureInfo.InvariantCulture) + " ",
+                    bold: index % 2 == 0,
+                    italic: index % 3 == 0);
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
+            Assert.NotEmpty(richTexts);
+            string renderedText = string.Concat(richTexts.Select(text => text.PlainText));
+            Assert.Contains("RichSplitToken07", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain("RichSplitToken01", renderedText, StringComparison.Ordinal);
+            Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Bold);
+            Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Italic);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("RichSplitToken01", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersAutomaticTableRowsAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(9, 2);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 1800, 1800 };
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                int rowNumber = rowIndex + 1;
+                table.Rows[rowIndex].Height = 480;
+                table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "Paged table row " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+                table.Rows[rowIndex].Cells[1].Paragraphs[0].Text = "Value " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<string> renderedText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Select(text => text.Text)
+                .ToList();
+            Assert.Contains(renderedText, text => text.Replace("\r", string.Empty).Replace("\n", " ") == "Paged table row 04");
+            Assert.Contains("Paged table row 05", renderedText);
+            Assert.DoesNotContain("Paged table row 01", renderedText);
+            Assert.DoesNotContain("Paged table row 09", renderedText);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Paged table row 01", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_SplitsLargeRepeatedHeaderBodyRowIntoRemainingPageFrame() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)5000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(2, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 2000;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 2000 };
+            table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+            table.Rows[0].Height = 600;
+            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Repeated split header";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = string.Join(
+                " ",
+                Enumerable.Range(1, 34).Select(index => "HB" + index.ToString("00", CultureInfo.InvariantCulture)));
+
+            var firstFragmentOptions = new WordImageExportOptions { PageIndex = 0, BackgroundColor = OfficeColor.White };
+            var secondFragmentOptions = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot firstFragment = document.CreateVisualSnapshot(firstFragmentOptions);
+            WordDocumentVisualSnapshot secondFragment = document.CreateVisualSnapshot(secondFragmentOptions);
+            OfficeImageExportResult firstFragmentSvg = document.ExportImage(OfficeImageExportFormat.Svg, firstFragmentOptions);
+            OfficeImageExportResult secondFragmentPng = document.ExportImage(OfficeImageExportFormat.Png, secondFragmentOptions);
+
+            string firstText = string.Join(" ", firstFragment.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            string secondText = string.Join(" ", secondFragment.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            Assert.Contains("Repeated split header", firstText, StringComparison.Ordinal);
+            Assert.Contains("Repeated split header", secondText, StringComparison.Ordinal);
+            Assert.Contains("HB01", firstText, StringComparison.Ordinal);
+            Assert.DoesNotContain("HB34", firstText, StringComparison.Ordinal);
+            Assert.Contains("HB34", secondText, StringComparison.Ordinal);
+            Assert.DoesNotContain(firstFragment.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondFragment.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(firstFragment.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondFragment.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(firstFragmentSvg.Bytes);
+            Assert.Contains("<svg", svgText, StringComparison.Ordinal);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("HB34", svgText, StringComparison.Ordinal);
+            Assert.True(OfficePngReader.TryDecode(secondFragmentPng.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
+        public void WordDocument_PaginatesTableRowsWhenTableStartsNearPageBottom() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            document.AddParagraph("Lead paragraph before partial table one");
+            WordTable table = document.AddTable(2, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            table.Rows[0].Height = 480;
+            table.Rows[1].Height = 480;
+            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[1]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Partial table row 01";
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "Partial table row 02";
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            List<string> firstPageText = firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            List<string> secondPageText = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("Partial table row 01", firstPageText);
+            Assert.DoesNotContain("Partial table row 02", firstPageText);
+            Assert.Contains("Partial table row 02", secondPageText);
+            Assert.DoesNotContain("Partial table row 01", secondPageText);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_SplitsBreakableTableRowIntoRemainingPageFrame() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            for (int index = 1; index <= 2; index++) {
+                document.AddParagraph("Split row lead paragraph " + index.ToString(CultureInfo.InvariantCulture));
+            }
+
+            WordTable table = document.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            table.Rows[0].AllowRowToBreakAcrossPages = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(
+                " ",
+                Enumerable.Range(1, 8).Select(index => "RemainSplit" + index.ToString("00", CultureInfo.InvariantCulture)));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPagePng = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            string firstPageText = string.Join(" ", firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            string secondPageText = string.Join(" ", secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            Assert.Contains("RemainSplit01", firstPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain("RemainSplit08", firstPageText, StringComparison.Ordinal);
+            Assert.Contains("RemainSplit08", secondPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain("RemainSplit01", secondPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.True(OfficePngReader.TryDecode(secondPagePng.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
+        public void WordDocument_HonorsPageBreakBeforeAtTableRowStartForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)5000U;
+            section.SetMargins(WordMargin.Narrow);
+            document.AddParagraph("Table page break lead paragraph");
+            WordTable table = document.AddTable(2, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            table.Rows[0].Height = 480;
+            table.Rows[1].Height = 480;
+            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[1]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Page break table row 01";
+            WordParagraph pageBreakParagraph = table.Rows[1].Cells[0].Paragraphs[0];
+            pageBreakParagraph.Text = "Page break table row 02";
+            pageBreakParagraph.PageBreakBefore = true;
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPagePng = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            List<string> firstPageText = firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            List<string> secondPageText = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("Page break table row 01", firstPageText);
+            Assert.DoesNotContain("Page break table row 02", firstPageText);
+            Assert.Contains("Page break table row 02", secondPageText);
+            Assert.DoesNotContain("Page break table row 01", secondPageText);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.True(OfficePngReader.TryDecode(secondPagePng.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
+        public void WordDocument_HonorsHardPageBreakAtTableRowStartForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)5000U;
+            section.SetMargins(WordMargin.Narrow);
+            document.AddParagraph("Hard break table lead paragraph");
+            WordTable table = document.AddTable(2, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            table.Rows[0].Height = 480;
+            table.Rows[1].Height = 480;
+            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[1]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Hard break table row 01";
+            Paragraph secondRowParagraph = table.Rows[1].Cells[0].Paragraphs[0]._paragraph;
+            secondRowParagraph.RemoveAllChildren<Run>();
+            secondRowParagraph.Append(
+                new Run(new Break { Type = BreakValues.Page }),
+                new Run(new Text("Hard break table row 02")));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult secondPagePng = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            List<string> firstPageText = firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            List<string> secondPageText = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("Hard break table row 01", firstPageText);
+            Assert.DoesNotContain("Hard break table row 02", firstPageText);
+            Assert.Contains("Hard break table row 02", secondPageText);
+            Assert.DoesNotContain("Hard break table row 01", secondPageText);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.True(OfficePngReader.TryDecode(secondPagePng.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
+        public void WordDocument_HonorsHardColumnBreakAtTableRowStartForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.PageSize = WordPageSize.A4;
+            section.SetMargins(WordMargin.Narrow);
+            section.ColumnCount = 2;
+            section.ColumnsSpace = 720;
+            WordTable table = document.AddTable(2, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3000;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3000 };
+            table.Rows[0].Height = 480;
+            table.Rows[1].Height = 480;
+            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[1]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.Exact;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Column break table row 01";
+            Paragraph secondRowParagraph = table.Rows[1].Cells[0].Paragraphs[0]._paragraph;
+            secondRowParagraph.RemoveAllChildren<Run>();
+            secondRowParagraph.Append(
+                new Run(new Break { Type = BreakValues.Column }),
+                new Run(new Text("Column break table row 02")));
+
+            var options = new WordImageExportOptions { BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+
+            List<OfficeDrawingText> renderedText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().ToList();
+            OfficeDrawingText firstRow = renderedText.Single(text => text.Text == "Column break table row 01");
+            OfficeDrawingText secondRow = renderedText.Single(text => text.Text == "Column break table row 02");
+            Assert.True(secondRow.X > firstRow.X + 180D, $"Expected the second table row to start in the next Word image export column. Left x: {firstRow.X:0.##}, right x: {secondRow.X:0.##}.");
+            Assert.InRange(Math.Abs(secondRow.Y - firstRow.Y), 0D, 2D);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+        }
+
+        [Fact]
+        public void WordDocument_UsesAtLeastTableRowHeightAsMinimumForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)15840U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(2, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3000;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3000 };
+            table.Rows[0].Height = 240;
+            table.Rows[0]._tableRow.TableRowProperties!.GetFirstChild<TableRowHeight>()!.HeightType = HeightRuleValues.AtLeast;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(
+                " ",
+                Enumerable.Range(1, 32).Select(index => "AtLeastRowToken" + index.ToString("00", CultureInfo.InvariantCulture)));
+            table.Rows[1].Cells[0].Paragraphs[0].Text = "At least row follower";
+
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+
+            List<OfficeDrawingText> renderedText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().ToList();
+            OfficeDrawingText firstRow = Assert.Single(renderedText, text => text.Text.Contains("AtLeastRowToken01", StringComparison.Ordinal));
+            OfficeDrawingText follower = Assert.Single(renderedText, text => text.Text == "At least row follower");
+            Assert.True(firstRow.Height > 40D);
+            Assert.True(follower.Y >= firstRow.Y + firstRow.Height);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-tables");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedPlainTextTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(
+                " ",
+                Enumerable.Range(1, 40).Select(index => "SplitCellToken" + index.ToString("00", CultureInfo.InvariantCulture)));
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<string> renderedText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Select(text => text.Text)
+                .ToList();
+            Assert.Contains(renderedText, text => text.Contains("SplitCellToken07", StringComparison.Ordinal));
+            Assert.DoesNotContain(renderedText, text => text.Contains("SplitCellToken01", StringComparison.Ordinal));
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("SplitCellToken01", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedRichTextTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            WordParagraph cellParagraph = table.Rows[0].Cells[0].Paragraphs[0];
+            cellParagraph.Text = string.Empty;
+            for (int index = 1; index <= 40; index++) {
+                cellParagraph.AddFormattedText(
+                    "RichCellToken" + index.ToString("00", CultureInfo.InvariantCulture) + " ",
+                    bold: index % 2 == 0,
+                    italic: index % 3 == 0);
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
+            Assert.NotEmpty(richTexts);
+            string renderedText = string.Concat(richTexts.Select(text => text.PlainText));
+            Assert.Contains("RichCellToken07", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain("RichCellToken01", renderedText, StringComparison.Ordinal);
+            Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Bold);
+            Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Italic);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("RichCellToken01", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedMultiParagraphTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.AddParagraph(
+                string.Join(
+                    " ",
+                    Enumerable.Range(1, 4).Select(index => "MultiCellFirst" + index.ToString("00", CultureInfo.InvariantCulture))),
+                removeExistingParagraphs: true);
+            WordParagraph secondParagraph = cell.AddParagraph(string.Empty);
+            for (int index = 1; index <= 32; index++) {
+                secondParagraph.AddFormattedText(
+                    "MultiCellSecond" + index.ToString("00", CultureInfo.InvariantCulture) + " ",
+                    bold: index % 2 == 0,
+                    italic: index % 3 == 0);
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
+            Assert.NotEmpty(richTexts);
+            string renderedText = string.Concat(richTexts.Select(text => text.PlainText));
+            Assert.Contains("MultiCellSecond", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain("MultiCellFirst01", renderedText, StringComparison.Ordinal);
+            Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Bold);
+            Assert.Contains(richTexts.SelectMany(text => text.Runs), run => run.Italic);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("MultiCellFirst01", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedListTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            WordTableCell cell = table.Rows[0].Cells[0];
+            cell.Paragraphs[0].Text = string.Empty;
+            WordList list = cell.AddList(WordListStyle.Numbered);
+            for (int index = 1; index <= 14; index++) {
+                list.AddItem(
+                    "ListCellItem" + index.ToString("00", CultureInfo.InvariantCulture) +
+                    " with enough content to exercise list marker pagination in an oversized table row.");
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<OfficeDrawingRichText> richTexts = snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>().ToList();
+            Assert.NotEmpty(richTexts);
+            string renderedText = string.Concat(richTexts.Select(text => text.PlainText));
+            Assert.Contains("ListCellItem", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain("ListCellItem01", renderedText, StringComparison.Ordinal);
+            Assert.Contains(".", renderedText, StringComparison.Ordinal);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("ListCellItem01", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedImageTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            WordTableCell cell = table.Rows[0].Cells[0];
+            byte[] sourcePng = CreateSolidPng(48, 72, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            cell.AddParagraph(removeExistingParagraphs: true).AddImage(imageStream, "split-cell-image.png", 48, 72, description: "Split cell image marker");
+            cell.AddParagraph(
+                string.Join(
+                    " ",
+                    Enumerable.Range(1, 34).Select(index => "ImageCellToken" + index.ToString("00", CultureInfo.InvariantCulture))));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            OfficeDrawingImage firstPageImage = Assert.Single(firstPage.Drawing.Images);
+            Assert.Equal("Split cell image marker", firstPageImage.AlternativeText);
+            Assert.Empty(secondPage.Drawing.Images);
+            string secondPageText = string.Join(
+                " ",
+                secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text));
+            Assert.Contains("ImageCellToken", secondPageText, StringComparison.Ordinal);
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedNestedTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(1, 1);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 3600 };
+            WordTableCell cell = table.Rows[0].Cells[0];
+            WordTable nested = cell.AddTable(1, 1);
+            nested.WidthType = TableWidthUnitValues.Dxa;
+            nested.Width = 3000;
+            nested.ColumnWidthType = TableWidthUnitValues.Dxa;
+            nested.ColumnWidth = new List<int> { 3000 };
+            nested.Rows[0].Cells[0].Paragraphs[0].Text = "Nested split row marker";
+            cell.AddParagraph(
+                string.Join(
+                    " ",
+                    Enumerable.Range(1, 34).Select(index => "NestedCellToken" + index.ToString("00", CultureInfo.InvariantCulture))));
+
+            WordDocumentVisualSnapshot firstPage = document.CreateVisualSnapshot(new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            List<string> firstPageText = firstPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            List<string> secondPageText = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("Nested split row marker", firstPageText);
+            Assert.DoesNotContain("Nested split row marker", secondPageText);
+            Assert.Contains(secondPageText, text => text.Contains("NestedCellToken", StringComparison.Ordinal));
+            Assert.DoesNotContain(firstPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-nested-table-overflow");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedHorizontallyMergedTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(1, 2);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 1800, 1800 };
+            table.Rows[0].Cells[0].MergeHorizontally(1);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(
+                " ",
+                Enumerable.Range(1, 44).Select(index => "MergedCellToken" + index.ToString("00", CultureInfo.InvariantCulture)));
+
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            List<OfficeDrawingText> renderedText = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().ToList();
+            Assert.Contains(renderedText, text => text.Text.Contains("MergedCellToken", StringComparison.Ordinal));
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+        }
+
+        [Fact]
+        public void WordDocument_SplitsOversizedVerticallyMergedTableRowAcrossPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(3, 2);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 1800, 1800 };
+            table.Rows[0].MergeVertically(0, 2);
+            table.Rows[0].Cells[0].Paragraphs[0].Text = string.Join(
+                " ",
+                Enumerable.Range(1, 52).Select(index => "VMerge" + index.ToString("00", CultureInfo.InvariantCulture)));
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "Side row 1";
+            table.Rows[1].Cells[1].Paragraphs[0].Text = "Side row 2";
+            table.Rows[2].Cells[1].Paragraphs[0].Text = "Side row 3";
+
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White });
+
+            List<OfficeDrawingText> renderedText = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().ToList();
+            Assert.Contains(renderedText, text => text.Text.Contains("VMerge", StringComparison.Ordinal));
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-table-row-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+        }
+
+        [Fact]
+        public void WordDocument_RepeatsTableHeaderRowsAcrossAutomaticPageIndexes() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            WordTable table = document.AddTable(9, 2);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 1800, 1800 };
+            table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "Repeated table header";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "Header value";
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                table.Rows[rowIndex].Height = 480;
+            }
+
+            for (int rowIndex = 1; rowIndex < table.Rows.Count; rowIndex++) {
+                int rowNumber = rowIndex + 1;
+                table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "Repeated body row " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+                table.Rows[rowIndex].Cells[1].Paragraphs[0].Text = "Body value " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<string> renderedText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Select(text => text.Text)
+                .ToList();
+            Assert.Contains("Repeated table header", renderedText);
+            Assert.Contains(renderedText, text => NormalizeRenderedText(text).Contains("Repeated body row 04", StringComparison.Ordinal));
+            Assert.DoesNotContain("Repeated body row 02", renderedText);
+            Assert.DoesNotContain("Repeated body row 06", renderedText);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<text", svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain("Repeated body row 02", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersRepeatedTableHeaderWhenTableStartsOnLaterPageForImageExport() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            document.AddParagraph("Before later-page table");
+            document.AddPageBreak();
+
+            WordTable table = document.AddTable(6, 2);
+            table.WidthType = TableWidthUnitValues.Dxa;
+            table.Width = 3600;
+            table.ColumnWidthType = TableWidthUnitValues.Dxa;
+            table.ColumnWidth = new List<int> { 1800, 1800 };
+            table.Rows[0].RepeatHeaderRowAtTheTopOfEachPage = true;
+            table.Rows[0].Cells[0].Paragraphs[0].Text = "LateHdr";
+            table.Rows[0].Cells[1].Paragraphs[0].Text = "LateVal";
+            for (int rowIndex = 0; rowIndex < table.Rows.Count; rowIndex++) {
+                table.Rows[rowIndex].Height = 480;
+            }
+
+            for (int rowIndex = 1; rowIndex < table.Rows.Count; rowIndex++) {
+                int rowNumber = rowIndex + 1;
+                table.Rows[rowIndex].Cells[0].Paragraphs[0].Text = "Late row " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+                table.Rows[rowIndex].Cells[1].Paragraphs[0].Text = "Value " + rowNumber.ToString("00", CultureInfo.InvariantCulture);
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+
+            List<string> renderedText = snapshot.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("LateHdr", renderedText);
+            Assert.Contains("Late row 02", renderedText);
+            Assert.DoesNotContain("Before later-page table", renderedText);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("LateHdr", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_RendersAutomaticPageIndexesWithoutExplicitPageBreakDiagnostics() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)5000U;
+            section.PageSettings.Height = (UInt32Value)3000U;
+            section.SetMargins(WordMargin.Narrow);
+            for (int index = 1; index <= 8; index++) {
+                document.AddParagraph("Automatic page marker " + index.ToString(CultureInfo.InvariantCulture));
+            }
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            WordDocumentVisualSnapshot secondPage = document.CreateVisualSnapshot(options);
+            OfficeImageExportResult secondPagePng = document.ExportImage(OfficeImageExportFormat.Png, options);
+
+            List<string> renderedText = secondPage.Drawing.Elements.OfType<OfficeDrawingText>().Select(text => text.Text).ToList();
+            Assert.Contains("Automatic page marker 6", renderedText);
+            Assert.DoesNotContain("Automatic page marker 1", renderedText);
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.DoesNotContain(secondPage.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            Assert.DoesNotContain(secondPagePng.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-page-index");
+            Assert.True(OfficePngReader.TryDecode(secondPagePng.Bytes, out OfficeRasterImage? image));
+            Assert.NotNull(image);
         }
 
         [Fact]
@@ -2444,7 +5512,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordDocument_ReservesProjectedInlineImageBoundsForPagination() {
+        public void WordDocument_RendersProjectedInlineImageBoundsWhenTheyFitCurrentPage() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.PageSettings.Width = (UInt32Value)4000U;
@@ -2459,8 +5527,9 @@ namespace OfficeIMO.Tests {
 
             WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
 
-            Assert.Empty(snapshot.Drawing.Images);
-            Assert.Contains(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
+            OfficeDrawingImage renderedImage = Assert.Single(snapshot.Drawing.Images);
+            Assert.Equal("Rotated inline pagination marker", renderedImage.AlternativeText);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-pagination");
             Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "unsupported-word-image" && diagnostic.Source == "Rotated inline pagination marker");
         }
 
@@ -2555,6 +5624,135 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_UsesAuthoredTightWrapPolygonForImageTextExclusion() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("Before polygon image");
+            byte[] sourcePng = CreateSolidPng(160, 80, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "tight-polygon.png", 160, 80, WrapTextImage.Tight, "Tight polygon marker");
+            anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
+            anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
+            DW.WrapTight tightWrap = anchored._Image.Anchor!.Elements<DW.WrapTight>().Single();
+            tightWrap.RemoveAllChildren<DW.WrapPolygon>();
+            tightWrap.Append(CreateLeftHalfWrapPolygon());
+            string afterTextValue = "After tight polygon image uses the authored contour lane.";
+            document.AddParagraph(afterTextValue);
+
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == afterTextValue);
+
+            Assert.True(afterText.X >= drawingImage.Projection.X + (drawingImage.Projection.Width / 2D) - 0.5D);
+            Assert.True(afterText.X < drawingImage.Projection.X + drawingImage.Projection.Width);
+            Assert.True(afterText.Y >= drawingImage.Projection.Y);
+            Assert.True(afterText.Y < drawingImage.Projection.Y + drawingImage.Projection.Height);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-image-wrap");
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(
+                OfficeColor.FromRgb(37, 99, 235),
+                rendered!.GetPixel((int)(drawingImage.Projection.X + (drawingImage.Projection.Width / 2D)), (int)(drawingImage.Projection.Y + (drawingImage.Projection.Height / 2D))));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<image", svgText, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_UsesTransparentImageRegionsForThroughWrapTextExclusion() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("Before transparent through image");
+            byte[] sourcePng = CreateHalfTransparentPng(160, 80, OfficeColor.FromRgb(37, 99, 235), transparentRightHalf: true);
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "through-transparent.png", 160, 80, WrapTextImage.Through, "Transparent through marker");
+            anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
+            anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
+            string afterTextValue = "After transparent through image uses alpha space.";
+            document.AddParagraph(afterTextValue);
+
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == afterTextValue);
+
+            Assert.True(afterText.X >= drawingImage.Projection.X + (drawingImage.Projection.Width / 2D) - 0.5D);
+            Assert.True(afterText.X < drawingImage.Projection.X + drawingImage.Projection.Width);
+            Assert.True(afterText.Y >= drawingImage.Projection.Y);
+            Assert.True(afterText.Y < drawingImage.Projection.Y + drawingImage.Projection.Height);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-image-wrap");
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(
+                OfficeColor.FromRgb(37, 99, 235),
+                rendered!.GetPixel((int)(drawingImage.Projection.X + (drawingImage.Projection.Width / 4D)), (int)(drawingImage.Projection.Y + (drawingImage.Projection.Height / 2D))));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<image", svgText, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_UsesTransparentImageRegionsForTightWrapTextExclusion() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("Before transparent tight image");
+            byte[] sourcePng = CreateHalfTransparentPng(160, 80, OfficeColor.FromRgb(37, 99, 235), transparentRightHalf: true);
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "tight-transparent.png", 160, 80, WrapTextImage.Tight, "Transparent tight marker");
+            anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
+            anchored.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
+            string afterTextValue = "After transparent tight image uses alpha space.";
+            document.AddParagraph(afterTextValue);
+
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == afterTextValue);
+
+            Assert.True(afterText.X >= drawingImage.Projection.X + (drawingImage.Projection.Width / 2D) - 0.5D);
+            Assert.True(afterText.X < drawingImage.Projection.X + drawingImage.Projection.Width);
+            Assert.True(afterText.Y >= drawingImage.Projection.Y);
+            Assert.True(afterText.Y < drawingImage.Projection.Y + drawingImage.Projection.Height);
+            Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == "limited-word-floating-image-wrap");
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(
+                OfficeColor.FromRgb(37, 99, 235),
+                rendered!.GetPixel((int)(drawingImage.Projection.X + (drawingImage.Projection.Width / 4D)), (int)(drawingImage.Projection.Y + (drawingImage.Projection.Height / 2D))));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<image", svgText, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordDocument_ProjectsSquareWrappedImageSidePreferenceThroughTextExclusion() {
             AssertSquareWrappedImageSidePreference(DW.WrapTextValues.Left, "left", expectTextOnLeft: true);
             AssertSquareWrappedImageSidePreference(DW.WrapTextValues.Right, "right", expectTextOnLeft: false);
@@ -2599,6 +5797,59 @@ namespace OfficeIMO.Tests {
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<image", svgText, StringComparison.Ordinal);
             Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_CombinesMultipleSquareWrappedImageExclusionsForTextFlow() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            document.Margins.Type = WordMargin.Narrow;
+            document.AddParagraph("Before paired square images");
+
+            byte[] leftPng = CreateSolidPng(48, 36, OfficeColor.FromRgb(37, 99, 235));
+            using var leftStream = new MemoryStream(leftPng);
+            WordImage leftImage = document.AddParagraph().InsertImage(leftStream, "left-square.png", 48, 36, WrapTextImage.Square, "Left square marker");
+            leftImage.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
+            leftImage.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
+
+            byte[] rightPng = CreateSolidPng(160, 80, OfficeColor.FromRgb(220, 38, 38));
+            using var rightStream = new MemoryStream(rightPng);
+            WordImage rightImage = document.AddParagraph().InsertImage(rightStream, "right-square.png", 160, 80, WrapTextImage.Square, "Right square marker");
+            rightImage.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.Page;
+            rightImage.horizontalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(420D) };
+
+            string afterTextValue = "After paired square images flows through the available middle lane.";
+            document.AddParagraph(afterTextValue);
+
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingImage renderedLeft = snapshot.Drawing.Images.Single(image => image.AlternativeText == "Left square marker");
+            OfficeDrawingImage renderedRight = snapshot.Drawing.Images.Single(image => image.AlternativeText == "Right square marker");
+            OfficeDrawingText afterText = snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Text == afterTextValue);
+
+            Assert.True(afterText.X > renderedLeft.Projection.X + renderedLeft.Projection.Width);
+            Assert.True(afterText.X + afterText.Width <= renderedRight.Projection.X + 1D);
+            Assert.True(afterText.Y >= renderedLeft.Projection.Y);
+            Assert.True(afterText.Y < renderedRight.Projection.Y + renderedRight.Projection.Height);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(
+                OfficeColor.FromRgb(37, 99, 235),
+                rendered!.GetPixel((int)(renderedLeft.Projection.X + (renderedLeft.Projection.Width / 2D)), (int)(renderedLeft.Projection.Y + (renderedLeft.Projection.Height / 2D))));
+            Assert.Equal(
+                OfficeColor.FromRgb(220, 38, 38),
+                rendered.GetPixel((int)(renderedRight.Projection.X + (renderedRight.Projection.Width / 2D)), (int)(renderedRight.Projection.Y + (renderedRight.Projection.Height / 2D))));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Equal(2, CountOccurrences(svgText, "<image"));
+            Assert.Contains("paired", svgText, StringComparison.Ordinal);
         }
 
         private static void AssertSquareWrappedImageSidePreference(DW.WrapTextValues wrapSide, string sideLabel, bool expectTextOnLeft) {
@@ -2798,6 +6049,90 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void WordDocument_AnchorsSideMarginRelativeFloatingImagesToMarginAreas() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)6000U;
+            section.PageSettings.Height = (UInt32Value)6000U;
+            section.SetMargins(WordMargin.Normal);
+            document.AddParagraph("Body before side-margin anchor");
+
+            byte[] sourcePng = CreateSolidPng(32, 24, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "side-margin-relative.png", 32, 24, WrapTextImage.Square, "Side margin relative marker");
+            anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.RightMargin;
+            anchored.horizontalPosition.HorizontalAlignment = new DW.HorizontalAlignment { Text = "right" };
+            anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.BottomMargin;
+            anchored.verticalPosition.VerticalAlignment = new DW.VerticalAlignment { Text = "bottom" };
+
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot();
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            Assert.Equal("Side margin relative marker", drawingImage.AlternativeText);
+            Assert.Equal(276D, drawingImage.Projection.X, 1);
+            Assert.Equal(282D, drawingImage.Projection.Y, 1);
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(
+                OfficeColor.FromRgb(37, 99, 235),
+                rendered!.GetPixel((int)(drawingImage.Projection.X + (drawingImage.Projection.Width / 2D)), (int)(drawingImage.Projection.Y + (drawingImage.Projection.Height / 2D))));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<image", svgText, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void WordDocument_AnchorsInsideOutsideMarginRelativeFloatingImagesByPageParity() {
+            using var stream = new MemoryStream();
+            using WordDocument document = WordDocument.Create(stream);
+            WordSection section = document.Sections[0];
+            section.PageSettings.Width = (UInt32Value)6000U;
+            section.PageSettings.Height = (UInt32Value)6000U;
+            section.SetMargins(WordMargin.Normal);
+            document.AddParagraph("First page before mirrored anchor.");
+            document.AddPageBreak();
+            document.AddParagraph("Second page before mirrored anchor.");
+
+            byte[] sourcePng = CreateSolidPng(32, 24, OfficeColor.FromRgb(37, 99, 235));
+            using var imageStream = new MemoryStream(sourcePng);
+            WordImage anchored = document.AddParagraph().InsertImage(imageStream, "inside-margin-relative.png", 32, 24, WrapTextImage.Square, "Inside margin relative marker");
+            anchored.horizontalPosition.RelativeFrom = DW.HorizontalRelativePositionValues.InsideMargin;
+            anchored.horizontalPosition.HorizontalAlignment = new DW.HorizontalAlignment { Text = "left" };
+            anchored.verticalPosition.RelativeFrom = DW.VerticalRelativePositionValues.Page;
+            anchored.verticalPosition.PositionOffset = new DW.PositionOffset { Text = PointsToEmusText(96D) };
+
+            var options = new WordImageExportOptions { PageIndex = 1, BackgroundColor = OfficeColor.White };
+            OfficeImageExportResult png = document.ExportImage(OfficeImageExportFormat.Png, options);
+            OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, options);
+            WordDocumentVisualSnapshot snapshot = document.CreateVisualSnapshot(options);
+
+            Assert.Empty(snapshot.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingImage drawingImage = Assert.Single(snapshot.Drawing.Images);
+            Assert.Equal("Inside margin relative marker", drawingImage.AlternativeText);
+            Assert.Equal(228D, drawingImage.Projection.X, 1);
+            Assert.Equal(96D, drawingImage.Projection.Y, 1);
+            Assert.DoesNotContain(snapshot.Drawing.Elements, element => element is OfficeDrawingText text && text.Text == "First page before mirrored anchor.");
+
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(
+                OfficeColor.FromRgb(37, 99, 235),
+                rendered!.GetPixel((int)(drawingImage.Projection.X + (drawingImage.Projection.Width / 2D)), (int)(drawingImage.Projection.Y + (drawingImage.Projection.Height / 2D))));
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<image", svgText, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void WordDocument_ProjectsTableCellImagesThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
@@ -2882,6 +6217,20 @@ namespace OfficeIMO.Tests {
             return OfficePngWriter.Encode(image);
         }
 
+        private static byte[] CreateHalfTransparentPng(int width, int height, OfficeColor color, bool transparentRightHalf) {
+            OfficeRasterImage image = new OfficeRasterImage(width, height, OfficeColor.Transparent);
+            int split = width / 2;
+            int startX = transparentRightHalf ? 0 : split;
+            int endX = transparentRightHalf ? split : width;
+            for (int y = 0; y < height; y++) {
+                for (int x = startX; x < endX; x++) {
+                    image.SetPixel(x, y, color);
+                }
+            }
+
+            return OfficePngWriter.Encode(image);
+        }
+
         private static byte[] CreateBmp24(int width, int height, IReadOnlyList<OfficeColor> pixels, bool topDown = false) {
             int rowStride = ((width * 24) + 31) / 32 * 4;
             int pixelOffset = 54;
@@ -2941,6 +6290,21 @@ namespace OfficeIMO.Tests {
             return bytes;
         }
 
+        private static SdtBlock CreateBlockContentControl(params OpenXmlElement[] children) =>
+            new SdtBlock(
+                new SdtProperties(new Tag { Val = "image-export-content-control" }),
+                new SdtContentBlock(children));
+
+        private static void AppendBodyElementBeforeSection(WordDocument document, OpenXmlElement element) {
+            SectionProperties? sectionProperties = document.BodyRoot.Elements<SectionProperties>().LastOrDefault();
+            if (sectionProperties == null) {
+                document.BodyRoot.Append(element);
+                return;
+            }
+
+            document.BodyRoot.InsertBefore(element, sectionProperties);
+        }
+
         private static byte[] CreateSinglePixelGif() =>
             Convert.FromBase64String("R0lGODlhAQABAIAAAAAAAP///ywAAAAAAQABAAACAUwAOw==");
 
@@ -2979,6 +6343,16 @@ namespace OfficeIMO.Tests {
         private static string PointsToEmusText(double points) =>
             ((long)Math.Round(points * 12700D)).ToString(CultureInfo.InvariantCulture);
 
+        private static DW.WrapPolygon CreateLeftHalfWrapPolygon() =>
+            new DW.WrapPolygon(
+                new DW.StartPoint { X = 0L, Y = 0L },
+                new DW.LineTo { X = 0L, Y = 21600L },
+                new DW.LineTo { X = 10800L, Y = 21600L },
+                new DW.LineTo { X = 10800L, Y = 0L },
+                new DW.LineTo { X = 0L, Y = 0L }) {
+                Edited = true
+            };
+
         private static int CountOccurrences(string text, string value) {
             int count = 0;
             int index = 0;
@@ -2989,6 +6363,9 @@ namespace OfficeIMO.Tests {
 
             return count;
         }
+
+        private static string NormalizeRenderedText(string text) =>
+            text.Replace("\r\n", " ").Replace('\n', ' ').Replace('\r', ' ');
 
         private static int CountPixelsNear(OfficeRasterImage image, OfficeColor expected) {
             int count = 0;
@@ -3006,6 +6383,48 @@ namespace OfficeIMO.Tests {
 
             return count;
         }
+
+        private static bool TryGetShapePolygonHorizontalSpan(OfficeDrawingShape shape, double y, out double left, out double right) {
+            left = 0D;
+            right = 0D;
+            if (shape.Shape.Kind != OfficeShapeKind.Polygon || shape.Shape.Points.Count < 3) {
+                return false;
+            }
+
+            var intersections = new List<double>();
+            for (int index = 0; index < shape.Shape.Points.Count; index++) {
+                OfficePoint start = shape.Shape.Points[index];
+                OfficePoint end = shape.Shape.Points[(index + 1) % shape.Shape.Points.Count];
+                double startY = shape.Y + start.Y;
+                double endY = shape.Y + end.Y;
+                if (Math.Abs(startY - endY) < 0.000001D) {
+                    continue;
+                }
+
+                double minY = Math.Min(startY, endY);
+                double maxY = Math.Max(startY, endY);
+                if (y < minY || y >= maxY) {
+                    continue;
+                }
+
+                double ratio = (y - startY) / (endY - startY);
+                intersections.Add(shape.X + start.X + ((end.X - start.X) * ratio));
+            }
+
+            if (intersections.Count < 2) {
+                return false;
+            }
+
+            intersections.Sort();
+            left = intersections[0];
+            right = intersections[intersections.Count - 1];
+            return right - left >= 1D;
+        }
+
+        private static OfficeDrawingText FindMarkerText(WordDocumentVisualSnapshot snapshot, OfficeDrawingText bodyText) =>
+            snapshot.Drawing.Elements
+                .OfType<OfficeDrawingText>()
+                .Single(text => text.Y == bodyText.Y && text.X < bodyText.X);
 
         private static void SetThemeColor(WordDocument document, string themeColor, string hexColor) {
             A.ColorScheme scheme = document.MainDocumentPartRoot.ThemePart!.Theme!.ThemeElements!.ColorScheme!;

@@ -2,12 +2,15 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using System.Text;
+using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Presentation;
 using OfficeIMO.Drawing;
 using OfficeIMO.PowerPoint;
 using Xunit;
 using A = DocumentFormat.OpenXml.Drawing;
+using C = DocumentFormat.OpenXml.Drawing.Charts;
 
 namespace OfficeIMO.Tests {
     public partial class PowerPointImageExportTests {
@@ -192,6 +195,44 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#445566", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Empty(result.Diagnostics);
+        }
+
+        [Fact]
+        public void PowerPointSlide_ExportsInheritedThemeGradientBackgroundStyleThroughDrawingGradient() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(120, 80);
+            presentation.SetThemeColor(PowerPointThemeColor.Accent1, "112233");
+            presentation.SetThemeColor(PowerPointThemeColor.Accent2, "445566");
+            PowerPointSlide slide = presentation.Slides[0];
+            DocumentFormat.OpenXml.Packaging.SlideMasterPart masterPart = slide.SlidePart.SlideLayoutPart!.SlideMasterPart!;
+            A.BackgroundFillStyleList backgroundFills = masterPart.ThemePart!.Theme!.ThemeElements!.FormatScheme!
+                .GetFirstChild<A.BackgroundFillStyleList>()!;
+            backgroundFills.RemoveAllChildren();
+            backgroundFills.Append(new A.GradientFill(
+                new A.GradientStopList(
+                    new A.GradientStop(new A.SchemeColor { Val = A.SchemeColorValues.Accent1 }) { Position = 0 },
+                    new A.GradientStop(new A.SchemeColor { Val = A.SchemeColorValues.Accent2 }) { Position = 100000 }),
+                new A.LinearGradientFill { Angle = 0 }));
+            masterPart.SlideMaster.CommonSlideData!.Background = new Background(new BackgroundStyleReference { Index = 1001U });
+
+            PowerPointSlideBackground background = slide.GetBackground();
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg, new PowerPointImageExportOptions { IncludeSlideContent = false });
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png, new PowerPointImageExportOptions { IncludeSlideContent = false });
+
+            Assert.Equal(PowerPointSlideBackgroundKind.LinearGradient, background.Kind);
+            Assert.Equal("112233", background.GradientStartColor);
+            Assert.Equal("445566", background.GradientEndColor);
+            Assert.Empty(svg.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.Equal(120, image!.Width);
+            Assert.Equal(80, image.Height);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("<linearGradient", svgText, StringComparison.Ordinal);
+            Assert.Contains("#112233", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#445566", svgText, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -928,7 +969,7 @@ namespace OfficeIMO.Tests {
         public void PowerPointSlide_ProjectsAdditionalFlowChartPresetsThroughSharedDrawingPresets() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
-            presentation.SlideSize.SetSizePoints(240, 170);
+            presentation.SlideSize.SetSizePoints(260, 190);
             PowerPointSlide slide = presentation.Slides[0];
 
             PowerPointAutoShape preparation = slide.AddShapePoints(A.ShapeTypeValues.FlowChartPreparation, 16, 18, 64, 42);
@@ -951,6 +992,14 @@ namespace OfficeIMO.Tests {
             offpage.FillColor = "E0F2FE";
             offpage.OutlineColor = "0369A1";
 
+            PowerPointAutoShape magneticTape = slide.AddShapePoints(A.ShapeTypeValues.FlowChartMagneticTape, 18, 136, 58, 38);
+            magneticTape.FillColor = "DDD6FE";
+            magneticTape.OutlineColor = "6D28D9";
+
+            PowerPointAutoShape magneticDrum = slide.AddShapePoints(A.ShapeTypeValues.FlowChartMagneticDrum, 98, 136, 58, 38);
+            magneticDrum.FillColor = "FEE2E2";
+            magneticDrum.OutlineColor = "B91C1C";
+
             OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
             OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
             PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
@@ -959,12 +1008,12 @@ namespace OfficeIMO.Tests {
             Assert.Empty(svg.Diagnostics);
             Assert.Empty(snapshot.Diagnostics);
             List<OfficeDrawingShape> shapes = snapshot.Drawing.Elements.OfType<OfficeDrawingShape>().ToList();
-            Assert.True(shapes.Count >= 5);
+            Assert.True(shapes.Count >= 7);
             Assert.True(shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Polygon) >= 4);
-            Assert.Contains(shapes, shape => shape.Shape.Kind == OfficeShapeKind.Path);
+            Assert.True(shapes.Count(shape => shape.Shape.Kind == OfficeShapeKind.Path) >= 3);
             Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
-            Assert.Equal(240, image!.Width);
-            Assert.Equal(170, image.Height);
+            Assert.Equal(260, image!.Width);
+            Assert.Equal(190, image.Height);
 
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<polygon", svgText, StringComparison.Ordinal);
@@ -974,6 +1023,8 @@ namespace OfficeIMO.Tests {
             Assert.Contains("#DCFCE7", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#FCE7F3", svgText, StringComparison.OrdinalIgnoreCase);
             Assert.Contains("#E0F2FE", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#DDD6FE", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("#FEE2E2", svgText, StringComparison.OrdinalIgnoreCase);
         }
 
         [Fact]
@@ -1697,6 +1748,39 @@ namespace OfficeIMO.Tests {
             Assert.Equal(OfficeColor.CornflowerBlue, image!.GetPixel(25, 25));
 
             string svgText = Encoding.UTF8.GetString(svgResult.Bytes);
+            Assert.Contains("<image", svgText, StringComparison.Ordinal);
+            Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_RendersGeneratedMediaPosterThroughSharedDrawingImageElement() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(160, 100);
+            PowerPointSlide slide = presentation.Slides[0];
+            using MemoryStream video = new(new byte[] { 0, 0, 0, 24, 102, 116, 121, 112, 109, 112, 52, 50 });
+            slide.AddVideo(
+                video,
+                "video/mp4",
+                ".mp4",
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(20),
+                PowerPointUnits.FromPoints(80),
+                PowerPointUnits.FromPoints(45));
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            PowerPointSlideVisualSnapshot snapshot = slide.CreateVisualSnapshot();
+
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            OfficeDrawingImage poster = Assert.Single(snapshot.Drawing.Images);
+            Assert.Equal("image/png", poster.ContentType);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.Equal(OfficeColor.FromRgb(31, 41, 55), rendered!.GetPixel(24, 24));
+            Assert.True(CountPixelsNear(rendered, OfficeColor.FromRgb(249, 250, 251)) > 0);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("<image", svgText, StringComparison.Ordinal);
             Assert.Contains("data:image/png;base64,", svgText, StringComparison.Ordinal);
         }
@@ -2536,6 +2620,74 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_RendersComboChartsThroughSharedDrawingChartRenderer() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 240);
+            PowerPointSlide slide = presentation.Slides[0];
+            var data = new PowerPointChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new PowerPointChartSeries("Bars", new[] { 10D, 16D, 22D }),
+                    new PowerPointChartSeries("Trend", new[] { 12D, 18D, 24D })
+                });
+
+            PowerPointChart chart = slide.AddChartPoints(data, 30, 25, 280, 180);
+            chart.SetTitle("Combo Trend");
+            chart.SetSeriesLineColor(1, "DC2626", widthPoints: 2.5D);
+            ConvertSecondBarSeriesToLineChart(chart);
+
+            Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
+            Assert.Equal(PowerPointChartSnapshotKind.ClusteredColumn, snapshot.ChartKind);
+            Assert.Equal(PowerPointChartSnapshotKind.ClusteredColumn, snapshot.Data.Series[0].ChartKind);
+            Assert.Equal(PowerPointChartSnapshotKind.Line, snapshot.Data.Series[1].ChartKind);
+
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+
+            Assert.Empty(png.Diagnostics);
+            Assert.Empty(svg.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.Equal(360, image!.Width);
+            Assert.Equal(240, image.Height);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("#DC2626", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<line", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
+        public void PowerPointSlide_RendersThemeChartSeriesColorsThroughSharedDrawingChartRenderer() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 240);
+            presentation.SetThemeColor(PowerPointThemeColor.Accent2, "884422");
+            PowerPointSlide slide = presentation.Slides[0];
+            var data = new PowerPointChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new PowerPointChartSeries("Theme Trend", new[] { 12D, 18D, 24D })
+                });
+
+            PowerPointChart chart = slide.AddLineChartPoints(data, 30, 25, 280, 180);
+            chart.SetSeriesLineColor(0, "000000", widthPoints: 2.5D);
+            SetFirstLineSeriesOutlineSchemeColor(chart, A.SchemeColorValues.Accent2);
+
+            OfficeImageExportResult svg = slide.ExportImage(OfficeImageExportFormat.Svg);
+            OfficeImageExportResult png = slide.ExportImage(OfficeImageExportFormat.Png);
+
+            Assert.Empty(svg.Diagnostics);
+            Assert.Empty(png.Diagnostics);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? image));
+            Assert.Equal(360, image!.Width);
+            Assert.Equal(240, image.Height);
+
+            string svgText = Encoding.UTF8.GetString(svg.Bytes);
+            Assert.Contains("#884422", svgText, StringComparison.OrdinalIgnoreCase);
+            Assert.Contains("<line", svgText, StringComparison.Ordinal);
+        }
+
+        [Fact]
         public void PowerPointSlide_ProjectsTransformedChartsThroughSharedDrawing() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -3221,6 +3373,42 @@ namespace OfficeIMO.Tests {
             }
 
             return count;
+        }
+
+        private static void ConvertSecondBarSeriesToLineChart(PowerPointChart chart) {
+            DocumentFormat.OpenXml.Packaging.ChartPart chartPart = GetChartPart(chart);
+            C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+            C.BarChart barChart = plotArea.Elements<C.BarChart>().Single();
+            C.BarChartSeries barSeries = barChart.Elements<C.BarChartSeries>().Skip(1).Single();
+            var lineChart = new C.LineChart(new C.Grouping { Val = C.GroupingValues.Standard });
+            var lineSeries = new C.LineChartSeries();
+            foreach (OpenXmlElement child in barSeries.ChildElements) {
+                lineSeries.Append(child.CloneNode(true));
+            }
+
+            lineChart.Append(lineSeries);
+            foreach (C.AxisId axisId in barChart.Elements<C.AxisId>()) {
+                lineChart.Append((C.AxisId)axisId.CloneNode(true));
+            }
+
+            barSeries.Remove();
+            barChart.InsertAfterSelf(lineChart);
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetFirstLineSeriesOutlineSchemeColor(PowerPointChart chart, A.SchemeColorValues schemeColor) {
+            DocumentFormat.OpenXml.Packaging.ChartPart chartPart = GetChartPart(chart);
+            C.LineChartSeries series = chartPart.ChartSpace!.Descendants<C.LineChartSeries>().First();
+            C.ChartShapeProperties properties = series.GetFirstChild<C.ChartShapeProperties>() ?? series.AppendChild(new C.ChartShapeProperties());
+            A.Outline outline = properties.GetFirstChild<A.Outline>() ?? properties.AppendChild(new A.Outline());
+            outline.RemoveAllChildren<A.SolidFill>();
+            outline.InsertAt(new A.SolidFill(new A.SchemeColor { Val = schemeColor }), 0);
+            chartPart.ChartSpace.Save();
+        }
+
+        private static DocumentFormat.OpenXml.Packaging.ChartPart GetChartPart(PowerPointChart chart) {
+            MethodInfo method = typeof(PowerPointChart).GetMethod("GetChartPart", BindingFlags.NonPublic | BindingFlags.Instance)!;
+            return (DocumentFormat.OpenXml.Packaging.ChartPart)method.Invoke(chart, Array.Empty<object>())!;
         }
 
         private static byte[] CreateBmp24(int width, int height, IReadOnlyList<OfficeColor> pixels, bool topDown = false) {

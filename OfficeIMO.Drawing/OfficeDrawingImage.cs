@@ -15,7 +15,8 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
     /// <param name="contentType">Optional MIME content type.</param>
     /// <param name="projection">Destination placement, crop, rotation, and flip settings.</param>
     /// <param name="alternativeText">Optional semantic label used by adapters and diagnostics.</param>
-    public OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null) {
+    /// <param name="opacity">Element opacity from 0 transparent to 1 opaque.</param>
+    public OfficeDrawingImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null, double opacity = 1D) {
         if (bytes == null) {
             throw new ArgumentNullException(nameof(bytes));
         }
@@ -24,12 +25,17 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
             throw new ArgumentException("Image bytes cannot be empty.", nameof(bytes));
         }
 
+        if (double.IsNaN(opacity) || double.IsInfinity(opacity) || opacity < 0D || opacity > 1D) {
+            throw new ArgumentOutOfRangeException(nameof(opacity), "Image opacity must be between 0 and 1.");
+        }
+
         _bytes = (byte[])bytes.Clone();
         ContentType = OfficeImageInfo.TryNormalizeImageContentType(contentType, out string normalizedContentType)
             ? normalizedContentType
             : OfficeImageInfo.NormalizeMimeType(contentType);
         Projection = projection;
         AlternativeText = alternativeText;
+        Opacity = opacity;
     }
 
     /// <summary>Embedded source image bytes.</summary>
@@ -44,6 +50,9 @@ public sealed class OfficeDrawingImage : OfficeDrawingElement {
     /// <summary>Optional semantic label used by adapters and diagnostics.</summary>
     public string? AlternativeText { get; }
 
+    /// <summary>Element opacity from 0 transparent to 1 opaque.</summary>
+    public double Opacity { get; }
+
     internal override OfficeDrawingElement CloneElement() =>
-        new OfficeDrawingImage(_bytes, ContentType, Projection, AlternativeText);
+        new OfficeDrawingImage(_bytes, ContentType, Projection, AlternativeText, Opacity);
 }

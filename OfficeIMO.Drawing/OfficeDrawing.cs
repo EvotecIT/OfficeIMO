@@ -55,6 +55,18 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
+    /// <summary>Adds a shape behind existing foreground content while keeping an initial page background underneath it.</summary>
+    public OfficeDrawing AddShapeBehindContent(OfficeShape shape, double x, double y) {
+        var item = new OfficeDrawingShape(shape, x, y);
+        if (item.X + item.Shape.Width > Width || item.Y + item.Shape.Height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(shape), "Drawing shapes must fit inside the drawing bounds.");
+        }
+
+        _shapes.Insert(0, item);
+        _elements.Insert(GetBehindContentInsertIndex(), item);
+        return this;
+    }
+
     /// <summary>Adds text inside a local drawing rectangle and returns this drawing.</summary>
     public OfficeDrawing AddText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent);
@@ -63,6 +75,17 @@ public sealed partial class OfficeDrawing {
         }
 
         _elements.Add(item);
+        return this;
+    }
+
+    /// <summary>Adds text behind existing foreground content while keeping an initial page background underneath it.</summary>
+    public OfficeDrawing AddTextBehindContent(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
+        var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent);
+        if (item.X + item.Width > Width || item.Y + item.Height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
+        }
+
+        _elements.Insert(GetBehindContentInsertIndex(), item);
         return this;
     }
 
@@ -77,11 +100,43 @@ public sealed partial class OfficeDrawing {
         return this;
     }
 
+    /// <summary>Adds rich text behind existing foreground content while keeping an initial page background underneath it.</summary>
+    public OfficeDrawing AddRichTextBehindContent(IReadOnlyList<OfficeRichTextRun> runs, double x, double y, double width, double height, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = true, bool shrinkToFit = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
+        var item = new OfficeDrawingRichText(runs, x, y, width, height, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, flipHorizontal, flipVertical, padding, paragraphIndent);
+        if (item.X + item.Width > Width || item.Y + item.Height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(runs), "Drawing rich text must fit inside the drawing bounds.");
+        }
+
+        _elements.Insert(GetBehindContentInsertIndex(), item);
+        return this;
+    }
+
     /// <summary>Adds an image using a shared placement/crop/transform projection and returns this drawing.</summary>
-    public OfficeDrawing AddImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null) {
-        var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText);
+    public OfficeDrawing AddImage(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null, double opacity = 1D) {
+        return AddImageCore(bytes, contentType, projection, alternativeText, opacity, allowOverflow: false);
+    }
+
+    /// <summary>Adds an image clipped by a drawing-local clipping path.</summary>
+    public OfficeDrawing AddClippedImage(byte[] bytes, string? contentType, OfficeImageProjection projection, double clipX, double clipY, OfficeClipPath clipPath, string? alternativeText = null, double opacity = 1D) {
+        if (clipPath == null) {
+            throw new ArgumentNullException(nameof(clipPath));
+        }
+
+        ValidateFiniteNonNegative(clipX, nameof(clipX));
+        ValidateFiniteNonNegative(clipY, nameof(clipY));
+        if (clipX + clipPath.Width > Width || clipY + clipPath.Height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(clipPath), "Image clip must fit inside the drawing bounds.");
+        }
+
+        var clipped = new OfficeDrawing(clipPath.Width, clipPath.Height);
+        clipped.AddImageCore(bytes, contentType, projection.Translate(-clipX, -clipY), alternativeText, opacity, allowOverflow: true);
+        return AddClippedDrawing(clipped, clipX, clipY, clipPath);
+    }
+
+    private OfficeDrawing AddImageCore(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool allowOverflow) {
+        var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity);
         (double left, double top, double right, double bottom) = item.Projection.GetDestinationBounds();
-        if (left < 0D || top < 0D || right > Width || bottom > Height) {
+        if (!allowOverflow && (left < 0D || top < 0D || right > Width || bottom > Height)) {
             throw new ArgumentOutOfRangeException(nameof(projection), "Drawing images must fit inside the drawing bounds.");
         }
 
@@ -91,10 +146,14 @@ public sealed partial class OfficeDrawing {
     }
 
     /// <summary>Adds an image behind existing foreground content while keeping an initial page background underneath it.</summary>
-    public OfficeDrawing AddImageBehindContent(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null) {
-        var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText);
+    public OfficeDrawing AddImageBehindContent(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText = null, double opacity = 1D) {
+        return AddImageBehindContentCore(bytes, contentType, projection, alternativeText, opacity, allowOverflow: false);
+    }
+
+    private OfficeDrawing AddImageBehindContentCore(byte[] bytes, string? contentType, OfficeImageProjection projection, string? alternativeText, double opacity, bool allowOverflow) {
+        var item = new OfficeDrawingImage(bytes, contentType, projection, alternativeText, opacity);
         (double left, double top, double right, double bottom) = item.Projection.GetDestinationBounds();
-        if (left < 0D || top < 0D || right > Width || bottom > Height) {
+        if (!allowOverflow && (left < 0D || top < 0D || right > Width || bottom > Height)) {
             throw new ArgumentOutOfRangeException(nameof(projection), "Drawing images must fit inside the drawing bounds.");
         }
 
@@ -299,11 +358,11 @@ public sealed partial class OfficeDrawing {
         }
 
         if (allowOverflow) {
-            var item = new OfficeDrawingImage(image.Bytes, image.ContentType, projection, image.AlternativeText);
+            var item = new OfficeDrawingImage(image.Bytes, image.ContentType, projection, image.AlternativeText, image.Opacity);
             _images.Add(item);
             _elements.Add(item);
         } else {
-            AddImage(image.Bytes, image.ContentType, projection, image.AlternativeText);
+            AddImage(image.Bytes, image.ContentType, projection, image.AlternativeText, image.Opacity);
         }
     }
 

@@ -29,6 +29,15 @@
         }
 
         /// <summary>
+        /// Gets a value indicating whether the paragraph contains a column break.
+        /// </summary>
+        public bool IsColumnBreak {
+            get {
+                return this.Break?.BreakType == DocumentFormat.OpenXml.Wordprocessing.BreakValues.Column;
+            }
+        }
+
+        /// <summary>
         /// Gets a value indicating whether the paragraph contains a break element.
         /// </summary>
         public bool IsBreak {

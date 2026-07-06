@@ -1,15 +1,16 @@
 using System;
 using System.Collections.Generic;
 using OfficeIMO.Drawing;
+using A = DocumentFormat.OpenXml.Drawing;
 
 namespace OfficeIMO.PowerPoint {
     internal static partial class PowerPointSlideImageRenderer {
-        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping) {
+        private static void AddChart(OfficeDrawing drawing, PowerPointChart chart, List<OfficeImageExportDiagnostic> diagnostics, PowerPointShapeBoundsMapping mapping, A.ColorScheme? colorScheme) {
             if (!TryGetBounds(chart, drawing, diagnostics, mapping, out double left, out double top, out double width, out double height)) {
                 return;
             }
 
-            if (!chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot)) {
+            if (!chart.TryGetSnapshot(colorScheme, out PowerPointChartSnapshot snapshot)) {
                 AddUnsupportedShapeDiagnostic(diagnostics, chart, "Skipped a PowerPoint chart because its cached chart data could not be converted into a shared Drawing chart snapshot.");
                 return;
             }
@@ -45,7 +46,15 @@ namespace OfficeIMO.PowerPoint {
             var series = new List<OfficeChartSeries>(snapshot.Data.Series.Count);
             for (int i = 0; i < snapshot.Data.Series.Count; i++) {
                 PowerPointChartSeries item = snapshot.Data.Series[i];
-                series.Add(new OfficeChartSeries(item.Name, item.Values, item.XValues));
+                series.Add(new OfficeChartSeries(
+                    item.Name,
+                    item.Values,
+                    item.XValues,
+                    color: item.Color,
+                    pointColors: null,
+                    showMarkers: true,
+                    strokeWidth: item.StrokeWidth,
+                    renderKind: MapChartKind(item.ChartKind ?? snapshot.ChartKind)));
             }
 
             return new OfficeChartSnapshot(

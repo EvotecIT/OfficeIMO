@@ -41,6 +41,7 @@ namespace OfficeIMO.Excel {
                         DifferentialFontUnderline = ReadDifferentialFontUnderline(stylesheet, differentialFormatId),
                         DifferentialFontName = ReadDifferentialFontName(stylesheet, differentialFormatId),
                         DifferentialFontSize = ReadDifferentialFontSize(stylesheet, differentialFormatId),
+                        DifferentialBorder = ReadDifferentialBorder(stylesheet, workbookPart, differentialFormatId),
                         Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
                         ColorScaleColors = ReadColorScaleColors(rule),
                         ColorScaleThresholds = ReadColorScaleThresholds(rule),
@@ -680,6 +681,11 @@ namespace OfficeIMO.Excel {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
             double? fontSize = format?.Font?.FontSize?.Val?.Value;
             return fontSize is > 0D ? fontSize : null;
+        }
+
+        private static ExcelCellBorderSnapshot? ReadDifferentialBorder(Stylesheet? stylesheet, WorkbookPart? workbookPart, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            return BuildBorderSnapshot(format?.Border, workbookPart);
         }
 
         private static DifferentialFormat? GetDifferentialFormat(Stylesheet? stylesheet, uint? differentialFormatId) {
