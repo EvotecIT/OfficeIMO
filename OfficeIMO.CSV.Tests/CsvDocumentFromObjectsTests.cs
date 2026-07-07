@@ -138,6 +138,28 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void CsvObjectWriter_WritesWideTextRowsWithEscaping()
+    {
+        var columns = Enumerable.Range(1, 21).Select(static index => $"C{index}").ToArray();
+        var values = Enumerable.Range(1, 21).Select(static index => $"V{index}").ToArray();
+        values[5] = "A,B";
+        values[10] = "A\"B";
+
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            csvWriter.WriteTextRow(columns, values);
+        }
+
+        var output = writer.ToString();
+        var lines = output.Split('\n');
+        Assert.Equal(string.Join(",", columns), lines[0]);
+        Assert.Contains("\"A,B\"", lines[1], StringComparison.Ordinal);
+        Assert.Contains("\"A\"\"B\"", lines[1], StringComparison.Ordinal);
+        Assert.EndsWith("\n", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CsvObjectWriter_RejectsProjectedRowsWithDifferentColumns()
     {
         using var writer = new StringWriter();

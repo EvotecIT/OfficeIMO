@@ -593,7 +593,7 @@ public sealed class CsvObjectWriter : IDisposable
     {
         if (values.Length >= WideTextRowThreshold)
         {
-            CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            CsvWriter.WriteRecordDefault(_writer, values, _options.Delimiter, _options.NewLine);
             return;
         }
 
