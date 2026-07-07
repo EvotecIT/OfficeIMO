@@ -2,6 +2,7 @@ namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
+#if NET8_0_OR_GREATER
     private static bool TryReadTextQuoteFreeRecordFieldSpansAvx2<TVisitor>(
         ReadOnlySpan<char> text,
         char delimiter,
@@ -163,4 +164,5 @@ internal static partial class CsvParser
         position = text.Length;
         return true;
     }
+#endif
 }
