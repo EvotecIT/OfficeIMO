@@ -171,6 +171,11 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
+            if (parts.Any(part => part.Kind == PowerPointChartSnapshotKind.Scatter) &&
+                parts.Any(part => part.Kind != PowerPointChartSnapshotKind.Scatter)) {
+                return false;
+            }
+
             IReadOnlyList<string> categories = parts[0].Data.Categories;
             var series = new List<PowerPointChartSeries>();
             foreach (var part in parts) {

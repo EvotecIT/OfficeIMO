@@ -65,7 +65,7 @@ namespace OfficeIMO.Word {
 
                 double tableLeft = ResolveTableLeft(table, context.Left, context.ContentWidth, tableWidth);
                 if (context.IsTargetPage) {
-                    AddSplitTableRowFragment(context.Drawing, cells, tableLeft, context.Y, fragmentHeight, diagnostics, listMarkers);
+                    AddSplitTableRowFragment(context.Drawing, cells, tableLeft, context.Y, fragmentHeight, diagnostics, listMarkers, context);
                 }
 
                 for (int i = 0; i < cells.Count; i++) {
@@ -374,11 +374,12 @@ namespace OfficeIMO.Word {
             double top,
             double height,
             List<OfficeImageExportDiagnostic> diagnostics,
-            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+            IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+            WordImageFlowContext context) {
             for (int i = 0; i < cells.Count; i++) {
                 SplitTableCellLayout cell = cells[i];
                 double left = tableLeft + cell.LeftOffset;
-                cell.AddFrameAndText(drawing, left, top, height, diagnostics, listMarkers);
+                cell.AddFrameAndText(drawing, left, top, height, diagnostics, listMarkers, context);
             }
         }
 
@@ -620,7 +621,8 @@ namespace OfficeIMO.Word {
                 double top,
                 double height,
                 List<OfficeImageExportDiagnostic> diagnostics,
-                IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers) {
+                IReadOnlyDictionary<WordParagraph, (int Level, string Marker)>? listMarkers,
+                WordImageFlowContext context) {
                 drawing.AddBorderBox(left, top, _width, height, _fillColor, _borders);
                 SplitTableCellFragment fragment = CreateFragment(height);
                 if (fragment.ImageCount <= 0 && fragment.NestedTableCount <= 0 && fragment.LineCount <= 0) {
@@ -678,7 +680,13 @@ namespace OfficeIMO.Word {
                         contentWidth,
                         contentTop + nestedTable.Height,
                         "unsupported-word-nested-table-overflow",
-                        "Skipped a nested Word table inside a split table row because it does not fit within the row fragment.");
+                        "Skipped a nested Word table inside a split table row because it does not fit within the row fragment.",
+                        resolveDynamicPageFields: context.ResolveDynamicPageFields,
+                        totalPageCount: context.TotalPageCount,
+                        sectionNumber: context.SectionNumber,
+                        sectionPageCount: context.SectionPageCount,
+                        pageNumberValue: context.PageNumberValue,
+                        pageNumberText: context.PageNumberText);
                     AddTable(nestedTable.Table, nestedContext, diagnostics, listMarkers, allowNestedTable: true);
                     contentTop += nestedTable.Height;
                     AddGapIfNeeded();

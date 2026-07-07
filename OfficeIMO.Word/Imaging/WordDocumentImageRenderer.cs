@@ -159,9 +159,7 @@ namespace OfficeIMO.Word {
                 WordSectionBodyElement entry = bodyEntries[index];
                 OpenXmlElement element = entry.Element;
                 if (entry.SectionIndex != sectionIndex) {
-                    int mergedSectionPageCount = sectionPageCounts != null && entry.SectionIndex < sectionPageCounts.Count
-                        ? sectionPageCounts[entry.SectionIndex]
-                        : sectionPageCount;
+                    int mergedSectionPageCount = ResolveSectionPageCountForFieldContext(sectionPageCounts, entry.SectionIndex, sectionPageCount);
                     context.UpdateSectionContext(entry.SectionIndex + 1, mergedSectionPageCount);
                 }
 
@@ -187,6 +185,25 @@ namespace OfficeIMO.Word {
             }
 
             return context;
+        }
+
+        private static int ResolveSectionPageCountForFieldContext(IReadOnlyList<int>? sectionPageCounts, int sectionIndex, int fallbackSectionPageCount) {
+            if (sectionPageCounts == null || sectionIndex < 0 || sectionIndex >= sectionPageCounts.Count) {
+                return Math.Max(1, fallbackSectionPageCount);
+            }
+
+            int sectionPageCount = sectionPageCounts[sectionIndex];
+            if (sectionPageCount > 0) {
+                return sectionPageCount;
+            }
+
+            for (int i = sectionIndex - 1; i >= 0; i--) {
+                if (sectionPageCounts[i] > 0) {
+                    return sectionPageCounts[i];
+                }
+            }
+
+            return Math.Max(1, fallbackSectionPageCount);
         }
 
         private static int EstimateDocumentPageCount(WordDocument document, WordSection? pageSection) {
