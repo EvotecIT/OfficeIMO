@@ -39,9 +39,11 @@ internal static partial class CsvParser
         Span<TextQuoteAwareFieldSpan> fields = stackalloc TextQuoteAwareFieldSpan[TextQuoteAwareFieldSpanCapacity];
         var fieldStart = recordStart;
         var quoteCount = 0;
+        var delimiterVector = Vector256.Create((byte)delimiter);
         return ContinueTextQuoteAwareRecordFieldSpansAvx2(
             text,
             delimiter,
+            delimiterVector,
             allowEmpty,
             emitFields,
             recordIndex,
@@ -69,6 +71,7 @@ internal static partial class CsvParser
         uint quoteMask,
         uint carriageReturnMask,
         uint lineFeedMask,
+        Vector256<byte> delimiterVector,
         ref int position,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
@@ -124,6 +127,7 @@ internal static partial class CsvParser
         return ContinueTextQuoteAwareRecordFieldSpansAvx2(
             text,
             delimiter,
+            delimiterVector,
             allowEmpty,
             emitFields,
             recordIndex,
@@ -142,6 +146,7 @@ internal static partial class CsvParser
     private static bool ContinueTextQuoteAwareRecordFieldSpansAvx2<TVisitor>(
         ReadOnlySpan<char> text,
         char delimiter,
+        Vector256<byte> delimiterVector,
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
@@ -159,10 +164,6 @@ internal static partial class CsvParser
     {
         firstFieldLength = 0;
         var end = text.Length - 32;
-        var delimiterVector = Vector256.Create((byte)delimiter);
-        var quoteVector = Vector256.Create((byte)'"');
-        var carriageReturnVector = Vector256.Create((byte)'\r');
-        var lineFeedVector = Vector256.Create((byte)'\n');
 
         while (index <= end)
         {
@@ -174,9 +175,9 @@ internal static partial class CsvParser
                 Avx2.Permute4x64(Vector256.AsInt64(packed), 0b11_01_10_00));
 
             var delimiterMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, delimiterVector));
-            var quoteMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, quoteVector));
-            var carriageReturnMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, carriageReturnVector));
-            var lineFeedMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, lineFeedVector));
+            var quoteMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, QuoteByteVector));
+            var carriageReturnMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, CarriageReturnByteVector));
+            var lineFeedMask = (uint)Avx2.MoveMask(Avx2.CompareEqual(packedBytes, LineFeedByteVector));
             var specialMask = delimiterMask | quoteMask | carriageReturnMask | lineFeedMask;
 
             if (specialMask != 0)

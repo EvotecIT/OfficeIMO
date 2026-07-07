@@ -295,6 +295,7 @@ internal static partial class CsvParser
                             quoteMask,
                             carriageReturnMask,
                             lineFeedMask,
+                            delimiterVector,
                             ref position,
                             ref fieldVisitor,
                             ref scratch,
