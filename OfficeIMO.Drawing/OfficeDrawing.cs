@@ -63,8 +63,8 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(shape), "Drawing shapes must fit inside the drawing bounds.");
         }
 
-        _shapes.Insert(0, item);
-        AddBehindContentElement(item);
+        int elementIndex = AddBehindContentElement(item);
+        _shapes.Insert(GetTypedElementInsertIndex<OfficeDrawingShape>(elementIndex), item);
         return this;
     }
 
@@ -158,8 +158,8 @@ public sealed partial class OfficeDrawing {
             throw new ArgumentOutOfRangeException(nameof(projection), "Drawing images must fit inside the drawing bounds.");
         }
 
-        _images.Insert(0, item);
-        AddBehindContentElement(item);
+        int elementIndex = AddBehindContentElement(item);
+        _images.Insert(GetTypedElementInsertIndex<OfficeDrawingImage>(elementIndex), item);
         return this;
     }
 
@@ -428,9 +428,22 @@ public sealed partial class OfficeDrawing {
         return index;
     }
 
-    private void AddBehindContentElement(OfficeDrawingElement item) {
+    private int AddBehindContentElement(OfficeDrawingElement item) {
         _behindContentElements.Add(item);
-        _elements.Insert(GetBehindContentInsertIndex(), item);
+        int index = GetBehindContentInsertIndex();
+        _elements.Insert(index, item);
+        return index;
+    }
+
+    private int GetTypedElementInsertIndex<T>(int elementIndex) where T : OfficeDrawingElement {
+        int index = 0;
+        for (int i = 0; i < elementIndex; i++) {
+            if (_elements[i] is T) {
+                index++;
+            }
+        }
+
+        return index;
     }
 
     /// <summary>Creates a detached copy of this drawing and all positioned elements.</summary>

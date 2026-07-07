@@ -45,15 +45,15 @@ namespace OfficeIMO.Excel {
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
-            if (IsCellTextAnchorOccludedByDrawingLayer(cell, snapshot)) {
-                AddCellTextOccludedByDrawingDiagnostic(snapshot, cell, diagnostics);
-                return;
-            }
-
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             CellTextInsets textInsets = ResolveCellTextInsets(cell, fontSize, paddingX, w, rotated || stacked);
+            if (IsCellTextAnchorOccludedByDrawingLayer(cell, snapshot, viewport, textInsets, scale)) {
+                AddCellTextOccludedByDrawingDiagnostic(snapshot, cell, diagnostics);
+                return;
+            }
+
             double availableWidth = Math.Max(1D, w - textInsets.Left - textInsets.Right);
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
@@ -184,15 +184,15 @@ namespace OfficeIMO.Excel {
             double availableHeight = Math.Max(1D, h - (paddingY * 2D));
             double fontSize = ResolveCellFontSize(cell.Style, scale);
             double minimumFontSize = Math.Max(1D, scale);
-            if (IsCellTextAnchorOccludedByDrawingLayer(cell, snapshot)) {
-                AddCellTextOccludedByDrawingDiagnostic(snapshot, cell, diagnostics);
-                return;
-            }
-
             bool stacked = IsStackedTextRotation(cell.Style.TextRotation);
             double rotationDegrees = stacked ? 0D : ResolveExcelTextRotationDegrees(cell.Style.TextRotation, snapshot, cell, diagnostics);
             bool rotated = Math.Abs(rotationDegrees) > 0.0001D;
             CellTextInsets textInsets = ResolveCellTextInsets(cell, fontSize, paddingX, w, rotated || stacked);
+            if (IsCellTextAnchorOccludedByDrawingLayer(cell, snapshot, viewport, textInsets, scale)) {
+                AddCellTextOccludedByDrawingDiagnostic(snapshot, cell, diagnostics);
+                return;
+            }
+
             double availableWidth = Math.Max(1D, w - textInsets.Left - textInsets.Right);
             bool richTextSupported = IsRichTextRenderingSupported(cell, rotated);
             string fontFamily = ResolveCellFontFamily(cell.Style);
@@ -686,8 +686,8 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool IsCellTextAnchorOccludedByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot) {
-            if (!TryGetCellTextAnchorProbe(cell, out double x, out double y, out double width, out double height)) {
+        private static bool IsCellTextAnchorOccludedByDrawingLayer(ExcelVisualCell cell, ExcelRangeVisualSnapshot snapshot, CellTextViewport viewport, CellTextInsets insets, double scale) {
+            if (!TryGetCellTextAnchorProbe(cell, viewport, insets, scale, out double x, out double y, out double width, out double height)) {
                 return false;
             }
 
@@ -701,7 +701,7 @@ namespace OfficeIMO.Excel {
             return false;
         }
 
-        private static bool TryGetCellTextAnchorProbe(ExcelVisualCell cell, out double x, out double y, out double width, out double height) {
+        private static bool TryGetCellTextAnchorProbe(ExcelVisualCell cell, CellTextViewport viewport, CellTextInsets insets, double scale, out double x, out double y, out double width, out double height) {
             if (cell.Width <= 0D || cell.Height <= 0D) {
                 x = 0D;
                 y = 0D;
@@ -711,16 +711,22 @@ namespace OfficeIMO.Excel {
             }
 
             const double probeSize = 1D;
-            double paddingX = Math.Min(CellTextHorizontalPadding, Math.Max(0D, cell.Width / 2D));
+            double resolvedScale = scale > 0D ? scale : 1D;
+            double unscaledViewportX = viewport.X / resolvedScale;
+            double unscaledViewportY = viewport.Y / resolvedScale;
+            double unscaledViewportWidth = viewport.Width / resolvedScale;
+            double unscaledViewportHeight = viewport.Height / resolvedScale;
+            double leftInset = insets.Left / resolvedScale;
+            double rightInset = insets.Right / resolvedScale;
             OfficeTextAlignment alignment = ResolveCellTextAlignment(cell);
             double anchorX = alignment == OfficeTextAlignment.Right
-                ? cell.X + cell.Width - paddingX
+                ? unscaledViewportX + unscaledViewportWidth - rightInset
                 : alignment == OfficeTextAlignment.Center
-                    ? cell.X + (cell.Width / 2D)
-                    : cell.X + paddingX;
+                    ? unscaledViewportX + (unscaledViewportWidth / 2D)
+                    : unscaledViewportX + leftInset;
 
             x = anchorX - (probeSize / 2D);
-            y = cell.Y + (cell.Height / 2D) - (probeSize / 2D);
+            y = unscaledViewportY + (unscaledViewportHeight / 2D) - (probeSize / 2D);
             width = probeSize;
             height = probeSize;
             return true;

@@ -1016,7 +1016,7 @@ public static partial class OfficeChartDrawingRenderer {
                     color = GetPointColor(style, currentSeries.PointColors, category);
                 }
 
-                bool horizontal = IsBarChart(seriesKind);
+                bool horizontal = IsBarChart(snapshot.ChartKind);
                 ValueRange range = horizontal ? horizontalRange : verticalRange;
                 double min = range.Min;
                 double max = range.Max;
