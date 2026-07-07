@@ -18,19 +18,23 @@ public sealed partial class CsvDocument
             throw new ArgumentOutOfRangeException(nameof(sampleSize), "Sample size must be greater than zero.");
         }
 
+        using var rows = EnumerateRawRows().GetEnumerator();
+        return InferSchema(rows, sampleSize, sampledRows: null);
+    }
+
+    private CsvSchema InferSchema(IEnumerator<object?[]> rows, int sampleSize, ICollection<object?[]>? sampledRows)
+    {
         var columns = new InferredColumn[_header.Count];
         for (var i = 0; i < _header.Count; i++)
         {
             columns[i] = new InferredColumn(_header[i]);
         }
 
-        var sampledRows = 0;
-        foreach (var row in EnumerateRawRows())
+        var sampledRowCount = 0;
+        while (sampledRowCount < sampleSize && rows.MoveNext())
         {
-            if (sampledRows >= sampleSize)
-            {
-                break;
-            }
+            var row = rows.Current;
+            sampledRows?.Add(row);
 
             for (var i = 0; i < columns.Length; i++)
             {
@@ -38,13 +42,13 @@ public sealed partial class CsvDocument
                 columns[i].Observe(value, _culture, _dateTimeFormats);
             }
 
-            sampledRows++;
+            sampledRowCount++;
         }
 
         var schemaColumns = new List<CsvSchemaColumn>(columns.Length);
         foreach (var column in columns)
         {
-            schemaColumns.Add(column.ToSchemaColumn(sampledRows));
+            schemaColumns.Add(column.ToSchemaColumn(sampledRowCount));
         }
 
         return new CsvSchema(schemaColumns);
@@ -200,7 +204,7 @@ public sealed partial class CsvDocument
         private static bool TryParseDateTime(string text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
         {
             if (dateTimeFormats is { Count: > 0 } &&
-                DateTime.TryParseExact(text, dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out _))
+                DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out _))
             {
                 return true;
             }

@@ -68,6 +68,28 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void CreateDataReader_WithStreamingInferredSchema_ReturnsSampledAndRemainingRows()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Name\n1,Alpha\n2,Beta\n3,Gamma\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = 2 });
+
+        Assert.Equal(typeof(int), reader.GetFieldType(reader.GetOrdinal("Id")));
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+        Assert.Equal("Alpha", reader.GetString(1));
+        Assert.True(reader.Read());
+        Assert.Equal(2, reader.GetInt32(0));
+        Assert.Equal("Beta", reader.GetString(1));
+        Assert.True(reader.Read());
+        Assert.Equal(3, reader.GetInt32(0));
+        Assert.Equal("Gamma", reader.GetString(1));
+        Assert.False(reader.Read());
+    }
+
+    [Fact]
     public void CreateDataReader_WithRequiredSchema_RejectsMissingValues()
     {
         var doc = new CsvDocument()
