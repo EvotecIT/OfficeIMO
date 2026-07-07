@@ -191,6 +191,75 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadRowFieldSpansFromText_StreamsMultilineRows()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+
+        CsvDocument.ReadRowFieldSpansFromText("Name,Note\nAlpha,\"one\ntwo\"\n", ref visitor);
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Note",
+                "field:0:0:Alpha",
+                "field:0:1:one\ntwo",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpansFromText_DetectDelimiterSkipsInitialRecordsAfterLeadingComments()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+
+        CsvDocument.ReadRowFieldSpansFromText(
+            "#note\nmetadata,with,commas\nName;Value\nAlpha;1\n",
+            ref visitor,
+            new CsvLoadOptions {
+                DetectDelimiter = true,
+                SkipInitialRecords = 1
+            });
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpansFromText_UsesExplicitHeader()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+
+        CsvDocument.ReadRowFieldSpansFromText(
+            "Alpha;1\n",
+            ref visitor,
+            new CsvLoadOptions {
+                Delimiter = ';',
+                Header = new[] { "Name", "Value" }
+            });
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
     public void ReadRowFieldSpans_DetectDelimiterSkipsInitialRecordsAfterLeadingComments()
     {
         var events = new List<string>();

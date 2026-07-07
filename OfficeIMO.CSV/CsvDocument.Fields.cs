@@ -67,6 +67,57 @@ public sealed partial class CsvDocument
     }
 
     /// <summary>
+    /// Reads CSV data rows from text in a single pass, applying header discovery while avoiding string materialization for unquoted data fields.
+    /// </summary>
+    /// <typeparam name="TVisitor">Struct visitor type receiving each data row and field.</typeparam>
+    /// <param name="text">Source CSV text.</param>
+    /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
+    /// <param name="options">Optional load settings.</param>
+    public static void ReadRowFieldSpansFromText<TVisitor>(string text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+        where TVisitor : struct, ICsvRowFieldSpanVisitor
+    {
+        if (text == null)
+        {
+            throw new ArgumentNullException(nameof(text));
+        }
+
+        ReadRowFieldSpans(text.AsSpan(), ref rowVisitor, options);
+    }
+
+    /// <summary>
+    /// Reads CSV data rows from text in a single pass, applying header discovery while avoiding string materialization for unquoted data fields.
+    /// </summary>
+    /// <typeparam name="TVisitor">Struct visitor type receiving each data row and field.</typeparam>
+    /// <param name="text">Source CSV text.</param>
+    /// <param name="rowVisitor">Visitor receiving normalized headers and transient data field spans.</param>
+    /// <param name="options">Optional load settings.</param>
+    public static void ReadRowFieldSpans<TVisitor>(ReadOnlySpan<char> text, ref TVisitor rowVisitor, CsvLoadOptions? options = null)
+        where TVisitor : struct, ICsvRowFieldSpanVisitor
+    {
+        options ??= new CsvLoadOptions();
+        if (options.DetectDelimiter)
+        {
+            var sourceText = text.ToString();
+            var resolvedOptions = ResolveLoadOptions(() => new StringReader(sourceText), options);
+            using var bufferedReader = new StringReader(sourceText);
+            ReadRowFieldSpans(bufferedReader, ref rowVisitor, resolvedOptions);
+            return;
+        }
+
+        var explicitHeader = NormalizeExplicitHeader(options);
+        if (explicitHeader is not null)
+        {
+            ReadRowFieldSpansWithHeader(text, explicitHeader, options, GetInitialRecordsToSkip(options), ref rowVisitor);
+            return;
+        }
+
+        var visitor = new CsvHeaderAwareFieldSpanVisitor<TVisitor>(rowVisitor, options, firstRecordIsData: !options.HasHeaderRow);
+        CsvParser.ReadFieldSpans(text, options, GetInitialRecordsToSkip(options), ref visitor);
+        visitor.Complete();
+        rowVisitor = visitor.RowVisitor;
+    }
+
+    /// <summary>
     /// Reads CSV fields from a file in a single pass without materializing unquoted fields as strings.
     /// </summary>
     /// <param name="path">Source CSV path.</param>
@@ -217,6 +268,20 @@ public sealed partial class CsvDocument
     {
         var visitor = new CsvHeaderAwareFieldSpanVisitor<TVisitor>(rowVisitor, options, firstRecordIsData: false, header: header);
         CsvParser.ReadFieldSpans(reader, options, recordsToSkip, ref visitor);
+        visitor.Complete();
+        rowVisitor = visitor.RowVisitor;
+    }
+
+    private static void ReadRowFieldSpansWithHeader<TVisitor>(
+        ReadOnlySpan<char> text,
+        IReadOnlyList<string> header,
+        CsvLoadOptions options,
+        int recordsToSkip,
+        ref TVisitor rowVisitor)
+        where TVisitor : struct, ICsvRowFieldSpanVisitor
+    {
+        var visitor = new CsvHeaderAwareFieldSpanVisitor<TVisitor>(rowVisitor, options, firstRecordIsData: false, header: header);
+        CsvParser.ReadFieldSpans(text, options, recordsToSkip, ref visitor);
         visitor.Complete();
         rowVisitor = visitor.RowVisitor;
     }

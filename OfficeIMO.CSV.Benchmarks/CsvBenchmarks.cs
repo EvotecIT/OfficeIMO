@@ -239,6 +239,14 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_ReadTextRowFieldSpansMaterialized()
+    {
+        var visitor = new CsvMaterializingRowFieldSpanVisitor();
+        CsvDocument.ReadRowFieldSpansFromText(_csvText, ref visitor);
+        return visitor.FieldCount + visitor.TextLength;
+    }
+
+    [Benchmark]
     public int OfficeIMO_ReadFieldSpansMaterialized()
     {
         using var reader = new StringReader(_csvText);
