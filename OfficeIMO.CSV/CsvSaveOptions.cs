@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Globalization;
+using System.IO.Compression;
 using System.Text;
 
 namespace OfficeIMO.CSV;
@@ -36,6 +37,16 @@ public sealed class CsvSaveOptions
     /// Gets or sets the text encoding used when writing to files. Defaults to UTF-8 without BOM when omitted.
     /// </summary>
     public Encoding? Encoding { get; set; }
+
+    /// <summary>
+    /// Gets or sets compression used when writing files. Default infers compression from the file extension.
+    /// </summary>
+    public CsvCompressionType CompressionType { get; set; } = CsvCompressionType.Auto;
+
+    /// <summary>
+    /// Gets or sets the compression level used when writing compressed CSV files.
+    /// </summary>
+    public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Optimal;
 
     /// <summary>
     /// Gets or sets how formula-like values are handled before writing CSV output. Default preserves values exactly.

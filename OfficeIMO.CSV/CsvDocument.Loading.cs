@@ -11,9 +11,9 @@ public sealed partial class CsvDocument
     /// </summary>
     public static CsvDocument Load(string path, CsvLoadOptions? options = null)
     {
-        options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        return LoadInternal(() => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize), options, encoding);
+        var fileOptions = options?.Clone() ?? new CsvLoadOptions();
+        var encoding = fileOptions.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+        return LoadInternal(() => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize), fileOptions, encoding);
     }
 
     /// <summary>
@@ -34,10 +34,9 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(rowAction));
         }
 
-        options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        var fileOptions = options?.Clone() ?? new CsvLoadOptions();
+        var readerFactory = () => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize);
+        var resolvedOptions = ResolveLoadOptions(readerFactory, fileOptions);
         using var reader = readerFactory();
         ReadRows(reader, rowAction, resolvedOptions);
     }
@@ -60,10 +59,9 @@ public sealed partial class CsvDocument
             throw new ArgumentNullException(nameof(rowAction));
         }
 
-        options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
-        var resolvedOptions = ResolveLoadOptions(readerFactory, options);
+        var fileOptions = options?.Clone() ?? new CsvLoadOptions();
+        var readerFactory = () => CsvFile.OpenTextReader(path, fileOptions, FileBufferSize);
+        var resolvedOptions = ResolveLoadOptions(readerFactory, fileOptions);
         using var reader = readerFactory();
         ReadRowsReusable(reader, rowAction, resolvedOptions);
     }
@@ -250,7 +248,7 @@ public sealed partial class CsvDocument
             throw new ArgumentException("Stream must be readable.", nameof(stream));
         }
 
-        options ??= new CsvLoadOptions();
+        options = options?.Clone() ?? new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
 
         if (options.Mode == CsvLoadMode.Stream || options.DetectDelimiter)
@@ -285,7 +283,7 @@ public sealed partial class CsvDocument
     /// </summary>
     public static CsvDocument Parse(string text, CsvLoadOptions? options = null)
     {
-        options ??= new CsvLoadOptions();
+        options = options?.Clone() ?? new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         return LoadInternal(() => new StringReader(text), options, encoding);
     }

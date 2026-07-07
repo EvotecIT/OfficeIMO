@@ -35,6 +35,35 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void StreamingMode_ClonesFileOpenOptionsBeforeEnumeration()
+    {
+        var tempPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.StreamingClone." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "Name")
+                .AddRow(1, "Alice")
+                .Save(tempPath, new CsvSaveOptions { NewLine = "\n" });
+
+            var options = new CsvLoadOptions { Mode = CsvLoadMode.Stream };
+            var doc = CsvDocument.Load(tempPath, options);
+
+            options.CompressionType = CsvCompressionType.None;
+            options.MaxDecompressedBytes = 1;
+
+            var row = Assert.Single(doc.AsEnumerable());
+            Assert.Equal("Alice", row.AsString("Name"));
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
+
+    [Fact]
     public void StreamingMode_Disallows_FilterUntilMaterialized()
     {
         var csv = "Id,Value\n1,A\n2,B\n";

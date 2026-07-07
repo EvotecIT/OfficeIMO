@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using OfficeIMO.CSV;
 using Xunit;
@@ -286,6 +287,249 @@ public class CsvDocumentFromObjectsTests
             CsvDocument.SaveObjects(path, new object?[] { new { Name = "A", Value = 1 } }, new CsvSaveOptions { NewLine = "\n" });
 
             Assert.Equal("Name,Value\nA,1\n", File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void Save_Load_RoundTripsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RoundTrip." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var parsed = CsvDocument.Load(path);
+            var row = Assert.Single(parsed.AsEnumerable());
+
+            Assert.Equal("Alpha", row.AsString("Name"));
+            Assert.Equal(1, row.AsInt32("Value"));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReadRowsReusable_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Stream." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .AddRow("Beta", 2)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var rows = new List<string>();
+            CsvDocument.ReadRowsReusable(path, (_, row) => rows.Add(row[0] + "|" + row[1]));
+
+            Assert.Equal(new[] { "Alpha|1", "Beta|2" }, rows);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReadRecords_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RawRecords." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var records = CsvDocument.ReadRecords(path).ToArray();
+
+            Assert.Equal(2, records.Length);
+            Assert.Equal(new[] { "Name", "Value" }, records[0]);
+            Assert.Equal(new[] { "Alpha", "1" }, records[1]);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReadRecordsReusable_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RawRecordsReusable." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .AddRow("Beta", 2)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var records = new List<string[]>();
+            CsvDocument.ReadRecordsReusable(path, values => records.Add(values.ToArray()));
+
+            Assert.Equal(3, records.Count);
+            Assert.Equal(new[] { "Name", "Value" }, records[0]);
+            Assert.Equal(new[] { "Alpha", "1" }, records[1]);
+            Assert.Equal(new[] { "Beta", "2" }, records[2]);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void ReadFieldSpans_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.FieldSpans." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var fields = new List<string>();
+            CsvDocument.ReadFieldSpans(path, (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"));
+
+            Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" }, fields);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+#endif
+
+    [Fact]
+    public void Load_EnforcesMaxDecompressedBytes()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Bounded." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            Assert.Throws<InvalidOperationException>(() =>
+                CsvDocument.Load(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void Save_InvalidCompressionLevelDoesNotTruncateExistingFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.InvalidCompressionLevel." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        const string original = "Name,Value\nOriginal,1\n";
+        try
+        {
+            File.WriteAllText(path, original);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new CsvDocument()
+                    .WithHeader("Name", "Value")
+                    .AddRow("Replacement", 2)
+                    .Save(path, new CsvSaveOptions
+                    {
+                        CompressionType = CsvCompressionType.GZip,
+                        CompressionLevel = (CompressionLevel)123,
+                        NewLine = "\n"
+                    }));
+
+            Assert.Equal(original, File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+#if !NET8_0_OR_GREATER
+    [Fact]
+    public void Save_UnsupportedCompressionDoesNotTruncateExistingFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.UnsupportedCompression." + Guid.NewGuid().ToString("N") + ".csv.br");
+        const string original = "Name,Value\nOriginal,1\n";
+        try
+        {
+            File.WriteAllText(path, original);
+
+            Assert.Throws<PlatformNotSupportedException>(() =>
+                new CsvDocument()
+                    .WithHeader("Name", "Value")
+                    .AddRow("Replacement", 2)
+                    .Save(path, new CsvSaveOptions
+                    {
+                        CompressionType = CsvCompressionType.Brotli,
+                        NewLine = "\n"
+                    }));
+
+            Assert.Equal(original, File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+#endif
+
+    [Fact]
+    public void SaveObjects_UsesCompressionFromDestinationExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            CsvDocument.SaveObjects(path, new object?[] { new { Name = "A", Value = 1 } }, new CsvSaveOptions { NewLine = "\n" });
+
+            var parsed = CsvDocument.Load(path);
+            var row = Assert.Single(parsed.AsEnumerable());
+
+            Assert.Equal("A", row.AsString("Name"));
+            Assert.Equal(1, row.AsInt32("Value"));
         }
         finally
         {
