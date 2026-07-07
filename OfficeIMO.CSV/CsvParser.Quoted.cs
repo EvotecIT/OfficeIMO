@@ -13,7 +13,7 @@ internal static partial class CsvParser
         Incomplete
     }
 
-    private static bool TryParseQuotedRecord(string text, char delimiter, bool trim, out string[] fields)
+    private static bool TryParseQuotedRecord(string text, char delimiter, bool trim, bool strictQuotes, int lineNumber, out string[] fields)
     {
         fields = Array.Empty<string>();
         if (text.Length > 0 && text[0] == '"' && TryParseStrictQuotedRecord(text, delimiter, trim, out fields))
@@ -30,6 +30,11 @@ internal static partial class CsvParser
         if (standardResult == QuotedRecordParseResult.Incomplete)
         {
             return false;
+        }
+
+        if (strictQuotes)
+        {
+            throw new CsvParseException("Invalid quoted field.", lineNumber);
         }
 
         var buffer = new StringBuilder();
@@ -110,7 +115,7 @@ internal static partial class CsvParser
         return true;
     }
 
-    private static bool TryParseQuotedRecord(string text, char delimiter, bool trim, List<string> fields)
+    private static bool TryParseQuotedRecord(string text, char delimiter, bool trim, bool strictQuotes, int lineNumber, List<string> fields)
     {
         fields.Clear();
         var standardResult = TryParseStandardQuotedRecord(text, delimiter, trim, fields);
@@ -125,8 +130,19 @@ internal static partial class CsvParser
             return false;
         }
 
+        if (strictQuotes)
+        {
+            throw new CsvParseException("Invalid quoted field.", lineNumber);
+        }
+
         return TryParseFlexibleQuotedRecord(text, delimiter, trim, fields);
     }
+
+    private static bool TryParseQuotedRecordLenient(string text, char delimiter, bool trim, out string[] fields) =>
+        TryParseQuotedRecord(text, delimiter, trim, strictQuotes: false, lineNumber: 0, out fields);
+
+    private static bool TryParseQuotedRecordLenient(string text, char delimiter, bool trim, List<string> fields) =>
+        TryParseQuotedRecord(text, delimiter, trim, strictQuotes: false, lineNumber: 0, fields);
 
     private static bool TryParseFlexibleQuotedRecord(string text, char delimiter, bool trim, List<string> parsedFields)
     {
@@ -215,11 +231,12 @@ internal static partial class CsvParser
         string firstLineSeparator,
         char delimiter,
         bool trim,
+        bool strictQuotes,
         List<string> parsedFields,
         ref int lineNumber)
     {
         parsedFields.Clear();
-        return TryParseStandardQuotedRecordContinuations(
+        var result = TryParseStandardQuotedRecordContinuations(
             reader,
             pendingLines,
             firstLine,
@@ -227,7 +244,14 @@ internal static partial class CsvParser
             delimiter,
             trim,
             parsedFields,
-            ref lineNumber) == QuotedRecordParseResult.Complete;
+            ref lineNumber);
+
+        if (result == QuotedRecordParseResult.Invalid && strictQuotes)
+        {
+            throw new CsvParseException("Invalid quoted field.", lineNumber);
+        }
+
+        return result == QuotedRecordParseResult.Complete;
     }
 
     private static QuotedRecordParseResult TryParseStandardQuotedRecordContinuations(

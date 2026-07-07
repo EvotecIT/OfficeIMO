@@ -135,7 +135,10 @@ internal static class CsvWriter
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
         ISet<string>? quoteFields,
-        IReadOnlyList<string>? fieldNames)
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         if (buffer == null)
         {
@@ -150,7 +153,7 @@ internal static class CsvWriter
                 buffer.Append(delimiter);
             }
 
-            AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+            AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i), dateTimeFormat, useUtc, nullValue);
         }
 
         WriteBufferedRecordLine(writer, buffer, newLine);
@@ -166,7 +169,10 @@ internal static class CsvWriter
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
         ISet<string>? quoteFields,
-        IReadOnlyList<string>? fieldNames)
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         if (buffer == null)
         {
@@ -181,7 +187,7 @@ internal static class CsvWriter
                 buffer.Append(delimiter);
             }
 
-            AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+            AppendEscapedValue(buffer, values[i], delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i), dateTimeFormat, useUtc, nullValue);
         }
 
         WriteBufferedRecordLine(writer, buffer, newLine);
@@ -467,7 +473,10 @@ internal static class CsvWriter
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
         ISet<string>? quoteFields,
-        IReadOnlyList<string>? fieldNames)
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         if (valueAccessor == null)
         {
@@ -481,7 +490,7 @@ internal static class CsvWriter
                 writer.Write(delimiter);
             }
 
-            var text = FormatValue(valueAccessor(state, i), culture);
+            var text = FormatValue(valueAccessor(state, i), culture, dateTimeFormat, useUtc, nullValue);
             if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
@@ -505,7 +514,10 @@ internal static class CsvWriter
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
         ISet<string>? quoteFields,
-        IReadOnlyList<string>? fieldNames)
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         if (buffer == null)
         {
@@ -525,7 +537,7 @@ internal static class CsvWriter
                 buffer.Append(delimiter);
             }
 
-            AppendEscapedValue(buffer, valueAccessor(state, i), delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+            AppendEscapedValue(buffer, valueAccessor(state, i), delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i), dateTimeFormat, useUtc, nullValue);
         }
 
         WriteBufferedRecordLine(writer, buffer, newLine);
@@ -543,7 +555,10 @@ internal static class CsvWriter
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
         ISet<string>? quoteFields,
-        IReadOnlyList<string>? fieldNames)
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         if (buffer == null)
         {
@@ -563,7 +578,7 @@ internal static class CsvWriter
                 buffer.Append(delimiter);
             }
 
-            AppendEscapedValue(buffer, valueAccessor(state, i), delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i));
+            AppendEscapedValue(buffer, valueAccessor(state, i), delimiter, culture, formulaInjectionPolicy, quoteMode, ShouldQuoteField(quoteFields, fieldNames, i), dateTimeFormat, useUtc, nullValue);
         }
 
         WriteBufferedRecordLine(writer, buffer, newLine);
@@ -657,11 +672,18 @@ internal static class CsvWriter
         CultureInfo culture,
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
-        bool forceQuote)
+        bool forceQuote,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         if (value is null)
         {
-            if (quoteMode == CsvQuoteMode.Always || forceQuote)
+            if (nullValue is not null)
+            {
+                WriteEscaped(buffer, nullValue, delimiter, quoteMode, forceQuote);
+            }
+            else if (quoteMode == CsvQuoteMode.Always || forceQuote)
             {
                 buffer.Append("\"\"");
             }
@@ -677,6 +699,19 @@ internal static class CsvWriter
             }
 
             WriteEscaped(buffer, text, delimiter, quoteMode, forceQuote);
+            return;
+        }
+
+        if ((dateTimeFormat is not null || useUtc) &&
+            (value is DateTime || value is DateTimeOffset))
+        {
+            var formattedDate = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
+            if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+            {
+                formattedDate = ApplyFormulaInjectionPolicy(formattedDate, formulaInjectionPolicy);
+            }
+
+            WriteEscaped(buffer, formattedDate, delimiter, quoteMode, forceQuote);
             return;
         }
 

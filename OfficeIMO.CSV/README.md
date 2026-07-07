@@ -42,7 +42,7 @@ new CsvDocument()
 - Can escape formula-like values during save when producing CSV files that people will open in spreadsheet applications.
 - Handles real-world import details such as duplicate headers, generated blank headers, null tokens, static metadata columns, custom date formats, comments, W3C `#Fields:` headers, and mismatched row lengths.
 - Supports `AddRow`, `AddColumn`, `RemoveColumn`, `SortBy`, `Filter`, and `Transform`.
-- Provides schema validation with required columns, typed columns, defaults, and custom rules.
+- Provides schema inference and schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.
 - Supports streaming mode for large files and explicit materialization when transforms are needed.
 - Includes benchmark lanes against Dataplat/dbatools CSV, Sep, Sylvan, CsvHelper, and OfficeIMO fast paths.
@@ -72,6 +72,18 @@ document.Validate(out var errors);
 foreach (var error in errors) {
     Console.WriteLine($"{error.RowIndex}:{error.ColumnName} - {error.Message}");
 }
+```
+
+Infer a schema from sampled rows when the incoming file should define the import contract:
+
+```csharp
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
+    DateTimeFormats = new[] { "dd-MMM-yyyy" }
+});
+
+CsvSchema inferred = document.InferSchema(sampleSize: 1000);
+document.EnsureInferredSchema()
+    .ValidateOrThrow();
 ```
 
 ## Typed mapping
@@ -199,6 +211,14 @@ var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
 DateTime created = document.AsEnumerable().First().AsDateTime("Created");
 ```
 
+The parser defaults to lenient quoted-field handling for compatibility with common PowerShell CSV imports. Use strict mode when malformed quotes should fail the import:
+
+```csharp
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
+    QuoteParsingMode = CsvQuoteParsingMode.Strict
+});
+```
+
 ## Export options
 
 CSV output supports null tokens, date/time formatting, UTC conversion, append, no-clobber checks, compression, quoting, encoding, and formula escaping:
@@ -239,6 +259,17 @@ CsvDocument.FromObjects(rows)
     .Save("summary.csv");
 ```
 
+Use direct object writing for larger exports when the caller does not need to materialize a `CsvDocument` first. The same save options are honored, including null tokens, date/time formatting, UTC conversion, compression, append, and no-clobber checks:
+
+```csharp
+CsvDocument.SaveObjects("summary.csv.gz", rows, new CsvSaveOptions {
+    NullValue = "<null>",
+    DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ",
+    UseUtc = true,
+    CompressionType = CsvCompressionType.Auto
+});
+```
+
 Parse text when a service receives CSV payloads without a temporary file:
 
 ```csharp
@@ -256,6 +287,7 @@ string normalized = document.ToString(new CsvSaveOptions {
 ## Boundaries
 
 - This package owns CSV parsing, writing, transforms, and validation.
+- Delimiters are single characters. Multi-character delimiter support is not advertised until the parser, writer, delimiter detection, and benchmark lanes can all support it consistently.
 - Reader integration belongs in `OfficeIMO.Reader.Csv`.
 - Excel workbook behavior belongs in `OfficeIMO.Excel`.
 

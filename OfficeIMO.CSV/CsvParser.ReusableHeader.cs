@@ -31,6 +31,7 @@ internal static partial class CsvParser
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var reusableRecord = new List<string>(64);
@@ -101,7 +102,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (!TryParseQuotedRecord(line, delimiter, trim, reusableQuotedRecord))
+            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
             {
                 var logicalRecord = new System.Text.StringBuilder(line);
                 var pendingSeparator = lineSeparator;
@@ -117,7 +118,7 @@ internal static partial class CsvParser
                     logicalRecord.Append(next);
                     lineNumber++;
 
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, reusableQuotedRecord))
+                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
                     {
                         break;
                     }

@@ -113,6 +113,7 @@ internal static partial class CsvParser
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var emittedRecordCount = 0;
@@ -142,7 +143,7 @@ internal static partial class CsvParser
             }
 
             string[] fields;
-            if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
+            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
             {
                 var logicalRecord = new StringBuilder(line);
                 var pendingSeparator = lineSeparator;
@@ -158,7 +159,7 @@ internal static partial class CsvParser
                     logicalRecord.Append(next);
                     lineNumber++;
 
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, out fields))
+                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
                     {
                         break;
                     }
@@ -195,6 +196,7 @@ internal static partial class CsvParser
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var emittedRecordCount = 0;
@@ -224,7 +226,7 @@ internal static partial class CsvParser
             }
 
             string[] fields;
-            if (!TryParseQuotedRecord(line, delimiter, trim, out fields))
+            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
             {
                 var logicalRecord = new StringBuilder(line);
                 var pendingSeparator = lineSeparator;
@@ -240,7 +242,7 @@ internal static partial class CsvParser
                     logicalRecord.Append(next);
                     lineNumber++;
 
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, out fields))
+                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
                     {
                         break;
                     }
@@ -266,6 +268,7 @@ internal static partial class CsvParser
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var reusableRecord = new List<string>(64);
@@ -334,7 +337,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (!TryParseQuotedRecord(line, delimiter, trim, reusableQuotedRecord))
+            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
             {
                 var logicalRecord = new StringBuilder(line);
                 var pendingSeparator = lineSeparator;
@@ -350,7 +353,7 @@ internal static partial class CsvParser
                     logicalRecord.Append(next);
                     lineNumber++;
 
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, reusableQuotedRecord))
+                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
                     {
                         break;
                     }
@@ -376,6 +379,7 @@ internal static partial class CsvParser
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var reusableRecord = new List<string>(64);
@@ -444,7 +448,7 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (!TryParseQuotedRecord(line, delimiter, trim, reusableQuotedRecord))
+            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
             {
                 var logicalRecord = new StringBuilder(line);
                 var pendingSeparator = lineSeparator;
@@ -460,7 +464,7 @@ internal static partial class CsvParser
                     logicalRecord.Append(next);
                     lineNumber++;
 
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, reusableQuotedRecord))
+                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
                     {
                         break;
                     }
@@ -488,6 +492,7 @@ internal static partial class CsvParser
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var lineNumber = 1;
         var emittedRecordCount = 0;
@@ -591,9 +596,10 @@ internal static partial class CsvParser
                     lineSeparator,
                     delimiter,
                     trim,
+                    strictQuotes,
                     reusableQuotedRecord,
                     ref lineNumber) &&
-                !TryParseQuotedRecord(line, delimiter, trim, reusableQuotedRecord))
+                !TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
             {
                 throw new CsvParseException("Unterminated quoted field.", lineNumber);
             }
@@ -741,7 +747,7 @@ internal static partial class CsvParser
             return false;
         }
 
-        if (TryParseQuotedRecord(firstLine, options.Delimiter, options.TrimWhitespace, out _))
+        if (TryParseQuotedRecordLenient(firstLine, options.Delimiter, options.TrimWhitespace, out _))
         {
             return true;
         }
@@ -760,7 +766,7 @@ internal static partial class CsvParser
 
             continuations.Add(new CsvLine(next, nextSeparator));
             var candidate = string.Concat(logicalRecord.ToString(), pendingSeparator, next);
-            if (TryParseQuotedRecord(candidate, options.Delimiter, options.TrimWhitespace, out _))
+            if (TryParseQuotedRecordLenient(candidate, options.Delimiter, options.TrimWhitespace, out _))
             {
                 lineNumber += continuations.Count;
                 return true;

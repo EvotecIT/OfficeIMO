@@ -72,6 +72,12 @@ public sealed class CsvLoadOptions
     public string[]? DateTimeFormats { get; set; }
 
     /// <summary>
+    /// Gets or sets how malformed quoted fields are handled. Default is <see cref="CsvQuoteParsingMode.Lenient"/>
+    /// to preserve common PowerShell-style import behavior.
+    /// </summary>
+    public CsvQuoteParsingMode QuoteParsingMode { get; set; } = CsvQuoteParsingMode.Lenient;
+
+    /// <summary>
     /// Gets or sets columns appended to every loaded row, useful for source file names, import timestamps, or batch metadata.
     /// </summary>
     public IReadOnlyDictionary<string, object?>? StaticColumns { get; set; }

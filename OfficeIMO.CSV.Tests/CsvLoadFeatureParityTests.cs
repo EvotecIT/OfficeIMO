@@ -70,6 +70,27 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
+    public void Quote_Parsing_Defaults_To_Lenient_Mode()
+    {
+        var parsed = CsvDocument.Parse("Name,Value\nAlpha,\"one\"two\n");
+
+        var row = Assert.Single(parsed.AsEnumerable());
+
+        Assert.Equal("onetwo", row.AsString("Value"));
+    }
+
+    [Fact]
+    public void Quote_Parsing_Strict_Mode_Rejects_Invalid_Quoted_Field()
+    {
+        var ex = Assert.Throws<CsvParseException>(() =>
+            CsvDocument.Parse(
+                "Name,Value\nAlpha,\"one\"two\n",
+                new CsvLoadOptions { QuoteParsingMode = CsvQuoteParsingMode.Strict }));
+
+        Assert.Contains("Invalid quoted field", ex.Message);
+    }
+
+    [Fact]
     public void Schema_Validation_Uses_Custom_DateTime_Formats()
     {
         var parsed = CsvDocument.Parse(
@@ -113,6 +134,45 @@ public class CsvLoadFeatureParityTests
         });
 
         Assert.Equal("Name,Created,Value\nAlpha,20260707-1345,<null>\n", text);
+    }
+
+    [Fact]
+    public void WriteObjects_Uses_Null_Token_And_DateTime_Format()
+    {
+        var rows = new[] {
+            new {
+                Name = "Alpha",
+                Created = new DateTime(2026, 7, 7, 13, 45, 0, DateTimeKind.Utc),
+                Value = (string?)null
+            }
+        };
+
+        using var writer = new StringWriter();
+        CsvDocument.WriteObjects(
+            writer,
+            rows,
+            new CsvSaveOptions {
+                NewLine = "\n",
+                NullValue = "<null>",
+                DateTimeFormat = "yyyyMMdd-HHmm"
+            });
+
+        Assert.Equal("Name,Created,Value\nAlpha,20260707-1345,<null>\n", writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_TextRows_Use_Null_Token_When_Configured()
+    {
+        using var writer = new StringWriter();
+        using (var csv = new CsvObjectWriter(
+            writer,
+            new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" },
+            leaveOpen: true))
+        {
+            csv.WriteTextRow(new[] { "Name", "Value" }, new string?[] { "Alpha", null });
+        }
+
+        Assert.Equal("Name,Value\nAlpha,<null>\n", writer.ToString());
     }
 
     [Fact]

@@ -16,6 +16,7 @@ public sealed class CsvObjectWriter : IDisposable
     private readonly HashSet<string>? _quoteFields;
     private readonly bool _useDefaultWritePath;
     private readonly bool _useAlwaysQuotedWritePath;
+    private readonly bool _useFormattedValueOptions;
     private readonly bool _leaveOpen;
     private readonly StringBuilder _rowBuffer = new(1024);
     private const int WideTextRowThreshold = 20;
@@ -37,10 +38,13 @@ public sealed class CsvObjectWriter : IDisposable
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
         _options = options ?? new CsvSaveOptions();
         _quoteFields = CsvWriter.CreateQuoteFieldSet(_options.QuoteFields);
-        _useDefaultWritePath = _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
+        _useFormattedValueOptions = _options.NullValue is not null || _options.DateTimeFormat is not null || _options.UseUtc;
+        _useDefaultWritePath = !_useFormattedValueOptions
+            && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
             && _options.QuoteMode == CsvQuoteMode.AsNeeded
             && _quoteFields == null;
-        _useAlwaysQuotedWritePath = _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
+        _useAlwaysQuotedWritePath = !_useFormattedValueOptions
+            && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
             && _options.QuoteMode == CsvQuoteMode.Always
             && _quoteFields == null;
         _leaveOpen = leaveOpen;
@@ -152,7 +156,7 @@ public sealed class CsvObjectWriter : IDisposable
         }
         else
         {
-            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
         }
     }
 
@@ -314,7 +318,7 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
-        CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+        CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
     /// <summary>
@@ -531,7 +535,7 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
-        CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+        CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
     private void WriteBuffered<TState>(int valueCount, TState state, Func<TState, int, object?> valueAccessor)
@@ -544,11 +548,11 @@ public sealed class CsvObjectWriter : IDisposable
 
         if (_useAlwaysQuotedWritePath)
         {
-            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
             return;
         }
 
-        CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+        CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
     private void WriteTextBuffered(string?[] values)
@@ -565,7 +569,7 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
-        CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+        CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
     private void WriteTextBuffered<TState>(int valueCount, TState state, Func<TState, int, string?> valueAccessor)
@@ -582,7 +586,7 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
-        CsvWriter.WriteTextRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+        CsvWriter.WriteTextRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
     private void WriteDefaultTextRecord(string?[] values)
