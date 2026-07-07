@@ -27,6 +27,7 @@ public sealed class MarkdownWriteOptions {
     public static MarkdownWriteOptions CreateCommonMarkProfile() {
         var options = CreatePortableProfile();
         options.OutputLineEnding = "\n";
+        options.FrontMatterRendering = MarkdownFrontMatterRenderingMode.Omit;
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTableMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTaskListMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkDefinitionListMarkdownFallback(options);
@@ -36,17 +37,23 @@ public sealed class MarkdownWriteOptions {
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkParagraphLineStartMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkAttributedBlockMarkdownFallback(options);
         MarkdownInlineRenderBuiltInExtensions.AddCommonMarkGfmInlineMarkdownFallbacks(options);
+        MarkdownInlineRenderBuiltInExtensions.AddCommonMarkAttributedInlineMarkdownFallback(options);
         return options;
     }
 
     /// <summary>
     /// Creates a GitHub Flavored Markdown-oriented writer profile for README and GitHub documentation output.
     /// </summary>
-    public static MarkdownWriteOptions CreateGitHubFlavoredMarkdownProfile() => new MarkdownWriteOptions {
-        ImageRenderingMode = MarkdownImageRenderingMode.PortableMarkdown,
-        OutputLineEnding = "\n",
-        UnorderedListMarker = '-'
-    };
+    public static MarkdownWriteOptions CreateGitHubFlavoredMarkdownProfile() {
+        var options = new MarkdownWriteOptions {
+            ImageRenderingMode = MarkdownImageRenderingMode.PortableMarkdown,
+            OutputLineEnding = "\n",
+            UnorderedListMarker = '-'
+        };
+        MarkdownInlineRenderBuiltInExtensions.AddGitHubOfficeInlineMarkdownFallbacks(options);
+        MarkdownInlineRenderBuiltInExtensions.AddGitHubAttributedInlineMarkdownFallback(options);
+        return options;
+    }
 
     /// <summary>
     /// Creates a more portable markdown writer profile that degrades OfficeIMO-only blocks into broadly compatible markdown.
@@ -69,6 +76,11 @@ public sealed class MarkdownWriteOptions {
     /// Controls how image blocks and image inlines are serialized back to markdown text.
     /// </summary>
     public MarkdownImageRenderingMode ImageRenderingMode { get; set; } = MarkdownImageRenderingMode.RichMarkdown;
+
+    /// <summary>
+    /// Controls how YAML front matter is emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
+    /// </summary>
+    public MarkdownFrontMatterRenderingMode FrontMatterRendering { get; set; } = MarkdownFrontMatterRenderingMode.Preserve;
 
     /// <summary>
     /// Optional line ending to use in rendered Markdown. When unset, the platform default is used.
@@ -126,6 +138,7 @@ public sealed class MarkdownWriteOptions {
     public MarkdownWriteOptions Clone() {
         var clone = new MarkdownWriteOptions {
             ImageRenderingMode = ImageRenderingMode,
+            FrontMatterRendering = FrontMatterRendering,
             OutputLineEnding = OutputLineEnding,
             UnorderedListMarker = UnorderedListMarker
         };

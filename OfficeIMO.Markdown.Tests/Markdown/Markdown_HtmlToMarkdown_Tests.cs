@@ -281,6 +281,36 @@ public sealed class MarkdownHtmlToMarkdownTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_TriesLaterPictureSourcesAfterMalformedBase64Source() {
+        string directory = Path.Combine(Path.GetTempPath(), "OfficeIMO.HtmlImages." + Guid.NewGuid().ToString("N"));
+        try {
+            const string html = """
+<picture>
+  <source srcset="data:image/png;base64,not-valid-base64">
+  <source srcset="large.png 2x">
+  <img src="small.png" alt="Photo">
+</picture>
+""";
+
+            foreach (HtmlBase64ImageHandling handling in new[] { HtmlBase64ImageHandling.Skip, HtmlBase64ImageHandling.SaveToFile }) {
+                MarkdownDoc document = html.LoadFromHtml(new HtmlToMarkdownOptions {
+                    BaseUri = new Uri("https://example.test/articles/"),
+                    Base64Images = handling,
+                    Base64ImageOutputDirectory = directory
+                });
+
+                var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+                Assert.Equal("https://example.test/articles/large.png", image.Path);
+                Assert.DoesNotContain("data:image", document.ToMarkdown(), StringComparison.OrdinalIgnoreCase);
+            }
+        } finally {
+            if (Directory.Exists(directory)) {
+                Directory.Delete(directory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PreservesPictureFallbackImageSrcInsteadOfSrcSetCandidate() {
         const string html = """
 <picture>

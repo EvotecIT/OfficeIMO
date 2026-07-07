@@ -349,6 +349,45 @@ Text
     }
 
     [Fact]
+    public void CommonMark_Write_Profile_Renders_Attributed_CommonMark_Inlines_As_Raw_Html() {
+        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.GenericAttributes = true;
+        var doc = MarkdownReader.Parse("**bold**{#strong .lead} [link](https://example.test){.go}", readerOptions);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<strong id=\"strong\" class=\"lead\">bold</strong>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<a href=\"https://example.test\" class=\"go\">link</a>", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("{#strong", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("{.go", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommonMark_Write_Profile_Renders_Attributed_ListItems_As_Raw_Html() {
+        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.GenericAttributes = true;
+        var doc = MarkdownReader.Parse("- Item {#one .picked}", readerOptions);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("<ul><li id=\"one\" class=\"picked\">Item</li></ul>", markdown);
+        Assert.DoesNotContain("{#one", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommonMark_Write_Profile_Omits_FrontMatter() {
+        var doc = MarkdownDoc.Create()
+            .FrontMatter(new Dictionary<string, object?> { ["title"] = "OfficeIMO" })
+            .H1("Title");
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("# Title", markdown);
+        Assert.DoesNotContain("---", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("title:", markdown, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Keeps_Pipe_Tables_And_Portable_Images() {
         var table = new TableBlock();
         table.Headers.Add("Name");
@@ -367,8 +406,28 @@ Text
     }
 
     [Fact]
+    public void GitHubFlavoredMarkdown_Write_Profile_Renders_OfficeOnly_Inlines_As_Raw_Html() {
+        var doc = MarkdownDoc.Create()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Strike("old")
+                .Highlight("new")
+                .Inserted("added")
+                .Superscript("up")
+                .Subscript("down")));
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("~~old~~ <mark>new</mark> <ins>added</ins> <sup>up</sup> <sub>down</sub>", markdown);
+        Assert.DoesNotContain("==new==", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("++added++", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("^up^", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("~down~", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void MarkdownWriteOptions_CreateProfile_Maps_Named_Output_Profiles() {
         Assert.Empty(MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.OfficeIMO).BlockRenderExtensions);
+        Assert.Equal(MarkdownFrontMatterRenderingMode.Omit, MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).FrontMatterRendering);
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkTableMarkdownName, StringComparison.Ordinal));
@@ -408,7 +467,16 @@ Text
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkSubscriptMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkAttributedInlineMarkdownName, StringComparison.Ordinal));
         Assert.Equal(MarkdownImageRenderingMode.PortableMarkdown, MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.GitHubFlavoredMarkdown).ImageRenderingMode);
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.GitHubFlavoredMarkdown).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.GitHubHighlightMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.GitHubFlavoredMarkdown).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.GitHubAttributedInlineMarkdownName, StringComparison.Ordinal));
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.Portable).BlockRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.PortableCalloutMarkdownName, StringComparison.Ordinal));

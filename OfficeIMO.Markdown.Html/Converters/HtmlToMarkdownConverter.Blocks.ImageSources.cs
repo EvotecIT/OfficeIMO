@@ -31,10 +31,8 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ResolvePictureSource(IElement pictureElement, ConversionContext context) {
-        foreach (string candidate in ResolvePictureSourceCandidates(pictureElement, context)) {
-            if (!string.IsNullOrWhiteSpace(candidate)) {
-                return candidate;
-            }
+        if (TryResolveUsableImageCandidate(ResolvePictureSourceCandidates(pictureElement, context), context, out string source)) {
+            return source;
         }
 
         return string.Empty;
@@ -51,11 +49,28 @@ public sealed partial class HtmlToMarkdownConverter {
                 continue;
             }
 
-            AddResolvedCandidate(candidates, ResolveUrlFromSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset"));
+            AddResolvedSrcSetCandidateAttributes(candidates, child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
             AddResolvedCandidate(candidates, ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src"));
         }
 
         return candidates;
+    }
+
+    private static void AddResolvedSrcSetCandidateAttributes(IList<string> candidates, IElement element, ConversionContext context, params string[] attributeNames) {
+        if (candidates == null || element == null || context == null || attributeNames == null) {
+            return;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            IReadOnlyList<HtmlSrcSetCandidate> srcSetCandidates = HtmlImageSourceResolver.ResolveSrcSetCandidates(
+                element.GetAttribute(attributeNames[i]),
+                context.Options.BaseUri,
+                context.Options.UrlPolicy);
+
+            for (int candidateIndex = 0; candidateIndex < srcSetCandidates.Count; candidateIndex++) {
+                AddResolvedCandidate(candidates, srcSetCandidates[candidateIndex].Url);
+            }
+        }
     }
 
     private static void AddResolvedCandidate(IList<string> candidates, string? value) {

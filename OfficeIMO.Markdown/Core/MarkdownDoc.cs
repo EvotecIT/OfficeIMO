@@ -546,8 +546,9 @@ public class MarkdownDoc : MarkdownObject {
         var context = new MarkdownWriteContext(this, blocks, options, headingCatalog);
         using var _ctx = MarkdownRenderContext.Push(context);
         StringBuilder sb = new StringBuilder();
-        if (_frontMatter != null) {
-            sb.AppendLine(_frontMatter.RenderFrontMatter());
+        var renderedFrontMatter = RenderFrontMatter(_frontMatter, options);
+        if (!string.IsNullOrEmpty(renderedFrontMatter)) {
+            sb.AppendLine(renderedFrontMatter);
             sb.AppendLine();
         }
 
@@ -748,6 +749,18 @@ public class MarkdownDoc : MarkdownObject {
 
     private static string RenderMarkdownBlock(IMarkdownBlock block, MarkdownWriteContext context) {
         return MarkdownBlockRenderDispatcher.RenderMarkdown(block, context);
+    }
+
+    private static string? RenderFrontMatter(IFrontMatterMarkdownBlock? frontMatter, MarkdownWriteOptions options) {
+        if (frontMatter == null) {
+            return null;
+        }
+
+        return options.FrontMatterRendering switch {
+            MarkdownFrontMatterRenderingMode.Preserve => frontMatter.RenderFrontMatter(),
+            MarkdownFrontMatterRenderingMode.Omit => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(options.FrontMatterRendering), options.FrontMatterRendering, "Unknown front matter rendering mode.")
+        };
     }
 
     private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult) {

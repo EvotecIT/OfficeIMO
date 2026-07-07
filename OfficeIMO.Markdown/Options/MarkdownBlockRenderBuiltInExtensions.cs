@@ -167,11 +167,15 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         }
 
         AddIfMissing(options.BlockRenderExtensions, CommonMarkAttributedBlockMarkdownName, typeof(MarkdownBlock), static (block, _) => {
-            if (block is not MarkdownObject markdownObject || markdownObject.Attributes.IsEmpty) {
-                return null;
+            if (block is IMarkdownListBlock listBlock && ContainsAttributedListItem(listBlock.ListItems)) {
+                return RenderListHtmlWithItemAttributes(listBlock);
             }
 
-            return block.RenderHtml();
+            if (block is MarkdownObject markdownObject && !markdownObject.Attributes.IsEmpty) {
+                return block.RenderHtml();
+            }
+
+            return null;
         });
     }
 
@@ -325,6 +329,41 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         }
 
         return false;
+    }
+
+    private static bool ContainsAttributedListItem(IReadOnlyList<ListItem> items) {
+        if (items == null || items.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < items.Count; i++) {
+            var item = items[i];
+            if (item == null) {
+                continue;
+            }
+
+            if (!item.Attributes.IsEmpty) {
+                return true;
+            }
+
+            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
+                if (item.Children[childIndex] is IMarkdownListBlock childList
+                    && ContainsAttributedListItem(childList.ListItems)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static string RenderListHtmlWithItemAttributes(IMarkdownListBlock listBlock) {
+        return listBlock switch {
+            UnorderedListBlock unordered => unordered.RenderHtml(renderItemAttributes: true),
+            OrderedListBlock ordered => ordered.RenderHtml(renderItemAttributes: true),
+            IMarkdownBlock block => block.RenderHtml(),
+            _ => string.Empty
+        };
     }
 
     private static string RenderPortableCalloutHtml(CalloutBlock callout, HtmlOptions? options) {
