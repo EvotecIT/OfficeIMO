@@ -244,6 +244,52 @@ Lead[^1]
     }
 
     [Fact]
+    public void CommonMark_Write_Profile_Renders_Details_As_Raw_Html() {
+        var details = new DetailsBlock(
+            new SummaryBlock("More"),
+            new IMarkdownBlock[] {
+                new ParagraphBlock(new InlineSequence().Bold("Hidden"))
+            },
+            open: true);
+        var doc = MarkdownDoc.Create().Add(details);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.StartsWith("<details open>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<summary>More</summary>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<strong>Hidden</strong>", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("**Hidden**", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommonMark_Write_Profile_Renders_NonCommonMark_Inlines_As_Raw_Html() {
+        var scalarDoc = MarkdownDoc.Create()
+            .Add(new ParagraphBlock(new InlineSequence()
+                .Inserted("added")
+                .Superscript("up")
+                .Subscript("down")));
+
+        var scalarMarkdown = scalarDoc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("<ins>added</ins> <sup>up</sup> <sub>down</sub>", scalarMarkdown);
+
+        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.Inserted = true;
+        readerOptions.Superscript = true;
+        readerOptions.Subscript = true;
+        var sequenceDoc = MarkdownReader.Parse("++added **bold**++ ^up **bold**^ ~down **bold**~", readerOptions);
+
+        var sequenceMarkdown = sequenceDoc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<ins>added <strong>bold</strong></ins>", sequenceMarkdown, StringComparison.Ordinal);
+        Assert.Contains("<sup>up <strong>bold</strong></sup>", sequenceMarkdown, StringComparison.Ordinal);
+        Assert.Contains("<sub>down <strong>bold</strong></sub>", sequenceMarkdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("++added", sequenceMarkdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("^up", sequenceMarkdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("~down", sequenceMarkdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Keeps_Pipe_Tables_And_Portable_Images() {
         var table = new TableBlock();
         table.Headers.Add("Name");
@@ -277,11 +323,23 @@ Lead[^1]
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkFootnoteDefinitionMarkdownName, StringComparison.Ordinal));
         Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkDetailsMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkStrikethroughMarkdownName, StringComparison.Ordinal));
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkFootnoteReferenceMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkInsertedMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkSuperscriptMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkSubscriptMarkdownName, StringComparison.Ordinal));
         Assert.Equal(MarkdownImageRenderingMode.PortableMarkdown, MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.GitHubFlavoredMarkdown).ImageRenderingMode);
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.Portable).BlockRenderExtensions,

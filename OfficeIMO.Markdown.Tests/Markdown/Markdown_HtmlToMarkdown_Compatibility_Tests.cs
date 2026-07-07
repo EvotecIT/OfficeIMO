@@ -145,6 +145,26 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_PictureFallbackImageKeepsLazyImageSourceAheadOfPlaceholder() {
+        const string html = """
+<picture>
+  <img src="transparent.gif" data-src="real.png" alt="Photo">
+</picture>
+""";
+
+        var options = new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/")
+        };
+
+        var document = new HtmlToMarkdownConverter().ConvertToDocument(html, options);
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("https://example.com/docs/real.png", image.Path);
+        Assert.Equal("https://example.com/docs/real.png", image.PictureFallbackPath);
+        Assert.Equal("Photo", image.Alt);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PassThroughTags_PreserveOriginalHtmlEvenForKnownTags() {
         const string html = "<p>Keep <strong>literal</strong></p>";
 
@@ -214,6 +234,25 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         Assert.Throws<NotSupportedException>(() => html.ToMarkdown(new HtmlToMarkdownOptions {
             UnknownInlineHandling = HtmlUnknownTagHandling.Raise
         }));
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_UnknownInlineFlow_DoesNotCreateParagraphBoundaries() {
+        const string html = "Hello <x-chip>world</x-chip>!";
+
+        string bypassed = Normalize(html.ToMarkdown(new HtmlToMarkdownOptions {
+            UnknownBlockHandling = HtmlUnknownTagHandling.Bypass
+        }));
+        string dropped = Normalize(html.ToMarkdown(new HtmlToMarkdownOptions {
+            UnknownBlockHandling = HtmlUnknownTagHandling.Drop
+        }));
+        string preservedInline = Normalize(html.ToMarkdown(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = false
+        }));
+
+        Assert.Equal("Hello world!", bypassed);
+        Assert.Equal("Hello !", dropped);
+        Assert.Equal("Hello <x-chip>world</x-chip>!", preservedInline);
     }
 
     [Fact]

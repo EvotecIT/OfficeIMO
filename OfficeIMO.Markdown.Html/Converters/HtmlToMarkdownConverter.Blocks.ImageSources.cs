@@ -55,12 +55,6 @@ public sealed partial class HtmlToMarkdownConverter {
             AddResolvedCandidate(candidates, ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src"));
         }
 
-        var imageElement = FindFirstDescendantByEffectiveTagName(pictureElement, context, "IMG");
-        if (imageElement != null) {
-            AddResolvedCandidate(candidates, ResolveUrlFromSrcSetAttributes(imageElement, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset"));
-            AddResolvedCandidate(candidates, ResolveUrlAttributes(imageElement, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src"));
-        }
-
         return candidates;
     }
 

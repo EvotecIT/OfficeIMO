@@ -23,6 +23,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
     public const string CommonMarkDefinitionListMarkdownName = "CommonMark.DefinitionList.Markdown";
     /// <summary>Stable registration name for the CommonMark footnote-definition markdown fallback.</summary>
     public const string CommonMarkFootnoteDefinitionMarkdownName = "CommonMark.FootnoteDefinition.Markdown";
+    /// <summary>Stable registration name for the CommonMark details markdown fallback.</summary>
+    public const string CommonMarkDetailsMarkdownName = "CommonMark.Details.Markdown";
 
     /// <summary>Adds a portable markdown fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutMarkdownFallback(MarkdownWriteOptions options) {
@@ -104,6 +106,21 @@ public static class MarkdownBlockRenderBuiltInExtensions {
             }
 
             return ((IMarkdownBlock)footnote).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for details blocks by emitting raw HTML.</summary>
+    public static void AddCommonMarkDetailsMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkDetailsMarkdownName, typeof(DetailsBlock), static (block, _) => {
+            if (block is not DetailsBlock details) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)details).RenderHtml();
         });
     }
 

@@ -100,6 +100,18 @@ public sealed partial class HtmlToMarkdownConverter {
             return;
         }
 
+        if (!IsInlineElement(element, context) && context.Options.UnknownInlineHandling == HtmlUnknownTagHandling.Preserve) {
+            switch (context.Options.UnknownBlockHandling) {
+                case HtmlUnknownTagHandling.Drop:
+                    return;
+                case HtmlUnknownTagHandling.Bypass:
+                    AppendInlineElementChildren(sequence, element, context);
+                    return;
+                case HtmlUnknownTagHandling.Raise:
+                    throw new NotSupportedException($"Unsupported HTML inline element '{element.TagName}' cannot be converted to Markdown.");
+            }
+        }
+
         switch (context.Options.UnknownInlineHandling) {
             case HtmlUnknownTagHandling.Drop:
                 return;

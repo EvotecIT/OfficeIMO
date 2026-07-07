@@ -78,10 +78,66 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (!IsInlineElement(element, context)) {
-            return true;
+            if (IsVisualContractElement(element)
+                || (context.Options.PreserveUnsupportedBlocks
+                    && context.Options.UnknownBlockHandling == HtmlUnknownTagHandling.Preserve)) {
+                return true;
+            }
+
+            if (HasVisibleInlineSibling(element, context)) {
+                return false;
+            }
+
+            return context.Options.UnknownBlockHandling != HtmlUnknownTagHandling.Preserve;
         }
 
         return false;
+    }
+
+    private static bool IsVisualContractElement(IElement element) {
+        if (element == null) {
+            return false;
+        }
+
+        var attributes = new List<KeyValuePair<string, string?>>();
+        foreach (var attribute in element.Attributes) {
+            attributes.Add(new KeyValuePair<string, string?>(attribute.Name, attribute.Value));
+        }
+
+        return MarkdownVisualElementContract.TryParse(attributes, out _);
+    }
+
+    private static bool HasVisibleInlineSibling(IElement element, ConversionContext context) {
+        if (element == null || element.ParentElement == null) {
+            return false;
+        }
+
+        foreach (var sibling in element.ParentElement.ChildNodes) {
+            if (ReferenceEquals(sibling, element)) {
+                continue;
+            }
+
+            if (IsVisibleInlineFlowNode(sibling, context)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsVisibleInlineFlowNode(INode node, ConversionContext context) {
+        switch (node) {
+            case IText text:
+                return !string.IsNullOrWhiteSpace(text.Data);
+            case IElement element:
+                if (ShouldIgnoreElement(element, context) || IsBlockElement(element, context)) {
+                    return false;
+                }
+
+                return !HasDirectBlockChildren(element, context);
+            default:
+                return false;
+        }
     }
 
     private static bool CanConvertAnchorToLinkedImageBlock(IElement element, ConversionContext context) {
