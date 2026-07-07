@@ -73,7 +73,7 @@ public sealed partial class HtmlToMarkdownConverter {
                 list.Start = start;
             }
 
-            foreach (var item in element.Children.Where(child => child.TagName.Equals("LI", StringComparison.OrdinalIgnoreCase))) {
+            foreach (var item in element.Children.Where(child => HasEffectiveTagName(child, context, "LI"))) {
                 list.Items.Add(ConvertListItem(item, context));
             }
 
@@ -81,7 +81,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         var unordered = new UnorderedListBlock();
-        foreach (var item in element.Children.Where(child => child.TagName.Equals("LI", StringComparison.OrdinalIgnoreCase))) {
+        foreach (var item in element.Children.Where(child => HasEffectiveTagName(child, context, "LI"))) {
             unordered.Items.Add(ConvertListItem(item, context));
         }
         return unordered;
@@ -94,7 +94,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
         foreach (var child in element.ChildNodes) {
             if (child is IElement childElement
-                && childElement.TagName.Equals("INPUT", StringComparison.OrdinalIgnoreCase)
+                && HasEffectiveTagName(childElement, context, "INPUT")
                 && string.Equals(childElement.GetAttribute("type"), "checkbox", StringComparison.OrdinalIgnoreCase)) {
                 isTask = true;
                 isChecked = childElement.HasAttribute("checked");

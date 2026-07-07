@@ -14,19 +14,19 @@ public sealed partial class HtmlToMarkdownConverter {
         var columnWidthPoints = new List<double?>();
         var columnWidthWeights = new List<double?>();
         int maxExpandedColumns = context.Options.MaxTableExpandedColumns;
-        CaptureColumnGroupAlignments(element, columnAlignments, maxExpandedColumns: maxExpandedColumns);
-        CaptureColumnGroupWidths(element, columnWidthPoints, columnWidthWeights, maxExpandedColumns: maxExpandedColumns);
+        CaptureColumnGroupAlignments(element, context, columnAlignments, maxExpandedColumns: maxExpandedColumns);
+        CaptureColumnGroupWidths(element, context, columnWidthPoints, columnWidthWeights, maxExpandedColumns: maxExpandedColumns);
         var activeRowSpans = new List<int>();
 
-        foreach (var row in EnumerateTableRows(element)) {
+        foreach (var row in EnumerateTableRows(element, context)) {
             var cells = row.Children
-                .Where(child => child.TagName.Equals("TH", StringComparison.OrdinalIgnoreCase) || child.TagName.Equals("TD", StringComparison.OrdinalIgnoreCase))
+                .Where(child => HasEffectiveTagName(child, context, "TH") || HasEffectiveTagName(child, context, "TD"))
                 .ToList();
             if (cells.Count == 0) {
                 continue;
             }
 
-            bool isHeaderRow = !headerWritten && cells.All(cell => cell.TagName.Equals("TH", StringComparison.OrdinalIgnoreCase));
+            bool isHeaderRow = !headerWritten && cells.All(cell => HasEffectiveTagName(cell, context, "TH"));
             var renderedCells = new List<string>(cells.Count);
             var structuredCells = new List<TableCell>(cells.Count);
             int logicalColumn = 0;
@@ -128,12 +128,12 @@ public sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static void CaptureColumnGroupAlignments(IElement table, List<ColumnAlignment> alignments, int maxExpandedColumns) {
+    private static void CaptureColumnGroupAlignments(IElement table, ConversionContext context, List<ColumnAlignment> alignments, int maxExpandedColumns) {
         int columnIndex = 0;
         foreach (var child in table.Children) {
-            if (child.TagName.Equals("COLGROUP", StringComparison.OrdinalIgnoreCase)) {
+            if (HasEffectiveTagName(child, context, "COLGROUP")) {
                 var colElements = child.Children
-                    .Where(static col => col.TagName.Equals("COL", StringComparison.OrdinalIgnoreCase))
+                    .Where(col => HasEffectiveTagName(col, context, "COL"))
                     .ToList();
                 var groupAlignment = ParseAlignment(child);
                 if (colElements.Count == 0) {
@@ -153,7 +153,7 @@ public sealed partial class HtmlToMarkdownConverter {
                 continue;
             }
 
-            if (child.TagName.Equals("COL", StringComparison.OrdinalIgnoreCase)) {
+            if (HasEffectiveTagName(child, context, "COL")) {
                 columnIndex = CaptureSpannedColumnAlignment(alignments, columnIndex, child, ParseAlignment(child), replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
             }
         }
@@ -173,12 +173,12 @@ public sealed partial class HtmlToMarkdownConverter {
         return columnIndex + boundedSpan;
     }
 
-    private static void CaptureColumnGroupWidths(IElement table, List<double?> widthPoints, List<double?> widthWeights, int maxExpandedColumns) {
+    private static void CaptureColumnGroupWidths(IElement table, ConversionContext context, List<double?> widthPoints, List<double?> widthWeights, int maxExpandedColumns) {
         int columnIndex = 0;
         foreach (var child in table.Children) {
-            if (child.TagName.Equals("COLGROUP", StringComparison.OrdinalIgnoreCase)) {
+            if (HasEffectiveTagName(child, context, "COLGROUP")) {
                 var colElements = child.Children
-                    .Where(static col => col.TagName.Equals("COL", StringComparison.OrdinalIgnoreCase))
+                    .Where(col => HasEffectiveTagName(col, context, "COL"))
                     .ToList();
                 ColumnWidthHint groupWidth = ParseColumnWidth(child);
                 if (colElements.Count == 0) {
@@ -198,7 +198,7 @@ public sealed partial class HtmlToMarkdownConverter {
                 continue;
             }
 
-            if (child.TagName.Equals("COL", StringComparison.OrdinalIgnoreCase)) {
+            if (HasEffectiveTagName(child, context, "COL")) {
                 columnIndex = CaptureSpannedColumnWidth(widthPoints, widthWeights, columnIndex, child, ParseColumnWidth(child), replaceExisting: false, maxExpandedColumns: maxExpandedColumns);
             }
         }
@@ -326,20 +326,20 @@ public sealed partial class HtmlToMarkdownConverter {
         }
     }
 
-    private static IEnumerable<IElement> EnumerateTableRows(IElement table) {
+    private static IEnumerable<IElement> EnumerateTableRows(IElement table, ConversionContext context) {
         foreach (var child in table.Children) {
-            if (child.TagName.Equals("TR", StringComparison.OrdinalIgnoreCase)) {
+            if (HasEffectiveTagName(child, context, "TR")) {
                 yield return child;
                 continue;
             }
 
-            if (!child.TagName.Equals("THEAD", StringComparison.OrdinalIgnoreCase)
-                && !child.TagName.Equals("TBODY", StringComparison.OrdinalIgnoreCase)
-                && !child.TagName.Equals("TFOOT", StringComparison.OrdinalIgnoreCase)) {
+            if (!HasEffectiveTagName(child, context, "THEAD")
+                && !HasEffectiveTagName(child, context, "TBODY")
+                && !HasEffectiveTagName(child, context, "TFOOT")) {
                 continue;
             }
 
-            foreach (var row in child.Children.Where(static row => row.TagName.Equals("TR", StringComparison.OrdinalIgnoreCase))) {
+            foreach (var row in child.Children.Where(row => HasEffectiveTagName(row, context, "TR"))) {
                 yield return row;
             }
         }

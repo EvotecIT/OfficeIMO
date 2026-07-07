@@ -20,6 +20,10 @@ public sealed partial class HtmlToMarkdownConverter {
             : alias.Trim().ToUpperInvariant();
     }
 
+    private static bool HasEffectiveTagName(IElement element, ConversionContext? context, string tagName) {
+        return string.Equals(GetEffectiveTagName(element, context), tagName, StringComparison.OrdinalIgnoreCase);
+    }
+
     private static bool IsPassThroughTag(IElement element, ConversionContext? context) {
         if (element == null || context?.Options.PassThroughTags == null || context.Options.PassThroughTags.Count == 0) {
             return false;

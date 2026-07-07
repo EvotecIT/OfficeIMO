@@ -58,6 +58,19 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_TagAliases_MapStructuredChildrenToBuiltInConverters() {
+        const string html = "<custom-list><custom-item>First</custom-item><custom-item><strong>Second</strong></custom-item></custom-list>";
+
+        var options = new HtmlToMarkdownOptions();
+        options.TagAliases["custom-list"] = "ul";
+        options.TagAliases["custom-item"] = "li";
+
+        string markdown = Normalize(html.ToMarkdown(options));
+
+        Assert.Equal("- First\n- **Second**", markdown);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PassThroughTags_PreserveOriginalHtmlEvenForKnownTags() {
         const string html = "<p>Keep <strong>literal</strong></p>";
 
@@ -82,8 +95,12 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         string preserved = Normalize(html.ToMarkdown(new HtmlToMarkdownOptions {
             UnknownBlockHandling = HtmlUnknownTagHandling.Preserve
         }));
+        string bypassedInlineOnly = Normalize("<custom-widget><strong>Custom</strong> payload</custom-widget>".ToMarkdown(new HtmlToMarkdownOptions {
+            UnknownBlockHandling = HtmlUnknownTagHandling.Bypass
+        }));
 
         Assert.Equal("Inner **text**", bypassed);
+        Assert.Equal("**Custom** payload", bypassedInlineOnly);
         Assert.Equal(string.Empty, dropped);
         Assert.Contains("<x-card>", preserved, StringComparison.Ordinal);
         Assert.Throws<NotSupportedException>(() => html.ToMarkdown(new HtmlToMarkdownOptions {

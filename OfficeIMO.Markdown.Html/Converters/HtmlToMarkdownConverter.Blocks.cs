@@ -77,6 +77,11 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
+        if (context.Options.UnknownBlockHandling == HtmlUnknownTagHandling.Bypass
+            && !IsInlineElement(element, context)) {
+            return true;
+        }
+
         if (context.Options.UnknownBlockHandling != HtmlUnknownTagHandling.Bypass
             && context.Options.PreserveUnsupportedBlocks
             && !IsInlineElement(element, context)) {
