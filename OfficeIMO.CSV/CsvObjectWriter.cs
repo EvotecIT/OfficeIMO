@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Globalization;
+using System.Data;
 using System.Text;
 using OfficeIMO.Shared;
 
@@ -123,6 +124,51 @@ public sealed class CsvObjectWriter : IDisposable
         }
 
         WriteBuffered(values);
+    }
+
+    /// <summary>
+    /// Writes all rows from an <see cref="IDataReader"/> using the reader field names as CSV columns.
+    /// </summary>
+    /// <param name="reader">Source data reader positioned before the first row.</param>
+    /// <remarks>
+    /// The method streams rows without materializing a document and reuses one row buffer for the whole reader.
+    /// </remarks>
+    public void WriteDataReader(IDataReader reader)
+    {
+        ThrowIfDisposed();
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        var fieldCount = reader.FieldCount;
+        if (fieldCount <= 0)
+        {
+            throw new InvalidOperationException("Data reader must expose at least one field.");
+        }
+
+        var columns = new string[fieldCount];
+        for (var i = 0; i < fieldCount; i++)
+        {
+            columns[i] = reader.GetName(i);
+        }
+
+        EnsureColumns(columns);
+
+        var values = new object[fieldCount];
+        while (reader.Read())
+        {
+            var readCount = reader.GetValues(values);
+            for (var i = 0; i < fieldCount; i++)
+            {
+                if (i >= readCount || ReferenceEquals(values[i], DBNull.Value))
+                {
+                    values[i] = null!;
+                }
+            }
+
+            WriteTrustedRow(values);
+        }
     }
 
     /// <summary>

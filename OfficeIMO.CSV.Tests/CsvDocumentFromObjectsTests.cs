@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -179,6 +180,30 @@ public class CsvDocumentFromObjectsTests
         Assert.Equal(string.Empty, writer.ToString());
     }
 
+    [Fact]
+    public void CsvObjectWriter_WritesDataReaderSchemaAndRows()
+    {
+        using var reader = CreateReader();
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
+        {
+            csvWriter.WriteDataReader(reader);
+        }
+
+        Assert.Equal("Name,Score,Notes\nAlpha,1.5,\"A, quoted\"\nBeta,<null>,\n", writer.ToString());
+    }
+
+    [Fact]
+    public void WriteDataReader_WritesReaderWithoutMaterializingDocument()
+    {
+        using var reader = CreateReader();
+        using var writer = new StringWriter();
+
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", IncludeHeader = false });
+
+        Assert.Equal("Alpha,1.5,\"A, quoted\"\nBeta,,\n", writer.ToString());
+    }
+
     private sealed class FlushTrackingWriter : StringWriter
     {
         public bool WasFlushed { get; private set; }
@@ -188,6 +213,17 @@ public class CsvDocumentFromObjectsTests
             WasFlushed = true;
             base.Flush();
         }
+    }
+
+    private static IDataReader CreateReader()
+    {
+        var table = new DataTable();
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Score", typeof(decimal));
+        table.Columns.Add("Notes", typeof(string));
+        table.Rows.Add("Alpha", 1.5m, "A, quoted");
+        table.Rows.Add("Beta", DBNull.Value, string.Empty);
+        return table.CreateDataReader();
     }
 
     [Fact]

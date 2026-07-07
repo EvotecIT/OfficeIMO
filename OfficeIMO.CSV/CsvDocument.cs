@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Collections;
+using System.Data;
 using System.Globalization;
 using System.Text;
 using OfficeIMO.Shared;
@@ -143,6 +144,28 @@ public sealed partial class CsvDocument
         {
             throw new ArgumentException("Provide at least one data row.", nameof(items));
         }
+    }
+
+    /// <summary>
+    /// Writes an <see cref="IDataReader"/> directly as CSV without materializing a <see cref="CsvDocument"/>.
+    /// </summary>
+    /// <param name="writer">Destination text writer.</param>
+    /// <param name="reader">Source data reader positioned before the first row.</param>
+    /// <param name="options">Optional save settings.</param>
+    public static void WriteDataReader(TextWriter writer, IDataReader reader, CsvSaveOptions? options = null)
+    {
+        if (writer == null)
+        {
+            throw new ArgumentNullException(nameof(writer));
+        }
+
+        if (reader == null)
+        {
+            throw new ArgumentNullException(nameof(reader));
+        }
+
+        using var objectWriter = new CsvObjectWriter(writer, options ?? new CsvSaveOptions(), leaveOpen: true);
+        objectWriter.WriteDataReader(reader);
     }
 
     /// <summary>

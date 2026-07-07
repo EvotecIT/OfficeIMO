@@ -14,7 +14,7 @@ For a write-focused competitor pass:
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*Write*" --job short --warmupCount 1 --iterationCount 3
 ```
 
-The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV trusted text-row writing, OfficeIMO.CSV reusable reads, OfficeIMO.CSV field-span reads, OfficeIMO.CSV string and inferred-schema DataTable materialization, OfficeIMO.CSV direct DbDataReader consumption and DbDataReader-to-DataTable loading, CsvHelper typed/projected writes, CsvHelper raw/typed reads, Sylvan raw/string/span field reads and DataTable loading, Dataplat.Dbatools.Csv reader/writer/DataTable paths, and Sep strict reader/writer paths.
+The suite compares OfficeIMO.CSV object writing, OfficeIMO.CSV projected-row writing, OfficeIMO.CSV trusted text-row writing, OfficeIMO.CSV direct IDataReader writing, OfficeIMO.CSV reusable reads, OfficeIMO.CSV field-span reads, OfficeIMO.CSV string and inferred-schema DataTable materialization, OfficeIMO.CSV direct DbDataReader consumption and DbDataReader-to-DataTable loading, CsvHelper typed/projected writes, CsvHelper raw/typed reads, Sylvan raw/string/span field reads and DataTable loading, Dataplat.Dbatools.Csv reader/writer/DataTable paths, and Sep strict reader/writer paths.
 
 Read lanes intentionally touch each field value and return a small checksum based on field count and text length. DataTable lanes materialize the table and then traverse the cells for the same checksum. Direct DbDataReader lanes traverse the public reader contract without first materializing a DataTable, while DbDataReader-to-DataTable lanes keep the ADO.NET table-loading path visible. This keeps the comparison honest: a lane cannot win by only counting rows or skipping the field payload.
 
@@ -50,6 +50,22 @@ The table shows the fastest method per shape/row-count lane. Treat this as a qui
 | Wide | 1000 | OfficeIMO_WriteTrustedTextRows | 0.28 ms |
 | Wide | 10000 | OfficeIMO_WriteTrustedTextRows | 3.41 ms |
 | Wide | 25000 | OfficeIMO_WriteTrustedTextRows | 9.45 ms |
+
+## Current Wide IDataReader Write Snapshot
+
+Fresh local short-job run on 2026-07-07:
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*Write*" --job short --warmupCount 1 --iterationCount 3
+```
+
+The table keeps the SQL-shaped writer path visible. `OfficeIMO_WriteDataReader` writes through the public `IDataReader` bridge, `Dataplat_WriteFromReader` uses the dbatools reader bridge, and the trusted text lane shows the faster path available when the caller already owns culture-aware formatting and schema validation.
+
+| Rows | OfficeIMO IDataReader | dbatools reader | Sylvan reader | SEP projected | OfficeIMO trusted text |
+| ---: | ---: | ---: | ---: | ---: | ---: |
+| 1000 | 1.46 ms | 1.63 ms | 1.25 ms | 1.05 ms | 0.27 ms |
+| 10000 | 16.84 ms | 18.17 ms | 13.17 ms | 11.98 ms | 3.68 ms |
+| 25000 | 42.44 ms | 55.73 ms | 32.87 ms | 28.18 ms | 10.26 ms |
 
 ## Current Wide Read Snapshot
 

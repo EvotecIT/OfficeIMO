@@ -106,6 +106,15 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_WriteDataReader()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _projectedRows);
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
+        return writer.GetStringBuilder().Length;
+    }
+
+    [Benchmark]
     public int OfficeIMO_WriteProjectedRowsAlwaysQuoted()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
