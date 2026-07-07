@@ -150,6 +150,7 @@ internal static class PdfInlineImageDataScanner {
             case "W":
             case "W*":
             case "BT":
+            case "BI":
             case "ET":
             case "Tc":
             case "Tw":

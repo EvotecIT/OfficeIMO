@@ -521,7 +521,19 @@ public static class OfficeDrawingRasterRenderer {
         IReadOnlyList<OfficePoint> strokePoints = close ? CloseContour(points) : points;
         GetPointBounds(strokePoints, out double x, out double y, out double width, out double height);
         for (int i = 1; i < strokePoints.Count; i++) {
-            DrawGradientLineSegment(canvas, strokePoints[i - 1], strokePoints[i], strokeGradient, strokeRadialGradient, x, y, width, height, strokeWidth);
+            DrawGradientLineSegment(
+                canvas,
+                strokePoints[i - 1],
+                strokePoints[i],
+                strokeGradient,
+                strokeRadialGradient,
+                x,
+                y,
+                width,
+                height,
+                strokeWidth,
+                !close && i == 1 ? lineCap : null,
+                !close && i == strokePoints.Count - 1 ? lineCap : null);
         }
     }
 
@@ -581,7 +593,9 @@ public static class OfficeDrawingRasterRenderer {
         double y,
         double width,
         double height,
-        double strokeWidth) {
+        double strokeWidth,
+        OfficeStrokeLineCap? startCap,
+        OfficeStrokeLineCap? endCap) {
         double length = Distance(start.X, start.Y, end.X, end.Y);
         if (length <= 0D) {
             return;
@@ -598,7 +612,16 @@ public static class OfficeDrawingRasterRenderer {
             double y2 = start.Y + ((end.Y - start.Y) * endRatio);
             OfficeColor? color = SampleStrokeGradient(strokeGradient, strokeRadialGradient, x, y, width, height, start.X + ((end.X - start.X) * midRatio), start.Y + ((end.Y - start.Y) * midRatio));
             if (color.HasValue) {
-                canvas.DrawLine(x1, y1, x2, y2, color.Value, strokeWidth);
+                OfficeStrokeLineCap? segmentCap = segment == 0 && startCap.HasValue && startCap.Value != OfficeStrokeLineCap.Round
+                    ? startCap
+                    : segment == segments - 1 && endCap.HasValue && endCap.Value != OfficeStrokeLineCap.Round
+                        ? endCap
+                        : null;
+                if (segmentCap.HasValue) {
+                    DrawCappedLine(canvas, new OfficePoint(x1, y1), new OfficePoint(x2, y2), color.Value, strokeWidth, segmentCap.Value);
+                } else {
+                    canvas.DrawLine(x1, y1, x2, y2, color.Value, strokeWidth);
+                }
             }
         }
     }

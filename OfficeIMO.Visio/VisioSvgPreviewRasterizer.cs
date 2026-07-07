@@ -514,9 +514,17 @@ namespace OfficeIMO.Visio {
             using IDisposable clipScope = useEvenOddFill
                 ? canvas.PushClipPolygonsEvenOdd(contours)
                 : canvas.PushClipPolygonsNonZero(contours);
-            for (int i = 0; i < contours.Count; i++) {
-                FillGradientContour(canvas, contours[i], linearGradient, radialGradient);
+            if (!TryGetContourBounds(contours, out double left, out double top, out double right, out double bottom)) {
+                return;
             }
+
+            var bounds = new[] {
+                new OfficePoint(left, top),
+                new OfficePoint(right, top),
+                new OfficePoint(right, bottom),
+                new OfficePoint(left, bottom)
+            };
+            FillGradientContour(canvas, bounds, linearGradient, radialGradient);
         }
 
         private static void FillGradientContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> contour, OfficeLinearGradient? linearGradient, OfficeRadialGradient? radialGradient) {
@@ -525,6 +533,33 @@ namespace OfficeIMO.Visio {
             } else if (linearGradient != null) {
                 canvas.FillLinearGradientPolygon(contour, linearGradient);
             }
+        }
+
+        private static bool TryGetContourBounds(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, out double left, out double top, out double right, out double bottom) {
+            left = 0D;
+            top = 0D;
+            right = 0D;
+            bottom = 0D;
+            bool hasPoint = false;
+            for (int contourIndex = 0; contourIndex < contours.Count; contourIndex++) {
+                IReadOnlyList<OfficePoint> contour = contours[contourIndex];
+                for (int pointIndex = 0; pointIndex < contour.Count; pointIndex++) {
+                    OfficePoint point = contour[pointIndex];
+                    if (!hasPoint) {
+                        left = right = point.X;
+                        top = bottom = point.Y;
+                        hasPoint = true;
+                        continue;
+                    }
+
+                    left = Math.Min(left, point.X);
+                    top = Math.Min(top, point.Y);
+                    right = Math.Max(right, point.X);
+                    bottom = Math.Max(bottom, point.Y);
+                }
+            }
+
+            return hasPoint && right > left && bottom > top;
         }
 
         private static bool RenderPolyline(OfficeRasterCanvas canvas, IReadOnlyList<(double X, double Y)> points, bool closed, SvgPaint paint, SvgTransform transform) {
