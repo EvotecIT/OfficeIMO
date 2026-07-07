@@ -593,6 +593,6 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
-        CsvWriter.WriteRecordDefaultAdaptive(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+        CsvWriter.WriteRecordBufferedDefault(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
     }
 }
