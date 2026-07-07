@@ -552,7 +552,7 @@ public class MarkdownDoc : MarkdownObject {
             sb.AppendLine();
         }
 
-        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult) && blocks.Count > 0) {
+        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult, options) && blocks.Count > 0) {
             sb.AppendLine();
         }
 
@@ -763,7 +763,15 @@ public class MarkdownDoc : MarkdownObject {
         };
     }
 
-    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult) {
+    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult, MarkdownWriteOptions options) {
+        if (options.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit) {
+            return false;
+        }
+
+        if (options.AbbreviationDefinitionRendering != MarkdownAbbreviationDefinitionRenderingMode.Preserve) {
+            throw new ArgumentOutOfRangeException(nameof(options.AbbreviationDefinitionRendering), options.AbbreviationDefinitionRendering, "Unknown abbreviation definition rendering mode.");
+        }
+
         if (parseResult == null || parseResult.AbbreviationDefinitions.Count == 0) {
             return false;
         }

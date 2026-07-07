@@ -28,6 +28,7 @@ public sealed class MarkdownWriteOptions {
         var options = CreatePortableProfile();
         options.OutputLineEnding = "\n";
         options.FrontMatterRendering = MarkdownFrontMatterRenderingMode.Omit;
+        options.AbbreviationDefinitionRendering = MarkdownAbbreviationDefinitionRenderingMode.Omit;
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTableMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTaskListMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkDefinitionListMarkdownFallback(options);
@@ -47,9 +48,14 @@ public sealed class MarkdownWriteOptions {
     public static MarkdownWriteOptions CreateGitHubFlavoredMarkdownProfile() {
         var options = new MarkdownWriteOptions {
             ImageRenderingMode = MarkdownImageRenderingMode.PortableMarkdown,
+            AbbreviationDefinitionRendering = MarkdownAbbreviationDefinitionRenderingMode.Omit,
             OutputLineEnding = "\n",
             UnorderedListMarker = '-'
         };
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubDefinitionListMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubCustomContainerMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubParagraphLineStartMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubAttributedBlockMarkdownFallback(options);
         MarkdownInlineRenderBuiltInExtensions.AddGitHubOfficeInlineMarkdownFallbacks(options);
         MarkdownInlineRenderBuiltInExtensions.AddGitHubAttributedInlineMarkdownFallback(options);
         return options;
@@ -81,6 +87,11 @@ public sealed class MarkdownWriteOptions {
     /// Controls how YAML front matter is emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
     /// </summary>
     public MarkdownFrontMatterRenderingMode FrontMatterRendering { get; set; } = MarkdownFrontMatterRenderingMode.Preserve;
+
+    /// <summary>
+    /// Controls how parse-owned abbreviation definitions are emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
+    /// </summary>
+    public MarkdownAbbreviationDefinitionRenderingMode AbbreviationDefinitionRendering { get; set; } = MarkdownAbbreviationDefinitionRenderingMode.Preserve;
 
     /// <summary>
     /// Optional line ending to use in rendered Markdown. When unset, the platform default is used.
@@ -139,6 +150,7 @@ public sealed class MarkdownWriteOptions {
         var clone = new MarkdownWriteOptions {
             ImageRenderingMode = ImageRenderingMode,
             FrontMatterRendering = FrontMatterRendering,
+            AbbreviationDefinitionRendering = AbbreviationDefinitionRendering,
             OutputLineEnding = OutputLineEnding,
             UnorderedListMarker = UnorderedListMarker
         };

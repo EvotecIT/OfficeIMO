@@ -38,6 +38,7 @@ internal static class MarkdownListRendering {
         Func<int, string> topLevelAttributesFactory,
         bool renderItemAttributes = false) {
         var sb = new System.Text.StringBuilder();
+        renderItemAttributes = renderItemAttributes || HtmlRenderContext.RenderListItemAttributes;
 
         bool ContainsTasksInScope(int startIndex, int level) {
             for (int i = startIndex; i < items.Count; i++) {
