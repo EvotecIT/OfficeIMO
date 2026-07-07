@@ -105,13 +105,14 @@ internal static partial class CsvParser
             }
         }
 
-        var fieldStart = start;
-        foreach (var delimiterIndex in delimiterIndexesBeforeQuote)
-        {
-            VisitTextField(text.Slice(fieldStart, delimiterIndex - fieldStart), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
-            fieldCount++;
-            fieldStart = delimiterIndex + 1;
-        }
+        fieldCount = VisitTextPrefixFieldsFromDelimiterIndexes(
+            text,
+            start,
+            delimiterIndexesBeforeQuote,
+            emitFields,
+            recordIndex,
+            ref fieldVisitor,
+            out firstFieldLength);
 
         var field = text.Slice(valueStart, valueEnd - valueStart);
         var fieldLength = field.Length - escapeCount;
@@ -176,15 +177,14 @@ internal static partial class CsvParser
             }
         }
 
-        fieldCount = 0;
-        firstFieldLength = 0;
-        var fieldStart = start;
-        foreach (var delimiterIndex in delimiterIndexesBeforeQuote)
-        {
-            VisitTextField(text.Slice(fieldStart, delimiterIndex - fieldStart), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
-            fieldCount++;
-            fieldStart = delimiterIndex + 1;
-        }
+        fieldCount = VisitTextPrefixFieldsFromDelimiterIndexes(
+            text,
+            start,
+            delimiterIndexesBeforeQuote,
+            emitFields,
+            recordIndex,
+            ref fieldVisitor,
+            out firstFieldLength);
 
         var field = text.Slice(valueStart, valueEnd - valueStart);
         if (fieldCount == 0)
@@ -200,6 +200,43 @@ internal static partial class CsvParser
         fieldCount++;
         position = nextPosition;
         return true;
+    }
+
+    private static int VisitTextPrefixFieldsFromDelimiterIndexes<TVisitor>(
+        ReadOnlySpan<char> text,
+        int start,
+        ReadOnlySpan<int> delimiterIndexes,
+        bool emitFields,
+        int recordIndex,
+        ref TVisitor fieldVisitor,
+        out int firstFieldLength)
+        where TVisitor : struct, ICsvFieldSpanVisitor
+    {
+        if (!emitFields)
+        {
+            firstFieldLength = delimiterIndexes.Length == 0
+                ? 0
+                : delimiterIndexes[0] - start;
+            return delimiterIndexes.Length;
+        }
+
+        var fieldCount = 0;
+        var fieldStart = start;
+        firstFieldLength = 0;
+        foreach (var delimiterIndex in delimiterIndexes)
+        {
+            var length = delimiterIndex - fieldStart;
+            if (fieldCount == 0)
+            {
+                firstFieldLength = length;
+            }
+
+            fieldVisitor.VisitField(recordIndex, fieldCount, text.Slice(fieldStart, length));
+            fieldCount++;
+            fieldStart = delimiterIndex + 1;
+        }
+
+        return fieldCount;
     }
 
     private static bool TryReadTextQuotedRecordFieldSpansFromPrefix<TVisitor>(

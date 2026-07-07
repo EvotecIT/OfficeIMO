@@ -10,6 +10,9 @@ internal static partial class CsvParser
     private static readonly SearchValues<char> CommaTextFieldTerminators = SearchValues.Create(",\r\n\"");
     private static readonly SearchValues<char> SemicolonTextFieldTerminators = SearchValues.Create(";\r\n\"");
     private static readonly SearchValues<char> TabTextFieldTerminators = SearchValues.Create("\t\r\n\"");
+    private static readonly System.Runtime.Intrinsics.Vector256<byte> QuoteByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'"');
+    private static readonly System.Runtime.Intrinsics.Vector256<byte> CarriageReturnByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\r');
+    private static readonly System.Runtime.Intrinsics.Vector256<byte> LineFeedByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\n');
 
     internal static void ReadFieldSpans<TVisitor>(
         ReadOnlySpan<char> text,
@@ -25,7 +28,15 @@ internal static partial class CsvParser
         var recordIndex = 0;
         var emittedRecordCount = 0;
         var useAvx2UnquotedFastPath = true;
+        var unquotedDelimiterIndexCapacity = 64;
         char[]? scratch = null;
+        var delimiterVector = System.Runtime.Intrinsics.Vector256<byte>.Zero;
+        if (!trim &&
+            delimiter <= byte.MaxValue &&
+            System.Runtime.Intrinsics.X86.Avx2.IsSupported)
+        {
+            delimiterVector = System.Runtime.Intrinsics.Vector256.Create((byte)delimiter);
+        }
 
         try
         {
@@ -43,8 +54,9 @@ internal static partial class CsvParser
                 if (recordsToSkip > 0 &&
                     !skipCommentRecord &&
                     !trim &&
-                    TrySkipTextUnquotedRecord(text, ref position))
+                    TrySkipTextUnquotedRecord(text, delimiter, ref position, out var skippedDelimiterCount))
                 {
+                    unquotedDelimiterIndexCapacity = GetTextDelimiterIndexCapacity(skippedDelimiterCount);
                     recordsToSkip--;
                     continue;
                 }
@@ -61,6 +73,8 @@ internal static partial class CsvParser
                         emitFields,
                         recordIndex,
                         ref useAvx2UnquotedFastPath,
+                        ref unquotedDelimiterIndexCapacity,
+                        delimiterVector,
                         ref position,
                         ref fieldVisitor,
                         ref scratch,
@@ -118,6 +132,8 @@ internal static partial class CsvParser
         bool emitFields,
         int recordIndex,
         ref bool useAvx2UnquotedFastPath,
+        ref int unquotedDelimiterIndexCapacity,
+        System.Runtime.Intrinsics.Vector256<byte> delimiterVector,
         ref int position,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
@@ -140,6 +156,8 @@ internal static partial class CsvParser
                 allowEmpty,
                 emitFields,
                 recordIndex,
+                ref unquotedDelimiterIndexCapacity,
+                delimiterVector,
                 ref position,
                 ref fieldVisitor,
                 ref scratch,
@@ -202,6 +220,8 @@ internal static partial class CsvParser
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
+        ref int delimiterIndexCapacity,
+        System.Runtime.Intrinsics.Vector256<byte> delimiterVector,
         ref int position,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
@@ -221,13 +241,14 @@ internal static partial class CsvParser
             return false;
         }
 
-        Span<int> delimiterIndexes = stackalloc int[64];
+        Span<int> delimiterIndexes = delimiterIndexCapacity switch
+        {
+            16 => stackalloc int[16],
+            32 => stackalloc int[32],
+            _ => stackalloc int[64],
+        };
         var delimiterCount = 0;
         var pos = start;
-        var delimiterVector = System.Runtime.Intrinsics.Vector256.Create((byte)delimiter);
-        var quoteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'"');
-        var carriageReturnVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\r');
-        var lineFeedVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\n');
 
         while (pos <= end)
         {
@@ -241,11 +262,11 @@ internal static partial class CsvParser
             var delimiterMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
                 System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, delimiterVector));
             var quoteMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
-                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, quoteVector));
+                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, QuoteByteVector));
             var carriageReturnMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
-                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, carriageReturnVector));
+                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, CarriageReturnByteVector));
             var lineFeedMask = (uint)System.Runtime.Intrinsics.X86.Avx2.MoveMask(
-                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, lineFeedVector));
+                System.Runtime.Intrinsics.X86.Avx2.CompareEqual(packedBytes, LineFeedByteVector));
             var terminalMask = quoteMask | carriageReturnMask | lineFeedMask;
 
             if (terminalMask != 0)
@@ -254,6 +275,7 @@ internal static partial class CsvParser
                 var delimiterMaskBeforeTerminal = delimiterMask & ((1u << terminalOffset) - 1u);
                 if (!AddTextDelimiterIndexes(delimiterMaskBeforeTerminal, pos, delimiterIndexes, ref delimiterCount))
                 {
+                    delimiterIndexCapacity = 64;
                     return false;
                 }
 
@@ -346,6 +368,7 @@ internal static partial class CsvParser
 
             if (!AddTextDelimiterIndexes(delimiterMask, pos, delimiterIndexes, ref delimiterCount))
             {
+                delimiterIndexCapacity = 64;
                 return false;
             }
 
@@ -366,6 +389,14 @@ internal static partial class CsvParser
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
+        if (!emit)
+        {
+            firstFieldLength = delimiterIndexes.Length == 0
+                ? end - start
+                : delimiterIndexes[0] - start;
+            return delimiterIndexes.Length + 1;
+        }
+
         var fieldIndex = 0;
         var fieldStart = start;
         firstFieldLength = 0;
@@ -377,10 +408,7 @@ internal static partial class CsvParser
                 firstFieldLength = length;
             }
 
-            if (emit)
-            {
-                fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, length));
-            }
+            fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, length));
 
             fieldIndex++;
             fieldStart = delimiterIndex + 1;
@@ -392,10 +420,7 @@ internal static partial class CsvParser
             firstFieldLength = finalLength;
         }
 
-        if (emit)
-        {
-            fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, finalLength));
-        }
+        fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, finalLength));
 
         return fieldIndex + 1;
     }
@@ -502,12 +527,14 @@ internal static partial class CsvParser
         return true;
     }
 
-    private static bool TrySkipTextUnquotedRecord(ReadOnlySpan<char> text, ref int position)
+    private static bool TrySkipTextUnquotedRecord(ReadOnlySpan<char> text, char delimiter, ref int position, out int delimiterCount)
     {
+        delimiterCount = 0;
         var start = position;
         var specialOffset = text.Slice(start).IndexOfAny('"', '\r', '\n');
         if (specialOffset < 0)
         {
+            delimiterCount = CountTextDelimiters(text.Slice(start), delimiter);
             position = text.Length;
             return text.Length != start;
         }
@@ -518,9 +545,34 @@ internal static partial class CsvParser
             return false;
         }
 
+        delimiterCount = CountTextDelimiters(text.Slice(start, recordEnd - start), delimiter);
         position = recordEnd;
         ConsumeTextLineSeparator(text, ref position);
         return true;
+    }
+
+    private static int GetTextDelimiterIndexCapacity(int delimiterCount)
+    {
+        if (delimiterCount <= 16)
+        {
+            return 16;
+        }
+
+        return delimiterCount <= 32 ? 32 : 64;
+    }
+
+    private static int CountTextDelimiters(ReadOnlySpan<char> text, char delimiter)
+    {
+        var delimiterCount = 0;
+        foreach (var value in text)
+        {
+            if (value == delimiter)
+            {
+                delimiterCount++;
+            }
+        }
+
+        return delimiterCount;
     }
 
     private static int ReadTextRecordFieldSpans<TVisitor>(
