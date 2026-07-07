@@ -819,6 +819,22 @@ public class CsvDocumentBasicsTests
     }
 
     [Fact]
+    public void Formula_Injection_Policy_Escapes_Buffered_Null_Tokens()
+    {
+        using var writer = new StringWriter();
+        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions {
+            NewLine = "\n",
+            NullValue = "=NULL",
+            FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape
+        }))
+        {
+            csv.WriteRow(new[] { "Value" }, new object?[] { null });
+        }
+
+        Assert.Equal("Value\n'=NULL\n", writer.ToString());
+    }
+
+    [Fact]
     public void Quoted_Multiline_Fields_Preserve_Physical_Newlines()
     {
         var parsed = CsvDocument.Parse("Name,Note\r\nAlpha,\"one\r\ntwo\"\r\n");

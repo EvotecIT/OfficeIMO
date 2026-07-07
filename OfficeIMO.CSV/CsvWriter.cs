@@ -681,7 +681,13 @@ internal static class CsvWriter
         {
             if (nullValue is not null)
             {
-                WriteEscaped(buffer, nullValue, delimiter, quoteMode, forceQuote);
+                var nullText = nullValue;
+                if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
+                {
+                    nullText = ApplyFormulaInjectionPolicy(nullText, formulaInjectionPolicy);
+                }
+
+                WriteEscaped(buffer, nullText, delimiter, quoteMode, forceQuote);
             }
             else if (quoteMode == CsvQuoteMode.Always || forceQuote)
             {

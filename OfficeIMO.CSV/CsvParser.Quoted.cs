@@ -251,7 +251,22 @@ internal static partial class CsvParser
             throw new CsvParseException("Invalid quoted field.", lineNumber);
         }
 
-        return result == QuotedRecordParseResult.Complete;
+        if (result == QuotedRecordParseResult.Complete)
+        {
+            return true;
+        }
+
+        return result == QuotedRecordParseResult.Invalid &&
+            !strictQuotes &&
+            TryParseFlexibleQuotedRecordContinuations(
+                reader,
+                pendingLines,
+                firstLine,
+                firstLineSeparator,
+                delimiter,
+                trim,
+                parsedFields,
+                ref lineNumber);
     }
 
     private static QuotedRecordParseResult TryParseStandardQuotedRecordContinuations(

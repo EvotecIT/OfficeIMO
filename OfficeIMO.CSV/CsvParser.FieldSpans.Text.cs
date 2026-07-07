@@ -62,8 +62,13 @@ internal static partial class CsvParser
                             options.Header is null &&
                             options.SkipCommentRowsBeforeHeader &&
                             emittedRecordCount <= GetParserInitialRecordsToSkip(options)));
+                if (skipCommentRecord)
+                {
+                    SkipTextRecord(text, ref position);
+                    continue;
+                }
+
                 if (recordsToSkip > 0 &&
-                    !skipCommentRecord &&
                     !trim &&
                     TrySkipTextUnquotedRecord(text, delimiter, ref position, out var skippedDelimiterCount))
                 {
@@ -72,11 +77,10 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                var emitFields = recordsToSkip == 0 && !skipCommentRecord;
+                var emitFields = recordsToSkip == 0;
                 int fieldCount;
                 int firstFieldLength;
-                if (skipCommentRecord ||
-                    !TryReadTextUnquotedRecordFieldSpans(
+                if (!TryReadTextUnquotedRecordFieldSpans(
                         text,
                         delimiter,
                         trim,
@@ -108,7 +112,7 @@ internal static partial class CsvParser
 
                 var isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
                 var shouldEmit = fieldCount != 0 && (allowEmpty || !isEmptyRecord);
-                if (!shouldEmit || skipCommentRecord)
+                if (!shouldEmit)
                 {
                     continue;
                 }
@@ -626,7 +630,7 @@ internal static partial class CsvParser
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         var recordStart = position;
-        if (!strictQuotes && HasUnexpectedQuoteInTextUnquotedField(text, delimiter, recordStart))
+        if (!strictQuotes && ShouldUseFlexibleTextRecordParsing(text, delimiter, trim, recordStart))
         {
             return ReadFlexibleTextRecordFieldSpans(
                 text,
@@ -672,6 +676,20 @@ internal static partial class CsvParser
             {
                 if (!TryVisitTextQuotedField(text, delimiter, trim, emitFields, recordIndex, fieldIndex, ref position, ref fieldVisitor, ref scratch, out var quotedLength))
                 {
+                    if (!strictQuotes)
+                    {
+                        position = recordStart;
+                        return ReadFlexibleTextRecordFieldSpans(
+                            text,
+                            delimiter,
+                            trim,
+                            emitFields,
+                            recordIndex,
+                            ref position,
+                            ref fieldVisitor,
+                            out firstFieldLength);
+                    }
+
                     throw new CsvParseException("Unterminated quoted field.", 0);
                 }
 
@@ -709,6 +727,20 @@ internal static partial class CsvParser
             {
                 ConsumeTextLineSeparator(text, ref position);
                 return fieldIndex;
+            }
+
+            if (!strictQuotes)
+            {
+                position = recordStart;
+                return ReadFlexibleTextRecordFieldSpans(
+                    text,
+                    delimiter,
+                    trim,
+                    emitFields,
+                    recordIndex,
+                    ref position,
+                    ref fieldVisitor,
+                    out firstFieldLength);
             }
 
             throw new CsvParseException("Unexpected character after CSV field.", 0);
@@ -826,6 +858,15 @@ internal static partial class CsvParser
                 {
                     position++;
                 }
+            }
+
+            if (position < text.Length &&
+                text[position] != delimiter &&
+                text[position] != '\r' &&
+                text[position] != '\n')
+            {
+                fieldLength = 0;
+                return false;
             }
 
             fieldLength = valueEnd - valueStart - escapeCount;
@@ -972,6 +1013,19 @@ internal static partial class CsvParser
         }
 
         position++;
+    }
+
+    private static void SkipTextRecord(ReadOnlySpan<char> text, ref int position)
+    {
+        while (position < text.Length && text[position] != '\r' && text[position] != '\n')
+        {
+            position++;
+        }
+
+        if (position < text.Length)
+        {
+            ConsumeTextLineSeparator(text, ref position);
+        }
     }
 
     private static bool IsTextW3CFieldsLine(ReadOnlySpan<char> text, int position)

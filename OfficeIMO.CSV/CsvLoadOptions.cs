@@ -142,7 +142,25 @@ public sealed class CsvLoadOptions
     public long? MaxDecompressedBytes { get; set; }
 
     /// <summary>
-    /// Creates a shallow copy of the options instance.
+    /// Creates an options copy with mutable collections snapshotted for deferred reads.
     /// </summary>
-    public CsvLoadOptions Clone() => (CsvLoadOptions)MemberwiseClone();
+    public CsvLoadOptions Clone()
+    {
+        var clone = (CsvLoadOptions)MemberwiseClone();
+        clone.Header = Header is null ? null : (string[])Header.Clone();
+        clone.DateTimeFormats = DateTimeFormats is null ? null : (string[])DateTimeFormats.Clone();
+        clone.DelimiterCandidates = DelimiterCandidates is null ? null : (char[])DelimiterCandidates.Clone();
+        if (StaticColumns is not null)
+        {
+            var staticColumns = new Dictionary<string, object?>(StaticColumns.Count);
+            foreach (var column in StaticColumns)
+            {
+                staticColumns.Add(column.Key, column.Value);
+            }
+
+            clone.StaticColumns = staticColumns;
+        }
+
+        return clone;
+    }
 }

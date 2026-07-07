@@ -120,12 +120,19 @@ public sealed partial class CsvDocument
         {
             var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
 
-            _canInt32 &= type == typeof(byte) || type == typeof(short) || type == typeof(int);
-            _canInt64 &= _canInt32 || type == typeof(long);
-            _canDecimal &= _canInt64 || type == typeof(decimal);
-            _canDouble &= _canDecimal || type == typeof(float) || type == typeof(double);
-            _canBoolean &= type == typeof(bool);
-            _canDateTime &= type == typeof(DateTime);
+            var canInt32 = type == typeof(byte) || type == typeof(short) || type == typeof(int);
+            var canInt64 = canInt32 || type == typeof(long);
+            var canDecimal = canInt64 || type == typeof(decimal);
+            var canDouble = canDecimal || type == typeof(float) || type == typeof(double);
+            var canBoolean = type == typeof(bool);
+            var canDateTime = type == typeof(DateTime);
+
+            _canInt32 &= canInt32;
+            _canInt64 &= canInt64;
+            _canDecimal &= canDecimal;
+            _canDouble &= canDouble;
+            _canBoolean &= canBoolean;
+            _canDateTime &= canDateTime;
         }
 
         private Type ResolveDataType()

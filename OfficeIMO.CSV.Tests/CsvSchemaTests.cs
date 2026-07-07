@@ -68,6 +68,19 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void InferSchema_ForTypedRows_IsNotOrderDependent()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Value")
+            .AddRow(1234567890123L)
+            .AddRow(1);
+
+        var schema = doc.InferSchema();
+
+        Assert.Equal(typeof(long), Assert.Single(schema.Columns).DataType);
+    }
+
+    [Fact]
     public void EnsureInferredSchema_Attaches_Schema_For_Validation()
     {
         var doc = CsvDocument.Parse("Id,Name\n1,Alice\n2,Bob\n")
