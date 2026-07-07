@@ -329,25 +329,16 @@ namespace OfficeIMO.Word {
             var normalized = (value ?? string.Empty)
                 .Replace("\r\n", NormalizedLineFeed)
                 .Replace("\r", NormalizedLineFeed);
-            List<M.Text> textNodes = element.Descendants<M.Text>().ToList();
-            if (textNodes.Count == 0) {
-                M.Run? mathRun = element.Descendants<M.Run>().FirstOrDefault();
-                if (mathRun == null) {
-                    mathRun = new M.Run();
-                    if (element is OpenXmlCompositeElement composite) {
-                        composite.Append(mathRun);
-                    } else {
-                        return;
-                    }
-                }
 
-                mathRun.Append(new M.Text(normalized));
+            if (element is M.Paragraph mathParagraph) {
+                mathParagraph.RemoveAllChildren();
+                mathParagraph.Append(new M.OfficeMath(new M.Run(new M.Text(normalized))));
                 return;
             }
 
-            textNodes[0].Text = normalized;
-            for (int i = 1; i < textNodes.Count; i++) {
-                textNodes[i].Remove();
+            if (element is OpenXmlCompositeElement composite) {
+                composite.RemoveAllChildren();
+                composite.Append(new M.Run(new M.Text(normalized)));
             }
         }
 

@@ -30,7 +30,7 @@ namespace OfficeIMO.Visio {
 
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
-                    string value = NormalizeTextRun(textNode.Value, ref cursor.PendingSpace, cursor.HasTextRun);
+                    string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref cursor.PendingSpace, cursor.HasTextRun);
                     rendered |= DrawSvgTextRun(canvas, value, cursor.X, cursor.Y, paint, style, transform, out double advance);
                     cursor.X += advance;
                     cursor.HasTextRun |= value.Length > 0;
@@ -116,7 +116,7 @@ namespace OfficeIMO.Visio {
             var measureCursor = new SvgTextCursor(0D, 0D);
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
-                    string value = NormalizeTextRun(textNode.Value, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
+                    string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
                     if (value.Length > 0) {
                         width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);
                         measureCursor.HasTextRun = true;
@@ -164,7 +164,12 @@ namespace OfficeIMO.Visio {
             }
         }
 
-        private static string NormalizeTextRun(string? text, ref bool pendingSpace, bool hasPriorTextRun) {
+        private static string NormalizeTextRun(string? text, bool preserveWhitespace, ref bool pendingSpace, bool hasPriorTextRun) {
+            if (preserveWhitespace) {
+                pendingSpace = false;
+                return text ?? string.Empty;
+            }
+
             if (string.IsNullOrWhiteSpace(text)) {
                 if (hasPriorTextRun && text != null) {
                     for (int i = 0; i < text.Length; i++) {
@@ -214,7 +219,7 @@ namespace OfficeIMO.Visio {
         }
 
         private readonly struct SvgTextStyle {
-            internal static SvgTextStyle Default => new(12D, null, false, false, false, false, OfficeTextAlignment.Left, 0.8D);
+            internal static SvgTextStyle Default => new(12D, null, false, false, false, false, false, OfficeTextAlignment.Left, 0.8D);
 
             private SvgTextStyle(
                 double fontSize,
@@ -223,6 +228,7 @@ namespace OfficeIMO.Visio {
                 bool italic,
                 bool underline,
                 bool strikethrough,
+                bool preserveWhitespace,
                 OfficeTextAlignment alignment,
                 double baselineOffset) {
                 FontSize = fontSize;
@@ -231,6 +237,7 @@ namespace OfficeIMO.Visio {
                 Italic = italic;
                 Underline = underline;
                 Strikethrough = strikethrough;
+                PreserveWhitespace = preserveWhitespace;
                 Alignment = alignment;
                 BaselineOffset = baselineOffset;
             }
@@ -247,6 +254,8 @@ namespace OfficeIMO.Visio {
 
             internal bool Strikethrough { get; }
 
+            internal bool PreserveWhitespace { get; }
+
             internal OfficeTextAlignment Alignment { get; }
 
             internal double BaselineOffset { get; }
@@ -260,9 +269,10 @@ namespace OfficeIMO.Visio {
                 bool underline = inherited.Underline;
                 bool strikethrough = inherited.Strikethrough;
                 ReadTextDecoration(element, style, ref underline, ref strikethrough);
+                bool preserveWhitespace = ReadPreserveWhitespace(element, style, inherited.PreserveWhitespace);
                 OfficeTextAlignment alignment = ReadTextAnchor(element, style, inherited.Alignment);
                 double baselineOffset = ReadBaselineOffset(element, style, inherited.BaselineOffset);
-                return new SvgTextStyle(fontSize, fontFamily, bold, italic, underline, strikethrough, alignment, baselineOffset);
+                return new SvgTextStyle(fontSize, fontFamily, bold, italic, underline, strikethrough, preserveWhitespace, alignment, baselineOffset);
             }
 
             private static double ReadStyleLength(XElement element, Dictionary<string, string> style, string name, double fallback, SvgRenderContext context) {
@@ -277,6 +287,28 @@ namespace OfficeIMO.Visio {
                 }
 
                 return raw!.Trim().Trim('\'', '"');
+            }
+
+            private static bool ReadPreserveWhitespace(XElement element, Dictionary<string, string> style, bool inherited) {
+                string? xmlSpace = element.Attribute(XNamespace.Xml + "space")?.Value;
+                if (!string.IsNullOrWhiteSpace(xmlSpace)) {
+                    if (string.Equals(xmlSpace, "preserve", StringComparison.OrdinalIgnoreCase)) {
+                        return true;
+                    }
+
+                    if (string.Equals(xmlSpace, "default", StringComparison.OrdinalIgnoreCase)) {
+                        return false;
+                    }
+                }
+
+                string? whiteSpace = ReadStyleString(element, style, "white-space");
+                if (string.IsNullOrWhiteSpace(whiteSpace)) {
+                    return inherited;
+                }
+
+                return string.Equals(whiteSpace, "pre", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(whiteSpace, "pre-wrap", StringComparison.OrdinalIgnoreCase) ||
+                       string.Equals(whiteSpace, "break-spaces", StringComparison.OrdinalIgnoreCase);
             }
 
             private static bool ReadFontWeight(XElement element, Dictionary<string, string> style, bool inherited) {

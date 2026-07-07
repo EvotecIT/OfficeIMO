@@ -804,6 +804,32 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_UsesBezierControlsForShadingPatternBounds() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            /Pattern cs
+            /P1 scn
+            20 40 m
+            20 120 140 120 140 40 c
+            140 30 l
+            20 30 l
+            h
+            f
+            """,
+            "<< /Pattern << /P1 5 0 R >> >>",
+            "5 0 obj\n<< /Type /Pattern /PatternType 2 /Shading << /ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 40 140 40] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >> >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape shape = Assert.Single(drawing.Shapes, item => item.Shape.FillGradient != null);
+        Assert.Equal(20D, shape.X);
+        Assert.Equal(80D, shape.Y);
+        Assert.Equal(120D, shape.Shape.Width);
+        Assert.Equal(90D, shape.Shape.Height);
+        Assert.NotNull(shape.Shape.FillGradient);
+    }
+
+    [Fact]
     public void RenderPage_ProjectsShadingPatternStrokeAsLinearGradient() {
         byte[] pdf = BuildSingleStreamPdf(
             """

@@ -758,14 +758,54 @@ internal static class PdfPageContentVisualParser {
             y = 0D;
             width = 0D;
             height = 0D;
-            if (_path.Count == 0) {
+            if (_pathCommands.Count == 0) {
                 return false;
             }
 
-            double left = _path.Min(point => point.X);
-            double right = _path.Max(point => point.X);
-            double top = _path.Min(point => ToTop(point.Y));
-            double bottom = _path.Max(point => ToTop(point.Y));
+            bool hasPoint = false;
+            double left = 0D;
+            double right = 0D;
+            double top = 0D;
+            double bottom = 0D;
+
+            void IncludePoint(OfficePoint point) {
+                if (!hasPoint) {
+                    left = point.X;
+                    right = point.X;
+                    top = point.Y;
+                    bottom = point.Y;
+                    hasPoint = true;
+                    return;
+                }
+
+                left = Math.Min(left, point.X);
+                right = Math.Max(right, point.X);
+                top = Math.Min(top, point.Y);
+                bottom = Math.Max(bottom, point.Y);
+            }
+
+            foreach (OfficePathCommand command in _pathCommands) {
+                switch (command.Kind) {
+                    case OfficePathCommandKind.MoveTo:
+                    case OfficePathCommandKind.LineTo:
+                        IncludePoint(command.Point);
+                        break;
+                    case OfficePathCommandKind.QuadraticBezierTo:
+                        IncludePoint(command.ControlPoint1);
+                        IncludePoint(command.Point);
+                        break;
+                    case OfficePathCommandKind.CubicBezierTo:
+                        IncludePoint(command.ControlPoint1);
+                        IncludePoint(command.ControlPoint2);
+                        IncludePoint(command.Point);
+                        break;
+                }
+            }
+
+            if (!hasPoint) {
+                return false;
+            }
+
             width = right - left;
             height = bottom - top;
             if (width <= 0D || height <= 0D) {

@@ -1135,6 +1135,53 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PngRendererPreservesPackageBackedSvgTextXmlSpace() {
+            static RgbaPng RenderSvgText(string svg) {
+                using MemoryStream packageStream = new();
+                VisioDocument document = VisioDocument.Create(packageStream);
+                VisioPage page = document.AddPage("Package SVG Text Space Preview").Size(3, 2);
+                AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/text-space-label.svg");
+
+                byte[] png = page.ToPng(new VisioPngSaveOptions {
+                    PixelsPerInch = 100,
+                    BackgroundColor = OfficeColor.White,
+                    Supersampling = 1
+                });
+
+                return DecodeRgbaPng(png);
+            }
+
+            static (int Span, int Count) MeasureBlueSpan(RgbaPng image) {
+                int minX = image.Width;
+                int maxX = -1;
+                int count = 0;
+                for (int y = 0; y < image.Height; y++) {
+                    for (int x = 0; x < image.Width; x++) {
+                        if (!IsBluePixel(image, x, y)) {
+                            continue;
+                        }
+
+                        minX = Math.Min(minX, x);
+                        maxX = Math.Max(maxX, x);
+                        count++;
+                    }
+                }
+
+                return (maxX >= minX ? maxX - minX : 0, count);
+            }
+
+            const string preservedSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 60 20\" xml:space=\"preserve\"><style>.label{fill:#0070c0;font-size:12px;font-weight:700}</style><text class=\"label\" x=\"2\" y=\"14\"><tspan>A     B</tspan></text></svg>";
+            const string collapsedSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 60 20\"><style>.label{fill:#0070c0;font-size:12px;font-weight:700}</style><text class=\"label\" x=\"2\" y=\"14\"><tspan>A     B</tspan></text></svg>";
+
+            (int preservedSpan, int preservedCount) = MeasureBlueSpan(RenderSvgText(preservedSvg));
+            (int collapsedSpan, int collapsedCount) = MeasureBlueSpan(RenderSvgText(collapsedSvg));
+
+            Assert.True(preservedCount > 20, $"Expected preserved-space SVG text to render visible blue text pixels, but found {preservedCount}.");
+            Assert.True(collapsedCount > 20, $"Expected collapsed-space SVG text to render visible blue text pixels, but found {collapsedCount}.");
+            Assert.True(preservedSpan > collapsedSpan + 8, $"Expected xml:space='preserve' to keep a wider text span, but preserved={preservedSpan}px and collapsed={collapsedSpan}px.");
+        }
+
+        [Fact]
         public void PngRendererSkipsPackageBackedSvgHiddenPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
