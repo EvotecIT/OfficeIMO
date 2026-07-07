@@ -13,6 +13,7 @@ internal static partial class CsvParser
     private static readonly System.Runtime.Intrinsics.Vector256<byte> QuoteByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'"');
     private static readonly System.Runtime.Intrinsics.Vector256<byte> CarriageReturnByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\r');
     private static readonly System.Runtime.Intrinsics.Vector256<byte> LineFeedByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\n');
+    private const int TextQuoteFreeProbeMinimumLength = 2_000_000;
 
     internal static void ReadFieldSpans<TVisitor>(
         ReadOnlySpan<char> text,
@@ -28,6 +29,7 @@ internal static partial class CsvParser
         var recordIndex = 0;
         var emittedRecordCount = 0;
         var useAvx2UnquotedFastPath = true;
+        var textMayContainQuote = text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0;
         var unquotedDelimiterIndexCapacity = 64;
         char[]? scratch = null;
         var delimiterVector = System.Runtime.Intrinsics.Vector256<byte>.Zero;
@@ -74,6 +76,7 @@ internal static partial class CsvParser
                         recordIndex,
                         ref useAvx2UnquotedFastPath,
                         ref unquotedDelimiterIndexCapacity,
+                        textMayContainQuote,
                         delimiterVector,
                         ref position,
                         ref fieldVisitor,
@@ -133,6 +136,7 @@ internal static partial class CsvParser
         int recordIndex,
         ref bool useAvx2UnquotedFastPath,
         ref int unquotedDelimiterIndexCapacity,
+        bool textMayContainQuote,
         System.Runtime.Intrinsics.Vector256<byte> delimiterVector,
         ref int position,
         ref TVisitor fieldVisitor,
@@ -146,6 +150,26 @@ internal static partial class CsvParser
 
 #if NET8_0_OR_GREATER
         var encounteredQuote = false;
+        if (useAvx2UnquotedFastPath &&
+            !trim &&
+            delimiter <= byte.MaxValue &&
+            System.Runtime.Intrinsics.X86.Avx2.IsSupported &&
+            !textMayContainQuote &&
+            TryReadTextQuoteFreeRecordFieldSpansAvx2(
+                text,
+                delimiter,
+                allowEmpty,
+                emitFields,
+                recordIndex,
+                delimiterVector,
+                ref position,
+                ref fieldVisitor,
+                out fieldCount,
+                out firstFieldLength))
+        {
+            return true;
+        }
+
         if (useAvx2UnquotedFastPath &&
             !trim &&
             delimiter <= byte.MaxValue &&
@@ -175,7 +199,9 @@ internal static partial class CsvParser
 #endif
 
         var start = position;
-        var specialOffset = text.Slice(start).IndexOfAny('"', '\r', '\n');
+        var specialOffset = textMayContainQuote
+            ? text.Slice(start).IndexOfAny('"', '\r', '\n')
+            : text.Slice(start).IndexOfAny('\r', '\n');
         var endsAtTextEnd = false;
         int recordEnd;
         if (specialOffset < 0)
