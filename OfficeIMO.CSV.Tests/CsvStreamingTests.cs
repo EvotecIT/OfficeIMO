@@ -809,6 +809,35 @@ public class CsvStreamingTests
                 }));
     }
 
+    [Fact]
+    public void ReadFieldSpans_HonorsProjectedFieldVisitor()
+    {
+        var fields = new List<string>();
+        var visitor = new ProjectedFieldCapturingVisitor(fields, projectedFieldIndex: 0);
+        using var reader = new StringReader("Name,Note,Value\nAlpha,\"one \"\"quoted\"\" value\",1\nBeta,two,2\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:Alpha", "1:0:Beta" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_HonorsProjectedFieldVisitor()
+    {
+        var fields = new List<string>();
+        var visitor = new ProjectedFieldCapturingVisitor(fields, projectedFieldIndex: 2);
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Note,Value\nAlpha,\"one \"\"quoted\"\" value\",1\nBeta,two,2\n",
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:2:1", "1:2:2" }, fields);
+    }
+
 #endif
 
     [Fact]
@@ -945,6 +974,31 @@ public class CsvStreamingTests
         public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
         {
             _events.Add($"escaped:{recordIndex}:{fieldIndex}:{escapedValue.ToString()}:{unescapedLength}");
+            return true;
+        }
+    }
+
+    private readonly struct ProjectedFieldCapturingVisitor : ICsvProjectedFieldSpanVisitor
+    {
+        private readonly List<string> _events;
+        private readonly int _projectedFieldIndex;
+
+        public ProjectedFieldCapturingVisitor(List<string> events, int projectedFieldIndex)
+        {
+            _events = events;
+            _projectedFieldIndex = projectedFieldIndex;
+        }
+
+        public bool ShouldVisitField(int recordIndex, int fieldIndex) => fieldIndex == _projectedFieldIndex;
+
+        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+            _events.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}");
+        }
+
+        public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
+        {
+            _events.Add($"{recordIndex}:{fieldIndex}:{escapedValue.ToString()}:{unescapedLength}");
             return true;
         }
     }

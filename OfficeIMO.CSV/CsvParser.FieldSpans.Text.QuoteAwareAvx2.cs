@@ -23,6 +23,7 @@ internal static partial class CsvParser
         int recordIndex,
         int recordStart,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldCount,
@@ -54,6 +55,7 @@ internal static partial class CsvParser
             fields,
             ref fieldCount,
             ref position,
+            projectedFieldVisitor,
             ref fieldVisitor,
             ref scratch,
             out firstFieldLength);
@@ -73,6 +75,7 @@ internal static partial class CsvParser
         uint lineFeedMask,
         Vector256<byte> delimiterVector,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldCount,
@@ -119,6 +122,7 @@ internal static partial class CsvParser
                 recordStart,
                 nextPosition,
                 ref position,
+                projectedFieldVisitor,
                 ref fieldVisitor,
                 ref scratch,
                 out firstFieldLength);
@@ -138,6 +142,7 @@ internal static partial class CsvParser
             fields,
             ref fieldCount,
             ref position,
+            projectedFieldVisitor,
             ref fieldVisitor,
             ref scratch,
             out firstFieldLength);
@@ -157,6 +162,7 @@ internal static partial class CsvParser
         Span<TextQuoteAwareFieldSpan> fields,
         ref int fieldCount,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int firstFieldLength)
@@ -211,6 +217,7 @@ internal static partial class CsvParser
                         recordStart,
                         nextPosition,
                         ref position,
+                        projectedFieldVisitor,
                         ref fieldVisitor,
                         ref scratch,
                         out firstFieldLength);
@@ -242,6 +249,7 @@ internal static partial class CsvParser
             recordStart,
             tailNextPosition,
             ref position,
+            projectedFieldVisitor,
             ref fieldVisitor,
             ref scratch,
             out firstFieldLength);
@@ -407,6 +415,7 @@ internal static partial class CsvParser
         int recordStart,
         int nextPosition,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int firstFieldLength)
@@ -420,7 +429,7 @@ internal static partial class CsvParser
 
         if (emitFields && (allowEmpty || fields[^1].End > recordStart))
         {
-            if (!VisitTextQuoteAwareFieldSpans(text, fields, recordIndex, ref fieldVisitor, ref scratch, out firstFieldLength))
+            if (!VisitTextQuoteAwareFieldSpans(text, fields, recordIndex, projectedFieldVisitor, ref fieldVisitor, ref scratch, out firstFieldLength))
             {
                 return false;
             }
@@ -441,6 +450,7 @@ internal static partial class CsvParser
         ReadOnlySpan<char> text,
         ReadOnlySpan<TextQuoteAwareFieldSpan> fields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int firstFieldLength)
@@ -450,7 +460,7 @@ internal static partial class CsvParser
         for (var fieldIndex = 0; fieldIndex < fields.Length; fieldIndex++)
         {
             var field = fields[fieldIndex];
-            if (!TryVisitTextQuoteAwareField(text, field, recordIndex, fieldIndex, ref fieldVisitor, ref scratch, out var fieldLength))
+            if (!TryVisitTextQuoteAwareField(text, field, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref scratch, out var fieldLength))
             {
                 return false;
             }
@@ -469,6 +479,7 @@ internal static partial class CsvParser
         TextQuoteAwareFieldSpan field,
         int recordIndex,
         int fieldIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldLength)
@@ -477,11 +488,15 @@ internal static partial class CsvParser
         if (field.QuoteCount == 0)
         {
             fieldLength = field.End - field.Start;
-            fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(field.Start, fieldLength));
+            if (CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+            {
+                fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(field.Start, fieldLength));
+            }
+
             return true;
         }
 
-        return TryVisitTextQuoteAwareQuotedField(text, field, recordIndex, fieldIndex, ref fieldVisitor, ref scratch, out fieldLength);
+        return TryVisitTextQuoteAwareQuotedField(text, field, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref scratch, out fieldLength);
     }
 
     private static bool TryVisitTextQuoteAwareQuotedField<TVisitor>(
@@ -489,6 +504,7 @@ internal static partial class CsvParser
         TextQuoteAwareFieldSpan field,
         int recordIndex,
         int fieldIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldLength)
@@ -507,6 +523,11 @@ internal static partial class CsvParser
         var escapedQuoteCount = (field.QuoteCount - 2) / 2;
         fieldLength = rawLength - 2 - escapedQuoteCount;
         var value = text.Slice(field.Start + 1, rawLength - 2);
+        if (!CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+        {
+            return true;
+        }
+
         if (escapedQuoteCount == 0)
         {
             fieldVisitor.VisitField(recordIndex, fieldIndex, value);

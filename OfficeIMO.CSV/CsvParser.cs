@@ -499,6 +499,7 @@ internal static partial class CsvParser
         var recordIndex = 0;
         var reusableQuotedRecord = new List<string>(64);
         var pendingLines = new Queue<CsvLine>();
+        var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
         using var lineReader = new CsvLineReader(reader);
 
         while (pendingLines.Count > 0 || true)
@@ -515,6 +516,7 @@ internal static partial class CsvParser
                     allowEmpty,
                     recordsToSkip == 0,
                     recordIndex,
+                    projectedFieldVisitor,
                     ref fieldVisitor,
                     out var fieldCount,
                     out var isEmptyRecord,
@@ -578,7 +580,7 @@ internal static partial class CsvParser
                     }
                     else
                     {
-                        VisitParsedFields(record, recordIndex, ref fieldVisitor);
+                        VisitParsedFields(record, recordIndex, projectedFieldVisitor, ref fieldVisitor);
                         recordIndex++;
                     }
 
@@ -614,7 +616,7 @@ internal static partial class CsvParser
                     }
                     else
                     {
-                        VisitParsedFields(reusableQuotedRecord, recordIndex, ref fieldVisitor);
+                        VisitParsedFields(reusableQuotedRecord, recordIndex, projectedFieldVisitor, ref fieldVisitor);
                         recordIndex++;
                     }
 
@@ -626,12 +628,19 @@ internal static partial class CsvParser
         }
     }
 
-    private static void VisitParsedFields<TVisitor>(IReadOnlyList<string> fields, int recordIndex, ref TVisitor fieldVisitor)
+    private static void VisitParsedFields<TVisitor>(
+        IReadOnlyList<string> fields,
+        int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
+        ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         for (var fieldIndex = 0; fieldIndex < fields.Count; fieldIndex++)
         {
-            fieldVisitor.VisitFieldValue(recordIndex, fieldIndex, fields[fieldIndex]);
+            if (CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+            {
+                fieldVisitor.VisitFieldValue(recordIndex, fieldIndex, fields[fieldIndex]);
+            }
         }
     }
 #endif

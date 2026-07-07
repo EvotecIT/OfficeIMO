@@ -93,6 +93,7 @@ internal static partial class CsvParser
         bool emitFields,
         int recordIndex,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -117,7 +118,10 @@ internal static partial class CsvParser
                 {
                     for (var i = 0; i < fields.Count; i++)
                     {
-                        fieldVisitor.VisitFieldValue(recordIndex, i, fields[i]);
+                        if (CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, i))
+                        {
+                            fieldVisitor.VisitFieldValue(recordIndex, i, fields[i]);
+                        }
                     }
                 }
 

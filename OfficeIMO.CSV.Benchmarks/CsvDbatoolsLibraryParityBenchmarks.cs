@@ -468,29 +468,24 @@ public class CsvDbatoolsLibraryParityBenchmarks
         }
     }
 
-    private struct OfficeImoFirstColumnVisitor : ICsvFieldSpanVisitor
+    private struct OfficeImoFirstColumnVisitor : ICsvProjectedFieldSpanVisitor
     {
         public int RowCount { get; private set; }
 
         public int FirstColumnLength { get; private set; }
 
+        public bool ShouldVisitField(int recordIndex, int fieldIndex) => fieldIndex == FirstColumnIndex;
+
         public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
         {
-            if (fieldIndex == FirstColumnIndex)
-            {
-                RowCount++;
-                FirstColumnLength += value.Length;
-            }
+            RowCount++;
+            FirstColumnLength += value.Length;
         }
 
         public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
         {
-            if (fieldIndex == FirstColumnIndex)
-            {
-                RowCount++;
-                FirstColumnLength += unescapedLength;
-            }
-
+            RowCount++;
+            FirstColumnLength += unescapedLength;
             return true;
         }
     }

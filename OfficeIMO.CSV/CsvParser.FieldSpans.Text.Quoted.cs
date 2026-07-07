@@ -19,6 +19,7 @@ internal static partial class CsvParser
         ReadOnlySpan<int> delimiterIndexesBeforeQuote,
         int quoteIndex,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldCount,
@@ -73,6 +74,7 @@ internal static partial class CsvParser
                 delimiterIndexesBeforeQuote,
                 emitFields,
                 recordIndex,
+                projectedFieldVisitor,
                 ref fieldVisitor,
                 out firstFieldLength);
 
@@ -82,7 +84,7 @@ internal static partial class CsvParser
                 firstFieldLength = unescapedField.Length;
             }
 
-            if (emitFields)
+            if (emitFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldCount))
             {
                 fieldVisitor.VisitField(recordIndex, fieldCount, unescapedField);
             }
@@ -145,9 +147,10 @@ internal static partial class CsvParser
             text,
             start,
             delimiterIndexesBeforeQuote,
-            emitFields,
-            recordIndex,
-            ref fieldVisitor,
+                emitFields,
+                recordIndex,
+                projectedFieldVisitor,
+                ref fieldVisitor,
             out firstFieldLength);
 
         var field = text.Slice(valueStart, valueEnd - valueStart);
@@ -157,7 +160,7 @@ internal static partial class CsvParser
             firstFieldLength = fieldLength;
         }
 
-        if (emitFields)
+        if (emitFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldCount))
         {
             if (escapeCount == 0)
             {
@@ -182,6 +185,7 @@ internal static partial class CsvParser
         ReadOnlySpan<int> delimiterIndexes,
         bool emitFields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -205,7 +209,10 @@ internal static partial class CsvParser
                 firstFieldLength = length;
             }
 
-            fieldVisitor.VisitField(recordIndex, fieldCount, text.Slice(fieldStart, length));
+            if (CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldCount))
+            {
+                fieldVisitor.VisitField(recordIndex, fieldCount, text.Slice(fieldStart, length));
+            }
             fieldCount++;
             fieldStart = delimiterIndex + 1;
         }
@@ -221,6 +228,7 @@ internal static partial class CsvParser
         ReadOnlySpan<int> delimiterIndexesBeforeQuote,
         int quoteIndex,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldCount,
@@ -250,13 +258,13 @@ internal static partial class CsvParser
         fieldStart = start;
         foreach (var delimiterIndex in delimiterIndexesBeforeQuote)
         {
-            VisitTextField(text.Slice(fieldStart, delimiterIndex - fieldStart), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+            VisitTextField(text.Slice(fieldStart, delimiterIndex - fieldStart), emitFields, recordIndex, fieldCount, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
             fieldCount++;
             fieldStart = delimiterIndex + 1;
         }
 
         position = quoteIndex;
-        if (!TryVisitTextQuotedField(text, delimiter, trim: false, emitFields, recordIndex, fieldCount, ref position, ref fieldVisitor, ref scratch, out var quotedLength))
+        if (!TryVisitTextQuotedField(text, delimiter, trim: false, emitFields, recordIndex, fieldCount, ref position, projectedFieldVisitor, ref fieldVisitor, ref scratch, out var quotedLength))
         {
             throw new CsvParseException("Unterminated quoted field.", 0);
         }
@@ -285,7 +293,7 @@ internal static partial class CsvParser
             {
                 if (pendingTrailingField)
                 {
-                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldCount, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
                     fieldCount++;
                 }
 
@@ -298,7 +306,7 @@ internal static partial class CsvParser
             {
                 if (pendingTrailingField)
                 {
-                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldCount, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
                     fieldCount++;
                 }
 
@@ -309,7 +317,7 @@ internal static partial class CsvParser
             pendingTrailingField = false;
             if (value == '"')
             {
-                if (!TryVisitTextQuotedField(text, delimiter, trim: false, emitFields, recordIndex, fieldCount, ref position, ref fieldVisitor, ref scratch, out quotedLength))
+                if (!TryVisitTextQuotedField(text, delimiter, trim: false, emitFields, recordIndex, fieldCount, ref position, projectedFieldVisitor, ref fieldVisitor, ref scratch, out quotedLength))
                 {
                     throw new CsvParseException("Unterminated quoted field.", 0);
                 }
@@ -335,7 +343,7 @@ internal static partial class CsvParser
             else
             {
                 var field = ReadTextUnquotedField(text, delimiter, trim: false, ref position);
-                VisitTextField(field, emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+                VisitTextField(field, emitFields, recordIndex, fieldCount, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
             }
 
             fieldCount++;
@@ -344,7 +352,7 @@ internal static partial class CsvParser
 
         if (pendingTrailingField)
         {
-            VisitTextField(text.Slice(text.Length, 0), emitFields, recordIndex, fieldCount, ref fieldVisitor, ref firstFieldLength);
+            VisitTextField(text.Slice(text.Length, 0), emitFields, recordIndex, fieldCount, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
             fieldCount++;
         }
 
@@ -392,6 +400,7 @@ internal static partial class CsvParser
         ReadOnlySpan<int> delimiterIndexesBeforeQuote,
         int quoteIndex,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldCount,
@@ -440,7 +449,7 @@ internal static partial class CsvParser
 
         if (emitFields && (allowEmpty || recordEnd > start))
         {
-            VisitTextStandardFieldSpans(text, fields.Slice(0, fieldCount), recordIndex, ref fieldVisitor, ref scratch);
+            VisitTextStandardFieldSpans(text, fields.Slice(0, fieldCount), recordIndex, projectedFieldVisitor, ref fieldVisitor, ref scratch);
         }
 
         position = recordEnd;
@@ -612,12 +621,18 @@ internal static partial class CsvParser
         ReadOnlySpan<char> text,
         ReadOnlySpan<TextStandardFieldSpan> fields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         for (var fieldIndex = 0; fieldIndex < fields.Length; fieldIndex++)
         {
+            if (!CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+            {
+                continue;
+            }
+
             var field = fields[fieldIndex];
             var value = text.Slice(field.Start, field.End - field.Start);
             if (field.HasEscapedQuotes)
