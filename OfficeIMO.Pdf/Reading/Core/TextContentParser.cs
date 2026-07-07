@@ -81,11 +81,38 @@ internal static class TextContentParser {
         public string Name { get; }
         public Matrix2D Transform { get; }
         public double PaintOrder { get; }
+        public OfficeColor FillColor { get; }
+        public PdfPageColorSpaceKind FillColorSpace { get; }
+        public OfficeColor StrokeColor { get; }
+        public PdfPageColorSpaceKind StrokeColorSpace { get; }
+        public double? FillOpacity { get; }
+        public double? StrokeOpacity { get; }
+        public int TextRenderingMode { get; }
+        public PdfPageClipPath? ClipPath { get; }
 
-        public FormInvocation(string name, Matrix2D transform, double paintOrder = 0D) {
+        public FormInvocation(
+            string name,
+            Matrix2D transform,
+            double paintOrder = 0D,
+            OfficeColor? fillColor = null,
+            PdfPageColorSpaceKind fillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+            OfficeColor? strokeColor = null,
+            PdfPageColorSpaceKind strokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+            double? fillOpacity = null,
+            double? strokeOpacity = null,
+            int textRenderingMode = 0,
+            PdfPageClipPath? clipPath = null) {
             Name = name;
             Transform = transform;
             PaintOrder = paintOrder;
+            FillColor = fillColor ?? OfficeColor.Black;
+            FillColorSpace = fillColorSpace;
+            StrokeColor = strokeColor ?? OfficeColor.Black;
+            StrokeColorSpace = strokeColorSpace;
+            FillOpacity = fillOpacity;
+            StrokeOpacity = strokeOpacity;
+            TextRenderingMode = textRenderingMode;
+            ClipPath = clipPath;
         }
     }
 
@@ -102,19 +129,27 @@ internal static class TextContentParser {
         double pageHeight = 0D,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
-        double paintOrderOffset = 0D) {
+        double paintOrderOffset = 0D,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null,
+        double? initialStrokeOpacity = null,
+        int initialTextRenderingMode = 0,
+        PdfPageClipPath? initialClipPath = null) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
         string font = "F1"; double size = 12; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
-        OfficeColor fillColor = OfficeColor.Black;
-        PdfPageColorSpaceKind fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
-        OfficeColor strokeColor = OfficeColor.Black;
-        PdfPageColorSpaceKind strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
-        double? fillOpacity = null;
-        double? strokeOpacity = null;
-        int textRenderingMode = 0;
-        PdfPageClipPath? clipPath = null;
+        OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind fillColorSpace = initialFillColorSpace;
+        OfficeColor strokeColor = initialStrokeColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind strokeColorSpace = initialStrokeColorSpace;
+        double? fillOpacity = initialFillOpacity;
+        double? strokeOpacity = initialStrokeOpacity;
+        int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
+        PdfPageClipPath? clipPath = initialClipPath;
         var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
         Matrix2D textMatrix = Matrix2D.Identity;
         Matrix2D lineMatrix = Matrix2D.Identity;
@@ -996,10 +1031,30 @@ internal static class TextContentParser {
         PdfPageOptionalContentVisibility? optionalContentVisibility = null,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
-        double paintOrderOffset = 0D) {
+        double paintOrderOffset = 0D,
+        IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
+        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces = null,
+        double pageHeight = 0D,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null,
+        double? initialStrokeOpacity = null,
+        int initialTextRenderingMode = 0,
+        PdfPageClipPath? initialClipPath = null) {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
-        var gstack = new Stack<Matrix2D>();
+        OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind fillColorSpace = initialFillColorSpace;
+        OfficeColor strokeColor = initialStrokeColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind strokeColorSpace = initialStrokeColorSpace;
+        double? fillOpacity = initialFillOpacity;
+        double? strokeOpacity = initialStrokeOpacity;
+        int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
+        PdfPageClipPath? clipPath = initialClipPath;
+        var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
+        var gstack = new Stack<TextGraphicsState>();
         var hiddenContentStack = new Stack<bool>();
         var args = new List<object>(8);
         int i = 0;
@@ -1036,11 +1091,33 @@ internal static class TextContentParser {
 
             switch (op) {
                 case "q":
-                    gstack.Push(ctm);
+                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
                     args.Clear();
                     break;
                 case "Q":
-                    ctm = gstack.Count > 0 ? gstack.Pop() : Matrix2D.Identity;
+                    if (gstack.Count > 0) {
+                        TextGraphicsState state = gstack.Pop();
+                        ctm = state.Ctm;
+                        fillColor = state.FillColor;
+                        fillColorSpace = state.FillColorSpace;
+                        strokeColor = state.StrokeColor;
+                        strokeColorSpace = state.StrokeColorSpace;
+                        fillOpacity = state.FillOpacity;
+                        strokeOpacity = state.StrokeOpacity;
+                        textRenderingMode = state.TextRenderingMode;
+                        clipPath = state.ClipPath;
+                    } else {
+                        ctm = Matrix2D.Identity;
+                        fillColor = initialFillColor ?? OfficeColor.Black;
+                        fillColorSpace = initialFillColorSpace;
+                        strokeColor = initialStrokeColor ?? OfficeColor.Black;
+                        strokeColorSpace = initialStrokeColorSpace;
+                        fillOpacity = initialFillOpacity;
+                        strokeOpacity = initialStrokeOpacity;
+                        textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
+                        clipPath = initialClipPath;
+                    }
+
                     args.Clear();
                     break;
                 case "cm":
@@ -1056,11 +1133,199 @@ internal static class TextContentParser {
                     }
                     args.Clear();
                     break;
+                case "re":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.AddRectanglePath(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "m":
+                    if (args.Count >= 2) {
+                        clipPathBuilder.MoveTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "l":
+                    if (args.Count >= 2) {
+                        clipPathBuilder.LineTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "c":
+                    if (args.Count >= 6) {
+                        clipPathBuilder.CubicTo(
+                            ctm,
+                            ToDouble(args[args.Count - 6]),
+                            ToDouble(args[args.Count - 5]),
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "v":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.CubicToWithCurrentFirstControl(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "y":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.CubicToWithEndSecondControl(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "h":
+                    clipPathBuilder.ClosePath();
+                    args.Clear();
+                    break;
+                case "W":
+                case "W*":
+                    if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
+                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
+                    }
+
+                    args.Clear();
+                    break;
+                case "n":
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "f":
+                case "F":
+                case "f*":
+                case "S":
+                case "B":
+                case "B*":
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "s":
+                case "b":
+                case "b*":
+                    clipPathBuilder.ClosePath();
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "gs":
+                    if (args.Count >= 1) {
+                        ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "cs":
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedColorSpace)) {
+                        fillColorSpace = parsedColorSpace;
+                    }
+
+                    args.Clear();
+                    break;
+                case "CS":
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedStrokeColorSpace)) {
+                        strokeColorSpace = parsedStrokeColorSpace;
+                    }
+
+                    args.Clear();
+                    break;
+                case "rg":
+                    if (args.Count >= 3) {
+                        fillColor = ReadRgb(args.Count - 3);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    }
+
+                    args.Clear();
+                    break;
+                case "RG":
+                    if (args.Count >= 3) {
+                        strokeColor = ReadRgb(args.Count - 3);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    }
+
+                    args.Clear();
+                    break;
+                case "g":
+                    if (args.Count >= 1) {
+                        fillColor = ReadGray(args.Count - 1);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    }
+
+                    args.Clear();
+                    break;
+                case "G":
+                    if (args.Count >= 1) {
+                        strokeColor = ReadGray(args.Count - 1);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    }
+
+                    args.Clear();
+                    break;
+                case "k":
+                    if (args.Count >= 4) {
+                        fillColor = ReadCmyk(args.Count - 4);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    }
+
+                    args.Clear();
+                    break;
+                case "K":
+                    if (args.Count >= 4) {
+                        strokeColor = ReadCmyk(args.Count - 4);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    }
+
+                    args.Clear();
+                    break;
+                case "sc":
+                case "scn":
+                    if (TryReadColor(fillColorSpace, out OfficeColor parsedFillColor)) {
+                        fillColor = parsedFillColor;
+                    }
+
+                    args.Clear();
+                    break;
+                case "SC":
+                case "SCN":
+                    if (TryReadColor(strokeColorSpace, out OfficeColor parsedStrokeColor)) {
+                        strokeColor = parsedStrokeColor;
+                    }
+
+                    args.Clear();
+                    break;
+                case "Tr":
+                    if (args.Count >= 1) {
+                        textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
                 case "Do":
                     if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm, paintOrder));
+                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
                         }
                     }
                     args.Clear();
@@ -1185,6 +1450,102 @@ internal static class TextContentParser {
                 i++;
             }
             return content.Substring(start, i - start);
+        }
+
+        double NumberAt(int index) => args[index] is double value ? value : 0D;
+        void ApplyGraphicsStateResource(string name) {
+            if (graphicsStates == null || !graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
+                return;
+            }
+
+            fillOpacity = resource.FillOpacity ?? fillOpacity;
+            strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
+        }
+
+        OfficeColor ReadRgb(int startIndex) =>
+            OfficeColor.FromRgb(ToByte(NumberAt(startIndex)), ToByte(NumberAt(startIndex + 1)), ToByte(NumberAt(startIndex + 2)));
+        OfficeColor ReadGray(int index) {
+            byte value = ToByte(NumberAt(index));
+            return OfficeColor.FromRgb(value, value, value);
+        }
+
+        OfficeColor ReadCmyk(int startIndex) {
+            double cyan = Clamp01(NumberAt(startIndex));
+            double magenta = Clamp01(NumberAt(startIndex + 1));
+            double yellow = Clamp01(NumberAt(startIndex + 2));
+            double black = Clamp01(NumberAt(startIndex + 3));
+            return OfficeColor.FromRgb(
+                ToByte((1D - cyan) * (1D - black)),
+                ToByte((1D - magenta) * (1D - black)),
+                ToByte((1D - yellow) * (1D - black)));
+        }
+
+        bool TryReadColor(PdfPageColorSpaceKind colorSpace, out OfficeColor color) {
+            color = OfficeColor.Black;
+            int componentCount = GetColorComponentCount(colorSpace);
+            int endIndex = args.Count;
+            while (endIndex > 0 && args[endIndex - 1] is not double) {
+                endIndex--;
+            }
+
+            if (endIndex < componentCount) {
+                return false;
+            }
+
+            int startIndex = endIndex - componentCount;
+            switch (colorSpace) {
+                case PdfPageColorSpaceKind.DeviceRgb:
+                    color = ReadRgb(startIndex);
+                    return true;
+                case PdfPageColorSpaceKind.DeviceCmyk:
+                    color = ReadCmyk(startIndex);
+                    return true;
+                default:
+                    color = ReadGray(startIndex);
+                    return true;
+            }
+        }
+
+        bool TryReadColorSpace(string name, out PdfPageColorSpaceKind colorSpace) {
+            switch (name) {
+                case "DeviceRGB":
+                case "RGB":
+                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    return true;
+                case "DeviceCMYK":
+                case "CMYK":
+                    colorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    return true;
+                case "DeviceGray":
+                case "G":
+                    colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                default:
+                    if (colorSpaces != null && colorSpaces.TryGetValue(name, out colorSpace)) {
+                        return true;
+                    }
+
+                    colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return false;
+            }
+        }
+
+        static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
+            switch (colorSpace) {
+                case PdfPageColorSpaceKind.DeviceRgb:
+                    return 3;
+                case PdfPageColorSpaceKind.DeviceCmyk:
+                    return 4;
+                default:
+                    return 1;
+            }
+        }
+
+        static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
+        static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+        static int ReadTextRenderingMode(double value) {
+            int mode = (int)Math.Round(value);
+            return mode < 0 || mode > 7 ? 0 : mode;
         }
 
         static double ToDouble(object o) => o is double d ? d : 0.0;

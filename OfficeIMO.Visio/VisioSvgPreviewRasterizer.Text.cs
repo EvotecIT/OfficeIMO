@@ -59,7 +59,8 @@ namespace OfficeIMO.Visio {
             SvgTransform transform,
             out double advance) {
             advance = 0D;
-            if (string.IsNullOrEmpty(text) || paint.Fill.A == 0 || style.FontSize <= 0D) {
+            OfficeColor textColor = paint.Fill.A > 0 ? paint.Fill : GetStrokeFallbackColor(paint);
+            if (string.IsNullOrEmpty(text) || textColor.A == 0 || style.FontSize <= 0D) {
                 return false;
             }
 
@@ -71,7 +72,7 @@ namespace OfficeIMO.Visio {
                 anchor.X,
                 top,
                 fontHeight,
-                paint.Fill,
+                textColor,
                 bold: style.Bold,
                 italic: style.Italic,
                 alignment: style.Alignment,

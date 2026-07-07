@@ -31,10 +31,10 @@ namespace OfficeIMO.Visio {
             }
 
             bool userSpace = IsUserSpaceGradient(definition, context);
-            double x1 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "x1"), 0D);
-            double y1 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y1"), 0D);
-            double x2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "x2"), userSpace ? x1 + 1D : 1D);
-            double y2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y2"), 0D);
+            double x1 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "x1"), GetGradientDefault(userSpace, context, SvgLengthAxis.X, 0D, 0D), GetGradientReference(userSpace, context, SvgLengthAxis.X));
+            double y1 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y1"), GetGradientDefault(userSpace, context, SvgLengthAxis.Y, 0D, 0D), GetGradientReference(userSpace, context, SvgLengthAxis.Y));
+            double x2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "x2"), GetGradientDefault(userSpace, context, SvgLengthAxis.X, 1D, 1D), GetGradientReference(userSpace, context, SvgLengthAxis.X));
+            double y2 = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "y2"), GetGradientDefault(userSpace, context, SvgLengthAxis.Y, 0D, 0D), GetGradientReference(userSpace, context, SvgLengthAxis.Y));
             SvgTransform gradientTransform = ReadInheritedGradientTransform(definition, context);
             if (userSpace) {
                 OfficePoint start = gradientTransform.Apply(x1, y1);
@@ -83,12 +83,12 @@ namespace OfficeIMO.Visio {
             }
 
             bool userSpace = IsUserSpaceGradient(definition, context);
-            double cx = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "cx"), 0.5D);
-            double cy = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "cy"), 0.5D);
-            double r = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "r"), 0.5D);
-            double fx = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fx"), cx);
-            double fy = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fy"), cy);
-            double fr = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fr"), 0D);
+            double cx = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "cx"), GetGradientDefault(userSpace, context, SvgLengthAxis.X, 0.5D, 0.5D), GetGradientReference(userSpace, context, SvgLengthAxis.X));
+            double cy = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "cy"), GetGradientDefault(userSpace, context, SvgLengthAxis.Y, 0.5D, 0.5D), GetGradientReference(userSpace, context, SvgLengthAxis.Y));
+            double r = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "r"), GetGradientDefault(userSpace, context, SvgLengthAxis.Diagonal, 0.5D, 0.5D), GetGradientReference(userSpace, context, SvgLengthAxis.Diagonal));
+            double fx = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fx"), cx, GetGradientReference(userSpace, context, SvgLengthAxis.X));
+            double fy = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fy"), cy, GetGradientReference(userSpace, context, SvgLengthAxis.Y));
+            double fr = ReadGradientUnit(ReadInheritedGradientAttribute(definition, context, "fr"), GetGradientDefault(userSpace, context, SvgLengthAxis.Diagonal, 0D, 0D), GetGradientReference(userSpace, context, SvgLengthAxis.Diagonal));
             SvgTransform gradientTransform = ReadInheritedGradientTransform(definition, context);
             double radiusScale = Math.Max(gradientTransform.ScaleX, gradientTransform.ScaleY);
             if (userSpace) {
@@ -266,7 +266,7 @@ namespace OfficeIMO.Visio {
             return declarations;
         }
 
-        private static double ReadGradientUnit(string? raw, double fallback) {
+        private static double ReadGradientUnit(string? raw, double fallback, double? percentageReference = null) {
             if (string.IsNullOrWhiteSpace(raw)) {
                 return fallback;
             }
@@ -281,8 +281,22 @@ namespace OfficeIMO.Visio {
                 return fallback;
             }
 
-            return percent ? parsed / 100D : parsed;
+            return percent
+                ? (percentageReference.HasValue && percentageReference.Value > 0D ? percentageReference.Value * parsed / 100D : parsed / 100D)
+                : parsed;
         }
+
+        private static double GetGradientDefault(bool userSpace, SvgRenderContext context, SvgLengthAxis axis, double fraction, double objectBoundingBoxFallback) {
+            if (!userSpace) {
+                return objectBoundingBoxFallback;
+            }
+
+            double? reference = GetGradientReference(userSpace, context, axis);
+            return reference.HasValue && reference.Value > 0D ? reference.Value * fraction : objectBoundingBoxFallback;
+        }
+
+        private static double? GetGradientReference(bool userSpace, SvgRenderContext context, SvgLengthAxis axis) =>
+            userSpace ? GetLengthReference(context, axis) : null;
 
         private static string? ReadInheritedGradientAttribute(XElement definition, SvgRenderContext context, string attributeName) {
             string? value = definition.Attribute(attributeName)?.Value;

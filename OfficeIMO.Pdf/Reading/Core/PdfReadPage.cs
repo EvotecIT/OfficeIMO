@@ -403,7 +403,15 @@ public sealed partial class PdfReadPage {
         double pageHeight,
         double paintOrderBase = 0D,
         double paintOrderScale = 1D,
-        double paintOrderOffset = 0D) {
+        double paintOrderOffset = 0D,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null,
+        double? initialStrokeOpacity = null,
+        int initialTextRenderingMode = 0,
+        PdfPageClipPath? initialClipPath = null) {
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontRes, byte[] bytes) =>
@@ -425,14 +433,25 @@ public sealed partial class PdfReadPage {
             pageHeight: pageHeight,
             paintOrderBase: paintOrderBase,
             paintOrderScale: paintOrderScale,
-            paintOrderOffset: paintOrderOffset));
+            paintOrderOffset: paintOrderOffset,
+            initialFillColor: initialFillColor,
+            initialFillColorSpace: initialFillColorSpace,
+            initialStrokeColor: initialStrokeColor,
+            initialStrokeColorSpace: initialStrokeColorSpace,
+            initialFillOpacity: initialFillOpacity,
+            initialStrokeOpacity: initialStrokeOpacity,
+            initialTextRenderingMode: initialTextRenderingMode,
+            initialClipPath: initialClipPath));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
                      GetOptionalContentVisibility(resources),
                      paintOrderBase,
                      paintOrderScale,
-                     paintOrderOffset)) {
+                     paintOrderOffset,
+                     GetGraphicsStateResources(resources),
+                     GetColorSpaceResources(resources),
+                     pageHeight)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }
@@ -461,7 +480,15 @@ public sealed partial class PdfReadPage {
                     pageHeight,
                     invocation.PaintOrder,
                     paintOrderScale * 0.000000001D,
-                    -formContentOffset);
+                    -formContentOffset,
+                    invocation.FillColor,
+                    invocation.FillColorSpace,
+                    invocation.StrokeColor,
+                    invocation.StrokeColorSpace,
+                    invocation.FillOpacity,
+                    invocation.StrokeOpacity,
+                    invocation.TextRenderingMode,
+                    invocation.ClipPath);
             } finally {
                 activeForms.Remove(formStream);
             }

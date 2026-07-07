@@ -81,19 +81,19 @@ namespace OfficeIMO.Visio {
             using IDisposable paintBoundsScope = context.PushPaintBounds(TryGetElementPaintBounds(element, name, context, out SvgPaintBounds bounds) ? bounds : null);
             using IDisposable textStyleScope = context.PushTextStyle(SvgTextStyle.Resolve(element, context.CurrentTextStyle, context));
             using IDisposable fillRuleScope = context.PushFillRule(ResolveFillRule(element, context));
-            bool appliesGroupOpacity = CanApplyGroupOpacity(name);
-            double groupOpacity = appliesGroupOpacity ? SvgPaint.ReadOwnOpacity(element, context) : 1D;
-            if (appliesGroupOpacity && groupOpacity <= 0D) {
+            bool appliesElementOpacity = CanApplyElementOpacity(name);
+            double elementOpacity = appliesElementOpacity ? SvgPaint.ReadOwnOpacity(element, context) : 1D;
+            if (appliesElementOpacity && elementOpacity <= 0D) {
                 return false;
             }
 
-            bool useGroupOpacityLayer = appliesGroupOpacity && groupOpacity < 1D;
-            SvgPaint paint = SvgPaint.Resolve(element, inherited, context, applyOwnOpacity: !useGroupOpacityLayer);
+            bool useElementOpacityLayer = appliesElementOpacity && elementOpacity < 1D;
+            SvgPaint paint = SvgPaint.Resolve(element, inherited, context, applyOwnOpacity: !useElementOpacityLayer);
             if (!context.IsVisible && !CanHiddenElementHaveVisibleDescendants(name)) {
                 return false;
             }
 
-            if (useGroupOpacityLayer) {
+            if (useElementOpacityLayer) {
                 OfficeRasterImage layer = new(canvas.Width, canvas.Height, OfficeColor.Transparent);
                 OfficeRasterCanvas layerCanvas = new(layer);
                 bool rendered = RenderElementCore(layerCanvas, element, name, paint, localTransform, context);
@@ -102,7 +102,7 @@ namespace OfficeIMO.Visio {
                 }
 
                 using IDisposable? groupClipScope = PushClipPath(canvas, element, localTransform, context);
-                canvas.DrawImage(ApplyImageOpacity(layer, groupOpacity), 0D, 0D, canvas.Width, canvas.Height);
+                canvas.DrawImage(ApplyImageOpacity(layer, elementOpacity), 0D, 0D, canvas.Width, canvas.Height);
                 return true;
             }
 
@@ -110,10 +110,19 @@ namespace OfficeIMO.Visio {
             return RenderElementCore(canvas, element, name, paint, localTransform, context);
         }
 
-        private static bool CanApplyGroupOpacity(string name) =>
+        private static bool CanApplyElementOpacity(string name) =>
             string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(name, "use", StringComparison.OrdinalIgnoreCase);
+            string.Equals(name, "use", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "image", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "text", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "rect", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "circle", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "ellipse", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "line", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "polyline", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "polygon", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "path", StringComparison.OrdinalIgnoreCase);
 
         private static bool CanHiddenElementHaveVisibleDescendants(string name) =>
             string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
@@ -284,10 +293,8 @@ namespace OfficeIMO.Visio {
                 }
 
                 SvgTransform useTransform = transform.Multiply(SvgTransform.Create(1D, 0D, 0D, 1D, ReadLength(element, "x", 0D, context, SvgLengthAxis.X), ReadLength(element, "y", 0D, context, SvgLengthAxis.Y)));
-                if ((string.Equals(definitionName, "symbol", StringComparison.OrdinalIgnoreCase) ||
-                     string.Equals(definitionName, "svg", StringComparison.OrdinalIgnoreCase)) &&
-                    TryReadViewBoxTransform(definition, element, out SvgTransform viewBoxTransform)) {
-                    useTransform = useTransform.Multiply(viewBoxTransform);
+                if (string.Equals(definitionName, "svg", StringComparison.OrdinalIgnoreCase)) {
+                    return RenderSymbolUse(canvas, element, definition, inherited, transform, context);
                 }
 
                 return RenderElement(canvas, definition, inherited, useTransform, context);

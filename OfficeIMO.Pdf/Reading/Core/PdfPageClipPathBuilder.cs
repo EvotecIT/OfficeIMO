@@ -130,7 +130,16 @@ internal sealed class PdfPageClipPathBuilder {
         y = 0D;
         width = 0D;
         height = 0D;
-        if (_path.Count < 4 || CountMoveCommands() != 1) {
+        if (_path.Count != 5 ||
+            _pathCommands.Count != 5 ||
+            CountMoveCommands() != 1 ||
+            _pathCommands[0].Kind != OfficePathCommandKind.MoveTo ||
+            _pathCommands[1].Kind != OfficePathCommandKind.LineTo ||
+            _pathCommands[2].Kind != OfficePathCommandKind.LineTo ||
+            _pathCommands[3].Kind != OfficePathCommandKind.LineTo ||
+            _pathCommands[4].Kind != OfficePathCommandKind.Close ||
+            !NearlyEqual(_path[0].X, _path[4].X) ||
+            !NearlyEqual(_path[0].Y, _path[4].Y)) {
             return false;
         }
 
@@ -144,12 +153,26 @@ internal sealed class PdfPageClipPathBuilder {
             return false;
         }
 
-        for (int i = 0; i < _path.Count; i++) {
+        var corners = new HashSet<string>(StringComparer.Ordinal);
+        for (int i = 0; i < 4; i++) {
             bool onVertical = NearlyEqual(_path[i].X, left) || NearlyEqual(_path[i].X, right);
             bool onHorizontal = NearlyEqual(ToTop(_path[i].Y), top) || NearlyEqual(ToTop(_path[i].Y), bottom);
             if (!onVertical || !onHorizontal) {
                 return false;
             }
+
+            (double X, double Y) next = _path[i + 1];
+            bool horizontalEdge = NearlyEqual(_path[i].Y, next.Y) && !NearlyEqual(_path[i].X, next.X);
+            bool verticalEdge = NearlyEqual(_path[i].X, next.X) && !NearlyEqual(_path[i].Y, next.Y);
+            if (!horizontalEdge && !verticalEdge) {
+                return false;
+            }
+
+            corners.Add((NearlyEqual(_path[i].X, left) ? "L" : "R") + (NearlyEqual(ToTop(_path[i].Y), top) ? "T" : "B"));
+        }
+
+        if (corners.Count != 4) {
+            return false;
         }
 
         x = left;
