@@ -52,6 +52,22 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void GetValues_WithInferredSchema_ExposesTypedValues()
+    {
+        var doc = CsvDocument.Parse("Id,Amount,Created,Note\n1,12.5,2026-07-07,Alpha\n");
+
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { InferSchema = true });
+
+        Assert.True(reader.Read());
+        var values = new object[reader.FieldCount];
+        Assert.Equal(4, reader.GetValues(values));
+        Assert.Equal(1, values[0]);
+        Assert.Equal(12.5m, values[1]);
+        Assert.Equal(new DateTime(2026, 7, 7), values[2]);
+        Assert.Equal("Alpha", values[3]);
+    }
+
+    [Fact]
     public void DataTableLoad_FromCsvDataReader_HandlesWideSchema()
     {
         var header = string.Join(",", Enumerable.Range(1, 40).Select(i => $"C{i}"));

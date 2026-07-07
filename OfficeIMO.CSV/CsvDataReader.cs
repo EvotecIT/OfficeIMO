@@ -181,9 +181,28 @@ public sealed class CsvDataReader : DbDataReader
     {
         EnsureOpenRow();
         var count = Math.Min(values.Length, _columns.Length);
+        if (_useRawStringValues)
+        {
+            for (var i = 0; i < count; i++)
+            {
+                values[i] = GetRawStringValue(i);
+            }
+
+            return count;
+        }
+
+        _currentConvertedRow ??= new object?[_columns.Length];
         for (var i = 0; i < count; i++)
         {
-            values[i] = GetValue(i);
+            var value = _currentConvertedRow[i];
+            if (value is null)
+            {
+                var rawValue = i < _currentRawRow!.Length ? _currentRawRow[i] : null;
+                value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[i], _rowIndex, _culture, _dateTimeFormats);
+                _currentConvertedRow[i] = value;
+            }
+
+            values[i] = value;
         }
 
         return count;
