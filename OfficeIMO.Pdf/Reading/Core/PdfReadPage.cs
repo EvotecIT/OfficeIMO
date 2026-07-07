@@ -411,7 +411,8 @@ public sealed partial class PdfReadPage {
         double? initialFillOpacity = null,
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        bool useLogicalTextFilters = true) {
         string DecodeWithFont(string fontRes, byte[] bytes) =>
             decoders.TryGetValue(fontRes, out var dec) ? dec(bytes) : PdfWinAnsiEncoding.Decode(bytes);
         double SumWidth1000(string fontRes, byte[] bytes) =>
@@ -441,7 +442,8 @@ public sealed partial class PdfReadPage {
             initialFillOpacity: initialFillOpacity,
             initialStrokeOpacity: initialStrokeOpacity,
             initialTextRenderingMode: initialTextRenderingMode,
-            initialClipPath: initialClipPath));
+            initialClipPath: initialClipPath,
+            useLogicalTextFilters: useLogicalTextFilters));
 
         foreach (var invocation in TextContentParser.ExtractFormInvocations(
                      content,
@@ -488,7 +490,8 @@ public sealed partial class PdfReadPage {
                     invocation.FillOpacity,
                     invocation.StrokeOpacity,
                     invocation.TextRenderingMode,
-                    invocation.ClipPath);
+                    invocation.ClipPath,
+                    useLogicalTextFilters);
             } finally {
                 activeForms.Remove(formStream);
             }

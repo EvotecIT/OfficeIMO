@@ -724,7 +724,7 @@ internal static class PdfPageXObjectInvocationParser {
             return array;
         }
 
-        private static bool TryGetRawInlineImageLength(PdfDictionary dictionary, out int length) {
+        private bool TryGetRawInlineImageLength(PdfDictionary dictionary, out int length) {
             length = 0;
             if (dictionary.Items.ContainsKey("Filter")) {
                 return false;
@@ -760,7 +760,7 @@ internal static class PdfPageXObjectInvocationParser {
             return true;
         }
 
-        private static int GetInlineImageComponentCount(PdfDictionary dictionary) {
+        private int GetInlineImageComponentCount(PdfDictionary dictionary) {
             string colorSpace = dictionary.Items.TryGetValue("ColorSpace", out PdfObject? colorSpaceObject) && colorSpaceObject is PdfName colorSpaceName
                 ? colorSpaceName.Name
                 : "DeviceGray";
@@ -768,6 +768,19 @@ internal static class PdfPageXObjectInvocationParser {
                 case "DeviceRGB":
                     return 3;
                 case "DeviceCMYK":
+                    return 4;
+                default:
+                    return _colorSpaces != null && _colorSpaces.TryGetValue(colorSpace, out PdfPageColorSpaceKind resolved)
+                        ? GetComponentCount(resolved)
+                        : 1;
+            }
+        }
+
+        private static int GetComponentCount(PdfPageColorSpaceKind colorSpace) {
+            switch (colorSpace) {
+                case PdfPageColorSpaceKind.DeviceRgb:
+                    return 3;
+                case PdfPageColorSpaceKind.DeviceCmyk:
                     return 4;
                 default:
                     return 1;

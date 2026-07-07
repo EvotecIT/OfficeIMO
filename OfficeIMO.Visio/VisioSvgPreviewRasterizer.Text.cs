@@ -14,6 +14,7 @@ namespace OfficeIMO.Visio {
             var cursor = new SvgTextCursor(
                 x + ReadLength(element, "dx", 0D, context, SvgLengthAxis.X),
                 y + ReadLength(element, "dy", 0D, context, SvgLengthAxis.Y));
+            cursor.X = ApplyTextAnchor(cursor.X, MeasureTextChunk(canvas, element, style, context, stopAtPositionedChild: true), style.Alignment);
             return RenderTextNodes(canvas, element, paint, style, transform, context, ref cursor);
         }
 
@@ -37,6 +38,15 @@ namespace OfficeIMO.Visio {
                 }
 
                 if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
+                    if (IsElementDisplayNone(child, context)) {
+                        continue;
+                    }
+
+                    using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(child, context));
+                    if (!context.IsVisible) {
+                        continue;
+                    }
+
                     bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
                     if (resetsTextFlow) {
                         cursor.PendingSpace = false;
@@ -47,6 +57,10 @@ namespace OfficeIMO.Visio {
                     double childY = ReadLength(child, "y", cursor.Y, context, SvgLengthAxis.Y);
                     childX += ReadLength(child, "dx", 0D, context, SvgLengthAxis.X);
                     childY += ReadLength(child, "dy", 0D, context, SvgLengthAxis.Y);
+                    if (resetsTextFlow) {
+                        childX = ApplyTextAnchor(childX, MeasureTextChunk(canvas, child, childStyle, context, stopAtPositionedChild: true), childStyle.Alignment);
+                    }
+
                     SvgPaint childPaint = SvgPaint.Resolve(child, paint, context);
                     var childCursor = new SvgTextCursor(childX, childY) {
                         HasTextRun = cursor.HasTextRun && !resetsTextFlow,
@@ -89,12 +103,65 @@ namespace OfficeIMO.Visio {
                 transform.ToOfficeTransform(),
                 bold: style.Bold,
                 italic: style.Italic,
-                alignment: style.Alignment,
+                alignment: OfficeTextAlignment.Left,
                 underline: style.Underline,
                 strikethrough: style.Strikethrough,
                 fontFamily: style.FontFamily);
             advance = canvas.MeasureText(text, fontHeight, style.FontFamily);
             return true;
+        }
+
+        private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, bool stopAtPositionedChild) {
+            double width = 0D;
+            var measureCursor = new SvgTextCursor(0D, 0D);
+            foreach (XNode node in element.Nodes()) {
+                if (node is XText textNode) {
+                    string value = NormalizeTextRun(textNode.Value, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
+                    if (value.Length > 0) {
+                        width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);
+                        measureCursor.HasTextRun = true;
+                    }
+
+                    continue;
+                }
+
+                if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
+                    if (IsElementDisplayNone(child, context)) {
+                        continue;
+                    }
+
+                    using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(child, context));
+                    if (!context.IsVisible) {
+                        continue;
+                    }
+
+                    bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
+                    if (resetsTextFlow && stopAtPositionedChild) {
+                        break;
+                    }
+
+                    SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
+                    width += MeasureTextChunk(canvas, child, childStyle, context, stopAtPositionedChild: true);
+                    measureCursor.HasTextRun = true;
+                }
+            }
+
+            return width;
+        }
+
+        private static double ApplyTextAnchor(double x, double width, OfficeTextAlignment alignment) {
+            if (width <= 0D) {
+                return x;
+            }
+
+            switch (alignment) {
+                case OfficeTextAlignment.Center:
+                    return x - (width / 2D);
+                case OfficeTextAlignment.Right:
+                    return x - width;
+                default:
+                    return x;
+            }
         }
 
         private static string NormalizeTextRun(string? text, ref bool pendingSpace, bool hasPriorTextRun) {

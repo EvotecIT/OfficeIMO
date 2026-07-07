@@ -137,7 +137,8 @@ internal static class TextContentParser {
         double? initialFillOpacity = null,
         double? initialStrokeOpacity = null,
         int initialTextRenderingMode = 0,
-        PdfPageClipPath? initialClipPath = null) {
+        PdfPageClipPath? initialClipPath = null,
+        bool useLogicalTextFilters = true) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
@@ -539,8 +540,8 @@ internal static class TextContentParser {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
             }
-            var actualTextState = GetActiveActualTextState();
-            bool isArtifact = HasActiveArtifact();
+            var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
+            bool isArtifact = useLogicalTextFilters && HasActiveArtifact();
             bool isHidden = HasActiveHiddenContent();
             bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
             if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
