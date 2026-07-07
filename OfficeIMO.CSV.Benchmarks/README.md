@@ -50,3 +50,19 @@ The table shows the fastest method per shape/row-count lane. Treat this as a qui
 | Wide | 1000 | OfficeIMO_WriteTrustedTextRows | 0.28 ms |
 | Wide | 10000 | OfficeIMO_WriteTrustedTextRows | 3.41 ms |
 | Wide | 25000 | OfficeIMO_WriteTrustedTextRows | 9.45 ms |
+
+## Current Wide Read Snapshot
+
+Fresh local short-job run on 2026-07-07:
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*Read*FieldSpan*" --job short --warmupCount 1 --iterationCount 3
+```
+
+The table shows the fastest raw field-span read method per wide row-count lane. These lanes touch every field and compare OfficeIMO.CSV against SEP and Sylvan without PowerShell object overhead.
+
+| Shape | Rows | Fastest method | Mean | SEP span read | Sylvan span read |
+| --- | ---: | --- | ---: | ---: | ---: |
+| Wide | 1000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.07 ms | 0.10 ms | 0.14 ms |
+| Wide | 10000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.77 ms | 1.10 ms | 1.45 ms |
+| Wide | 25000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 1.91 ms | 2.87 ms | 3.71 ms |
