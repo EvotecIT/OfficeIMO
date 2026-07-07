@@ -168,18 +168,36 @@ public sealed partial class CsvDocument
 
     internal static object?[] BuildParsedObjectValues(IReadOnlyList<string> values, int headerCount, CsvLoadOptions options)
     {
+        return FillParsedObjectValues(values, headerCount, options, target: null);
+    }
+
+    internal static object?[] FillParsedObjectValues(IReadOnlyList<string> values, int headerCount, CsvLoadOptions options, object?[]? target)
+    {
         var staticCount = options.StaticColumns?.Count ?? 0;
         var sourceHeaderCount = headerCount - staticCount;
-        var alignedStrings = AlignParsedStringValues(values, sourceHeaderCount, options.ColumnCountMismatchPolicy);
-        var aligned = new object?[headerCount];
-        for (var i = 0; i < alignedStrings.Count; i++)
+        var aligned = target is { Length: var length } && length == headerCount
+            ? target
+            : new object?[headerCount];
+
+        var copyCount = Math.Min(values.Count, sourceHeaderCount);
+        if (values.Count != sourceHeaderCount && options.ColumnCountMismatchPolicy == CsvColumnCountMismatchPolicy.Strict)
         {
-            aligned[i] = NormalizeLoadedValue(alignedStrings[i], options);
+            throw new CsvException($"Row contains {values.Count} values but header defines {sourceHeaderCount} columns.");
+        }
+
+        for (var i = 0; i < copyCount; i++)
+        {
+            aligned[i] = NormalizeLoadedValue(values[i], options);
+        }
+
+        for (var i = copyCount; i < sourceHeaderCount; i++)
+        {
+            aligned[i] = string.Empty;
         }
 
         if (staticCount > 0)
         {
-            var index = alignedStrings.Count;
+            var index = sourceHeaderCount;
             foreach (var staticColumn in options.StaticColumns!)
             {
                 aligned[index++] = staticColumn.Value;

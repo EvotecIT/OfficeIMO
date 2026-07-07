@@ -35,7 +35,10 @@ public sealed partial class CsvDocument
         var schema = options.Schema ?? _schema ?? (options.InferSchema ? InferSchema(options.SchemaSampleSize) : null);
         var schemaColumns = schema?.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
         var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
-        return new CsvDataReader(columns, EnumerateRawRows(), _culture, _dateTimeFormats);
+        var rows = schema is null && _mode == CsvLoadMode.Stream && _streamingSource is not null
+            ? _streamingSource.ReadReusableRows()
+            : EnumerateRawRows();
+        return new CsvDataReader(columns, rows, _culture, _dateTimeFormats);
     }
 
     private CsvDataReader CreateStreamingInferredDataReader(int schemaSampleSize)

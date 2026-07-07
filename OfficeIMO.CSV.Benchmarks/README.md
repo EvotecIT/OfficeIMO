@@ -36,6 +36,32 @@ Parity check: the class includes all 20 `CsvReaderBenchmarks` descriptions from 
 
 CsvHelper, Sylvan.Data.Csv, Dataplat.Dbatools.Csv, LumenWorksCsvReader2, and Sep are benchmark-only dependencies in this project. They should not be added to `OfficeIMO.CSV` unless a future design decision intentionally changes the runtime dependency model.
 
+## Current dbatools.library Parity Snapshot
+
+Fresh local short-job runs on 2026-07-08. Treat these as direction-finding numbers; run a longer BenchmarkDotNet job before release claims or performance gates.
+
+QuickTest single-column/all-column read lanes:
+
+| Method | Single column mean | All columns mean | Allocated |
+| --- | ---: | ---: | ---: |
+| OfficeIMO span reader | 4.89 ms | 4.62 ms | ~771 KB |
+| SEP | 6.49 ms | 20.14 ms | 3.1 MB / 39.4 MB |
+| Sylvan | 12.40 ms | 19.63 ms | 3.1 MB / 39.6 MB |
+| CsvHelper | 34.65 ms | 52.59 ms | 3.1 MB / 39.6 MB |
+| Dataplat.Dbatools.Csv | 29.64 ms | 33.93 ms | 39.9 MB |
+| LumenWorks | 92.00 ms | 37.22 ms | 1.58 GB / 39.7 MB |
+
+All-values read lane:
+
+| Method | Mean | Allocated |
+| --- | ---: | ---: |
+| OfficeIMO span reader | 4.76 ms | 772 KB |
+| Dataplat.Dbatools.Csv DataReader | 26.61 ms | 39.9 MB |
+| OfficeIMO streaming DataReader | 34.30 ms | 71.2 MB |
+| LumenWorks | 35.38 ms | 39.7 MB |
+
+The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it improved after row-buffer reuse but still has a remaining allocation gap versus Dataplat's DataReader.
+
 ## Current Write Snapshot
 
 Fresh local short-job run on 2026-07-07:

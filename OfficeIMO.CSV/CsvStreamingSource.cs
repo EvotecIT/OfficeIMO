@@ -32,4 +32,22 @@ internal sealed class CsvStreamingSource
             yield return CsvDocument.BuildParsedObjectValues(record, _headerCount, _options);
         }
     }
+
+    public IEnumerable<object?[]> ReadReusableRows()
+    {
+        using var reader = _readerFactory();
+        var skipped = 0;
+        object?[]? row = null;
+        foreach (var record in CsvParser.Parse(reader, _options))
+        {
+            if (skipped < _skipRecordCount)
+            {
+                skipped++;
+                continue;
+            }
+
+            row = CsvDocument.FillParsedObjectValues(record, _headerCount, _options, row);
+            yield return row;
+        }
+    }
 }

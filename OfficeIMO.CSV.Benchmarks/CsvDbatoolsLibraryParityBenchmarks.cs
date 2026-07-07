@@ -158,6 +158,10 @@ public class CsvDbatoolsLibraryParityBenchmarks
     [BenchmarkCategory("AllValues")]
     public int OfficeIMO_AllValues() => OfficeIMO_ReadAllValues(_mediumCsvPath);
 
+    [Benchmark(Description = "OfficeIMO-DataReader-AllValues")]
+    [BenchmarkCategory("AllValues")]
+    public int OfficeIMO_DataReader_AllValues() => OfficeIMO_DataReaderReadAllValues(_mediumCsvPath);
+
     [Benchmark(Description = "Dataplat-AllValues")]
     [BenchmarkCategory("AllValues")]
     public int Dataplat_AllValues()
@@ -201,6 +205,14 @@ public class CsvDbatoolsLibraryParityBenchmarks
     [Benchmark(Description = "OfficeIMO-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
     public int OfficeIMO_QuickTest_AllColumns() => OfficeIMO_ReadAllValues(_quickTestCsvPath);
+
+    [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-SingleColumn")]
+    [BenchmarkCategory("QuickTest")]
+    public int OfficeIMO_DataReader_QuickTest_SingleColumn() => OfficeIMO_DataReaderReadFirstColumn(_quickTestCsvPath);
+
+    [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-AllColumns")]
+    [BenchmarkCategory("QuickTest")]
+    public int OfficeIMO_DataReader_QuickTest_AllColumns() => OfficeIMO_DataReaderReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "Sep-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
@@ -264,6 +276,35 @@ public class CsvDbatoolsLibraryParityBenchmarks
         }
 
         return visitor.RowCount;
+    }
+
+    private static int OfficeIMO_DataReaderReadFirstColumn(string path)
+    {
+        var count = 0;
+        var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
+        using var reader = document.CreateDataReader();
+        while (reader.Read())
+        {
+            count++;
+            _ = reader.GetValue(FirstColumnIndex);
+        }
+
+        return count;
+    }
+
+    private static int OfficeIMO_DataReaderReadAllValues(string path)
+    {
+        var count = 0;
+        var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
+        using var reader = document.CreateDataReader();
+        var values = new object[reader.FieldCount];
+        while (reader.Read())
+        {
+            count++;
+            reader.GetValues(values);
+        }
+
+        return count;
     }
 
     private static int Dataplat_ReadFirstColumn(string path)
