@@ -661,6 +661,12 @@ public sealed class CsvObjectWriter : IDisposable
 
     private void WriteDefaultTextRecord(string?[] values)
     {
+        if (CsvWriter.TextRowNeedsEscaping(values, _options.Delimiter))
+        {
+            CsvWriter.WriteRecordDefault(_writer, values, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
         if (values.Length >= WideTextRowThreshold)
         {
             CsvWriter.WriteRecordDefault(_writer, values, _options.Delimiter, _options.NewLine);

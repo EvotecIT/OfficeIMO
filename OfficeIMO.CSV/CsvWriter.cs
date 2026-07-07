@@ -1155,7 +1155,7 @@ internal static class CsvWriter
         WriteEscapedDefault(writer, text, delimiter);
     }
 
-    private static bool TextRowNeedsEscaping(string?[] values, char delimiter)
+    internal static bool TextRowNeedsEscaping(string?[] values, char delimiter)
     {
         for (var i = 0; i < values.Length; i++)
         {
