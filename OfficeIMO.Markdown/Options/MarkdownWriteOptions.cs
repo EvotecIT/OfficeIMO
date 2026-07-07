@@ -10,6 +10,57 @@ public sealed class MarkdownWriteOptions {
     /// <summary>Creates default OfficeIMO-flavored markdown writer options.</summary>
     public static MarkdownWriteOptions CreateOfficeIMOProfile() => new MarkdownWriteOptions();
 
+    /// <summary>Creates writer options for the requested output profile.</summary>
+    public static MarkdownWriteOptions CreateProfile(MarkdownOutputProfile profile) =>
+        profile switch {
+            MarkdownOutputProfile.OfficeIMO => CreateOfficeIMOProfile(),
+            MarkdownOutputProfile.CommonMark => CreateCommonMarkProfile(),
+            MarkdownOutputProfile.GitHubFlavoredMarkdown => CreateGitHubFlavoredMarkdownProfile(),
+            MarkdownOutputProfile.Portable => CreatePortableProfile(),
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown markdown output profile.")
+        };
+
+    /// <summary>
+    /// Creates a CommonMark-oriented writer profile. GitHub-only constructs such as pipe tables are
+    /// emitted using portable raw HTML fallbacks when a plain CommonMark representation does not exist.
+    /// </summary>
+    public static MarkdownWriteOptions CreateCommonMarkProfile() {
+        var options = CreatePortableProfile();
+        options.OutputLineEnding = "\n";
+        options.FrontMatterRendering = MarkdownFrontMatterRenderingMode.Omit;
+        options.AbbreviationDefinitionRendering = MarkdownAbbreviationDefinitionRenderingMode.Omit;
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTableMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTaskListMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkDefinitionListMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkFootnoteDefinitionMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkDetailsMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkCustomContainerMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkParagraphLineStartMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkAttributedBlockMarkdownFallback(options);
+        MarkdownInlineRenderBuiltInExtensions.AddCommonMarkGfmInlineMarkdownFallbacks(options);
+        MarkdownInlineRenderBuiltInExtensions.AddCommonMarkAttributedInlineMarkdownFallback(options);
+        return options;
+    }
+
+    /// <summary>
+    /// Creates a GitHub Flavored Markdown-oriented writer profile for README and GitHub documentation output.
+    /// </summary>
+    public static MarkdownWriteOptions CreateGitHubFlavoredMarkdownProfile() {
+        var options = new MarkdownWriteOptions {
+            ImageRenderingMode = MarkdownImageRenderingMode.PortableMarkdown,
+            AbbreviationDefinitionRendering = MarkdownAbbreviationDefinitionRenderingMode.Omit,
+            OutputLineEnding = "\n",
+            UnorderedListMarker = '-'
+        };
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubDefinitionListMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubCustomContainerMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubParagraphLineStartMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddGitHubAttributedBlockMarkdownFallback(options);
+        MarkdownInlineRenderBuiltInExtensions.AddGitHubOfficeInlineMarkdownFallbacks(options);
+        MarkdownInlineRenderBuiltInExtensions.AddGitHubAttributedInlineMarkdownFallback(options);
+        return options;
+    }
+
     /// <summary>
     /// Creates a more portable markdown writer profile that degrades OfficeIMO-only blocks into broadly compatible markdown.
     /// </summary>
@@ -31,6 +82,16 @@ public sealed class MarkdownWriteOptions {
     /// Controls how image blocks and image inlines are serialized back to markdown text.
     /// </summary>
     public MarkdownImageRenderingMode ImageRenderingMode { get; set; } = MarkdownImageRenderingMode.RichMarkdown;
+
+    /// <summary>
+    /// Controls how YAML front matter is emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
+    /// </summary>
+    public MarkdownFrontMatterRenderingMode FrontMatterRendering { get; set; } = MarkdownFrontMatterRenderingMode.Preserve;
+
+    /// <summary>
+    /// Controls how parse-owned abbreviation definitions are emitted by <see cref="MarkdownDoc.ToMarkdown(MarkdownWriteOptions?)"/>.
+    /// </summary>
+    public MarkdownAbbreviationDefinitionRenderingMode AbbreviationDefinitionRendering { get; set; } = MarkdownAbbreviationDefinitionRenderingMode.Preserve;
 
     /// <summary>
     /// Optional line ending to use in rendered Markdown. When unset, the platform default is used.
@@ -88,6 +149,8 @@ public sealed class MarkdownWriteOptions {
     public MarkdownWriteOptions Clone() {
         var clone = new MarkdownWriteOptions {
             ImageRenderingMode = ImageRenderingMode,
+            FrontMatterRendering = FrontMatterRendering,
+            AbbreviationDefinitionRendering = AbbreviationDefinitionRendering,
             OutputLineEnding = OutputLineEnding,
             UnorderedListMarker = UnorderedListMarker
         };

@@ -7,10 +7,12 @@ internal static class HtmlRenderContext {
     private static readonly System.Threading.AsyncLocal<HtmlOptions?> s_Options = new();
     private static readonly System.Threading.AsyncLocal<HtmlFootnoteRenderState?> s_Footnotes = new();
     private static readonly System.Threading.AsyncLocal<MarkdownBodyRenderContext?> s_BodyContext = new();
+    private static readonly System.Threading.AsyncLocal<int> s_RenderListItemAttributesDepth = new();
 
     internal static HtmlOptions? Options => s_Options.Value;
     internal static HtmlFootnoteRenderState? Footnotes => s_Footnotes.Value;
     internal static MarkdownBodyRenderContext? BodyContext => s_BodyContext.Value;
+    internal static bool RenderListItemAttributes => s_RenderListItemAttributesDepth.Value > 0;
 
     internal static IDisposable Push(HtmlOptions options, HtmlFootnoteRenderState? footnotes = null) {
         var prior = s_Options.Value;
@@ -24,6 +26,11 @@ internal static class HtmlRenderContext {
         var prior = s_BodyContext.Value;
         s_BodyContext.Value = context;
         return new BodyContextPopper(prior);
+    }
+
+    internal static IDisposable PushRenderListItemAttributes() {
+        s_RenderListItemAttributesDepth.Value++;
+        return new RenderListItemAttributesPopper();
     }
 
     private readonly struct Popper : IDisposable {
@@ -50,6 +57,13 @@ internal static class HtmlRenderContext {
 
         public void Dispose() {
             s_BodyContext.Value = _prior;
+        }
+    }
+
+    private readonly struct RenderListItemAttributesPopper : IDisposable {
+        public void Dispose() {
+            var current = s_RenderListItemAttributesDepth.Value;
+            s_RenderListItemAttributesDepth.Value = current > 0 ? current - 1 : 0;
         }
     }
 }

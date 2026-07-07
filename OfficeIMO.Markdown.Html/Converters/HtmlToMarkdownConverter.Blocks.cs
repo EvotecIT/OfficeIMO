@@ -56,16 +56,16 @@ public sealed partial class HtmlToMarkdownConverter {
         return blocks;
     }
 
-    private static bool IsBlockElement(IElement element) {
-        return s_BlockTags.Contains(element.TagName);
+    private static bool IsBlockElement(IElement element, ConversionContext context) {
+        return s_BlockTags.Contains(GetEffectiveTagName(element, context));
     }
 
-    private static bool IsInlineElement(IElement element) {
-        return s_InlineTags.Contains(element.TagName);
+    private static bool IsInlineElement(IElement element, ConversionContext context) {
+        return s_InlineTags.Contains(GetEffectiveTagName(element, context));
     }
 
     private static bool ShouldTreatAsBlockElement(IElement element, ConversionContext context) {
-        if (IsBlockElement(element)) {
+        if (IsBlockElement(element, context)) {
             return true;
         }
 
@@ -77,17 +77,73 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        if (context.Options.PreserveUnsupportedBlocks && !IsInlineElement(element)) {
-            return true;
+        if (!IsInlineElement(element, context)) {
+            if (IsVisualContractElement(element)
+                || (context.Options.PreserveUnsupportedBlocks
+                    && context.Options.UnknownBlockHandling == HtmlUnknownTagHandling.Preserve)) {
+                return true;
+            }
+
+            if (HasVisibleInlineSibling(element, context)) {
+                return false;
+            }
+
+            return context.Options.UnknownBlockHandling != HtmlUnknownTagHandling.Preserve;
         }
 
         return false;
     }
 
+    private static bool IsVisualContractElement(IElement element) {
+        if (element == null) {
+            return false;
+        }
+
+        var attributes = new List<KeyValuePair<string, string?>>();
+        foreach (var attribute in element.Attributes) {
+            attributes.Add(new KeyValuePair<string, string?>(attribute.Name, attribute.Value));
+        }
+
+        return MarkdownVisualElementContract.TryParse(attributes, out _);
+    }
+
+    private static bool HasVisibleInlineSibling(IElement element, ConversionContext context) {
+        if (element == null || element.ParentElement == null) {
+            return false;
+        }
+
+        foreach (var sibling in element.ParentElement.ChildNodes) {
+            if (ReferenceEquals(sibling, element)) {
+                continue;
+            }
+
+            if (IsVisibleInlineFlowNode(sibling, context)) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool IsVisibleInlineFlowNode(INode node, ConversionContext context) {
+        switch (node) {
+            case IText text:
+                return !string.IsNullOrWhiteSpace(text.Data);
+            case IElement element:
+                if (ShouldIgnoreElement(element, context) || IsBlockElement(element, context)) {
+                    return false;
+                }
+
+                return !HasDirectBlockChildren(element, context);
+            default:
+                return false;
+        }
+    }
+
     private static bool CanConvertAnchorToLinkedImageBlock(IElement element, ConversionContext context) {
         if (element == null
             || context == null
-            || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            || !HasEffectiveTagName(element, context, "A")) {
             return false;
         }
 
@@ -96,15 +152,15 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (!TryResolveAnchorMediaElement(element, out var mediaElement)) {
+        if (!TryResolveAnchorMediaElement(element, context, out var mediaElement)) {
             return false;
         }
 
-        if (mediaElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(mediaElement, context, "IMG")) {
             return CanCreateImageBlockWithoutSideEffects(mediaElement, context);
         }
 
-        return mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+        return HasEffectiveTagName(mediaElement, context, "PICTURE")
                && CanCreatePictureImageBlockWithoutSideEffects(mediaElement, context);
     }
 
@@ -119,6 +175,10 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertElementToBlocks(IElement element, ConversionContext context) {
+        if (IsPassThroughTag(element, context)) {
+            return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
+        }
+
         if (TryConvertVisualContractElement(element, context, out var visualBlock)) {
             return new IMarkdownBlock[] { visualBlock };
         }
@@ -135,7 +195,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return customBlocks;
         }
 
-        string tag = element.TagName;
+        string tag = GetEffectiveTagName(element, context);
         switch (tag) {
             case "P":
                 return ConvertParagraphElement(element, context);
@@ -214,25 +274,12 @@ public sealed partial class HtmlToMarkdownConverter {
 
                 return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
             default:
-                if (context.Options.PreserveUnsupportedBlocks) {
-                    return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
-                }
-
-                if (HasDirectBlockChildren(element, context)) {
-                    return ConvertNodesToBlocks(element.ChildNodes, context);
-                }
-
-                var fallbackInline = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
-                if (!HasVisibleInlineContent(fallbackInline)) {
-                    return Array.Empty<IMarkdownBlock>();
-                }
-
-                return new IMarkdownBlock[] { new ParagraphBlock(fallbackInline) };
+                return ConvertUnknownElementToBlocks(element, context);
         }
     }
 
     private static bool HasRejectedHref(IElement element, ConversionContext context) {
-        if (element == null || context == null || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+        if (element == null || context == null || !HasEffectiveTagName(element, context, "A")) {
             return false;
         }
 
@@ -244,8 +291,8 @@ public sealed partial class HtmlToMarkdownConverter {
         blocks = Array.Empty<IMarkdownBlock>();
         if (element == null
             || context == null
-            || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)
-            || !TryResolveAnchorMediaElement(element, out var mediaElement)) {
+            || !HasEffectiveTagName(element, context, "A")
+            || !TryResolveAnchorMediaElement(element, context, out var mediaElement)) {
             return false;
         }
 

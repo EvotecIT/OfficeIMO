@@ -22,7 +22,7 @@ public sealed partial class HtmlToMarkdownConverter {
         bool hasUnsafePictureCandidate = HasRejectedPictureSourceCandidate(element, context)
                                          || (context.Options.Base64Images != HtmlBase64ImageHandling.Include
                                              && HasBase64PictureCandidate(element, context));
-        var imageElement = element.QuerySelector("img");
+        var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         if (imageElement != null && TryCreateImageBlock(imageElement, context, out var imageBlock)) {
             if (!string.IsNullOrWhiteSpace(preferredSrc) && !TryApplyBase64ImageHandling(ref preferredSrc, context)) {
                 preferredSrc = string.Empty;
@@ -55,10 +55,10 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertFigureElement(IElement element, ConversionContext context) {
-        var directCaption = element.Children.FirstOrDefault(child => child.TagName.Equals("FIGCAPTION", StringComparison.OrdinalIgnoreCase));
-        var directMediaContainer = element.Children.FirstOrDefault(child => TryResolveFigureMediaElement(child, out _));
+        var directCaption = FindDirectChildByEffectiveTagName(element, context, "FIGCAPTION");
+        var directMediaContainer = element.Children.FirstOrDefault(child => TryResolveFigureMediaElement(child, context, out _));
 
-        if (directMediaContainer != null && TryResolveFigureMediaElement(directMediaContainer, out var directMedia)) {
+        if (directMediaContainer != null && TryResolveFigureMediaElement(directMediaContainer, context, out var directMedia)) {
             var figureBlocks = new List<IMarkdownBlock>();
             foreach (var child in element.ChildNodes) {
                 if (ReferenceEquals(child, directCaption)) {
@@ -80,13 +80,13 @@ public sealed partial class HtmlToMarkdownConverter {
             }
         }
 
-        var imageElement = element.QuerySelector("img");
+        var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         if (imageElement == null) {
-            var pictureElement = element.QuerySelector("picture");
+            var pictureElement = FindFirstDescendantByEffectiveTagName(element, context, "PICTURE");
             if (pictureElement != null) {
                 var pictureBlocks = ConvertPictureElement(pictureElement, context).ToList();
                 if (pictureBlocks.Count > 0) {
-                    ApplyFigureCaptionToMedia(pictureBlocks, directCaption ?? element.QuerySelector("figcaption"));
+                    ApplyFigureCaptionToMedia(pictureBlocks, directCaption ?? FindFirstDescendantByEffectiveTagName(element, context, "FIGCAPTION"));
 
                     return pictureBlocks;
                 }
@@ -105,7 +105,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         var blocks = ConvertImageElement(imageElement, context).ToList();
-        ApplyFigureCaptionToMedia(blocks, directCaption ?? element.QuerySelector("figcaption"));
+        ApplyFigureCaptionToMedia(blocks, directCaption ?? FindFirstDescendantByEffectiveTagName(element, context, "FIGCAPTION"));
 
         return blocks;
     }
@@ -118,24 +118,24 @@ public sealed partial class HtmlToMarkdownConverter {
         imageBlock.Caption = NormalizeBlockText(captionElement.TextContent);
     }
 
-    private static bool IsLinkedFigureMediaAnchor(IElement element) {
-        return TryResolveAnchorMediaElement(element, out _);
+    private static bool IsLinkedFigureMediaAnchor(IElement element, ConversionContext context) {
+        return TryResolveAnchorMediaElement(element, context, out _);
     }
 
-    private static bool TryResolveFigureMediaElement(IElement element, out IElement mediaElement) {
+    private static bool TryResolveFigureMediaElement(IElement element, ConversionContext context, out IElement mediaElement) {
         return TryResolvePureWrapperElement(
             element,
             candidate =>
-                candidate.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
-                || candidate.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
-                || IsLinkedFigureMediaAnchor(candidate),
-            candidate => !candidate.TagName.Equals("FIGCAPTION", StringComparison.OrdinalIgnoreCase),
+                HasEffectiveTagName(candidate, context, "IMG")
+                || HasEffectiveTagName(candidate, context, "PICTURE")
+                || IsLinkedFigureMediaAnchor(candidate, context),
+            candidate => !HasEffectiveTagName(candidate, context, "FIGCAPTION"),
             out mediaElement);
     }
 
-    private static bool TryResolveAnchorMediaElement(IElement element, out IElement mediaElement) {
+    private static bool TryResolveAnchorMediaElement(IElement element, ConversionContext context, out IElement mediaElement) {
         mediaElement = null!;
-        if (element == null || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase) || HasVisibleOwnTextNodes(element)) {
+        if (element == null || !HasEffectiveTagName(element, context, "A") || HasVisibleOwnTextNodes(element)) {
             return false;
         }
 
@@ -147,17 +147,17 @@ public sealed partial class HtmlToMarkdownConverter {
                     continue;
                 case IElement childElement when IsIgnorableMediaWrapperChild(childElement):
                     continue;
-                case IElement childElement when childElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
-                    || childElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase):
+                case IElement childElement when HasEffectiveTagName(childElement, context, "IMG")
+                    || HasEffectiveTagName(childElement, context, "PICTURE"):
                     mediaElement = childElement;
                     return true;
-                case IElement childElement when !childElement.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)
+                case IElement childElement when !HasEffectiveTagName(childElement, context, "A")
                     && TryResolvePureWrapperElement(
                         childElement,
                         candidate =>
-                            candidate.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
-                            || candidate.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase),
-                        candidate => !candidate.TagName.Equals("A", StringComparison.OrdinalIgnoreCase),
+                            HasEffectiveTagName(candidate, context, "IMG")
+                            || HasEffectiveTagName(candidate, context, "PICTURE"),
+                        candidate => !HasEffectiveTagName(candidate, context, "A"),
                         out mediaElement):
                     return true;
                 default:
@@ -234,11 +234,11 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static List<IMarkdownBlock> ConvertFigureMediaElement(IElement element, ConversionContext context) {
-        if (element.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(element, context, "PICTURE")) {
             return ConvertPictureElement(element, context).ToList();
         }
 
-        if (element.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(element, context, "IMG")) {
             return ConvertImageElement(element, context).ToList();
         }
 
@@ -255,7 +255,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         foreach (var child in element.Children) {
-            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+            if (!HasEffectiveTagName(child, context, "SOURCE")) {
                 continue;
             }
 
@@ -265,7 +265,7 @@ public sealed partial class HtmlToMarkdownConverter {
             }
         }
 
-        var imageElement = element.QuerySelector("img");
+        var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         if (imageElement == null) {
             return false;
         }
@@ -280,7 +280,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         foreach (var child in element.Children) {
-            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+            if (!HasEffectiveTagName(child, context, "SOURCE")) {
                 continue;
             }
 
@@ -290,7 +290,7 @@ public sealed partial class HtmlToMarkdownConverter {
             }
         }
 
-        var imageElement = element.QuerySelector("img");
+        var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         if (imageElement == null) {
             return false;
         }
@@ -304,11 +304,11 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (element.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(element, context, "PICTURE")) {
             return HasRejectedPictureSourceCandidate(element, context);
         }
 
-        return element.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+        return HasEffectiveTagName(element, context, "IMG")
                && (HasRejectedSrcSetAttribute(element, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
                    || HasRejectedUrlAttribute(element, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src"));
     }
@@ -318,18 +318,18 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (element.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(element, context, "PICTURE")) {
             return HasBlockedBase64PictureCandidate(element, context);
         }
 
-        return element.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+        return HasEffectiveTagName(element, context, "IMG")
                && (HasBlockedBase64SrcSetAttribute(element, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset")
                    || HasBlockedBase64UrlAttribute(element, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src"));
     }
 
     private static bool HasBlockedBase64PictureCandidate(IElement element, ConversionContext context) {
         foreach (var child in element.Children) {
-            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+            if (!HasEffectiveTagName(child, context, "SOURCE")) {
                 continue;
             }
 
@@ -339,7 +339,7 @@ public sealed partial class HtmlToMarkdownConverter {
             }
         }
 
-        var imageElement = element.QuerySelector("img");
+        var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         if (imageElement == null) {
             return false;
         }
