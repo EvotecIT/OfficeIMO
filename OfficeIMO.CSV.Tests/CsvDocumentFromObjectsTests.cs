@@ -204,6 +204,23 @@ public class CsvDocumentFromObjectsTests
         Assert.Equal("Alpha,1.5,\"A, quoted\"\nBeta,,\n", writer.ToString());
     }
 
+    [Fact]
+    public void WriteDataReader_StreamsFieldValuesWithoutGetValuesBuffer()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name", "Score", "Notes" },
+            new[]
+            {
+                new object?[] { "Alpha", 1.5m, "A, quoted" },
+                new object?[] { "Beta", DBNull.Value, string.Empty }
+            });
+        using var writer = new StringWriter();
+
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" });
+
+        Assert.Equal("Name,Score,Notes\nAlpha,1.5,\"A, quoted\"\nBeta,<null>,\n", writer.ToString());
+    }
+
     private sealed class FlushTrackingWriter : StringWriter
     {
         public bool WasFlushed { get; private set; }

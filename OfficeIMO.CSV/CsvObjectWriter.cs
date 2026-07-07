@@ -155,19 +155,13 @@ public sealed class CsvObjectWriter : IDisposable
 
         EnsureColumns(columns);
 
-        var values = new object[fieldCount];
         while (reader.Read())
         {
-            var readCount = reader.GetValues(values);
-            for (var i = 0; i < fieldCount; i++)
+            WriteBuffered(fieldCount, reader, static (record, index) =>
             {
-                if (i >= readCount || ReferenceEquals(values[i], DBNull.Value))
-                {
-                    values[i] = null!;
-                }
-            }
-
-            WriteTrustedRow(values);
+                var value = record.GetValue(index);
+                return ReferenceEquals(value, DBNull.Value) ? null : value;
+            });
         }
     }
 
