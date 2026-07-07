@@ -67,8 +67,9 @@ namespace OfficeIMO.Visio {
             }
 
             string[] parts = raw.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-            string align = parts.Length > 0 ? parts[0] : "xMidYMid";
-            bool slice = parts.Any(part => string.Equals(part, "slice", StringComparison.OrdinalIgnoreCase));
+            int alignIndex = parts.Length > 0 && string.Equals(parts[0], "defer", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+            string align = parts.Length > alignIndex ? parts[alignIndex] : "xMidYMid";
+            bool slice = parts.Skip(alignIndex).Any(part => string.Equals(part, "slice", StringComparison.OrdinalIgnoreCase));
             double scaleX = width / image.Width;
             double scaleY = height / image.Height;
             double scale = slice ? Math.Max(scaleX, scaleY) : Math.Min(scaleX, scaleY);

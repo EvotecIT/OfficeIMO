@@ -599,7 +599,7 @@ namespace OfficeIMO.Visio {
             }
 
             if (dashPattern != null) {
-                canvas.DrawPatternedPolyline(points, paint.Stroke, strokeWidth, dashPattern);
+                canvas.DrawPatternedPolyline(points, GetStrokeFallbackColor(paint), strokeWidth, dashPattern);
                 return;
             }
 
@@ -844,7 +844,7 @@ namespace OfficeIMO.Visio {
             }
 
             closed.Add(points[0]);
-            canvas.DrawPatternedPolyline(closed, paint.Stroke, strokeWidth, dashPattern);
+            canvas.DrawPatternedPolyline(closed, GetStrokeFallbackColor(paint), strokeWidth, dashPattern);
         }
 
         private static IReadOnlyList<double>? ScaleDashPattern(IReadOnlyList<double>? pattern, double scale) {

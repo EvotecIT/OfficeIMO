@@ -4,6 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using DocumentFormat.OpenXml;
+using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Wordprocessing;
 using DocumentFormat.OpenXml.Bibliography;
 using OfficeIMO.Word;
@@ -458,6 +460,40 @@ namespace OfficeIMO.Tests {
                 field.Text = "Merged";
                 Assert.Equal("Merged", field.Text);
             }
+        }
+
+        [Fact]
+        public void Test_ParagraphTextSetter_KeepsNestedComplexFieldInstructionsOutOfOuterResultRuns() {
+            string filePath = Path.Combine(_directoryWithFiles, "FieldTextNestedComplexFieldResult.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                var paragraph = document.AddParagraph()._paragraph;
+                var runs = new List<Run> {
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" QUOTE ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("Outer start ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Begin }),
+                    new Run(new FieldCode(" AUTHOR ") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.Separate }),
+                    new Run(new Text("Nested Author") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End }),
+                    new Run(new Text(" outer end") { Space = SpaceProcessingModeValues.Preserve }),
+                    new Run(new FieldChar { FieldCharType = FieldCharValues.End })
+                };
+                paragraph.Append(runs);
+
+                var fieldParagraph = new WordParagraph(document, paragraph, runs);
+                fieldParagraph.Text = "Merged";
+                document.Save(false);
+            }
+
+            using WordprocessingDocument package = WordprocessingDocument.Open(filePath, false);
+            var paragraphXml = package.MainDocumentPart!.Document.Body!.Elements<Paragraph>().Single();
+            Assert.Contains(paragraphXml.Descendants<FieldCode>(), fieldCode => fieldCode.Text == " AUTHOR ");
+            Assert.Contains(paragraphXml.Descendants<Text>(), text => text.Text == "Merged");
+            Assert.Contains(paragraphXml.Descendants<Text>(), text => text.Text == "Nested Author");
+            Assert.DoesNotContain(paragraphXml.Descendants<FieldCode>(), fieldCode => fieldCode.Text == "Merged");
         }
 
         [Fact]

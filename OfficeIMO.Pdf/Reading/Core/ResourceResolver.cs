@@ -942,7 +942,7 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if (stream.Dictionary.Items.ContainsKey("SMask")) {
+        if (HasSoftMask(stream.Dictionary, objects)) {
             if (colorNormalization.SourceColorCount != 1 &&
                 colorNormalization.SourceColorCount != 3 &&
                 colorNormalization.SourceColorCount != 4) {
@@ -1202,6 +1202,15 @@ internal static partial class ResourceResolver {
     private static byte ConvertDeviceCmykComponentToRgb(byte colorant, byte black) {
         int ink = colorant + black;
         return (byte)(255 - (ink > 255 ? 255 : ink));
+    }
+
+    private static bool HasSoftMask(PdfDictionary dictionary, Dictionary<int, PdfIndirectObject> objects) {
+        if (!dictionary.Items.TryGetValue("SMask", out var softMaskObj)) {
+            return false;
+        }
+
+        return ResolveObject(softMaskObj, objects) is not PdfName softMaskName ||
+               !string.Equals(softMaskName.Name, "None", System.StringComparison.Ordinal);
     }
 
     private static bool TryBuildPngFileWithSoftMask(

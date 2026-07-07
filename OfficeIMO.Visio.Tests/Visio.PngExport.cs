@@ -1376,6 +1376,32 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PngRendererProjectsPackageBackedSvgDashedGradientStrokePreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Dashed Gradient Stroke Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><linearGradient id=\"accent\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop offset=\"0%\" stop-color=\"#0070c0\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g stroke=\"url(#accent)\" stroke-width=\"2\" stroke-dasharray=\"2 2\" fill=\"none\"><path d=\"M2 10 H18\"/></g></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/dashed-gradient-stroke.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            bool sawDash = false;
+            bool sawGap = false;
+            for (int x = 130; x <= 170; x++) {
+                sawDash |= IsRedPixel(image, x, 100);
+                sawGap |= IsWhitePixel(image, x, 100);
+            }
+
+            Assert.True(sawDash, "Expected SVG dashed gradient stroke segments to paint in package preview output.");
+            Assert.True(sawGap, "Expected SVG stroke-dasharray to leave visible gaps in package preview output.");
+        }
+
+        [Fact]
         public void PngRendererProjectsPackageBackedSvgRoundStrokeCapsPreviewArtwork() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);

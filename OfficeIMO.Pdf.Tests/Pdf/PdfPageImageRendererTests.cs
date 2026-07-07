@@ -99,6 +99,22 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_TreatsSoftMaskNoneAsUnmaskedImage() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 255, 0, 0 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 1,
+            extraImageEntries: " /SMask /None");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 255, 0, 0 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+    }
+
+    [Fact]
     public void RenderPage_RendersBaseJpegImageXObjectWithUnresolvedSoftMask() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CreateMinimalJpeg(1, 1),

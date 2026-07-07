@@ -285,7 +285,7 @@ namespace OfficeIMO.Word {
 
         private static IReadOnlyList<Run> GetComplexFieldResultRuns(IReadOnlyList<Run> runs) {
             var resultRuns = new List<Run>();
-            bool sawSeparator = false;
+            bool inOuterResult = false;
             int fieldDepth = 0;
 
             foreach (Run run in runs) {
@@ -298,12 +298,16 @@ namespace OfficeIMO.Word {
                             continue;
                         }
 
-                        if (fieldCharType == FieldCharValues.Separate && fieldDepth > 0) {
-                            sawSeparator = true;
+                        if (fieldCharType == FieldCharValues.Separate && fieldDepth == 1) {
+                            inOuterResult = true;
                             continue;
                         }
 
                         if (fieldCharType == FieldCharValues.End && fieldDepth > 0) {
+                            if (fieldDepth == 1) {
+                                inOuterResult = false;
+                            }
+
                             fieldDepth--;
                             if (fieldDepth == 0) {
                                 break;
@@ -313,7 +317,7 @@ namespace OfficeIMO.Word {
                         continue;
                     }
 
-                    if (sawSeparator && fieldDepth > 0) {
+                    if (inOuterResult && fieldDepth == 1) {
                         includeRun = true;
                     }
                 }
