@@ -13,7 +13,7 @@ internal static partial class CsvParser
     private static readonly System.Runtime.Intrinsics.Vector256<byte> QuoteByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'"');
     private static readonly System.Runtime.Intrinsics.Vector256<byte> CarriageReturnByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\r');
     private static readonly System.Runtime.Intrinsics.Vector256<byte> LineFeedByteVector = System.Runtime.Intrinsics.Vector256.Create((byte)'\n');
-    private const int TextQuoteFreeProbeMinimumLength = 2_000_000;
+    private const int TextQuoteFreeProbeMinimumLength = 64 * 1024;
 
     internal static void ReadFieldSpans<TVisitor>(
         ReadOnlySpan<char> text,
