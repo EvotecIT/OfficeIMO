@@ -40,6 +40,15 @@ internal static partial class CsvParser
                 var skipCommentRecord = options.SkipCommentRows &&
                     text[position] == options.CommentCharacter &&
                     !CanReadW3CFieldsHeader(options, emittedRecordCount);
+                if (recordsToSkip > 0 &&
+                    !skipCommentRecord &&
+                    !trim &&
+                    TrySkipTextUnquotedRecord(text, ref position))
+                {
+                    recordsToSkip--;
+                    continue;
+                }
+
                 var emitFields = recordsToSkip == 0 && !skipCommentRecord;
                 int fieldCount;
                 int firstFieldLength;
@@ -490,6 +499,27 @@ internal static partial class CsvParser
         }
 
         position = scan;
+        return true;
+    }
+
+    private static bool TrySkipTextUnquotedRecord(ReadOnlySpan<char> text, ref int position)
+    {
+        var start = position;
+        var specialOffset = text.Slice(start).IndexOfAny('"', '\r', '\n');
+        if (specialOffset < 0)
+        {
+            position = text.Length;
+            return text.Length != start;
+        }
+
+        var recordEnd = start + specialOffset;
+        if (text[recordEnd] == '"' || recordEnd == start)
+        {
+            return false;
+        }
+
+        position = recordEnd;
+        ConsumeTextLineSeparator(text, ref position);
         return true;
     }
 
