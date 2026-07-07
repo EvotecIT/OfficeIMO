@@ -24,6 +24,34 @@ public sealed partial class HtmlToMarkdownConverter {
         return string.Equals(GetEffectiveTagName(element, context), tagName, StringComparison.OrdinalIgnoreCase);
     }
 
+    private static IElement? FindFirstDescendantByEffectiveTagName(IElement element, ConversionContext? context, string tagName) {
+        if (element == null) {
+            return null;
+        }
+
+        foreach (var descendant in element.QuerySelectorAll("*")) {
+            if (HasEffectiveTagName(descendant, context, tagName)) {
+                return descendant;
+            }
+        }
+
+        return null;
+    }
+
+    private static IElement? FindDirectChildByEffectiveTagName(IElement element, ConversionContext? context, string tagName) {
+        if (element == null) {
+            return null;
+        }
+
+        foreach (var child in element.Children) {
+            if (HasEffectiveTagName(child, context, tagName)) {
+                return child;
+            }
+        }
+
+        return null;
+    }
+
     private static bool IsPassThroughTag(IElement element, ConversionContext? context) {
         if (element == null || context?.Options.PassThroughTags == null || context.Options.PassThroughTags.Count == 0) {
             return false;

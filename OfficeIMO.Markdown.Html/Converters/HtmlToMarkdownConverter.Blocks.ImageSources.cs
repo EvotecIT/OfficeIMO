@@ -99,7 +99,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (fallbackMediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
             return CanCreatePictureImageBlockWithoutSideEffects(fallbackMediaElement, context);
         }
 
@@ -117,7 +117,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        var imageElement = element.QuerySelector("img");
+        var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         return imageElement != null && CanCreateImageBlockWithoutSideEffects(imageElement, context);
     }
 
@@ -197,13 +197,13 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (fallbackMediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
             var pictureImage = ConvertPictureElement(fallbackMediaElement, context).OfType<ImageBlock>().FirstOrDefault();
             if (pictureImage == null) {
                 return false;
             }
 
-            image = MergeImageMetadata(element, pictureImage, fallbackMediaElement.QuerySelector("img"));
+            image = MergeImageMetadata(element, pictureImage, FindFirstDescendantByEffectiveTagName(fallbackMediaElement, context, "IMG"));
             return true;
         }
 
@@ -283,7 +283,7 @@ public sealed partial class HtmlToMarkdownConverter {
     private static List<ImagePictureSource> CollectPictureSources(IElement pictureElement, ConversionContext context) {
         var sources = new List<ImagePictureSource>();
         foreach (var child in pictureElement.Children) {
-            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+            if (!HasEffectiveTagName(child, context, "SOURCE")) {
                 continue;
             }
 
@@ -513,7 +513,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static bool TryCreateLinkedImageBlockFromAnchor(IElement anchorElement, ConversionContext context, out ImageBlock image) {
         image = null!;
-        if (anchorElement == null || !anchorElement.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+        if (anchorElement == null || !HasEffectiveTagName(anchorElement, context, "A")) {
             return false;
         }
 
@@ -522,11 +522,11 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (!TryResolveAnchorMediaElement(anchorElement, out var mediaElement)) {
+        if (!TryResolveAnchorMediaElement(anchorElement, context, out var mediaElement)) {
             return false;
         }
 
-        if (mediaElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+        if (HasEffectiveTagName(mediaElement, context, "IMG")
             && TryCreateImageBlock(mediaElement, context, out image)) {
             image.LinkUrl = href;
             image.LinkTitle = anchorElement.GetAttribute("title");
@@ -535,7 +535,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        if (!mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (!HasEffectiveTagName(mediaElement, context, "PICTURE")) {
             return false;
         }
 

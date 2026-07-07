@@ -47,8 +47,8 @@ public sealed partial class HtmlToMarkdownConverter {
         ValidateInputLength(html, effectiveOptions.MaxInputCharacters, nameof(html));
 
         var document = HtmlDocumentParser.ParseDocument(html);
-        effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
         ApplyHtmlFilters(document.DocumentElement, effectiveOptions);
+        effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
         var context = new ConversionContext(effectiveOptions);
 
         INode root = HtmlDocumentParser.GetConversionRoot(document, effectiveOptions.UseBodyContentsOnly);

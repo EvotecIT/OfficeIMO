@@ -1,3 +1,4 @@
+using OfficeIMO.Markdown;
 using OfficeIMO.Markdown.Html;
 using Xunit;
 
@@ -44,6 +45,25 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_FiltersBaseElementBeforeResolvingRelativeUrls() {
+        const string html = """
+<html>
+  <head><base href="https://external.example/"></head>
+  <body><p><a href="guide">Guide</a></p></body>
+</html>
+""";
+
+        var options = new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://docs.example/root/")
+        };
+        options.ExcludeSelectors.Add("base");
+
+        string markdown = Normalize(html.ToMarkdown(options));
+
+        Assert.Equal("[Guide](https://docs.example/root/guide)", markdown);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_TagAliases_MapUnsupportedTagsToBuiltInConverters() {
         const string html = "<p><highlight>Important</highlight> and <custom-bold>bold</custom-bold></p>";
 
@@ -69,6 +89,33 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         string markdown = Normalize(html.ToMarkdown(options));
 
         Assert.Equal("- First\n- **Second**", markdown);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_TagAliases_MapMediaChildrenToBuiltInConverters() {
+        const string html = """
+<custom-figure>
+  <custom-picture>
+    <custom-img src="media/photo.png" alt="Photo">
+  </custom-picture>
+  <custom-caption>Caption text</custom-caption>
+</custom-figure>
+""";
+
+        var options = new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/")
+        };
+        options.TagAliases["custom-figure"] = "figure";
+        options.TagAliases["custom-picture"] = "picture";
+        options.TagAliases["custom-img"] = "img";
+        options.TagAliases["custom-caption"] = "figcaption";
+
+        var document = new HtmlToMarkdownConverter().ConvertToDocument(html, options);
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("https://example.com/docs/media/photo.png", image.Path);
+        Assert.Equal("Photo", image.Alt);
+        Assert.Equal("Caption text", image.Caption);
     }
 
     [Fact]
@@ -166,6 +213,7 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 <article>
   <p><a href="https://example.com">https://example.com</a></p>
   <p><del>old</del> and <mark>new</mark></p>
+  <ul><li><input type="checkbox" checked>Done</li><li><input type="checkbox">Open</li></ul>
   <table><tr><th>Name</th><th>Value</th></tr><tr><td>Area</td><td>Markdown</td></tr></table>
 </article>
 """;
@@ -177,6 +225,9 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         Assert.Contains("<mark>new</mark>", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("~~old~~", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("==new==", markdown, StringComparison.Ordinal);
+        Assert.Contains("<input", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- [x]", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- [ ]", markdown, StringComparison.Ordinal);
         Assert.Contains("<table>", markdown, StringComparison.Ordinal);
         Assert.Contains("<th>Name</th>", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("| Name | Value |", markdown, StringComparison.Ordinal);

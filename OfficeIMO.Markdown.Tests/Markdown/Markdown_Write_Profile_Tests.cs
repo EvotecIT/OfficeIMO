@@ -199,6 +199,21 @@ Lead[^1]
     }
 
     [Fact]
+    public void CommonMark_Write_Profile_Renders_Task_Lists_As_Raw_Html() {
+        var list = new UnorderedListBlock();
+        list.Items.Add(ListItem.Task("Done", done: true));
+        list.Items.Add(ListItem.Task("Open"));
+        var doc = MarkdownDoc.Create().Add(list);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.StartsWith("<ul", markdown, StringComparison.Ordinal);
+        Assert.Contains("type=\"checkbox\"", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- [x]", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("- [ ]", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Keeps_Pipe_Tables_And_Portable_Images() {
         var table = new TableBlock();
         table.Headers.Add("Name");
@@ -222,6 +237,9 @@ Lead[^1]
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkTableMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkTaskListMarkdownName, StringComparison.Ordinal));
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkStrikethroughMarkdownName, StringComparison.Ordinal));

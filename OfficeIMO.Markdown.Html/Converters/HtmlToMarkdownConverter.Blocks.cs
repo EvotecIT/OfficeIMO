@@ -87,7 +87,7 @@ public sealed partial class HtmlToMarkdownConverter {
     private static bool CanConvertAnchorToLinkedImageBlock(IElement element, ConversionContext context) {
         if (element == null
             || context == null
-            || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+            || !HasEffectiveTagName(element, context, "A")) {
             return false;
         }
 
@@ -96,15 +96,15 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (!TryResolveAnchorMediaElement(element, out var mediaElement)) {
+        if (!TryResolveAnchorMediaElement(element, context, out var mediaElement)) {
             return false;
         }
 
-        if (mediaElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(mediaElement, context, "IMG")) {
             return CanCreateImageBlockWithoutSideEffects(mediaElement, context);
         }
 
-        return mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+        return HasEffectiveTagName(mediaElement, context, "PICTURE")
                && CanCreatePictureImageBlockWithoutSideEffects(mediaElement, context);
     }
 
@@ -235,8 +235,8 @@ public sealed partial class HtmlToMarkdownConverter {
         blocks = Array.Empty<IMarkdownBlock>();
         if (element == null
             || context == null
-            || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)
-            || !TryResolveAnchorMediaElement(element, out var mediaElement)) {
+            || !HasEffectiveTagName(element, context, "A")
+            || !TryResolveAnchorMediaElement(element, context, out var mediaElement)) {
             return false;
         }
 

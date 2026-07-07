@@ -28,6 +28,7 @@ public sealed class MarkdownWriteOptions {
         var options = CreatePortableProfile();
         options.OutputLineEnding = "\n";
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTableMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTaskListMarkdownFallback(options);
         MarkdownInlineRenderBuiltInExtensions.AddCommonMarkGfmInlineMarkdownFallbacks(options);
         return options;
     }

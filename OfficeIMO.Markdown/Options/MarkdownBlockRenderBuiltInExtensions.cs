@@ -17,6 +17,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
     public const string PortableFootnoteSectionHtmlName = "Portable.Footnotes.Html";
     /// <summary>Stable registration name for the CommonMark table markdown fallback.</summary>
     public const string CommonMarkTableMarkdownName = "CommonMark.Table.Markdown";
+    /// <summary>Stable registration name for the CommonMark task-list markdown fallback.</summary>
+    public const string CommonMarkTaskListMarkdownName = "CommonMark.TaskList.Markdown";
 
     /// <summary>Adds a portable markdown fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutMarkdownFallback(MarkdownWriteOptions options) {
@@ -45,6 +47,29 @@ public static class MarkdownBlockRenderBuiltInExtensions {
             }
 
             return ((IMarkdownBlock)table).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for task lists by emitting raw HTML lists.</summary>
+    public static void AddCommonMarkTaskListMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkTaskListMarkdownName, typeof(UnorderedListBlock), static (block, _) => {
+            if (block is not UnorderedListBlock list || !ContainsTaskListItem(list.Items)) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)list).RenderHtml();
+        });
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkTaskListMarkdownName + ".Ordered", typeof(OrderedListBlock), static (block, _) => {
+            if (block is not OrderedListBlock list || !ContainsTaskListItem(list.Items)) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)list).RenderHtml();
         });
     }
 
@@ -172,6 +197,32 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         }
 
         return PrefixQuoteLines(string.Join("\n\n", parts));
+    }
+
+    private static bool ContainsTaskListItem(IReadOnlyList<ListItem> items) {
+        if (items == null || items.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < items.Count; i++) {
+            var item = items[i];
+            if (item == null) {
+                continue;
+            }
+
+            if (item.IsTask) {
+                return true;
+            }
+
+            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
+                if (item.Children[childIndex] is IMarkdownListBlock childList
+                    && ContainsTaskListItem(childList.ListItems)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
     }
 
     private static string RenderPortableCalloutHtml(CalloutBlock callout, HtmlOptions? options) {
