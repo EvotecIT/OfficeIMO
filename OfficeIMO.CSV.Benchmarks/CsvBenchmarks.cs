@@ -207,26 +207,26 @@ public class CsvBenchmarks
     public int OfficeIMO_ReadRowsCallback()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadRows(reader, (_, values) =>
         {
-            fieldCount += values.Count;
+            checksum += MeasureValues(values);
         });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
     public int OfficeIMO_ReadRowsReusableCallback()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadRowsReusable(reader, (_, values) =>
         {
-            fieldCount += values.Count;
+            checksum += MeasureValues(values);
         });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
@@ -288,26 +288,26 @@ public class CsvBenchmarks
     public int OfficeIMO_ReadStreamingRows()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
-        var fieldCount = 0;
+        var checksum = 0;
         foreach (CsvRow row in document.AsEnumerable())
         {
-            fieldCount += row.FieldCount;
+            checksum += MeasureRow(row);
         }
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
     public int OfficeIMO_ReadInMemoryRows()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
-        var fieldCount = 0;
+        var checksum = 0;
         foreach (CsvRow row in document.AsEnumerable())
         {
-            fieldCount += row.FieldCount;
+            checksum += MeasureRow(row);
         }
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
@@ -459,6 +459,28 @@ public class CsvBenchmarks
         }
 
         return values;
+    }
+
+    private static int MeasureValues(IReadOnlyList<string> values)
+    {
+        var checksum = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            checksum += 1 + values[i].Length;
+        }
+
+        return checksum;
+    }
+
+    private static int MeasureRow(CsvRow row)
+    {
+        var checksum = 0;
+        for (var i = 0; i < row.FieldCount; i++)
+        {
+            checksum += 1 + (Convert.ToString(row[i], CultureInfo.InvariantCulture)?.Length ?? 0);
+        }
+
+        return checksum;
     }
 
     private struct CountingFieldSpanVisitor : ICsvFieldSpanVisitor

@@ -164,13 +164,13 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadRowsReusableCallback()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadRowsReusable(reader, (_, values) =>
         {
-            fieldCount += values.Count;
+            checksum += MeasureValues(values);
         });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
@@ -194,32 +194,32 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadRecordsReusableSkipHeader()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadRecordsReusable(
             reader,
             values =>
             {
-                fieldCount += values.Count;
+                checksum += MeasureValues(values);
             },
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
     public int OfficeIMO_ReadFieldSpansSkipHeader()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadFieldSpans(
             reader,
-            (_, _, _) =>
+            (_, _, value) =>
             {
-                fieldCount++;
+                checksum += 1 + value.Length;
             },
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
@@ -393,6 +393,17 @@ public class CsvWideBenchmarks
         }
 
         return values;
+    }
+
+    private static int MeasureValues(IReadOnlyList<string> values)
+    {
+        var checksum = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            checksum += 1 + values[i].Length;
+        }
+
+        return checksum;
     }
 
     private struct CountingFieldSpanVisitor : ICsvFieldSpanVisitor
