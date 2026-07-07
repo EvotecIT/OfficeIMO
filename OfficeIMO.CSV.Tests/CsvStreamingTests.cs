@@ -210,6 +210,88 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadRowFieldSpansFromText_SkipsPreHeaderCommentsByDefault()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+
+        CsvDocument.ReadRowFieldSpansFromText("#Version: 1.0\nName,Value\nAlpha,1\n", ref visitor);
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpans_Appends_Static_Columns()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+        using var reader = new StringReader("Name,Value\nAlpha,1\n");
+
+        CsvDocument.ReadRowFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions {
+                StaticColumns = new Dictionary<string, object?> {
+                    ["SourceFile"] = "input.csv"
+                }
+            });
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value|SourceFile",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "field:0:2:input.csv",
+                "end:0:3"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpans_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RowFieldSpans." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var events = new List<string>();
+            var visitor = new CapturingRowFieldSpanVisitor(events);
+
+            CsvDocument.ReadRowFieldSpans(path, ref visitor);
+
+            Assert.Equal(
+                new[]
+                {
+                    "begin:0:Name|Value",
+                    "field:0:0:Alpha",
+                    "field:0:1:1",
+                    "end:0:2"
+                },
+                events);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void ReadRowFieldSpansFromText_DetectDelimiterSkipsInitialRecordsAfterLeadingComments()
     {
         var events = new List<string>();
@@ -507,6 +589,19 @@ public class CsvStreamingTests
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:Alpha", "0:1:one\n\"two\"" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_PreservesFlexibleMultilineQuotedParsing()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Note,Value\nA,b\"c\nd\",E\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:A", "0:1:bc\nd", "0:2:E" }, fields);
     }
 
     [Fact]

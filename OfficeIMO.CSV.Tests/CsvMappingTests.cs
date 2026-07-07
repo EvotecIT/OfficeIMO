@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using OfficeIMO.CSV;
@@ -18,6 +19,11 @@ public class CsvMappingTests
         public string City { get; init; } = string.Empty;
     }
 
+    private sealed record EventRow
+    {
+        public DateTime Created { get; init; }
+    }
+
     [Fact]
     public void Maps_To_Typed_Record()
     {
@@ -36,5 +42,18 @@ public class CsvMappingTests
         Assert.Equal(2, people.Count);
         Assert.Equal("Dominika", people[1].Name);
         Assert.Equal(30, people[1].Age);
+    }
+
+    [Fact]
+    public void Map_Uses_Document_DateTime_Formats()
+    {
+        var doc = CsvDocument.Parse(
+            "Created\n07-Jul-2026\n",
+            new CsvLoadOptions { DateTimeFormats = new[] { "dd-MMM-yyyy" } });
+
+        var row = Assert.Single(doc.Map<EventRow>(map => map
+            .FromColumn<DateTime>("Created", (item, value) => item with { Created = value })));
+
+        Assert.Equal(new DateTime(2026, 7, 7), row.Created);
     }
 }

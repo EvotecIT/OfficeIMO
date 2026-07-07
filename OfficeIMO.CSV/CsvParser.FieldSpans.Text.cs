@@ -24,6 +24,7 @@ internal static partial class CsvParser
     {
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
+        var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var position = 0;
         var recordIndex = 0;
@@ -50,9 +51,17 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                var skipCommentRecord = options.SkipCommentRows &&
-                    text[position] == options.CommentCharacter &&
-                    !CanReadW3CFieldsHeader(options, emittedRecordCount);
+                var startsWithCommentCharacter = text[position] == options.CommentCharacter;
+                var isW3CFieldsHeader = startsWithCommentCharacter &&
+                    CanReadW3CFieldsHeader(options, emittedRecordCount) &&
+                    IsTextW3CFieldsLine(text, position);
+                var skipCommentRecord = startsWithCommentCharacter &&
+                    !isW3CFieldsHeader &&
+                    (options.SkipCommentRows ||
+                        (options.HasHeaderRow &&
+                            options.Header is null &&
+                            options.SkipCommentRowsBeforeHeader &&
+                            emittedRecordCount <= GetParserInitialRecordsToSkip(options)));
                 if (recordsToSkip > 0 &&
                     !skipCommentRecord &&
                     !trim &&
@@ -88,6 +97,7 @@ internal static partial class CsvParser
                         text,
                         delimiter,
                         trim,
+                        strictQuotes,
                         emitFields,
                         recordIndex,
                         ref position,
@@ -606,6 +616,7 @@ internal static partial class CsvParser
         ReadOnlySpan<char> text,
         char delimiter,
         bool trim,
+        bool strictQuotes,
         bool emitFields,
         int recordIndex,
         ref int position,
@@ -614,6 +625,20 @@ internal static partial class CsvParser
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
+        var recordStart = position;
+        if (!strictQuotes && HasUnexpectedQuoteInTextUnquotedField(text, delimiter, recordStart))
+        {
+            return ReadFlexibleTextRecordFieldSpans(
+                text,
+                delimiter,
+                trim,
+                emitFields,
+                recordIndex,
+                ref position,
+                ref fieldVisitor,
+                out firstFieldLength);
+        }
+
         var fieldIndex = 0;
         var pendingTrailingField = false;
         firstFieldLength = 0;
@@ -657,7 +682,12 @@ internal static partial class CsvParser
             }
             else
             {
-                var field = ReadTextUnquotedField(text, delimiter, trim, ref position);
+                if (!TryReadTextUnquotedField(text, delimiter, trim, position, out var field, out var nextPosition))
+                {
+                    throw new CsvParseException("Unexpected quote in unquoted CSV field.", 0);
+                }
+
+                position = nextPosition;
                 VisitTextField(field, emitFields, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
             }
 
@@ -695,6 +725,23 @@ internal static partial class CsvParser
 
     private static ReadOnlySpan<char> ReadTextUnquotedField(ReadOnlySpan<char> text, char delimiter, bool trim, ref int position)
     {
+        if (!TryReadTextUnquotedField(text, delimiter, trim, position, out var field, out var nextPosition))
+        {
+            throw new CsvParseException("Unexpected quote in unquoted CSV field.", 0);
+        }
+
+        position = nextPosition;
+        return field;
+    }
+
+    private static bool TryReadTextUnquotedField(
+        ReadOnlySpan<char> text,
+        char delimiter,
+        bool trim,
+        int position,
+        out ReadOnlySpan<char> field,
+        out int nextPosition)
+    {
         var start = position;
         var remaining = text.Slice(position);
         var terminatorOffset = delimiter switch
@@ -706,19 +753,25 @@ internal static partial class CsvParser
         };
         if (terminatorOffset < 0)
         {
-            position = text.Length;
+            nextPosition = text.Length;
         }
         else
         {
-            position += terminatorOffset;
-            if (text[position] == '"')
+            nextPosition = position + terminatorOffset;
+            if (text[nextPosition] == '"')
             {
-                throw new CsvParseException("Unexpected quote in unquoted CSV field.", 0);
+                field = default;
+                return false;
             }
         }
 
-        var field = text.Slice(start, position - start);
-        return trim ? TrimTextField(field) : field;
+        field = text.Slice(start, nextPosition - start);
+        if (trim)
+        {
+            field = TrimTextField(field);
+        }
+
+        return true;
     }
 
     private static bool TryVisitTextQuotedField<TVisitor>(
@@ -919,6 +972,17 @@ internal static partial class CsvParser
         }
 
         position++;
+    }
+
+    private static bool IsTextW3CFieldsLine(ReadOnlySpan<char> text, int position)
+    {
+        const string prefix = "#Fields:";
+        if (text.Length - position < prefix.Length)
+        {
+            return false;
+        }
+
+        return text.Slice(position, prefix.Length).Equals(prefix.AsSpan(), StringComparison.OrdinalIgnoreCase);
     }
 #endif
 }

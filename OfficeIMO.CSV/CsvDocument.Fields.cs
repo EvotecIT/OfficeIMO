@@ -21,8 +21,7 @@ public sealed partial class CsvDocument
         }
 
         options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
+        var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
         var resolvedOptions = ResolveLoadOptions(readerFactory, options);
         using var reader = readerFactory();
         ReadRowFieldSpans(reader, ref rowVisitor, resolvedOptions);
@@ -294,6 +293,7 @@ public sealed partial class CsvDocument
         private readonly bool _firstRecordIsData;
         private TVisitor _rowVisitor;
         private IReadOnlyList<string>? _header;
+        private int _sourceHeaderCount;
         private int _currentRecordIndex;
         private int _currentFieldCount;
         private int _rowIndex;
@@ -306,7 +306,8 @@ public sealed partial class CsvDocument
             _rowVisitor = rowVisitor;
             _options = options;
             _firstRecordIsData = firstRecordIsData;
-            _header = header;
+            _sourceHeaderCount = header?.Count ?? 0;
+            _header = header is null ? null : AppendStaticColumnsToHeader(header, options);
             _headerFields = new List<string>(64);
             _currentRecordIndex = 0;
             _currentFieldCount = 0;
@@ -329,13 +330,14 @@ public sealed partial class CsvDocument
             }
 
             var header = _header!;
+            var sourceHeaderCount = GetSourceHeaderCount();
             if (!_hasRowStarted)
             {
                 _rowVisitor.BeginRow(header, _rowIndex);
                 _hasRowStarted = true;
             }
 
-            if (fieldIndex < header.Count)
+            if (fieldIndex < sourceHeaderCount)
             {
                 _rowVisitor.VisitField(_rowIndex, fieldIndex, value);
             }
@@ -352,13 +354,14 @@ public sealed partial class CsvDocument
             }
 
             var header = _header!;
+            var sourceHeaderCount = GetSourceHeaderCount();
             if (!_hasRowStarted)
             {
                 _rowVisitor.BeginRow(header, _rowIndex);
                 _hasRowStarted = true;
             }
 
-            if (fieldIndex < header.Count)
+            if (fieldIndex < sourceHeaderCount)
             {
                 _rowVisitor.VisitFieldValue(_rowIndex, fieldIndex, value);
             }
@@ -409,16 +412,17 @@ public sealed partial class CsvDocument
                     return;
                 }
 
-                _header = ResolveHeader(_headerFields, _options);
+                ResolveCurrentHeader();
                 _needsHeader = false;
                 return;
             }
 
             var header = _header!;
+            var sourceHeaderCount = GetSourceHeaderCount();
             if (_options.ColumnCountMismatchPolicy == CsvColumnCountMismatchPolicy.Strict &&
-                _currentFieldCount != header.Count)
+                _currentFieldCount != sourceHeaderCount)
             {
-                throw new CsvException($"Row contains {_currentFieldCount} values but header defines {header.Count} columns.");
+                throw new CsvException($"Row contains {_currentFieldCount} values but header defines {sourceHeaderCount} columns.");
             }
 
             if (!_hasRowStarted)
@@ -426,12 +430,16 @@ public sealed partial class CsvDocument
                 _rowVisitor.BeginRow(header, _rowIndex);
             }
 
-            _rowVisitor.EndRow(_rowIndex, _currentFieldCount);
+            var emittedFieldCount = AppendStaticFields(sourceHeaderCount);
+            _rowVisitor.EndRow(_rowIndex, emittedFieldCount);
             _rowIndex++;
         }
 
         private void EmitBufferedFirstDataRow()
         {
+            var sourceHeader = GenerateDefaultHeader(_headerFields.Count);
+            _sourceHeaderCount = sourceHeader.Count;
+            _header = AppendStaticColumnsToHeader(sourceHeader, _options);
             var header = _header!;
             _rowVisitor.BeginRow(header, _rowIndex);
             for (var i = 0; i < _headerFields.Count; i++)
@@ -439,11 +447,39 @@ public sealed partial class CsvDocument
                 _rowVisitor.VisitFieldValue(_rowIndex, i, _headerFields[i]);
             }
 
-            _rowVisitor.EndRow(_rowIndex, _headerFields.Count);
+            var emittedFieldCount = AppendStaticFields(_headerFields.Count);
+            _rowVisitor.EndRow(_rowIndex, emittedFieldCount);
             _rowIndex++;
         }
 
-        private static IReadOnlyList<string> ResolveHeader(IReadOnlyList<string> fields, CsvLoadOptions options)
+        private void ResolveCurrentHeader()
+        {
+            var sourceHeader = ResolveSourceHeader(_headerFields, _options);
+            _sourceHeaderCount = sourceHeader.Count;
+            _header = AppendStaticColumnsToHeader(sourceHeader, _options);
+        }
+
+        private int AppendStaticFields(int sourceHeaderCount)
+        {
+            var emittedFieldCount = _currentFieldCount;
+            if (_options.StaticColumns is null || _options.StaticColumns.Count == 0)
+            {
+                return emittedFieldCount;
+            }
+
+            var fieldIndex = sourceHeaderCount;
+            foreach (var staticColumn in _options.StaticColumns)
+            {
+                _rowVisitor.VisitFieldValue(_rowIndex, fieldIndex++, Convert.ToString(staticColumn.Value, _options.Culture) ?? string.Empty);
+                emittedFieldCount++;
+            }
+
+            return emittedFieldCount;
+        }
+
+        private int GetSourceHeaderCount() => _sourceHeaderCount == 0 ? _header!.Count : _sourceHeaderCount;
+
+        private static IReadOnlyList<string> ResolveSourceHeader(IReadOnlyList<string> fields, CsvLoadOptions options)
         {
             if (TryGetW3CFieldsHeader(fields, options, out var w3cHeader))
             {

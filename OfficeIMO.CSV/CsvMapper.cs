@@ -35,7 +35,7 @@ internal interface ICsvMappingEntry<T>
 {
     string ColumnName { get; }
 
-    T Apply(T instance, object? rawValue, CultureInfo culture);
+    T Apply(T instance, object? rawValue, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats);
 }
 
 internal sealed class CsvMappingEntry<T, TValue> : ICsvMappingEntry<T>
@@ -48,9 +48,9 @@ internal sealed class CsvMappingEntry<T, TValue> : ICsvMappingEntry<T>
 
     public string ColumnName { get; }
 
-    public T Apply(T instance, object? rawValue, CultureInfo culture)
+    public T Apply(T instance, object? rawValue, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
     {
-        var value = CsvValueConverter.ConvertTo<TValue>(rawValue, culture);
+        var value = CsvValueConverter.ConvertTo<TValue>(rawValue, culture, dateTimeFormats);
         return _assign(instance, value!);
     }
 
@@ -89,7 +89,7 @@ public static class CsvMappingExtensions
             foreach (var binding in bindings)
             {
                 var rawValue = row[binding.ColumnIndex];
-                instance = binding.Entry.Apply(instance, rawValue, document.Culture);
+                instance = binding.Entry.Apply(instance, rawValue, document.Culture, document.DateTimeFormats);
             }
 
             yield return instance;
