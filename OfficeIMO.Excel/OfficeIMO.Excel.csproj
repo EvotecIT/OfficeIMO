@@ -59,7 +59,7 @@
 
     <ItemGroup
         Condition="'$(TargetFramework)' == 'netstandard2.0' Or '$(TargetFramework)' == 'net472'">
-        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.8" />
+        <PackageReference Include="Microsoft.Bcl.AsyncInterfaces" Version="10.0.9" />
         <PackageReference Include="System.Text.Json" Version="[10.0.7,11.0.0)" />
     </ItemGroup>
 
