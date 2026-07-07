@@ -586,7 +586,7 @@ internal static class CsvWriter
 
     private static string FormatValue(object? value, CultureInfo culture, string? dateTimeFormat = null, bool useUtc = false, string? nullValue = null)
     {
-        if (value is null)
+        if (value is null || ReferenceEquals(value, DBNull.Value))
         {
             return nullValue ?? string.Empty;
         }
@@ -677,7 +677,7 @@ internal static class CsvWriter
         bool useUtc = false,
         string? nullValue = null)
     {
-        if (value is null)
+        if (value is null || ReferenceEquals(value, DBNull.Value))
         {
             if (nullValue is not null)
             {
@@ -756,7 +756,7 @@ internal static class CsvWriter
         char delimiter,
         CultureInfo culture)
     {
-        if (value is null)
+        if (value is null || ReferenceEquals(value, DBNull.Value))
         {
             return;
         }
@@ -803,7 +803,7 @@ internal static class CsvWriter
         CultureInfo culture)
     {
         buffer.Append('"');
-        if (value is null)
+        if (value is null || ReferenceEquals(value, DBNull.Value))
         {
             buffer.Append('"');
             return;

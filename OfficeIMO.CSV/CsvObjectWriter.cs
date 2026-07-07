@@ -155,8 +155,17 @@ public sealed class CsvObjectWriter : IDisposable
 
         EnsureColumns(columns);
 
+        var rowValues = new object[fieldCount];
+        var useBufferedValues = true;
         while (reader.Read())
         {
+            if (useBufferedValues && TryGetReaderValues(reader, rowValues))
+            {
+                WriteBuffered(rowValues);
+                continue;
+            }
+
+            useBufferedValues = false;
             WriteBuffered(fieldCount, reader, static (record, index) =>
             {
                 var value = record.GetValue(index);
@@ -508,6 +517,27 @@ public sealed class CsvObjectWriter : IDisposable
         {
             throw new CsvException($"Row contains {valueCount} values but header defines {expectedCount} columns.");
         }
+    }
+
+    private static bool TryGetReaderValues(IDataRecord reader, object[] values)
+    {
+        try
+        {
+            if (reader.GetValues(values) != values.Length)
+            {
+                return false;
+            }
+        }
+        catch (NotSupportedException)
+        {
+            return false;
+        }
+        catch (NotImplementedException)
+        {
+            return false;
+        }
+
+        return true;
     }
 
     private void ValidateColumns(IReadOnlyList<string> columns, bool requireOrder)

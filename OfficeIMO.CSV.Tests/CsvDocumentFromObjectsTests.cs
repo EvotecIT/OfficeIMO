@@ -194,6 +194,18 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void CsvObjectWriter_TreatsDBNullAsNullValue()
+    {
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
+        {
+            csvWriter.WriteRow(new[] { "Name", "Score" }, new object?[] { "Alpha", DBNull.Value });
+        }
+
+        Assert.Equal("Name,Score\nAlpha,<null>\n", writer.ToString());
+    }
+
+    [Fact]
     public void WriteDataReader_WritesReaderWithoutMaterializingDocument()
     {
         using var reader = CreateReader();
@@ -205,7 +217,7 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
-    public void WriteDataReader_StreamsFieldValuesWithoutGetValuesBuffer()
+    public void WriteDataReader_FallsBackWhenGetValuesIsUnsupported()
     {
         using var reader = new ThrowingGetValuesDataReader(
             new[] { "Name", "Score", "Notes" },
