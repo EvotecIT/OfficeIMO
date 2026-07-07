@@ -162,7 +162,6 @@ public sealed partial class CsvDocument
         }
 
         options ??= new CsvSaveOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
         var fullPath = Path.GetFullPath(path);
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory))
@@ -176,7 +175,7 @@ public sealed partial class CsvDocument
 
         try
         {
-            using (var writer = new StreamWriter(temporaryPath, append: false, encoding, bufferSize: 256 * 1024))
+            using (var writer = CsvFile.CreateTextWriterForCompressionPath(temporaryPath, fullPath, options, bufferSize: 256 * 1024))
             {
                 WriteObjects(writer, items, options);
             }
@@ -238,8 +237,7 @@ public sealed partial class CsvDocument
             Encoding = _encoding
         };
 
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        using var writer = new StreamWriter(path, append: false, encoding, bufferSize: FileBufferSize);
+        using var writer = CsvFile.CreateTextWriter(path, options, append: false, bufferSize: FileBufferSize);
         CsvWriter.Write(writer, this, options);
         return this;
     }

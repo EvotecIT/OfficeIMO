@@ -13,7 +13,7 @@ public sealed partial class CsvDocument
     {
         options ??= new CsvLoadOptions();
         var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        return LoadInternal(() => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize), options, encoding);
+        return LoadInternal(() => CsvFile.OpenTextReader(path, options, FileBufferSize), options, encoding);
     }
 
     /// <summary>
@@ -35,8 +35,7 @@ public sealed partial class CsvDocument
         }
 
         options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
+        var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
         var resolvedOptions = ResolveLoadOptions(readerFactory, options);
         using var reader = readerFactory();
         ReadRows(reader, rowAction, resolvedOptions);
@@ -61,8 +60,7 @@ public sealed partial class CsvDocument
         }
 
         options ??= new CsvLoadOptions();
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
+        var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
         var resolvedOptions = ResolveLoadOptions(readerFactory, options);
         using var reader = readerFactory();
         ReadRowsReusable(reader, rowAction, resolvedOptions);

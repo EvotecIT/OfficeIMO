@@ -105,6 +105,16 @@ public sealed class CsvLoadOptions
     public Encoding? Encoding { get; set; }
 
     /// <summary>
+    /// Gets or sets compression used when reading from files. Default infers compression from the file extension.
+    /// </summary>
+    public CsvCompressionType CompressionType { get; set; } = CsvCompressionType.Auto;
+
+    /// <summary>
+    /// Gets or sets an optional limit for decompressed bytes read from compressed CSV files.
+    /// </summary>
+    public long? MaxDecompressedBytes { get; set; }
+
+    /// <summary>
     /// Creates a shallow copy of the options instance.
     /// </summary>
     public CsvLoadOptions Clone() => (CsvLoadOptions)MemberwiseClone();

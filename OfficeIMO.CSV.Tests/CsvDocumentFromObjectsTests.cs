@@ -297,6 +297,104 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void Save_Load_RoundTripsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RoundTrip." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var parsed = CsvDocument.Load(path);
+            var row = Assert.Single(parsed.AsEnumerable());
+
+            Assert.Equal("Alpha", row.AsString("Name"));
+            Assert.Equal(1, row.AsInt32("Value"));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReadRowsReusable_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Stream." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .AddRow("Beta", 2)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var rows = new List<string>();
+            CsvDocument.ReadRowsReusable(path, (_, row) => rows.Add(row[0] + "|" + row[1]));
+
+            Assert.Equal(new[] { "Alpha|1", "Beta|2" }, rows);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void Load_EnforcesMaxDecompressedBytes()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Bounded." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            Assert.Throws<InvalidOperationException>(() =>
+                CsvDocument.Load(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void SaveObjects_UsesCompressionFromDestinationExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            CsvDocument.SaveObjects(path, new object?[] { new { Name = "A", Value = 1 } }, new CsvSaveOptions { NewLine = "\n" });
+
+            var parsed = CsvDocument.Load(path);
+            var row = Assert.Single(parsed.AsEnumerable());
+
+            Assert.Equal("A", row.AsString("Name"));
+            Assert.Equal(1, row.AsInt32("Value"));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void SaveObjects_DoesNotReplaceExistingFileWhenInputIsEmpty()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.SaveObjects.Preserve." + Guid.NewGuid().ToString("N") + ".csv");
