@@ -1,4 +1,5 @@
 using System;
+using System.Data;
 using System.Linq;
 using OfficeIMO.CSV;
 using Xunit;
@@ -89,6 +90,53 @@ public class CsvSchemaTests
         doc.Validate(out var errors);
 
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ToDataTable_WithInferredSchema_UsesTypedColumns()
+    {
+        var doc = CsvDocument.Parse("Id,Amount,Active,Created,Note\n1,12.5,true,2026-07-07,Alpha\n2,13.7,false,2026-07-08,\n");
+
+        var table = doc.ToDataTable(new CsvDataTableOptions
+        {
+            TableName = "Rows",
+            InferSchema = true
+        });
+
+        Assert.Equal("Rows", table.TableName);
+        Assert.Equal(typeof(int), table.Columns["Id"]!.DataType);
+        Assert.Equal(typeof(decimal), table.Columns["Amount"]!.DataType);
+        Assert.Equal(typeof(bool), table.Columns["Active"]!.DataType);
+        Assert.Equal(typeof(DateTime), table.Columns["Created"]!.DataType);
+        Assert.Equal(typeof(string), table.Columns["Note"]!.DataType);
+        Assert.Equal(1, table.Rows[0]["Id"]);
+        Assert.Equal(12.5m, table.Rows[0]["Amount"]);
+        Assert.Equal(false, table.Rows[1]["Active"]);
+        Assert.Equal(string.Empty, table.Rows[1]["Note"]);
+    }
+
+    [Fact]
+    public void ToDataTable_WithInferredSchema_StoresMissingTypedValuesAsDbNull()
+    {
+        var doc = CsvDocument.Parse("Id,Amount\n1,12.5\n2,\n");
+
+        var table = doc.ToDataTable(new CsvDataTableOptions { InferSchema = true });
+
+        Assert.Equal(typeof(decimal), table.Columns["Amount"]!.DataType);
+        Assert.Same(DBNull.Value, table.Rows[1]["Amount"]);
+    }
+
+    [Fact]
+    public void ToDataTable_WithRequiredSchema_RejectsMissingValues()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Id")
+            .AddRow(new object?[] { null });
+        doc.EnsureSchema(schema => schema.Column("Id").AsInt32().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Column 'Id' is required", ex.Message);
     }
 
     [Fact]
