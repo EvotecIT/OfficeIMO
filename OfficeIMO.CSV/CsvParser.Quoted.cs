@@ -663,9 +663,8 @@ internal static partial class CsvParser
         ref int index,
         out string value)
     {
-        var quoteIndex = secondLine.IndexOf('"');
-        if (quoteIndex < 0 ||
-            quoteIndex + 1 < secondLine.Length && secondLine[quoteIndex + 1] == '"')
+        var quoteIndex = FindClosingQuote(secondLine, 0, out var secondEscapedQuoteCount);
+        if (quoteIndex < 0)
         {
             value = string.Empty;
             return false;
@@ -689,21 +688,105 @@ internal static partial class CsvParser
         }
 
         var firstLength = firstLine.Length - firstStart;
+        var firstEscapedQuoteCount = CountEscapedQuotes(firstLine, firstStart, firstLine.Length);
         value = string.Create(
-            firstLength + separator.Length + quoteIndex,
-            (firstLine, firstStart, firstLength, separator, secondLine, quoteIndex),
+            firstLength - firstEscapedQuoteCount + separator.Length + quoteIndex - secondEscapedQuoteCount,
+            (firstLine, firstStart, firstLength, firstEscapedQuoteCount, separator, secondLine, quoteIndex, secondEscapedQuoteCount),
             static (destination, state) =>
             {
                 var position = 0;
-                state.firstLine.AsSpan(state.firstStart, state.firstLength).CopyTo(destination);
-                position += state.firstLength;
+                position += CopyUnescapedQuotedSegment(
+                    state.firstLine.AsSpan(state.firstStart, state.firstLength),
+                    state.firstEscapedQuoteCount,
+                    destination);
                 state.separator.AsSpan().CopyTo(destination[position..]);
                 position += state.separator.Length;
-                state.secondLine.AsSpan(0, state.quoteIndex).CopyTo(destination[position..]);
+                CopyUnescapedQuotedSegment(
+                    state.secondLine.AsSpan(0, state.quoteIndex),
+                    state.secondEscapedQuoteCount,
+                    destination[position..]);
             });
 
         index = afterQuote;
         return true;
+    }
+
+    private static int FindClosingQuote(string text, int start, out int escapedQuoteCount)
+    {
+        escapedQuoteCount = 0;
+        var index = start;
+        while (index < text.Length)
+        {
+            var quoteIndex = text.IndexOf('"', index);
+            if (quoteIndex < 0)
+            {
+                return -1;
+            }
+
+            if (quoteIndex + 1 < text.Length && text[quoteIndex + 1] == '"')
+            {
+                escapedQuoteCount++;
+                index = quoteIndex + 2;
+                continue;
+            }
+
+            return quoteIndex;
+        }
+
+        return -1;
+    }
+
+    private static int CountEscapedQuotes(string text, int start, int end)
+    {
+        var count = 0;
+        var index = start;
+        while (index < end)
+        {
+            var quoteIndex = text.IndexOf('"', index, end - index);
+            if (quoteIndex < 0 || quoteIndex + 1 >= end || text[quoteIndex + 1] != '"')
+            {
+                return count;
+            }
+
+            count++;
+            index = quoteIndex + 2;
+        }
+
+        return count;
+    }
+
+    private static int CopyUnescapedQuotedSegment(ReadOnlySpan<char> source, int escapedQuoteCount, Span<char> destination)
+    {
+        if (escapedQuoteCount == 0)
+        {
+            source.CopyTo(destination);
+            return source.Length;
+        }
+
+        var readIndex = 0;
+        var writeIndex = 0;
+        while (readIndex < source.Length)
+        {
+            var quoteOffset = source[readIndex..].IndexOf('"');
+            if (quoteOffset < 0)
+            {
+                source[readIndex..].CopyTo(destination[writeIndex..]);
+                writeIndex += source.Length - readIndex;
+                break;
+            }
+
+            if (quoteOffset > 0)
+            {
+                source.Slice(readIndex, quoteOffset).CopyTo(destination[writeIndex..]);
+                writeIndex += quoteOffset;
+                readIndex += quoteOffset;
+            }
+
+            destination[writeIndex++] = '"';
+            readIndex += 2;
+        }
+
+        return writeIndex;
     }
 #endif
 
