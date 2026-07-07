@@ -30,11 +30,34 @@ var options = new HtmlToMarkdownOptions {
     BaseUri = new Uri("https://example.com/docs/"),
     UseBodyContentsOnly = true,
     PreserveUnsupportedBlocks = true,
-    PreserveUnsupportedInlineHtml = true
+    PreserveUnsupportedInlineHtml = true,
+    SmartHref = true
 };
 
 string markdown = "<p><a href=\"guide/start\">Docs</a></p>".ToMarkdown(options);
 ```
+
+### Compatibility controls
+
+```csharp
+var options = new HtmlToMarkdownOptions {
+    SmartHref = true,
+    UnknownBlockHandling = HtmlUnknownTagHandling.Bypass,
+    UnknownInlineHandling = HtmlUnknownTagHandling.Bypass
+};
+
+options.ExcludeSelectors.Add(".ad, .cookie-banner");
+options.TagAliases["highlight"] = "mark";
+options.PassThroughTags.Add("custom-widget");
+
+string markdown = html.ToMarkdown(options);
+```
+
+- `SmartHref` emits self-describing links such as `<a href="https://example.com">https://example.com</a>` as plain text.
+- `ExcludeSelectors` and `ElementFilters` remove matching HTML before conversion.
+- `TagAliases` lets custom or legacy tag names reuse built-in converters.
+- `PassThroughTags` preserves selected elements as raw HTML.
+- `UnknownBlockHandling` and `UnknownInlineHandling` choose whether unknown elements are preserved, bypassed, dropped, or rejected.
 
 ## What it maps
 
@@ -47,11 +70,16 @@ string markdown = "<p><a href=\"guide/start\">Docs</a></p>".ToMarkdown(options);
 ## Profiles
 
 - Use the OfficeIMO profile when the downstream consumer is `OfficeIMO.Markdown` or `OfficeIMO.MarkdownRenderer`.
+- Use the GitHub Flavored Markdown profile for README and GitHub documentation output.
+- Use the CommonMark profile when output should avoid GitHub-only constructs such as pipe tables; HTML tables are emitted as raw HTML.
 - Use the portable profile when output should remain friendly to generic Markdown engines.
 
 ```csharp
-var options = HtmlToMarkdownOptions.CreatePortableProfile();
-string portable = "<blockquote><p><strong>Example</strong></p></blockquote>".ToMarkdown(options);
+var github = HtmlToMarkdownOptions.CreateGitHubFlavoredMarkdownProfile();
+string readme = "<p><a href=\"https://example.com\">https://example.com</a></p>".ToMarkdown(github);
+
+var commonMark = HtmlToMarkdownOptions.CreateCommonMarkProfile();
+string portableTable = "<table><tr><th>Name</th></tr><tr><td>Value</td></tr></table>".ToMarkdown(commonMark);
 ```
 
 ## Boundaries

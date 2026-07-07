@@ -48,6 +48,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
         var document = HtmlDocumentParser.ParseDocument(html);
         effectiveOptions.BaseUri = HtmlDocumentParser.ResolveEffectiveBaseUri(document, effectiveOptions.BaseUri);
+        ApplyHtmlFilters(document.DocumentElement, effectiveOptions);
         var context = new ConversionContext(effectiveOptions);
 
         INode root = HtmlDocumentParser.GetConversionRoot(document, effectiveOptions.UseBodyContentsOnly);

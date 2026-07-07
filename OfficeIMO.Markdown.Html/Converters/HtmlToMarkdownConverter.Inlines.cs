@@ -39,11 +39,16 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static void AppendInlineElement(InlineSequence sequence, IElement element, ConversionContext? context) {
+        if (IsPassThroughTag(element, context)) {
+            sequence.AddRaw(new HtmlRawInline(element.OuterHtml));
+            return;
+        }
+
         if (TryConvertConfiguredInlineElementConverters(sequence, element, context)) {
             return;
         }
 
-        string tag = element.TagName;
+        string tag = GetEffectiveTagName(element, context);
         switch (tag) {
             case "BR":
                 sequence.HardBreak();
@@ -93,23 +98,10 @@ public sealed partial class HtmlToMarkdownConverter {
             case "SAMP":
             case "VAR":
             case "LABEL":
-                var childNodes = element.ChildNodes as IList<INode> ?? element.ChildNodes.ToList();
-                for (int i = 0; i < childNodes.Count; i++) {
-                    bool trimEnd = NextVisibleInlineNodeIsBoundary(childNodes, i + 1, context);
-                    AppendInlineNode(sequence, childNodes[i], context, trimEnd);
-                }
+                AppendInlineElementChildren(sequence, element, context);
                 return;
             default:
-                if (context != null && context.Options.PreserveUnsupportedInlineHtml) {
-                    sequence.AddRaw(new HtmlRawInline(element.OuterHtml));
-                    return;
-                }
-
-                var fallbackNodes = element.ChildNodes as IList<INode> ?? element.ChildNodes.ToList();
-                for (int i = 0; i < fallbackNodes.Count; i++) {
-                    bool trimEnd = NextVisibleInlineNodeIsBoundary(fallbackNodes, i + 1, context);
-                    AppendInlineNode(sequence, fallbackNodes[i], context, trimEnd);
-                }
+                AppendUnknownInlineElement(sequence, element, context);
                 return;
         }
     }
@@ -154,6 +146,9 @@ public sealed partial class HtmlToMarkdownConverter {
                 if (context != null && ShouldIgnoreElement(element, context)) {
                     return string.Empty;
                 }
+                if (IsPassThroughTag(element, context)) {
+                    return element.OuterHtml;
+                }
                 return ConvertInlineElementToMarkdown(element, context);
             default:
                 return string.Empty;
@@ -161,7 +156,7 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ConvertInlineElementToMarkdown(IElement element, ConversionContext? context) {
-        string tag = element.TagName;
+        string tag = GetEffectiveTagName(element, context);
         switch (tag) {
             case "BR":
                 return "  \n";
@@ -207,10 +202,7 @@ public sealed partial class HtmlToMarkdownConverter {
             case "LABEL":
                 return ConvertInlineNodesToMarkdown(element.ChildNodes, context);
             default:
-                if (context != null && context.Options.PreserveUnsupportedInlineHtml) {
-                    return element.OuterHtml;
-                }
-                return ConvertInlineNodesToMarkdown(element.ChildNodes, context);
+                return ConvertUnknownInlineElementToMarkdown(element, context);
         }
     }
 
@@ -247,6 +239,10 @@ public sealed partial class HtmlToMarkdownConverter {
             return label;
         }
 
+        if (context?.Options.SmartHref == true && TryConvertSmartHrefToPlainText(label, href, out string plainText)) {
+            return EscapeInlineText(plainText);
+        }
+
         string title = element.GetAttribute("title") ?? string.Empty;
         string titlePart = title.Length == 0
             ? string.Empty
@@ -270,12 +266,70 @@ public sealed partial class HtmlToMarkdownConverter {
             return;
         }
 
+        if (context?.Options.SmartHref == true
+            && TryConvertSmartHrefToPlainText(ConvertInlineNodesToMarkdown(element.ChildNodes, context).Trim(), href, out string plainText)) {
+            sequence.Text(plainText);
+            return;
+        }
+
         sequence.AddRaw(new LinkInline(
             label,
             href,
             element.GetAttribute("title"),
             element.GetAttribute("target"),
             element.GetAttribute("rel")));
+    }
+
+    private static bool TryConvertSmartHrefToPlainText(string label, string href, out string plainText) {
+        plainText = string.Empty;
+        if (string.IsNullOrWhiteSpace(label) || string.IsNullOrWhiteSpace(href)) {
+            return false;
+        }
+
+        string normalizedLabel = NormalizeSmartHrefText(label);
+        string normalizedHref = href.Trim();
+        if (normalizedLabel.Length == 0 || normalizedHref.Length == 0) {
+            return false;
+        }
+
+        if (string.Equals(normalizedLabel, normalizedHref, StringComparison.OrdinalIgnoreCase)) {
+            plainText = normalizedHref;
+            return true;
+        }
+
+        if (normalizedHref.StartsWith("mailto:", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(normalizedLabel, normalizedHref.Substring("mailto:".Length), StringComparison.OrdinalIgnoreCase)) {
+            plainText = normalizedLabel;
+            return true;
+        }
+
+        if (normalizedHref.StartsWith("tel:", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(normalizedLabel, normalizedHref.Substring("tel:".Length), StringComparison.OrdinalIgnoreCase)) {
+            plainText = normalizedLabel;
+            return true;
+        }
+
+        if (normalizedHref.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(normalizedLabel, normalizedHref.Substring("http://".Length), StringComparison.OrdinalIgnoreCase)) {
+            plainText = normalizedHref;
+            return true;
+        }
+
+        if (normalizedHref.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
+            && string.Equals(normalizedLabel, normalizedHref.Substring("https://".Length), StringComparison.OrdinalIgnoreCase)) {
+            plainText = normalizedHref;
+            return true;
+        }
+
+        return false;
+    }
+
+    private static string NormalizeSmartHrefText(string value) {
+        return value
+            .Replace("\\.", ".")
+            .Replace("\\-", "-")
+            .Replace("\\_", "_")
+            .Trim();
     }
 
     private static string ConvertInlineImageToMarkdown(IElement element, ConversionContext? context) {

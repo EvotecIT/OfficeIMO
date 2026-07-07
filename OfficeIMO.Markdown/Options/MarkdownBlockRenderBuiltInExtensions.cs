@@ -15,6 +15,8 @@ public static class MarkdownBlockRenderBuiltInExtensions {
     public const string PortableTocHtmlName = "Portable.Toc.Html";
     /// <summary>Stable registration name for the portable footnote section HTML fallback.</summary>
     public const string PortableFootnoteSectionHtmlName = "Portable.Footnotes.Html";
+    /// <summary>Stable registration name for the CommonMark table markdown fallback.</summary>
+    public const string CommonMarkTableMarkdownName = "CommonMark.Table.Markdown";
 
     /// <summary>Adds a portable markdown fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutMarkdownFallback(MarkdownWriteOptions options) {
@@ -28,6 +30,21 @@ public static class MarkdownBlockRenderBuiltInExtensions {
             }
 
             return RenderPortableCalloutMarkdown(callout);
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for tables by emitting raw HTML tables.</summary>
+    public static void AddCommonMarkTableMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkTableMarkdownName, typeof(TableBlock), static (block, _) => {
+            if (block is not TableBlock table) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)table).RenderHtml();
         });
     }
 

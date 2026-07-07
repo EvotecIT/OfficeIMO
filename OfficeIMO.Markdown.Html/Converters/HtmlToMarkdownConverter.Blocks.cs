@@ -56,16 +56,16 @@ public sealed partial class HtmlToMarkdownConverter {
         return blocks;
     }
 
-    private static bool IsBlockElement(IElement element) {
-        return s_BlockTags.Contains(element.TagName);
+    private static bool IsBlockElement(IElement element, ConversionContext context) {
+        return s_BlockTags.Contains(GetEffectiveTagName(element, context));
     }
 
-    private static bool IsInlineElement(IElement element) {
-        return s_InlineTags.Contains(element.TagName);
+    private static bool IsInlineElement(IElement element, ConversionContext context) {
+        return s_InlineTags.Contains(GetEffectiveTagName(element, context));
     }
 
     private static bool ShouldTreatAsBlockElement(IElement element, ConversionContext context) {
-        if (IsBlockElement(element)) {
+        if (IsBlockElement(element, context)) {
             return true;
         }
 
@@ -77,7 +77,9 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        if (context.Options.PreserveUnsupportedBlocks && !IsInlineElement(element)) {
+        if (context.Options.UnknownBlockHandling != HtmlUnknownTagHandling.Bypass
+            && context.Options.PreserveUnsupportedBlocks
+            && !IsInlineElement(element, context)) {
             return true;
         }
 
@@ -119,6 +121,10 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static IEnumerable<IMarkdownBlock> ConvertElementToBlocks(IElement element, ConversionContext context) {
+        if (IsPassThroughTag(element, context)) {
+            return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
+        }
+
         if (TryConvertVisualContractElement(element, context, out var visualBlock)) {
             return new IMarkdownBlock[] { visualBlock };
         }
@@ -135,7 +141,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return customBlocks;
         }
 
-        string tag = element.TagName;
+        string tag = GetEffectiveTagName(element, context);
         switch (tag) {
             case "P":
                 return ConvertParagraphElement(element, context);
@@ -214,20 +220,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
                 return new IMarkdownBlock[] { new ParagraphBlock(inlineSequence) };
             default:
-                if (context.Options.PreserveUnsupportedBlocks) {
-                    return new IMarkdownBlock[] { new HtmlRawBlock(element.OuterHtml) };
-                }
-
-                if (HasDirectBlockChildren(element, context)) {
-                    return ConvertNodesToBlocks(element.ChildNodes, context);
-                }
-
-                var fallbackInline = NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(element.ChildNodes, context));
-                if (!HasVisibleInlineContent(fallbackInline)) {
-                    return Array.Empty<IMarkdownBlock>();
-                }
-
-                return new IMarkdownBlock[] { new ParagraphBlock(fallbackInline) };
+                return ConvertUnknownElementToBlocks(element, context);
         }
     }
 

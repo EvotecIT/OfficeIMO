@@ -10,6 +10,36 @@ public sealed class MarkdownWriteOptions {
     /// <summary>Creates default OfficeIMO-flavored markdown writer options.</summary>
     public static MarkdownWriteOptions CreateOfficeIMOProfile() => new MarkdownWriteOptions();
 
+    /// <summary>Creates writer options for the requested output profile.</summary>
+    public static MarkdownWriteOptions CreateProfile(MarkdownOutputProfile profile) =>
+        profile switch {
+            MarkdownOutputProfile.OfficeIMO => CreateOfficeIMOProfile(),
+            MarkdownOutputProfile.CommonMark => CreateCommonMarkProfile(),
+            MarkdownOutputProfile.GitHubFlavoredMarkdown => CreateGitHubFlavoredMarkdownProfile(),
+            MarkdownOutputProfile.Portable => CreatePortableProfile(),
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown markdown output profile.")
+        };
+
+    /// <summary>
+    /// Creates a CommonMark-oriented writer profile. GitHub-only constructs such as pipe tables are
+    /// emitted using portable raw HTML fallbacks when a plain CommonMark representation does not exist.
+    /// </summary>
+    public static MarkdownWriteOptions CreateCommonMarkProfile() {
+        var options = CreatePortableProfile();
+        options.OutputLineEnding = "\n";
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTableMarkdownFallback(options);
+        return options;
+    }
+
+    /// <summary>
+    /// Creates a GitHub Flavored Markdown-oriented writer profile for README and GitHub documentation output.
+    /// </summary>
+    public static MarkdownWriteOptions CreateGitHubFlavoredMarkdownProfile() => new MarkdownWriteOptions {
+        ImageRenderingMode = MarkdownImageRenderingMode.PortableMarkdown,
+        OutputLineEnding = "\n",
+        UnorderedListMarker = '-'
+    };
+
     /// <summary>
     /// Creates a more portable markdown writer profile that degrades OfficeIMO-only blocks into broadly compatible markdown.
     /// </summary>

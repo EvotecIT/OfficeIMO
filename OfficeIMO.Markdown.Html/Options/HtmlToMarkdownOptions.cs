@@ -1,5 +1,6 @@
 namespace OfficeIMO.Markdown.Html;
 
+using AngleSharp.Dom;
 using OfficeIMO.Html;
 
 /// <summary>
@@ -12,6 +13,32 @@ public sealed class HtmlToMarkdownOptions {
 
     /// <summary>Creates the default OfficeIMO-flavored conversion profile.</summary>
     public static HtmlToMarkdownOptions CreateOfficeIMOProfile() => new HtmlToMarkdownOptions();
+
+    /// <summary>Creates conversion options for the requested Markdown output profile.</summary>
+    public static HtmlToMarkdownOptions CreateProfile(MarkdownOutputProfile profile) =>
+        profile switch {
+            MarkdownOutputProfile.OfficeIMO => CreateOfficeIMOProfile(),
+            MarkdownOutputProfile.CommonMark => CreateCommonMarkProfile(),
+            MarkdownOutputProfile.GitHubFlavoredMarkdown => CreateGitHubFlavoredMarkdownProfile(),
+            MarkdownOutputProfile.Portable => CreatePortableProfile(),
+            _ => throw new ArgumentOutOfRangeException(nameof(profile), profile, "Unknown HTML-to-Markdown output profile.")
+        };
+
+    /// <summary>
+    /// Creates a CommonMark-oriented conversion profile. The intermediate OfficeIMO document model is preserved,
+    /// while markdown serialization avoids GitHub-only output where practical.
+    /// </summary>
+    public static HtmlToMarkdownOptions CreateCommonMarkProfile() => new HtmlToMarkdownOptions {
+        MarkdownWriteOptions = MarkdownWriteOptions.CreateCommonMarkProfile()
+    };
+
+    /// <summary>
+    /// Creates a GitHub Flavored Markdown-oriented conversion profile for README and GitHub documentation output.
+    /// </summary>
+    public static HtmlToMarkdownOptions CreateGitHubFlavoredMarkdownProfile() => new HtmlToMarkdownOptions {
+        SmartHref = true,
+        MarkdownWriteOptions = MarkdownWriteOptions.CreateGitHubFlavoredMarkdownProfile()
+    };
 
     /// <summary>
     /// Creates a portable conversion profile that serializes the converted document with portable markdown fallbacks.
@@ -44,6 +71,21 @@ public sealed class HtmlToMarkdownOptions {
     /// When true, unsupported inline elements are emitted as raw HTML inside inline Markdown.
     /// </summary>
     public bool PreserveUnsupportedInlineHtml { get; set; } = true;
+
+    /// <summary>
+    /// When true, links whose label already represents the target are emitted as plain text.
+    /// </summary>
+    public bool SmartHref { get; set; }
+
+    /// <summary>
+    /// Controls how unsupported block-level elements are converted.
+    /// </summary>
+    public HtmlUnknownTagHandling UnknownBlockHandling { get; set; } = HtmlUnknownTagHandling.Preserve;
+
+    /// <summary>
+    /// Controls how unsupported inline elements are converted.
+    /// </summary>
+    public HtmlUnknownTagHandling UnknownInlineHandling { get; set; } = HtmlUnknownTagHandling.Preserve;
 
     /// <summary>
     /// When true, plain text imported from HTML is escaped when it could be interpreted as a Markdown block marker.
@@ -135,6 +177,26 @@ public sealed class HtmlToMarkdownOptions {
     public List<MarkdownVisualElementRoundTripHint> VisualElementRoundTripHints { get; } = new();
 
     /// <summary>
+    /// CSS selectors for elements that should be removed before conversion.
+    /// </summary>
+    public HashSet<string> ExcludeSelectors { get; } = new(StringComparer.Ordinal);
+
+    /// <summary>
+    /// Predicates for elements that should be removed before conversion. Return <see langword="true"/> to remove an element.
+    /// </summary>
+    public List<Func<IElement, bool>> ElementFilters { get; } = new();
+
+    /// <summary>
+    /// Maps an HTML tag name to another tag name before built-in conversion is selected.
+    /// </summary>
+    public Dictionary<string, string> TagAliases { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
+    /// Tag names that should be emitted as raw HTML without converting their children.
+    /// </summary>
+    public HashSet<string> PassThroughTags { get; } = new(StringComparer.OrdinalIgnoreCase);
+
+    /// <summary>
     /// Marks a renderer plugin's HTML-ingestion contract as applied to these options.
     /// </summary>
     public bool TryMarkPluginApplied(string pluginId) {
@@ -211,6 +273,9 @@ public sealed class HtmlToMarkdownOptions {
             RemoveScriptsAndStyles = RemoveScriptsAndStyles,
             PreserveUnsupportedBlocks = PreserveUnsupportedBlocks,
             PreserveUnsupportedInlineHtml = PreserveUnsupportedInlineHtml,
+            SmartHref = SmartHref,
+            UnknownBlockHandling = UnknownBlockHandling,
+            UnknownInlineHandling = UnknownInlineHandling,
             EscapeMarkdownLineStarts = EscapeMarkdownLineStarts,
             UrlPolicy = UrlPolicy?.Clone() ?? HtmlUrlPolicy.CreateOfficeIMOProfile(),
             Base64Images = Base64Images,
@@ -247,6 +312,31 @@ public sealed class HtmlToMarkdownOptions {
             var hint = VisualElementRoundTripHints[i];
             if (hint != null) {
                 clone.VisualElementRoundTripHints.Add(hint);
+            }
+        }
+
+        foreach (var selector in ExcludeSelectors) {
+            if (!string.IsNullOrWhiteSpace(selector)) {
+                clone.ExcludeSelectors.Add(selector);
+            }
+        }
+
+        for (var i = 0; i < ElementFilters.Count; i++) {
+            var filter = ElementFilters[i];
+            if (filter != null) {
+                clone.ElementFilters.Add(filter);
+            }
+        }
+
+        foreach (var alias in TagAliases) {
+            if (!string.IsNullOrWhiteSpace(alias.Key) && !string.IsNullOrWhiteSpace(alias.Value)) {
+                clone.TagAliases[alias.Key] = alias.Value;
+            }
+        }
+
+        foreach (var tagName in PassThroughTags) {
+            if (!string.IsNullOrWhiteSpace(tagName)) {
+                clone.PassThroughTags.Add(tagName);
             }
         }
 

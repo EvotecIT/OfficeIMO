@@ -169,6 +169,51 @@ Lead[^1]
     }
 
     [Fact]
+    public void CommonMark_Write_Profile_Renders_Tables_As_Raw_Html() {
+        var table = new TableBlock();
+        table.Headers.Add("Name");
+        table.Headers.Add("Value");
+        table.Rows.Add(new[] { "Area", "Markdown" });
+        var doc = MarkdownDoc.Create().Add(table);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.StartsWith("<table>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<th>Name</th>", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("| Name | Value |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void GitHubFlavoredMarkdown_Write_Profile_Keeps_Pipe_Tables_And_Portable_Images() {
+        var table = new TableBlock();
+        table.Headers.Add("Name");
+        table.Headers.Add("Value");
+        table.Rows.Add(new[] { "Area", "Markdown" });
+        var doc = MarkdownDoc.Create()
+            .Add(new ImageBlock("https://example.com/logo.png", "Logo", width: 256, height: 128))
+            .Add(table);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateGitHubFlavoredMarkdownProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("![Logo](https://example.com/logo.png)", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("{width=", markdown, StringComparison.Ordinal);
+        Assert.Contains("| Name | Value |", markdown, StringComparison.Ordinal);
+        Assert.Contains("| --- | --- |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void MarkdownWriteOptions_CreateProfile_Maps_Named_Output_Profiles() {
+        Assert.Empty(MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.OfficeIMO).BlockRenderExtensions);
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkTableMarkdownName, StringComparison.Ordinal));
+        Assert.Equal(MarkdownImageRenderingMode.PortableMarkdown, MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.GitHubFlavoredMarkdown).ImageRenderingMode);
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.Portable).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.PortableCalloutMarkdownName, StringComparison.Ordinal));
+    }
+
+    [Fact]
     public void Html_Image_Profile_Renders_Linked_Image_Blocks_As_Raw_Html() {
         var doc = MarkdownDoc.Create()
             .Add(new ImageBlock(
