@@ -22,6 +22,8 @@ The suite writes:
 
 The summary artifacts are the preferred wrap-up view. They include one row per scenario/library with mean, median, standard deviation, standard error, ratio to OfficeIMO, ratio to the best result, allocation, allocation ratio, package size, package-size ratio, outcome, and package-part metrics when package profiling is available.
 
+Package-profile lanes reopen the generated workbook package after timing and fail the run if a write scenario produces an empty package, a package without workbook parts, or a package without worksheet rows and cells. This keeps package-size and write-speed comparisons tied to real `.xlsx` output instead of byte-count-only success.
+
 ## Scenario Coverage
 
 The suite covers:
