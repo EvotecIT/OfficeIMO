@@ -119,6 +119,32 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_TagAliases_MapPictureSourcesToPreferredImagePath() {
+        const string html = """
+<custom-picture>
+  <custom-source srcset="large.png 2x">
+  <custom-img src="small.png" alt="Photo">
+</custom-picture>
+""";
+
+        var options = new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/")
+        };
+        options.TagAliases["custom-picture"] = "picture";
+        options.TagAliases["custom-source"] = "source";
+        options.TagAliases["custom-img"] = "img";
+
+        var document = new HtmlToMarkdownConverter().ConvertToDocument(html, options);
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+        var source = Assert.Single(image.PictureSources);
+
+        Assert.Equal("https://example.com/docs/large.png", image.Path);
+        Assert.Equal("https://example.com/docs/small.png", image.PictureFallbackPath);
+        Assert.Equal("https://example.com/docs/large.png", source.Path);
+        Assert.Equal("Photo", image.Alt);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PassThroughTags_PreserveOriginalHtmlEvenForKnownTags() {
         const string html = "<p>Keep <strong>literal</strong></p>";
 
@@ -231,6 +257,30 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         Assert.Contains("<table>", markdown, StringComparison.Ordinal);
         Assert.Contains("<th>Name</th>", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("| Name | Value |", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_CommonMarkProfile_EscapesLineStartsThatWouldBecomeBlocks() {
+        const string html = "<p># not heading</p><p>- not list</p>";
+
+        string markdown = Normalize(html.ToMarkdown(HtmlToMarkdownOptions.CreateCommonMarkProfile()));
+
+        Assert.Equal("\\# not heading\n\n\\- not list", markdown);
+    }
+
+    [Fact]
+    public void HtmlToMarkdown_TagAliases_UnwrapRejectedAnchorHrefs() {
+        const string html = "<custom-link href=\"javascript:alert(1)\"><img src=\"ok.png\" alt=\"Ok\"></custom-link>";
+
+        var options = new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/")
+        };
+        options.TagAliases["custom-link"] = "a";
+
+        string markdown = Normalize(html.ToMarkdown(options));
+
+        Assert.Equal("![Ok](https://example.com/docs/ok.png)", markdown);
+        Assert.DoesNotContain("javascript:", markdown, StringComparison.OrdinalIgnoreCase);
     }
 
     private static string Normalize(string value) {

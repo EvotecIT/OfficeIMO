@@ -9,6 +9,8 @@ public static class MarkdownInlineRenderBuiltInExtensions {
 
     /// <summary>Stable registration name for the CommonMark highlight markdown fallback.</summary>
     public const string CommonMarkHighlightMarkdownName = "CommonMark.Highlight.Markdown";
+    /// <summary>Stable registration name for the CommonMark footnote-reference markdown fallback.</summary>
+    public const string CommonMarkFootnoteReferenceMarkdownName = "CommonMark.FootnoteReference.Markdown";
 
     /// <summary>Adds CommonMark-compatible markdown fallbacks for GFM-only inline constructs.</summary>
     public static void AddCommonMarkGfmInlineMarkdownFallbacks(MarkdownWriteOptions options) {
@@ -20,6 +22,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
         AddIfMissing(options.InlineRenderExtensions, CommonMarkStrikethroughMarkdownName + ".Sequence", typeof(StrikethroughSequenceInline), RenderHtmlFallback);
         AddIfMissing(options.InlineRenderExtensions, CommonMarkHighlightMarkdownName, typeof(HighlightInline), RenderHtmlFallback);
         AddIfMissing(options.InlineRenderExtensions, CommonMarkHighlightMarkdownName + ".Sequence", typeof(HighlightSequenceInline), RenderHtmlFallback);
+        AddIfMissing(options.InlineRenderExtensions, CommonMarkFootnoteReferenceMarkdownName, typeof(FootnoteRefInline), RenderHtmlFallback);
     }
 
     private static void AddIfMissing(
@@ -44,6 +47,7 @@ public static class MarkdownInlineRenderBuiltInExtensions {
             StrikethroughSequenceInline strikethrough => strikethrough.RenderHtml(),
             HighlightInline highlight => highlight.RenderHtml(),
             HighlightSequenceInline highlight => highlight.RenderHtml(),
+            FootnoteRefInline footnote => footnote.RenderHtml(),
             _ => null
         };
 

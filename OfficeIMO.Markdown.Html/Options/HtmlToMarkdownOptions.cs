@@ -29,6 +29,7 @@ public sealed class HtmlToMarkdownOptions {
     /// while markdown serialization avoids GitHub-only output where practical.
     /// </summary>
     public static HtmlToMarkdownOptions CreateCommonMarkProfile() => new HtmlToMarkdownOptions {
+        EscapeMarkdownLineStarts = true,
         MarkdownWriteOptions = MarkdownWriteOptions.CreateCommonMarkProfile()
     };
 

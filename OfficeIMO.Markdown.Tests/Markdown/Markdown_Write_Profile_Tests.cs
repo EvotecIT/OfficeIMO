@@ -214,6 +214,36 @@ Lead[^1]
     }
 
     [Fact]
+    public void CommonMark_Write_Profile_Renders_Definition_Lists_As_Raw_Html() {
+        var list = new DefinitionListBlock();
+        list.AddEntry(new DefinitionListEntry(
+            new InlineSequence().Text("Term"),
+            new IMarkdownBlock[] { new ParagraphBlock(new InlineSequence().Text("Definition")) }));
+        var doc = MarkdownDoc.Create().Add(list);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.StartsWith("<dl>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<dt>Term</dt>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<dd>Definition</dd>", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain(": Definition", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommonMark_Write_Profile_Renders_Footnotes_As_Raw_Html() {
+        var doc = MarkdownDoc.Create()
+            .Add(new ParagraphBlock(new InlineSequence().Text("Lead").FootnoteRef("1")))
+            .Add(new FootnoteDefinitionBlock("1", "Footnote text"));
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<sup id=\"fnref:1\"><a href=\"#fn:1\">1</a></sup>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<p id=\"fn:1\"><sup>1</sup> Footnote text", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("[^1]", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("[^1]:", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Keeps_Pipe_Tables_And_Portable_Images() {
         var table = new TableBlock();
         table.Headers.Add("Name");
@@ -241,8 +271,17 @@ Lead[^1]
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkTaskListMarkdownName, StringComparison.Ordinal));
         Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkDefinitionListMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkFootnoteDefinitionMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkStrikethroughMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkFootnoteReferenceMarkdownName, StringComparison.Ordinal));
         Assert.Equal(MarkdownImageRenderingMode.PortableMarkdown, MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.GitHubFlavoredMarkdown).ImageRenderingMode);
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.Portable).BlockRenderExtensions,

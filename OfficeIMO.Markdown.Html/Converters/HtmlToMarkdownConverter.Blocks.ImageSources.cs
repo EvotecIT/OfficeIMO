@@ -31,7 +31,45 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ResolvePictureSource(IElement pictureElement, ConversionContext context) {
-        return HtmlImageSourceResolver.ResolvePictureSource(pictureElement, context.Options.BaseUri, context.Options.UrlPolicy);
+        foreach (string candidate in ResolvePictureSourceCandidates(pictureElement, context)) {
+            if (!string.IsNullOrWhiteSpace(candidate)) {
+                return candidate;
+            }
+        }
+
+        return string.Empty;
+    }
+
+    private static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, ConversionContext context) {
+        var candidates = new List<string>();
+        if (pictureElement == null || context == null) {
+            return candidates;
+        }
+
+        foreach (var child in pictureElement.Children) {
+            if (!HasEffectiveTagName(child, context, "SOURCE")) {
+                continue;
+            }
+
+            AddResolvedCandidate(candidates, ResolveUrlFromSrcSetAttributes(child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset"));
+            AddResolvedCandidate(candidates, ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src"));
+        }
+
+        var imageElement = FindFirstDescendantByEffectiveTagName(pictureElement, context, "IMG");
+        if (imageElement != null) {
+            AddResolvedCandidate(candidates, ResolveUrlFromSrcSetAttributes(imageElement, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset"));
+            AddResolvedCandidate(candidates, ResolveUrlAttributes(imageElement, context, "src", "data-src", "data-original", "data-original-src", "data-lazy-src"));
+        }
+
+        return candidates;
+    }
+
+    private static void AddResolvedCandidate(IList<string> candidates, string? value) {
+        if (candidates == null || string.IsNullOrWhiteSpace(value)) {
+            return;
+        }
+
+        candidates.Add(value!);
     }
 
     private static string ResolveUrlFromSrcSet(string? rawSrcSet, ConversionContext context) {
@@ -112,7 +150,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (HasUsableImageCandidateWithoutSideEffects(
-            HtmlImageSourceResolver.ResolvePictureSourceCandidates(element, context.Options.BaseUri, context.Options.UrlPolicy),
+            ResolvePictureSourceCandidates(element, context),
             context)) {
             return true;
         }

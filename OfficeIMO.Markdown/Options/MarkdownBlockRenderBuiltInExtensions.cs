@@ -19,6 +19,10 @@ public static class MarkdownBlockRenderBuiltInExtensions {
     public const string CommonMarkTableMarkdownName = "CommonMark.Table.Markdown";
     /// <summary>Stable registration name for the CommonMark task-list markdown fallback.</summary>
     public const string CommonMarkTaskListMarkdownName = "CommonMark.TaskList.Markdown";
+    /// <summary>Stable registration name for the CommonMark definition-list markdown fallback.</summary>
+    public const string CommonMarkDefinitionListMarkdownName = "CommonMark.DefinitionList.Markdown";
+    /// <summary>Stable registration name for the CommonMark footnote-definition markdown fallback.</summary>
+    public const string CommonMarkFootnoteDefinitionMarkdownName = "CommonMark.FootnoteDefinition.Markdown";
 
     /// <summary>Adds a portable markdown fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutMarkdownFallback(MarkdownWriteOptions options) {
@@ -70,6 +74,36 @@ public static class MarkdownBlockRenderBuiltInExtensions {
             }
 
             return ((IMarkdownBlock)list).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for definition lists by emitting raw HTML.</summary>
+    public static void AddCommonMarkDefinitionListMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkDefinitionListMarkdownName, typeof(DefinitionListBlock), static (block, _) => {
+            if (block is not DefinitionListBlock definitionList) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)definitionList).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for footnote definitions by emitting raw HTML.</summary>
+    public static void AddCommonMarkFootnoteDefinitionMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkFootnoteDefinitionMarkdownName, typeof(FootnoteDefinitionBlock), static (block, _) => {
+            if (block is not FootnoteDefinitionBlock footnote) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)footnote).RenderHtml();
         });
     }
 

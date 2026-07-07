@@ -29,6 +29,8 @@ public sealed class MarkdownWriteOptions {
         options.OutputLineEnding = "\n";
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTableMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkTaskListMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkDefinitionListMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkFootnoteDefinitionMarkdownFallback(options);
         MarkdownInlineRenderBuiltInExtensions.AddCommonMarkGfmInlineMarkdownFallbacks(options);
         return options;
     }

@@ -223,7 +223,7 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static bool HasRejectedHref(IElement element, ConversionContext context) {
-        if (element == null || context == null || !element.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+        if (element == null || context == null || !HasEffectiveTagName(element, context, "A")) {
             return false;
         }
 
