@@ -22,6 +22,7 @@ public sealed partial class CsvDocument
         var schema = options.Schema ?? _schema ?? (options.InferSchema ? InferSchema(options.SchemaSampleSize) : null);
         var schemaColumns = schema?.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
         var table = CreateDataTable(options.TableName, schemaColumns);
+        var columns = CreateDataTableColumnProjections(table, schemaColumns);
 
         table.BeginLoadData();
         try
@@ -29,14 +30,12 @@ public sealed partial class CsvDocument
             var rowIndex = 0;
             foreach (var row in AsEnumerable())
             {
-                var values = new object?[table.Columns.Count];
-                for (var i = 0; i < table.Columns.Count; i++)
+                var values = new object?[columns.Length];
+                for (var i = 0; i < columns.Length; i++)
                 {
-                    var columnName = table.Columns[i].ColumnName;
-                    CsvSchemaColumn? schemaColumn = null;
-                    schemaColumns?.TryGetValue(columnName, out schemaColumn);
+                    var column = columns[i];
                     var value = i < row.FieldCount ? row[i] : null;
-                    values[i] = ConvertDataTableValue(value, table.Columns[i].DataType, schemaColumn, rowIndex, columnName);
+                    values[i] = ConvertDataTableValue(value, column.DataType, column.SchemaColumn, rowIndex, column.Name);
                 }
 
                 table.Rows.Add(values);
@@ -49,6 +48,22 @@ public sealed partial class CsvDocument
         }
 
         return table;
+    }
+
+    private static DataTableColumnProjection[] CreateDataTableColumnProjections(
+        DataTable table,
+        IReadOnlyDictionary<string, CsvSchemaColumn>? schemaColumns)
+    {
+        var columns = new DataTableColumnProjection[table.Columns.Count];
+        for (var i = 0; i < columns.Length; i++)
+        {
+            var dataColumn = table.Columns[i];
+            CsvSchemaColumn? schemaColumn = null;
+            schemaColumns?.TryGetValue(dataColumn.ColumnName, out schemaColumn);
+            columns[i] = new DataTableColumnProjection(dataColumn.ColumnName, dataColumn.DataType, schemaColumn);
+        }
+
+        return columns;
     }
 
     private DataTable CreateDataTable(string? tableName, IReadOnlyDictionary<string, CsvSchemaColumn>? schemaColumns)
@@ -87,12 +102,33 @@ public sealed partial class CsvDocument
             }
         }
 
+        if (targetType.IsInstanceOfType(value))
+        {
+            return value!;
+        }
+
         if (!CsvValueConverter.TryConvert(value, targetType, _culture, _dateTimeFormats, out var converted, out var error))
         {
             throw new CsvException($"Column '{columnName}' value on row {rowIndex + 1} cannot be converted to {targetType.Name}: {error}");
         }
 
         return converted ?? DBNull.Value;
+    }
+
+    private readonly struct DataTableColumnProjection
+    {
+        public DataTableColumnProjection(string name, Type dataType, CsvSchemaColumn? schemaColumn)
+        {
+            Name = name;
+            DataType = dataType;
+            SchemaColumn = schemaColumn;
+        }
+
+        public string Name { get; }
+
+        public Type DataType { get; }
+
+        public CsvSchemaColumn? SchemaColumn { get; }
     }
 
     private static Type ResolveDataColumnType(Type? dataType)

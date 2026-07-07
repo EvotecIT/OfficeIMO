@@ -108,12 +108,35 @@ public sealed partial class CsvDocument
 
         private void ObserveString(string text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
         {
-            _canInt32 &= int.TryParse(text, NumberStyles.Any, culture, out _);
-            _canInt64 &= long.TryParse(text, NumberStyles.Any, culture, out _);
-            _canDecimal &= decimal.TryParse(text, NumberStyles.Any, culture, out _);
-            _canDouble &= double.TryParse(text, NumberStyles.Any, culture, out _);
-            _canBoolean &= IsBooleanText(text);
-            _canDateTime &= TryParseDateTime(text, culture, dateTimeFormats);
+            if (_canInt32)
+            {
+                _canInt32 = int.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canInt64)
+            {
+                _canInt64 = long.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canDecimal)
+            {
+                _canDecimal = decimal.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canDouble)
+            {
+                _canDouble = double.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canBoolean)
+            {
+                _canBoolean = IsBooleanText(text);
+            }
+
+            if (_canDateTime)
+            {
+                _canDateTime = TryParseDateTime(text, culture, dateTimeFormats);
+            }
         }
 
         private void ObserveTyped(object value)
