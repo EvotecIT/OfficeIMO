@@ -263,8 +263,9 @@ namespace OfficeIMO.Word {
             }
 
             if (_stdRun != null) {
-                textContainer = _stdRun;
-                return EnsureTextRun(_stdRun);
+                SdtContentRun content = _stdRun.SdtContentRun ??= new SdtContentRun();
+                textContainer = content;
+                return EnsureTextRun(content);
             }
 
             textContainer = VerifyRun();
@@ -373,10 +374,7 @@ namespace OfficeIMO.Word {
                 case Break breakNode:
                     builder.Append(IsTextWrappingBreak(breakNode) ? NormalizedLineFeed : NonTextBreakPlaceholder);
                     return;
-                case CommentReference commentReference:
-                    builder.Append("[c");
-                    builder.Append(commentReference.Id?.Value ?? "?");
-                    builder.Append(']');
+                case CommentReference:
                     return;
                 case FieldCode:
                 case FieldChar:

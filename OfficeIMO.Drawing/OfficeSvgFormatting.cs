@@ -90,9 +90,49 @@ public static partial class OfficeSvgFormatting {
             return string.Empty;
         }
 
-        int start = svg.IndexOf('>');
-        int end = svg.LastIndexOf("</svg>", StringComparison.OrdinalIgnoreCase);
-        return start >= 0 && end > start ? svg.Substring(start + 1, end - start - 1) : svg;
+        int rootStart = FindSvgRootStart(svg);
+        if (rootStart >= 0) {
+            int start = svg.IndexOf('>', rootStart);
+            int end = svg.LastIndexOf("</svg>", StringComparison.OrdinalIgnoreCase);
+            if (start >= 0 && end > start) {
+                return svg.Substring(start + 1, end - start - 1);
+            }
+        }
+
+        try {
+            var document = new XmlDocument {
+                PreserveWhitespace = true,
+                XmlResolver = null
+            };
+            using var reader = XmlReader.Create(
+                new System.IO.StringReader(svg),
+                new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Ignore,
+                    XmlResolver = null
+                });
+            document.Load(reader);
+            XmlElement? root = document.DocumentElement;
+            if (root != null && string.Equals(root.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) {
+                return root.InnerXml;
+            }
+        } catch (XmlException) {
+        }
+
+        return svg;
+    }
+
+    private static int FindSvgRootStart(string svg) {
+        int index = 0;
+        while ((index = svg.IndexOf("<svg", index, StringComparison.OrdinalIgnoreCase)) >= 0) {
+            int nameEnd = index + 4;
+            if (nameEnd >= svg.Length || char.IsWhiteSpace(svg[nameEnd]) || svg[nameEnd] == '>' || svg[nameEnd] == '/') {
+                return index;
+            }
+
+            index = nameEnd;
+        }
+
+        return -1;
     }
 
     /// <summary>

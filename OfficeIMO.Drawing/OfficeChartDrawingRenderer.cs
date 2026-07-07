@@ -64,14 +64,15 @@ public static partial class OfficeChartDrawingRenderer {
             return drawing;
         }
 
+        IReadOnlyList<OfficeChartSeries> legendSeries = GetRenderableLegendSeries(snapshot);
         double topLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Top
-            ? GetSeriesLegendBandHeight(snapshot.Data.Series, width - 16D, layout)
+            ? GetSeriesLegendBandHeight(legendSeries, width - 16D, layout)
             : 0D;
         double bottomLegendHeight = layout.LegendPosition == OfficeChartLegendPosition.Bottom
-            ? GetSeriesLegendBandHeight(snapshot.Data.Series, width - 16D, layout)
+            ? GetSeriesLegendBandHeight(legendSeries, width - 16D, layout)
             : 0D;
         if (topLegendHeight > 0D) {
-            AddSeriesLegendBand(drawing, snapshot.Data.Series, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout);
+            AddSeriesLegendBand(drawing, legendSeries, 8D, contentTop + 2D, Math.Max(1D, width - 16D), style, layout);
         }
 
         if (IsRadarChart(snapshot.ChartKind)) {
@@ -107,7 +108,7 @@ public static partial class OfficeChartDrawingRenderer {
         double verticalAxisRightLabelWidth = showVerticalAxisLabels && verticalAxisLabelsHigh ? verticalAxisLabelBandWidth + 8D : 0D;
         double verticalAxisTitleHeight = HasVerticalAxisTitle(snapshot.ChartKind, layout) ? GetAxisTitleBandHeight(layout) : 0D;
         double plotTop = 18D + contentTop + topLegendHeight + verticalAxisTitleHeight + horizontalAxisTopLabelHeight;
-        double legendWidth = GetSeriesLegendWidth(snapshot.Data.Series, width, layout);
+        double legendWidth = GetSeriesLegendWidth(legendSeries, width, layout);
         bool leftLegend = layout.LegendPosition == OfficeChartLegendPosition.Left;
         double plotLeft = 8D + verticalAxisLabelBandWidth + (leftLegend ? legendWidth : 0D);
         double plotRight = 12D + verticalAxisRightLabelWidth + (leftLegend ? 0D : legendWidth);
@@ -473,11 +474,11 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (layout.OverlayLegend) {
-            AddOverlaySeriesLegend(drawing, snapshot.Data.Series, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+            AddOverlaySeriesLegend(drawing, legendSeries, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else {
             AddSeriesLegend(
                 drawing,
-                snapshot.Data.Series,
+                legendSeries,
                 leftLegend ? 6D : width - legendWidth + 6D,
                 plotTop,
                 Math.Max(0D, legendWidth - 12D),
@@ -487,7 +488,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (!layout.OverlayLegend && bottomLegendHeight > 0D) {
-            AddSeriesLegendBand(drawing, snapshot.Data.Series, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout);
+            AddSeriesLegendBand(drawing, legendSeries, 8D, height - bottomLegendHeight + 2D, Math.Max(1D, width - 16D), style, layout);
         }
 
         return drawing;
@@ -1500,6 +1501,11 @@ public static partial class OfficeChartDrawingRenderer {
         HasMixedCartesianSeriesKinds(snapshot) &&
         !IsScatterChart(snapshot.ChartKind) &&
         snapshot.Data.Series.Any(series => IsScatterChart(GetEffectiveSeriesKind(snapshot, series)));
+
+    private static IReadOnlyList<OfficeChartSeries> GetRenderableLegendSeries(OfficeChartSnapshot snapshot) =>
+        HasMixedScatterSeriesOnCategoryAxes(snapshot)
+            ? snapshot.Data.Series.Where(series => !IsScatterChart(GetEffectiveSeriesKind(snapshot, series))).ToList()
+            : snapshot.Data.Series;
 
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;

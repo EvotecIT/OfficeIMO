@@ -156,4 +156,25 @@ public class DrawingChartAxisLayoutTests {
         Assert.All(columnBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
         Assert.All(axisAlignedBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
     }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_FiltersUnsupportedMixedScatterSeriesFromLegend() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            null,
+            "Mixed Scatter Category Guard",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Columns", new[] { 10D, 12D }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
+                    new OfficeChartSeries("Scatter", new[] { 8D, 14D }, new[] { 1D, 2D }, null, null, true, renderKind: OfficeChartKind.Scatter)
+                }),
+            widthPoints: 340D,
+            heightPoints: 220D));
+
+        string[] text = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToArray();
+
+        Assert.Contains("Columns", text);
+        Assert.DoesNotContain("Scatter", text);
+    }
 }

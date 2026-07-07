@@ -3251,7 +3251,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void WordDocument_ProjectsCommentReferenceMarkersThroughSharedDrawingText() {
+        public void WordDocument_ExcludesCommentReferenceMarkersFromSharedDrawingText() {
             using var stream = new MemoryStream();
             using WordDocument document = WordDocument.Create(stream);
             document.Margins.Type = WordMargin.Narrow;
@@ -3263,11 +3263,11 @@ namespace OfficeIMO.Tests {
             OfficeImageExportResult svg = document.ExportImage(OfficeImageExportFormat.Svg, new WordImageExportOptions { BackgroundColor = OfficeColor.White });
 
             Assert.Empty(snapshot.Diagnostics);
-            OfficeDrawingRichText commentText = Assert.Single(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>());
-            Assert.Equal("Comment target" + commentMarker, commentText.PlainText);
+            Assert.Contains(snapshot.Drawing.Elements.OfType<OfficeDrawingText>(), text => text.Text == "Comment target");
+            Assert.DoesNotContain(snapshot.Drawing.Elements.OfType<OfficeDrawingRichText>(), text => text.PlainText.Contains(commentMarker, StringComparison.Ordinal));
             string svgText = Encoding.UTF8.GetString(svg.Bytes);
             Assert.Contains("Comment target", svgText, StringComparison.Ordinal);
-            Assert.Contains(commentMarker, svgText, StringComparison.Ordinal);
+            Assert.DoesNotContain(commentMarker, svgText, StringComparison.Ordinal);
         }
 
         [Fact]

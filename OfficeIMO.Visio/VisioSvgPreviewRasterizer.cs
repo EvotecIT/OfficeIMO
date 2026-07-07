@@ -959,12 +959,14 @@ namespace OfficeIMO.Visio {
             string meetOrSlice = "meet";
             if (!string.IsNullOrWhiteSpace(preserveAspectRatio)) {
                 string[] parts = preserveAspectRatio!.Split(new[] { ' ', '\t', '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries);
-                if (parts.Length > 0) {
-                    align = parts[0];
+                int partOffset = parts.Length > 0 && string.Equals(parts[0], "defer", StringComparison.OrdinalIgnoreCase) ? 1 : 0;
+
+                if (parts.Length > partOffset) {
+                    align = parts[partOffset];
                 }
 
-                if (parts.Length > 1) {
-                    meetOrSlice = parts[1];
+                if (parts.Length > partOffset + 1) {
+                    meetOrSlice = parts[partOffset + 1];
                 }
             }
 
@@ -1139,7 +1141,37 @@ namespace OfficeIMO.Visio {
                 end++;
             }
 
-            return end > 0 && double.TryParse(trimmed.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out result);
+            if (end == 0 || !double.TryParse(trimmed.Substring(0, end), NumberStyles.Float, CultureInfo.InvariantCulture, out result)) {
+                return false;
+            }
+
+            string unit = trimmed.Substring(end).Trim();
+            switch (unit.ToLowerInvariant()) {
+                case "":
+                case "px":
+                    return true;
+                case "in":
+                    result *= 96D;
+                    return true;
+                case "cm":
+                    result *= 96D / 2.54D;
+                    return true;
+                case "mm":
+                    result *= 96D / 25.4D;
+                    return true;
+                case "q":
+                    result *= 96D / 101.6D;
+                    return true;
+                case "pt":
+                    result *= 96D / 72D;
+                    return true;
+                case "pc":
+                    result *= 16D;
+                    return true;
+                default:
+                    result = 0D;
+                    return false;
+            }
         }
 
         private enum SvgLengthAxis {

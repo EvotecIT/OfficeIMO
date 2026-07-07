@@ -161,13 +161,20 @@ namespace OfficeIMO.Tests {
                 Assert.NotNull(run);
                 Assert.Equal("New text", run!.GetFirstChild<Text>()?.Text);
 
+                wordParagraph.Text = "Paragraph setter text";
+
+                Assert.Empty(sdtRun.Elements<Run>());
+                run = sdtRun.SdtContentRun?.GetFirstChild<Run>();
+                Assert.NotNull(run);
+                Assert.Equal("Paragraph setter text", run!.GetFirstChild<Text>()?.Text);
+
                 document.Save(false);
                 Assert.False(HasUnexpectedElements(document), "Document has unexpected elements. Order of elements matters!");
             }
 
             using (WordDocument document = WordDocument.Load(filePath)) {
                 Assert.Single(document.StructuredDocumentTags);
-                Assert.Equal("New text", document.StructuredDocumentTags[0].Text);
+                Assert.Equal("Paragraph setter text", document.StructuredDocumentTags[0].Text);
             }
         }
     }
