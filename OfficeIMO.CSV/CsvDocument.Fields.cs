@@ -447,7 +447,7 @@ public sealed partial class CsvDocument
         {
             if (TryGetW3CFieldsHeader(fields, options, out var w3cHeader))
             {
-                return w3cHeader;
+                return NormalizeParsedHeader(w3cHeader, options);
             }
 
             return NormalizeParsedHeader(fields, options);

@@ -7,12 +7,14 @@ internal sealed class CsvStreamingSource
     private readonly Func<TextReader> _readerFactory;
     private readonly CsvLoadOptions _options;
     private readonly int _skipRecordCount;
+    private readonly int _headerCount;
 
-    public CsvStreamingSource(Func<TextReader> readerFactory, CsvLoadOptions options, int skipRecordCount)
+    public CsvStreamingSource(Func<TextReader> readerFactory, CsvLoadOptions options, int skipRecordCount, int headerCount)
     {
         _readerFactory = readerFactory;
         _options = options.Clone();
         _skipRecordCount = skipRecordCount;
+        _headerCount = headerCount;
     }
 
     public IEnumerable<object?[]> ReadRows()
@@ -27,7 +29,7 @@ internal sealed class CsvStreamingSource
                 continue;
             }
 
-            yield return record.Cast<object?>().ToArray();
+            yield return CsvDocument.BuildParsedObjectValues(record, _headerCount, _options);
         }
     }
 }

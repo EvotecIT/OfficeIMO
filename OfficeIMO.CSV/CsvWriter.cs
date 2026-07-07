@@ -29,7 +29,7 @@ internal static class CsvWriter
 
         foreach (var row in document.AsEnumerable())
         {
-            WriteRecord(writer, row.Values, delimiter, newLine, culture, formulaInjectionPolicy, quoteMode, quoteFields, document.Header);
+            WriteRecord(writer, row.Values, delimiter, newLine, culture, formulaInjectionPolicy, quoteMode, quoteFields, document.Header, options.DateTimeFormat, options.UseUtc, options.NullValue);
         }
     }
 
@@ -61,7 +61,10 @@ internal static class CsvWriter
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
         ISet<string>? quoteFields,
-        IReadOnlyList<string>? fieldNames)
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         var first = true;
         var index = 0;
@@ -76,7 +79,7 @@ internal static class CsvWriter
                 first = false;
             }
 
-            var text = FormatValue(value, culture);
+            var text = FormatValue(value, culture, dateTimeFormat, useUtc, nullValue);
             if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
@@ -98,7 +101,10 @@ internal static class CsvWriter
         CsvFormulaInjectionPolicy formulaInjectionPolicy,
         CsvQuoteMode quoteMode,
         ISet<string>? quoteFields,
-        IReadOnlyList<string>? fieldNames)
+        IReadOnlyList<string>? fieldNames,
+        string? dateTimeFormat = null,
+        bool useUtc = false,
+        string? nullValue = null)
     {
         for (var i = 0; i < values.Count; i++)
         {
@@ -107,7 +113,7 @@ internal static class CsvWriter
                 writer.Write(delimiter);
             }
 
-            var text = FormatValue(values[i], culture);
+            var text = FormatValue(values[i], culture, dateTimeFormat, useUtc, nullValue);
             if (formulaInjectionPolicy == CsvFormulaInjectionPolicy.Escape)
             {
                 text = ApplyFormulaInjectionPolicy(text, formulaInjectionPolicy);
@@ -563,11 +569,35 @@ internal static class CsvWriter
         WriteBufferedRecordLine(writer, buffer, newLine);
     }
 
-    private static string FormatValue(object? value, CultureInfo culture)
+    private static string FormatValue(object? value, CultureInfo culture, string? dateTimeFormat = null, bool useUtc = false, string? nullValue = null)
     {
         if (value is null)
         {
-            return string.Empty;
+            return nullValue ?? string.Empty;
+        }
+
+        if (value is DateTime dateTime)
+        {
+            if (useUtc)
+            {
+                dateTime = dateTime.ToUniversalTime();
+            }
+
+            return string.IsNullOrEmpty(dateTimeFormat)
+                ? dateTime.ToString(null, culture)
+                : dateTime.ToString(dateTimeFormat, culture);
+        }
+
+        if (value is DateTimeOffset dateTimeOffset)
+        {
+            if (useUtc)
+            {
+                dateTimeOffset = dateTimeOffset.ToUniversalTime();
+            }
+
+            return string.IsNullOrEmpty(dateTimeFormat)
+                ? dateTimeOffset.ToString(null, culture)
+                : dateTimeOffset.ToString(dateTimeFormat, culture);
         }
 
         if (value is IFormattable formattable)

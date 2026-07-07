@@ -38,11 +38,14 @@ new CsvDocument()
 
 - Keeps headers and rows as a first-class document model instead of ad hoc string arrays.
 - Loads from files, streams, or text and saves through configurable delimiter, culture, encoding, and newline options.
+- Reads and writes compressed CSV files with extension-based detection for gzip, deflate, Brotli, and zlib.
 - Can escape formula-like values during save when producing CSV files that people will open in spreadsheet applications.
+- Handles real-world import details such as duplicate headers, generated blank headers, null tokens, static metadata columns, custom date formats, comments, W3C `#Fields:` headers, and mismatched row lengths.
 - Supports `AddRow`, `AddColumn`, `RemoveColumn`, `SortBy`, `Filter`, and `Transform`.
 - Provides schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.
 - Supports streaming mode for large files and explicit materialization when transforms are needed.
+- Includes benchmark lanes against Dataplat/dbatools CSV, Sep, Sylvan, CsvHelper, and OfficeIMO fast paths.
 
 ## Schema example
 
@@ -151,6 +154,75 @@ var transformed = CsvDocument.Load("large.csv", new CsvLoadOptions {
     .SortBy(row => row.AsInt32("Id"));
 
 transformed.Save("ready.csv");
+```
+
+## Real-world headers
+
+CSV exports often contain blank or repeated header names. By default, blank headers are generated as `H1`, `H2`, and duplicate names are renamed with suffixes so name-based row access stays unambiguous:
+
+```csharp
+var document = CsvDocument.Parse("Name,Name\nAlpha,Beta\n");
+
+Console.WriteLine(string.Join(", ", document.Header));
+// Name, Name_2
+```
+
+Use `DuplicateHeaderBehavior` when a pipeline needs to preserve source names exactly or reject ambiguous files:
+
+```csharp
+var strict = new CsvLoadOptions {
+    DuplicateHeaderBehavior = CsvDuplicateHeaderBehavior.Throw
+};
+
+CsvDocument.Load("input.csv", strict);
+```
+
+Append static metadata columns during import when a database or audit pipeline needs source context on every row:
+
+```csharp
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
+    StaticColumns = new Dictionary<string, object?> {
+        ["SourceFile"] = "input.csv",
+        ["ImportedUtc"] = DateTime.UtcNow
+    }
+});
+```
+
+Use `NullValue` and `DateTimeFormats` when a CSV producer uses explicit null tokens or non-default date shapes:
+
+```csharp
+var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
+    NullValue = "<null>",
+    DateTimeFormats = new[] { "dd-MMM-yyyy", "yyyyMMdd-HHmmss" }
+});
+
+DateTime created = document.AsEnumerable().First().AsDateTime("Created");
+```
+
+## Export options
+
+CSV output supports null tokens, date/time formatting, UTC conversion, append, no-clobber checks, compression, quoting, encoding, and formula escaping:
+
+```csharp
+CsvDocument.Load("input.csv")
+    .Save("output.csv.gz", new CsvSaveOptions {
+        NullValue = "<null>",
+        DateTimeFormat = "yyyy-MM-ddTHH:mm:ssZ",
+        UseUtc = true,
+        CompressionType = CsvCompressionType.Auto,
+        FormulaInjectionPolicy = CsvFormulaInjectionPolicy.Escape,
+        NewLine = "\n"
+    });
+```
+
+Append without rewriting the header:
+
+```csharp
+CsvDocument.Load("next.csv")
+    .Save("combined.csv", new CsvSaveOptions {
+        Append = true,
+        IncludeHeader = false
+    });
 ```
 
 ## Objects and ad hoc data

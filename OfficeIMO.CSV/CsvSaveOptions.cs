@@ -49,6 +49,31 @@ public sealed class CsvSaveOptions
     public CompressionLevel CompressionLevel { get; set; } = CompressionLevel.Optimal;
 
     /// <summary>
+    /// Gets or sets the token written for <c>null</c> values. Defaults to an empty field.
+    /// </summary>
+    public string? NullValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets a custom date/time format used when writing <see cref="DateTime"/> and <see cref="DateTimeOffset"/> values.
+    /// </summary>
+    public string? DateTimeFormat { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether date/time values are converted to UTC before formatting.
+    /// </summary>
+    public bool UseUtc { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether file output appends to an existing CSV file.
+    /// </summary>
+    public bool Append { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether file output should fail if the destination already exists.
+    /// </summary>
+    public bool NoClobber { get; set; }
+
+    /// <summary>
     /// Gets or sets how formula-like values are handled before writing CSV output. Default preserves values exactly.
     /// </summary>
     public CsvFormulaInjectionPolicy FormulaInjectionPolicy { get; set; } = CsvFormulaInjectionPolicy.Preserve;
