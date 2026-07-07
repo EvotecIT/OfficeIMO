@@ -199,6 +199,11 @@ internal sealed class PdfPageOptionalContentVisibility {
             return false;
         }
 
+        if (dictionary.Items.TryGetValue("VE", out PdfObject? expressionObject) &&
+            TryEvaluateVisibilityExpression(expressionObject, groupVisibility, objects, new HashSet<int>(), out bool expressionVisible)) {
+            return !expressionVisible;
+        }
+
         string policy = ReadName(dictionary, "P", objects) ?? "AnyOn";
         bool visible = policy switch {
             "AllOn" => visibilities.TrueForAll(static visible => visible),
@@ -246,6 +251,78 @@ internal sealed class PdfPageOptionalContentVisibility {
             for (int i = 0; i < nested.Items.Count; i++) {
                 AddOptionalContentGroupVisibility(nested.Items[i], groupVisibility, objects, visibilities);
             }
+        }
+    }
+
+    private static bool TryEvaluateVisibilityExpression(
+        PdfObject value,
+        Dictionary<int, bool> groupVisibility,
+        Dictionary<int, PdfIndirectObject> objects,
+        HashSet<int> visited,
+        out bool visible) {
+        visible = false;
+        if (value is PdfReference reference) {
+            if (groupVisibility.TryGetValue(reference.ObjectNumber, out visible)) {
+                return true;
+            }
+
+            if (!visited.Add(reference.ObjectNumber) ||
+                !objects.TryGetValue(reference.ObjectNumber, out PdfIndirectObject? indirect)) {
+                return false;
+            }
+
+            return TryEvaluateVisibilityExpression(indirect.Value, groupVisibility, objects, visited, out visible);
+        }
+
+        PdfObject? resolved = ResolveObject(value, objects);
+        if (resolved is PdfDictionary dictionary) {
+            if (string.Equals(ReadName(dictionary, "Type", objects), "OCMD", StringComparison.Ordinal)) {
+                visible = !IsOptionalContentObjectHidden(dictionary, groupVisibility, objects, visited);
+                return true;
+            }
+
+            return false;
+        }
+
+        if (resolved is not PdfArray expression ||
+            expression.Items.Count == 0 ||
+            ResolveObject(expression.Items[0], objects) is not PdfName operatorName) {
+            return false;
+        }
+
+        switch (operatorName.Name) {
+            case "And":
+                visible = true;
+                for (int i = 1; i < expression.Items.Count; i++) {
+                    if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, out bool operandVisible)) {
+                        return false;
+                    }
+
+                    visible &= operandVisible;
+                }
+
+                return true;
+            case "Or":
+                visible = false;
+                for (int i = 1; i < expression.Items.Count; i++) {
+                    if (!TryEvaluateVisibilityExpression(expression.Items[i], groupVisibility, objects, visited, out bool operandVisible)) {
+                        return false;
+                    }
+
+                    visible |= operandVisible;
+                }
+
+                return true;
+            case "Not":
+                if (expression.Items.Count < 2 ||
+                    !TryEvaluateVisibilityExpression(expression.Items[1], groupVisibility, objects, visited, out bool nestedVisible)) {
+                    return false;
+                }
+
+                visible = !nestedVisible;
+                return true;
+            default:
+                return false;
         }
     }
 

@@ -737,15 +737,11 @@ namespace OfficeIMO.Word {
                         return false;
                     }
 
-                    bool processed = false;
                     foreach (OpenXmlElement child in contentRun.ChildElements) {
-                        if (CanProcessInlineContentControlChild(child)) {
-                            ProcessElement(child, hyperlinkContext);
-                            processed = true;
-                        }
+                        ProcessElement(child, hyperlinkContext);
                     }
 
-                    return processed;
+                    return true;
                 }
 
                 bool ProcessSimpleFieldWithHardBreaks(SimpleField simpleField, Hyperlink? hyperlinkContext) {
@@ -759,15 +755,6 @@ namespace OfficeIMO.Word {
 
                     return true;
                 }
-
-                static bool CanProcessInlineContentControlChild(OpenXmlElement child) =>
-                    child is Run ||
-                    child is InsertedRun ||
-                    child is MoveToRun ||
-                    child is DeletedRun ||
-                    child is MoveFromRun ||
-                    child is Hyperlink ||
-                    child is SdtRun;
 
                 bool ProcessComplexFieldWithHardBreaks(IReadOnlyList<Run> fieldRuns, Hyperlink? hyperlinkContext) {
                     List<Run> resultRuns = ExtractComplexFieldResultRuns(fieldRuns);

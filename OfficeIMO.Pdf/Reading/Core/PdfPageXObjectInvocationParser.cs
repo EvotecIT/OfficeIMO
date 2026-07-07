@@ -586,7 +586,7 @@ internal static class PdfPageXObjectInvocationParser {
             int dataStart = _index;
             int dataLength = TryGetRawInlineImageLength(dictionary, out int rawLength)
                 ? rawLength
-                : FindInlineImageDataLength(dataStart);
+                : PdfInlineImageDataScanner.FindLength(_content, dataStart);
             if (dataLength < 0 || dataStart + dataLength > _content.Length) {
                 return false;
             }
@@ -781,22 +781,6 @@ internal static class PdfPageXObjectInvocationParser {
             number.Value <= int.MaxValue
                 ? (int)number.Value
                 : 0;
-
-        private int FindInlineImageDataLength(int dataStart) {
-            int index = dataStart;
-            while (index + 2 < _content.Length) {
-                if (char.IsWhiteSpace(_content[index]) &&
-                    _content[index + 1] == 'E' &&
-                    _content[index + 2] == 'I' &&
-                    (index + 3 >= _content.Length || IsDelimiter(_content[index + 3]))) {
-                    return index - dataStart;
-                }
-
-                index++;
-            }
-
-            return -1;
-        }
 
         private byte[] ReadBytes(int start, int length) {
             var data = new byte[length];

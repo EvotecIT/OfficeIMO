@@ -862,7 +862,7 @@ internal static class TextContentParser {
             }
 
             while (i + 1 < n) {
-                if (IsOperatorAt("EI")) {
+                if (PdfInlineImageDataScanner.IsTerminatorAt(content, i)) {
                     i += 2;
                     return;
                 }
