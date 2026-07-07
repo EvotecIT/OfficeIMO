@@ -647,8 +647,7 @@ internal static class PdfPageXObjectInvocationParser {
 
         private PdfObject ReadInlineImageAngleObject() {
             if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
-                SkipAngleObject();
-                return new PdfDictionary();
+                return ReadInlineImageDictionary();
             }
 
             _index++;
@@ -663,6 +662,42 @@ internal static class PdfPageXObjectInvocationParser {
             }
 
             return new PdfStringObj(PdfTextString.DecodeHexBytes(hex));
+        }
+
+        private PdfDictionary ReadInlineImageDictionary() {
+            var dictionary = new PdfDictionary();
+            _index += 2;
+            while (_index < _content.Length) {
+                SkipWhitespace();
+                if (_index + 1 < _content.Length && _content[_index] == '>' && _content[_index + 1] == '>') {
+                    _index += 2;
+                    break;
+                }
+
+                if (_index >= _content.Length) {
+                    break;
+                }
+
+                if (_content[_index] != '/') {
+                    if (!TryReadInlineImageValue(out _)) {
+                        _index++;
+                    }
+
+                    continue;
+                }
+
+                string key = ReadName();
+                SkipWhitespace();
+                if (_index >= _content.Length) {
+                    break;
+                }
+
+                if (TryReadInlineImageValue(out PdfObject? value) && value != null) {
+                    dictionary.Items[key] = value;
+                }
+            }
+
+            return dictionary;
         }
 
         private PdfArray ReadInlineImageArray() {

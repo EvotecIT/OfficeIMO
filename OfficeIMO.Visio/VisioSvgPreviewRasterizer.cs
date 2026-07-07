@@ -1253,6 +1253,8 @@ namespace OfficeIMO.Visio {
                     (B * other.E) + (D * other.F) + F);
 
             internal OfficePoint Apply(double x, double y) => new((A * x) + (C * y) + E, (B * x) + (D * y) + F);
+
+            internal OfficeTransform ToOfficeTransform() => new(A, B, C, D, E, F);
         }
     }
 }

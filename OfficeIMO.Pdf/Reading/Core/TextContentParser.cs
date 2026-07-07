@@ -415,6 +415,10 @@ internal static class TextContentParser {
 
                     args.Clear();
                     break;
+                case "BI":
+                    SkipInlineImageBody();
+                    args.Clear();
+                    break;
                 case "'": // move to next line and show text
                     if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; }
                     args.Clear();
@@ -821,6 +825,71 @@ internal static class TextContentParser {
             }
             return content.Substring(start, i - start);
         }
+
+        void SkipInlineImageBody() {
+            while (i < n) {
+                SkipWs();
+                if (IsOperatorAt("ID")) {
+                    i += 2;
+                    break;
+                }
+
+                if (i >= n) {
+                    return;
+                }
+
+                if (content[i] == '(') {
+                    ReadLiteralStringBytes();
+                } else if (content[i] == '<') {
+                    if (i + 1 < n && content[i + 1] == '<') {
+                        ReadInlineDictionary();
+                    } else {
+                        ReadHexStringBytes();
+                    }
+                } else if (content[i] == '[') {
+                    ReadArray();
+                } else if (content[i] == '/') {
+                    ReadName();
+                } else if (IsNumberStart(content[i])) {
+                    ReadNumber();
+                } else {
+                    ReadOperator();
+                }
+            }
+
+            if (i < n && char.IsWhiteSpace(content[i])) {
+                i++;
+            }
+
+            while (i + 1 < n) {
+                if (IsOperatorAt("EI")) {
+                    i += 2;
+                    return;
+                }
+
+                i++;
+            }
+
+            i = n;
+        }
+
+        bool IsOperatorAt(string value) {
+            if (i + value.Length > n) {
+                return false;
+            }
+
+            for (int j = 0; j < value.Length; j++) {
+                if (content[i + j] != value[j]) {
+                    return false;
+                }
+            }
+
+            return (i == 0 || IsInlineImageBoundary(content[i - 1])) &&
+                   (i + value.Length >= n || IsInlineImageBoundary(content[i + value.Length]));
+        }
+
+        static bool IsInlineImageBoundary(char ch) =>
+            char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '%';
 
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }

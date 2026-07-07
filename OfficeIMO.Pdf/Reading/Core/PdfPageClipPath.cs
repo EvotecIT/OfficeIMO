@@ -35,7 +35,9 @@ internal readonly struct PdfPageClipPath {
                     : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
             }
 
-            return active;
+            return IntersectClipBounds(active, clipPath, out PdfPageClipPath pathIntersection)
+                ? IntersectPathWithPath(active, clipPath, pathIntersection)
+                : Rectangle(Math.Max(active.X, clipPath.X), Math.Max(active.Y, clipPath.Y), 0D, 0D);
         }
 
         return IntersectClipBounds(active, clipPath, out PdfPageClipPath rectangleIntersection)
@@ -64,6 +66,189 @@ internal readonly struct PdfPageClipPath {
         return clippedCommands.Count > 0 && TryCreatePath(clippedCommands, pathClip.FillRule, out PdfPageClipPath clippedPath)
             ? clippedPath
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
+    }
+
+    private static PdfPageClipPath IntersectPathWithPath(PdfPageClipPath active, PdfPageClipPath next, PdfPageClipPath intersection) {
+        List<List<OfficePoint>> subjectContours = FlattenPathContours(active.Commands);
+        List<List<OfficePoint>> clipContours = FlattenPathContours(next.Commands);
+        if (subjectContours.Count == 0 || clipContours.Count == 0) {
+            return Rectangle(intersection.X, intersection.Y, 0D, 0D);
+        }
+
+        var intersectedContours = new List<List<OfficePoint>>();
+        for (int i = 0; i < subjectContours.Count; i++) {
+            var candidates = new List<List<OfficePoint>> { subjectContours[i] };
+            for (int clipIndex = 0; clipIndex < clipContours.Count && candidates.Count > 0; clipIndex++) {
+                var nextCandidates = new List<List<OfficePoint>>();
+                for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
+                    List<OfficePoint> clipped = ClipPolygonToConvexPolygon(candidates[candidateIndex], clipContours[clipIndex]);
+                    if (clipped.Count >= 3) {
+                        nextCandidates.Add(clipped);
+                    }
+                }
+
+                candidates = nextCandidates;
+            }
+
+            intersectedContours.AddRange(candidates);
+        }
+
+        List<OfficePathCommand> commands = BuildClosedContourCommands(intersectedContours);
+        return commands.Count > 0 && TryCreatePath(commands, active.FillRule, out PdfPageClipPath path)
+            ? path
+            : Rectangle(intersection.X, intersection.Y, 0D, 0D);
+    }
+
+    private static List<List<OfficePoint>> FlattenPathContours(IReadOnlyList<OfficePathCommand> commands) {
+        var contours = new List<List<OfficePoint>>();
+        List<OfficePoint>? current = null;
+        OfficePoint currentPoint = default;
+        bool hasCurrentPoint = false;
+        for (int i = 0; i < commands.Count; i++) {
+            OfficePathCommand command = commands[i];
+            switch (command.Kind) {
+                case OfficePathCommandKind.MoveTo:
+                    AddFlattenedContour(contours, current);
+                    currentPoint = command.Point;
+                    current = new List<OfficePoint> { currentPoint };
+                    hasCurrentPoint = true;
+                    break;
+                case OfficePathCommandKind.LineTo:
+                    EnsureContour(ref current, currentPoint, hasCurrentPoint);
+                    currentPoint = command.Point;
+                    current!.Add(currentPoint);
+                    hasCurrentPoint = true;
+                    break;
+                case OfficePathCommandKind.QuadraticBezierTo:
+                    EnsureContour(ref current, currentPoint, hasCurrentPoint);
+                    current!.AddRange(OfficeGeometry.CreateQuadraticBezierPoints(currentPoint, command.ControlPoint1, command.Point, 24));
+                    currentPoint = command.Point;
+                    hasCurrentPoint = true;
+                    break;
+                case OfficePathCommandKind.CubicBezierTo:
+                    EnsureContour(ref current, currentPoint, hasCurrentPoint);
+                    current!.AddRange(OfficeGeometry.CreateCubicBezierPoints(currentPoint, command.ControlPoint1, command.ControlPoint2, command.Point, 24));
+                    currentPoint = command.Point;
+                    hasCurrentPoint = true;
+                    break;
+                case OfficePathCommandKind.Close:
+                    AddFlattenedContour(contours, current);
+                    current = null;
+                    hasCurrentPoint = false;
+                    break;
+            }
+        }
+
+        AddFlattenedContour(contours, current);
+        return contours;
+    }
+
+    private static void AddFlattenedContour(List<List<OfficePoint>> contours, List<OfficePoint>? contour) {
+        if (contour == null || contour.Count < 3) {
+            return;
+        }
+
+        if (NearlyEqual(contour[0].X, contour[contour.Count - 1].X) &&
+            NearlyEqual(contour[0].Y, contour[contour.Count - 1].Y)) {
+            contour.RemoveAt(contour.Count - 1);
+        }
+
+        if (contour.Count >= 3) {
+            contours.Add(contour);
+        }
+    }
+
+    private static List<OfficePoint> ClipPolygonToConvexPolygon(IReadOnlyList<OfficePoint> subject, List<OfficePoint> clip) {
+        var output = new List<OfficePoint>(subject);
+        if (clip.Count < 3) {
+            output.Clear();
+            return output;
+        }
+
+        bool positiveArea = SignedArea(clip) >= 0D;
+        for (int i = 0; i < clip.Count && output.Count > 0; i++) {
+            OfficePoint edgeStart = clip[i];
+            OfficePoint edgeEnd = clip[(i + 1) % clip.Count];
+            var input = output;
+            output = new List<OfficePoint>();
+            OfficePoint previous = input[input.Count - 1];
+            bool previousInside = IsInsideClipEdge(previous, edgeStart, edgeEnd, positiveArea);
+            for (int j = 0; j < input.Count; j++) {
+                OfficePoint current = input[j];
+                bool currentInside = IsInsideClipEdge(current, edgeStart, edgeEnd, positiveArea);
+                if (currentInside) {
+                    if (!previousInside) {
+                        output.Add(IntersectLines(previous, current, edgeStart, edgeEnd));
+                    }
+
+                    output.Add(current);
+                } else if (previousInside) {
+                    output.Add(IntersectLines(previous, current, edgeStart, edgeEnd));
+                }
+
+                previous = current;
+                previousInside = currentInside;
+            }
+        }
+
+        return output;
+    }
+
+    private static bool IsInsideClipEdge(OfficePoint point, OfficePoint edgeStart, OfficePoint edgeEnd, bool positiveArea) {
+        double cross = ((edgeEnd.X - edgeStart.X) * (point.Y - edgeStart.Y)) -
+            ((edgeEnd.Y - edgeStart.Y) * (point.X - edgeStart.X));
+        return positiveArea ? cross >= -0.001D : cross <= 0.001D;
+    }
+
+    private static OfficePoint IntersectLines(OfficePoint firstStart, OfficePoint firstEnd, OfficePoint secondStart, OfficePoint secondEnd) {
+        double x1 = firstStart.X;
+        double y1 = firstStart.Y;
+        double x2 = firstEnd.X;
+        double y2 = firstEnd.Y;
+        double x3 = secondStart.X;
+        double y3 = secondStart.Y;
+        double x4 = secondEnd.X;
+        double y4 = secondEnd.Y;
+        double denominator = ((x1 - x2) * (y3 - y4)) - ((y1 - y2) * (x3 - x4));
+        if (Math.Abs(denominator) <= 0.000001D) {
+            return firstEnd;
+        }
+
+        double px = ((((x1 * y2) - (y1 * x2)) * (x3 - x4)) - ((x1 - x2) * ((x3 * y4) - (y3 * x4)))) / denominator;
+        double py = ((((x1 * y2) - (y1 * x2)) * (y3 - y4)) - ((y1 - y2) * ((x3 * y4) - (y3 * x4)))) / denominator;
+        return new OfficePoint(px, py);
+    }
+
+    private static double SignedArea(List<OfficePoint> contour) {
+        double area = 0D;
+        for (int i = 0; i < contour.Count; i++) {
+            OfficePoint current = contour[i];
+            OfficePoint next = contour[(i + 1) % contour.Count];
+            area += (current.X * next.Y) - (next.X * current.Y);
+        }
+
+        return area / 2D;
+    }
+
+    private static List<OfficePathCommand> BuildClosedContourCommands(List<List<OfficePoint>> contours) {
+        var commands = new List<OfficePathCommand>();
+        for (int i = 0; i < contours.Count; i++) {
+            List<OfficePoint> contour = contours[i];
+            if (contour.Count < 3) {
+                continue;
+            }
+
+            commands.Add(OfficePathCommand.MoveTo(contour[0].X, contour[0].Y));
+            for (int j = 1; j < contour.Count; j++) {
+                if (!NearlyEqual(contour[j].X, contour[j - 1].X) || !NearlyEqual(contour[j].Y, contour[j - 1].Y)) {
+                    commands.Add(OfficePathCommand.LineTo(contour[j].X, contour[j].Y));
+                }
+            }
+
+            commands.Add(OfficePathCommand.Close());
+        }
+
+        return commands;
     }
 
     private static List<OfficePathCommand> ClipPathCommandsToRectangle(IReadOnlyList<OfficePathCommand> commands, PdfPageClipPath rectangle) {

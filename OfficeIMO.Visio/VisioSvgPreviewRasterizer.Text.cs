@@ -11,38 +11,52 @@ namespace OfficeIMO.Visio {
             SvgTextStyle style = context.CurrentTextStyle;
             double x = ReadLength(element, "x", 0D, context, SvgLengthAxis.X);
             double y = ReadLength(element, "y", style.FontSize, context, SvgLengthAxis.Y);
-            double cursorX = x + ReadLength(element, "dx", 0D, context, SvgLengthAxis.X);
-            double cursorY = y + ReadLength(element, "dy", 0D, context, SvgLengthAxis.Y);
+            var cursor = new SvgTextCursor(
+                x + ReadLength(element, "dx", 0D, context, SvgLengthAxis.X),
+                y + ReadLength(element, "dy", 0D, context, SvgLengthAxis.Y));
+            return RenderTextNodes(canvas, element, paint, style, transform, context, ref cursor);
+        }
+
+        private static bool RenderTextNodes(
+            OfficeRasterCanvas canvas,
+            XElement element,
+            SvgPaint paint,
+            SvgTextStyle style,
+            SvgTransform transform,
+            SvgRenderContext context,
+            ref SvgTextCursor cursor) {
             bool rendered = false;
-            bool pendingSpace = false;
-            bool hasTextRun = false;
 
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
-                    string value = NormalizeTextRun(textNode.Value, ref pendingSpace, hasTextRun);
-                    rendered |= DrawSvgTextRun(canvas, value, cursorX, cursorY, paint, style, transform, out double advance);
-                    cursorX += advance;
-                    hasTextRun |= value.Length > 0;
+                    string value = NormalizeTextRun(textNode.Value, ref cursor.PendingSpace, cursor.HasTextRun);
+                    rendered |= DrawSvgTextRun(canvas, value, cursor.X, cursor.Y, paint, style, transform, out double advance);
+                    cursor.X += advance;
+                    cursor.HasTextRun |= value.Length > 0;
                     continue;
                 }
 
                 if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
                     bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
                     if (resetsTextFlow) {
-                        pendingSpace = false;
+                        cursor.PendingSpace = false;
                     }
 
                     SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
-                    double childX = ReadLength(child, "x", cursorX, context, SvgLengthAxis.X);
-                    double childY = ReadLength(child, "y", cursorY, context, SvgLengthAxis.Y);
+                    double childX = ReadLength(child, "x", cursor.X, context, SvgLengthAxis.X);
+                    double childY = ReadLength(child, "y", cursor.Y, context, SvgLengthAxis.Y);
                     childX += ReadLength(child, "dx", 0D, context, SvgLengthAxis.X);
                     childY += ReadLength(child, "dy", 0D, context, SvgLengthAxis.Y);
                     SvgPaint childPaint = SvgPaint.Resolve(child, paint, context);
-                    string value = NormalizeTextRun(child.Value, ref pendingSpace, hasTextRun && !resetsTextFlow);
-                    rendered |= DrawSvgTextRun(canvas, value, childX, childY, childPaint, childStyle, transform, out double advance);
-                    cursorX = childX + advance;
-                    cursorY = childY;
-                    hasTextRun |= value.Length > 0;
+                    var childCursor = new SvgTextCursor(childX, childY) {
+                        HasTextRun = cursor.HasTextRun && !resetsTextFlow,
+                        PendingSpace = cursor.PendingSpace
+                    };
+                    rendered |= RenderTextNodes(canvas, child, childPaint, childStyle, transform, context, ref childCursor);
+                    cursor.X = childCursor.X;
+                    cursor.Y = childCursor.Y;
+                    cursor.PendingSpace = childCursor.PendingSpace;
+                    cursor.HasTextRun |= childCursor.HasTextRun;
                 }
             }
 
@@ -64,25 +78,22 @@ namespace OfficeIMO.Visio {
                 return false;
             }
 
-            OfficePoint anchor = transform.Apply(x, baselineY);
-            double fontHeight = Math.Max(1D, style.FontSize * transform.StrokeScale);
-            double top = anchor.Y - (fontHeight * style.BaselineOffset);
-            canvas.DrawTextLine(
+            double fontHeight = Math.Max(1D, style.FontSize);
+            double top = baselineY - (fontHeight * style.BaselineOffset);
+            canvas.DrawTextLineTransformed(
                 text,
-                anchor.X,
+                x,
                 top,
                 fontHeight,
                 textColor,
+                transform.ToOfficeTransform(),
                 bold: style.Bold,
                 italic: style.Italic,
                 alignment: style.Alignment,
-                rotationDegrees: transform.RotationDegrees,
-                rotationCenterX: anchor.X,
-                rotationCenterY: anchor.Y,
                 underline: style.Underline,
                 strikethrough: style.Strikethrough,
                 fontFamily: style.FontFamily);
-            advance = canvas.MeasureText(text, fontHeight, style.FontFamily) / Math.Max(0.0001D, transform.StrokeScale);
+            advance = canvas.MeasureText(text, fontHeight, style.FontFamily);
             return true;
         }
 
@@ -116,6 +127,23 @@ namespace OfficeIMO.Visio {
             }
 
             return builder.ToString();
+        }
+
+        private struct SvgTextCursor {
+            internal SvgTextCursor(double x, double y) {
+                X = x;
+                Y = y;
+                PendingSpace = false;
+                HasTextRun = false;
+            }
+
+            internal double X;
+
+            internal double Y;
+
+            internal bool PendingSpace;
+
+            internal bool HasTextRun;
         }
 
         private readonly struct SvgTextStyle {

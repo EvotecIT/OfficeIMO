@@ -39,8 +39,7 @@ internal sealed class PdfPageOptionalContentVisibility {
             resources.Items.TryGetValue("Properties", out PdfObject? propertiesObject) &&
             ResolveObject(propertiesObject, objects) is PdfDictionary properties) {
             foreach (KeyValuePair<string, PdfObject> entry in properties.Items) {
-                if (TryGetReferencedObjectNumber(entry.Value, out int objectNumber) &&
-                    hiddenObjectNumbers.Contains(objectNumber)) {
+                if (IsOptionalContentObjectHidden(entry.Value, groupVisibility, objects, new HashSet<int>())) {
                     hiddenProperties[entry.Key] = true;
                 }
             }
@@ -166,16 +165,6 @@ internal sealed class PdfPageOptionalContentVisibility {
         }
 
         return name.Name;
-    }
-
-    private static bool TryGetReferencedObjectNumber(PdfObject value, out int objectNumber) {
-        if (value is PdfReference reference) {
-            objectNumber = reference.ObjectNumber;
-            return true;
-        }
-
-        objectNumber = 0;
-        return false;
     }
 
     private static bool IsOptionalContentObjectHidden(
