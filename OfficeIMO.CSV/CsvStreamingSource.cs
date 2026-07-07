@@ -38,7 +38,7 @@ internal sealed class CsvStreamingSource
         using var reader = _readerFactory();
         var skipped = 0;
         object?[]? row = null;
-        foreach (var record in CsvParser.Parse(reader, _options))
+        foreach (var record in CsvParser.ParseReusable(reader, _options))
         {
             if (skipped < _skipRecordCount)
             {

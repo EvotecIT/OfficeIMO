@@ -55,12 +55,12 @@ All-values read lane:
 
 | Method | Mean | Allocated |
 | --- | ---: | ---: |
-| OfficeIMO span reader | 4.76 ms | 772 KB |
-| Dataplat.Dbatools.Csv DataReader | 26.61 ms | 39.9 MB |
-| OfficeIMO streaming DataReader | 34.30 ms | 71.2 MB |
-| LumenWorks | 35.38 ms | 39.7 MB |
+| OfficeIMO span reader | 4.50 ms | 772 KB |
+| OfficeIMO streaming DataReader | 20.74 ms | 41.3 MB |
+| Dataplat.Dbatools.Csv DataReader | 28.03 ms | 39.9 MB |
+| LumenWorks | 31.28 ms | 39.7 MB |
 
-The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it improved after row-buffer reuse but still has a remaining allocation gap versus Dataplat's DataReader.
+The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it is now faster than Dataplat's DataReader in this short run, with Dataplat still holding a small allocation edge.
 
 ## Current Write Snapshot
 
