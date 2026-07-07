@@ -76,27 +76,83 @@ internal readonly struct PdfPageClipPath {
         }
 
         var intersectedContours = new List<List<OfficePoint>>();
+        bool canClipPerContour = clipContours.All(IsConvexContour) && !HasOverlappingContourBounds(clipContours);
+        if (!canClipPerContour) {
+            return PreservePathGeometryWithinIntersection(active, next, intersection);
+        }
+
         for (int i = 0; i < subjectContours.Count; i++) {
-            var candidates = new List<List<OfficePoint>> { subjectContours[i] };
-            for (int clipIndex = 0; clipIndex < clipContours.Count && candidates.Count > 0; clipIndex++) {
-                var nextCandidates = new List<List<OfficePoint>>();
-                for (int candidateIndex = 0; candidateIndex < candidates.Count; candidateIndex++) {
-                    List<OfficePoint> clipped = ClipPolygonToConvexPolygon(candidates[candidateIndex], clipContours[clipIndex]);
-                    if (clipped.Count >= 3) {
-                        nextCandidates.Add(clipped);
-                    }
+            for (int clipIndex = 0; clipIndex < clipContours.Count; clipIndex++) {
+                List<OfficePoint> clipped = ClipPolygonToConvexPolygon(subjectContours[i], clipContours[clipIndex]);
+                if (clipped.Count >= 3) {
+                    intersectedContours.Add(clipped);
                 }
-
-                candidates = nextCandidates;
             }
-
-            intersectedContours.AddRange(candidates);
         }
 
         List<OfficePathCommand> commands = BuildClosedContourCommands(intersectedContours);
         return commands.Count > 0 && TryCreatePath(commands, active.FillRule, out PdfPageClipPath path)
             ? path
             : Rectangle(intersection.X, intersection.Y, 0D, 0D);
+    }
+
+    private static PdfPageClipPath PreservePathGeometryWithinIntersection(PdfPageClipPath active, PdfPageClipPath next, PdfPageClipPath intersection) {
+        PdfPageClipPath preferred = GetArea(active) <= GetArea(next) ? active : next;
+        return preferred.WithBounds(intersection);
+    }
+
+    private static double GetArea(PdfPageClipPath clipPath) => Math.Max(0D, clipPath.Width) * Math.Max(0D, clipPath.Height);
+
+    private static bool IsConvexContour(List<OfficePoint> contour) {
+        if (contour.Count < 3) {
+            return false;
+        }
+
+        double sign = 0D;
+        for (int i = 0; i < contour.Count; i++) {
+            OfficePoint a = contour[i];
+            OfficePoint b = contour[(i + 1) % contour.Count];
+            OfficePoint c = contour[(i + 2) % contour.Count];
+            double cross = ((b.X - a.X) * (c.Y - b.Y)) - ((b.Y - a.Y) * (c.X - b.X));
+            if (Math.Abs(cross) <= 0.001D) {
+                continue;
+            }
+
+            double currentSign = Math.Sign(cross);
+            if (sign == 0D) {
+                sign = currentSign;
+            } else if (Math.Sign(sign) != Math.Sign(currentSign)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static bool HasOverlappingContourBounds(List<List<OfficePoint>> contours) {
+        for (int i = 0; i < contours.Count; i++) {
+            GetContourBounds(contours[i], out double left, out double top, out double right, out double bottom);
+            for (int j = i + 1; j < contours.Count; j++) {
+                GetContourBounds(contours[j], out double otherLeft, out double otherTop, out double otherRight, out double otherBottom);
+                if (left < otherRight && right > otherLeft && top < otherBottom && bottom > otherTop) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static void GetContourBounds(List<OfficePoint> contour, out double left, out double top, out double right, out double bottom) {
+        left = right = contour[0].X;
+        top = bottom = contour[0].Y;
+        for (int i = 1; i < contour.Count; i++) {
+            OfficePoint point = contour[i];
+            left = Math.Min(left, point.X);
+            top = Math.Min(top, point.Y);
+            right = Math.Max(right, point.X);
+            bottom = Math.Max(bottom, point.Y);
+        }
     }
 
     private static List<List<OfficePoint>> FlattenPathContours(IReadOnlyList<OfficePathCommand> commands) {

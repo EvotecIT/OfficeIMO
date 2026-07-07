@@ -559,6 +559,8 @@ internal static class PdfPageContentVisualParser {
                     paintOrder,
                     out PdfPageVisualPrimitive pathPrimitive)) {
                     _primitives.Add(pathPrimitive);
+                } else if (stroke && _state.StrokeWidth > 0D) {
+                    AddStrokedPathSegments(pathCommands, paintOrder);
                 }
             }
 
@@ -867,6 +869,44 @@ internal static class PdfPageContentVisualParser {
                 paintOrder));
         }
 
+        private void AddStrokedPathSegments(IReadOnlyList<OfficePathCommand> pathCommands, double paintOrder) {
+            OfficePoint current = default;
+            OfficePoint subpathStart = default;
+            bool hasCurrent = false;
+            bool hasSubpathStart = false;
+            for (int i = 0; i < pathCommands.Count; i++) {
+                OfficePathCommand command = pathCommands[i];
+                switch (command.Kind) {
+                    case OfficePathCommandKind.MoveTo:
+                        current = command.Point;
+                        subpathStart = command.Point;
+                        hasCurrent = true;
+                        hasSubpathStart = true;
+                        break;
+                    case OfficePathCommandKind.LineTo:
+                        if (hasCurrent) {
+                            AddLine(ToPdfPoint(current), ToPdfPoint(command.Point), paintOrder);
+                        }
+
+                        current = command.Point;
+                        hasCurrent = true;
+                        break;
+                    case OfficePathCommandKind.Close:
+                        if (hasCurrent && hasSubpathStart) {
+                            AddLine(ToPdfPoint(current), ToPdfPoint(subpathStart), paintOrder);
+                        }
+
+                        hasCurrent = false;
+                        hasSubpathStart = false;
+                        break;
+                    default:
+                        hasCurrent = false;
+                        hasSubpathStart = false;
+                        break;
+                }
+            }
+        }
+
         private void ApplyGraphicsStateResource(string name) {
             if (_graphicsStates == null ||
                 !_graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
@@ -1030,6 +1070,8 @@ internal static class PdfPageContentVisualParser {
         private double ToTop(double pdfY) => _pageHeight - pdfY;
 
         private OfficePoint ToOfficePoint((double X, double Y) point) => new OfficePoint(point.X, ToTop(point.Y));
+
+        private (double X, double Y) ToPdfPoint(OfficePoint point) => (point.X, _pageHeight - point.Y);
 
         private OfficeColor ReadRgb(int startIndex) =>
             OfficeColor.FromRgb(ToByte(NumberAt(startIndex)), ToByte(NumberAt(startIndex + 1)), ToByte(NumberAt(startIndex + 2)));

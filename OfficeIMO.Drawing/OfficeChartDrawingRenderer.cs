@@ -494,10 +494,12 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static void AddMixedCartesianSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, ValueRange sharedValueAxisRange, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
-        AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, sharedValueAxisRange);
         AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, sharedValueAxisRange);
-        AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
-        AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, sharedValueAxisRange);
+        if (!HasMixedScatterSeriesOnCategoryAxes(snapshot)) {
+            AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        }
     }
 
     /// <summary>
@@ -1150,7 +1152,7 @@ public static partial class OfficeChartDrawingRenderer {
         return new ValueRange(min, max);
     }
 
-    private static void AddAreaSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddAreaSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, ValueRange? sharedValueAxisRange = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> areaSeries = GetRenderableAreaSeries(snapshot);
@@ -1158,8 +1160,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        ValueRange range = GetAreaSeriesRenderRange(snapshot, areaSeries, categories.Count, layout);
-        range = ApplyValueAxisScale(range, layout, horizontal: false);
+        ValueRange range = sharedValueAxisRange ?? ApplyValueAxisScale(GetAreaSeriesRenderRange(snapshot, areaSeries, categories.Count, layout), layout, horizontal: false);
         double step = plotWidth / (categories.Count - 1);
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
@@ -1261,7 +1262,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
     }
 
-    private static void AddLineSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddLineSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, ValueRange? sharedValueAxisRange = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> lineSeries = GetRenderableLineSeries(snapshot);
@@ -1269,8 +1270,7 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        ValueRange range = GetLineSeriesRenderRange(snapshot, lineSeries, categories.Count, layout);
-        range = ApplyValueAxisScale(range, layout, horizontal: false);
+        ValueRange range = sharedValueAxisRange ?? ApplyValueAxisScale(GetLineSeriesRenderRange(snapshot, lineSeries, categories.Count, layout), layout, horizontal: false);
         double step = categories.Count > 1 ? plotWidth / (categories.Count - 1) : 0D;
         var positiveCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
         var negativeCumulativeByKind = new Dictionary<OfficeChartKind, double[]>();
@@ -1480,6 +1480,10 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)> GetRenderableScatterSeries(OfficeChartSnapshot snapshot) {
+        if (HasMixedScatterSeriesOnCategoryAxes(snapshot)) {
+            return new List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)>();
+        }
+
         var items = new List<(OfficeChartSeries Series, int SourceIndex, OfficeChartKind Kind)>();
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         for (int i = 0; i < series.Count; i++) {
@@ -1491,6 +1495,11 @@ public static partial class OfficeChartDrawingRenderer {
 
         return items;
     }
+
+    private static bool HasMixedScatterSeriesOnCategoryAxes(OfficeChartSnapshot snapshot) =>
+        HasMixedCartesianSeriesKinds(snapshot) &&
+        !IsScatterChart(snapshot.ChartKind) &&
+        snapshot.Data.Series.Any(series => IsScatterChart(GetEffectiveSeriesKind(snapshot, series)));
 
     private static void AddScatterSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
