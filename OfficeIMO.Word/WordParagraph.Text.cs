@@ -96,7 +96,17 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
             set {
-                Run run = ResolveTextSetterRun(out OpenXmlElement textContainer);
+                if (_officeMath != null) {
+                    SetMathElementText(_officeMath, value);
+                    return;
+                }
+
+                if (_mathParagraph != null) {
+                    SetMathElementText(_mathParagraph, value);
+                    return;
+                }
+
+                Run run = ResolveTextSetterRun(out OpenXmlElement textContainer, out IReadOnlyList<Run>? contentRuns);
 
                 var preservedBreaks = new List<(int ContentIndex, Break Break)>();
                 int contentNodesEncountered = 0;
@@ -122,7 +132,8 @@ namespace OfficeIMO.Word {
                     return units;
                 }
 
-                foreach (Run contentRun in textContainer.Descendants<Run>().Prepend(textContainer).OfType<Run>().Distinct().ToList()) {
+                IEnumerable<Run> runsToClear = contentRuns ?? textContainer.Descendants<Run>().Prepend(textContainer).OfType<Run>().Distinct();
+                foreach (Run contentRun in runsToClear.ToList()) {
                     foreach (var child in contentRun.ChildElements.ToList()) {
                         switch (child) {
                             case Text textNode:
@@ -228,7 +239,8 @@ namespace OfficeIMO.Word {
             }
         }
 
-        private Run ResolveTextSetterRun(out OpenXmlElement textContainer) {
+        private Run ResolveTextSetterRun(out OpenXmlElement textContainer, out IReadOnlyList<Run>? contentRuns) {
+            contentRuns = null;
             if (_run != null) {
                 textContainer = _run;
                 return _run;
@@ -244,6 +256,17 @@ namespace OfficeIMO.Word {
                 return EnsureTextRun(_simpleField);
             }
 
+            if (_runs != null && _runs.Count > 0) {
+                contentRuns = GetComplexFieldResultRuns(_runs);
+                textContainer = contentRuns.Count > 0 ? contentRuns[0] : _runs[0];
+                return contentRuns.Count > 0 ? contentRuns[0] : _runs[0];
+            }
+
+            if (_stdRun != null) {
+                textContainer = _stdRun;
+                return EnsureTextRun(_stdRun);
+            }
+
             textContainer = VerifyRun();
             return (Run)textContainer;
         }
@@ -257,6 +280,75 @@ namespace OfficeIMO.Word {
             run = new Run();
             container.Append(run);
             return run;
+        }
+
+        private static IReadOnlyList<Run> GetComplexFieldResultRuns(IReadOnlyList<Run> runs) {
+            var resultRuns = new List<Run>();
+            bool sawSeparator = false;
+            int fieldDepth = 0;
+
+            foreach (Run run in runs) {
+                bool includeRun = false;
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    if (child is FieldChar fieldChar) {
+                        FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                        if (fieldCharType == FieldCharValues.Begin) {
+                            fieldDepth++;
+                            continue;
+                        }
+
+                        if (fieldCharType == FieldCharValues.Separate && fieldDepth > 0) {
+                            sawSeparator = true;
+                            continue;
+                        }
+
+                        if (fieldCharType == FieldCharValues.End && fieldDepth > 0) {
+                            fieldDepth--;
+                            if (fieldDepth == 0) {
+                                break;
+                            }
+                        }
+
+                        continue;
+                    }
+
+                    if (sawSeparator && fieldDepth > 0) {
+                        includeRun = true;
+                    }
+                }
+
+                if (includeRun) {
+                    resultRuns.Add(run);
+                }
+            }
+
+            return resultRuns.Count > 0 ? resultRuns : runs;
+        }
+
+        private static void SetMathElementText(OpenXmlElement element, string? value) {
+            var normalized = (value ?? string.Empty)
+                .Replace("\r\n", NormalizedLineFeed)
+                .Replace("\r", NormalizedLineFeed);
+            List<M.Text> textNodes = element.Descendants<M.Text>().ToList();
+            if (textNodes.Count == 0) {
+                M.Run? mathRun = element.Descendants<M.Run>().FirstOrDefault();
+                if (mathRun == null) {
+                    mathRun = new M.Run();
+                    if (element is OpenXmlCompositeElement composite) {
+                        composite.Append(mathRun);
+                    } else {
+                        return;
+                    }
+                }
+
+                mathRun.Append(new M.Text(normalized));
+                return;
+            }
+
+            textNodes[0].Text = normalized;
+            for (int i = 1; i < textNodes.Count; i++) {
+                textNodes[i].Remove();
+            }
         }
 
         private static string ReadVisibleText(OpenXmlElement element) {

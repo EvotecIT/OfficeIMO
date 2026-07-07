@@ -467,8 +467,16 @@ internal readonly struct PdfPageClipPath {
 
     public IReadOnlyList<OfficePathCommand> Commands { get; }
 
-    internal PdfPageClipPath WithBounds(PdfPageClipPath bounds) =>
-        new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, IsRectangle, FillRule, Commands);
+    internal PdfPageClipPath WithBounds(PdfPageClipPath bounds) {
+        if (IsRectangle) {
+            return new PdfPageClipPath(bounds.X, bounds.Y, bounds.Width, bounds.Height, true, FillRule, Commands);
+        }
+
+        List<OfficePathCommand> clippedCommands = ClipPathCommandsToRectangle(Commands, bounds);
+        return clippedCommands.Count > 0 && TryCreatePath(clippedCommands, FillRule, out PdfPageClipPath clippedPath)
+            ? clippedPath
+            : Rectangle(bounds.X, bounds.Y, 0D, 0D);
+    }
 
     public OfficeClipPath? ToOfficeClipPath(double primitiveX, double primitiveY) {
         if (!NearlyEqual(X, primitiveX) || !NearlyEqual(Y, primitiveY) || Width <= 0D || Height <= 0D) {

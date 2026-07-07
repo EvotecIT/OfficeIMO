@@ -229,7 +229,7 @@ public sealed partial class PdfReadPage {
 
         clip = drawingClip;
         OfficeClipPath? localClip = clip.ToOfficeClipPath(x, y);
-        if (localClip != null) {
+        if (localClip != null && HasPositiveArea(x, y, shape.Width, shape.Height, drawing.Width, drawing.Height)) {
             shape.ClipPath = localClip;
             return false;
         }
