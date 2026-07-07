@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using OfficeIMO.CSV;
@@ -137,6 +138,50 @@ public class CsvDataReaderTests
         Assert.Equal(2, reader.GetValues(values));
         Assert.Equal("42", values[0]);
         Assert.Equal(DBNull.Value, values[1]);
+    }
+
+    [Fact]
+    public void CreateDataReader_StreamingWithoutSchema_PreservesNullAndStaticColumns()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Note\n1,<null>\n",
+            new CsvLoadOptions
+            {
+                Mode = CsvLoadMode.Stream,
+                NullValue = "<null>",
+                StaticColumns = new Dictionary<string, object?> { ["Batch"] = 7 }
+            });
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.Equal(3, reader.FieldCount);
+        Assert.True(reader.Read());
+        Assert.Equal("1", reader.GetString(0));
+        Assert.True(reader.IsDBNull(1));
+        Assert.Equal("7", reader.GetString(2));
+
+        var values = new object[reader.FieldCount];
+        Assert.Equal(3, reader.GetValues(values));
+        Assert.Equal("1", values[0]);
+        Assert.Equal(DBNull.Value, values[1]);
+        Assert.Equal("7", values[2]);
+    }
+
+    [Fact]
+    public void CreateDataReader_StreamingWithoutSchema_HonorsStrictColumnCounts()
+    {
+        var doc = CsvDocument.Parse(
+            "First,Second\n1\n",
+            new CsvLoadOptions
+            {
+                Mode = CsvLoadMode.Stream,
+                ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
+            });
+
+        using var reader = doc.CreateDataReader();
+
+        var ex = Assert.Throws<CsvException>(() => reader.Read());
+        Assert.Contains("Row contains 1 values but header defines 2 columns", ex.Message);
     }
 
     [Fact]

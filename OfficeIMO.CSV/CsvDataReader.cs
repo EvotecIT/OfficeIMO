@@ -17,14 +17,20 @@ public sealed class CsvDataReader : DbDataReader
     private const string IsAutoIncrementColumn = "IsAutoIncrement";
     private const string BaseCatalogNameColumn = "BaseCatalogName";
     private readonly CsvDataColumnProjection[] _columns;
-    private readonly IEnumerator<object?[]> _rows;
+    private readonly IEnumerator<object?[]>? _rows;
+    private readonly IEnumerator<IReadOnlyList<string>>? _stringRows;
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
     private readonly Dictionary<string, int> _ordinals;
+    private readonly CsvLoadOptions? _stringRowOptions;
+    private readonly object?[]? _staticColumnValues;
+    private readonly int _sourceColumnCount;
     private readonly bool _useRawStringValues;
     private object?[]? _currentRawRow;
+    private IReadOnlyList<string>? _currentStringRow;
     private object?[]? _currentConvertedRow;
     private object?[]? _bufferedRawRow;
+    private IReadOnlyList<string>? _bufferedStringRow;
     private bool _hasBufferedRow;
     private bool _checkedForRows;
     private bool _closed;
@@ -38,6 +44,30 @@ public sealed class CsvDataReader : DbDataReader
     {
         _columns = columns;
         _rows = rows.GetEnumerator();
+        _culture = culture;
+        _dateTimeFormats = dateTimeFormats;
+        _ordinals = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
+        _useRawStringValues = CanUseRawStringValues(columns);
+
+        for (var i = 0; i < columns.Length; i++)
+        {
+            _ordinals[columns[i].Name] = i;
+        }
+    }
+
+    internal CsvDataReader(
+        CsvDataColumnProjection[] columns,
+        IEnumerable<IReadOnlyList<string>> rows,
+        int sourceColumnCount,
+        CsvLoadOptions options,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats)
+    {
+        _columns = columns;
+        _stringRows = rows.GetEnumerator();
+        _sourceColumnCount = sourceColumnCount;
+        _stringRowOptions = options.Clone();
+        _staticColumnValues = CaptureStaticColumnValues(_stringRowOptions.StaticColumns);
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
         _ordinals = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
@@ -170,7 +200,7 @@ public sealed class CsvDataReader : DbDataReader
             return value;
         }
 
-        var rawValue = ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
+        var rawValue = GetRawValue(ordinal);
         value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats);
         _currentConvertedRow[ordinal] = value;
         return value;
@@ -183,6 +213,11 @@ public sealed class CsvDataReader : DbDataReader
         var count = Math.Min(values.Length, _columns.Length);
         if (_useRawStringValues)
         {
+            if (_currentStringRow is not null)
+            {
+                return GetStringRowValues(values, count);
+            }
+
             var row = _currentRawRow!;
             var rowValueCount = Math.Min(count, row.Length);
             for (var i = 0; i < rowValueCount; i++)
@@ -211,7 +246,7 @@ public sealed class CsvDataReader : DbDataReader
             var value = _currentConvertedRow[i];
             if (value is null)
             {
-                var rawValue = i < _currentRawRow!.Length ? _currentRawRow[i] : null;
+                var rawValue = GetRawValue(i);
                 value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[i], _rowIndex, _culture, _dateTimeFormats);
                 _currentConvertedRow[i] = value;
             }
@@ -239,19 +274,18 @@ public sealed class CsvDataReader : DbDataReader
         if (_hasBufferedRow)
         {
             _currentRawRow = _bufferedRawRow;
+            _currentStringRow = _bufferedStringRow;
             _bufferedRawRow = null;
+            _bufferedStringRow = null;
             _hasBufferedRow = false;
         }
         else
         {
-            if (!_rows.MoveNext())
+            if (!MoveNextRow())
             {
-                _currentRawRow = null;
-                ClearConvertedRow();
+                ClearCurrentRow();
                 return false;
             }
-
-            _currentRawRow = _rows.Current;
         }
 
         ClearConvertedRow();
@@ -268,7 +302,8 @@ public sealed class CsvDataReader : DbDataReader
         }
 
         _closed = true;
-        _rows.Dispose();
+        _rows?.Dispose();
+        _stringRows?.Dispose();
     }
 
     /// <inheritdoc />
@@ -340,20 +375,67 @@ public sealed class CsvDataReader : DbDataReader
             return true;
         }
 
-        if (_checkedForRows || _currentRawRow is not null)
+        if (_checkedForRows || _currentRawRow is not null || _currentStringRow is not null)
         {
-            return _currentRawRow is not null;
+            return _currentRawRow is not null || _currentStringRow is not null;
         }
 
         _checkedForRows = true;
-        if (!_rows.MoveNext())
+        if (_rows is not null)
+        {
+            if (!_rows.MoveNext())
+            {
+                return false;
+            }
+
+            _bufferedRawRow = _rows.Current;
+            _bufferedStringRow = null;
+            _hasBufferedRow = true;
+            return true;
+        }
+
+        if (_stringRows is null || !_stringRows.MoveNext())
         {
             return false;
         }
 
-        _bufferedRawRow = _rows.Current;
+        _bufferedRawRow = null;
+        _bufferedStringRow = _stringRows.Current;
+        ValidateStringRowColumnCount(_bufferedStringRow);
         _hasBufferedRow = true;
         return true;
+    }
+
+    private bool MoveNextRow()
+    {
+        if (_rows is not null)
+        {
+            if (!_rows.MoveNext())
+            {
+                return false;
+            }
+
+            _currentRawRow = _rows.Current;
+            _currentStringRow = null;
+            return true;
+        }
+
+        if (_stringRows is null || !_stringRows.MoveNext())
+        {
+            return false;
+        }
+
+        _currentRawRow = null;
+        _currentStringRow = _stringRows.Current;
+        ValidateStringRowColumnCount(_currentStringRow);
+        return true;
+    }
+
+    private void ClearCurrentRow()
+    {
+        _currentRawRow = null;
+        _currentStringRow = null;
+        ClearConvertedRow();
     }
 
     private void ClearConvertedRow()
@@ -384,7 +466,7 @@ public sealed class CsvDataReader : DbDataReader
             throw new IndexOutOfRangeException();
         }
 
-        var rawValue = ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
+        var rawValue = GetRawValue(ordinal);
         if (rawValue is null || rawValue == DBNull.Value)
         {
             return DBNull.Value;
@@ -398,6 +480,95 @@ public sealed class CsvDataReader : DbDataReader
         return CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats);
     }
 
+    private object? GetRawValue(int ordinal)
+    {
+        if (_currentStringRow is null)
+        {
+            return ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
+        }
+
+        if (ordinal < _sourceColumnCount)
+        {
+            if (ordinal >= _currentStringRow.Count)
+            {
+                return string.Empty;
+            }
+
+            var value = _currentStringRow[ordinal];
+            return _stringRowOptions!.NullValue is not null &&
+                string.Equals(value, _stringRowOptions.NullValue, StringComparison.Ordinal)
+                    ? null
+                    : value;
+        }
+
+        var staticIndex = ordinal - _sourceColumnCount;
+        return _staticColumnValues is not null && staticIndex < _staticColumnValues.Length
+            ? _staticColumnValues[staticIndex]
+            : null;
+    }
+
+    private int GetStringRowValues(object[] values, int count)
+    {
+        var row = _currentStringRow!;
+        var rowValueCount = Math.Min(Math.Min(count, row.Count), _sourceColumnCount);
+        if (_stringRowOptions!.NullValue is null)
+        {
+            for (var i = 0; i < rowValueCount; i++)
+            {
+                values[i] = row[i];
+            }
+        }
+        else
+        {
+            for (var i = 0; i < rowValueCount; i++)
+            {
+                var value = row[i];
+                values[i] = string.Equals(value, _stringRowOptions.NullValue, StringComparison.Ordinal)
+                    ? DBNull.Value
+                    : value;
+            }
+        }
+
+        var missingCount = Math.Min(count, _sourceColumnCount);
+        for (var i = rowValueCount; i < missingCount; i++)
+        {
+            values[i] = string.Empty;
+        }
+
+        for (var i = _sourceColumnCount; i < count; i++)
+        {
+            values[i] = GetRawStringValue(i);
+        }
+
+        return count;
+    }
+
+    private void ValidateStringRowColumnCount(IReadOnlyList<string> row)
+    {
+        if (_stringRowOptions!.ColumnCountMismatchPolicy == CsvColumnCountMismatchPolicy.Strict &&
+            row.Count != _sourceColumnCount)
+        {
+            throw new CsvException($"Row contains {row.Count} values but header defines {_sourceColumnCount} columns.");
+        }
+    }
+
+    private static object?[]? CaptureStaticColumnValues(IReadOnlyDictionary<string, object?>? staticColumns)
+    {
+        if (staticColumns is null || staticColumns.Count == 0)
+        {
+            return null;
+        }
+
+        var values = new object?[staticColumns.Count];
+        var index = 0;
+        foreach (var staticColumn in staticColumns)
+        {
+            values[index++] = staticColumn.Value;
+        }
+
+        return values;
+    }
+
     private void EnsureOpenRow()
     {
         if (_closed)
@@ -405,7 +576,7 @@ public sealed class CsvDataReader : DbDataReader
             throw new InvalidOperationException("The reader is closed.");
         }
 
-        if (_currentRawRow is null)
+        if (_currentRawRow is null && _currentStringRow is null)
         {
             throw new InvalidOperationException("The reader is not positioned on a row.");
         }

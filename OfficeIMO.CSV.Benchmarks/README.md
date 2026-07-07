@@ -44,23 +44,24 @@ QuickTest single-column/all-column read lanes:
 
 | Method | Single column mean | All columns mean | Allocated |
 | --- | ---: | ---: | ---: |
-| OfficeIMO span reader | 4.89 ms | 4.62 ms | ~771 KB |
-| SEP | 6.49 ms | 20.14 ms | 3.1 MB / 39.4 MB |
-| Sylvan | 12.40 ms | 19.63 ms | 3.1 MB / 39.6 MB |
-| CsvHelper | 34.65 ms | 52.59 ms | 3.1 MB / 39.6 MB |
-| Dataplat.Dbatools.Csv | 29.64 ms | 33.93 ms | 39.9 MB |
-| LumenWorks | 92.00 ms | 37.22 ms | 1.58 GB / 39.7 MB |
+| OfficeIMO span reader | 4.57 ms | 4.66 ms | ~771 KB |
+| OfficeIMO streaming DataReader | 15.29 ms | 20.51 ms | 41.3 MB |
+| SEP | 6.44 ms | 16.76 ms | 3.1 MB / 39.4 MB |
+| Sylvan | 11.12 ms | 19.21 ms | 3.1 MB / 39.6 MB |
+| CsvHelper | 32.68 ms | 47.22 ms | 3.1 MB / 39.6 MB |
+| Dataplat.Dbatools.Csv | 29.32 ms | 28.98 ms | 39.9 MB |
+| LumenWorks | 104.36 ms | 36.89 ms | 1.58 GB / 39.7 MB |
 
 All-values read lane:
 
 | Method | Mean | Allocated |
 | --- | ---: | ---: |
-| OfficeIMO span reader | 4.50 ms | 772 KB |
-| OfficeIMO streaming DataReader | 20.74 ms | 41.3 MB |
-| Dataplat.Dbatools.Csv DataReader | 28.03 ms | 39.9 MB |
-| LumenWorks | 31.28 ms | 39.7 MB |
+| OfficeIMO span reader | 4.68 ms | 772 KB |
+| OfficeIMO streaming DataReader | 18.75 ms | 41.3 MB |
+| Dataplat.Dbatools.Csv DataReader | 26.38 ms | 39.9 MB |
+| LumenWorks | 38.56 ms | 39.7 MB |
 
-The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it is now faster than Dataplat's DataReader in this short run, with Dataplat still holding a small allocation edge.
+The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it now reads reusable parser string rows directly and is faster than Dataplat's DataReader in these short runs, with Dataplat still holding a small allocation edge.
 
 ## Current Write Snapshot
 
