@@ -27,6 +27,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
     private string _largeCsvPath = string.Empty;
     private string _wideCsvPath = string.Empty;
     private string _quotedCsvPath = string.Empty;
+    private string _quickTestCsvPath = string.Empty;
 
     [GlobalSetup]
     public void Setup()
@@ -48,13 +49,16 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
         _quotedCsvPath = Path.Combine(dataDir, "dbatools-quoted.csv");
         GenerateCsv(_quotedCsvPath, 100_000, 10, quoteAll: true);
+
+        _quickTestCsvPath = Path.Combine(dataDir, "dbatools-quicktest.csv");
+        GenerateCsv(_quickTestCsvPath, 100_000, 10, quoteAll: false);
     }
 
-    [Benchmark(Baseline = true, Description = "OfficeIMO-Small")]
+    [Benchmark(Description = "OfficeIMO-Small")]
     [BenchmarkCategory("Small")]
     public int OfficeIMO_Small() => OfficeIMO_ReadFirstColumn(_smallCsvPath);
 
-    [Benchmark(Description = "Dataplat-Small")]
+    [Benchmark(Baseline = true, Description = "Dataplat-Small")]
     [BenchmarkCategory("Small")]
     public int Dataplat_Small() => Dataplat_ReadFirstColumn(_smallCsvPath);
 
@@ -192,51 +196,51 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
-    public int OfficeIMO_QuickTest_SingleColumn() => OfficeIMO_ReadFirstColumn(_mediumCsvPath);
+    public int OfficeIMO_QuickTest_SingleColumn() => OfficeIMO_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "OfficeIMO-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
-    public int OfficeIMO_QuickTest_AllColumns() => OfficeIMO_ReadAllValues(_mediumCsvPath);
+    public int OfficeIMO_QuickTest_AllColumns() => OfficeIMO_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "Sep-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
-    public int Sep_QuickTest_SingleColumn() => Sep_ReadFirstColumn(_mediumCsvPath);
+    public int Sep_QuickTest_SingleColumn() => Sep_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "Sep-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
-    public int Sep_QuickTest_AllColumns() => Sep_ReadAllValues(_mediumCsvPath);
+    public int Sep_QuickTest_AllColumns() => Sep_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "Sylvan-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
-    public int Sylvan_QuickTest_SingleColumn() => Sylvan_ReadFirstColumn(_mediumCsvPath);
+    public int Sylvan_QuickTest_SingleColumn() => Sylvan_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "Sylvan-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
-    public int Sylvan_QuickTest_AllColumns() => Sylvan_ReadAllValues(_mediumCsvPath);
+    public int Sylvan_QuickTest_AllColumns() => Sylvan_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "CsvHelper-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
-    public int CsvHelper_QuickTest_SingleColumn() => CsvHelper_ReadFirstColumn(_mediumCsvPath);
+    public int CsvHelper_QuickTest_SingleColumn() => CsvHelper_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "CsvHelper-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
-    public int CsvHelper_QuickTest_AllColumns() => CsvHelper_ReadAllValues(_mediumCsvPath);
+    public int CsvHelper_QuickTest_AllColumns() => CsvHelper_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "Dataplat-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
-    public int Dataplat_QuickTest_SingleColumn() => Dataplat_ReadFirstColumn(_mediumCsvPath);
+    public int Dataplat_QuickTest_SingleColumn() => Dataplat_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "Dataplat-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
-    public int Dataplat_QuickTest_AllColumns() => Dataplat_ReadAllValues(_mediumCsvPath);
+    public int Dataplat_QuickTest_AllColumns() => Dataplat_ReadAllValues(_quickTestCsvPath);
 
     [Benchmark(Description = "LumenWorks-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
-    public int LumenWorks_QuickTest_SingleColumn() => LumenWorks_ReadFirstColumn(_mediumCsvPath);
+    public int LumenWorks_QuickTest_SingleColumn() => LumenWorks_ReadFirstColumn(_quickTestCsvPath);
 
     [Benchmark(Description = "LumenWorks-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
-    public int LumenWorks_QuickTest_AllColumns() => LumenWorks_ReadAllValues(_mediumCsvPath);
+    public int LumenWorks_QuickTest_AllColumns() => LumenWorks_ReadAllValues(_quickTestCsvPath);
 
     private static int OfficeIMO_ReadFirstColumn(string path)
     {
