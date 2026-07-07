@@ -214,14 +214,14 @@ public sealed class CsvDataReader : DbDataReader
             if (!_rows.MoveNext())
             {
                 _currentRawRow = null;
-                _currentConvertedRow = null;
+                ClearConvertedRow();
                 return false;
             }
 
             _currentRawRow = _rows.Current;
         }
 
-        _currentConvertedRow = null;
+        ClearConvertedRow();
         _rowIndex++;
         return true;
     }
@@ -321,6 +321,14 @@ public sealed class CsvDataReader : DbDataReader
         _bufferedRawRow = _rows.Current;
         _hasBufferedRow = true;
         return true;
+    }
+
+    private void ClearConvertedRow()
+    {
+        if (_currentConvertedRow is not null)
+        {
+            Array.Clear(_currentConvertedRow, 0, _currentConvertedRow.Length);
+        }
     }
 
     private static bool CanUseRawStringValues(CsvDataColumnProjection[] columns)
