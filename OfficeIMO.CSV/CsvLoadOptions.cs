@@ -56,6 +56,33 @@ public sealed class CsvLoadOptions
     public bool GenerateMissingHeaderNames { get; set; } = true;
 
     /// <summary>
+    /// Gets or sets how duplicate header names are handled. Default renames duplicate headers to keep name-based row access unambiguous.
+    /// </summary>
+    public CsvDuplicateHeaderBehavior DuplicateHeaderBehavior { get; set; } = CsvDuplicateHeaderBehavior.Rename;
+
+    /// <summary>
+    /// Gets or sets a token that should be materialized as <c>null</c> when loading rows into a <see cref="CsvDocument"/>.
+    /// Raw string streaming callbacks preserve the source text.
+    /// </summary>
+    public string? NullValue { get; set; }
+
+    /// <summary>
+    /// Gets or sets additional date/time formats used by typed row conversion and schema validation.
+    /// </summary>
+    public string[]? DateTimeFormats { get; set; }
+
+    /// <summary>
+    /// Gets or sets how malformed quoted fields are handled. Default is <see cref="CsvQuoteParsingMode.Lenient"/>
+    /// to preserve common PowerShell-style import behavior.
+    /// </summary>
+    public CsvQuoteParsingMode QuoteParsingMode { get; set; } = CsvQuoteParsingMode.Lenient;
+
+    /// <summary>
+    /// Gets or sets columns appended to every loaded row, useful for source file names, import timestamps, or batch metadata.
+    /// </summary>
+    public IReadOnlyDictionary<string, object?>? StaticColumns { get; set; }
+
+    /// <summary>
     /// Gets or sets how parsed records are handled when their field count differs from the header count.
     /// Default pads missing fields and ignores extras, matching common PowerShell CSV import behavior.
     /// </summary>

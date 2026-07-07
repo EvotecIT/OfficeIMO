@@ -100,7 +100,7 @@ public sealed partial class CsvDocument
         {
             ReadRecordsSkippingInitial(reader, options, recordsToSkip, record =>
             {
-                InvokeRowAction(rowAction, explicitHeader, record, options.ColumnCountMismatchPolicy);
+                InvokeRowAction(rowAction, AppendStaticColumnsToHeader(explicitHeader, options), record, options);
             });
 
             return;
@@ -127,15 +127,15 @@ public sealed partial class CsvDocument
 
                     if (isW3CFieldsHeader)
                     {
-                        header = w3cHeader;
+                        header = AppendStaticColumnsToHeader(NormalizeParsedHeader(w3cHeader, options), options);
                         return;
                     }
 
-                    header = NormalizeParsedHeader(record.Values, options);
+                    header = AppendStaticColumnsToHeader(NormalizeParsedHeader(record.Values, options), options);
                     return;
                 }
 
-                InvokeRowAction(rowAction, header, record.Values, options.ColumnCountMismatchPolicy);
+                InvokeRowAction(rowAction, header, record.Values, options);
             });
 
             return;
@@ -143,8 +143,8 @@ public sealed partial class CsvDocument
 
         ReadRecordsSkippingInitial(reader, options, recordsToSkip, record =>
         {
-            header ??= GenerateDefaultHeader(record.Length);
-            InvokeRowAction(rowAction, header, record, options.ColumnCountMismatchPolicy);
+            header ??= AppendStaticColumnsToHeader(GenerateDefaultHeader(record.Length), options);
+            InvokeRowAction(rowAction, header, record, options);
         });
     }
 
@@ -182,7 +182,7 @@ public sealed partial class CsvDocument
         {
             ReadRecordsReusableSkippingInitial(reader, options, recordsToSkip, record =>
             {
-                InvokeRowAction(rowAction, explicitHeader, record, options.ColumnCountMismatchPolicy);
+                InvokeRowAction(rowAction, AppendStaticColumnsToHeader(explicitHeader, options), record, options);
             });
 
             return;
@@ -191,6 +191,35 @@ public sealed partial class CsvDocument
         IReadOnlyList<string>? header = null;
         if (options.HasHeaderRow)
         {
+            if (!options.SkipCommentRows)
+            {
+                CsvParser.ReadRecordsReusableWithMetadataUntilAccepted(
+                    reader,
+                    options,
+                    record =>
+                    {
+                        var isW3CFieldsHeader = TryGetW3CFieldsHeader(record.Values, options, out var w3cHeader);
+                        if (options.SkipCommentRowsBeforeHeader && IsCommentRecord(record, options) && !isW3CFieldsHeader)
+                        {
+                            return false;
+                        }
+
+                        if (recordsToSkip > 0)
+                        {
+                            recordsToSkip--;
+                            return false;
+                        }
+
+                        header = isW3CFieldsHeader
+                            ? AppendStaticColumnsToHeader(NormalizeParsedHeader(w3cHeader, options), options)
+                            : AppendStaticColumnsToHeader(NormalizeParsedHeader(record.Values, options), options);
+                        return true;
+                    },
+                    values => InvokeRowAction(rowAction, header!, values, options));
+
+                return;
+            }
+
             CsvParser.ReadRecordsReusableWithMetadata(reader, options, record =>
             {
                 if (header is null)
@@ -209,15 +238,15 @@ public sealed partial class CsvDocument
 
                     if (isW3CFieldsHeader)
                     {
-                        header = w3cHeader;
+                        header = AppendStaticColumnsToHeader(NormalizeParsedHeader(w3cHeader, options), options);
                         return;
                     }
 
-                    header = NormalizeParsedHeader(record.Values, options);
+                    header = AppendStaticColumnsToHeader(NormalizeParsedHeader(record.Values, options), options);
                     return;
                 }
 
-                InvokeRowAction(rowAction, header, record.Values, options.ColumnCountMismatchPolicy);
+                InvokeRowAction(rowAction, header, record.Values, options);
             });
 
             return;
@@ -225,8 +254,8 @@ public sealed partial class CsvDocument
 
         ReadRecordsReusableSkippingInitial(reader, options, recordsToSkip, record =>
         {
-            header ??= GenerateDefaultHeader(record.Count);
-            InvokeRowAction(rowAction, header, record, options.ColumnCountMismatchPolicy);
+            header ??= AppendStaticColumnsToHeader(GenerateDefaultHeader(record.Count), options);
+            InvokeRowAction(rowAction, header, record, options);
         });
     }
 
@@ -292,12 +321,12 @@ public sealed partial class CsvDocument
     {
         options = ResolveLoadOptions(readerFactory, options);
         var initialRecordsToSkip = GetInitialRecordsToSkip(options);
-        var document = new CsvDocument(options.Mode, options.Delimiter, options.Culture, encoding, options.ColumnCountMismatchPolicy);
+        var document = new CsvDocument(options.Mode, options.Delimiter, options.Culture, encoding, options.ColumnCountMismatchPolicy, options.DateTimeFormats);
 
         var explicitHeader = NormalizeExplicitHeader(options);
         if (explicitHeader is not null)
         {
-            document.SetHeader(explicitHeader);
+            document.SetHeader(AppendStaticColumnsToHeader(explicitHeader, options));
             if (options.Mode == CsvLoadMode.InMemory)
             {
                 using var explicitHeaderReader = readerFactory();
@@ -310,12 +339,12 @@ public sealed partial class CsvDocument
                         continue;
                     }
 
-                    document.AddParsedRowInternal(record, options.ColumnCountMismatchPolicy);
+                    document.AddParsedRowInternal(record, options);
                 }
             }
             else
             {
-                document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip);
+                document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip, document._header.Count);
             }
 
             return document;
@@ -337,12 +366,12 @@ public sealed partial class CsvDocument
             {
                 while (enumerator.MoveNext())
                 {
-                    document.AddParsedRowInternal(enumerator.Current.Values, options.ColumnCountMismatchPolicy);
+                    document.AddParsedRowInternal(enumerator.Current.Values, options);
                 }
             }
             else
             {
-                document._streamingSource = new CsvStreamingSource(readerFactory, options, consumedRecordCount);
+                document._streamingSource = new CsvStreamingSource(readerFactory, options, consumedRecordCount, document._header.Count);
             }
 
             return document;
@@ -360,19 +389,19 @@ public sealed partial class CsvDocument
         }
 
         var firstRecord = enumerator.Current;
-        document.SetHeader(GenerateDefaultHeader(firstRecord.Values.Count));
+        document.SetHeader(AppendStaticColumnsToHeader(GenerateDefaultHeader(firstRecord.Values.Count), options));
 
         if (options.Mode == CsvLoadMode.InMemory)
         {
-            document.AddParsedRowInternal(firstRecord.Values, options.ColumnCountMismatchPolicy);
+            document.AddParsedRowInternal(firstRecord.Values, options);
             while (enumerator.MoveNext())
             {
-                document.AddParsedRowInternal(enumerator.Current.Values, options.ColumnCountMismatchPolicy);
+                document.AddParsedRowInternal(enumerator.Current.Values, options);
             }
         }
         else
         {
-            document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip);
+            document._streamingSource = new CsvStreamingSource(readerFactory, options, skipRecordCount: initialRecordsToSkip, document._header.Count);
         }
 
         return document;
@@ -399,9 +428,9 @@ public sealed partial class CsvDocument
         Action<IReadOnlyList<string>, IReadOnlyList<string>> rowAction,
         IReadOnlyList<string> header,
         IReadOnlyList<string> values,
-        CsvColumnCountMismatchPolicy policy)
+        CsvLoadOptions options)
     {
-        rowAction(header, AlignParsedStringValues(values, header.Count, policy));
+        rowAction(header, BuildParsedStringValues(values, header.Count, options));
     }
 
     private static string[]? NormalizeExplicitHeader(CsvLoadOptions options)
@@ -452,11 +481,11 @@ public sealed partial class CsvDocument
 
             if (isW3CFieldsHeader)
             {
-                header = w3cHeader;
+                header = AppendStaticColumnsToHeader(NormalizeParsedHeader(w3cHeader, options), options);
                 return true;
             }
 
-            header = NormalizeParsedHeader(record.Values, options);
+            header = AppendStaticColumnsToHeader(NormalizeParsedHeader(record.Values, options), options);
             return true;
         }
 

@@ -21,6 +21,7 @@ public sealed partial class CsvDocument
     private CultureInfo _culture;
     private Encoding _encoding;
     private CsvColumnCountMismatchPolicy _columnCountMismatchPolicy;
+    private string[]? _dateTimeFormats;
     private CsvSchema? _schema;
 
     /// <summary>
@@ -35,13 +36,14 @@ public sealed partial class CsvDocument
         _columnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict;
     }
 
-    private CsvDocument(CsvLoadMode mode, char delimiter, CultureInfo culture, Encoding encoding, CsvColumnCountMismatchPolicy columnCountMismatchPolicy)
+    private CsvDocument(CsvLoadMode mode, char delimiter, CultureInfo culture, Encoding encoding, CsvColumnCountMismatchPolicy columnCountMismatchPolicy, string[]? dateTimeFormats = null)
     {
         _mode = mode;
         _delimiter = delimiter;
         _culture = culture;
         _encoding = encoding;
         _columnCountMismatchPolicy = columnCountMismatchPolicy;
+        _dateTimeFormats = dateTimeFormats;
     }
 
     /// <summary>
@@ -163,10 +165,22 @@ public sealed partial class CsvDocument
 
         options ??= new CsvSaveOptions();
         var fullPath = Path.GetFullPath(path);
+        if (options.NoClobber && File.Exists(fullPath))
+        {
+            throw new IOException($"The file '{fullPath}' already exists.");
+        }
+
         var directory = Path.GetDirectoryName(fullPath);
         if (!string.IsNullOrEmpty(directory))
         {
             Directory.CreateDirectory(directory);
+        }
+
+        if (options.Append)
+        {
+            using var appendWriter = CsvFile.CreateTextWriter(fullPath, options, append: true, bufferSize: FileBufferSize);
+            WriteObjects(appendWriter, items, options);
+            return;
         }
 
         var temporaryPath = Path.Combine(
@@ -221,6 +235,11 @@ public sealed partial class CsvDocument
     public Encoding Encoding => _encoding;
 
     /// <summary>
+    /// Gets the configured date/time formats used by typed conversions.
+    /// </summary>
+    public IReadOnlyList<string>? DateTimeFormats => _dateTimeFormats;
+
+    /// <summary>
     /// Gets the load mode of the document.
     /// </summary>
     public CsvLoadMode Mode => _mode;
@@ -237,7 +256,13 @@ public sealed partial class CsvDocument
             Encoding = _encoding
         };
 
-        using var writer = CsvFile.CreateTextWriter(path, options, append: false, bufferSize: FileBufferSize);
+        var fullPath = Path.GetFullPath(path);
+        if (options.NoClobber && File.Exists(fullPath))
+        {
+            throw new IOException($"The file '{fullPath}' already exists.");
+        }
+
+        using var writer = CsvFile.CreateTextWriter(fullPath, options, append: options.Append, bufferSize: FileBufferSize);
         CsvWriter.Write(writer, this, options);
         return this;
     }
@@ -322,6 +347,20 @@ public sealed partial class CsvDocument
     public CsvDocument WithCulture(CultureInfo culture)
     {
         _culture = culture ?? throw new ArgumentNullException(nameof(culture));
+        return this;
+    }
+
+    /// <summary>
+    /// Sets additional date/time formats used by typed row conversion and schema validation.
+    /// </summary>
+    public CsvDocument WithDateTimeFormats(params string[] formats)
+    {
+        if (formats == null)
+        {
+            throw new ArgumentNullException(nameof(formats));
+        }
+
+        _dateTimeFormats = formats.ToArray();
         return this;
     }
 
@@ -564,16 +603,9 @@ public sealed partial class CsvDocument
         _rows.Add(new CsvRow(this, aligned));
     }
 
-    private void AddParsedRowInternal(IReadOnlyList<string> values, CsvColumnCountMismatchPolicy policy)
+    private void AddParsedRowInternal(IReadOnlyList<string> values, CsvLoadOptions options)
     {
-        var alignedStrings = AlignParsedStringValues(values, _header.Count, policy);
-        var aligned = new object?[alignedStrings.Count];
-        for (var i = 0; i < alignedStrings.Count; i++)
-        {
-            aligned[i] = alignedStrings[i];
-        }
-
-        _rows.Add(new CsvRow(this, aligned));
+        _rows.Add(new CsvRow(this, BuildParsedObjectValues(values, _header.Count, options)));
     }
 
     private void SetHeader(IEnumerable<string> headers)

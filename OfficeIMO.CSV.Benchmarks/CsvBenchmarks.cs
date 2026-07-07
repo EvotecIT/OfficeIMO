@@ -3,9 +3,19 @@
 using System.Globalization;
 using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Jobs;
+using nietras.SeparatedValues;
 using CsvHelperReader = CsvHelper.CsvReader;
 using CsvHelperWriter = CsvHelper.CsvWriter;
+using DataplatCsvDataReader = Dataplat.Dbatools.Csv.Reader.CsvDataReader;
+using DataplatCsvReaderOptions = Dataplat.Dbatools.Csv.Reader.CsvReaderOptions;
+using DataplatCsvWriter = Dataplat.Dbatools.Csv.Writer.CsvWriter;
+using DataplatCsvWriterOptions = Dataplat.Dbatools.Csv.Writer.CsvWriterOptions;
+using SepLib = nietras.SeparatedValues.Sep;
+using SepReaderOptions = nietras.SeparatedValues.SepReaderOptions;
+using SepWriterOptions = nietras.SeparatedValues.SepWriterOptions;
 using SylvanCsvDataReader = Sylvan.Data.Csv.CsvDataReader;
+using SylvanCsvDataWriter = Sylvan.Data.Csv.CsvDataWriter;
+using SylvanCsvDataWriterOptions = Sylvan.Data.Csv.CsvDataWriterOptions;
 
 namespace OfficeIMO.CSV.Benchmarks;
 
@@ -29,7 +39,13 @@ public class CsvBenchmarks
 
     private CsvBenchmarkRow[] _rows = [];
     private object?[][] _projectedRows = [];
+    private string?[][] _projectedTextRows = [];
     private string _csvText = string.Empty;
+    private static readonly DataplatCsvReaderOptions DataplatReaderOptions = new() { HasHeaderRow = true };
+    private static readonly DataplatCsvWriterOptions DataplatWriterOptions = new() { NewLine = "\n" };
+    private static readonly SepReaderOptions SepReadOptions = SepLib.New(',').Reader(options => options with { Unescape = true });
+    private static readonly SepWriterOptions SepWriteOptions = SepLib.New(',').Writer(options => options with { WriteHeader = true, Escape = true });
+    private static readonly SylvanCsvDataWriterOptions SylvanWriterOptions = new() { NewLine = "\n" };
 
     [Params(1000, 10000, 25000)]
     public int RowCount { get; set; }
@@ -42,6 +58,7 @@ public class CsvBenchmarks
     {
         _rows = CsvBenchmarkData.Create(RowCount, Shape);
         _projectedRows = _rows.Select(ProjectRow).ToArray();
+        _projectedTextRows = _projectedRows.Select(ProjectTextRow).ToArray();
 
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
         CsvDocument.WriteObjects(writer, _rows, new CsvSaveOptions { NewLine = "\n" });
@@ -64,6 +81,25 @@ public class CsvBenchmarks
         foreach (object?[] row in _projectedRows)
         {
             csv.WriteRow(Headers, row);
+        }
+
+        return writer.GetStringBuilder().Length;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_WriteTrustedTextRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true);
+        if (_projectedTextRows.Length == 0)
+        {
+            return 0;
+        }
+
+        csv.WriteRow(Headers, _projectedTextRows[0]);
+        for (var i = 1; i < _projectedTextRows.Length; i++)
+        {
+            csv.WriteTrustedTextRow(_projectedTextRows[i]);
         }
 
         return writer.GetStringBuilder().Length;
@@ -117,6 +153,57 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int Sylvan_WriteProjectedRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _projectedRows);
+        using var csv = SylvanCsvDataWriter.Create(writer, SylvanWriterOptions);
+        csv.Write(reader);
+        return writer.GetStringBuilder().Length;
+    }
+
+    [Benchmark]
+    public int Dataplat_WriteProjectedRows()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var csv = new DataplatCsvWriter(writer, DataplatWriterOptions);
+        csv.WriteHeader(Headers);
+        foreach (object?[] row in _projectedRows)
+        {
+            csv.WriteRow(row);
+        }
+
+        return writer.GetStringBuilder().Length;
+    }
+
+    [Benchmark]
+    public int Dataplat_WriteFromReader()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _projectedRows);
+        using var csv = new DataplatCsvWriter(writer, DataplatWriterOptions);
+        csv.WriteFromReader(reader);
+        return writer.GetStringBuilder().Length;
+    }
+
+    [Benchmark]
+    public int Sep_WriteProjectedRows()
+    {
+        var options = SepWriteOptions;
+        using var csv = options.ToText();
+        foreach (string?[] row in _projectedTextRows)
+        {
+            using var csvRow = csv.NewRow();
+            for (var i = 0; i < Headers.Length; i++)
+            {
+                csvRow[Headers[i]].Set(row[i].AsSpan());
+            }
+        }
+
+        return csv.ToString().Length;
+    }
+
+    [Benchmark]
     public int OfficeIMO_ReadRowsCallback()
     {
         using var reader = new StringReader(_csvText);
@@ -140,6 +227,61 @@ public class CsvBenchmarks
         });
 
         return fieldCount;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadRowFieldSpansMaterialized()
+    {
+        using var reader = new StringReader(_csvText);
+        var visitor = new CsvMaterializingRowFieldSpanVisitor();
+        CsvDocument.ReadRowFieldSpans(reader, ref visitor);
+        return visitor.FieldCount + visitor.TextLength;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadTextRowFieldSpansMaterialized()
+    {
+        var visitor = new CsvMaterializingRowFieldSpanVisitor();
+        CsvDocument.ReadRowFieldSpansFromText(_csvText, ref visitor);
+        return visitor.FieldCount + visitor.TextLength;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadFieldSpansMaterialized()
+    {
+        using var reader = new StringReader(_csvText);
+        var visitor = new CsvMaterializingFieldSpanVisitor();
+        CsvDocument.ReadFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+        visitor.Complete();
+        return visitor.FieldCount + visitor.TextLength;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadFieldSpanVisitorSkipHeader()
+    {
+        using var reader = new StringReader(_csvText);
+        var visitor = new CountingFieldSpanVisitor();
+        CsvDocument.ReadFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        return visitor.FieldCount + visitor.TextLength;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadTextFieldSpanVisitorSkipHeader()
+    {
+        var visitor = new CountingFieldSpanVisitor();
+        CsvDocument.ReadFieldSpansFromText(
+            _csvText,
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        return visitor.FieldCount + visitor.TextLength;
     }
 
     [Benchmark]
@@ -184,8 +326,8 @@ public class CsvBenchmarks
         {
             for (var i = 0; i < Headers.Length; i++)
             {
-                _ = csv.GetField(i);
-                fieldCount++;
+                string? value = csv.GetField(i);
+                fieldCount += 1 + (value?.Length ?? 0);
             }
         }
 
@@ -202,8 +344,75 @@ public class CsvBenchmarks
         {
             for (var i = 0; i < csv.FieldCount; i++)
             {
-                _ = csv.GetString(i);
-                fieldCount++;
+                fieldCount += 1 + csv.GetString(i).Length;
+            }
+        }
+
+        return fieldCount;
+    }
+
+    [Benchmark]
+    public int Sylvan_ReadFieldSpans()
+    {
+        using var reader = new StringReader(_csvText);
+        using var csv = SylvanCsvDataReader.Create(reader);
+        var fieldCount = 0;
+        while (csv.Read())
+        {
+            for (var i = 0; i < csv.FieldCount; i++)
+            {
+                fieldCount += 1 + csv.GetFieldSpan(i).Length;
+            }
+        }
+
+        return fieldCount;
+    }
+
+    [Benchmark]
+    public int Dataplat_ReadFields()
+    {
+        using var reader = new StringReader(_csvText);
+        using var csv = new DataplatCsvDataReader(reader, DataplatReaderOptions);
+        var fieldCount = 0;
+        while (csv.Read())
+        {
+            for (var i = 0; i < csv.FieldCount; i++)
+            {
+                fieldCount += 1 + csv.GetString(i).Length;
+            }
+        }
+
+        return fieldCount;
+    }
+
+    [Benchmark]
+    public int Sep_ReadFields()
+    {
+        var options = SepReadOptions;
+        using var csv = options.FromText(_csvText);
+        var fieldCount = 0;
+        foreach (var row in csv)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                fieldCount += 1 + row[i].ToString().Length;
+            }
+        }
+
+        return fieldCount;
+    }
+
+    [Benchmark]
+    public int Sep_ReadFieldSpans()
+    {
+        var options = SepReadOptions;
+        using var csv = options.FromText(_csvText);
+        var fieldCount = 0;
+        foreach (var row in csv)
+        {
+            for (var i = 0; i < row.ColCount; i++)
+            {
+                fieldCount += 1 + row[i].Span.Length;
             }
         }
 
@@ -239,6 +448,37 @@ public class CsvBenchmarks
             row.TicketCount,
             row.Notes
         ];
+    }
+
+    private static string?[] ProjectTextRow(object?[] row)
+    {
+        var values = new string?[row.Length];
+        for (var i = 0; i < row.Length; i++)
+        {
+            values[i] = Convert.ToString(row[i], CultureInfo.InvariantCulture);
+        }
+
+        return values;
+    }
+
+    private struct CountingFieldSpanVisitor : ICsvFieldSpanVisitor
+    {
+        public int FieldCount { get; private set; }
+
+        public int TextLength { get; private set; }
+
+        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+            FieldCount++;
+            TextLength += value.Length;
+        }
+
+        public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
+        {
+            FieldCount++;
+            TextLength += unescapedLength;
+            return true;
+        }
     }
 }
 

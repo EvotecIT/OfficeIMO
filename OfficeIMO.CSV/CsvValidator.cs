@@ -44,7 +44,7 @@ internal static class CsvValidator
 
                 if (column.DataType is not null)
                 {
-                    if (!CsvValueConverter.TryConvert(value, column.DataType, document.Culture, out _, out var error))
+                    if (!CsvValueConverter.TryConvert(value, column.DataType, document.Culture, document.DateTimeFormats, out _, out var error))
                     {
                         errors.Add(new CsvValidationError(rowIndex, column.Name, error ?? "Invalid value."));
                         continue;

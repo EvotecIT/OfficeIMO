@@ -6,10 +6,10 @@ namespace OfficeIMO.CSV;
 
 internal static class CsvValueConverter
 {
-    public static T? ConvertTo<T>(object? value, CultureInfo culture)
+    public static T? ConvertTo<T>(object? value, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats = null)
     {
         var targetType = typeof(T);
-        if (!TryConvert(value, targetType, culture, out var result, out var error))
+        if (!TryConvert(value, targetType, culture, dateTimeFormats, out var result, out var error))
         {
             throw new CsvException(error ?? $"Value '{value}' cannot be converted to {targetType.Name}");
         }
@@ -17,7 +17,7 @@ internal static class CsvValueConverter
         return (T?)result;
     }
 
-    public static bool TryConvert(object? value, Type targetType, CultureInfo culture, out object? result, out string? error)
+    public static bool TryConvert(object? value, Type targetType, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats, out object? result, out string? error)
     {
         error = null;
         result = null;
@@ -45,7 +45,7 @@ internal static class CsvValueConverter
 
         if (value is string s)
         {
-            return TryConvertFromString(s, effectiveType, culture, out result, out error);
+            return TryConvertFromString(s, effectiveType, culture, dateTimeFormats, out result, out error);
         }
 
         try
@@ -61,7 +61,7 @@ internal static class CsvValueConverter
         }
     }
 
-    private static bool TryConvertFromString(string text, Type targetType, CultureInfo culture, out object? result, out string? error)
+    private static bool TryConvertFromString(string text, Type targetType, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats, out object? result, out string? error)
     {
         error = null;
         result = null;
@@ -184,6 +184,13 @@ internal static class CsvValueConverter
 
             if (targetType == typeof(DateTime))
             {
+                if (dateTimeFormats is { Count: > 0 } &&
+                    DateTime.TryParseExact(text, dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out var formattedDateTime))
+                {
+                    result = formattedDateTime;
+                    return true;
+                }
+
                 result = DateTime.Parse(text, culture, DateTimeStyles.None);
                 return true;
             }

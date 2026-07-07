@@ -48,7 +48,7 @@ public sealed class CsvRow
     public T? Get<T>(int index)
     {
         var value = Values[index];
-        return CsvValueConverter.ConvertTo<T>(value, _document.Culture);
+        return CsvValueConverter.ConvertTo<T>(value, _document.Culture, _document.DateTimeFormats);
     }
 
     /// <summary>
