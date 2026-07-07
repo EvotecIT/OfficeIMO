@@ -262,6 +262,53 @@ Lead[^1]
     }
 
     [Fact]
+    public void CommonMark_Write_Profile_Renders_CustomContainers_As_Raw_Html() {
+        var doc = MarkdownDoc.Create().Add(new CustomContainerBlock(
+            "note",
+            new IMarkdownBlock[] {
+                new ParagraphBlock(new InlineSequence().Text("Body"))
+            }));
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("<div class=\"note\"><p>Body</p></div>", markdown);
+        Assert.DoesNotContain(":::", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommonMark_Write_Profile_Escapes_DirectParagraphLineStarts() {
+        var doc = MarkdownDoc.Create().Add(new ParagraphBlock(new InlineSequence()
+            .Text("# not heading")
+            .SoftBreak()
+            .Text("- not list")
+            .SoftBreak()
+            .Text("1. not ordered")));
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("\\# not heading\n\\- not list\n1\\. not ordered", markdown);
+    }
+
+    [Fact]
+    public void CommonMark_Write_Profile_Renders_Attributed_Blocks_As_Raw_Html() {
+        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.GenericAttributes = true;
+        var doc = MarkdownReader.Parse("""
+# Title {#intro .lead}
+
+{#para .note}
+Text
+""", readerOptions);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Contains("<h1 id=\"intro\" class=\"lead\">Title</h1>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<p id=\"para\" class=\"note\">Text</p>", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("{#intro", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("{#para", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CommonMark_Write_Profile_Renders_NonCommonMark_Inlines_As_Raw_Html() {
         var scalarDoc = MarkdownDoc.Create()
             .Add(new ParagraphBlock(new InlineSequence()
@@ -287,6 +334,18 @@ Lead[^1]
         Assert.DoesNotContain("++added", sequenceMarkdown, StringComparison.Ordinal);
         Assert.DoesNotContain("^up", sequenceMarkdown, StringComparison.Ordinal);
         Assert.DoesNotContain("~down", sequenceMarkdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void CommonMark_Write_Profile_Renders_InlineFallbackAttributes_As_HtmlAttributes() {
+        var readerOptions = MarkdownReaderOptions.CreateOfficeIMOProfile();
+        readerOptions.GenericAttributes = true;
+        var doc = MarkdownReader.Parse("~~old~~{#gone .muted}", readerOptions);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("<del id=\"gone\" class=\"muted\">old</del>", markdown);
+        Assert.DoesNotContain("{#gone", markdown, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -325,6 +384,15 @@ Lead[^1]
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkDetailsMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkCustomContainerMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkParagraphLineStartMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkAttributedBlockMarkdownName, StringComparison.Ordinal));
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkStrikethroughMarkdownName, StringComparison.Ordinal));

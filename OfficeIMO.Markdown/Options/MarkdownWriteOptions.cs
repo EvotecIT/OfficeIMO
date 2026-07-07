@@ -32,6 +32,9 @@ public sealed class MarkdownWriteOptions {
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkDefinitionListMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkFootnoteDefinitionMarkdownFallback(options);
         MarkdownBlockRenderBuiltInExtensions.AddCommonMarkDetailsMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkCustomContainerMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkParagraphLineStartMarkdownFallback(options);
+        MarkdownBlockRenderBuiltInExtensions.AddCommonMarkAttributedBlockMarkdownFallback(options);
         MarkdownInlineRenderBuiltInExtensions.AddCommonMarkGfmInlineMarkdownFallbacks(options);
         return options;
     }

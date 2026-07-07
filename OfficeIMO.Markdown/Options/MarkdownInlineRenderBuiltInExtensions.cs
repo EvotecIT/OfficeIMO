@@ -71,6 +71,6 @@ public static class MarkdownInlineRenderBuiltInExtensions {
 
         return html == null
             ? null
-            : MarkdownInlineAttributeRenderer.RenderMarkdown(inline, html);
+            : MarkdownInlineAttributeRenderer.RenderHtml(inline, html, null);
     }
 }

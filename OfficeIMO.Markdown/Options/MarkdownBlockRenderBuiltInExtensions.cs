@@ -25,6 +25,12 @@ public static class MarkdownBlockRenderBuiltInExtensions {
     public const string CommonMarkFootnoteDefinitionMarkdownName = "CommonMark.FootnoteDefinition.Markdown";
     /// <summary>Stable registration name for the CommonMark details markdown fallback.</summary>
     public const string CommonMarkDetailsMarkdownName = "CommonMark.Details.Markdown";
+    /// <summary>Stable registration name for the CommonMark custom-container markdown fallback.</summary>
+    public const string CommonMarkCustomContainerMarkdownName = "CommonMark.CustomContainer.Markdown";
+    /// <summary>Stable registration name for the CommonMark paragraph line-start markdown fallback.</summary>
+    public const string CommonMarkParagraphLineStartMarkdownName = "CommonMark.ParagraphLineStart.Markdown";
+    /// <summary>Stable registration name for the CommonMark attributed block markdown fallback.</summary>
+    public const string CommonMarkAttributedBlockMarkdownName = "CommonMark.AttributedBlock.Markdown";
 
     /// <summary>Adds a portable markdown fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutMarkdownFallback(MarkdownWriteOptions options) {
@@ -121,6 +127,51 @@ public static class MarkdownBlockRenderBuiltInExtensions {
             }
 
             return ((IMarkdownBlock)details).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for custom containers by emitting raw HTML.</summary>
+    public static void AddCommonMarkCustomContainerMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkCustomContainerMarkdownName, typeof(CustomContainerBlock), static (block, _) => {
+            if (block is not CustomContainerBlock container) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)container).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds CommonMark-compatible paragraph text escaping for line-start block markers.</summary>
+    public static void AddCommonMarkParagraphLineStartMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkParagraphLineStartMarkdownName, typeof(ParagraphBlock), static (block, _) => {
+            if (block is not ParagraphBlock paragraph || !paragraph.Attributes.IsEmpty) {
+                return null;
+            }
+
+            return paragraph.Inlines.RenderMarkdownWithTextEscaper(MarkdownEscaper.EscapeTextAndLineStarts);
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for attributed blocks by emitting raw HTML.</summary>
+    public static void AddCommonMarkAttributedBlockMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkAttributedBlockMarkdownName, typeof(MarkdownBlock), static (block, _) => {
+            if (block is not MarkdownObject markdownObject || markdownObject.Attributes.IsEmpty) {
+                return null;
+            }
+
+            return block.RenderHtml();
         });
     }
 

@@ -46,8 +46,8 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        bool isStandaloneMedia = onlyElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
-                                 || onlyElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)
+        bool isStandaloneMedia = HasEffectiveTagName(onlyElement, context, "IMG")
+                                 || HasEffectiveTagName(onlyElement, context, "PICTURE")
                                  || CanConvertAnchorToLinkedImageBlock(onlyElement, context);
         if (!isStandaloneMedia) {
             return false;

@@ -145,6 +145,24 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
     }
 
     [Fact]
+    public void HtmlToMarkdown_TagAliases_MapStandaloneParagraphMediaToImageBlock() {
+        const string html = """
+<p><custom-img src="photo.png" alt="Photo"></custom-img></p>
+""";
+
+        var options = new HtmlToMarkdownOptions {
+            BaseUri = new Uri("https://example.com/docs/")
+        };
+        options.TagAliases["custom-img"] = "img";
+
+        var document = new HtmlToMarkdownConverter().ConvertToDocument(html, options);
+        var image = Assert.IsType<ImageBlock>(Assert.Single(document.Blocks));
+
+        Assert.Equal("https://example.com/docs/photo.png", image.Path);
+        Assert.Equal("Photo", image.Alt);
+    }
+
+    [Fact]
     public void HtmlToMarkdown_PictureFallbackImageKeepsLazyImageSourceAheadOfPlaceholder() {
         const string html = """
 <picture>
