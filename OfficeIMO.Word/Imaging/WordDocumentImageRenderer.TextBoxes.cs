@@ -124,7 +124,10 @@ namespace OfficeIMO.Word {
                     "Word text box");
             }
 
-            AdvanceFlowToAnchoredWrapTop(context, top);
+            if (hasSquareWrap || hasTightWrap || hasThroughWrap) {
+                AdvanceFlowToAnchoredWrapTop(context, top);
+            }
+
             return true;
         }
 
@@ -474,7 +477,8 @@ namespace OfficeIMO.Word {
             }
 
             foreach (DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph in content.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
-                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
+                List<(WordParagraph Run, string Text)> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
+                    .Select(run => (Run: run, Text: ResolveImageExportText(run, context)))
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
                 if (paragraphRuns.Count == 0) {
@@ -482,15 +486,12 @@ namespace OfficeIMO.Word {
                 }
 
                 if (richRuns.Count > 0) {
-                    richRuns.Add(CreateRichTextRun(paragraphRuns[0], colorScheme, Environment.NewLine));
+                    richRuns.Add(CreateRichTextRun(paragraphRuns[0].Run, colorScheme, Environment.NewLine));
                 }
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
-                    WordParagraph run = paragraphRuns[runIndex];
-                    string text = ResolveImageExportText(run, context);
-                    if (!string.IsNullOrEmpty(text)) {
-                        richRuns.Add(CreateRichTextRun(run, colorScheme, text));
-                    }
+                    (WordParagraph run, string text) = paragraphRuns[runIndex];
+                    richRuns.Add(CreateRichTextRun(run, colorScheme, text));
                 }
             }
 

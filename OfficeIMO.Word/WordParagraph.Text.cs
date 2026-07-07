@@ -96,7 +96,7 @@ namespace OfficeIMO.Word {
                 return string.Empty;
             }
             set {
-                var run = VerifyRun();
+                Run run = ResolveTextSetterRun(out OpenXmlElement textContainer);
 
                 var preservedBreaks = new List<(int ContentIndex, Break Break)>();
                 int contentNodesEncountered = 0;
@@ -122,24 +122,26 @@ namespace OfficeIMO.Word {
                     return units;
                 }
 
-                foreach (var child in run.ChildElements.ToList()) {
-                    switch (child) {
-                        case Text textNode:
-                            textNode.Remove();
-                            contentNodesEncountered += CountContentUnits(textNode.Text);
-                            break;
-                        case TabChar tabChar:
-                            tabChar.Remove();
-                            contentNodesEncountered++;
-                            break;
-                        case Break breakNode:
-                            if (IsTextWrappingBreak(breakNode)) {
-                                breakNode.Remove();
-                            } else {
-                                preservedBreaks.Add((contentNodesEncountered, breakNode));
-                                breakNode.Remove();
-                            }
-                            break;
+                foreach (Run contentRun in textContainer.Descendants<Run>().Prepend(textContainer).OfType<Run>().Distinct().ToList()) {
+                    foreach (var child in contentRun.ChildElements.ToList()) {
+                        switch (child) {
+                            case Text textNode:
+                                textNode.Remove();
+                                contentNodesEncountered += CountContentUnits(textNode.Text);
+                                break;
+                            case TabChar tabChar:
+                                tabChar.Remove();
+                                contentNodesEncountered++;
+                                break;
+                            case Break breakNode:
+                                if (IsTextWrappingBreak(breakNode)) {
+                                    breakNode.Remove();
+                                } else {
+                                    preservedBreaks.Add((contentNodesEncountered, breakNode));
+                                    breakNode.Remove();
+                                }
+                                break;
+                        }
                     }
                 }
 
@@ -224,6 +226,37 @@ namespace OfficeIMO.Word {
                     preservedIndex++;
                 }
             }
+        }
+
+        private Run ResolveTextSetterRun(out OpenXmlElement textContainer) {
+            if (_run != null) {
+                textContainer = _run;
+                return _run;
+            }
+
+            if (_hyperlink != null) {
+                textContainer = _hyperlink;
+                return EnsureTextRun(_hyperlink);
+            }
+
+            if (_simpleField != null) {
+                textContainer = _simpleField;
+                return EnsureTextRun(_simpleField);
+            }
+
+            textContainer = VerifyRun();
+            return (Run)textContainer;
+        }
+
+        private static Run EnsureTextRun(OpenXmlCompositeElement container) {
+            Run? run = container.Descendants<Run>().FirstOrDefault();
+            if (run != null) {
+                return run;
+            }
+
+            run = new Run();
+            container.Append(run);
+            return run;
         }
 
         private static string ReadVisibleText(OpenXmlElement element) {

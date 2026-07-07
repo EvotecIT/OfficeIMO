@@ -411,7 +411,7 @@ public static class OfficeDrawingRasterRenderer {
         if (shape.Points.Count >= 2) {
             OfficePoint a = TransformShapePoint(drawingShape, shape.Points[0], scale);
             OfficePoint b = TransformShapePoint(drawingShape, shape.Points[1], scale);
-            DrawGradientOrSolidPolyline(canvas, new[] { a, b }, color, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: false);
+            DrawGradientOrSolidPolyline(canvas, new[] { a, b }, color, strokeGradient, strokeRadialGradient, strokeWidth, shape.StrokeDashStyle, close: false, shape.StrokeLineCap);
             RenderLineMarkers(canvas, shape, a, b, color, scale);
         }
     }
@@ -870,7 +870,7 @@ public static class OfficeDrawingRasterRenderer {
     }
 
     private static void FillGradientPathContours(OfficeRasterCanvas canvas, IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeLinearGradient? linearGradient, OfficeRadialGradient? radialGradient, OfficeFillRule fillRule) {
-        if (contours.Count == 1) {
+        if (contours.Count == 1 && fillRule != OfficeFillRule.NonZero) {
             if (radialGradient != null) {
                 canvas.FillRadialGradientPolygon(contours[0], radialGradient);
             } else if (linearGradient != null) {
