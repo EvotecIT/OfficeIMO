@@ -99,7 +99,7 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
-    public void RenderPage_SkipsJpegImageXObjectWithUnresolvedSoftMask() {
+    public void RenderPage_RendersBaseJpegImageXObjectWithUnresolvedSoftMask() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CreateMinimalJpeg(1, 1),
             CompressWithDeflate(new byte[] { 128 }),
@@ -109,7 +109,9 @@ public class PdfPageImageRendererTests {
 
         OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
 
-        Assert.Empty(drawing.Images);
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/jpeg", image.ContentType);
+        Assert.Equal(CreateMinimalJpeg(1, 1), image.Bytes);
     }
 
     [Fact]

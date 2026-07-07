@@ -645,16 +645,17 @@ namespace OfficeIMO.Visio {
         }
 
         private static void DrawFlatPolyline(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, bool closed) {
+            GetPointBounds(points, out double left, out double top, out double width, out double height);
             for (int i = 1; i < points.Count; i++) {
-                DrawFlatStrokeSegment(canvas, points[i - 1], points[i], paint, strokeWidth);
+                DrawFlatStrokeSegment(canvas, points[i - 1], points[i], paint, strokeWidth, left, top, width, height);
             }
 
             if (closed && points.Count > 2) {
-                DrawFlatStrokeSegment(canvas, points[points.Count - 1], points[0], paint, strokeWidth);
+                DrawFlatStrokeSegment(canvas, points[points.Count - 1], points[0], paint, strokeWidth, left, top, width, height);
             }
         }
 
-        private static void DrawFlatStrokeSegment(OfficeRasterCanvas canvas, OfficePoint start, OfficePoint end, SvgPaint paint, double strokeWidth) {
+        private static void DrawFlatStrokeSegment(OfficeRasterCanvas canvas, OfficePoint start, OfficePoint end, SvgPaint paint, double strokeWidth, double pathLeft, double pathTop, double pathWidth, double pathHeight) {
             double dx = end.X - start.X;
             double dy = end.Y - start.Y;
             double length = Math.Sqrt((dx * dx) + (dy * dy));
@@ -674,10 +675,39 @@ namespace OfficeIMO.Visio {
             if (paint.StrokeRadialGradient != null) {
                 canvas.FillRadialGradientPolygon(polygon, paint.StrokeRadialGradient);
             } else if (paint.StrokeGradient != null) {
-                canvas.FillLinearGradientPolygon(polygon, paint.StrokeGradient);
+                canvas.FillLinearGradientPolygon(polygon, RebaseLinearGradientToSegmentBounds(paint.StrokeGradient, polygon, pathLeft, pathTop, pathWidth, pathHeight));
             } else {
                 canvas.FillPolygon(polygon, paint.Stroke);
             }
+        }
+
+        private static OfficeLinearGradient RebaseLinearGradientToSegmentBounds(OfficeLinearGradient gradient, IReadOnlyList<OfficePoint> segmentPoints, double pathLeft, double pathTop, double pathWidth, double pathHeight) {
+            GetPointBounds(segmentPoints, out double segmentLeft, out double segmentTop, out double segmentWidth, out double segmentHeight);
+            pathWidth = Math.Max(pathWidth, 0.0001D);
+            pathHeight = Math.Max(pathHeight, 0.0001D);
+            segmentWidth = Math.Max(segmentWidth, 0.0001D);
+            segmentHeight = Math.Max(segmentHeight, 0.0001D);
+            double startX = ((pathLeft + (gradient.StartX * pathWidth)) - segmentLeft) / segmentWidth;
+            double startY = ((pathTop + (gradient.StartY * pathHeight)) - segmentTop) / segmentHeight;
+            double endX = ((pathLeft + (gradient.EndX * pathWidth)) - segmentLeft) / segmentWidth;
+            double endY = ((pathTop + (gradient.EndY * pathHeight)) - segmentTop) / segmentHeight;
+            return new OfficeLinearGradient(startX, startY, endX, endY, gradient.Stops);
+        }
+
+        private static void GetPointBounds(IReadOnlyList<OfficePoint> points, out double left, out double top, out double width, out double height) {
+            left = points.Count > 0 ? points[0].X : 0D;
+            double right = left;
+            top = points.Count > 0 ? points[0].Y : 0D;
+            double bottom = top;
+            for (int i = 1; i < points.Count; i++) {
+                left = Math.Min(left, points[i].X);
+                right = Math.Max(right, points[i].X);
+                top = Math.Min(top, points[i].Y);
+                bottom = Math.Max(bottom, points[i].Y);
+            }
+
+            width = right - left;
+            height = bottom - top;
         }
 
         private static OfficeColor GetStrokeFallbackColor(SvgPaint paint) {

@@ -65,10 +65,174 @@ internal sealed class PdfPageOptionalContentVisibility {
 
     public bool IsHidden(PdfInlineOptionalContentReferences references) {
         if (references.IsMembershipDictionary) {
+            if (!string.IsNullOrWhiteSpace(references.VisibilityExpression) &&
+                TryEvaluateInlineVisibilityExpression(references.VisibilityExpression!, out bool expressionVisible)) {
+                return !expressionVisible;
+            }
+
             return IsMembershipHidden(references.ObjectNumbers, references.Policy);
         }
 
         return IsHiddenAny(references.ObjectNumbers);
+    }
+
+    private bool TryEvaluateInlineVisibilityExpression(string expression, out bool visible) {
+        visible = false;
+        int index = 0;
+        return TryEvaluateInlineVisibilityExpression(expression, ref index, out visible);
+    }
+
+    private bool TryEvaluateInlineVisibilityExpression(string expression, ref int index, out bool visible) {
+        visible = false;
+        SkipInlineWhitespace(expression, ref index);
+        if (index >= expression.Length) {
+            return false;
+        }
+
+        if (expression[index] == '[') {
+            return TryEvaluateInlineVisibilityArray(expression, ref index, out visible);
+        }
+
+        if (TryReadInlineReference(expression, ref index, out int objectNumber)) {
+            visible = !_hiddenObjectNumbers.Contains(objectNumber);
+            return true;
+        }
+
+        return false;
+    }
+
+    private bool TryEvaluateInlineVisibilityArray(string expression, ref int index, out bool visible) {
+        visible = false;
+        if (index >= expression.Length || expression[index] != '[') {
+            return false;
+        }
+
+        index++;
+        SkipInlineWhitespace(expression, ref index);
+        if (!TryReadInlineName(expression, ref index, out string? operatorName)) {
+            return false;
+        }
+
+        switch (operatorName) {
+            case "And":
+                visible = true;
+                while (TryReadInlineExpressionOperand(expression, ref index, out bool operandVisible)) {
+                    visible &= operandVisible;
+                }
+
+                return TryCloseInlineArray(expression, ref index);
+            case "Or":
+                visible = false;
+                while (TryReadInlineExpressionOperand(expression, ref index, out bool operandVisible)) {
+                    visible |= operandVisible;
+                }
+
+                return TryCloseInlineArray(expression, ref index);
+            case "Not":
+                if (!TryReadInlineExpressionOperand(expression, ref index, out bool nestedVisible)) {
+                    return false;
+                }
+
+                visible = !nestedVisible;
+                return TryCloseInlineArray(expression, ref index);
+            default:
+                return false;
+        }
+    }
+
+    private bool TryReadInlineExpressionOperand(string expression, ref int index, out bool visible) {
+        visible = false;
+        SkipInlineWhitespace(expression, ref index);
+        if (index >= expression.Length || expression[index] == ']') {
+            return false;
+        }
+
+        return TryEvaluateInlineVisibilityExpression(expression, ref index, out visible);
+    }
+
+    private static bool TryCloseInlineArray(string expression, ref int index) {
+        SkipInlineWhitespace(expression, ref index);
+        if (index >= expression.Length || expression[index] != ']') {
+            return false;
+        }
+
+        index++;
+        return true;
+    }
+
+    private static void SkipInlineWhitespace(string text, ref int index) {
+        while (index < text.Length && char.IsWhiteSpace(text[index])) {
+            index++;
+        }
+    }
+
+    private static bool TryReadInlineName(string text, ref int index, out string? name) {
+        name = null;
+        SkipInlineWhitespace(text, ref index);
+        if (index >= text.Length || text[index] != '/') {
+            return false;
+        }
+
+        index++;
+        int start = index;
+        while (index < text.Length && !char.IsWhiteSpace(text[index]) && text[index] != '[' && text[index] != ']') {
+            index++;
+        }
+
+        if (index == start) {
+            return false;
+        }
+
+        name = text.Substring(start, index - start);
+        return true;
+    }
+
+    private static bool TryReadInlineReference(string text, ref int index, out int objectNumber) {
+        objectNumber = 0;
+        SkipInlineWhitespace(text, ref index);
+        int start = index;
+        if (!TryReadInlineInteger(text, ref index, out objectNumber)) {
+            return false;
+        }
+
+        SkipInlineWhitespace(text, ref index);
+        if (!TryReadInlineInteger(text, ref index, out _)) {
+            index = start;
+            return false;
+        }
+
+        SkipInlineWhitespace(text, ref index);
+        if (index >= text.Length || text[index] != 'R') {
+            index = start;
+            return false;
+        }
+
+        index++;
+        return true;
+    }
+
+    private static bool TryReadInlineInteger(string text, ref int index, out int value) {
+        value = 0;
+        SkipInlineWhitespace(text, ref index);
+        int start = index;
+        if (index < text.Length && (text[index] == '+' || text[index] == '-')) {
+            index++;
+        }
+
+        int digitStart = index;
+        while (index < text.Length && char.IsDigit(text[index])) {
+            index++;
+        }
+
+        if (index == digitStart ||
+#pragma warning disable CA1846
+            !int.TryParse(text.Substring(start, index - start), System.Globalization.NumberStyles.Integer, System.Globalization.CultureInfo.InvariantCulture, out value)) {
+#pragma warning restore CA1846
+            index = start;
+            return false;
+        }
+
+        return true;
     }
 
     private bool IsMembershipHidden(IReadOnlyList<int> objectNumbers, string? policy) {

@@ -372,7 +372,18 @@ namespace OfficeIMO.Visio {
                 !ClipLinearGradientEdge(-dy, y1, ref t0, ref t1) ||
                 !ClipLinearGradientEdge(dy, 1D - y1, ref t0, ref t1) ||
                 t1 <= t0) {
-                return false;
+                double lengthSquared = (dx * dx) + (dy * dy);
+                double nearestRatio = lengthSquared > double.Epsilon
+                    ? (((0.5D - x1) * dx) + ((0.5D - y1) * dy)) / lengthSquared
+                    : 0D;
+                OfficeColor padColor = InterpolateGradientColor(stops, nearestRatio <= 0D ? 0D : 1D);
+                clippedStart = new OfficePoint(0D, 0.5D);
+                clippedEnd = new OfficePoint(1D, 0.5D);
+                clippedStops = NormalizeStops(new List<OfficeGradientStop> {
+                    new OfficeGradientStop(0D, padColor),
+                    new OfficeGradientStop(1D, padColor)
+                });
+                return true;
             }
 
             clippedStart = new OfficePoint(ClampUnit(x1 + dx * t0), ClampUnit(y1 + dy * t0));

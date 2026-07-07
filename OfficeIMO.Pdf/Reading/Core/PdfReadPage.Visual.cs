@@ -1041,7 +1041,18 @@ public sealed partial class PdfReadPage {
             clip.Y < 0D ||
             clipRight > drawing.Width ||
             clipBottom > drawing.Height) {
-            return false;
+            if (!TryFitClipToDrawing(clip, drawing.Width, drawing.Height, out PdfPageClipPath drawingClip)) {
+                return true;
+            }
+
+            clip = drawingClip;
+            officeClipPath = clip.ToOfficeClipPath(clip.X, clip.Y);
+            if (officeClipPath == null) {
+                return false;
+            }
+
+            localX = x - clip.X;
+            localY = y - clip.Y;
         }
 
         double textX = localX;
@@ -1196,7 +1207,7 @@ public sealed partial class PdfReadPage {
     }
 
     private static void AddImagePlacement(OfficeDrawing drawing, double pageHeight, PdfImagePlacement placement, PdfExtractedImage image) {
-        if (!image.IsImageFile || image.HasUnresolvedTransparencyMask || placement.Width <= 0D || placement.Height <= 0D) {
+        if (!image.IsImageFile || placement.Width <= 0D || placement.Height <= 0D) {
             return;
         }
 
