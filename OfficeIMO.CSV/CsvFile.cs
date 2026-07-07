@@ -114,6 +114,7 @@ public static class CsvFile
     private static Stream CreateWriteStream(string path, CsvCompressionType compressionType, CompressionLevel compressionLevel, bool append, int bufferSize)
     {
         EnsureCompressionSupported(compressionType);
+        EnsureCompressionLevelSupported(compressionType, compressionLevel);
         if (append && compressionType != CsvCompressionType.None)
         {
             throw new NotSupportedException("Appending to compressed CSV files is not supported.");
@@ -155,6 +156,19 @@ public static class CsvFile
 #endif
             _ => throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, "Unsupported CSV compression type.")
         };
+
+    private static void EnsureCompressionLevelSupported(CsvCompressionType compressionType, CompressionLevel compressionLevel)
+    {
+        if (compressionType == CsvCompressionType.None)
+        {
+            return;
+        }
+
+        if (!Enum.IsDefined(typeof(CompressionLevel), compressionLevel))
+        {
+            throw new ArgumentOutOfRangeException(nameof(compressionLevel), compressionLevel, "Unsupported CSV compression level.");
+        }
+    }
 
     private static void EnsureCompressionSupported(CsvCompressionType compressionType)
     {

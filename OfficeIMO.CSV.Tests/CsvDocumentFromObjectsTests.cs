@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
 using OfficeIMO.CSV;
 using Xunit;
@@ -443,6 +444,37 @@ public class CsvDocumentFromObjectsTests
 
             Assert.Throws<InvalidOperationException>(() =>
                 CsvDocument.Load(path, new CsvLoadOptions { MaxDecompressedBytes = 4 }));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void Save_InvalidCompressionLevelDoesNotTruncateExistingFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.InvalidCompressionLevel." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        const string original = "Name,Value\nOriginal,1\n";
+        try
+        {
+            File.WriteAllText(path, original);
+
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                new CsvDocument()
+                    .WithHeader("Name", "Value")
+                    .AddRow("Replacement", 2)
+                    .Save(path, new CsvSaveOptions
+                    {
+                        CompressionType = CsvCompressionType.GZip,
+                        CompressionLevel = (CompressionLevel)123,
+                        NewLine = "\n"
+                    }));
+
+            Assert.Equal(original, File.ReadAllText(path));
         }
         finally
         {
