@@ -2658,7 +2658,7 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
-        public void PowerPointSlide_RendersComboChartsWithScatterSeriesOwnXValues() {
+        public void PowerPointSlide_RejectsComboChartsWithScatterSeriesUntilNumericAxisIsModeled() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
             presentation.SlideSize.SetSizePoints(360, 240);
@@ -2673,12 +2673,7 @@ namespace OfficeIMO.Tests {
             PowerPointChart chart = slide.AddChartPoints(data, 30, 25, 280, 180);
             ConvertSecondBarSeriesToScatterChart(chart);
 
-            Assert.True(chart.TryGetSnapshot(out PowerPointChartSnapshot snapshot));
-            Assert.Equal(2, snapshot.Data.Series.Count);
-            Assert.Equal(PowerPointChartSnapshotKind.ClusteredColumn, snapshot.Data.Series[0].ChartKind);
-            Assert.Equal(PowerPointChartSnapshotKind.Scatter, snapshot.Data.Series[1].ChartKind);
-            Assert.Equal(new[] { 1.5D, 2.5D }, snapshot.Data.Series[1].XValues);
-            Assert.Equal(new[] { 11D, 13D }, snapshot.Data.Series[1].Values);
+            Assert.False(chart.TryGetSnapshot(out _));
         }
 
         [Fact]
