@@ -127,7 +127,7 @@ public class DrawingChartAxisLayoutTests {
     }
 
     [Fact]
-    public void OfficeChartDrawingRenderer_RendersMixedBarAndColumnSeriesWithOwnOrientations() {
+    public void OfficeChartDrawingRenderer_RendersMixedBarAndColumnSeriesWithAxisAlignedColumns() {
         OfficeColor columnColor = OfficeColor.ParseHex("#2563EB");
         OfficeColor barColor = OfficeColor.ParseHex("#DC2626");
         OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
@@ -147,13 +147,13 @@ public class DrawingChartAxisLayoutTests {
         OfficeDrawingShape[] columnBars = drawing.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor == columnColor)
             .ToArray();
-        OfficeDrawingShape[] horizontalBars = drawing.Shapes
+        OfficeDrawingShape[] axisAlignedBars = drawing.Shapes
             .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor == barColor)
             .ToArray();
 
         Assert.NotEmpty(columnBars);
-        Assert.NotEmpty(horizontalBars);
+        Assert.NotEmpty(axisAlignedBars);
         Assert.All(columnBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
-        Assert.All(horizontalBars, shape => Assert.True(shape.Shape.Width > shape.Shape.Height));
+        Assert.All(axisAlignedBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
     }
 }

@@ -177,13 +177,13 @@ public static class OfficeDrawingSvgExporter {
                     paint + transform);
                 break;
             case OfficeShapeKind.Line:
-                AppendLine(sb, drawingShape, paint, transform, originX, originY);
+                AppendLine(sb, drawingShape, paint, transform, originX, originY, strokeGradientId);
                 break;
             case OfficeShapeKind.Polygon:
                 AppendPolygon(sb, drawingShape, paint, transform, originX, originY);
                 break;
             case OfficeShapeKind.Path:
-                AppendPath(sb, drawingShape, paint, transform, originX, originY);
+                AppendPath(sb, drawingShape, paint, transform, originX, originY, strokeGradientId);
                 break;
         }
 
@@ -313,7 +313,7 @@ public static class OfficeDrawingSvgExporter {
         }
     }
 
-    private static void AppendLine(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform, double originX, double originY) {
+    private static void AppendLine(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform, double originX, double originY, string? strokeGradientId) {
         OfficeShape shape = drawingShape.Shape;
         if (shape.Points.Count != 2) {
             return;
@@ -327,17 +327,17 @@ public static class OfficeDrawingSvgExporter {
             end.X,
             end.Y,
             paint + transform);
-        AppendLineMarker(sb, shape.StrokeStartMarker, start, new OfficePoint(start.X - end.X, start.Y - end.Y), shape, transform);
-        AppendLineMarker(sb, shape.StrokeEndMarker, end, new OfficePoint(end.X - start.X, end.Y - start.Y), shape, transform);
+        AppendLineMarker(sb, shape.StrokeStartMarker, start, new OfficePoint(start.X - end.X, start.Y - end.Y), shape, transform, strokeGradientId);
+        AppendLineMarker(sb, shape.StrokeEndMarker, end, new OfficePoint(end.X - start.X, end.Y - start.Y), shape, transform, strokeGradientId);
     }
 
-    private static void AppendLineMarker(StringBuilder sb, OfficeLineMarker? marker, OfficePoint tip, OfficePoint lineDirection, OfficeShape shape, string transform) {
+    private static void AppendLineMarker(StringBuilder sb, OfficeLineMarker? marker, OfficePoint tip, OfficePoint lineDirection, OfficeShape shape, string transform, string? strokeGradientId) {
         IReadOnlyList<OfficePoint> contour = OfficeLineMarkerGeometry.CreateContour(marker, tip, lineDirection);
         if (contour.Count == 0) {
             return;
         }
 
-        string? paint = BuildLineMarkerPaintAttributes(shape);
+        string? paint = BuildLineMarkerPaintAttributes(shape, strokeGradientId);
         if (paint == null) {
             return;
         }
@@ -355,14 +355,14 @@ public static class OfficeDrawingSvgExporter {
         sb.AppendPolygonElement(points, paint + transform);
     }
 
-    private static void AppendPath(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform, double originX, double originY) {
+    private static void AppendPath(StringBuilder sb, OfficeDrawingShape drawingShape, string paint, string transform, double originX, double originY, string? strokeGradientId) {
         OfficeShape shape = drawingShape.Shape;
         if (shape.PathCommands.Count == 0) {
             return;
         }
 
         sb.AppendPathElement(shape.PathCommands, originX, originY, paint + BuildFillRuleAttribute(shape.FillRule) + transform);
-        AppendPathMarkers(sb, shape, originX, originY, transform);
+        AppendPathMarkers(sb, shape, originX, originY, transform, strokeGradientId);
     }
 
     private static string BuildFillRuleAttribute(OfficeFillRule fillRule) =>
@@ -371,7 +371,7 @@ public static class OfficeDrawingSvgExporter {
     private static string BuildClipRuleAttribute(OfficeFillRule fillRule) =>
         fillRule == OfficeFillRule.EvenOdd ? " clip-rule=\"evenodd\"" : string.Empty;
 
-    private static void AppendPathMarkers(StringBuilder sb, OfficeShape shape, double originX, double originY, string transform) {
+    private static void AppendPathMarkers(StringBuilder sb, OfficeShape shape, double originX, double originY, string transform, string? strokeGradientId) {
         if (shape.StrokeStartMarker == null && shape.StrokeEndMarker == null) {
             return;
         }
@@ -389,14 +389,14 @@ public static class OfficeDrawingSvgExporter {
         if (firstOpen != null) {
             OfficePoint start = firstOpen.Points[0];
             OfficePoint next = firstOpen.Points[1];
-            AppendLineMarker(sb, shape.StrokeStartMarker, start, new OfficePoint(start.X - next.X, start.Y - next.Y), shape, transform);
+            AppendLineMarker(sb, shape.StrokeStartMarker, start, new OfficePoint(start.X - next.X, start.Y - next.Y), shape, transform, strokeGradientId);
         }
 
         if (lastOpen != null) {
             IReadOnlyList<OfficePoint> points = lastOpen.Points;
             OfficePoint end = points[points.Count - 1];
             OfficePoint previous = points[points.Count - 2];
-            AppendLineMarker(sb, shape.StrokeEndMarker, end, new OfficePoint(end.X - previous.X, end.Y - previous.Y), shape, transform);
+            AppendLineMarker(sb, shape.StrokeEndMarker, end, new OfficePoint(end.X - previous.X, end.Y - previous.Y), shape, transform, strokeGradientId);
         }
     }
 
@@ -685,7 +685,19 @@ public static class OfficeDrawingSvgExporter {
         }
     }
 
-    private static string? BuildLineMarkerPaintAttributes(OfficeShape shape) {
+    private static string? BuildLineMarkerPaintAttributes(OfficeShape shape, string? strokeGradientId) {
+        if (strokeGradientId != null) {
+            var gradientPaint = new StringBuilder();
+            gradientPaint.Append(" fill=\"url(#").Append(Escape(strokeGradientId)).Append(")\"");
+            double gradientOpacity = shape.StrokeOpacity ?? 1D;
+            if (gradientOpacity < 1D) {
+                gradientPaint.Append(" fill-opacity=\"").Append(Format(gradientOpacity)).Append('"');
+            }
+
+            gradientPaint.Append(" stroke=\"none\"");
+            return gradientPaint.ToString();
+        }
+
         OfficeColor? color = shape.StrokeColor ?? shape.FillColor;
         if (!color.HasValue || color.Value.A == 0) {
             return null;

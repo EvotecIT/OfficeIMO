@@ -560,20 +560,17 @@ public static partial class OfficeChartDrawingRenderer {
             return;
         }
 
-        bool percentStacked = series.Any(item => isPercentStacked(GetEffectiveSeriesKind(snapshot, item)));
-        bool stacked = percentStacked || series.Any(item => isStacked(GetEffectiveSeriesKind(snapshot, item)));
-        if (percentStacked) {
-            ranges.Add(GetPercentStackedSeriesRange(series, categoryCount));
-            return;
+        foreach (IGrouping<OfficeChartKind, OfficeChartSeries> group in series.GroupBy(item => GetEffectiveSeriesKind(snapshot, item))) {
+            List<OfficeChartSeries> groupedSeries = group.ToList();
+            if (isPercentStacked(group.Key)) {
+                ranges.Add(GetPercentStackedSeriesRange(groupedSeries, categoryCount));
+            } else if (isStacked(group.Key)) {
+                ranges.Add(GetStackedSeriesRange(groupedSeries, categoryCount));
+            } else {
+                ValueRange finiteRange = GetFiniteSeriesRange(groupedSeries);
+                ranges.Add(ExpandFlatRange(Math.Min(0D, finiteRange.Min), Math.Max(0D, finiteRange.Max)));
+            }
         }
-
-        if (stacked) {
-            ranges.Add(GetStackedSeriesRange(series, categoryCount));
-            return;
-        }
-
-        ValueRange finiteRange = GetFiniteSeriesRange(series);
-        ranges.Add(ExpandFlatRange(Math.Min(0D, finiteRange.Min), Math.Max(0D, finiteRange.Max)));
     }
 
     private static string FormatAxisValue(double value, OfficeChartLayout layout, bool percentDefault, string? numberFormat = null, double? displayUnitDivisor = null) {

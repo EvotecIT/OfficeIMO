@@ -32,11 +32,9 @@ namespace OfficeIMO.Visio {
             }
 
             bool useEvenOddClip = UseEvenOddClip(definition, context.StyleSheet);
-            return contours.Count == 1
-                ? canvas.PushClipPolygon(contours[0])
-                : useEvenOddClip
-                    ? canvas.PushClipPolygonsEvenOdd(contours)
-                    : canvas.PushClipPolygonsNonZero(contours);
+            return useEvenOddClip
+                ? canvas.PushClipPolygonsEvenOdd(contours)
+                : canvas.PushClipPolygonsNonZero(contours);
         }
 
         private static void AddClipElementContours(XElement element, SvgTransform parentTransform, List<IReadOnlyList<OfficePoint>> contours, SvgRenderContext context, bool objectBoundingBox) {

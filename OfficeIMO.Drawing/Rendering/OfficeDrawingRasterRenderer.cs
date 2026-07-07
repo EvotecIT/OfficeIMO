@@ -453,7 +453,7 @@ public static class OfficeDrawingRasterRenderer {
                 IReadOnlyList<OfficePoint> points = contours[i].Closed
                     ? CloseContour(contours[i].Points)
                     : contours[i].Points;
-                DrawGradientOrSolidPolyline(canvas, TransformShapePoints(drawingShape, points, scale), stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashStyle, close: false);
+                DrawGradientOrSolidPolyline(canvas, TransformShapePoints(drawingShape, points, scale), stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashStyle, close: false, shape.StrokeLineCap);
             }
 
             RenderPathMarkers(canvas, shape, contours, stroke ?? SampleStrokeGradient(strokeGradient, strokeRadialGradient, 0D, 0D, 1D, 1D, 0D, 0D) ?? OfficeColor.Black, scale, point => TransformShapePoint(drawingShape, point, scale));
@@ -743,7 +743,7 @@ public static class OfficeDrawingRasterRenderer {
                 IReadOnlyList<OfficePoint> points = contours[i].Closed
                     ? CloseContour(contours[i].Points)
                     : contours[i].Points;
-                DrawGradientOrSolidPolyline(canvas, points, stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashStyle, close: false);
+                DrawGradientOrSolidPolyline(canvas, points, stroke, strokeGradient, strokeRadialGradient, strokeWidth, dashStyle, close: false, shape.StrokeLineCap);
             }
 
             RenderPathMarkers(canvas, shape, contours, stroke ?? SampleStrokeGradient(strokeGradient, strokeRadialGradient, x, y, shape.Width * scale, shape.Height * scale, x, y) ?? OfficeColor.Black, scale);
