@@ -21,6 +21,7 @@ public sealed class CsvDataReader : DbDataReader
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
     private readonly Dictionary<string, int> _ordinals;
+    private readonly bool _useRawStringValues;
     private object?[]? _currentRawRow;
     private object?[]? _currentConvertedRow;
     private object?[]? _bufferedRawRow;
@@ -40,6 +41,7 @@ public sealed class CsvDataReader : DbDataReader
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
         _ordinals = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
+        _useRawStringValues = CanUseRawStringValues(columns);
 
         for (var i = 0; i < columns.Length; i++)
         {
@@ -156,6 +158,11 @@ public sealed class CsvDataReader : DbDataReader
     public override object GetValue(int ordinal)
     {
         EnsureOpenRow();
+        if (_useRawStringValues)
+        {
+            return GetRawStringValue(ordinal);
+        }
+
         _currentConvertedRow ??= new object?[_columns.Length];
         var value = _currentConvertedRow[ordinal];
         if (value is not null)
@@ -314,6 +321,40 @@ public sealed class CsvDataReader : DbDataReader
         _bufferedRawRow = _rows.Current;
         _hasBufferedRow = true;
         return true;
+    }
+
+    private static bool CanUseRawStringValues(CsvDataColumnProjection[] columns)
+    {
+        for (var i = 0; i < columns.Length; i++)
+        {
+            if (columns[i].DataType != typeof(string) || columns[i].SchemaColumn is not null)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private object GetRawStringValue(int ordinal)
+    {
+        if ((uint)ordinal >= (uint)_columns.Length)
+        {
+            throw new IndexOutOfRangeException();
+        }
+
+        var rawValue = ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
+        if (rawValue is null || rawValue == DBNull.Value)
+        {
+            return DBNull.Value;
+        }
+
+        if (rawValue is string text)
+        {
+            return text;
+        }
+
+        return CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats);
     }
 
     private void EnsureOpenRow()

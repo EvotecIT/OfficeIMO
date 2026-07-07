@@ -90,6 +90,40 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void CreateDataReader_WithoutSchema_ExposesParsedValuesAsStrings()
+    {
+        var doc = CsvDocument.Parse("Id,Amount,Note\n1,12.5,\n");
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.Equal(typeof(string), reader.GetFieldType(0));
+        Assert.Equal(typeof(string), reader.GetFieldType(1));
+        Assert.True(reader.Read());
+        Assert.Equal("1", reader.GetString(0));
+        Assert.Equal("12.5", reader.GetString(1));
+        Assert.Equal(string.Empty, reader.GetString(2));
+    }
+
+    [Fact]
+    public void CreateDataReader_WithoutSchema_ConvertsObjectValuesToStringsAndDbNull()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Id", "Missing")
+            .AddRow(42, null);
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("42", reader.GetString(0));
+        Assert.True(reader.IsDBNull(1));
+
+        var values = new object[2];
+        Assert.Equal(2, reader.GetValues(values));
+        Assert.Equal("42", values[0]);
+        Assert.Equal(DBNull.Value, values[1]);
+    }
+
+    [Fact]
     public void CreateDataReader_WithRequiredSchema_RejectsMissingValues()
     {
         var doc = new CsvDocument()
