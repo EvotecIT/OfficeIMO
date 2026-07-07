@@ -327,6 +327,26 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_ReadDataTableLoadDataReaderStrings()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader();
+        var table = new System.Data.DataTable();
+        table.Load(csv);
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataTableLoadDataReaderInferredSchema()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        var table = new System.Data.DataTable();
+        table.Load(csv);
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
     public int CsvHelper_ReadFields()
     {
         using var reader = new StringReader(_csvText);

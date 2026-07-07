@@ -168,6 +168,24 @@ var transformed = CsvDocument.Load("large.csv", new CsvLoadOptions {
 transformed.Save("ready.csv");
 ```
 
+Use `CreateDataReader` when the next hop expects an ADO.NET reader, such as `DataTable.Load` or a provider bulk-copy API. Schema inference can expose typed columns while the rows remain forward-only:
+
+```csharp
+using System.Data;
+
+var document = CsvDocument.Load("large.csv", new CsvLoadOptions {
+    Mode = CsvLoadMode.Stream
+});
+
+using var reader = document.CreateDataReader(new CsvDataReaderOptions {
+    InferSchema = true,
+    SchemaSampleSize = 1000
+});
+
+var table = new DataTable();
+table.Load(reader);
+```
+
 ## Real-world headers
 
 CSV exports often contain blank or repeated header names. By default, blank headers are generated as `H1`, `H2`, and duplicate names are renamed with suffixes so name-based row access stays unambiguous:
