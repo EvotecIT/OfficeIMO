@@ -25,7 +25,7 @@ public sealed partial class CsvDocument
         }
 
         var sampledRows = 0;
-        foreach (var row in AsEnumerable())
+        foreach (var row in EnumerateRawRows())
         {
             if (sampledRows >= sampleSize)
             {
@@ -34,7 +34,7 @@ public sealed partial class CsvDocument
 
             for (var i = 0; i < columns.Length; i++)
             {
-                var value = i < row.FieldCount ? row[i] : null;
+                var value = i < row.Length ? row[i] : null;
                 columns[i].Observe(value, _culture, _dateTimeFormats);
             }
 

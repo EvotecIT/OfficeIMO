@@ -23,18 +23,22 @@ public sealed partial class CsvDocument
         var schemaColumns = schema?.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
         var table = CreateDataTable(options.TableName, schemaColumns);
         var columns = CreateDataTableColumnProjections(table, schemaColumns);
+        if (_mode == CsvLoadMode.InMemory)
+        {
+            table.MinimumCapacity = _rows.Count;
+        }
 
         table.BeginLoadData();
         try
         {
             var rowIndex = 0;
-            foreach (var row in AsEnumerable())
+            foreach (var row in EnumerateRawRows())
             {
                 var values = new object?[columns.Length];
                 for (var i = 0; i < columns.Length; i++)
                 {
                     var column = columns[i];
-                    var value = i < row.FieldCount ? row[i] : null;
+                    var value = i < row.Length ? row[i] : null;
                     values[i] = ConvertDataTableValue(value, column.DataType, column.SchemaColumn, rowIndex, column.Name);
                 }
 

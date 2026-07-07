@@ -21,6 +21,24 @@ public sealed partial class CsvDocument
         return array;
     }
 
+    private IEnumerable<object?[]> EnumerateRawRows()
+    {
+        if (_mode == CsvLoadMode.Stream && _streamingSource is not null)
+        {
+            return _streamingSource.ReadRows();
+        }
+
+        return EnumerateInMemoryRows();
+
+        IEnumerable<object?[]> EnumerateInMemoryRows()
+        {
+            foreach (var row in _rows)
+            {
+                yield return row.Values;
+            }
+        }
+    }
+
     private static IReadOnlyList<string> GenerateDefaultHeader(int count)
     {
         var result = new List<string>(count);
