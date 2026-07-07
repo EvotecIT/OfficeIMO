@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Runtime.CompilerServices;
+
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
@@ -8,6 +10,7 @@ internal static partial class CsvParser
     private const int TextStandardQuotedFieldSpanCapacity = 64;
     private const int TextQuotedPrefixReuseMinimumDelimiterCount = 4;
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool TryReadTextFinalQuotedRecordFieldSpansFromPrefix<TVisitor>(
         ReadOnlySpan<char> text,
         char delimiter,
@@ -42,18 +45,51 @@ internal static partial class CsvParser
         quotedPosition += quoteOffset;
         if (quotedPosition + 1 >= text.Length || text[quotedPosition + 1] != '"')
         {
-            return CompleteTextFinalUnescapedQuotedRecordFieldSpansFromPrefix(
+            var unescapedNextPosition = quotedPosition + 1;
+            if (unescapedNextPosition < text.Length)
+            {
+                var separator = text[unescapedNextPosition];
+                if (separator == '\n')
+                {
+                    unescapedNextPosition++;
+                }
+                else if (separator == '\r')
+                {
+                    unescapedNextPosition++;
+                    if (unescapedNextPosition < text.Length && text[unescapedNextPosition] == '\n')
+                    {
+                        unescapedNextPosition++;
+                    }
+                }
+                else
+                {
+                    return false;
+                }
+            }
+
+            fieldCount = VisitTextPrefixFieldsFromDelimiterIndexes(
                 text,
+                start,
+                delimiterIndexesBeforeQuote,
                 emitFields,
                 recordIndex,
-                delimiterIndexesBeforeQuote,
-                start,
-                valueStart,
-                quotedPosition,
-                ref position,
                 ref fieldVisitor,
-                out fieldCount,
                 out firstFieldLength);
+
+            var unescapedField = text.Slice(valueStart, quotedPosition - valueStart);
+            if (fieldCount == 0)
+            {
+                firstFieldLength = unescapedField.Length;
+            }
+
+            if (emitFields)
+            {
+                fieldVisitor.VisitField(recordIndex, fieldCount, unescapedField);
+            }
+
+            fieldCount++;
+            position = unescapedNextPosition;
+            return true;
         }
 
         var escapeCount = 0;
@@ -139,69 +175,7 @@ internal static partial class CsvParser
         return true;
     }
 
-    private static bool CompleteTextFinalUnescapedQuotedRecordFieldSpansFromPrefix<TVisitor>(
-        ReadOnlySpan<char> text,
-        bool emitFields,
-        int recordIndex,
-        ReadOnlySpan<int> delimiterIndexesBeforeQuote,
-        int start,
-        int valueStart,
-        int valueEnd,
-        ref int position,
-        ref TVisitor fieldVisitor,
-        out int fieldCount,
-        out int firstFieldLength)
-        where TVisitor : struct, ICsvFieldSpanVisitor
-    {
-        var nextPosition = valueEnd + 1;
-        if (nextPosition < text.Length)
-        {
-            var separator = text[nextPosition];
-            if (separator == '\n')
-            {
-                nextPosition++;
-            }
-            else if (separator == '\r')
-            {
-                nextPosition++;
-                if (nextPosition < text.Length && text[nextPosition] == '\n')
-                {
-                    nextPosition++;
-                }
-            }
-            else
-            {
-                fieldCount = 0;
-                firstFieldLength = 0;
-                return false;
-            }
-        }
-
-        fieldCount = VisitTextPrefixFieldsFromDelimiterIndexes(
-            text,
-            start,
-            delimiterIndexesBeforeQuote,
-            emitFields,
-            recordIndex,
-            ref fieldVisitor,
-            out firstFieldLength);
-
-        var field = text.Slice(valueStart, valueEnd - valueStart);
-        if (fieldCount == 0)
-        {
-            firstFieldLength = field.Length;
-        }
-
-        if (emitFields)
-        {
-            fieldVisitor.VisitField(recordIndex, fieldCount, field);
-        }
-
-        fieldCount++;
-        position = nextPosition;
-        return true;
-    }
-
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static int VisitTextPrefixFieldsFromDelimiterIndexes<TVisitor>(
         ReadOnlySpan<char> text,
         int start,
