@@ -91,17 +91,18 @@ public static class CsvFile
 
     private static Stream OpenReadStream(string path, CsvLoadOptions options, int bufferSize)
     {
-        var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan);
-        Stream stream = WrapReadStream(fileStream, ResolveCompression(options.CompressionType, path));
-        if (options.MaxDecompressedBytes is { } maxBytes)
+        var compressionType = ResolveCompression(options.CompressionType, path);
+        EnsureCompressionSupported(compressionType);
+        if (options.MaxDecompressedBytes is { } maxBytes && maxBytes < 0)
         {
-            if (maxBytes < 0)
-            {
-                fileStream.Dispose();
-                throw new ArgumentOutOfRangeException(nameof(options), "MaxDecompressedBytes cannot be negative.");
-            }
+            throw new ArgumentOutOfRangeException(nameof(options), "MaxDecompressedBytes cannot be negative.");
+        }
 
-            stream = new CsvBoundedReadStream(stream, maxBytes);
+        var fileStream = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read, bufferSize, FileOptions.SequentialScan);
+        Stream stream = WrapReadStream(fileStream, compressionType);
+        if (options.MaxDecompressedBytes is { } maxBytesLimit)
+        {
+            stream = new CsvBoundedReadStream(stream, maxBytesLimit);
         }
 
         return stream;
@@ -112,6 +113,7 @@ public static class CsvFile
 
     private static Stream CreateWriteStream(string path, CsvCompressionType compressionType, CompressionLevel compressionLevel, bool append, int bufferSize)
     {
+        EnsureCompressionSupported(compressionType);
         if (append && compressionType != CsvCompressionType.None)
         {
             throw new NotSupportedException("Appending to compressed CSV files is not supported.");
@@ -153,6 +155,29 @@ public static class CsvFile
 #endif
             _ => throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, "Unsupported CSV compression type.")
         };
+
+    private static void EnsureCompressionSupported(CsvCompressionType compressionType)
+    {
+        switch (compressionType)
+        {
+            case CsvCompressionType.None:
+            case CsvCompressionType.GZip:
+            case CsvCompressionType.Deflate:
+                return;
+#if NET8_0_OR_GREATER
+            case CsvCompressionType.Brotli:
+            case CsvCompressionType.ZLib:
+                return;
+#else
+            case CsvCompressionType.Brotli:
+                throw new PlatformNotSupportedException("Brotli CSV compression requires a .NET runtime that supports BrotliStream.");
+            case CsvCompressionType.ZLib:
+                throw new PlatformNotSupportedException("ZLib CSV compression requires a .NET runtime that supports ZLibStream.");
+#endif
+            default:
+                throw new ArgumentOutOfRangeException(nameof(compressionType), compressionType, "Unsupported CSV compression type.");
+        }
+    }
 
     private sealed class CsvBoundedReadStream : Stream
     {

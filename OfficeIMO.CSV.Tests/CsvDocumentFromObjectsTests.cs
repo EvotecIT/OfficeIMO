@@ -349,6 +349,88 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void ReadRecords_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RawRecords." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var records = CsvDocument.ReadRecords(path).ToArray();
+
+            Assert.Equal(2, records.Length);
+            Assert.Equal(new[] { "Name", "Value" }, records[0]);
+            Assert.Equal(new[] { "Alpha", "1" }, records[1]);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
+    public void ReadRecordsReusable_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.RawRecordsReusable." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .AddRow("Beta", 2)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var records = new List<string[]>();
+            CsvDocument.ReadRecordsReusable(path, values => records.Add(values.ToArray()));
+
+            Assert.Equal(3, records.Count);
+            Assert.Equal(new[] { "Name", "Value" }, records[0]);
+            Assert.Equal(new[] { "Alpha", "1" }, records[1]);
+            Assert.Equal(new[] { "Beta", "2" }, records[2]);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void ReadFieldSpans_ReadsGZipByExtension()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.FieldSpans." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Name", "Value")
+                .AddRow("Alpha", 1)
+                .Save(path, new CsvSaveOptions { NewLine = "\n" });
+
+            var fields = new List<string>();
+            CsvDocument.ReadFieldSpans(path, (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"));
+
+            Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" }, fields);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+#endif
+
+    [Fact]
     public void Load_EnforcesMaxDecompressedBytes()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Bounded." + Guid.NewGuid().ToString("N") + ".csv.gz");
@@ -370,6 +452,38 @@ public class CsvDocumentFromObjectsTests
             }
         }
     }
+
+#if !NET8_0_OR_GREATER
+    [Fact]
+    public void Save_UnsupportedCompressionDoesNotTruncateExistingFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.UnsupportedCompression." + Guid.NewGuid().ToString("N") + ".csv.br");
+        const string original = "Name,Value\nOriginal,1\n";
+        try
+        {
+            File.WriteAllText(path, original);
+
+            Assert.Throws<PlatformNotSupportedException>(() =>
+                new CsvDocument()
+                    .WithHeader("Name", "Value")
+                    .AddRow("Replacement", 2)
+                    .Save(path, new CsvSaveOptions
+                    {
+                        CompressionType = CsvCompressionType.Brotli,
+                        NewLine = "\n"
+                    }));
+
+            Assert.Equal(original, File.ReadAllText(path));
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+#endif
 
     [Fact]
     public void SaveObjects_UsesCompressionFromDestinationExtension()

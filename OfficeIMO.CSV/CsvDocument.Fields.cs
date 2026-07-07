@@ -1,7 +1,5 @@
 #nullable enable
 
-using System.Text;
-
 namespace OfficeIMO.CSV;
 
 public sealed partial class CsvDocument
@@ -40,8 +38,7 @@ public sealed partial class CsvDocument
         }
 
         options = CreateRawRecordOptions(options);
-        var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
-        var readerFactory = () => new StreamReader(path, encoding, detectEncodingFromByteOrderMarks: true, bufferSize: FileBufferSize);
+        var readerFactory = () => CsvFile.OpenTextReader(path, options, FileBufferSize);
         var resolvedOptions = ResolveLoadOptions(readerFactory, options, useHeaderDiscoveryForDelimiterDetection: false);
         using var reader = readerFactory();
         ReadFieldSpans(reader, ref fieldVisitor, resolvedOptions);
