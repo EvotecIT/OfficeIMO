@@ -10,6 +10,7 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
 <p>
   <a href="https://example.com">https://example.com</a>
   <a href="mailto:user@example.com">user@example.com</a>
+  <a href="tel:+15551234567">+15551234567</a>
   <a href="https://example.com/docs">Docs</a>
 </p>
 """;
@@ -18,7 +19,7 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
             SmartHref = true
         }));
 
-        Assert.Contains("https://example.com user@example.com [Docs](https://example.com/docs)", markdown, StringComparison.Ordinal);
+        Assert.Contains("https://example.com user@example.com [+15551234567](tel:+15551234567) [Docs](https://example.com/docs)", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("[https://example.com]", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("[user@example.com]", markdown, StringComparison.Ordinal);
     }
@@ -98,12 +99,21 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         string bypassedInlineOnly = Normalize("<custom-widget><strong>Custom</strong> payload</custom-widget>".ToMarkdown(new HtmlToMarkdownOptions {
             UnknownBlockHandling = HtmlUnknownTagHandling.Bypass
         }));
+        string droppedInlineOnly = Normalize("<custom-widget><strong>Custom</strong> payload</custom-widget>".ToMarkdown(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = false,
+            UnknownBlockHandling = HtmlUnknownTagHandling.Drop
+        }));
 
         Assert.Equal("Inner **text**", bypassed);
         Assert.Equal("**Custom** payload", bypassedInlineOnly);
+        Assert.Equal(string.Empty, droppedInlineOnly);
         Assert.Equal(string.Empty, dropped);
         Assert.Contains("<x-card>", preserved, StringComparison.Ordinal);
         Assert.Throws<NotSupportedException>(() => html.ToMarkdown(new HtmlToMarkdownOptions {
+            UnknownBlockHandling = HtmlUnknownTagHandling.Raise
+        }));
+        Assert.Throws<NotSupportedException>(() => "<custom-widget>payload</custom-widget>".ToMarkdown(new HtmlToMarkdownOptions {
+            PreserveUnsupportedBlocks = false,
             UnknownBlockHandling = HtmlUnknownTagHandling.Raise
         }));
     }
@@ -155,6 +165,7 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         const string html = """
 <article>
   <p><a href="https://example.com">https://example.com</a></p>
+  <p><del>old</del> and <mark>new</mark></p>
   <table><tr><th>Name</th><th>Value</th></tr><tr><td>Area</td><td>Markdown</td></tr></table>
 </article>
 """;
@@ -162,6 +173,10 @@ public sealed class MarkdownHtmlToMarkdownCompatibilityTests {
         string markdown = Normalize(html.ToMarkdown(HtmlToMarkdownOptions.CreateCommonMarkProfile()));
 
         Assert.Contains("[https://example.com](https://example.com)", markdown, StringComparison.Ordinal);
+        Assert.Contains("<del>old</del>", markdown, StringComparison.Ordinal);
+        Assert.Contains("<mark>new</mark>", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("~~old~~", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("==new==", markdown, StringComparison.Ordinal);
         Assert.Contains("<table>", markdown, StringComparison.Ordinal);
         Assert.Contains("<th>Name</th>", markdown, StringComparison.Ordinal);
         Assert.DoesNotContain("| Name | Value |", markdown, StringComparison.Ordinal);

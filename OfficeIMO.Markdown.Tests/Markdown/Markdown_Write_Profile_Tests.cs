@@ -184,6 +184,21 @@ Lead[^1]
     }
 
     [Fact]
+    public void CommonMark_Write_Profile_Renders_Gfm_Only_Inlines_As_Raw_Html() {
+        var paragraph = new ParagraphBlock(new InlineSequence()
+            .Strike("old")
+            .Text("and")
+            .Highlight("new"));
+        var doc = MarkdownDoc.Create().Add(paragraph);
+
+        var markdown = doc.ToMarkdown(MarkdownWriteOptions.CreateCommonMarkProfile()).Replace("\r\n", "\n").Trim();
+
+        Assert.Equal("<del>old</del> and <mark>new</mark>", markdown);
+        Assert.DoesNotContain("~~old~~", markdown, StringComparison.Ordinal);
+        Assert.DoesNotContain("==new==", markdown, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void GitHubFlavoredMarkdown_Write_Profile_Keeps_Pipe_Tables_And_Portable_Images() {
         var table = new TableBlock();
         table.Headers.Add("Name");
@@ -207,6 +222,9 @@ Lead[^1]
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).BlockRenderExtensions,
             extension => string.Equals(extension.Name, MarkdownBlockRenderBuiltInExtensions.CommonMarkTableMarkdownName, StringComparison.Ordinal));
+        Assert.Contains(
+            MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.CommonMark).InlineRenderExtensions,
+            extension => string.Equals(extension.Name, MarkdownInlineRenderBuiltInExtensions.CommonMarkStrikethroughMarkdownName, StringComparison.Ordinal));
         Assert.Equal(MarkdownImageRenderingMode.PortableMarkdown, MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.GitHubFlavoredMarkdown).ImageRenderingMode);
         Assert.Contains(
             MarkdownWriteOptions.CreateProfile(MarkdownOutputProfile.Portable).BlockRenderExtensions,

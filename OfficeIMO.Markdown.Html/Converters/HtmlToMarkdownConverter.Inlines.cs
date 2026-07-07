@@ -303,12 +303,6 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        if (normalizedHref.StartsWith("tel:", StringComparison.OrdinalIgnoreCase)
-            && string.Equals(normalizedLabel, normalizedHref.Substring("tel:".Length), StringComparison.OrdinalIgnoreCase)) {
-            plainText = normalizedLabel;
-            return true;
-        }
-
         if (normalizedHref.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
             && string.Equals(normalizedLabel, normalizedHref.Substring("http://".Length), StringComparison.OrdinalIgnoreCase)) {
             plainText = normalizedHref;
