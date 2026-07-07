@@ -6,6 +6,7 @@ internal sealed partial class CsvLineReader
 {
 #if NET8_0_OR_GREATER
     private const int StandardQuotedFieldSpanCapacity = 64;
+    private const int DirectUnescapeQuotedFieldMinimumLength = 32;
 
     private bool TryReadStandardQuotedFieldSpansOrLine<TVisitor>(
         char delimiter,
@@ -426,11 +427,51 @@ internal sealed partial class CsvLineReader
                     continue;
                 }
 
+                if (field.Length >= DirectUnescapeQuotedFieldMinimumLength)
+                {
+                    fieldVisitor.VisitFieldValue(recordIndex, fieldIndex, CreateUnescapedQuotedField(field));
+                    continue;
+                }
+
                 value = CompactEscapedQuotedField(field.Start, field.End, field.FirstEscapedQuote);
             }
 
             fieldVisitor.VisitField(recordIndex, fieldIndex, value);
         }
+    }
+
+    private string CreateUnescapedQuotedField(StandardCsvFieldSpan field)
+    {
+        return string.Create(field.Length, (this, field), static (destination, state) =>
+        {
+            var reader = state.Item1;
+            var source = reader._buffer;
+            var fieldValue = state.field;
+            var readIndex = fieldValue.Start;
+            var end = fieldValue.End;
+            var writeIndex = 0;
+
+            while (readIndex < end)
+            {
+                var quoteIndex = Array.IndexOf(source, '"', readIndex, end - readIndex);
+                if (quoteIndex < 0 || quoteIndex + 1 >= end || source[quoteIndex + 1] != '"')
+                {
+                    var segmentLength = end - readIndex;
+                    source.AsSpan(readIndex, segmentLength).CopyTo(destination[writeIndex..]);
+                    break;
+                }
+
+                if (quoteIndex > readIndex)
+                {
+                    var segmentLength = quoteIndex - readIndex;
+                    source.AsSpan(readIndex, segmentLength).CopyTo(destination[writeIndex..]);
+                    writeIndex += segmentLength;
+                }
+
+                destination[writeIndex++] = '"';
+                readIndex = quoteIndex + 2;
+            }
+        });
     }
 
     private ReadOnlySpan<char> CompactEscapedQuotedField(int start, int end, int firstEscapedQuote)
