@@ -386,7 +386,7 @@ public static partial class OfficeChartDrawingRenderer {
         }
 
         if (HasMixedCartesianSeriesKinds(snapshot)) {
-            AddMixedCartesianSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+            AddMixedCartesianSeries(drawing, snapshot, axisRange, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsAreaChart(snapshot.ChartKind)) {
             AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         } else if (IsScatterChart(snapshot.ChartKind)) {
@@ -493,9 +493,9 @@ public static partial class OfficeChartDrawingRenderer {
         return drawing;
     }
 
-    private static void AddMixedCartesianSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddMixedCartesianSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, ValueRange sharedValueAxisRange, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
         AddAreaSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
-        AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
+        AddBarSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout, sharedValueAxisRange);
         AddLineSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
         AddScatterSeries(drawing, snapshot, plotLeft, plotTop, plotWidth, plotHeight, style, layout);
     }
@@ -931,7 +931,7 @@ public static partial class OfficeChartDrawingRenderer {
         return null;
     }
 
-    private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout) {
+    private static void AddBarSeries(OfficeDrawing drawing, OfficeChartSnapshot snapshot, double plotLeft, double plotTop, double plotWidth, double plotHeight, OfficeChartStyle style, OfficeChartLayout layout, ValueRange? sharedValueAxisRange = null) {
         IReadOnlyList<string> categories = snapshot.Data.Categories;
         IReadOnlyList<OfficeChartSeries> series = snapshot.Data.Series;
         if (categories.Count == 0 || series.Count == 0) {
@@ -968,9 +968,16 @@ public static partial class OfficeChartDrawingRenderer {
         double groupWidth = slot * 0.68D;
         int barSeriesCount = Math.Max(1, slotCount);
         double barWidth = Math.Max(2D, groupWidth / barSeriesCount);
-        ValueRange baseRange = GetBarSeriesRenderRange(snapshot, barSeries, categories.Count);
-        ValueRange horizontalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: true);
-        ValueRange verticalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: false);
+        ValueRange horizontalRange;
+        ValueRange verticalRange;
+        if (sharedValueAxisRange.HasValue) {
+            horizontalRange = sharedValueAxisRange.Value;
+            verticalRange = sharedValueAxisRange.Value;
+        } else {
+            ValueRange baseRange = GetBarSeriesRenderRange(snapshot, barSeries, categories.Count);
+            horizontalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: true);
+            verticalRange = ResolveRenderedBarRange(baseRange, layout, horizontal: false);
+        }
 
         for (int category = 0; category < categories.Count; category++) {
             var positiveBases = new Dictionary<OfficeChartKind, double>();

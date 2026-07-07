@@ -783,8 +783,8 @@ public sealed partial class PdfReadPage {
             Dictionary<string, Func<byte[], string>> appearanceDecoders = MergeDecoders(pageDecoders, ResourceResolver.GetFontDecodersForForm(appearanceStream.Dictionary, _objects));
             Dictionary<string, Func<byte[], double>> appearanceWidthProviders = MergeWidthProviders(pageWidthProviders, ResourceResolver.GetFontWidthProviders(appearanceStream.Dictionary, _objects));
             Dictionary<string, PdfFontResource> appearanceFonts = MergeFonts(pageFonts, ResourceResolver.GetFontsForResources(appearanceResources, _objects));
-            string transformedAppearanceContent = WrapContentWithTransform(appearanceContent, appearanceTransform);
-            CollectTextAndForms(transformedAppearanceContent, appearanceResources, appearanceDecoders, appearanceWidthProviders, appearanceFonts, textSpans, activeForms, pageHeight);
+            string transformedAppearanceContent = WrapContentWithTransform(appearanceContent, appearanceTransform, out int transformedAppearanceContentOffset);
+            CollectTextAndForms(transformedAppearanceContent, appearanceResources, appearanceDecoders, appearanceWidthProviders, appearanceFonts, textSpans, activeForms, pageHeight, paintOrderOffset: -transformedAppearanceContentOffset);
             for (int textIndex = 0; textIndex < textSpans.Count; textIndex++) {
                 elements.Add(PdfPageDrawingElement.FromText(textSpans[textIndex], elements.Count));
             }

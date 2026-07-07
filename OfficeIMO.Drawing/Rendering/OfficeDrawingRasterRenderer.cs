@@ -1192,9 +1192,20 @@ public static class OfficeDrawingRasterRenderer {
         shadowShape.StrokeEndMarker = null;
         shadowShape.StrokeOpacity = opacity;
 
-        return new OfficeDrawingShape(
-            shadowShape,
-            drawingShape.X + shadow.OffsetX,
-            drawingShape.Y + shadow.OffsetY);
+        return CreateOffsetEffectShape(shadowShape, drawingShape.X + shadow.OffsetX, drawingShape.Y + shadow.OffsetY);
+    }
+
+    private static OfficeDrawingShape CreateOffsetEffectShape(OfficeShape shape, double x, double y) {
+        double clampedX = Math.Max(0D, x);
+        double clampedY = Math.Max(0D, y);
+        double offsetX = x - clampedX;
+        double offsetY = y - clampedY;
+        if (offsetX != 0D || offsetY != 0D) {
+            shape = shape.Clone();
+            OfficeTransform offsetTransform = OfficeTransform.Translate(offsetX, offsetY);
+            shape.Transform = shape.Transform.HasValue ? offsetTransform.Then(shape.Transform.Value) : offsetTransform;
+        }
+
+        return new OfficeDrawingShape(shape, clampedX, clampedY);
     }
 }
