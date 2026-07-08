@@ -361,6 +361,22 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_DecodesMismatchedPngPredictorBeforeWrappingImageXObject() {
+        byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
+            CompressWithDeflate(new byte[] { 1, 10, 10, 10, 10, 10, 10 }),
+            colorSpace: "/DeviceRGB",
+            imageWidth: 2,
+            extraImageEntries: " /DecodeParms << /Predictor 12 /Colors 1 /BitsPerComponent 8 /Columns 6 >>");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        var image = Assert.Single(drawing.Images);
+        Assert.Equal("image/png", image.ContentType);
+        Assert.Equal(2, PdfPngTestImages.ReadPngColorType(image.Bytes));
+        Assert.Equal(new byte[] { 0, 10, 20, 30, 40, 50, 60 }, PdfPngTestImages.DecodeStoredPngIdat(image.Bytes));
+    }
+
+    [Fact]
     public void RenderPage_AppliesDeviceRgbImageXObjectColorKeyMaskAsPngAlpha() {
         byte[] pdf = BuildSingleStreamPdfWithBinaryImageXObject(
             CompressWithDeflate(new byte[] { 255, 0, 0, 0, 255, 0 }),

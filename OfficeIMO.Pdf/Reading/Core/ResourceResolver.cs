@@ -1007,13 +1007,28 @@ internal static partial class ResourceResolver {
             return false;
         }
 
-        if ((colorNormalization.SourceColorCount != 1 && colorNormalization.SourceColorCount != 3) || colorDecodeTransform is not null) {
+        if ((colorNormalization.SourceColorCount != 1 && colorNormalization.SourceColorCount != 3) ||
+            colorDecodeTransform is not null ||
+            !CanWrapPngPredictorScanlines(decodeParms, width, bitsPerComponent, colorNormalization.SourceColorCount)) {
             byte[] pixels = Filters.StreamDecoder.Decode(stream.Dictionary, stream.Data, objects);
             return TryBuildPngFileFromDecodedPixels(width, height, bitsPerComponent, colorNormalization.SourceColorCount, colorNormalization.PngColorType, colorDecodeTransform, pixels, out pngBytes);
         }
 
         pngBytes = OfficePngWriter.CreateFromCompressedScanlines(width, height, bitsPerComponent, colorNormalization.PngColorType, stream.Data);
         return true;
+    }
+
+    private static bool CanWrapPngPredictorScanlines(PdfDictionary? decodeParms, int width, int bitsPerComponent, int sourceColorCount) {
+        if (decodeParms is null) {
+            return false;
+        }
+
+        int columns = (int)(decodeParms.Get<PdfNumber>("Columns")?.Value ?? 1);
+        int colors = (int)(decodeParms.Get<PdfNumber>("Colors")?.Value ?? 1);
+        int decodeBitsPerComponent = (int)(decodeParms.Get<PdfNumber>("BitsPerComponent")?.Value ?? 8);
+        return columns == width &&
+               colors == sourceColorCount &&
+               decodeBitsPerComponent == bitsPerComponent;
     }
 
     private static bool TryBuildPngFileFromSupportedDecodedStream(
