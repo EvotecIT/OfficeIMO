@@ -19,6 +19,16 @@ public sealed partial class CsvDocument
             throw new ArgumentOutOfRangeException(nameof(options), "Schema sample size must be greater than zero.");
         }
 
+        if (_mode == CsvLoadMode.Stream && _streamingSource is not null)
+        {
+            if (options.Schema is not null || _schema is not null || options.InferSchema)
+            {
+                return ToStreamingDataTable(options);
+            }
+
+            return ToStreamingStringDataTable(options.TableName);
+        }
+
         var schema = options.Schema ?? _schema ?? (options.InferSchema ? InferSchema(options.SchemaSampleSize) : null);
         var schemaColumns = schema?.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
         var table = CreateDataTable(options.TableName, schemaColumns);
@@ -54,9 +64,79 @@ public sealed partial class CsvDocument
         return table;
     }
 
+    private DataTable ToStreamingStringDataTable(string? tableName)
+    {
+        var table = CreateDataTable(tableName, schemaColumns: null);
+        var values = new object?[_header.Count];
+        table.BeginLoadData();
+        try
+        {
+            foreach (var row in _streamingSource!.ReadReusableStringRows())
+            {
+                FillStreamingStringDataTableRow(row, values);
+                table.Rows.Add(values);
+            }
+        }
+        finally
+        {
+            table.EndLoadData();
+        }
+
+        return table;
+    }
+
+    private DataTable ToStreamingDataTable(CsvDataTableOptions options)
+    {
+        using var reader = CreateDataReader(new CsvDataReaderOptions
+        {
+            Schema = options.Schema,
+            InferSchema = options.InferSchema,
+            SchemaSampleSize = options.SchemaSampleSize
+        });
+        var table = new DataTable(ResolveDataTableName(options.TableName));
+        table.Load(reader);
+        return table;
+    }
+
+    private void FillStreamingStringDataTableRow(IReadOnlyList<string> row, object?[] values)
+    {
+        var options = _streamingSource!.Options;
+        var sourceColumnCount = _streamingSource.SourceColumnCount;
+        if (options.ColumnCountMismatchPolicy == CsvColumnCountMismatchPolicy.Strict &&
+            row.Count != sourceColumnCount)
+        {
+            throw new CsvException($"Row contains {row.Count} values but header defines {sourceColumnCount} columns.");
+        }
+
+        var copyCount = Math.Min(row.Count, sourceColumnCount);
+        for (var i = 0; i < copyCount; i++)
+        {
+            var value = row[i];
+            values[i] = options.NullValue is not null && string.Equals(value, options.NullValue, StringComparison.Ordinal)
+                ? DBNull.Value
+                : value;
+        }
+
+        for (var i = copyCount; i < sourceColumnCount; i++)
+        {
+            values[i] = string.Empty;
+        }
+
+        if (options.StaticColumns is null || options.StaticColumns.Count == 0)
+        {
+            return;
+        }
+
+        var index = sourceColumnCount;
+        foreach (var staticColumn in options.StaticColumns)
+        {
+            values[index++] = Convert.ToString(staticColumn.Value, options.Culture) ?? string.Empty;
+        }
+    }
+
     private DataTable CreateDataTable(string? tableName, IReadOnlyDictionary<string, CsvSchemaColumn>? schemaColumns)
     {
-        var table = new DataTable(string.IsNullOrWhiteSpace(tableName) ? "CsvData" : tableName);
+        var table = new DataTable(ResolveDataTableName(tableName));
         foreach (var columnName in _header)
         {
             CsvSchemaColumn? schemaColumn = null;
@@ -71,4 +151,7 @@ public sealed partial class CsvDocument
 
         return table;
     }
+
+    private static string ResolveDataTableName(string? tableName) =>
+        string.IsNullOrWhiteSpace(tableName) ? "CsvData" : tableName!;
 }

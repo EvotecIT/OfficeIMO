@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using OfficeIMO.CSV;
@@ -116,6 +117,31 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void ToDataTable_InStreamingMode_UsesTypedColumns()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Amount,Active,Created,Note\n1,12.5,true,2026-07-07,Alpha\n2,13.7,false,2026-07-08,\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+
+        var table = doc.ToDataTable(new CsvDataTableOptions
+        {
+            TableName = "Rows",
+            InferSchema = true
+        });
+
+        Assert.Equal("Rows", table.TableName);
+        Assert.Equal(typeof(int), table.Columns["Id"]!.DataType);
+        Assert.Equal(typeof(decimal), table.Columns["Amount"]!.DataType);
+        Assert.Equal(typeof(bool), table.Columns["Active"]!.DataType);
+        Assert.Equal(typeof(DateTime), table.Columns["Created"]!.DataType);
+        Assert.Equal(typeof(string), table.Columns["Note"]!.DataType);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(1, table.Rows[0]["Id"]);
+        Assert.Equal(13.7m, table.Rows[1]["Amount"]);
+        Assert.Equal(string.Empty, table.Rows[1]["Note"]);
+    }
+
+    [Fact]
     public void ToDataTable_WithInferredSchema_StoresMissingTypedValuesAsDbNull()
     {
         var doc = CsvDocument.Parse("Id,Amount\n1,12.5\n2,\n");
@@ -137,6 +163,43 @@ public class CsvSchemaTests
         var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
 
         Assert.Contains("Column 'Id' is required", ex.Message);
+    }
+
+    [Fact]
+    public void ToDataTable_InStreamingMode_PreservesNullAndStaticColumns()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Note\n1,<null>\n",
+            new CsvLoadOptions
+            {
+                Mode = CsvLoadMode.Stream,
+                NullValue = "<null>",
+                StaticColumns = new Dictionary<string, object?> { ["Batch"] = 7 }
+            });
+
+        var table = doc.ToDataTable(new CsvDataTableOptions { TableName = "Import" });
+
+        Assert.Equal("Import", table.TableName);
+        Assert.Equal(new[] { "Id", "Note", "Batch" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
+        Assert.Equal("1", table.Rows[0]["Id"]);
+        Assert.Same(DBNull.Value, table.Rows[0]["Note"]);
+        Assert.Equal("7", table.Rows[0]["Batch"]);
+    }
+
+    [Fact]
+    public void ToDataTable_InStreamingMode_HonorsStrictColumnCounts()
+    {
+        var doc = CsvDocument.Parse(
+            "First,Second\n1\n",
+            new CsvLoadOptions
+            {
+                Mode = CsvLoadMode.Stream,
+                ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
+            });
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Row contains 1 values but header defines 2 columns", ex.Message);
     }
 
     [Fact]

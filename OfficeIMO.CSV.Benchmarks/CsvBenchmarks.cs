@@ -328,10 +328,26 @@ public class CsvBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_ReadStreamingDataTableStrings()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        var table = document.ToDataTable();
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
     public int OfficeIMO_ReadDataTableInferredSchema()
     {
         var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
         var table = document.ToDataTable(new CsvDataTableOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadStreamingDataTableInferredSchemaDefaultSample()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        var table = document.ToDataTable(new CsvDataTableOptions { InferSchema = true });
         return DataTableBenchmarkUtilities.Measure(table);
     }
 
