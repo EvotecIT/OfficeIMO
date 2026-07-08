@@ -48,9 +48,20 @@ internal static class CsvDataProjectionConverter
         if (column.SchemaColumn?.Converter is { } converter)
         {
             value = ConvertWithCustomConverter(value, converter, column.Name, rowIndex, culture);
-            if (value is null || value == DBNull.Value)
+            if (IsMissingValue(value, column))
             {
-                return DBNull.Value;
+                if (column.SchemaColumn.DefaultValue is not null)
+                {
+                    value = column.SchemaColumn.DefaultValue;
+                }
+                else if (column.SchemaColumn.IsRequired)
+                {
+                    throw new CsvException($"Column '{column.Name}' is required but row {rowIndex + 1} has no value.");
+                }
+                else
+                {
+                    return DBNull.Value;
+                }
             }
         }
 

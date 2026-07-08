@@ -36,6 +36,14 @@ internal static partial class CsvParser
             return;
         }
 
+        if (NeedsLogicalCommentSkipping(options) &&
+            HasPotentialTextCommentRecord(text, options.CommentCharacter))
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
         if (options.ParseErrorAction == CsvParseErrorAction.SkipRow)
         {
             using var reader = new StringReader(text.ToString());
@@ -621,6 +629,30 @@ internal static partial class CsvParser
 
         position = scan;
         return true;
+    }
+
+    private static bool HasPotentialTextCommentRecord(ReadOnlySpan<char> text, char commentCharacter)
+    {
+        if (text.Length == 0)
+        {
+            return false;
+        }
+
+        if (text[0] == commentCharacter)
+        {
+            return true;
+        }
+
+        for (var i = 1; i < text.Length; i++)
+        {
+            if (text[i] == commentCharacter &&
+                (text[i - 1] == '\n' || text[i - 1] == '\r'))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool TrySkipTextUnquotedRecord(ReadOnlySpan<char> text, char delimiter, ref int position, out int delimiterCount)

@@ -280,6 +280,25 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadRowFieldSpansFromText_SkipsMultilineCommentBeforeHeader()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+
+        CsvDocument.ReadRowFieldSpansFromText("#,\"note\ncontinued\"\nName,Value\nAlpha,1\n", ref visitor);
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
     public void ReadRowFieldSpans_Appends_Static_Columns()
     {
         var events = new List<string>();
@@ -497,7 +516,7 @@ public class CsvStreamingTests
                 "begin:0:Name|Value",
                 "field:0:0:Alpha",
                 "field:0:1:",
-                "end:0:2"
+                "end:0:1"
             },
             events);
     }

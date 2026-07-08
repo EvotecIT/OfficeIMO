@@ -50,6 +50,20 @@ internal static class CsvValidator
                     continue;
                 }
 
+                if (convertedValue is null || convertedValue == DBNull.Value)
+                {
+                    if (column.DefaultValue is not null)
+                    {
+                        convertedValue = column.DefaultValue;
+                        row[index] = column.DefaultValue;
+                    }
+                    else if (column.IsRequired)
+                    {
+                        errors.Add(new CsvValidationError(rowIndex, column.Name, "Value is required."));
+                        continue;
+                    }
+                }
+
                 foreach (var validator in column.Validators)
                 {
                     if (!validator.Predicate(convertedValue))

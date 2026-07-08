@@ -185,6 +185,38 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void CreateDataReader_WithRequiredCustomConverter_RejectsConvertedNull()
+    {
+        var doc = CsvDocument.Parse("Code\nN/A\n")
+            .EnsureSchema(schema => schema
+                .Column("Code")
+                .AsString()
+                .Required()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "N/A", StringComparison.OrdinalIgnoreCase) ? null : value));
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        var ex = Assert.Throws<CsvException>(() => reader.GetValue(reader.GetOrdinal("Code")));
+        Assert.Contains("Column 'Code' is required", ex.Message);
+    }
+
+    [Fact]
+    public void ToDataTable_WithRequiredCustomConverter_RejectsConvertedNull()
+    {
+        var doc = CsvDocument.Parse("Code\nN/A\n")
+            .EnsureSchema(schema => schema
+                .Column("Code")
+                .AsString()
+                .Required()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "N/A", StringComparison.OrdinalIgnoreCase) ? null : value));
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Column 'Code' is required", ex.Message);
+    }
+
+    [Fact]
     public void Validate_WithCustomSchemaConverter_RunsValidatorsAgainstConvertedValues()
     {
         var doc = CsvDocument.Parse("Score\nhigh\n")
@@ -197,6 +229,23 @@ public class CsvSchemaTests
         doc.Validate(out var errors);
 
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Validate_WithRequiredCustomConverter_ReportsConvertedNull()
+    {
+        var doc = CsvDocument.Parse("Code\nN/A\n")
+            .EnsureSchema(schema => schema
+                .Column("Code")
+                .AsString()
+                .Required()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "N/A", StringComparison.OrdinalIgnoreCase) ? null : value));
+
+        doc.Validate(out var errors);
+
+        var error = Assert.Single(errors);
+        Assert.Equal("Code", error.ColumnName);
+        Assert.Equal("Value is required.", error.Message);
     }
 
     [Fact]

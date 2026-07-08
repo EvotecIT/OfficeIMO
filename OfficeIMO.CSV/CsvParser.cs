@@ -155,6 +155,12 @@ internal static partial class CsvParser
     private static bool HasFieldLengthLimits(CsvLoadOptions options) =>
         options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue;
 
+    private static bool NeedsLogicalCommentSkipping(CsvLoadOptions options) =>
+        options.SkipCommentRows ||
+        (options.HasHeaderRow &&
+            options.Header is null &&
+            options.SkipCommentRowsBeforeHeader);
+
     private static void ReadFieldSpansMaterialized<TVisitor>(TextReader reader, CsvLoadOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
