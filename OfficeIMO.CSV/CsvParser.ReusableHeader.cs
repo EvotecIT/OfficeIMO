@@ -20,6 +20,17 @@ internal static partial class CsvParser
             throw new ArgumentNullException(nameof(recordAction));
         }
 
+        if (UsesTextDelimiter(options))
+        {
+            var metadataAccepted = false;
+            foreach (var record in ParseLineOrQuotedTextDelimiterWithMetadata(reader, options))
+            {
+                ProcessReusableRecord(record.Values, record.StartsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
+            }
+
+            return;
+        }
+
         ReadLineOrQuotedReusableWithMetadataUntilAccepted(reader, options, metadataRecordAction, recordAction);
     }
 

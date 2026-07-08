@@ -95,6 +95,12 @@ public sealed class CsvLoadOptions
     public char Delimiter { get; set; } = DefaultDelimiter;
 
     /// <summary>
+    /// Gets or sets the field delimiter text. Leave unset to use <see cref="Delimiter"/>.
+    /// Single-character values keep the optimized character delimiter path; longer values enable flexible delimiter parsing.
+    /// </summary>
+    public string? DelimiterText { get; set; }
+
+    /// <summary>
     /// Gets or sets whether the delimiter should be detected from the first meaningful records.
     /// Detection is opt-in and leaves <see cref="Delimiter"/> unchanged when no candidate clearly fits.
     /// </summary>

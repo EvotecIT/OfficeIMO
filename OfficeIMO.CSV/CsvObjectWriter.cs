@@ -15,6 +15,8 @@ public sealed class CsvObjectWriter : IDisposable
     private readonly TextWriter _writer;
     private readonly CsvSaveOptions _options;
     private readonly HashSet<string>? _quoteFields;
+    private readonly string _delimiterText;
+    private readonly bool _useTextDelimiter;
     private readonly bool _useDefaultWritePath;
     private readonly bool _useAlwaysQuotedWritePath;
     private readonly bool _useFormattedValueOptions;
@@ -39,12 +41,16 @@ public sealed class CsvObjectWriter : IDisposable
         _writer = writer ?? throw new ArgumentNullException(nameof(writer));
         _options = options ?? new CsvSaveOptions();
         _quoteFields = CsvWriter.CreateQuoteFieldSet(_options.QuoteFields);
+        _delimiterText = CsvWriter.GetDelimiterText(_options);
+        _useTextDelimiter = CsvWriter.UsesTextDelimiter(_options);
         _useFormattedValueOptions = _options.NullValue is not null || _options.DateTimeFormat is not null || _options.UseUtc;
-        _useDefaultWritePath = !_useFormattedValueOptions
+        _useDefaultWritePath = !_useTextDelimiter
+            && !_useFormattedValueOptions
             && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
             && _options.QuoteMode == CsvQuoteMode.AsNeeded
             && _quoteFields == null;
-        _useAlwaysQuotedWritePath = !_useFormattedValueOptions
+        _useAlwaysQuotedWritePath = !_useTextDelimiter
+            && !_useFormattedValueOptions
             && _options.FormulaInjectionPolicy == CsvFormulaInjectionPolicy.Preserve
             && _options.QuoteMode == CsvQuoteMode.Always
             && _quoteFields == null;
@@ -205,7 +211,14 @@ public sealed class CsvObjectWriter : IDisposable
         }
         else
         {
-            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
+            if (_useTextDelimiter)
+            {
+                CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _delimiterText, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
+            }
+            else
+            {
+                CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
+            }
         }
     }
 
@@ -364,6 +377,12 @@ public sealed class CsvObjectWriter : IDisposable
         if (_useAlwaysQuotedWritePath)
         {
             CsvWriter.WriteRecordBufferedAlwaysQuoted(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        if (_useTextDelimiter)
+        {
+            CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _delimiterText, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
             return;
         }
 
@@ -588,6 +607,12 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
+        if (_useTextDelimiter)
+        {
+            CsvWriter.WriteRecord(_writer, _columns!, _delimiterText, _options.NewLine, CultureInfo.InvariantCulture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
+            return;
+        }
+
         CsvWriter.WriteRecord(_writer, _columns!, _options.Delimiter, _options.NewLine, CultureInfo.InvariantCulture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns);
     }
 
@@ -602,6 +627,12 @@ public sealed class CsvObjectWriter : IDisposable
         if (_useAlwaysQuotedWritePath)
         {
             CsvWriter.WriteRecordBufferedAlwaysQuoted(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture);
+            return;
+        }
+
+        if (_useTextDelimiter)
+        {
+            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, values, _delimiterText, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
             return;
         }
 
@@ -622,6 +653,12 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
+        if (_useTextDelimiter)
+        {
+            CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _delimiterText, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
+            return;
+        }
+
         CsvWriter.WriteRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
@@ -639,6 +676,12 @@ public sealed class CsvObjectWriter : IDisposable
             return;
         }
 
+        if (_useTextDelimiter)
+        {
+            CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _delimiterText, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
+            return;
+        }
+
         CsvWriter.WriteRecordBuffered<string?>(_writer, _rowBuffer, values, _options.Delimiter, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
     }
 
@@ -653,6 +696,12 @@ public sealed class CsvObjectWriter : IDisposable
         if (_useAlwaysQuotedWritePath)
         {
             CsvWriter.WriteRecordBufferedAlwaysQuoted(_writer, _rowBuffer, valueCount, state, valueAccessor, _options.Delimiter, _options.NewLine);
+            return;
+        }
+
+        if (_useTextDelimiter)
+        {
+            CsvWriter.WriteTextRecordBuffered(_writer, _rowBuffer, valueCount, state, valueAccessor, _delimiterText, _options.NewLine, _options.Culture, _options.FormulaInjectionPolicy, _options.QuoteMode, _quoteFields, _columns, _options.DateTimeFormat, _options.UseUtc, _options.NullValue);
             return;
         }
 

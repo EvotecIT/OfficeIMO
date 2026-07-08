@@ -8,7 +8,20 @@ internal static partial class CsvParser
 {
     internal static IEnumerable<IReadOnlyList<string>> ParseReusable(TextReader reader, CsvLoadOptions options)
     {
-        return ParseLineOrQuotedReusable(reader, options);
+        if (UsesTextDelimiter(options))
+        {
+            foreach (var record in ParseLineOrQuotedTextDelimiterWithMetadata(reader, options))
+            {
+                yield return record.Values;
+            }
+
+            yield break;
+        }
+
+        foreach (var record in ParseLineOrQuotedReusable(reader, options))
+        {
+            yield return record;
+        }
     }
 
     private static IEnumerable<IReadOnlyList<string>> ParseLineOrQuotedReusable(TextReader reader, CsvLoadOptions options)

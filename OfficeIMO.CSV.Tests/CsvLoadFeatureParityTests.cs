@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.IO;
 using System.Linq;
 using System.Threading;
@@ -251,6 +252,87 @@ public class CsvLoadFeatureParityTests
 
         var rows = parsed.AsEnumerable().ToArray();
         Assert.Same(rows[0]["Name"], rows[1]["Name"]);
+    }
+
+    [Fact]
+    public void Load_Reads_MultiCharacter_Delimiter()
+    {
+        var parsed = CsvDocument.Parse(
+            "Name||Value\nAlpha||\"one||two\"\nBeta||2\n",
+            new CsvLoadOptions { DelimiterText = "||" });
+
+        var rows = parsed.AsEnumerable().ToArray();
+
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("one||two", rows[0].AsString("Value"));
+        Assert.Equal("Beta", rows[1].AsString("Name"));
+    }
+
+    [Fact]
+    public void ReadRowsReusable_Reads_MultiCharacter_Delimiter()
+    {
+        var rows = new List<string>();
+
+        CsvDocument.ReadRowsReusable(
+            new StringReader("Name||Value\nAlpha||1\n"),
+            (header, values) => rows.Add($"{string.Join(",", header)}={string.Join(",", values)}"),
+            new CsvLoadOptions { DelimiterText = "||" });
+
+        Assert.Equal("Name,Value=Alpha,1", Assert.Single(rows));
+    }
+
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void ReadFieldSpans_Reads_MultiCharacter_Delimiter()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name||Value\nAlpha||\"one||two\"\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { DelimiterText = "||" });
+
+        Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:one||two" }, fields);
+    }
+#endif
+
+    [Fact]
+    public void Save_Writes_MultiCharacter_Delimiter()
+    {
+        var document = new CsvDocument()
+            .WithHeader("Name", "Value")
+            .AddRow("Alpha", "one||two");
+
+        var text = document.ToString(new CsvSaveOptions { DelimiterText = "||", NewLine = "\n" });
+
+        Assert.Equal("Name||Value\nAlpha||\"one||two\"\n", text);
+    }
+
+    [Fact]
+    public void CsvObjectWriter_Writes_MultiCharacter_Delimiter()
+    {
+        using var writer = new StringWriter();
+        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { DelimiterText = "||", NewLine = "\n" }, leaveOpen: true))
+        {
+            csv.WriteObject(new { Name = "Alpha", Value = "one||two" });
+        }
+
+        Assert.Equal("Name||Value\nAlpha||\"one||two\"\n", writer.ToString());
+    }
+
+    [Fact]
+    public void WriteDataReader_Writes_MultiCharacter_Delimiter()
+    {
+        using var table = new DataTable();
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Value", typeof(string));
+        table.Rows.Add("Alpha", "one||two");
+
+        using var reader = table.CreateDataReader();
+        using var writer = new StringWriter();
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { DelimiterText = "||", NewLine = "\n" });
+
+        Assert.Equal("Name||Value\nAlpha||\"one||two\"\n", writer.ToString());
     }
 
     [Fact]

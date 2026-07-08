@@ -22,6 +22,13 @@ internal static partial class CsvParser
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
+        if (UsesTextDelimiter(options))
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansTextDelimiter(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
         var delimiter = options.Delimiter;
         var trim = options.TrimWhitespace;
         var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;

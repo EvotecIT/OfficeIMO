@@ -34,6 +34,11 @@ internal static partial class CsvParser
 
     public static IEnumerable<string[]> Parse(TextReader reader, CsvLoadOptions options)
     {
+        if (UsesTextDelimiter(options))
+        {
+            return ParseLineOrQuotedTextDelimiter(reader, options);
+        }
+
         return ParseLineOrQuoted(reader, options);
     }
 
@@ -44,11 +49,22 @@ internal static partial class CsvParser
             throw new ArgumentNullException(nameof(recordAction));
         }
 
+        if (UsesTextDelimiter(options))
+        {
+            ReadLineOrQuotedTextDelimiter(reader, options, recordAction);
+            return;
+        }
+
         ReadLineOrQuoted(reader, options, recordAction);
     }
 
     internal static IEnumerable<CsvParsedRecord> ParseWithMetadata(TextReader reader, CsvLoadOptions options)
     {
+        if (UsesTextDelimiter(options))
+        {
+            return ParseLineOrQuotedTextDelimiterWithMetadata(reader, options);
+        }
+
         return ParseLineOrQuotedWithMetadata(reader, options);
     }
 
@@ -59,7 +75,11 @@ internal static partial class CsvParser
             throw new ArgumentNullException(nameof(recordAction));
         }
 
-        foreach (var record in ParseLineOrQuotedWithMetadata(reader, options))
+        var records = UsesTextDelimiter(options)
+            ? ParseLineOrQuotedTextDelimiterWithMetadata(reader, options)
+            : ParseLineOrQuotedWithMetadata(reader, options);
+
+        foreach (var record in records)
         {
             recordAction(record);
         }
@@ -72,6 +92,12 @@ internal static partial class CsvParser
             throw new ArgumentNullException(nameof(recordAction));
         }
 
+        if (UsesTextDelimiter(options))
+        {
+            ReadLineOrQuotedTextDelimiterReusable(reader, options, recordAction);
+            return;
+        }
+
         ReadLineOrQuotedReusable(reader, options, recordAction);
     }
 
@@ -80,6 +106,12 @@ internal static partial class CsvParser
         if (recordAction == null)
         {
             throw new ArgumentNullException(nameof(recordAction));
+        }
+
+        if (UsesTextDelimiter(options))
+        {
+            ReadLineOrQuotedTextDelimiterReusableWithMetadata(reader, options, recordAction);
+            return;
         }
 
         ReadLineOrQuotedReusableWithMetadata(reader, options, recordAction);
@@ -103,6 +135,12 @@ internal static partial class CsvParser
         if (recordsToSkip < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(recordsToSkip), "SkipInitialRecords cannot be negative.");
+        }
+
+        if (UsesTextDelimiter(options))
+        {
+            ReadFieldSpansTextDelimiter(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
         }
 
         ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
