@@ -241,28 +241,6 @@ public sealed partial class PdfReadPage {
 
         double localX = x - clip.X;
         double localY = y - clip.Y;
-        if ((localX < 0D || localY < 0D) &&
-            clip.IsRectangle &&
-            shape.Kind == OfficeShapeKind.Rectangle &&
-            shape.Transform == null) {
-            double visibleLeft = Math.Max(x, clip.X);
-            double visibleTop = Math.Max(y, clip.Y);
-            double visibleRight = Math.Min(x + shape.Width, clip.X + clip.Width);
-            double visibleBottom = Math.Min(y + shape.Height, clip.Y + clip.Height);
-            double visibleWidth = visibleRight - visibleLeft;
-            double visibleHeight = visibleBottom - visibleTop;
-            if (visibleWidth <= 0D || visibleHeight <= 0D) {
-                return true;
-            }
-
-            OfficeShape clippedShape = shape.Clone();
-            clippedShape.Width = visibleWidth;
-            clippedShape.Height = visibleHeight;
-            clippedShape.ClipPath = null;
-            drawing.AddShape(clippedShape, visibleLeft, visibleTop);
-            return true;
-        }
-
         double shapeX = localX;
         double shapeY = localY;
         if (shapeX < 0D || shapeY < 0D) {

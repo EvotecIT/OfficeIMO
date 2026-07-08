@@ -572,7 +572,8 @@ namespace OfficeIMO.Visio {
 
             List<OfficePoint> projected = ProjectPoints(points, transform);
 
-            if (closed && projected.Count >= 3 && paint.HasFill) {
+            bool filled = projected.Count >= 3 && paint.HasFill;
+            if (filled) {
                 if (paint.FillRadialGradient != null) {
                     canvas.FillRadialGradientPolygon(projected, paint.FillRadialGradient);
                 } else if (paint.FillGradient != null) {
@@ -593,7 +594,7 @@ namespace OfficeIMO.Visio {
                 }
             }
 
-            return (closed && paint.HasFill) || paint.HasStroke;
+            return filled || paint.HasStroke;
         }
 
         private static void StrokeOpenContour(OfficeRasterCanvas canvas, IReadOnlyList<OfficePoint> points, SvgPaint paint, double strokeWidth, IReadOnlyList<double>? dashPattern) {
