@@ -27,6 +27,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
     private const int WideRowCount = 100_000;
     private const int QuotedRowCount = 100_000;
     private const int QuickTestRowCount = 100_000;
+    private static readonly Dictionary<string, CsvExpectedMetrics> ExpectedMetrics = new(StringComparer.Ordinal);
 
     private string _smallCsvPath = string.Empty;
     private string _mediumCsvPath = string.Empty;
@@ -43,21 +44,27 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
         _smallCsvPath = Path.Combine(dataDir, "dbatools-small.csv");
         GenerateCsv(_smallCsvPath, SmallRowCount, 10, quoteAll: false);
+        RegisterExpectedMetrics(_smallCsvPath, SmallRowCount, 10);
 
         _mediumCsvPath = Path.Combine(dataDir, "dbatools-medium.csv");
         GenerateCsv(_mediumCsvPath, MediumRowCount, 10, quoteAll: false);
+        RegisterExpectedMetrics(_mediumCsvPath, MediumRowCount, 10);
 
         _largeCsvPath = Path.Combine(dataDir, "dbatools-large.csv");
         GenerateCsv(_largeCsvPath, LargeRowCount, 10, quoteAll: false);
+        RegisterExpectedMetrics(_largeCsvPath, LargeRowCount, 10);
 
         _wideCsvPath = Path.Combine(dataDir, "dbatools-wide.csv");
         GenerateCsv(_wideCsvPath, WideRowCount, 50, quoteAll: false);
+        RegisterExpectedMetrics(_wideCsvPath, WideRowCount, 50);
 
         _quotedCsvPath = Path.Combine(dataDir, "dbatools-quoted.csv");
         GenerateCsv(_quotedCsvPath, QuotedRowCount, 10, quoteAll: true);
+        RegisterExpectedMetrics(_quotedCsvPath, QuotedRowCount, 10);
 
         _quickTestCsvPath = Path.Combine(dataDir, "dbatools-quicktest.csv");
         GenerateCsv(_quickTestCsvPath, QuickTestRowCount, 10, quoteAll: false);
+        RegisterExpectedMetrics(_quickTestCsvPath, QuickTestRowCount, 10);
     }
 
     [Benchmark(Description = "OfficeIMO-Small")]
@@ -173,6 +180,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
     public int Dataplat_AllValues()
     {
         var count = 0;
+        long fieldLength = 0;
         var options = new DataplatCsvReaderOptions { BufferSize = 65_536 };
         using var reader = new DataplatCsvDataReader(_mediumCsvPath, options);
         var values = new object[reader.FieldCount];
@@ -180,9 +188,10 @@ public class CsvDbatoolsLibraryParityBenchmarks
         {
             count++;
             reader.GetValues(values);
+            AddValueLengths(values, ref fieldLength);
         }
 
-        return ValidateRowCount(_mediumCsvPath, count);
+        return ValidateReadResult(_mediumCsvPath, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     [Benchmark(Description = "LumenWorks-AllValues")]
@@ -190,6 +199,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
     public int LumenWorks_AllValues()
     {
         var count = 0;
+        long fieldLength = 0;
         using var textReader = new StreamReader(_mediumCsvPath);
         using var reader = new LumenWorksCsvReader(textReader, true);
         while (reader.ReadNextRecord())
@@ -197,11 +207,11 @@ public class CsvDbatoolsLibraryParityBenchmarks
             count++;
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                _ = reader[i];
+                fieldLength += reader[i].Length;
             }
         }
 
-        return ValidateRowCount(_mediumCsvPath, count);
+        return ValidateReadResult(_mediumCsvPath, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     [Benchmark(Description = "OfficeIMO-QuickTest-SingleColumn")]
@@ -269,7 +279,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
             throw new InvalidOperationException("Unexpected negative field length.");
         }
 
-        return ValidateRowCount(path, visitor.RowCount);
+        return ValidateReadResult(path, visitor.RowCount, visitor.FirstColumnLength, CsvReadValidationMode.FirstColumn);
     }
 
     private static int OfficeIMO_ReadAllValues(string path)
@@ -281,26 +291,28 @@ public class CsvDbatoolsLibraryParityBenchmarks
             throw new InvalidOperationException("Unexpected negative field length.");
         }
 
-        return ValidateRowCount(path, visitor.RowCount);
+        return ValidateReadResult(path, visitor.RowCount, visitor.FieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static int OfficeIMO_DataReaderReadFirstColumn(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
         using var reader = document.CreateDataReader();
         while (reader.Read())
         {
             count++;
-            _ = reader.GetValue(FirstColumnIndex);
+            AddValueLength(reader.GetValue(FirstColumnIndex), ref fieldLength);
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.FirstColumn);
     }
 
     private static int OfficeIMO_DataReaderReadAllValues(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
         using var reader = document.CreateDataReader();
         var values = new object[reader.FieldCount];
@@ -308,14 +320,16 @@ public class CsvDbatoolsLibraryParityBenchmarks
         {
             count++;
             reader.GetValues(values);
+            AddValueLengths(values, ref fieldLength);
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static int OfficeIMO_DataReaderReadAllValuesByOrdinal(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
         using var reader = document.CreateDataReader();
         while (reader.Read())
@@ -323,59 +337,63 @@ public class CsvDbatoolsLibraryParityBenchmarks
             count++;
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                _ = reader.GetValue(i);
+                AddValueLength(reader.GetValue(i), ref fieldLength);
             }
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static int Dataplat_ReadFirstColumn(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var reader = new DataplatCsvDataReader(path);
         while (reader.Read())
         {
             count++;
-            _ = reader.GetValue(FirstColumnIndex);
+            AddValueLength(reader.GetValue(FirstColumnIndex), ref fieldLength);
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.FirstColumn);
     }
 
     private static int Dataplat_ReadAllValues(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var reader = new DataplatCsvDataReader(path);
         while (reader.Read())
         {
             count++;
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                _ = reader.GetValue(i);
+                AddValueLength(reader.GetValue(i), ref fieldLength);
             }
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static int LumenWorks_ReadFirstColumn(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var textReader = new StreamReader(path);
         using var reader = new LumenWorksCsvReader(textReader, true);
         while (reader.ReadNextRecord())
         {
             count++;
-            _ = reader[FirstColumnIndex];
+            fieldLength += reader[FirstColumnIndex].Length;
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.FirstColumn);
     }
 
     private static int LumenWorks_ReadAllValues(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var textReader = new StreamReader(path);
         using var reader = new LumenWorksCsvReader(textReader, true);
         while (reader.ReadNextRecord())
@@ -383,59 +401,63 @@ public class CsvDbatoolsLibraryParityBenchmarks
             count++;
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                _ = reader[i];
+                fieldLength += reader[i].Length;
             }
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static int Sep_ReadFirstColumn(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var reader = SepLib.Reader().FromFile(path);
         foreach (var row in reader)
         {
             count++;
-            _ = row[FirstColumnIndex].ToString();
+            fieldLength += row[FirstColumnIndex].ToString().Length;
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.FirstColumn);
     }
 
     private static int Sep_ReadAllValues(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var reader = SepLib.Reader().FromFile(path);
         foreach (var row in reader)
         {
             count++;
             for (var i = 0; i < row.ColCount; i++)
             {
-                _ = row[i].ToString();
+                fieldLength += row[i].ToString().Length;
             }
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static int Sylvan_ReadFirstColumn(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var textReader = new StreamReader(path);
         using var reader = SylvanCsvDataReader.Create(textReader);
         while (reader.Read())
         {
             count++;
-            _ = reader.GetString(FirstColumnIndex);
+            fieldLength += reader.GetString(FirstColumnIndex).Length;
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.FirstColumn);
     }
 
     private static int Sylvan_ReadAllValues(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         using var textReader = new StreamReader(path);
         using var reader = SylvanCsvDataReader.Create(textReader);
         while (reader.Read())
@@ -443,16 +465,17 @@ public class CsvDbatoolsLibraryParityBenchmarks
             count++;
             for (var i = 0; i < reader.FieldCount; i++)
             {
-                _ = reader.GetString(i);
+                fieldLength += reader.GetString(i).Length;
             }
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static int CsvHelper_ReadFirstColumn(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
         using var textReader = new StreamReader(path);
         using var csv = new CsvHelperReader(textReader, config);
@@ -461,15 +484,16 @@ public class CsvDbatoolsLibraryParityBenchmarks
         while (csv.Read())
         {
             count++;
-            _ = csv.GetField(FirstColumnIndex);
+            fieldLength += csv.GetField(FirstColumnIndex)?.Length ?? 0;
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.FirstColumn);
     }
 
     private static int CsvHelper_ReadAllValues(string path)
     {
         var count = 0;
+        long fieldLength = 0;
         var config = new CsvConfiguration(CultureInfo.InvariantCulture) { HasHeaderRecord = true };
         using var textReader = new StreamReader(path);
         using var csv = new CsvHelperReader(textReader, config);
@@ -480,11 +504,11 @@ public class CsvDbatoolsLibraryParityBenchmarks
             count++;
             for (var i = 0; i < csv.Parser.Count; i++)
             {
-                _ = csv.GetField(i);
+                fieldLength += csv.GetField(i)?.Length ?? 0;
             }
         }
 
-        return ValidateRowCount(path, count);
+        return ValidateReadResult(path, count, fieldLength, CsvReadValidationMode.AllValues);
     }
 
     private static void GenerateCsv(string path, int rows, int columns, bool quoteAll)
@@ -536,37 +560,100 @@ public class CsvDbatoolsLibraryParityBenchmarks
         }
     }
 
-    private static int ValidateRowCount(string path, int count)
+    private static int ValidateReadResult(string path, int count, long fieldLength, CsvReadValidationMode mode)
     {
-        var expected = ExpectedRowCount(path);
-        if (count != expected)
+        if (!ExpectedMetrics.TryGetValue(path, out var expected))
+        {
+            throw new InvalidOperationException($"No expected CSV metrics are registered for '{path}'.");
+        }
+
+        var expectedFieldLength = mode == CsvReadValidationMode.FirstColumn
+            ? expected.FirstColumnLength
+            : expected.AllValuesLength;
+
+        if (count != expected.RowCount || fieldLength != expectedFieldLength)
         {
             throw new InvalidOperationException(
                 string.Create(
                     CultureInfo.InvariantCulture,
-                    $"Benchmark lane read {count} rows from '{Path.GetFileName(path)}' but expected {expected}."));
+                    $"Benchmark lane read {count} rows and field-length checksum {fieldLength} from '{Path.GetFileName(path)}' but expected {expected.RowCount} rows and checksum {expectedFieldLength}."));
         }
 
         return count;
     }
 
-    private static int ExpectedRowCount(string path) =>
-        Path.GetFileName(path) switch
+    private static void RegisterExpectedMetrics(string path, int rows, int columns) =>
+        ExpectedMetrics[path] = CalculateExpectedMetrics(rows, columns);
+
+    private static CsvExpectedMetrics CalculateExpectedMetrics(int rows, int columns)
+    {
+        long firstColumnLength = 0;
+        long allValuesLength = 0;
+        var random = new Random(42);
+
+        for (var row = 0; row < rows; row++)
         {
-            "dbatools-small.csv" => SmallRowCount,
-            "dbatools-medium.csv" => MediumRowCount,
-            "dbatools-large.csv" => LargeRowCount,
-            "dbatools-wide.csv" => WideRowCount,
-            "dbatools-quoted.csv" => QuotedRowCount,
-            "dbatools-quicktest.csv" => QuickTestRowCount,
-            _ => throw new InvalidOperationException($"No expected row count is registered for '{path}'.")
-        };
+            for (var column = 0; column < columns; column++)
+            {
+                var fieldLength = GetGeneratedFieldLength(row, column, random);
+                if (column == FirstColumnIndex)
+                {
+                    firstColumnLength += fieldLength;
+                }
+
+                allValuesLength += fieldLength;
+            }
+        }
+
+        return new CsvExpectedMetrics(rows, firstColumnLength, allValuesLength);
+    }
+
+    private static int GetGeneratedFieldLength(int row, int column, Random random)
+    {
+        switch (column)
+        {
+            case 0:
+                return row.ToString(CultureInfo.InvariantCulture).Length;
+            case 1:
+                return string.Create(CultureInfo.InvariantCulture, $"Name{row}").Length;
+            case 2:
+                return random.Next(1, 100).ToString(CultureInfo.InvariantCulture).Length;
+            case 3:
+                return random.NextDouble().ToString("F4", CultureInfo.InvariantCulture).Length;
+            case 4:
+                _ = random.Next(365);
+                return 10;
+            case 5:
+                return random.Next(0, 2) == 0 ? 4 : 5;
+            default:
+                return string.Create(CultureInfo.InvariantCulture, $"Value{row}_{column}").Length;
+        }
+    }
+
+    private static void AddValueLengths(object?[] values, ref long fieldLength)
+    {
+        for (var i = 0; i < values.Length; i++)
+        {
+            AddValueLength(values[i], ref fieldLength);
+        }
+    }
+
+    private static void AddValueLength(object? value, ref long fieldLength)
+    {
+        if (value is string text)
+        {
+            fieldLength += text.Length;
+            return;
+        }
+
+        fieldLength += Convert.ToString(value, CultureInfo.InvariantCulture)?.Length ?? 0;
+    }
 
     private struct OfficeImoFirstColumnVisitor : ICsvProjectedFieldSpanVisitor
     {
         public int RowCount { get; private set; }
 
-        public int FirstColumnLength { get; private set; }
+        public long FirstColumnLength { get; private set; }
 
         public bool ShouldVisitField(int recordIndex, int fieldIndex) => fieldIndex == FirstColumnIndex;
 
@@ -588,7 +675,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
     {
         public int RowCount { get; private set; }
 
-        public int FieldLength { get; private set; }
+        public long FieldLength { get; private set; }
 
         public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
         {
@@ -610,5 +697,13 @@ public class CsvDbatoolsLibraryParityBenchmarks
             FieldLength += unescapedLength;
             return true;
         }
+    }
+
+    private readonly record struct CsvExpectedMetrics(int RowCount, long FirstColumnLength, long AllValuesLength);
+
+    private enum CsvReadValidationMode
+    {
+        FirstColumn,
+        AllValues
     }
 }
