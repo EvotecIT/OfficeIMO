@@ -382,6 +382,8 @@ namespace OfficeIMO.Word {
                     return;
                 case FieldCode:
                 case FieldChar:
+                case DeletedRun:
+                case MoveFromRun:
                     return;
             }
 

@@ -625,16 +625,16 @@ internal static class PdfPageContentVisualParser {
                 double radiusScale = Math.Max(paintWidth, paintHeight);
                 double startRadius = radiusScale <= 0D ? 0D : TransformRadius(transform, shading.R0) / radiusScale;
                 double endRadius = radiusScale <= 0D ? 0D : TransformRadius(transform, shading.R1) / radiusScale;
-                if (NearlyEqual(startX, endX) && NearlyEqual(startY, endY) && NearlyEqual(startRadius, endRadius)) {
-                    endRadius = Math.Min(1D, startRadius + 0.5D);
+                if (NearlyEqual(rawStartX, rawEndX) && NearlyEqual(rawStartY, rawEndY) && NearlyEqual(startRadius, endRadius)) {
+                    endRadius = startRadius + 0.5D;
                 }
 
                 radialGradient = new OfficeRadialGradient(
-                    startX,
-                    startY,
+                    rawStartX,
+                    rawStartY,
                     startRadius,
-                    endX,
-                    endY,
+                    rawEndX,
+                    rawEndY,
                     endRadius,
                     new OfficeGradientStop(0D, shading.StartColor),
                     new OfficeGradientStop(1D, shading.EndColor));

@@ -7,21 +7,22 @@ namespace OfficeIMO.Drawing;
 /// <summary>
 /// Dependency-free radial gradient intent in normalized local coordinates.
 /// Coordinates use a top-left origin where 0,0 is the shape's top-left corner and 1,1 is its bottom-right corner.
+/// Circle centers may sit outside that box to preserve authored gradients whose focal point is off-canvas.
 /// </summary>
 public sealed class OfficeRadialGradient {
-    /// <summary>Normalized start circle center X coordinate.</summary>
+    /// <summary>Start circle center X coordinate in shape-local units.</summary>
     public double StartX { get; }
 
-    /// <summary>Normalized start circle center Y coordinate.</summary>
+    /// <summary>Start circle center Y coordinate in shape-local units.</summary>
     public double StartY { get; }
 
     /// <summary>Normalized start circle radius.</summary>
     public double StartRadius { get; }
 
-    /// <summary>Normalized end circle center X coordinate.</summary>
+    /// <summary>End circle center X coordinate in shape-local units.</summary>
     public double EndX { get; }
 
-    /// <summary>Normalized end circle center Y coordinate.</summary>
+    /// <summary>End circle center Y coordinate in shape-local units.</summary>
     public double EndY { get; }
 
     /// <summary>Normalized end circle radius.</summary>
@@ -62,10 +63,10 @@ public sealed class OfficeRadialGradient {
     public OfficeRadialGradient Clone() => new OfficeRadialGradient(StartX, StartY, StartRadius, EndX, EndY, EndRadius, Stops);
 
     private static void ValidateCoordinates(double startX, double startY, double startRadius, double endX, double endY, double endRadius) {
-        ValidateNormalized(startX, nameof(startX));
-        ValidateNormalized(startY, nameof(startY));
-        ValidateNormalized(endX, nameof(endX));
-        ValidateNormalized(endY, nameof(endY));
+        ValidateFiniteCoordinate(startX, nameof(startX));
+        ValidateFiniteCoordinate(startY, nameof(startY));
+        ValidateFiniteCoordinate(endX, nameof(endX));
+        ValidateFiniteCoordinate(endY, nameof(endY));
         ValidateRadius(startRadius, nameof(startRadius));
         ValidateRadius(endRadius, nameof(endRadius));
         if (startX.Equals(endX) && startY.Equals(endY) && startRadius.Equals(endRadius)) {
@@ -101,9 +102,9 @@ public sealed class OfficeRadialGradient {
         return new ReadOnlyCollection<OfficeGradientStop>(copy);
     }
 
-    private static void ValidateNormalized(double value, string name) {
-        if (double.IsNaN(value) || double.IsInfinity(value) || value < 0D || value > 1D) {
-            throw new ArgumentOutOfRangeException(name, "Radial gradient coordinates must be finite values between 0 and 1.");
+    private static void ValidateFiniteCoordinate(double value, string name) {
+        if (double.IsNaN(value) || double.IsInfinity(value)) {
+            throw new ArgumentOutOfRangeException(name, "Radial gradient coordinates must be finite values.");
         }
     }
 

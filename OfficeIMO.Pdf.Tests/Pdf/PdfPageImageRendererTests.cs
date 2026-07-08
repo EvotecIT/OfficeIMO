@@ -961,6 +961,28 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_PreservesOffCanvasRadialShadingCenters() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            20 40 120 120 re
+            W
+            n
+            /Sh1 sh
+            """,
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 3 /ColorSpace /DeviceRGB /Coords [-20 100 0 -20 100 60] /Function << /FunctionType 2 /Domain [0 1] /C0 [1 0 0] /C1 [0 0 1] /N 1 >> /Extend [true true] >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape shape = Assert.Single(drawing.Shapes, item => item.Shape.FillRadialGradient != null);
+        OfficeRadialGradient gradient = shape.Shape.FillRadialGradient!;
+        Assert.True(gradient.StartX < 0D);
+        Assert.True(gradient.EndX < 0D);
+        Assert.Equal(0.5D, gradient.StartY);
+        Assert.Equal(0.5D, gradient.EndY);
+    }
+
+    [Fact]
     public void RenderPage_ProjectsTextFillColorFromContentStream() {
         byte[] pdf = BuildSingleStreamPdf(
             """
@@ -1718,6 +1740,39 @@ public class PdfPageImageRendererTests {
         OfficeColor clippedCorner = raster.GetPixel(45, 45);
         Assert.True(center.R > 240 && center.G < 20 && center.B < 20);
         Assert.True(clippedCorner.R > 240 && clippedCorner.G > 240 && clippedCorner.B > 240);
+    }
+
+    [Fact]
+    public void RenderPage_DoesNotWidenUnsupportedConcavePathClipIntersections() {
+        byte[] pdf = BuildSingleStreamPdf("""
+            40 40 m
+            120 40 l
+            120 160 l
+            40 160 l
+            h
+            W
+            n
+            20 20 m
+            140 20 l
+            140 60 l
+            60 60 l
+            60 140 l
+            20 140 l
+            h
+            W
+            n
+            1 0 0 rg
+            0 0 160 200 re
+            f
+            """);
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+        byte[] png = PdfPageImageRenderer.RenderPageAsPng(pdf);
+
+        Assert.Empty(drawing.Elements.OfType<OfficeDrawingShape>());
+        Assert.True(OfficePngReader.TryDecode(png, out OfficeRasterImage? raster));
+        OfficeColor previouslyWidenedPixel = raster!.GetPixel(100, 100);
+        Assert.True(previouslyWidenedPixel.R > 240 && previouslyWidenedPixel.G > 240 && previouslyWidenedPixel.B > 240);
     }
 
     [Fact]

@@ -111,6 +111,27 @@ namespace OfficeIMO.Tests {
                 document.Save(false);
             }
         }
+
+        [Fact]
+        public void Test_ParagraphText_SkipsDeletedAndMovedFromRevisionRuns() {
+            var filePath = Path.Combine(_directoryWithFiles, "ParagraphTextFinalRevisionView.docx");
+
+            using (WordDocument document = WordDocument.Create(filePath)) {
+                WordParagraph paragraph = document.AddParagraph();
+                var contentControl = new SdtRun(
+                    new SdtContentRun(
+                        new Run(new Text("Visible ")),
+                    new DeletedRun(new Run(new Text("Deleted "))) { Id = "1", Author = "OfficeIMO Tests", Date = DateTime.UtcNow },
+                    new MoveFromRun(new Run(new Text("MovedFrom "))) { Id = "2", Author = "OfficeIMO Tests", Date = DateTime.UtcNow },
+                    new InsertedRun(new Run(new Text("Inserted "))) { Id = "3", Author = "OfficeIMO Tests", Date = DateTime.UtcNow },
+                        new MoveToRun(new Run(new Text("MovedTo"))) { Id = "4", Author = "OfficeIMO Tests", Date = DateTime.UtcNow }));
+                paragraph._paragraph.Append(contentControl);
+
+                var contentControlParagraph = new WordParagraph(document, paragraph._paragraph, contentControl);
+                Assert.Equal("Visible Inserted MovedTo", contentControlParagraph.Text);
+            }
+        }
+
         [Fact]
         public void Test_BasicWordWithDifferentBreaks() {
             var filePath = Path.Combine(_directoryWithFiles, "BasicWordWithBreaksDifferent.docx");
