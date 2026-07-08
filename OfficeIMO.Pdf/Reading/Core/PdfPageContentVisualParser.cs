@@ -518,7 +518,7 @@ internal static class PdfPageContentVisualParser {
                     stroke && _state.StrokeWidth > 0D ? _state.StrokeOpacity : null,
                     _state.ClipPath,
                     paintOrder));
-            } else if (stroke && _path.Count == 2) {
+            } else if (stroke && IsSingleLinePath()) {
                 AddLine(_path[0], _path[1], paintOrder);
             } else {
                 OfficeLinearGradient? fillGradient = null;
@@ -872,6 +872,12 @@ internal static class PdfPageContentVisualParser {
             y = top;
             return true;
         }
+
+        private bool IsSingleLinePath() =>
+            _path.Count == 2 &&
+            _pathCommands.Count == 2 &&
+            _pathCommands[0].Kind == OfficePathCommandKind.MoveTo &&
+            _pathCommands[1].Kind == OfficePathCommandKind.LineTo;
 
         private void AddLine((double X, double Y) start, (double X, double Y) end, double paintOrder) {
             double x1 = start.X;

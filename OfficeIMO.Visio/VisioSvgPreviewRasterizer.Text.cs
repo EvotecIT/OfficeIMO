@@ -116,54 +116,12 @@ namespace OfficeIMO.Visio {
         }
 
         private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, bool stopAtPositionedChild) {
-            double width = 0D;
             var measureCursor = new SvgTextCursor(0D, 0D);
-            foreach (XNode node in element.Nodes()) {
-                if (node is XText textNode) {
-                    if (!context.IsVisible) {
-                        continue;
-                    }
-
-                    string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
-                    if (value.Length > 0) {
-                        width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);
-                        measureCursor.HasTextRun = true;
-                    }
-
-                    continue;
-                }
-
-                if (node is XElement child && string.Equals(child.Name.LocalName, "tspan", StringComparison.OrdinalIgnoreCase)) {
-                    if (IsElementDisplayNone(child, context)) {
-                        continue;
-                    }
-
-                    using IDisposable visibilityScope = context.PushVisibility(ReadVisibilityOverride(child, context));
-                    if (!context.IsVisible) {
-                        continue;
-                    }
-
-                    bool resetsTextFlow = child.Attribute("x") != null || child.Attribute("y") != null;
-                    if (resetsTextFlow && stopAtPositionedChild) {
-                        break;
-                    }
-
-                    SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
-                    width += MeasureTextChunk(canvas, child, childStyle, context, stopAtPositionedChild: true, measureCursor.PendingSpace, measureCursor.HasTextRun);
-                    measureCursor.PendingSpace = false;
-                    measureCursor.HasTextRun = true;
-                }
-            }
-
-            return width;
+            return MeasureTextChunk(canvas, element, style, context, stopAtPositionedChild, ref measureCursor);
         }
 
-        private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, bool stopAtPositionedChild, bool pendingSpace, bool hasPriorTextRun) {
+        private static double MeasureTextChunk(OfficeRasterCanvas canvas, XElement element, SvgTextStyle style, SvgRenderContext context, bool stopAtPositionedChild, ref SvgTextCursor measureCursor) {
             double width = 0D;
-            var measureCursor = new SvgTextCursor(0D, 0D) {
-                PendingSpace = pendingSpace,
-                HasTextRun = hasPriorTextRun
-            };
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
                     if (!context.IsVisible) {
@@ -195,9 +153,7 @@ namespace OfficeIMO.Visio {
                     }
 
                     SvgTextStyle childStyle = SvgTextStyle.Resolve(child, style, context);
-                    width += MeasureTextChunk(canvas, child, childStyle, context, stopAtPositionedChild: true, measureCursor.PendingSpace, measureCursor.HasTextRun);
-                    measureCursor.PendingSpace = false;
-                    measureCursor.HasTextRun = true;
+                    width += MeasureTextChunk(canvas, child, childStyle, context, stopAtPositionedChild: true, ref measureCursor);
                 }
             }
 

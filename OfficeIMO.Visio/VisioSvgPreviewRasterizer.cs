@@ -1084,6 +1084,10 @@ namespace OfficeIMO.Visio {
                         transform = transform.Multiply(SvgTransform.Create(numbers[0], 0D, 0D, numbers.Count > 1 ? numbers[1] : numbers[0], 0D, 0D));
                     } else if (string.Equals(name, "rotate", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 1) {
                         transform = transform.Multiply(CreateRotationTransform(numbers));
+                    } else if (string.Equals(name, "skewX", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 1) {
+                        transform = transform.Multiply(SvgTransform.Create(1D, 0D, Math.Tan(OfficeGeometry.DegreesToRadians(numbers[0])), 1D, 0D, 0D));
+                    } else if (string.Equals(name, "skewY", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 1) {
+                        transform = transform.Multiply(SvgTransform.Create(1D, Math.Tan(OfficeGeometry.DegreesToRadians(numbers[0])), 0D, 1D, 0D, 0D));
                     } else if (string.Equals(name, "matrix", StringComparison.OrdinalIgnoreCase) && numbers.Count >= 6) {
                         transform = transform.Multiply(SvgTransform.Create(numbers[0], numbers[1], numbers[2], numbers[3], numbers[4], numbers[5]));
                     }

@@ -129,14 +129,14 @@ namespace OfficeIMO.Visio {
                 r = Math.Min(1D, fr + 0.5D);
             }
 
-            gradient = new OfficeRadialGradient(ClampUnit(fx), ClampUnit(fy), Math.Max(0D, fr), ClampUnit(cx), ClampUnit(cy), Math.Max(0D, r), stops);
+            gradient = new OfficeRadialGradient(fx, fy, Math.Max(0D, fr), cx, cy, Math.Max(0D, r), stops);
             return true;
         }
 
         private static bool TryReadGradientStops(XElement definition, SvgRenderContext context, double opacity, OfficeColor currentColor, out IReadOnlyList<OfficeGradientStop> stops) {
             List<OfficeGradientStop> parsedStops = new();
             IEnumerable<XElement> stopElements = definition.Elements().Where(element => string.Equals(element.Name.LocalName, "stop", StringComparison.OrdinalIgnoreCase));
-            if (!stopElements.Any() && TryReadUrlId(ReadHref(definition), out string? hrefId) && hrefId != null && context.TryGetDefinition(hrefId, out XElement? inherited) && inherited != null) {
+            if (!stopElements.Any() && TryReadGradientReferenceId(ReadHref(definition), out string? hrefId) && hrefId != null && context.TryGetDefinition(hrefId, out XElement? inherited) && inherited != null) {
                 stopElements = inherited.Elements().Where(element => string.Equals(element.Name.LocalName, "stop", StringComparison.OrdinalIgnoreCase));
             }
 
@@ -214,6 +214,25 @@ namespace OfficeIMO.Visio {
             }
 
             id = reference.Substring(1);
+            return id.Length > 0;
+        }
+
+        private static bool TryReadGradientReferenceId(string? raw, out string? id) {
+            if (TryReadUrlId(raw, out id)) {
+                return true;
+            }
+
+            id = null;
+            if (string.IsNullOrWhiteSpace(raw)) {
+                return false;
+            }
+
+            string value = raw!.Trim().Trim('\'', '"');
+            if (value.Length < 2 || value[0] != '#') {
+                return false;
+            }
+
+            id = value.Substring(1);
             return id.Length > 0;
         }
 
@@ -308,7 +327,7 @@ namespace OfficeIMO.Visio {
         }
 
         private static string? ReadInheritedGradientAttribute(XElement definition, SvgRenderContext context, string attributeName, HashSet<string> visited) {
-            if (!TryReadUrlId(ReadHref(definition), out string? hrefId) ||
+            if (!TryReadGradientReferenceId(ReadHref(definition), out string? hrefId) ||
                 hrefId == null ||
                 !visited.Add(hrefId) ||
                 !context.TryGetDefinition(hrefId, out XElement? inherited) ||
