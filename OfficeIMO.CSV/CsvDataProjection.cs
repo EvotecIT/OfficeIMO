@@ -45,6 +45,15 @@ internal static class CsvDataProjectionConverter
             }
         }
 
+        if (column.SchemaColumn?.Converter is { } converter)
+        {
+            value = ConvertWithCustomConverter(value, converter, column.Name, rowIndex, culture);
+            if (value is null || value == DBNull.Value)
+            {
+                return DBNull.Value;
+            }
+        }
+
         if (column.DataType.IsInstanceOfType(value))
         {
             return value!;
@@ -56,6 +65,23 @@ internal static class CsvDataProjectionConverter
         }
 
         return converted ?? DBNull.Value;
+    }
+
+    private static object? ConvertWithCustomConverter(
+        object? value,
+        Func<object?, CultureInfo, object?> converter,
+        string columnName,
+        int rowIndex,
+        CultureInfo culture)
+    {
+        try
+        {
+            return converter(value, culture);
+        }
+        catch (Exception ex) when (ex is not CsvException)
+        {
+            throw new CsvException($"Column '{columnName}' custom converter failed on row {rowIndex + 1}: {ex.Message}", ex);
+        }
     }
 
     private static bool IsMissingValue(object? value, Type targetType) =>

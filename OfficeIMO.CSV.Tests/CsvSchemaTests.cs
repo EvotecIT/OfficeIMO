@@ -153,6 +153,53 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void ToDataTable_WithCustomSchemaConverter_UsesConvertedValues()
+    {
+        var doc = CsvDocument.Parse("Code,Score\nA,high\nB,low\n")
+            .EnsureSchema(schema => schema
+                .Column("Code").AsString().Required()
+                .Column("Score").AsInt32().ConvertUsing(value =>
+                    string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1));
+
+        var table = doc.ToDataTable();
+
+        Assert.Equal(typeof(int), table.Columns["Score"]!.DataType);
+        Assert.Equal(10, table.Rows[0]["Score"]);
+        Assert.Equal(1, table.Rows[1]["Score"]);
+    }
+
+    [Fact]
+    public void CreateDataReader_WithCustomSchemaConverter_UsesConvertedValues()
+    {
+        var doc = CsvDocument.Parse("Code,Score\nA,high\n")
+            .EnsureSchema(schema => schema
+                .Column("Code").AsString().Required()
+                .Column("Score").AsInt32().ConvertUsing((value, _) =>
+                    string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1));
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(typeof(int), reader.GetFieldType(reader.GetOrdinal("Score")));
+        Assert.Equal(10, reader.GetInt32(reader.GetOrdinal("Score")));
+    }
+
+    [Fact]
+    public void Validate_WithCustomSchemaConverter_RunsValidatorsAgainstConvertedValues()
+    {
+        var doc = CsvDocument.Parse("Score\nhigh\n")
+            .EnsureSchema(schema => schema
+                .Column("Score")
+                .AsInt32()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1)
+                .Validate(value => value is int score && score >= 10, "Score must be at least 10."));
+
+        doc.Validate(out var errors);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
     public void ToDataTable_WithRequiredSchema_RejectsMissingValues()
     {
         var doc = new CsvDocument()

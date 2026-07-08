@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Globalization;
+
 namespace OfficeIMO.CSV;
 
 internal static class CsvValidator
@@ -42,18 +44,15 @@ internal static class CsvValidator
                     }
                 }
 
-                if (column.DataType is not null)
+                if (!TryConvertValue(value, column, document.Culture, document.DateTimeFormats, out var convertedValue, out var error))
                 {
-                    if (!CsvValueConverter.TryConvert(value, column.DataType, document.Culture, document.DateTimeFormats, out _, out var error))
-                    {
-                        errors.Add(new CsvValidationError(rowIndex, column.Name, error ?? "Invalid value."));
-                        continue;
-                    }
+                    errors.Add(new CsvValidationError(rowIndex, column.Name, error ?? "Invalid value."));
+                    continue;
                 }
 
                 foreach (var validator in column.Validators)
                 {
-                    if (!validator.Predicate(value))
+                    if (!validator.Predicate(convertedValue))
                     {
                         errors.Add(new CsvValidationError(rowIndex, column.Name, validator.Message));
                     }
@@ -64,5 +63,42 @@ internal static class CsvValidator
         }
 
         return errors;
+    }
+
+    private static bool TryConvertValue(
+        object? value,
+        CsvSchemaColumn column,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats,
+        out object? convertedValue,
+        out string? error)
+    {
+        convertedValue = value;
+        error = null;
+
+        if (column.Converter is { } converter)
+        {
+            try
+            {
+                convertedValue = converter(value, culture);
+            }
+            catch (Exception ex) when (ex is not CsvException)
+            {
+                error = $"Custom converter failed: {ex.Message}";
+                return false;
+            }
+        }
+
+        if (column.DataType is null || convertedValue is null || column.DataType.IsInstanceOfType(convertedValue))
+        {
+            return true;
+        }
+
+        if (!CsvValueConverter.TryConvert(convertedValue, column.DataType, culture, dateTimeFormats, out convertedValue, out error))
+        {
+            return false;
+        }
+
+        return true;
     }
 }

@@ -76,6 +76,18 @@ foreach (var error in errors) {
 }
 ```
 
+Use `ConvertUsing` when a column needs domain-specific conversion before it becomes a `DataTable` or `IDataReader` value:
+
+```csharp
+var document = CsvDocument.Load("input.csv")
+    .EnsureSchema(schema => schema
+        .Column("Priority")
+        .AsInt32()
+        .ConvertUsing(value => string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1));
+
+DataTable table = document.ToDataTable();
+```
+
 Infer a schema from sampled rows when the incoming file should define the import contract:
 
 ```csharp
