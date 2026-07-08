@@ -27,6 +27,34 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void ToDataTable_WithRequiredSchema_RejectsMissingColumn()
+    {
+        var doc = CsvDocument.Parse("Id,Name\n1,Alice\n")
+            .EnsureSchema(schema => schema
+                .Column("Id").AsInt32().Required()
+                .Column("Name").AsString().Required()
+                .Column("Age").AsInt32().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Required column 'Age' is missing", ex.Message);
+    }
+
+    [Fact]
+    public void CreateDataReader_WithRequiredSchema_RejectsMissingColumn()
+    {
+        var doc = CsvDocument.Parse("Id,Name\n1,Alice\n")
+            .EnsureSchema(schema => schema
+                .Column("Id").AsInt32().Required()
+                .Column("Name").AsString().Required()
+                .Column("Age").AsInt32().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.CreateDataReader());
+
+        Assert.Contains("Required column 'Age' is missing", ex.Message);
+    }
+
+    [Fact]
     public void InvalidType_FailsValidation()
     {
         var doc = new CsvDocument()
@@ -283,16 +311,17 @@ public class CsvSchemaTests
             {
                 Mode = CsvLoadMode.Stream,
                 NullValue = "<null>",
-                StaticColumns = new Dictionary<string, object?> { ["Batch"] = 7 }
+                StaticColumns = new Dictionary<string, object?> { ["Batch"] = 7, ["Source"] = null }
             });
 
         var table = doc.ToDataTable(new CsvDataTableOptions { TableName = "Import" });
 
         Assert.Equal("Import", table.TableName);
-        Assert.Equal(new[] { "Id", "Note", "Batch" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
+        Assert.Equal(new[] { "Id", "Note", "Batch", "Source" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
         Assert.Equal("1", table.Rows[0]["Id"]);
         Assert.Same(DBNull.Value, table.Rows[0]["Note"]);
         Assert.Equal("7", table.Rows[0]["Batch"]);
+        Assert.Same(DBNull.Value, table.Rows[0]["Source"]);
     }
 
     [Fact]

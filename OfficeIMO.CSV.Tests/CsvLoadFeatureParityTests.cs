@@ -204,6 +204,26 @@ public class CsvLoadFeatureParityTests
         Assert.Equal(new[] { 2L, 4L }, reports);
     }
 
+#if NET8_0_OR_GREATER
+    [Fact]
+    public void ReadFieldSpans_Reports_Progress_At_Configured_Interval()
+    {
+        var reports = new List<long>();
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name\nAlpha\nBeta\nGamma\n",
+            (_, _, value) => fields.Add(value.ToString()),
+            new CsvLoadOptions {
+                ProgressReportInterval = 2,
+                ProgressCallback = progress => reports.Add(progress.RecordsRead)
+            });
+
+        Assert.Equal(new[] { "Name", "Alpha", "Beta", "Gamma" }, fields);
+        Assert.Equal(new[] { 2L, 4L }, reports);
+    }
+#endif
+
     [Fact]
     public void Load_Collects_And_Skips_Parse_Errors_When_Configured()
     {

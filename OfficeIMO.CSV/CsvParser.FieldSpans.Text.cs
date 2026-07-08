@@ -169,6 +169,7 @@ internal static partial class CsvParser
 
                 recordIndex++;
                 emittedRecordCount++;
+                ReportProgress(options, emittedRecordCount, lineNumber);
                 lineNumber++;
 
                 if (position == recordStart)

@@ -1,5 +1,6 @@
 #nullable enable
 
+using System.Collections.Generic;
 using System.Globalization;
 
 namespace OfficeIMO.CSV;
@@ -110,6 +111,18 @@ internal static class CsvDataProjectionBuilder
         IReadOnlyList<string> header,
         IReadOnlyDictionary<string, CsvSchemaColumn>? schemaColumns)
     {
+        if (schemaColumns is not null)
+        {
+            var headerColumns = new HashSet<string>(header, StringComparer.OrdinalIgnoreCase);
+            foreach (var schemaColumn in schemaColumns.Values)
+            {
+                if (schemaColumn.IsRequired && !headerColumns.Contains(schemaColumn.Name))
+                {
+                    throw new CsvException($"Required column '{schemaColumn.Name}' is missing.");
+                }
+            }
+        }
+
         var columns = new CsvDataColumnProjection[header.Count];
         for (var i = 0; i < columns.Length; i++)
         {

@@ -728,6 +728,7 @@ internal static partial class CsvParser
                         }
 
                         emittedRecordCount++;
+                        ReportProgress(options, emittedRecordCount, lineNumber);
                     }
 
                     lineNumber++;
@@ -771,6 +772,7 @@ internal static partial class CsvParser
                     }
 
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
@@ -815,6 +817,7 @@ internal static partial class CsvParser
                     }
 
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
             }
 

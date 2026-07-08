@@ -130,7 +130,9 @@ public sealed partial class CsvDocument
         var index = sourceColumnCount;
         foreach (var staticColumn in options.StaticColumns)
         {
-            values[index++] = Convert.ToString(staticColumn.Value, options.Culture) ?? string.Empty;
+            values[index++] = staticColumn.Value is null || staticColumn.Value == DBNull.Value
+                ? DBNull.Value
+                : Convert.ToString(staticColumn.Value, options.Culture) ?? string.Empty;
         }
     }
 
