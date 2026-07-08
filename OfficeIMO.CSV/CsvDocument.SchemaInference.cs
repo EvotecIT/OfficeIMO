@@ -22,7 +22,11 @@ public sealed partial class CsvDocument
         return InferSchema(rows, sampleSize, sampledRows: null);
     }
 
-    private CsvSchema InferSchema(IEnumerator<object?[]> rows, int sampleSize, ICollection<object?[]>? sampledRows)
+    private CsvSchema InferSchema(
+        IEnumerator<object?[]> rows,
+        int sampleSize,
+        ICollection<object?[]>? sampledRows,
+        bool cloneSampledRows = false)
     {
         var columns = new InferredColumn[_header.Count];
         for (var i = 0; i < _header.Count; i++)
@@ -34,7 +38,10 @@ public sealed partial class CsvDocument
         while (sampledRowCount < sampleSize && rows.MoveNext())
         {
             var row = rows.Current;
-            sampledRows?.Add(row);
+            if (sampledRows is not null)
+            {
+                sampledRows.Add(cloneSampledRows ? (object?[])row.Clone() : row);
+            }
 
             for (var i = 0; i < columns.Length; i++)
             {

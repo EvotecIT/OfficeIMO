@@ -52,11 +52,11 @@ public sealed partial class CsvDocument
 
     private CsvDataReader CreateStreamingInferredDataReader(int schemaSampleSize)
     {
-        var rows = EnumerateRawRows().GetEnumerator();
+        var rows = _streamingSource!.ReadReusableRows().GetEnumerator();
         try
         {
             var sampledRows = new List<object?[]>(Math.Min(schemaSampleSize, 4096));
-            var schema = InferSchema(rows, schemaSampleSize, sampledRows);
+            var schema = InferSchema(rows, schemaSampleSize, sampledRows, cloneSampledRows: true);
             var schemaColumns = schema.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
             var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
             return new CsvDataReader(columns, EnumerateSampledThenRemainingRows(sampledRows, rows), _culture, _dateTimeFormats);
