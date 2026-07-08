@@ -108,6 +108,10 @@ namespace OfficeIMO.Word.Markdown {
                     continue;
                 }
 
+                if (run.IsCheckBox) {
+                    continue;
+                }
+
                 string? text = run.Text;
                 if (string.IsNullOrEmpty(text)) {
                     continue;

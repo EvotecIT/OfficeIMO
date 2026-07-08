@@ -1,8 +1,8 @@
 using System;
 using System.IO;
-using System.Text;
 using DocumentFormat.OpenXml.Packaging;
 using DocumentFormat.OpenXml.Presentation;
+using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using P14 = DocumentFormat.OpenXml.Office2010.PowerPoint;
 
@@ -133,18 +133,30 @@ namespace OfficeIMO.PowerPoint {
         }
 
         private ImagePart AddGeneratedMediaPoster(PowerPointMediaKind kind) {
-            string label = kind == PowerPointMediaKind.Audio ? "Audio" : "Video";
-            string glyph = kind == PowerPointMediaKind.Audio ? "♪" : "▶";
-            string svg = $"""
-                <svg xmlns="http://www.w3.org/2000/svg" width="640" height="360" viewBox="0 0 640 360">
-                  <rect width="640" height="360" rx="20" fill="#1F2937"/>
-                  <circle cx="320" cy="164" r="72" fill="#F9FAFB" opacity="0.94"/>
-                  <text x="320" y="190" text-anchor="middle" font-family="Arial, sans-serif" font-size="78" fill="#111827">{glyph}</text>
-                  <text x="320" y="292" text-anchor="middle" font-family="Arial, sans-serif" font-size="34" fill="#F9FAFB">{label}</text>
-                </svg>
-                """;
-            using MemoryStream stream = new(Encoding.UTF8.GetBytes(svg));
-            return AddImagePartFromStream(stream, ImagePartType.Svg);
+            byte[] poster = CreateGeneratedMediaPosterPng(kind);
+            using MemoryStream stream = new(poster);
+            return AddImagePartFromStream(stream, ImagePartType.Png);
+        }
+
+        private static byte[] CreateGeneratedMediaPosterPng(PowerPointMediaKind kind) {
+            OfficeRasterImage image = new(640, 360, OfficeColor.FromRgb(31, 41, 55));
+            OfficeRasterCanvas canvas = new(image);
+            canvas.FillRectangle(0D, 0D, 640D, 360D, OfficeColor.FromRgb(31, 41, 55));
+            canvas.FillEllipse(248D, 92D, 144D, 144D, OfficeColor.FromRgba(249, 250, 251, 240));
+
+            if (kind == PowerPointMediaKind.Audio) {
+                canvas.FillRectangle(280D, 140D, 18D, 64D, OfficeColor.FromRgb(17, 24, 39));
+                canvas.FillRectangle(311D, 118D, 18D, 86D, OfficeColor.FromRgb(17, 24, 39));
+                canvas.FillRectangle(342D, 154D, 18D, 50D, OfficeColor.FromRgb(17, 24, 39));
+            } else {
+                canvas.FillPolygon(new[] {
+                    new OfficePoint(296D, 130D),
+                    new OfficePoint(296D, 198D),
+                    new OfficePoint(358D, 164D)
+                }, OfficeColor.FromRgb(17, 24, 39));
+            }
+
+            return OfficePngWriter.Encode(image);
         }
 
         private ImagePart AddImagePartFromStream(Stream image, ImagePartType imageType) {

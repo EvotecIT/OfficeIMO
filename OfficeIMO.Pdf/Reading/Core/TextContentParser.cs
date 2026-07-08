@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using OfficeIMO.Drawing;
 
 namespace OfficeIMO.Pdf;
 
@@ -19,8 +20,16 @@ internal static class TextContentParser {
         public double WordSpacing { get; }
         public double HScale { get; }
         public double TextRise { get; }
+        public OfficeColor FillColor { get; }
+        public PdfPageColorSpaceKind FillColorSpace { get; }
+        public OfficeColor StrokeColor { get; }
+        public PdfPageColorSpaceKind StrokeColorSpace { get; }
+        public double? FillOpacity { get; }
+        public double? StrokeOpacity { get; }
+        public int TextRenderingMode { get; }
+        public PdfPageClipPath? ClipPath { get; }
 
-        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise) {
+        public TextGraphicsState(Matrix2D ctm, string font, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, OfficeColor fillColor, PdfPageColorSpaceKind fillColorSpace, OfficeColor strokeColor, PdfPageColorSpaceKind strokeColorSpace, double? fillOpacity, double? strokeOpacity, int textRenderingMode, PdfPageClipPath? clipPath) {
             Ctm = ctm;
             Font = font;
             Size = size;
@@ -29,11 +38,20 @@ internal static class TextContentParser {
             WordSpacing = wordSpacing;
             HScale = hScale;
             TextRise = textRise;
+            FillColor = fillColor;
+            FillColorSpace = fillColorSpace;
+            StrokeColor = strokeColor;
+            StrokeColorSpace = strokeColorSpace;
+            FillOpacity = fillOpacity;
+            StrokeOpacity = strokeOpacity;
+            TextRenderingMode = textRenderingMode;
+            ClipPath = clipPath;
         }
     }
 
     private sealed class InlineDictionary {
         public Dictionary<string, object> Items { get; } = new(StringComparer.Ordinal);
+        public PdfInlineOptionalContentReferences? OptionalContentReferences { get; set; }
     }
 
     private readonly struct ActualTextValue {
@@ -48,22 +66,53 @@ internal static class TextContentParser {
         public string ActualText { get; }
         public bool HasActualText { get; }
         public bool IsArtifact { get; }
+        public bool IsHidden { get; }
         public bool ActualTextEmitted { get; set; }
 
-        public MarkedContentState(ActualTextValue? actualText, bool isArtifact) {
+        public MarkedContentState(ActualTextValue? actualText, bool isArtifact, bool isHidden) {
             ActualText = actualText?.Text ?? string.Empty;
             HasActualText = actualText.HasValue;
             IsArtifact = isArtifact;
+            IsHidden = isHidden;
         }
     }
 
     internal readonly struct FormInvocation {
         public string Name { get; }
         public Matrix2D Transform { get; }
+        public double PaintOrder { get; }
+        public OfficeColor FillColor { get; }
+        public PdfPageColorSpaceKind FillColorSpace { get; }
+        public OfficeColor StrokeColor { get; }
+        public PdfPageColorSpaceKind StrokeColorSpace { get; }
+        public double? FillOpacity { get; }
+        public double? StrokeOpacity { get; }
+        public int TextRenderingMode { get; }
+        public PdfPageClipPath? ClipPath { get; }
 
-        public FormInvocation(string name, Matrix2D transform) {
+        public FormInvocation(
+            string name,
+            Matrix2D transform,
+            double paintOrder = 0D,
+            OfficeColor? fillColor = null,
+            PdfPageColorSpaceKind fillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+            OfficeColor? strokeColor = null,
+            PdfPageColorSpaceKind strokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+            double? fillOpacity = null,
+            double? strokeOpacity = null,
+            int textRenderingMode = 0,
+            PdfPageClipPath? clipPath = null) {
             Name = name;
             Transform = transform;
+            PaintOrder = paintOrder;
+            FillColor = fillColor ?? OfficeColor.Black;
+            FillColorSpace = fillColorSpace;
+            StrokeColor = strokeColor ?? OfficeColor.Black;
+            StrokeColorSpace = strokeColorSpace;
+            FillOpacity = fillOpacity;
+            StrokeOpacity = strokeOpacity;
+            TextRenderingMode = textRenderingMode;
+            ClipPath = clipPath;
         }
     }
 
@@ -72,11 +121,37 @@ internal static class TextContentParser {
         System.Func<string, byte[], string> decodeWithFont,
         System.Func<string, byte[], double> sumWidth1000ForFont,
         bool adjustKerningFromTJ = true,
-        System.Func<string, string?>? actualTextForProperty = null) {
+        System.Func<string, string?>? actualTextForProperty = null,
+        IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
+        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces = null,
+        System.Func<string, string?>? baseFontForResource = null,
+        PdfPageOptionalContentVisibility? optionalContentVisibility = null,
+        double pageHeight = 0D,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null,
+        double? initialStrokeOpacity = null,
+        int initialTextRenderingMode = 0,
+        PdfPageClipPath? initialClipPath = null,
+        bool useLogicalTextFilters = true) {
         var spans = new List<PdfTextSpan>();
         // Text state
         bool inText = false;
         string font = "F1"; double size = 12; double leading = size * 1.2; double charSpacing = 0, wordSpacing = 0; double hScale = 1.0; double textRise = 0;
+        OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind fillColorSpace = initialFillColorSpace;
+        OfficeColor strokeColor = initialStrokeColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind strokeColorSpace = initialStrokeColorSpace;
+        double? fillOpacity = initialFillOpacity;
+        double? strokeOpacity = initialStrokeOpacity;
+        int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
+        PdfPageClipPath? clipPath = initialClipPath;
+        var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
         Matrix2D textMatrix = Matrix2D.Identity;
         Matrix2D lineMatrix = Matrix2D.Identity;
         // Graphics state (CTM) and stack
@@ -105,6 +180,7 @@ internal static class TextContentParser {
             if (c == ']' || c == '>') { i++; continue; }
             if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
             // operator (BT, ET, Tf, Tm, Td, TD, T*, TL, Tc, Tw, Tz, Ts, cm, q, Q, Tj, TJ, ', ")
+            double paintOrder = GetPaintOrder(i);
             string op = ReadOperator();
             if (op.Length == 0) { i++; continue; }
 
@@ -121,8 +197,9 @@ internal static class TextContentParser {
                 case "Tw": if (args.Count >= 1) { wordSpacing = ToDouble(args[args.Count - 1]); args.Clear(); } break;
                 case "Tz": if (args.Count >= 1) { hScale = ToDouble(args[args.Count - 1]) / 100.0; args.Clear(); } break;
                 case "Ts": if (args.Count >= 1) { textRise = ToDouble(args[args.Count - 1]); args.Clear(); } break;
+                case "Tr": if (args.Count >= 1) { textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1])); args.Clear(); } break;
                 case "q":
-                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise));
+                    gstack.Push(new TextGraphicsState(ctm, font, size, leading, charSpacing, wordSpacing, hScale, textRise, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
                     args.Clear();
                     break;
                 case "Q":
@@ -136,30 +213,232 @@ internal static class TextContentParser {
                         wordSpacing = state.WordSpacing;
                         hScale = state.HScale;
                         textRise = state.TextRise;
+                        fillColor = state.FillColor;
+                        fillColorSpace = state.FillColorSpace;
+                        strokeColor = state.StrokeColor;
+                        strokeColorSpace = state.StrokeColorSpace;
+                        fillOpacity = state.FillOpacity;
+                        strokeOpacity = state.StrokeOpacity;
+                        textRenderingMode = state.TextRenderingMode;
+                        clipPath = state.ClipPath;
                     } else {
                         ctm = Matrix2D.Identity;
+                        fillColor = OfficeColor.Black;
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        strokeColor = OfficeColor.Black;
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                        fillOpacity = null;
+                        strokeOpacity = null;
+                        textRenderingMode = 0;
+                        clipPath = null;
                     }
                     args.Clear();
                     break;
                 case "cm": if (args.Count >= 6) { var m2 = new Matrix2D(ToDouble(args[args.Count - 6]), ToDouble(args[args.Count - 5]), ToDouble(args[args.Count - 4]), ToDouble(args[args.Count - 3]), ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1])); ctm = Matrix2D.Multiply(ctm, m2); args.Clear(); } break;
+                case "re":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.AddRectanglePath(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "m":
+                    if (args.Count >= 2) {
+                        clipPathBuilder.MoveTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "l":
+                    if (args.Count >= 2) {
+                        clipPathBuilder.LineTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "c":
+                    if (args.Count >= 6) {
+                        clipPathBuilder.CubicTo(
+                            ctm,
+                            ToDouble(args[args.Count - 6]),
+                            ToDouble(args[args.Count - 5]),
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "v":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.CubicToWithCurrentFirstControl(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "y":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.CubicToWithEndSecondControl(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "h":
+                    clipPathBuilder.ClosePath();
+                    args.Clear();
+                    break;
+                case "W":
+                case "W*":
+                    if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
+                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
+                    }
+
+                    args.Clear();
+                    break;
+                case "n":
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "f":
+                case "F":
+                case "f*":
+                case "S":
+                case "B":
+                case "B*":
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "s":
+                case "b":
+                case "b*":
+                    clipPathBuilder.ClosePath();
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "gs":
+                    if (args.Count >= 1) {
+                        ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "cs":
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedColorSpace)) {
+                        fillColorSpace = parsedColorSpace;
+                    }
+
+                    args.Clear();
+                    break;
+                case "CS":
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedStrokeColorSpace)) {
+                        strokeColorSpace = parsedStrokeColorSpace;
+                    }
+
+                    args.Clear();
+                    break;
+                case "rg":
+                    if (args.Count >= 3) {
+                        fillColor = ReadRgb(args.Count - 3);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    }
+
+                    args.Clear();
+                    break;
+                case "RG":
+                    if (args.Count >= 3) {
+                        strokeColor = ReadRgb(args.Count - 3);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    }
+
+                    args.Clear();
+                    break;
+                case "g":
+                    if (args.Count >= 1) {
+                        fillColor = ReadGray(args.Count - 1);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    }
+
+                    args.Clear();
+                    break;
+                case "G":
+                    if (args.Count >= 1) {
+                        strokeColor = ReadGray(args.Count - 1);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    }
+
+                    args.Clear();
+                    break;
+                case "k":
+                    if (args.Count >= 4) {
+                        fillColor = ReadCmyk(args.Count - 4);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    }
+
+                    args.Clear();
+                    break;
+                case "K":
+                    if (args.Count >= 4) {
+                        strokeColor = ReadCmyk(args.Count - 4);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    }
+
+                    args.Clear();
+                    break;
+                case "sc":
+                case "scn":
+                    if (TryReadColor(fillColorSpace, out OfficeColor parsedFillColor)) {
+                        fillColor = parsedFillColor;
+                    }
+
+                    args.Clear();
+                    break;
+                case "SC":
+                case "SCN":
+                    if (TryReadColor(strokeColorSpace, out OfficeColor parsedStrokeColor)) {
+                        strokeColor = parsedStrokeColor;
+                    }
+
+                    args.Clear();
+                    break;
+                case "BI":
+                    SkipInlineImageBody();
+                    args.Clear();
+                    break;
                 case "'": // move to next line and show text
-                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 1) { MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; }
                     args.Clear();
                     break;
                 case "\"": // set spacing and show text
-                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; }
+                    if (args.Count >= 3) { wordSpacing = ToDouble(args[args.Count - 3]); charSpacing = ToDouble(args[args.Count - 2]); MoveToNextTextLine(); ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; }
                     args.Clear();
                     break;
-                case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1])); pendingGapPt = 0; args.Clear(); } break;
-                case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1]); args.Clear(); } break;
+                case "Tj": if (args.Count >= 1) { ShowTextRun(ToBytes(args[args.Count - 1]), paintOrder); pendingGapPt = 0; args.Clear(); } break;
+                case "TJ": if (args.Count >= 1) { ShowTextArray(args[args.Count - 1], paintOrder); args.Clear(); } break;
                 case "BDC":
                     markedContentStack.Push(new MarkedContentState(
                         GetActualText(args.Count > 0 ? args[args.Count - 1] : null),
-                        IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null)));
+                        IsArtifactTag(args.Count > 1 ? args[args.Count - 2] : null),
+                        IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null)));
                     args.Clear();
                     break;
                 case "BMC":
-                    markedContentStack.Push(new MarkedContentState(null, IsArtifactTag(args.Count > 0 ? args[args.Count - 1] : null)));
+                    markedContentStack.Push(new MarkedContentState(null, IsArtifactTag(args.Count > 0 ? args[args.Count - 1] : null), false));
                     args.Clear();
                     break;
                 case "EMC":
@@ -199,6 +478,8 @@ internal static class TextContentParser {
             pendingGapPt = 0;
         }
 
+        double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
+
         void MaybeInsertSpaceBeforeRun() {
             // Insert a space depending on kerning gap accumulated from TJ array numbers
             if (pendingGapPt <= 0) return;
@@ -212,7 +493,7 @@ internal static class TextContentParser {
             if (pendingGapPt >= threshold) sbOutGlobal.Append(' ');
             pendingGapPt = 0;
         }
-        void ShowTextRun(byte[] bytes) {
+        void ShowTextRun(byte[] bytes, double paintOrder) {
             if (!inText || bytes == null || bytes.Length == 0) return;
             MaybeInsertSpaceBeforeRun();
             // Detect 2-byte CIDs (Identity-H) vs single-byte
@@ -259,30 +540,59 @@ internal static class TextContentParser {
                 sbOut.Clear();
                 sbOut.Append(wholeDecoded);
             }
-            var actualTextState = GetActiveActualTextState();
-            bool isArtifact = HasActiveArtifact();
-            if (sbOut.Length == 0 && actualTextState is null && !isArtifact) return;
+            var actualTextState = useLogicalTextFilters ? GetActiveActualTextState() : null;
+            bool isArtifact = useLogicalTextFilters && HasActiveArtifact();
+            bool isHidden = HasActiveHiddenContent();
+            bool isVisibleText = IsTextRenderingModeVisible(textRenderingMode);
+            if (sbOut.Length == 0 && actualTextState is null && !isArtifact && !isHidden) return;
             string textOut = NormalizeShatteredSpan(sbOut.ToString());
             var textOrigin = textMatrix.Transform(0, textRise);
             var (dx, dy) = ctm.Transform(textOrigin.X, textOrigin.Y);
             var textEnd = textMatrix.Transform(advTotal, textRise);
             var (endX, endY) = ctm.Transform(textEnd.X, textEnd.Y);
             double transformedAdvance = Math.Sqrt(((endX - dx) * (endX - dx)) + ((endY - dy) * (endY - dy)));
-            if (isArtifact) {
+            double rotationDegrees = CalculateRotationDegrees(endX - dx, endY - dy);
+            OfficeColor paintColor = ResolveTextPaintColor(textRenderingMode, fillColor, strokeColor);
+            OfficeColor visibleColor = ApplyTextOpacity(paintColor, textRenderingMode);
+            PdfPageClipPath? spanClipPath = clipPath;
+            if (isHidden) {
+                // Hidden optional-content still advances text state but should not emit visible/logical spans.
+            } else if (isArtifact) {
                 // Artifact content is visual decoration, not logical page text.
             } else if (actualTextState is not null && !actualTextState.ActualTextEmitted) {
                 textOut = actualTextState.ActualText;
                 actualTextState.ActualTextEmitted = true;
                 if (textOut.Length > 0) {
-                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
+                    spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
                     sbOutGlobal.Append(textOut);
                 }
             } else if (actualTextState is null && textOut.Length > 0) {
-                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance));
+                spans.Add(new PdfTextSpan(textOut, font, size, dx, dy, transformedAdvance, visibleColor, isVisibleText, rotationDegrees, baseFontForResource?.Invoke(font), spanClipPath, paintOrder));
                 sbOutGlobal.Append(textOut);
             }
 
+            if (!isHidden) {
+                ApplyTextClippingPath(advTotal);
+            }
+
             textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(advTotal, 0));
+        }
+
+        void ApplyTextClippingPath(double advance) {
+            if (!AddsTextToClippingPath(textRenderingMode) || size <= 0D || Math.Abs(advance) <= 0.000001D) {
+                return;
+            }
+
+            double left = advance < 0D ? advance : 0D;
+            double width = Math.Abs(advance);
+            double descent = Math.Max(0.001D, size * 0.25D);
+            double height = Math.Max(0.001D, size + descent);
+            Matrix2D textToPage = Matrix2D.Multiply(ctm, textMatrix);
+            var textClipBuilder = new PdfPageClipPathBuilder(pageHeight);
+            textClipBuilder.AddRectanglePath(textToPage, left, textRise - descent, width, height);
+            if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, textClipPath);
+            }
         }
 
         MarkedContentState? GetActiveActualTextState() {
@@ -298,6 +608,16 @@ internal static class TextContentParser {
         bool HasActiveArtifact() {
             foreach (var state in markedContentStack) {
                 if (state.IsArtifact) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        bool HasActiveHiddenContent() {
+            foreach (var state in markedContentStack) {
+                if (state.IsHidden) {
                     return true;
                 }
             }
@@ -323,13 +643,22 @@ internal static class TextContentParser {
         static bool IsArtifactTag(object? tag) =>
             tag is string name && string.Equals(name, "Artifact", StringComparison.Ordinal);
 
-        void ShowTextArray(object arrObj) {
+        bool IsHiddenOptionalContent(object? tag, object? property) =>
+            tag is string tagName &&
+            string.Equals(tagName, "OC", StringComparison.Ordinal) &&
+            ((property is string propertyName &&
+                optionalContentVisibility?.IsHidden(propertyName) == true) ||
+             (property is InlineDictionary dictionary &&
+                dictionary.OptionalContentReferences != null &&
+                optionalContentVisibility?.IsHidden(dictionary.OptionalContentReferences) == true));
+
+        void ShowTextArray(object arrObj, double paintOrder) {
             if (!inText || arrObj == null) return;
             var list = arrObj as List<object>;
             if (list == null) return;
             for (int j = 0; j < list.Count; j++) {
                 var it = list[j];
-                if (it is byte[] b) { ShowTextRun(b); }
+                if (it is byte[] b) { ShowTextRun(b, paintOrder); }
                 else if (adjustKerningFromTJ && it is double num) {
                     double delta = -num / 1000.0 * size * hScale;
                     textMatrix = Matrix2D.Multiply(textMatrix, Matrix2D.Translation(delta, 0));
@@ -394,6 +723,7 @@ internal static class TextContentParser {
         }
 
         InlineDictionary ReadInlineDictionary() {
+            int start = i;
             i += 2;
             var dictionary = new InlineDictionary();
             while (i < n) {
@@ -427,6 +757,7 @@ internal static class TextContentParser {
                 }
             }
 
+            dictionary.OptionalContentReferences = PdfInlineOptionalContentReferenceParser.Parse(content, start, Math.Max(0, i - start));
             return dictionary;
         }
 
@@ -496,9 +827,189 @@ internal static class TextContentParser {
             return content.Substring(start, i - start);
         }
 
+        void SkipInlineImageBody() {
+            while (i < n) {
+                SkipWs();
+                if (IsOperatorAt("ID")) {
+                    i += 2;
+                    break;
+                }
+
+                if (i >= n) {
+                    return;
+                }
+
+                if (content[i] == '(') {
+                    ReadLiteralStringBytes();
+                } else if (content[i] == '<') {
+                    if (i + 1 < n && content[i + 1] == '<') {
+                        ReadInlineDictionary();
+                    } else {
+                        ReadHexStringBytes();
+                    }
+                } else if (content[i] == '[') {
+                    ReadArray();
+                } else if (content[i] == '/') {
+                    ReadName();
+                } else if (IsNumberStart(content[i])) {
+                    ReadNumber();
+                } else {
+                    ReadOperator();
+                }
+            }
+
+            if (i < n && char.IsWhiteSpace(content[i])) {
+                i++;
+            }
+
+            while (i + 1 < n) {
+                if (PdfInlineImageDataScanner.IsTerminatorAt(content, i)) {
+                    i += 2;
+                    return;
+                }
+
+                i++;
+            }
+
+            i = n;
+        }
+
+        bool IsOperatorAt(string value) {
+            if (i + value.Length > n) {
+                return false;
+            }
+
+            for (int j = 0; j < value.Length; j++) {
+                if (content[i + j] != value[j]) {
+                    return false;
+                }
+            }
+
+            return (i == 0 || IsInlineImageBoundary(content[i - 1])) &&
+                   (i + value.Length >= n || IsInlineImageBoundary(content[i + value.Length]));
+        }
+
+        static bool IsInlineImageBoundary(char ch) =>
+            char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '%';
+
         static double ToDouble(object o) { return o is double d ? d : 0.0; }
         static string ToName(object o) { return o as string ?? string.Empty; }
         static byte[] ToBytes(object o) { return o as byte[] ?? Array.Empty<byte>(); }
+        double NumberAt(int index) => args[index] is double value ? value : 0D;
+        void ApplyGraphicsStateResource(string name) {
+            if (graphicsStates != null && graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
+                fillOpacity = resource.FillOpacity ?? fillOpacity;
+                strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
+            }
+        }
+        OfficeColor ApplyTextOpacity(OfficeColor color, int renderingMode) {
+            double? opacity = UsesStrokeTextPaint(renderingMode) ? strokeOpacity : fillOpacity;
+            if (!opacity.HasValue) {
+                return color;
+            }
+
+            return OfficeColor.FromRgba(color.R, color.G, color.B, (byte)Math.Round(color.A * Clamp01(opacity.Value)));
+        }
+        OfficeColor ReadRgb(int startIndex) =>
+            OfficeColor.FromRgb(ToByte(NumberAt(startIndex)), ToByte(NumberAt(startIndex + 1)), ToByte(NumberAt(startIndex + 2)));
+        OfficeColor ReadGray(int index) {
+            byte value = ToByte(NumberAt(index));
+            return OfficeColor.FromRgb(value, value, value);
+        }
+        OfficeColor ReadCmyk(int startIndex) {
+            double cyan = Clamp01(NumberAt(startIndex));
+            double magenta = Clamp01(NumberAt(startIndex + 1));
+            double yellow = Clamp01(NumberAt(startIndex + 2));
+            double black = Clamp01(NumberAt(startIndex + 3));
+            return OfficeColor.FromRgb(
+                ToByte((1D - cyan) * (1D - black)),
+                ToByte((1D - magenta) * (1D - black)),
+                ToByte((1D - yellow) * (1D - black)));
+        }
+        bool TryReadColor(PdfPageColorSpaceKind colorSpace, out OfficeColor color) {
+            color = OfficeColor.Black;
+            int componentCount = GetColorComponentCount(colorSpace);
+            int endIndex = args.Count;
+            while (endIndex > 0 && args[endIndex - 1] is not double) {
+                endIndex--;
+            }
+
+            if (endIndex < componentCount) {
+                return false;
+            }
+
+            int startIndex = endIndex - componentCount;
+            switch (colorSpace) {
+                case PdfPageColorSpaceKind.DeviceRgb:
+                    color = ReadRgb(startIndex);
+                    return true;
+                case PdfPageColorSpaceKind.DeviceCmyk:
+                    color = ReadCmyk(startIndex);
+                    return true;
+                default:
+                    color = ReadGray(startIndex);
+                    return true;
+            }
+        }
+        bool TryReadColorSpace(string name, out PdfPageColorSpaceKind colorSpace) {
+            switch (name) {
+                case "DeviceRGB":
+                case "RGB":
+                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    return true;
+                case "DeviceCMYK":
+                case "CMYK":
+                    colorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    return true;
+                case "DeviceGray":
+                case "G":
+                    colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                default:
+                    if (colorSpaces != null && colorSpaces.TryGetValue(name, out colorSpace)) {
+                        return true;
+                    }
+
+                    colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return false;
+            }
+        }
+        static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
+            switch (colorSpace) {
+                case PdfPageColorSpaceKind.DeviceRgb:
+                    return 3;
+                case PdfPageColorSpaceKind.DeviceCmyk:
+                    return 4;
+                default:
+                    return 1;
+            }
+        }
+        static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
+        static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+        static int ReadTextRenderingMode(double value) {
+            int mode = (int)Math.Round(value);
+            return mode < 0 || mode > 7 ? 0 : mode;
+        }
+        static OfficeColor ResolveTextPaintColor(int renderingMode, OfficeColor fill, OfficeColor stroke) =>
+            UsesStrokeTextPaint(renderingMode) ? stroke : fill;
+
+        static bool UsesStrokeTextPaint(int renderingMode) =>
+            renderingMode == 1 || renderingMode == 5;
+
+        static bool IsTextRenderingModeVisible(int renderingMode) =>
+            renderingMode != 3 && renderingMode != 7;
+
+        static bool AddsTextToClippingPath(int renderingMode) =>
+            renderingMode >= 4 && renderingMode <= 7;
+
+        static double CalculateRotationDegrees(double x, double y) {
+            if (Math.Abs(x) <= 0.000001D && Math.Abs(y) <= 0.000001D) {
+                return 0D;
+            }
+
+            double angle = Math.Atan2(y, x) * 180D / Math.PI;
+            return Math.Abs(angle) <= 0.000001D ? 0D : angle;
+        }
 
         static string NormalizeDecodedGlyphText(string text) =>
             text.Length == 0
@@ -585,10 +1096,36 @@ internal static class TextContentParser {
     private static bool IsNullOrEmptyDecodedGlyph(string? value) =>
         string.IsNullOrEmpty(value) || value.All(static character => character == '\0');
 
-    public static List<FormInvocation> ExtractFormInvocations(string content) {
+    public static List<FormInvocation> ExtractFormInvocations(
+        string content,
+        PdfPageOptionalContentVisibility? optionalContentVisibility = null,
+        double paintOrderBase = 0D,
+        double paintOrderScale = 1D,
+        double paintOrderOffset = 0D,
+        IReadOnlyDictionary<string, PdfPageGraphicsStateResource>? graphicsStates = null,
+        IReadOnlyDictionary<string, PdfPageColorSpaceKind>? colorSpaces = null,
+        double pageHeight = 0D,
+        OfficeColor? initialFillColor = null,
+        PdfPageColorSpaceKind initialFillColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        OfficeColor? initialStrokeColor = null,
+        PdfPageColorSpaceKind initialStrokeColorSpace = PdfPageColorSpaceKind.DeviceGray,
+        double? initialFillOpacity = null,
+        double? initialStrokeOpacity = null,
+        int initialTextRenderingMode = 0,
+        PdfPageClipPath? initialClipPath = null) {
         var invocations = new List<FormInvocation>();
         Matrix2D ctm = Matrix2D.Identity;
-        var gstack = new Stack<Matrix2D>();
+        OfficeColor fillColor = initialFillColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind fillColorSpace = initialFillColorSpace;
+        OfficeColor strokeColor = initialStrokeColor ?? OfficeColor.Black;
+        PdfPageColorSpaceKind strokeColorSpace = initialStrokeColorSpace;
+        double? fillOpacity = initialFillOpacity;
+        double? strokeOpacity = initialStrokeOpacity;
+        int textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
+        PdfPageClipPath? clipPath = initialClipPath;
+        var clipPathBuilder = new PdfPageClipPathBuilder(pageHeight);
+        var gstack = new Stack<TextGraphicsState>();
+        var hiddenContentStack = new Stack<bool>();
         var args = new List<object>(8);
         int i = 0;
         int n = content.Length;
@@ -606,7 +1143,11 @@ internal static class TextContentParser {
             if (c == '/') { args.Add(ReadName()); continue; }
             if (c == '(') { ReadLiteralStringBytes(); continue; }
             if (c == '<') {
-                if (i + 1 < n && content[i + 1] == '<') { i += 2; continue; }
+                if (i + 1 < n && content[i + 1] == '<') {
+                    args.Add(PdfInlineOptionalContentReferenceParser.Read(content, ref i));
+                    continue;
+                }
+
                 ReadHexStringBytes();
                 continue;
             }
@@ -614,16 +1155,39 @@ internal static class TextContentParser {
             if (c == ']' || c == '>') { i++; continue; }
             if (IsNumberStart(c)) { args.Add(ReadNumber()); continue; }
 
+            double paintOrder = GetPaintOrder(i);
             string op = ReadOperator();
             if (op.Length == 0) { i++; continue; }
 
             switch (op) {
                 case "q":
-                    gstack.Push(ctm);
+                    gstack.Push(new TextGraphicsState(ctm, string.Empty, 0D, 0D, 0D, 0D, 1D, 0D, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
                     args.Clear();
                     break;
                 case "Q":
-                    ctm = gstack.Count > 0 ? gstack.Pop() : Matrix2D.Identity;
+                    if (gstack.Count > 0) {
+                        TextGraphicsState state = gstack.Pop();
+                        ctm = state.Ctm;
+                        fillColor = state.FillColor;
+                        fillColorSpace = state.FillColorSpace;
+                        strokeColor = state.StrokeColor;
+                        strokeColorSpace = state.StrokeColorSpace;
+                        fillOpacity = state.FillOpacity;
+                        strokeOpacity = state.StrokeOpacity;
+                        textRenderingMode = state.TextRenderingMode;
+                        clipPath = state.ClipPath;
+                    } else {
+                        ctm = Matrix2D.Identity;
+                        fillColor = initialFillColor ?? OfficeColor.Black;
+                        fillColorSpace = initialFillColorSpace;
+                        strokeColor = initialStrokeColor ?? OfficeColor.Black;
+                        strokeColorSpace = initialStrokeColorSpace;
+                        fillOpacity = initialFillOpacity;
+                        strokeOpacity = initialStrokeOpacity;
+                        textRenderingMode = ReadTextRenderingMode(initialTextRenderingMode);
+                        clipPath = initialClipPath;
+                    }
+
                     args.Clear();
                     break;
                 case "cm":
@@ -639,13 +1203,216 @@ internal static class TextContentParser {
                     }
                     args.Clear();
                     break;
-                case "Do":
+                case "re":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.AddRectanglePath(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "m":
+                    if (args.Count >= 2) {
+                        clipPathBuilder.MoveTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "l":
+                    if (args.Count >= 2) {
+                        clipPathBuilder.LineTo(ctm, ToDouble(args[args.Count - 2]), ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "c":
+                    if (args.Count >= 6) {
+                        clipPathBuilder.CubicTo(
+                            ctm,
+                            ToDouble(args[args.Count - 6]),
+                            ToDouble(args[args.Count - 5]),
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "v":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.CubicToWithCurrentFirstControl(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "y":
+                    if (args.Count >= 4) {
+                        clipPathBuilder.CubicToWithEndSecondControl(
+                            ctm,
+                            ToDouble(args[args.Count - 4]),
+                            ToDouble(args[args.Count - 3]),
+                            ToDouble(args[args.Count - 2]),
+                            ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "h":
+                    clipPathBuilder.ClosePath();
+                    args.Clear();
+                    break;
+                case "W":
+                case "W*":
+                    if (clipPathBuilder.TryCreateClipPath(op == "W*" ? OfficeFillRule.EvenOdd : OfficeFillRule.NonZero, out PdfPageClipPath parsedClipPath)) {
+                        clipPath = PdfPageClipPath.ResolveActiveClip(clipPath, parsedClipPath);
+                    }
+
+                    args.Clear();
+                    break;
+                case "n":
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "f":
+                case "F":
+                case "f*":
+                case "S":
+                case "B":
+                case "B*":
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "s":
+                case "b":
+                case "b*":
+                    clipPathBuilder.ClosePath();
+                    clipPathBuilder.Clear();
+                    args.Clear();
+                    break;
+                case "gs":
                     if (args.Count >= 1) {
+                        ApplyGraphicsStateResource(ToName(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "cs":
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedColorSpace)) {
+                        fillColorSpace = parsedColorSpace;
+                    }
+
+                    args.Clear();
+                    break;
+                case "CS":
+                    if (args.Count >= 1 && TryReadColorSpace(ToName(args[args.Count - 1]), out PdfPageColorSpaceKind parsedStrokeColorSpace)) {
+                        strokeColorSpace = parsedStrokeColorSpace;
+                    }
+
+                    args.Clear();
+                    break;
+                case "rg":
+                    if (args.Count >= 3) {
+                        fillColor = ReadRgb(args.Count - 3);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    }
+
+                    args.Clear();
+                    break;
+                case "RG":
+                    if (args.Count >= 3) {
+                        strokeColor = ReadRgb(args.Count - 3);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    }
+
+                    args.Clear();
+                    break;
+                case "g":
+                    if (args.Count >= 1) {
+                        fillColor = ReadGray(args.Count - 1);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    }
+
+                    args.Clear();
+                    break;
+                case "G":
+                    if (args.Count >= 1) {
+                        strokeColor = ReadGray(args.Count - 1);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    }
+
+                    args.Clear();
+                    break;
+                case "k":
+                    if (args.Count >= 4) {
+                        fillColor = ReadCmyk(args.Count - 4);
+                        fillColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    }
+
+                    args.Clear();
+                    break;
+                case "K":
+                    if (args.Count >= 4) {
+                        strokeColor = ReadCmyk(args.Count - 4);
+                        strokeColorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    }
+
+                    args.Clear();
+                    break;
+                case "sc":
+                case "scn":
+                    if (TryReadColor(fillColorSpace, out OfficeColor parsedFillColor)) {
+                        fillColor = parsedFillColor;
+                    }
+
+                    args.Clear();
+                    break;
+                case "SC":
+                case "SCN":
+                    if (TryReadColor(strokeColorSpace, out OfficeColor parsedStrokeColor)) {
+                        strokeColor = parsedStrokeColor;
+                    }
+
+                    args.Clear();
+                    break;
+                case "Tr":
+                    if (args.Count >= 1) {
+                        textRenderingMode = ReadTextRenderingMode(ToDouble(args[args.Count - 1]));
+                    }
+
+                    args.Clear();
+                    break;
+                case "Do":
+                    if (!HasHiddenContent() && args.Count >= 1) {
                         string name = ToName(args[args.Count - 1]);
                         if (!string.IsNullOrEmpty(name)) {
-                            invocations.Add(new FormInvocation(name, ctm));
+                            invocations.Add(new FormInvocation(name, ctm, paintOrder, fillColor, fillColorSpace, strokeColor, strokeColorSpace, fillOpacity, strokeOpacity, textRenderingMode, clipPath));
                         }
                     }
+                    args.Clear();
+                    break;
+                case "BDC":
+                    hiddenContentStack.Push(IsHiddenOptionalContent(args.Count > 1 ? args[args.Count - 2] : null, args.Count > 0 ? args[args.Count - 1] : null));
+                    args.Clear();
+                    break;
+                case "BMC":
+                    hiddenContentStack.Push(false);
+                    args.Clear();
+                    break;
+                case "EMC":
+                    if (hiddenContentStack.Count > 0) {
+                        hiddenContentStack.Pop();
+                    }
+
                     args.Clear();
                     break;
                 default:
@@ -655,6 +1422,26 @@ internal static class TextContentParser {
         }
 
         return invocations;
+
+        double GetPaintOrder(int operatorIndex) => paintOrderBase + ((operatorIndex + paintOrderOffset) * paintOrderScale);
+
+        bool HasHiddenContent() {
+            foreach (bool hidden in hiddenContentStack) {
+                if (hidden) {
+                    return true;
+                }
+            }
+
+            return false;
+        }
+
+        bool IsHiddenOptionalContent(object? tag, object? property) =>
+            tag is string tagName &&
+            string.Equals(tagName, "OC", StringComparison.Ordinal) &&
+            ((property is string propertyName &&
+                optionalContentVisibility?.IsHidden(propertyName) == true) ||
+             (property is PdfInlineOptionalContentReferences references &&
+                optionalContentVisibility?.IsHidden(references) == true));
 
         void SkipWs() { while (i < n && char.IsWhiteSpace(content[i])) i++; }
         static bool IsDigit(char ch) => ch >= '0' && ch <= '9';
@@ -733,6 +1520,102 @@ internal static class TextContentParser {
                 i++;
             }
             return content.Substring(start, i - start);
+        }
+
+        double NumberAt(int index) => args[index] is double value ? value : 0D;
+        void ApplyGraphicsStateResource(string name) {
+            if (graphicsStates == null || !graphicsStates.TryGetValue(name, out PdfPageGraphicsStateResource resource)) {
+                return;
+            }
+
+            fillOpacity = resource.FillOpacity ?? fillOpacity;
+            strokeOpacity = resource.StrokeOpacity ?? strokeOpacity;
+        }
+
+        OfficeColor ReadRgb(int startIndex) =>
+            OfficeColor.FromRgb(ToByte(NumberAt(startIndex)), ToByte(NumberAt(startIndex + 1)), ToByte(NumberAt(startIndex + 2)));
+        OfficeColor ReadGray(int index) {
+            byte value = ToByte(NumberAt(index));
+            return OfficeColor.FromRgb(value, value, value);
+        }
+
+        OfficeColor ReadCmyk(int startIndex) {
+            double cyan = Clamp01(NumberAt(startIndex));
+            double magenta = Clamp01(NumberAt(startIndex + 1));
+            double yellow = Clamp01(NumberAt(startIndex + 2));
+            double black = Clamp01(NumberAt(startIndex + 3));
+            return OfficeColor.FromRgb(
+                ToByte((1D - cyan) * (1D - black)),
+                ToByte((1D - magenta) * (1D - black)),
+                ToByte((1D - yellow) * (1D - black)));
+        }
+
+        bool TryReadColor(PdfPageColorSpaceKind colorSpace, out OfficeColor color) {
+            color = OfficeColor.Black;
+            int componentCount = GetColorComponentCount(colorSpace);
+            int endIndex = args.Count;
+            while (endIndex > 0 && args[endIndex - 1] is not double) {
+                endIndex--;
+            }
+
+            if (endIndex < componentCount) {
+                return false;
+            }
+
+            int startIndex = endIndex - componentCount;
+            switch (colorSpace) {
+                case PdfPageColorSpaceKind.DeviceRgb:
+                    color = ReadRgb(startIndex);
+                    return true;
+                case PdfPageColorSpaceKind.DeviceCmyk:
+                    color = ReadCmyk(startIndex);
+                    return true;
+                default:
+                    color = ReadGray(startIndex);
+                    return true;
+            }
+        }
+
+        bool TryReadColorSpace(string name, out PdfPageColorSpaceKind colorSpace) {
+            switch (name) {
+                case "DeviceRGB":
+                case "RGB":
+                    colorSpace = PdfPageColorSpaceKind.DeviceRgb;
+                    return true;
+                case "DeviceCMYK":
+                case "CMYK":
+                    colorSpace = PdfPageColorSpaceKind.DeviceCmyk;
+                    return true;
+                case "DeviceGray":
+                case "G":
+                    colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return true;
+                default:
+                    if (colorSpaces != null && colorSpaces.TryGetValue(name, out colorSpace)) {
+                        return true;
+                    }
+
+                    colorSpace = PdfPageColorSpaceKind.DeviceGray;
+                    return false;
+            }
+        }
+
+        static int GetColorComponentCount(PdfPageColorSpaceKind colorSpace) {
+            switch (colorSpace) {
+                case PdfPageColorSpaceKind.DeviceRgb:
+                    return 3;
+                case PdfPageColorSpaceKind.DeviceCmyk:
+                    return 4;
+                default:
+                    return 1;
+            }
+        }
+
+        static byte ToByte(double value) => (byte)Math.Round(Clamp01(value) * 255D);
+        static double Clamp01(double value) => value < 0D ? 0D : value > 1D ? 1D : value;
+        static int ReadTextRenderingMode(double value) {
+            int mode = (int)Math.Round(value);
+            return mode < 0 || mode > 7 ? 0 : mode;
         }
 
         static double ToDouble(object o) => o is double d ? d : 0.0;

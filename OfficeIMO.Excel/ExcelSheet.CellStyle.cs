@@ -60,6 +60,7 @@ namespace OfficeIMO.Excel {
                 HorizontalAlignment = format.Alignment?.Horizontal?.InnerText,
                 VerticalAlignment = format.Alignment?.Vertical?.InnerText,
                 TextRotation = ToTextRotation(format.Alignment?.TextRotation?.Value),
+                TextIndent = format.Alignment?.Indent?.Value,
                 WrapText = format.Alignment?.WrapText?.Value == true,
                 ShrinkToFit = format.Alignment?.ShrinkToFit?.Value == true
             };

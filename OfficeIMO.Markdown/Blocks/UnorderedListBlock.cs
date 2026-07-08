@@ -21,7 +21,10 @@ public sealed class UnorderedListBlock : MarkdownBlock, IMarkdownListBlock, ISyn
             });
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() =>
-        MarkdownListRendering.RenderHtml("ul", Items, Attributes, _ => string.Empty);
+        RenderHtml(renderItemAttributes: false);
+
+    internal string RenderHtml(bool renderItemAttributes) =>
+        MarkdownListRendering.RenderHtml("ul", Items, Attributes, _ => string.Empty, renderItemAttributes);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => ListItems;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.UnorderedList;

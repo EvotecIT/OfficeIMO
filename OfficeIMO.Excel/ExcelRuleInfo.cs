@@ -35,6 +35,8 @@ namespace OfficeIMO.Excel {
         public string? DifferentialFontName { get; set; }
         /// <summary>Gets or sets the rule's differential format font size in points, when present.</summary>
         public double? DifferentialFontSize { get; set; }
+        /// <summary>Gets or sets the rule's differential format border, when present.</summary>
+        public ExcelCellBorderSnapshot? DifferentialBorder { get; set; }
         /// <summary>Gets or sets formulas attached to the rule.</summary>
         public IReadOnlyList<string> Formulas { get; set; } = Array.Empty<string>();
         /// <summary>Gets or sets ARGB colors attached to a color-scale rule, in rule order.</summary>

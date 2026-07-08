@@ -10,6 +10,14 @@ public static partial class OfficeChartDrawingRenderer {
         || kind == OfficeChartKind.BarStacked
         || kind == OfficeChartKind.BarStacked100;
 
+    private static bool IsColumnChart(OfficeChartKind kind) =>
+        kind == OfficeChartKind.ColumnClustered
+        || kind == OfficeChartKind.ColumnStacked
+        || kind == OfficeChartKind.ColumnStacked100;
+
+    private static bool IsBarOrColumnChart(OfficeChartKind kind) =>
+        IsBarChart(kind) || IsColumnChart(kind);
+
     private static bool IsLineChart(OfficeChartKind kind) =>
         kind == OfficeChartKind.Line
         || kind == OfficeChartKind.LineStacked
@@ -43,6 +51,42 @@ public static partial class OfficeChartDrawingRenderer {
     private static bool IsPieChart(OfficeChartKind kind) => kind == OfficeChartKind.Pie;
 
     private static bool IsDoughnutChart(OfficeChartKind kind) => kind == OfficeChartKind.Doughnut;
+
+    private static OfficeChartKind GetEffectiveSeriesKind(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+        series.RenderKind ?? snapshot.ChartKind;
+
+    private static bool HasMixedCartesianSeriesKinds(OfficeChartSnapshot snapshot) {
+        OfficeChartKind? first = null;
+        foreach (OfficeChartSeries series in snapshot.Data.Series) {
+            OfficeChartKind kind = GetEffectiveSeriesKind(snapshot, series);
+            if (IsPieChart(kind) || IsDoughnutChart(kind) || IsRadarChart(kind)) {
+                continue;
+            }
+
+            if (!first.HasValue) {
+                first = kind;
+                continue;
+            }
+
+            if (first.Value != kind) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ShouldRenderSeriesAsBarOrColumn(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+        !HasMixedCartesianSeriesKinds(snapshot) || IsBarOrColumnChart(GetEffectiveSeriesKind(snapshot, series));
+
+    private static bool ShouldRenderSeriesAsArea(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+        !HasMixedCartesianSeriesKinds(snapshot) || IsAreaChart(GetEffectiveSeriesKind(snapshot, series));
+
+    private static bool ShouldRenderSeriesAsLine(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+        !HasMixedCartesianSeriesKinds(snapshot) || IsLineChart(GetEffectiveSeriesKind(snapshot, series));
+
+    private static bool ShouldRenderSeriesAsScatter(OfficeChartSnapshot snapshot, OfficeChartSeries series) =>
+        !HasMixedCartesianSeriesKinds(snapshot) || IsScatterChart(GetEffectiveSeriesKind(snapshot, series));
 
     private static double GetPositiveCategoryTotal(IReadOnlyList<OfficeChartSeries> series, int categoryIndex) {
         double total = 0D;

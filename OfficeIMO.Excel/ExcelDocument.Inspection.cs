@@ -336,6 +336,7 @@ namespace OfficeIMO.Excel {
                 HorizontalAlignment = cellFormat.Alignment?.Horizontal?.InnerText,
                 VerticalAlignment = cellFormat.Alignment?.Vertical?.InnerText,
                 TextRotation = ToTextRotation(cellFormat.Alignment?.TextRotation?.Value),
+                TextIndent = cellFormat.Alignment?.Indent?.Value,
                 WrapText = cellFormat.Alignment?.WrapText?.Value == true,
                 ShrinkToFit = cellFormat.Alignment?.ShrinkToFit?.Value == true,
             };

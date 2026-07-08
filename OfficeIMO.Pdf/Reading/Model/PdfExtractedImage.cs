@@ -1,3 +1,5 @@
+using OfficeIMO.Drawing;
+
 namespace OfficeIMO.Pdf;
 
 /// <summary>
@@ -19,7 +21,9 @@ public sealed class PdfExtractedImage {
         bool isImageFile,
         string? transparencyMaskKind = null,
         bool transparencyMaskResolved = false,
-        int directStreamIdentity = 0) {
+        int directStreamIdentity = 0,
+        bool isImageMask = false,
+        OfficeColor? imageMaskColor = null) {
         PageNumber = pageNumber;
         ResourceName = resourceName;
         ObjectNumber = objectNumber;
@@ -35,6 +39,8 @@ public sealed class PdfExtractedImage {
         TransparencyMaskKind = transparencyMaskKind;
         TransparencyMaskResolved = transparencyMaskResolved;
         DirectStreamIdentity = directStreamIdentity;
+        IsImageMask = isImageMask;
+        ImageMaskColor = imageMaskColor ?? OfficeColor.Black;
     }
 
     /// <summary>One-based page number containing the image resource.</summary>
@@ -91,4 +97,9 @@ public sealed class PdfExtractedImage {
 
     /// <summary>True when the source PDF image declared a transparency mask that is not represented by the extracted payload.</summary>
     public bool HasUnresolvedTransparencyMask => HasTransparencyMask && !TransparencyMaskResolved;
+
+    /// <summary>True when this image came from a PDF /ImageMask stencil XObject.</summary>
+    public bool IsImageMask { get; }
+
+    internal OfficeColor ImageMaskColor { get; }
 }

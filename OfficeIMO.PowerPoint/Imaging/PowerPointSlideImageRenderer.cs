@@ -73,7 +73,7 @@ namespace OfficeIMO.PowerPoint {
                 } else if (shape is PowerPointTable table) {
                     AddTable(drawing, table, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointChart chart) {
-                    AddChart(drawing, chart, diagnostics, mapping);
+                    AddChart(drawing, chart, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointTextBox textBox) {
                     AddTextBox(drawing, textBox, diagnostics, mapping, colorScheme);
                 } else if (shape is PowerPointAutoShape autoShape) {
@@ -360,6 +360,8 @@ namespace OfficeIMO.PowerPoint {
             } else {
                 target.StrokeWidth = 0D;
             }
+
+            ApplyShapeEffects(target, source, colorScheme, mapping);
         }
 
         private static bool TryResolveShapeFillColor(PowerPointShape source, A.ColorScheme? colorScheme, out OfficeColor color) {

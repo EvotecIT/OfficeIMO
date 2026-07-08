@@ -416,6 +416,7 @@ jobs:
           markdown_partitions = (
               "OfficeIMO.Tests.Markdown.",
               "OfficeIMO.Tests.MarkdownSuite",
+              "OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests",
               "OfficeIMO.Tests.MarkdownHtmlToMarkdownTests",
               "OfficeIMO.Tests.Markdown_",
               "OfficeIMO.Tests.MarkdownTranscript",
@@ -451,7 +452,7 @@ jobs:
               ;;
             markdown-suite)
               run_markdown_tests "markdown-suite" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownSuite'
-              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX'
+              run_markdown_tests "markdown-named" 'FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownCompatibilityTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownHtmlToMarkdownTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_|FullyQualifiedName~OfficeIMO.Tests.MarkdownTranscript|FullyQualifiedName~OfficeIMO.Tests.MarkdownReaderBomTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownBlankLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownDefinitionLinesTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownOrderedListsTests|FullyQualifiedName~OfficeIMO.Tests.MarkdownStreamingPreviewTests|FullyQualifiedName~OfficeIMO.Tests.Markdown_Renderer|FullyQualifiedName~OfficeIMO.Tests.Markdown_IntelligenceX'
               ;;
             pdf-visual-inspector)
               run_pdf_tests "pdf-visual-inspector" 'FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentVisualQualityTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfInspectorTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfReaderAndFooterRegressionTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.MarkdownSaveAsPdfVisualTests|FullyQualifiedName~OfficeIMO.Tests.Pdf.PdfDocumentRasterVisualBaselineTests'

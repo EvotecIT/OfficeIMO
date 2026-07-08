@@ -546,12 +546,13 @@ public class MarkdownDoc : MarkdownObject {
         var context = new MarkdownWriteContext(this, blocks, options, headingCatalog);
         using var _ctx = MarkdownRenderContext.Push(context);
         StringBuilder sb = new StringBuilder();
-        if (_frontMatter != null) {
-            sb.AppendLine(_frontMatter.RenderFrontMatter());
+        var renderedFrontMatter = RenderFrontMatter(_frontMatter, options);
+        if (!string.IsNullOrEmpty(renderedFrontMatter)) {
+            sb.AppendLine(renderedFrontMatter);
             sb.AppendLine();
         }
 
-        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult) && blocks.Count > 0) {
+        if (AppendParseOwnedAbbreviationDefinitions(sb, _parseResult, options) && blocks.Count > 0) {
             sb.AppendLine();
         }
 
@@ -750,7 +751,27 @@ public class MarkdownDoc : MarkdownObject {
         return MarkdownBlockRenderDispatcher.RenderMarkdown(block, context);
     }
 
-    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult) {
+    private static string? RenderFrontMatter(IFrontMatterMarkdownBlock? frontMatter, MarkdownWriteOptions options) {
+        if (frontMatter == null) {
+            return null;
+        }
+
+        return options.FrontMatterRendering switch {
+            MarkdownFrontMatterRenderingMode.Preserve => frontMatter.RenderFrontMatter(),
+            MarkdownFrontMatterRenderingMode.Omit => null,
+            _ => throw new ArgumentOutOfRangeException(nameof(options.FrontMatterRendering), options.FrontMatterRendering, "Unknown front matter rendering mode.")
+        };
+    }
+
+    private static bool AppendParseOwnedAbbreviationDefinitions(StringBuilder sb, MarkdownParseResult? parseResult, MarkdownWriteOptions options) {
+        if (options.AbbreviationDefinitionRendering == MarkdownAbbreviationDefinitionRenderingMode.Omit) {
+            return false;
+        }
+
+        if (options.AbbreviationDefinitionRendering != MarkdownAbbreviationDefinitionRenderingMode.Preserve) {
+            throw new ArgumentOutOfRangeException(nameof(options.AbbreviationDefinitionRendering), options.AbbreviationDefinitionRendering, "Unknown abbreviation definition rendering mode.");
+        }
+
         if (parseResult == null || parseResult.AbbreviationDefinitions.Count == 0) {
             return false;
         }

@@ -35,8 +35,10 @@ internal static class MarkdownListRendering {
         string listTag,
         IReadOnlyList<ListItem> items,
         MarkdownAttributeSet? attributes,
-        Func<int, string> topLevelAttributesFactory) {
+        Func<int, string> topLevelAttributesFactory,
+        bool renderItemAttributes = false) {
         var sb = new System.Text.StringBuilder();
+        renderItemAttributes = renderItemAttributes || HtmlRenderContext.RenderListItemAttributes;
 
         bool ContainsTasksInScope(int startIndex, int level) {
             for (int i = startIndex; i < items.Count; i++) {
@@ -102,9 +104,18 @@ internal static class MarkdownListRendering {
 
             int scopeStart = scopeStartByLevel[level];
             bool renderLoose = IsLooseInScope(scopeStart, level);
-            bool useGitHubTaskListHtml = HtmlRenderContext.Options?.GitHubTaskListHtml == true;
-            sb.Append(item.IsTask && !useGitHubTaskListHtml ? "<li class=\"task-list-item\">" : "<li>")
-                .Append(item.RenderHtml(renderLoose));
+            var options = HtmlRenderContext.Options;
+            bool useGitHubTaskListHtml = options?.GitHubTaskListHtml == true;
+            var itemClasses = item.IsTask && !useGitHubTaskListHtml
+                ? new[] { "task-list-item" }
+                : null;
+            var itemAttributes = renderItemAttributes
+                ? item.Attributes
+                : null;
+            sb.Append("<li")
+                .Append(MarkdownHtmlAttributes.Render(itemAttributes, options, additionalClasses: itemClasses))
+                .Append('>')
+                .Append(item.RenderHtml(renderLoose, renderGenericAttributeConsumedWhitespace: !renderItemAttributes));
             liOpen = true;
         }
 

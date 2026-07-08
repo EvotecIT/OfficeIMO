@@ -86,10 +86,10 @@ public sealed partial class OfficeRasterCanvas {
                 SlantContours(contours, top, size);
             }
 
-            FillContours(contours, color);
+            FillContours(contours, color, OfficeFillRule.EvenOdd);
             if ((style & OfficeFontStyle.Bold) == OfficeFontStyle.Bold) {
                 OffsetContours(contours, 0.45D, 0D);
-                FillContours(contours, color);
+                FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
 
             if ((style & OfficeFontStyle.Underline) == OfficeFontStyle.Underline) {
@@ -164,7 +164,7 @@ public sealed partial class OfficeRasterCanvas {
                 rotationCenterY,
                 flipHorizontal,
                 flipVertical);
-            FillContours(contours, color);
+            FillContours(contours, color, OfficeFillRule.EvenOdd);
             if (bold) {
                 contours = TransformTextContours(
                     font.GetTextContours(value, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
@@ -175,7 +175,7 @@ public sealed partial class OfficeRasterCanvas {
                     rotationCenterY,
                     flipHorizontal,
                     flipVertical);
-                FillContours(contours, color);
+                FillContours(contours, color, OfficeFillRule.EvenOdd);
             }
 
             DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
@@ -184,6 +184,67 @@ public sealed partial class OfficeRasterCanvas {
 
         DrawStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
         DrawTextLineDecorations(x, width, top, fontHeight, color, rotationRadians, rotationCenterX, rotationCenterY, underline, strikethrough, flipHorizontal, flipVertical);
+    }
+
+    /// <summary>
+    /// Draws a single text line through an arbitrary affine transform.
+    /// </summary>
+    /// <param name="text">Text to draw.</param>
+    /// <param name="anchorX">Untransformed text anchor X coordinate.</param>
+    /// <param name="top">Untransformed top coordinate.</param>
+    /// <param name="height">Untransformed text height.</param>
+    /// <param name="color">Text fill color.</param>
+    /// <param name="transform">Affine transform applied to text contours.</param>
+    /// <param name="bold">Whether to draw a bold approximation.</param>
+    /// <param name="italic">Whether to skew text contours before applying the transform.</param>
+    /// <param name="alignment">Anchor alignment.</param>
+    /// <param name="underline">Whether to draw an underline.</param>
+    /// <param name="strikethrough">Whether to draw a strikethrough.</param>
+    /// <param name="fontFamily">Requested font family fallback list.</param>
+    public void DrawTextLineTransformed(
+        string? text,
+        double anchorX,
+        double top,
+        double height,
+        OfficeColor color,
+        OfficeTransform transform,
+        bool bold = false,
+        bool italic = false,
+        OfficeTextAlignment alignment = OfficeTextAlignment.Center,
+        bool underline = false,
+        bool strikethrough = false,
+        string? fontFamily = null) {
+        if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
+            return;
+        }
+
+        string value = text!;
+        double fontHeight = Math.Max(1D, height);
+        OfficeTrueTypeFont? font = ResolveTextFont(fontFamily);
+        double width = MeasureText(value, fontHeight, fontFamily);
+        double x = ResolveAnchoredTextX(anchorX, width, alignment);
+        if (font != null) {
+            IReadOnlyList<List<OfficePoint>> contours = TransformTextContours(
+                font.GetTextContours(value, x, top, fontHeight),
+                top + fontHeight,
+                italic,
+                transform);
+            FillContours(contours, color, OfficeFillRule.EvenOdd);
+            if (bold) {
+                contours = TransformTextContours(
+                    font.GetTextContours(value, x + Math.Max(1D, fontHeight / 22D), top, fontHeight),
+                    top + fontHeight,
+                    italic,
+                    transform);
+                FillContours(contours, color, OfficeFillRule.EvenOdd);
+            }
+
+            DrawAffineTextLineDecorations(x, width, top, fontHeight, color, transform, underline, strikethrough);
+            return;
+        }
+
+        DrawAffineStrokeText(value, anchorX, top + (fontHeight / 2D), fontHeight, color, bold, italic, alignment, transform);
+        DrawAffineTextLineDecorations(x, width, top, fontHeight, color, transform, underline, strikethrough);
     }
 
     private void DrawTextLineDecorations(
@@ -210,6 +271,34 @@ public sealed partial class OfficeRasterCanvas {
         if (strikethrough) {
             DrawTransformedTextDecorationLine(x, width, top + (fontHeight * 0.52D), color, fontHeight, rotationRadians, rotationCenterX, rotationCenterY, flipHorizontal, flipVertical);
         }
+    }
+
+    private void DrawAffineTextLineDecorations(
+        double x,
+        double width,
+        double top,
+        double fontHeight,
+        OfficeColor color,
+        OfficeTransform transform,
+        bool underline,
+        bool strikethrough) {
+        if (width <= 0D || color.A == 0) {
+            return;
+        }
+
+        if (underline) {
+            DrawAffineTextDecorationLine(x, width, top + (fontHeight * 0.86D), color, fontHeight, transform);
+        }
+
+        if (strikethrough) {
+            DrawAffineTextDecorationLine(x, width, top + (fontHeight * 0.52D), color, fontHeight, transform);
+        }
+    }
+
+    private void DrawAffineTextDecorationLine(double x, double width, double y, OfficeColor color, double fontHeight, OfficeTransform transform) {
+        OfficePoint start = transform.TransformPoint(new OfficePoint(x, y));
+        OfficePoint end = transform.TransformPoint(new OfficePoint(x + width, y));
+        DrawLine(start.X, start.Y, end.X, end.Y, color, Math.Max(1D, fontHeight / 16D));
     }
 
     private void DrawTransformedTextDecorationLine(
@@ -346,6 +435,33 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
+    private void DrawAffineStrokeText(
+        string text,
+        double anchorX,
+        double centerY,
+        double height,
+        OfficeColor color,
+        bool bold,
+        bool italic,
+        OfficeTextAlignment alignment,
+        OfficeTransform transform) {
+        if (string.IsNullOrEmpty(text) || color.A == 0 || height <= 0D) {
+            return;
+        }
+
+        double cell = Math.Max(1D, height / 7D);
+        double gap = cell * 0.9D;
+        double width = MeasureStrokeText(text, height);
+        double x = ResolveAnchoredTextX(anchorX, width, alignment);
+        double top = centerY - (height / 2D);
+        double bottom = top + Math.Max(1D, height);
+        double strokeScale = GetAffineStrokeScale(transform);
+        foreach (char c in text) {
+            DrawAffineStrokeGlyph(c, x, top, cell, color, bold, italic, bottom, transform, strokeScale);
+            x += (GlyphWidth(c) * cell) + gap;
+        }
+    }
+
     private void DrawStrokeGlyph(
         char c,
         double x,
@@ -405,6 +521,62 @@ public sealed partial class OfficeRasterCanvas {
         }
     }
 
+    private void DrawAffineStrokeGlyph(
+        char c,
+        double x,
+        double y,
+        double cell,
+        OfficeColor color,
+        bool bold,
+        bool italic,
+        double bottom,
+        OfficeTransform transform,
+        double strokeScale) {
+        string[] rows = GlyphRows(c);
+        double strokeWidth = Math.Max(1D, (bold ? cell * 0.38D : cell * 0.26D) * strokeScale);
+        for (int row = 0; row < rows.Length; row++) {
+            string bits = rows[row];
+            for (int col = 0; col < bits.Length; col++) {
+                if (bits[col] != '1') {
+                    continue;
+                }
+
+                OfficePoint current = TransformAffineTextPoint(GlyphPoint(x, y, cell, col, row), bottom, italic, transform);
+                bool connected = false;
+                if (col + 1 < bits.Length && bits[col + 1] == '1') {
+                    OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col + 1, row), bottom, italic, transform);
+                    DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
+                    connected = true;
+                }
+
+                if (row + 1 < rows.Length) {
+                    string next = rows[row + 1];
+                    if (col < next.Length && next[col] == '1') {
+                        OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col, row + 1), bottom, italic, transform);
+                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
+                        connected = true;
+                    }
+
+                    if (col > 0 && col - 1 < next.Length && next[col - 1] == '1') {
+                        OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col - 1, row + 1), bottom, italic, transform);
+                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
+                        connected = true;
+                    }
+
+                    if (col + 1 < next.Length && next[col + 1] == '1') {
+                        OfficePoint nextPoint = TransformAffineTextPoint(GlyphPoint(x, y, cell, col + 1, row + 1), bottom, italic, transform);
+                        DrawLine(current.X, current.Y, nextPoint.X, nextPoint.Y, color, strokeWidth);
+                        connected = true;
+                    }
+                }
+
+                if (!connected) {
+                    DrawEllipse(current.X, current.Y, strokeWidth / 2D, strokeWidth / 2D, color, OfficeColor.Transparent, 0D);
+                }
+            }
+        }
+    }
+
     private static double ResolveAnchoredTextX(double anchorX, double width, OfficeTextAlignment alignment) {
         if (alignment == OfficeTextAlignment.Right) {
             return anchorX - width;
@@ -435,6 +607,25 @@ public sealed partial class OfficeRasterCanvas {
         return transformed;
     }
 
+    private static IReadOnlyList<List<OfficePoint>> TransformTextContours(IReadOnlyList<List<OfficePoint>> contours, double bottom, bool italic, OfficeTransform transform) {
+        if ((!italic && transform == OfficeTransform.Identity) || contours.Count == 0) {
+            return contours;
+        }
+
+        List<List<OfficePoint>> transformed = new(contours.Count);
+        foreach (List<OfficePoint> contour in contours) {
+            List<OfficePoint> points = new(contour.Count);
+            foreach (OfficePoint point in contour) {
+                OfficePoint skewed = italic ? new OfficePoint(point.X + ((bottom - point.Y) * ItalicShear), point.Y) : point;
+                points.Add(transform.TransformPoint(skewed));
+            }
+
+            transformed.Add(points);
+        }
+
+        return transformed;
+    }
+
     private static OfficePoint TransformTextPoint(OfficePoint point, double bottom, bool italic, double rotationRadians, double rotationCenterX, double rotationCenterY, bool flipHorizontal, bool flipVertical) {
         if (!italic && Math.Abs(rotationRadians) < TextRotationEpsilon && !flipHorizontal && !flipVertical) {
             return point;
@@ -457,6 +648,18 @@ public sealed partial class OfficeRasterCanvas {
         return Math.Abs(rotationRadians) < TextRotationEpsilon
             ? transformed
             : OfficeGeometry.RotatePoint(transformed, centerX, centerY, rotationRadians);
+    }
+
+    private static OfficePoint TransformAffineTextPoint(OfficePoint point, double bottom, bool italic, OfficeTransform transform) {
+        OfficePoint skewed = italic ? new OfficePoint(point.X + ((bottom - point.Y) * ItalicShear), point.Y) : point;
+        return transform.TransformPoint(skewed);
+    }
+
+    private static double GetAffineStrokeScale(OfficeTransform transform) {
+        double xScale = Math.Sqrt((transform.M11 * transform.M11) + (transform.M12 * transform.M12));
+        double yScale = Math.Sqrt((transform.M21 * transform.M21) + (transform.M22 * transform.M22));
+        double scale = Math.Max(xScale, yScale);
+        return !double.IsNaN(scale) && !double.IsInfinity(scale) && scale > 0D ? scale : 1D;
     }
 
     private static OfficePoint GlyphPoint(double x, double y, double cell, int col, int row) {

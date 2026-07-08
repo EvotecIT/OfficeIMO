@@ -625,8 +625,9 @@ namespace OfficeIMO.Word {
         /// </summary>
         /// <param name="document"></param>
         /// <param name="paragraph"></param>
+        /// <param name="splitPaginationMarkers"></param>
         /// <returns></returns>
-        internal static List<WordParagraph> ConvertParagraphToWordParagraphs(WordDocument document, Paragraph paragraph) {
+        internal static List<WordParagraph> ConvertParagraphToWordParagraphs(WordDocument document, Paragraph paragraph, bool splitPaginationMarkers = false) {
             var list = new List<WordParagraph>();
             var childElements = paragraph.ChildElements;
             if (childElements.Count == 1 && childElements[0] is ParagraphProperties) {
@@ -635,49 +636,88 @@ namespace OfficeIMO.Word {
             } else if (childElements.Any()) {
                 List<Run> runList = new List<Run>();
                 bool foundField = false;
-                foreach (var element in paragraph.ChildElements) {
+
+                void AddRun(Run run, Hyperlink? hyperlink = null) {
                     WordParagraph wordParagraph;
-                    if (element is Run) {
-                        var run = (Run)element;
-                        var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
-                        if (foundField == true) {
-                            if (fieldChar?.FieldCharType?.Value == FieldCharValues.End) {
-                                foundField = false;
-                                runList.Add(run);
+                    IReadOnlyList<Run> logicalRuns = splitPaginationMarkers ? SplitRunByPaginationMarkers(run) : new[] { run };
+                    if (logicalRuns.Count > 1) {
+                        foreach (Run logicalRun in logicalRuns) {
+                            AddRun(logicalRun, hyperlink);
+                        }
+
+                        return;
+                    }
+
+                    var fieldChar = run.ChildElements.OfType<FieldChar>().FirstOrDefault();
+                    if (foundField == true) {
+                        if (fieldChar?.FieldCharType?.Value == FieldCharValues.End) {
+                            foundField = false;
+                            runList.Add(run);
+                            if (!ProcessComplexFieldWithHardBreaks(runList, hyperlink)) {
                                 wordParagraph = new WordParagraph(document, paragraph, runList);
+                                wordParagraph._hyperlink = hyperlink;
                                 list.Add(wordParagraph);
-                                runList = new List<Run>();
-                            } else {
-                                runList.Add(run);
+                            }
+
+                            runList = new List<Run>();
+                        } else {
+                            runList.Add(run);
+                        }
+                    } else {
+                        if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
+                            runList.Add(run);
+                            foundField = true;
+                        } else {
+                            wordParagraph = new WordParagraph(document, paragraph, run);
+                            wordParagraph._hyperlink = hyperlink;
+                            list.Add(wordParagraph);
+                        }
+                    }
+                }
+
+                void ProcessElement(OpenXmlElement element, Hyperlink? hyperlinkContext = null) {
+                    WordParagraph wordParagraph;
+                    if (element is Run run) {
+                        AddRun(run, hyperlinkContext);
+                    } else if (element is InsertedRun || element is MoveToRun) {
+                        foreach (OpenXmlElement child in element.ChildElements) {
+                            ProcessElement(child, hyperlinkContext);
+                        }
+                    } else if (element is DeletedRun || element is MoveFromRun) {
+                        // Image export follows Word's final view by default: inserted/moved-to text is visible, deleted/moved-from text is hidden.
+                    } else if (element is Hyperlink hyperlink) {
+                        if (splitPaginationMarkers && ContainsPaginationMarker(hyperlink)) {
+                            foreach (OpenXmlElement child in hyperlink.ChildElements) {
+                                ProcessElement(child, hyperlink);
                             }
                         } else {
-                            if (fieldChar?.FieldCharType?.Value == FieldCharValues.Begin) {
-                                runList.Add(run);
-                                foundField = true;
-                            } else {
-                                wordParagraph = new WordParagraph(document, paragraph, run);
-                                list.Add(wordParagraph);
-                            }
+                            wordParagraph = new WordParagraph(document, paragraph, hyperlink);
+                            list.Add(wordParagraph);
                         }
-                    } else if (element is Hyperlink) {
-                        wordParagraph = new WordParagraph(document, paragraph, (Hyperlink)element);
-                        list.Add(wordParagraph);
-                    } else if (element is SimpleField) {
-                        wordParagraph = new WordParagraph(document, paragraph, (SimpleField)element);
-                        list.Add(wordParagraph);
-                    } else if (element is BookmarkStart) {
-                        wordParagraph = new WordParagraph(document, paragraph, (BookmarkStart)element);
+                    } else if (element is SimpleField simpleField) {
+                        if (!splitPaginationMarkers || !ProcessSimpleFieldWithHardBreaks(simpleField, hyperlinkContext)) {
+                            wordParagraph = new WordParagraph(document, paragraph, simpleField);
+                            list.Add(wordParagraph);
+                        }
+                    } else if (element is BookmarkStart bookmarkStart) {
+                        wordParagraph = new WordParagraph(document, paragraph, bookmarkStart);
                         list.Add(wordParagraph);
                     } else if (element is BookmarkEnd) {
                         // not needed, we will search for matching bookmark end in the bookmark (i guess)
-                    } else if (element is DocumentFormat.OpenXml.Math.OfficeMath) {
-                        wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.OfficeMath)element);
+                    } else if (element is CommentRangeStart || element is CommentRangeEnd) {
+                        // Comment range anchors are structural; the visible final-view marker is carried by CommentReference.
+                    } else if (element is DocumentFormat.OpenXml.Math.OfficeMath officeMath) {
+                        wordParagraph = new WordParagraph(document, paragraph, officeMath);
                         list.Add(wordParagraph);
-                    } else if (element is DocumentFormat.OpenXml.Math.Paragraph) {
-                        wordParagraph = new WordParagraph(document, paragraph, (DocumentFormat.OpenXml.Math.Paragraph)element);
+                    } else if (element is DocumentFormat.OpenXml.Math.Paragraph mathParagraph) {
+                        wordParagraph = new WordParagraph(document, paragraph, mathParagraph);
                         list.Add(wordParagraph);
-                    } else if (element is SdtRun) {
-                        list.Add(new WordParagraph(document, paragraph, (SdtRun)element));
+                    } else if (element is SdtRun sdtRun) {
+                        if (splitPaginationMarkers && ProcessInlineContentControl(sdtRun, hyperlinkContext)) {
+                            return;
+                        }
+
+                        list.Add(new WordParagraph(document, paragraph, sdtRun));
                     } else if (element is ProofError) {
 
                     } else if (element is ParagraphProperties) {
@@ -686,12 +726,178 @@ namespace OfficeIMO.Word {
                         Debug.WriteLine("Please implement me! " + element.GetType().Name);
                     }
                 }
+
+                bool ProcessInlineContentControl(SdtRun sdtRun, Hyperlink? hyperlinkContext) {
+                    if (!ContainsPaginationMarker(sdtRun)) {
+                        return false;
+                    }
+
+                    SdtContentRun? contentRun = sdtRun.SdtContentRun;
+                    if (contentRun == null || contentRun.ChildElements.Count == 0) {
+                        return false;
+                    }
+
+                    foreach (OpenXmlElement child in contentRun.ChildElements) {
+                        ProcessElement(child, hyperlinkContext);
+                    }
+
+                    return true;
+                }
+
+                bool ProcessSimpleFieldWithHardBreaks(SimpleField simpleField, Hyperlink? hyperlinkContext) {
+                    if (!ContainsPaginationMarker(simpleField)) {
+                        return false;
+                    }
+
+                    foreach (OpenXmlElement child in simpleField.ChildElements) {
+                        ProcessElement(child, hyperlinkContext);
+                    }
+
+                    return true;
+                }
+
+                bool ProcessComplexFieldWithHardBreaks(IReadOnlyList<Run> fieldRuns, Hyperlink? hyperlinkContext) {
+                    List<Run> resultRuns = ExtractComplexFieldResultRuns(fieldRuns);
+                    if (!resultRuns.Any(ContainsPaginationMarker)) {
+                        return false;
+                    }
+
+                    foreach (Run resultRun in resultRuns) {
+                        AddRun(resultRun, hyperlinkContext);
+                    }
+
+                    return true;
+                }
+
+                foreach (var element in paragraph.ChildElements) {
+                    ProcessElement(element);
+                }
             } else {
                 // add empty word paragraph
                 list.Add(new WordParagraph(document, paragraph));
             }
             return list;
         }
+
+        private static List<Run> ExtractComplexFieldResultRuns(IReadOnlyList<Run> fieldRuns) {
+            var resultRuns = new List<Run>();
+            bool sawSeparator = false;
+            int fieldDepth = 0;
+
+            foreach (Run run in fieldRuns) {
+                RunProperties? runProperties = run.GetFirstChild<RunProperties>();
+                var currentChildren = new List<OpenXmlElement>();
+
+                void FlushCurrentChildren() {
+                    if (currentChildren.Count == 0) {
+                        return;
+                    }
+
+                    resultRuns.Add(CreateLogicalRun(runProperties, currentChildren));
+                    currentChildren.Clear();
+                }
+
+                foreach (OpenXmlElement child in run.ChildElements) {
+                    if (child is RunProperties) {
+                        continue;
+                    }
+
+                    if (child is FieldChar fieldChar) {
+                        FieldCharValues? fieldCharType = fieldChar.FieldCharType?.Value;
+                        if (fieldCharType == FieldCharValues.Begin) {
+                            fieldDepth++;
+                            continue;
+                        }
+
+                        if (fieldCharType == FieldCharValues.Separate && fieldDepth > 0) {
+                            sawSeparator = true;
+                            continue;
+                        }
+
+                        if (fieldCharType == FieldCharValues.End && fieldDepth > 0) {
+                            FlushCurrentChildren();
+                            fieldDepth--;
+                            if (fieldDepth == 0) {
+                                return resultRuns;
+                            }
+
+                            continue;
+                        }
+                    }
+
+                    if (sawSeparator && fieldDepth > 0) {
+                        currentChildren.Add((OpenXmlElement)child.CloneNode(true));
+                    }
+                }
+
+                FlushCurrentChildren();
+            }
+
+            return resultRuns;
+        }
+
+        private static IReadOnlyList<Run> SplitRunByPaginationMarkers(Run run) {
+            if (!ContainsPaginationMarker(run)) {
+                return new[] { run };
+            }
+
+            RunProperties? runProperties = run.GetFirstChild<RunProperties>();
+            var result = new List<Run>();
+            var currentChildren = new List<OpenXmlElement>();
+
+            void FlushCurrentChildren() {
+                if (currentChildren.Count == 0) {
+                    return;
+                }
+
+                result.Add(CreateLogicalRun(runProperties, currentChildren));
+                currentChildren.Clear();
+            }
+
+            foreach (OpenXmlElement child in run.ChildElements) {
+                if (child is RunProperties) {
+                    continue;
+                }
+
+                if (child is Break breakNode && IsHardPaginationBreak(breakNode)) {
+                    FlushCurrentChildren();
+                    result.Add(CreateLogicalRun(runProperties, new OpenXmlElement[] { (OpenXmlElement)breakNode.CloneNode(true) }));
+                    continue;
+                }
+
+                if (child is LastRenderedPageBreak) {
+                    FlushCurrentChildren();
+                    result.Add(CreateLogicalRun(runProperties, new OpenXmlElement[] { new Break { Type = BreakValues.Page } }));
+                    continue;
+                }
+
+                currentChildren.Add((OpenXmlElement)child.CloneNode(true));
+            }
+
+            FlushCurrentChildren();
+            return result.Count == 0 ? new[] { run } : result;
+        }
+
+        private static Run CreateLogicalRun(RunProperties? runProperties, IEnumerable<OpenXmlElement> children) {
+            var logicalRun = new Run();
+            if (runProperties != null) {
+                logicalRun.Append((RunProperties)runProperties.CloneNode(true));
+            }
+
+            foreach (OpenXmlElement child in children) {
+                logicalRun.Append(child);
+            }
+
+            return logicalRun;
+        }
+
+        private static bool IsHardPaginationBreak(Break breakNode) =>
+            breakNode.Type?.Value == BreakValues.Page ||
+            breakNode.Type?.Value == BreakValues.Column;
+
+        private static bool ContainsPaginationMarker(OpenXmlElement element) =>
+            element.Descendants<LastRenderedPageBreak>().Any() ||
+            element.Descendants<Break>().Any(IsHardPaginationBreak);
 
         private int GetSectionOrdinal() {
             int sectionIndex = _document.Sections.IndexOf(this);
@@ -1003,19 +1209,24 @@ namespace OfficeIMO.Word {
         /// <param name="sectionProperties"></param>
         /// <param name="newSectionProperties"></param>
         private static void CopySectionProperties(SectionProperties sectionProperties, SectionProperties newSectionProperties) {
-            if (newSectionProperties.ChildElements.Count == 0) {
+            bool canMoveInheritedSectionParts = newSectionProperties.ChildElements.Count == 0;
+            if (canMoveInheritedSectionParts || HasOnlySectionType(newSectionProperties)) {
                 var listSectionEntries = sectionProperties.ChildElements.ToList();
                 foreach (var element in listSectionEntries) {
                     if (element is HeaderReference) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                            sectionProperties.RemoveChild(element);
+                        }
                     } else if (element is FooterReference) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
-                        //} else if (element is PageSize) {
-                        //    newSectionProperties.Append(element.CloneNode(true));
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                            sectionProperties.RemoveChild(element);
+                        }
+                    } else if (element is PageSize) {
+                        AppendMissingSectionElement<PageSize>(newSectionProperties, element);
                     } else if (element is PageMargin) {
-                        newSectionProperties.Append(element.CloneNode(true));
+                        AppendMissingSectionElement<PageMargin>(newSectionProperties, element);
                         //sectionProperties.RemoveChild(element);
                         //} else if (element is Columns) {
                         //    newSectionProperties.Append(element.CloneNode(true));
@@ -1024,20 +1235,28 @@ namespace OfficeIMO.Word {
                         //} else if (element is SectionType) {
                         //    newSectionProperties.Append(element.CloneNode(true));
                     } else if (element is FootnoteProperties footnoteProps) {
-                        var cloned = (FootnoteProperties)footnoteProps.CloneNode(true);
-                        cloned.RemoveAllChildren<NumberingRestart>();
-                        newSectionProperties.Append(cloned);
-                        footnoteProps.RemoveAllChildren<NumberingRestart>();
+                        if (canMoveInheritedSectionParts) {
+                            var cloned = (FootnoteProperties)footnoteProps.CloneNode(true);
+                            cloned.RemoveAllChildren<NumberingRestart>();
+                            newSectionProperties.Append(cloned);
+                            footnoteProps.RemoveAllChildren<NumberingRestart>();
+                        }
                     } else if (element is EndnoteProperties endnoteProps) {
-                        var cloned = (EndnoteProperties)endnoteProps.CloneNode(true);
-                        cloned.RemoveAllChildren<NumberingRestart>();
-                        newSectionProperties.Append(cloned);
-                        endnoteProps.RemoveAllChildren<NumberingRestart>();
+                        if (canMoveInheritedSectionParts) {
+                            var cloned = (EndnoteProperties)endnoteProps.CloneNode(true);
+                            cloned.RemoveAllChildren<NumberingRestart>();
+                            newSectionProperties.Append(cloned);
+                            endnoteProps.RemoveAllChildren<NumberingRestart>();
+                        }
                     } else if (element is TitlePage) {
-                        newSectionProperties.Append(element.CloneNode(true));
-                        sectionProperties.RemoveChild(element);
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                            sectionProperties.RemoveChild(element);
+                        }
                     } else {
-                        newSectionProperties.Append(element.CloneNode(true));
+                        if (canMoveInheritedSectionParts) {
+                            newSectionProperties.Append(element.CloneNode(true));
+                        }
                         //throw new NotImplementedException("This isn't implemented yet?");
                     }
                 }
@@ -1045,5 +1264,17 @@ namespace OfficeIMO.Word {
                 //newSectionProperties.Append(listSectionEntries);
             }
         }
+
+        private static bool HasOnlySectionType(SectionProperties sectionProperties) =>
+            sectionProperties.ChildElements.Count > 0 &&
+            sectionProperties.ChildElements.All(element => element is SectionType);
+
+        private static void AppendMissingSectionElement<TElement>(SectionProperties sectionProperties, OpenXmlElement source)
+            where TElement : OpenXmlElement {
+            if (!sectionProperties.Elements<TElement>().Any()) {
+                sectionProperties.Append(source.CloneNode(true));
+            }
+        }
+
     }
 }

@@ -6,7 +6,7 @@ namespace OfficeIMO.Markdown.Html;
 public sealed partial class HtmlToMarkdownConverter {
     private static DetailsBlock ConvertDetailsElement(IElement element, ConversionContext context) {
         SummaryBlock? summary = null;
-        var summaryElement = element.Children.FirstOrDefault(child => child.TagName.Equals("SUMMARY", StringComparison.OrdinalIgnoreCase));
+        var summaryElement = element.Children.FirstOrDefault(child => HasEffectiveTagName(child, context, "SUMMARY"));
         if (summaryElement != null) {
             summary = new SummaryBlock(NormalizeInlineSequenceForBlock(ConvertInlineNodesToInlineSequence(summaryElement.ChildNodes, context)));
         }
@@ -46,7 +46,7 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         foreach (var child in element.Children) {
-            if (child.TagName.Equals("DT", StringComparison.OrdinalIgnoreCase)) {
+            if (HasEffectiveTagName(child, context, "DT")) {
                 if (hasDefinitionsForCurrentGroup) {
                     FlushPendingGroup();
                 }
@@ -58,7 +58,7 @@ public sealed partial class HtmlToMarkdownConverter {
                 continue;
             }
 
-            if (child.TagName.Equals("DD", StringComparison.OrdinalIgnoreCase) && pendingTerms.Count > 0) {
+            if (HasEffectiveTagName(child, context, "DD") && pendingTerms.Count > 0) {
                 pendingDefinitions ??= new List<DefinitionListDefinition>();
                 pendingDefinitions.Add(new DefinitionListDefinition(ConvertDefinitionValueToBlocks(child, context)));
                 hasDefinitionsForCurrentGroup = true;

@@ -103,10 +103,12 @@ public sealed class ListItem : MarkdownObject, IChildMarkdownBlockContainer, ISy
 
     internal string RenderHtml() => RenderHtml(forceLoose: false);
 
-    internal string RenderHtml(bool forceLoose) {
+    internal string RenderHtml(bool forceLoose, bool renderGenericAttributeConsumedWhitespace = true) {
         bool renderLoose = forceLoose || ForceLoose;
         string checkbox = BuildCheckboxHtml();
-        string attributeWhitespace = RenderGenericAttributeConsumedWhitespace();
+        string attributeWhitespace = renderGenericAttributeConsumedWhitespace
+            ? RenderGenericAttributeConsumedWhitespace()
+            : string.Empty;
         if (!renderLoose && AdditionalParagraphs.Count == 0 && Children.Count == 0) {
             return checkbox + Content.RenderHtml() + attributeWhitespace;
         }

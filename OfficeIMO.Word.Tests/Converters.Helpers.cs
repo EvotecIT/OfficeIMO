@@ -88,6 +88,29 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void DocumentTraversal_RestartsNestedListMarkersWhenParentAdvances() {
+            using MemoryStream ms = new MemoryStream();
+            using (var document = WordDocument.Create(ms)) {
+                var list = document.AddCustomList();
+                list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.DecimalDot));
+                list.Numbering.AddLevel(new WordListLevel(WordListLevelKind.LowerLetterDot));
+
+                WordParagraph firstParent = list.AddItem("First parent");
+                WordParagraph firstChild = list.AddItem("First child", 1);
+                WordParagraph secondParent = list.AddItem("Second parent");
+                WordParagraph secondChild = list.AddItem("Second child", 1);
+
+                document.Save();
+
+                var markers = DocumentTraversal.BuildListMarkers(document);
+                Assert.Equal("1.", markers[firstParent].Marker);
+                Assert.Equal("a.", markers[firstChild].Marker);
+                Assert.Equal("2.", markers[secondParent].Marker);
+                Assert.Equal("a.", markers[secondChild].Marker);
+            }
+        }
+
+        [Fact]
         public void DocumentTraversal_BuildsMarkersAndIndicesForManyIndependentLists() {
             using MemoryStream ms = new MemoryStream();
             using (var document = WordDocument.Create(ms)) {

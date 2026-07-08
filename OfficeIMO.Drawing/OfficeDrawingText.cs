@@ -15,8 +15,8 @@ public sealed class OfficeDrawingText : OfficeDrawingElement {
             throw new ArgumentNullException(nameof(text));
         }
 
-        ValidateFiniteNonNegative(x, nameof(x));
-        ValidateFiniteNonNegative(y, nameof(y));
+        ValidateFinite(x, nameof(x));
+        ValidateFinite(y, nameof(y));
         ValidatePositiveFinite(width, nameof(width));
         ValidatePositiveFinite(height, nameof(height));
         ValidateFinite(rotationDegrees, nameof(rotationDegrees));

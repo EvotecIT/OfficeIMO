@@ -48,11 +48,15 @@ public sealed class OrderedListBlock : MarkdownBlock, IMarkdownListBlock, ISynta
 
     /// <inheritdoc />
     string IMarkdownBlock.RenderHtml() =>
+        RenderHtml(renderItemAttributes: false);
+
+    internal string RenderHtml(bool renderItemAttributes) =>
         MarkdownListRendering.RenderHtml(
             "ol",
             Items,
             Attributes,
-            _ => RenderOrderedListAttributes());
+            _ => RenderOrderedListAttributes(),
+            renderItemAttributes);
 
     IReadOnlyList<ListItem> IMarkdownListBlock.ListItems => ListItems;
     MarkdownSyntaxKind IMarkdownListBlock.ListSyntaxKind => MarkdownSyntaxKind.OrderedList;

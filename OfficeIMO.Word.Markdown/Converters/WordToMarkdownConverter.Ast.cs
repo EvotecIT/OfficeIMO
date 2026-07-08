@@ -421,6 +421,7 @@ namespace OfficeIMO.Word.Markdown {
             string? styleId = paragraph.StyleId;
             if (styleId is { Length: > 0 } sid && sid.StartsWith(codeLangPrefix, StringComparison.Ordinal)) {
                 var runs = paragraph.GetRuns()
+                    .Where(run => !run.IsCheckBox)
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
 
@@ -467,6 +468,10 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             foreach (var run in paragraph.GetRuns()) {
+                if (run.IsCheckBox) {
+                    continue;
+                }
+
                 bool containsPageBreak = RunContainsPageBreak(run);
                 string? text = run.Text;
                 if (string.IsNullOrEmpty(text)) {
@@ -550,6 +555,10 @@ namespace OfficeIMO.Word.Markdown {
             }
 
             foreach (var run in paragraph.GetRuns()) {
+                if (run.IsCheckBox) {
+                    continue;
+                }
+
                 if (RunContainsPageBreak(run)) {
                     if (TryAppendRunWithEmbeddedPageBreaks(
                         blocks,
@@ -749,6 +758,10 @@ namespace OfficeIMO.Word.Markdown {
             WordToMarkdownOptions options,
             string? preferredCodeFont,
             string? implicitCodeFont) {
+            if (run.IsCheckBox) {
+                return;
+            }
+
             if (run.Break != null && run.PageBreak == null) {
                 sequence.HardBreak();
             }

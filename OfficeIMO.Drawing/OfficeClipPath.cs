@@ -23,6 +23,9 @@ public sealed class OfficeClipPath {
     /// <summary>Local commands for freeform clipping paths.</summary>
     public IReadOnlyList<OfficePathCommand> Commands { get; private set; } = Array.Empty<OfficePathCommand>();
 
+    /// <summary>Fill rule used when the clipping path contains multiple contours.</summary>
+    public OfficeFillRule FillRule { get; private set; } = OfficeFillRule.EvenOdd;
+
     private OfficeClipPath() {
     }
 
@@ -61,7 +64,10 @@ public sealed class OfficeClipPath {
     public static OfficeClipPath Path(params OfficePathCommand[] commands) => Path((IEnumerable<OfficePathCommand>)commands);
 
     /// <summary>Creates a freeform clipping path from commands in local top-left coordinates.</summary>
-    public static OfficeClipPath Path(IEnumerable<OfficePathCommand> commands) {
+    public static OfficeClipPath Path(IEnumerable<OfficePathCommand> commands) => Path(commands, OfficeFillRule.EvenOdd);
+
+    /// <summary>Creates a freeform clipping path from commands in local top-left coordinates.</summary>
+    public static OfficeClipPath Path(IEnumerable<OfficePathCommand> commands, OfficeFillRule fillRule) {
         if (commands is null) {
             throw new ArgumentNullException(nameof(commands));
         }
@@ -126,6 +132,7 @@ public sealed class OfficeClipPath {
             Kind = OfficeClipPathKind.Path,
             Width = width,
             Height = height,
+            FillRule = fillRule,
             Commands = new ReadOnlyCollection<OfficePathCommand>(normalized)
         };
     }
@@ -136,6 +143,7 @@ public sealed class OfficeClipPath {
         Width = Width,
         Height = Height,
         CornerRadius = CornerRadius,
+        FillRule = FillRule,
         Commands = new ReadOnlyCollection<OfficePathCommand>(new List<OfficePathCommand>(Commands))
     };
 
@@ -163,7 +171,7 @@ public sealed class OfficeClipPath {
                     commands.Add(Commands[i].Scale(scaleX, scaleY));
                 }
 
-                return Path(commands);
+                return Path(commands, FillRule);
             default:
                 return Clone();
         }

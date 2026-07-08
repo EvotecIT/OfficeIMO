@@ -15,6 +15,30 @@ public static class MarkdownBlockRenderBuiltInExtensions {
     public const string PortableTocHtmlName = "Portable.Toc.Html";
     /// <summary>Stable registration name for the portable footnote section HTML fallback.</summary>
     public const string PortableFootnoteSectionHtmlName = "Portable.Footnotes.Html";
+    /// <summary>Stable registration name for the CommonMark table markdown fallback.</summary>
+    public const string CommonMarkTableMarkdownName = "CommonMark.Table.Markdown";
+    /// <summary>Stable registration name for the CommonMark task-list markdown fallback.</summary>
+    public const string CommonMarkTaskListMarkdownName = "CommonMark.TaskList.Markdown";
+    /// <summary>Stable registration name for the CommonMark definition-list markdown fallback.</summary>
+    public const string CommonMarkDefinitionListMarkdownName = "CommonMark.DefinitionList.Markdown";
+    /// <summary>Stable registration name for the CommonMark footnote-definition markdown fallback.</summary>
+    public const string CommonMarkFootnoteDefinitionMarkdownName = "CommonMark.FootnoteDefinition.Markdown";
+    /// <summary>Stable registration name for the CommonMark details markdown fallback.</summary>
+    public const string CommonMarkDetailsMarkdownName = "CommonMark.Details.Markdown";
+    /// <summary>Stable registration name for the CommonMark custom-container markdown fallback.</summary>
+    public const string CommonMarkCustomContainerMarkdownName = "CommonMark.CustomContainer.Markdown";
+    /// <summary>Stable registration name for the CommonMark paragraph line-start markdown fallback.</summary>
+    public const string CommonMarkParagraphLineStartMarkdownName = "CommonMark.ParagraphLineStart.Markdown";
+    /// <summary>Stable registration name for the CommonMark attributed block markdown fallback.</summary>
+    public const string CommonMarkAttributedBlockMarkdownName = "CommonMark.AttributedBlock.Markdown";
+    /// <summary>Stable registration name for the GitHub definition-list markdown fallback.</summary>
+    public const string GitHubDefinitionListMarkdownName = "GitHub.DefinitionList.Markdown";
+    /// <summary>Stable registration name for the GitHub custom-container markdown fallback.</summary>
+    public const string GitHubCustomContainerMarkdownName = "GitHub.CustomContainer.Markdown";
+    /// <summary>Stable registration name for the GitHub paragraph line-start markdown fallback.</summary>
+    public const string GitHubParagraphLineStartMarkdownName = "GitHub.ParagraphLineStart.Markdown";
+    /// <summary>Stable registration name for the GitHub attributed block markdown fallback.</summary>
+    public const string GitHubAttributedBlockMarkdownName = "GitHub.AttributedBlock.Markdown";
 
     /// <summary>Adds a portable markdown fallback for OfficeIMO callout blocks.</summary>
     public static void AddPortableCalloutMarkdownFallback(MarkdownWriteOptions options) {
@@ -29,6 +53,146 @@ public static class MarkdownBlockRenderBuiltInExtensions {
 
             return RenderPortableCalloutMarkdown(callout);
         });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for tables by emitting raw HTML tables.</summary>
+    public static void AddCommonMarkTableMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkTableMarkdownName, typeof(TableBlock), static (block, _) => {
+            if (block is not TableBlock table) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)table).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for task lists by emitting raw HTML lists.</summary>
+    public static void AddCommonMarkTaskListMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkTaskListMarkdownName, typeof(UnorderedListBlock), static (block, _) => {
+            if (block is not UnorderedListBlock list || !ContainsTaskListItem(list.Items)) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)list).RenderHtml();
+        });
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkTaskListMarkdownName + ".Ordered", typeof(OrderedListBlock), static (block, _) => {
+            if (block is not OrderedListBlock list || !ContainsTaskListItem(list.Items)) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)list).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for definition lists by emitting raw HTML.</summary>
+    public static void AddCommonMarkDefinitionListMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddDefinitionListHtmlMarkdownFallback(options, CommonMarkDefinitionListMarkdownName);
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for footnote definitions by emitting raw HTML.</summary>
+    public static void AddCommonMarkFootnoteDefinitionMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkFootnoteDefinitionMarkdownName, typeof(FootnoteDefinitionBlock), static (block, _) => {
+            if (block is not FootnoteDefinitionBlock footnote) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)footnote).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for details blocks by emitting raw HTML.</summary>
+    public static void AddCommonMarkDetailsMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddIfMissing(options.BlockRenderExtensions, CommonMarkDetailsMarkdownName, typeof(DetailsBlock), static (block, _) => {
+            if (block is not DetailsBlock details) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)details).RenderHtml();
+        });
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for custom containers by emitting raw HTML.</summary>
+    public static void AddCommonMarkCustomContainerMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddCustomContainerHtmlMarkdownFallback(options, CommonMarkCustomContainerMarkdownName);
+    }
+
+    /// <summary>Adds CommonMark-compatible paragraph text escaping for line-start block markers.</summary>
+    public static void AddCommonMarkParagraphLineStartMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddParagraphLineStartMarkdownFallback(options, CommonMarkParagraphLineStartMarkdownName);
+    }
+
+    /// <summary>Adds a CommonMark-compatible markdown fallback for attributed blocks by emitting raw HTML.</summary>
+    public static void AddCommonMarkAttributedBlockMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddAttributedBlockHtmlMarkdownFallback(options, CommonMarkAttributedBlockMarkdownName);
+    }
+
+    /// <summary>Adds a GitHub-compatible markdown fallback for definition lists by emitting raw HTML.</summary>
+    public static void AddGitHubDefinitionListMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddDefinitionListHtmlMarkdownFallback(options, GitHubDefinitionListMarkdownName);
+    }
+
+    /// <summary>Adds a GitHub-compatible markdown fallback for custom containers by emitting raw HTML.</summary>
+    public static void AddGitHubCustomContainerMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddCustomContainerHtmlMarkdownFallback(options, GitHubCustomContainerMarkdownName);
+    }
+
+    /// <summary>Adds GitHub-compatible paragraph text escaping for line-start block markers.</summary>
+    public static void AddGitHubParagraphLineStartMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddParagraphLineStartMarkdownFallback(options, GitHubParagraphLineStartMarkdownName);
+    }
+
+    /// <summary>Adds a GitHub-compatible markdown fallback for attributed blocks by emitting raw HTML.</summary>
+    public static void AddGitHubAttributedBlockMarkdownFallback(MarkdownWriteOptions options) {
+        if (options == null) {
+            throw new ArgumentNullException(nameof(options));
+        }
+
+        AddAttributedBlockHtmlMarkdownFallback(options, GitHubAttributedBlockMarkdownName);
     }
 
     /// <summary>Adds a portable HTML fallback for OfficeIMO callout blocks.</summary>
@@ -132,6 +296,50 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         }
     }
 
+    private static void AddDefinitionListHtmlMarkdownFallback(MarkdownWriteOptions options, string name) {
+        AddIfMissing(options.BlockRenderExtensions, name, typeof(DefinitionListBlock), static (block, _) => {
+            if (block is not DefinitionListBlock definitionList) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)definitionList).RenderHtml();
+        });
+    }
+
+    private static void AddCustomContainerHtmlMarkdownFallback(MarkdownWriteOptions options, string name) {
+        AddIfMissing(options.BlockRenderExtensions, name, typeof(CustomContainerBlock), static (block, _) => {
+            if (block is not CustomContainerBlock container) {
+                return null;
+            }
+
+            return ((IMarkdownBlock)container).RenderHtml();
+        });
+    }
+
+    private static void AddParagraphLineStartMarkdownFallback(MarkdownWriteOptions options, string name) {
+        AddIfMissing(options.BlockRenderExtensions, name, typeof(ParagraphBlock), static (block, _) => {
+            if (block is not ParagraphBlock paragraph || !paragraph.Attributes.IsEmpty) {
+                return null;
+            }
+
+            return paragraph.Inlines.RenderMarkdownWithTextEscaper(MarkdownEscaper.EscapeTextAndLineStarts);
+        });
+    }
+
+    private static void AddAttributedBlockHtmlMarkdownFallback(MarkdownWriteOptions options, string name) {
+        AddIfMissing(options.BlockRenderExtensions, name, typeof(MarkdownBlock), static (block, _) => {
+            if (block is IMarkdownListBlock listBlock && ContainsAttributedListItem(listBlock.ListItems)) {
+                return RenderListHtmlWithItemAttributes(listBlock);
+            }
+
+            if (block is MarkdownObject markdownObject && !markdownObject.Attributes.IsEmpty) {
+                return block.RenderHtml();
+            }
+
+            return null;
+        });
+    }
+
     private static string RenderPortableCalloutMarkdown(CalloutBlock callout) {
         var titleMarkdown = callout.TitleInlines.RenderMarkdown();
         var visibleTitle = string.IsNullOrWhiteSpace(titleMarkdown)
@@ -155,6 +363,68 @@ public static class MarkdownBlockRenderBuiltInExtensions {
         }
 
         return PrefixQuoteLines(string.Join("\n\n", parts));
+    }
+
+    private static bool ContainsTaskListItem(IReadOnlyList<ListItem> items) {
+        if (items == null || items.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < items.Count; i++) {
+            var item = items[i];
+            if (item == null) {
+                continue;
+            }
+
+            if (item.IsTask) {
+                return true;
+            }
+
+            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
+                if (item.Children[childIndex] is IMarkdownListBlock childList
+                    && ContainsTaskListItem(childList.ListItems)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static bool ContainsAttributedListItem(IReadOnlyList<ListItem> items) {
+        if (items == null || items.Count == 0) {
+            return false;
+        }
+
+        for (int i = 0; i < items.Count; i++) {
+            var item = items[i];
+            if (item == null) {
+                continue;
+            }
+
+            if (!item.Attributes.IsEmpty) {
+                return true;
+            }
+
+            for (int childIndex = 0; childIndex < item.Children.Count; childIndex++) {
+                if (item.Children[childIndex] is IMarkdownListBlock childList
+                    && ContainsAttributedListItem(childList.ListItems)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    private static string RenderListHtmlWithItemAttributes(IMarkdownListBlock listBlock) {
+        using var _ = HtmlRenderContext.PushRenderListItemAttributes();
+        return listBlock switch {
+            UnorderedListBlock unordered => unordered.RenderHtml(renderItemAttributes: true),
+            OrderedListBlock ordered => ordered.RenderHtml(renderItemAttributes: true),
+            IMarkdownBlock block => block.RenderHtml(),
+            _ => string.Empty
+        };
     }
 
     private static string RenderPortableCalloutHtml(CalloutBlock callout, HtmlOptions? options) {

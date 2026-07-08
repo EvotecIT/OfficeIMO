@@ -56,7 +56,15 @@ namespace OfficeIMO.Excel.Utilities {
                 return CreateUnsupportedInfo(shape, position, order, unsupportedReason);
             }
 
-            if (!TryGetStroke(shape.ShapeProperties, workbookPart, out string? strokeColorArgb, out double strokeWidth, out unsupportedReason)) {
+            if (!TryGetStroke(
+                shape.ShapeProperties,
+                workbookPart,
+                out string? strokeColorArgb,
+                out double strokeWidth,
+                out OfficeStrokeDashStyle strokeDashStyle,
+                out OfficeStrokeLineCap? strokeLineCap,
+                out OfficeStrokeLineJoin? strokeLineJoin,
+                out unsupportedReason)) {
                 return CreateUnsupportedInfo(shape, position, order, unsupportedReason);
             }
 
@@ -73,6 +81,9 @@ namespace OfficeIMO.Excel.Utilities {
             ExcelDrawingTextOrientation textOrientation = ResolveTextOrientation(bodyProperties);
             DrawingTextInsets textInsets = ResolveTextInsets(bodyProperties);
             DrawingTextStyle textStyle = ResolveTextStyle(shape.TextBody, workbookPart);
+            A.EffectList? effects = shape.ShapeProperties?.GetFirstChild<A.EffectList>();
+            TryCreateGlow(effects?.GetFirstChild<A.Glow>(), workbookPart, out OfficeGlow? glow);
+            TryCreateShadow(effects?.GetFirstChild<A.OuterShadow>(), workbookPart, out OfficeShadow? shadow);
 
             return new ExcelWorksheetDrawingObjectInfo(
                 name,
@@ -96,6 +107,9 @@ namespace OfficeIMO.Excel.Utilities {
                 fillColorArgb,
                 strokeColorArgb,
                 strokeWidth,
+                strokeDashStyle,
+                strokeLineCap,
+                strokeLineJoin,
                 text,
                 textAlignment,
                 textVerticalAlignment,
@@ -111,6 +125,8 @@ namespace OfficeIMO.Excel.Utilities {
                 textInsets.Top,
                 textInsets.Right,
                 textInsets.Bottom,
+                glow,
+                shadow,
                 unsupportedReason: null);
         }
 
@@ -139,6 +155,9 @@ namespace OfficeIMO.Excel.Utilities {
                 fillColorArgb: null,
                 strokeColorArgb: null,
                 strokeWidth: 0D,
+                strokeDashStyle: OfficeStrokeDashStyle.Solid,
+                strokeLineCap: null,
+                strokeLineJoin: null,
                 text: string.Empty,
                 textAlignment: OfficeTextAlignment.Center,
                 textVerticalAlignment: OfficeTextVerticalAlignment.Center,
@@ -154,6 +173,8 @@ namespace OfficeIMO.Excel.Utilities {
                 textInsetTop: 0D,
                 textInsetRight: 0D,
                 textInsetBottom: 0D,
+                glow: null,
+                shadow: null,
                 unsupportedReason: unsupportedReason);
         }
 
@@ -455,12 +476,39 @@ namespace OfficeIMO.Excel.Utilities {
             return false;
         }
 
-        private static bool TryGetStroke(OpenXmlCompositeElement? properties, WorkbookPart? workbookPart, out string? strokeColorArgb, out double strokeWidth, out string? unsupportedReason) {
+        private static bool TryGetStroke(
+            OpenXmlCompositeElement? properties,
+            WorkbookPart? workbookPart,
+            out string? strokeColorArgb,
+            out double strokeWidth,
+            out OfficeStrokeDashStyle strokeDashStyle,
+            out OfficeStrokeLineCap? strokeLineCap,
+            out OfficeStrokeLineJoin? strokeLineJoin,
+            out string? unsupportedReason) {
             strokeColorArgb = null;
             strokeWidth = 1D;
+            strokeDashStyle = OfficeStrokeDashStyle.Solid;
+            strokeLineCap = null;
+            strokeLineJoin = null;
             unsupportedReason = null;
             A.Outline? outline = properties?.GetFirstChild<A.Outline>();
-            if (outline == null || outline.GetFirstChild<A.NoFill>() != null) {
+            if (outline == null) {
+                A.SolidFill? styleLineFill = GetStyleLineFill(properties);
+                if (styleLineFill == null) {
+                    strokeWidth = 0D;
+                    return true;
+                }
+
+                strokeColorArgb = ExcelThemeColorResolver.Resolve(styleLineFill, workbookPart);
+                if (strokeColorArgb == null) {
+                    unsupportedReason = "shape outline color could not be resolved by the dependency-free exporter";
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (outline.GetFirstChild<A.NoFill>() != null) {
                 strokeWidth = 0D;
                 return true;
             }
@@ -481,7 +529,154 @@ namespace OfficeIMO.Excel.Utilities {
                 strokeWidth = Math.Max(1D, outline.Width.Value / EmusPerPixel);
             }
 
+            strokeDashStyle = ResolveStrokeDashStyle(outline);
+            strokeLineCap = ResolveStrokeLineCap(outline.CapType?.Value);
+            strokeLineJoin = ResolveStrokeLineJoin(outline);
             return true;
+        }
+
+        private static OfficeStrokeDashStyle ResolveStrokeDashStyle(A.Outline outline) {
+            A.PresetLineDashValues? dash = outline.GetFirstChild<A.PresetDash>()?.Val?.Value;
+            if (!dash.HasValue || dash.Value == A.PresetLineDashValues.Solid) {
+                return OfficeStrokeDashStyle.Solid;
+            }
+
+            if (dash.Value == A.PresetLineDashValues.Dash ||
+                dash.Value == A.PresetLineDashValues.LargeDash ||
+                dash.Value == A.PresetLineDashValues.SystemDash) {
+                return OfficeStrokeDashStyle.Dash;
+            }
+
+            if (dash.Value == A.PresetLineDashValues.Dot ||
+                dash.Value == A.PresetLineDashValues.SystemDot) {
+                return OfficeStrokeDashStyle.Dot;
+            }
+
+            if (dash.Value == A.PresetLineDashValues.DashDot ||
+                dash.Value == A.PresetLineDashValues.LargeDashDot ||
+                dash.Value == A.PresetLineDashValues.SystemDashDot) {
+                return OfficeStrokeDashStyle.DashDot;
+            }
+
+            if (dash.Value == A.PresetLineDashValues.LargeDashDotDot ||
+                dash.Value == A.PresetLineDashValues.SystemDashDotDot) {
+                return OfficeStrokeDashStyle.DashDotDot;
+            }
+
+            return OfficeStrokeDashStyle.Solid;
+        }
+
+        private static OfficeStrokeLineCap? ResolveStrokeLineCap(A.LineCapValues? cap) {
+            if (!cap.HasValue) {
+                return null;
+            }
+
+            if (cap.Value == A.LineCapValues.Round) {
+                return OfficeStrokeLineCap.Round;
+            }
+
+            if (cap.Value == A.LineCapValues.Square) {
+                return OfficeStrokeLineCap.Square;
+            }
+
+            if (cap.Value == A.LineCapValues.Flat) {
+                return OfficeStrokeLineCap.Butt;
+            }
+
+            return null;
+        }
+
+        private static OfficeStrokeLineJoin? ResolveStrokeLineJoin(A.Outline outline) {
+            if (outline.GetFirstChild<A.Round>() != null || HasOutlineChild(outline, "round")) {
+                return OfficeStrokeLineJoin.Round;
+            }
+
+            if (outline.GetFirstChild<A.Bevel>() != null || HasOutlineChild(outline, "bevel")) {
+                return OfficeStrokeLineJoin.Bevel;
+            }
+
+            if (outline.GetFirstChild<A.Miter>() != null || HasOutlineChild(outline, "miter")) {
+                return OfficeStrokeLineJoin.Miter;
+            }
+
+            return null;
+        }
+
+        private static bool HasOutlineChild(A.Outline outline, string localName) =>
+            outline.ChildElements.Any(child => string.Equals(child.LocalName, localName, StringComparison.Ordinal));
+
+        private static bool TryCreateGlow(A.Glow? glow, WorkbookPart? workbookPart, out OfficeGlow? officeGlow) {
+            officeGlow = null;
+            if (glow == null) {
+                return false;
+            }
+
+            double radius = ParseEmuPixels(glow.Radius?.Value);
+            if (radius <= 0D || !TryResolveEffectColor(glow, workbookPart, out OfficeColor color, out double opacity)) {
+                return false;
+            }
+
+            officeGlow = new OfficeGlow(color, opacity, radius);
+            return true;
+        }
+
+        private static bool TryCreateShadow(A.OuterShadow? shadow, WorkbookPart? workbookPart, out OfficeShadow? officeShadow) {
+            officeShadow = null;
+            if (shadow == null) {
+                return false;
+            }
+
+            double distance = ParseEmuPixels(shadow.Distance?.Value);
+            double blurRadius = ParseEmuPixels(shadow.BlurRadius?.Value);
+            if ((distance <= 0D && blurRadius <= 0D) || !TryResolveEffectColor(shadow, workbookPart, out OfficeColor color, out double opacity)) {
+                return false;
+            }
+
+            double angleDegrees = (shadow.Direction?.Value ?? 0) / 60000D;
+            double radians = angleDegrees * Math.PI / 180D;
+            double offsetX = Math.Cos(radians) * distance;
+            double offsetY = Math.Sin(radians) * distance;
+            officeShadow = new OfficeShadow(color, opacity, offsetX, offsetY, blurRadius);
+            return true;
+        }
+
+        private static bool TryResolveEffectColor(OpenXmlCompositeElement owner, WorkbookPart? workbookPart, out OfficeColor color, out double opacity) {
+            color = default;
+            opacity = 0D;
+            OpenXmlElement? colorElement = owner.GetFirstChild<A.RgbColorModelHex>();
+            colorElement ??= owner.GetFirstChild<A.SchemeColor>();
+            colorElement ??= owner.GetFirstChild<A.SystemColor>();
+            if (colorElement == null) {
+                return false;
+            }
+
+            var fill = new A.SolidFill();
+            fill.Append((OpenXmlElement)colorElement.CloneNode(true));
+            string? argb = ExcelThemeColorResolver.Resolve(fill, workbookPart);
+            if (!TryParseArgb(argb, out byte alpha, out byte red, out byte green, out byte blue) || alpha == 0) {
+                return false;
+            }
+
+            color = OfficeColor.FromRgb(red, green, blue);
+            opacity = alpha / 255D;
+            return true;
+        }
+
+        private static bool TryParseArgb(string? argb, out byte alpha, out byte red, out byte green, out byte blue) {
+            alpha = red = green = blue = 0;
+            if (string.IsNullOrWhiteSpace(argb)) {
+                return false;
+            }
+
+            string value = argb!.Trim().TrimStart('#');
+            if (value.Length != 8) {
+                return false;
+            }
+
+            return byte.TryParse(value.Substring(0, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out alpha) &&
+                byte.TryParse(value.Substring(2, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out red) &&
+                byte.TryParse(value.Substring(4, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out green) &&
+                byte.TryParse(value.Substring(6, 2), System.Globalization.NumberStyles.HexNumber, System.Globalization.CultureInfo.InvariantCulture, out blue);
         }
 
         private static string GetDrawingParagraphText(A.Paragraph paragraph) {
@@ -510,6 +705,18 @@ namespace OfficeIMO.Excel.Utilities {
             Xdr.ShapeStyle? style = properties.Parent?.GetFirstChild<Xdr.ShapeStyle>();
             A.SchemeColor? schemeColor = style?
                 .GetFirstChild<A.FillReference>()?
+                .GetFirstChild<A.SchemeColor>();
+            if (schemeColor == null) {
+                return null;
+            }
+
+            return new A.SolidFill((A.SchemeColor)schemeColor.CloneNode(true));
+        }
+
+        private static A.SolidFill? GetStyleLineFill(OpenXmlElement? properties) {
+            Xdr.ShapeStyle? style = properties?.Parent?.GetFirstChild<Xdr.ShapeStyle>();
+            A.SchemeColor? schemeColor = style?
+                .GetFirstChild<A.LineReference>()?
                 .GetFirstChild<A.SchemeColor>();
             if (schemeColor == null) {
                 return null;
@@ -692,6 +899,9 @@ namespace OfficeIMO.Excel.Utilities {
             string? fillColorArgb,
             string? strokeColorArgb,
             double strokeWidth,
+            OfficeStrokeDashStyle strokeDashStyle,
+            OfficeStrokeLineCap? strokeLineCap,
+            OfficeStrokeLineJoin? strokeLineJoin,
             string text,
             OfficeTextAlignment textAlignment,
             OfficeTextVerticalAlignment textVerticalAlignment,
@@ -707,6 +917,8 @@ namespace OfficeIMO.Excel.Utilities {
             double textInsetTop,
             double textInsetRight,
             double textInsetBottom,
+            OfficeGlow? glow,
+            OfficeShadow? shadow,
             string? unsupportedReason) {
             Name = name ?? string.Empty;
             Kind = kind ?? string.Empty;
@@ -729,6 +941,9 @@ namespace OfficeIMO.Excel.Utilities {
             FillColorArgb = fillColorArgb;
             StrokeColorArgb = strokeColorArgb;
             StrokeWidth = strokeWidth;
+            StrokeDashStyle = strokeDashStyle;
+            StrokeLineCap = strokeLineCap;
+            StrokeLineJoin = strokeLineJoin;
             Text = text ?? string.Empty;
             TextAlignment = textAlignment;
             TextVerticalAlignment = textVerticalAlignment;
@@ -744,6 +959,8 @@ namespace OfficeIMO.Excel.Utilities {
             TextInsetTop = textInsetTop;
             TextInsetRight = textInsetRight;
             TextInsetBottom = textInsetBottom;
+            Glow = glow;
+            Shadow = shadow;
             UnsupportedReason = unsupportedReason;
         }
 
@@ -789,6 +1006,12 @@ namespace OfficeIMO.Excel.Utilities {
 
         internal double StrokeWidth { get; }
 
+        internal OfficeStrokeDashStyle StrokeDashStyle { get; }
+
+        internal OfficeStrokeLineCap? StrokeLineCap { get; }
+
+        internal OfficeStrokeLineJoin? StrokeLineJoin { get; }
+
         internal string Text { get; }
 
         internal OfficeTextAlignment TextAlignment { get; }
@@ -818,6 +1041,10 @@ namespace OfficeIMO.Excel.Utilities {
         internal double TextInsetRight { get; }
 
         internal double TextInsetBottom { get; }
+
+        internal OfficeGlow? Glow { get; }
+
+        internal OfficeShadow? Shadow { get; }
 
         internal string? UnsupportedReason { get; }
 

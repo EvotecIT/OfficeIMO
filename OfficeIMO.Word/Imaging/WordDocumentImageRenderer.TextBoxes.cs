@@ -6,6 +6,7 @@ using DocumentFormat.OpenXml.Drawing.Wordprocessing;
 using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using V = DocumentFormat.OpenXml.Vml;
+using W = DocumentFormat.OpenXml.Wordprocessing;
 
 namespace OfficeIMO.Word {
     internal static partial class WordDocumentImageRenderer {
@@ -14,7 +15,7 @@ namespace OfficeIMO.Word {
 
         private static bool AddTextBox(WordTextBox textBox, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics, A.ColorScheme? colorScheme) {
             List<WordParagraph> paragraphs = textBox.Paragraphs;
-            string text = GetTextBoxText(textBox, paragraphs);
+            string text = GetTextBoxText(textBox, paragraphs, context);
             if (string.IsNullOrWhiteSpace(text)) {
                 text = string.Empty;
             }
@@ -38,7 +39,10 @@ namespace OfficeIMO.Word {
                 return false;
             }
 
-            AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, context.Left, context.Y, width, height, context, colorScheme);
+            if (context.IsTargetPage) {
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, context.Left, context.Y, width, height, context, colorScheme);
+            }
+
             context.Y += height + ParagraphGapPoints;
             return true;
         }
@@ -60,27 +64,128 @@ namespace OfficeIMO.Word {
             double left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
             double top = ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height);
             if (!IsFinite(left) || !IsFinite(top)) {
-                AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word text box because its anchor position could not be resolved.", "Word text box");
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word text box because its anchor position could not be resolved.", "Word text box");
+                }
+
+                return false;
+            }
+
+            if (anchor.GetFirstChild<WrapTopBottom>() != null) {
+                return AddTopAndBottomAnchoredTextBox(textBox, anchor, text, firstParagraph, font, lineHeight, padding, width, height, context, diagnostics, colorScheme);
+            }
+
+            double right = left + width;
+            double bottom = top + height;
+            if (left < 0D || top < 0D || right > context.Drawing.Width || bottom > context.Drawing.Height) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word text box because its anchor projects outside the current page preview.", "Word text box");
+                }
+
+                return false;
+            }
+
+            WordTextBoxFrameTransform transform = GetTextBoxFrameTransform(textBox);
+            if (context.IsTargetPage) {
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme);
+            }
+
+            bool hasSquareWrap = anchor.GetFirstChild<WrapSquare>() != null;
+            bool hasTightWrap = anchor.GetFirstChild<WrapTight>() != null;
+            bool hasThroughWrap = anchor.GetFirstChild<WrapThrough>() != null;
+            bool usedAuthoredPolygon = false;
+            bool usedFramePolygon = false;
+            if (hasSquareWrap || hasTightWrap || hasThroughWrap) {
+                double exclusionLeft = Math.Max(context.Left, left - GetAnchorDistancePoints(anchor.DistanceFromLeft));
+                double exclusionTop = Math.Max(0D, top - GetAnchorDistancePoints(anchor.DistanceFromTop));
+                double exclusionRight = Math.Min(context.Left + context.ContentWidth, right + GetAnchorDistancePoints(anchor.DistanceFromRight));
+                double exclusionBottom = Math.Min(context.ContentBottom, bottom + GetAnchorDistancePoints(anchor.DistanceFromBottom));
+                WordTextWrapSide wrapSide = GetTextBoxWrapSide(anchor);
+                IReadOnlyList<OfficePoint> polygon = Array.Empty<OfficePoint>();
+                usedAuthoredPolygon = (hasTightWrap || hasThroughWrap) &&
+                    TryCreateAuthoredWrapPolygonTextExclusion(anchor, exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, out polygon);
+                if (usedAuthoredPolygon) {
+                    context.AddTextExclusion(polygon, wrapSide);
+                } else if ((hasTightWrap || hasThroughWrap) &&
+                    !transform.HasTransform &&
+                    TryCreateTextBoxFrameTextExclusion(exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, out polygon)) {
+                    context.AddTextExclusion(polygon, wrapSide);
+                    usedFramePolygon = true;
+                } else {
+                    context.AddTextExclusion(exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, wrapSide);
+                }
+            }
+
+            if (context.IsTargetPage && (hasTightWrap || hasThroughWrap) && !usedAuthoredPolygon && !usedFramePolygon) {
+                AddDiagnostic(
+                    diagnostics,
+                    "limited-word-floating-textbox-wrap",
+                    "Rendered a Word text box with a rectangular text exclusion because dependency-free export does not yet implement polygon wrapping.",
+                    "Word text box");
+            }
+
+            if (hasSquareWrap || hasTightWrap || hasThroughWrap) {
+                AdvanceFlowToAnchoredWrapTop(context, top);
+            }
+
+            return true;
+        }
+
+        private static bool AddTopAndBottomAnchoredTextBox(
+            WordTextBox textBox,
+            Anchor anchor,
+            string text,
+            WordParagraph? firstParagraph,
+            OfficeFontInfo font,
+            double lineHeight,
+            OfficeTextPadding padding,
+            double width,
+            double height,
+            WordImageFlowContext context,
+            List<OfficeImageExportDiagnostic> diagnostics,
+            A.ColorScheme? colorScheme) {
+            double left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
+            double top = ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height);
+            if (!IsFinite(left) || !IsFinite(top)) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word top-and-bottom text box because its anchor position could not be resolved.", "Word text box");
+                }
+
+                return false;
+            }
+
+            top = Math.Max(top, context.Y);
+            double distanceFromBottom = GetAnchorDistancePoints(anchor.DistanceFromBottom);
+            double requiredHeight = top + height + distanceFromBottom - context.Y;
+            if (!EnsureVerticalSpace(context, requiredHeight, diagnostics)) {
+                return false;
+            }
+
+            left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
+            top = Math.Max(ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height), context.Y);
+            if (!IsFinite(left) || !IsFinite(top)) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word top-and-bottom text box because its anchor position could not be resolved.", "Word text box");
+                }
+
                 return false;
             }
 
             double right = left + width;
             double bottom = top + height;
             if (left < 0D || top < 0D || right > context.Drawing.Width || bottom > context.Drawing.Height) {
-                AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word text box because its anchor projects outside the current page preview.", "Word text box");
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-textbox", "Skipped a Word top-and-bottom text box because its anchor projects outside the current page preview.", "Word text box");
+                }
+
                 return false;
             }
 
-            AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme);
-            if (anchor.GetFirstChild<WrapSquare>() != null) {
-                context.AddTextExclusion(
-                    Math.Max(context.Left, left - GetAnchorDistancePoints(anchor.DistanceFromLeft)),
-                    Math.Max(0D, top - GetAnchorDistancePoints(anchor.DistanceFromTop)),
-                    Math.Min(context.Left + context.ContentWidth, right + GetAnchorDistancePoints(anchor.DistanceFromRight)),
-                    Math.Min(context.ContentBottom, bottom + GetAnchorDistancePoints(anchor.DistanceFromBottom)),
-                    GetTextBoxWrapSide(anchor));
+            if (context.IsTargetPage) {
+                AddTextBoxDrawing(textBox, text, firstParagraph, font, lineHeight, padding, left, top, width, height, context, colorScheme);
             }
 
+            context.Y = bottom + distanceFromBottom + ParagraphGapPoints;
             return true;
         }
 
@@ -104,14 +209,40 @@ namespace OfficeIMO.Word {
                 frame.Transform = CreateLocalTextBoxFrameTransform(width, height, transform);
             }
 
-            context.Drawing.AddShape(frame, left, top);
+            bool drawBehindContent = textBox.WrapText == WrapTextImage.BehindText;
+            if (drawBehindContent) {
+                context.Drawing.AddShapeBehindContent(frame, left, top);
+            } else {
+                context.Drawing.AddShape(frame, left, top);
+            }
+
             double rotationCenterX = left + (width / 2D);
             double rotationCenterY = top + (height / 2D);
 
-            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme);
-            if (ShouldRenderTextBoxAsRichText(richRuns)) {
+            List<OfficeRichTextRun> richRuns = CreateTextBoxRichTextRuns(textBox, colorScheme, context);
+            if (ShouldRenderTextBoxAsRichText(textBox, richRuns)) {
                 double maxFontSize = richRuns.Max(run => run.FontSize);
                 double richLineHeight = Math.Max(maxFontSize * 1.25D, 12D);
+                if (drawBehindContent) {
+                    context.Drawing.AddRichTextBehindContent(
+                        richRuns,
+                        left,
+                        top,
+                        width,
+                        height,
+                        MapTextAlignment(firstParagraph?.ParagraphAlignment),
+                        richLineHeight,
+                        GetTextBoxVerticalAlignment(textBox),
+                        rotationDegrees: transform.RotationDegrees,
+                        rotationCenterX: rotationCenterX,
+                        rotationCenterY: rotationCenterY,
+                        wrapText: true,
+                        flipHorizontal: transform.FlipHorizontal,
+                        flipVertical: transform.FlipVertical,
+                        padding: padding);
+                    return;
+                }
+
                 context.Drawing.AddRichText(
                     richRuns,
                     left,
@@ -121,6 +252,28 @@ namespace OfficeIMO.Word {
                     MapTextAlignment(firstParagraph?.ParagraphAlignment),
                     richLineHeight,
                     GetTextBoxVerticalAlignment(textBox),
+                    rotationDegrees: transform.RotationDegrees,
+                    rotationCenterX: rotationCenterX,
+                    rotationCenterY: rotationCenterY,
+                    wrapText: true,
+                    flipHorizontal: transform.FlipHorizontal,
+                    flipVertical: transform.FlipVertical,
+                    padding: padding);
+                return;
+            }
+
+            if (drawBehindContent) {
+                context.Drawing.AddTextBehindContent(
+                    text,
+                    left,
+                    top,
+                    width,
+                    height,
+                    font,
+                    ResolveParagraphTextColor(firstParagraph, colorScheme),
+                    MapTextAlignment(firstParagraph?.ParagraphAlignment),
+                    lineHeight,
+                    verticalAlignment: GetTextBoxVerticalAlignment(textBox),
                     rotationDegrees: transform.RotationDegrees,
                     rotationCenterX: rotationCenterX,
                     rotationCenterY: rotationCenterY,
@@ -250,12 +403,23 @@ namespace OfficeIMO.Word {
                 string.Equals(value, expectedValue, StringComparison.OrdinalIgnoreCase);
         }
 
-        private static string GetTextBoxText(WordTextBox textBox, IEnumerable<WordParagraph> fallbackRuns) {
+        private static string GetTextBoxText(WordTextBox textBox, IEnumerable<WordParagraph> fallbackRuns, WordImageFlowContext? context = null) {
             DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
             if (content != null) {
                 List<string> paragraphText = content.ChildElements
                     .OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()
-                    .Select(paragraph => paragraph.InnerText)
+                    .Select(paragraph => {
+                        if (context?.ResolveDynamicPageFields != true) {
+                            return NormalizeTextBoxParagraphText(paragraph.InnerText);
+                        }
+
+                        string resolvedText = string.Concat(
+                            WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
+                                .Select(run => ResolveImageExportText(run, context)));
+                        return string.IsNullOrEmpty(resolvedText)
+                            ? NormalizeTextBoxParagraphText(paragraph.InnerText)
+                            : NormalizeTextBoxParagraphText(resolvedText);
+                    })
                     .Where(text => !string.IsNullOrEmpty(text))
                     .ToList();
                 if (paragraphText.Count > 0) {
@@ -264,16 +428,48 @@ namespace OfficeIMO.Word {
             }
 
             List<string> parts = fallbackRuns
-                .Select(paragraph => paragraph.Text)
+                .Select(paragraph => NormalizeTextBoxParagraphText(ResolveImageExportText(paragraph, context)))
                 .Where(text => !string.IsNullOrEmpty(text))
                 .ToList();
             return string.Join(Environment.NewLine, parts);
         }
 
-        private static bool ShouldRenderTextBoxAsRichText(IReadOnlyList<OfficeRichTextRun> richRuns) =>
-            richRuns.Count > 1 || richRuns.Any(run => run.BackgroundColor.HasValue);
+        private static string NormalizeTextBoxParagraphText(string text) =>
+            text.TrimEnd('\r', '\n');
 
-        private static List<OfficeRichTextRun> CreateTextBoxRichTextRuns(WordTextBox textBox, A.ColorScheme? colorScheme) {
+        private static void AdvanceFlowToAnchoredWrapTop(WordImageFlowContext context, double top) {
+            if (IsFinite(top) && IsFinite(context.ContentBottom) && context.ContentBottom < double.MaxValue / 2D && top > context.Y && top < context.ContentBottom) {
+                context.Y = top;
+            }
+        }
+
+        private static bool ShouldRenderTextBoxAsRichText(WordTextBox textBox, IReadOnlyList<OfficeRichTextRun> richRuns) {
+            if (richRuns.Any(run => run.BackgroundColor.HasValue)) {
+                return true;
+            }
+
+            if (ContainsTextBoxField(textBox)) {
+                return richRuns.Count > 0;
+            }
+
+            OfficeRichTextRun? firstRun = richRuns.FirstOrDefault();
+            return firstRun != null && richRuns.Any(run => !HasSameTextBoxRunStyle(firstRun, run));
+        }
+
+        private static bool ContainsTextBoxField(WordTextBox textBox) =>
+            textBox.Content?.Descendants<W.FieldCode>().Any() == true ||
+            textBox.Content?.Descendants<W.SimpleField>().Any() == true;
+
+        private static bool HasSameTextBoxRunStyle(OfficeRichTextRun left, OfficeRichTextRun right) =>
+            left.FontSize.Equals(right.FontSize) &&
+            left.Color == right.Color &&
+            left.Bold == right.Bold &&
+            left.Italic == right.Italic &&
+            left.Underline == right.Underline &&
+            left.Strikethrough == right.Strikethrough &&
+            string.Equals(left.FontFamily, right.FontFamily, StringComparison.Ordinal);
+
+        private static List<OfficeRichTextRun> CreateTextBoxRichTextRuns(WordTextBox textBox, A.ColorScheme? colorScheme, WordImageFlowContext? context = null) {
             var richRuns = new List<OfficeRichTextRun>();
             DocumentFormat.OpenXml.Wordprocessing.TextBoxContent? content = textBox.Content;
             if (content == null) {
@@ -281,7 +477,8 @@ namespace OfficeIMO.Word {
             }
 
             foreach (DocumentFormat.OpenXml.Wordprocessing.Paragraph paragraph in content.ChildElements.OfType<DocumentFormat.OpenXml.Wordprocessing.Paragraph>()) {
-                List<WordParagraph> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph)
+                List<(WordParagraph Run, string Text)> paragraphRuns = WordSection.ConvertParagraphToWordParagraphs(textBox.Document, paragraph, splitPaginationMarkers: true)
+                    .Select(run => (Run: run, Text: ResolveImageExportText(run, context)))
                     .Where(run => !string.IsNullOrEmpty(run.Text))
                     .ToList();
                 if (paragraphRuns.Count == 0) {
@@ -289,11 +486,12 @@ namespace OfficeIMO.Word {
                 }
 
                 if (richRuns.Count > 0) {
-                    richRuns.Add(CreateRichTextRun(paragraphRuns[0], colorScheme, Environment.NewLine));
+                    richRuns.Add(CreateRichTextRun(paragraphRuns[0].Run, colorScheme, Environment.NewLine));
                 }
 
                 for (int runIndex = 0; runIndex < paragraphRuns.Count; runIndex++) {
-                    richRuns.Add(CreateRichTextRun(paragraphRuns[runIndex], colorScheme));
+                    (WordParagraph run, string text) = paragraphRuns[runIndex];
+                    richRuns.Add(CreateRichTextRun(run, colorScheme, text));
                 }
             }
 
@@ -507,7 +705,10 @@ namespace OfficeIMO.Word {
         }
 
         private static WordTextWrapSide GetTextBoxWrapSide(Anchor anchor) {
-            WrapTextValues? wrapValue = anchor.Elements<WrapSquare>().FirstOrDefault()?.WrapText?.Value;
+            WrapTextValues? wrapValue =
+                anchor.Elements<WrapSquare>().FirstOrDefault()?.WrapText?.Value ??
+                anchor.Elements<WrapTight>().FirstOrDefault()?.WrapText?.Value ??
+                anchor.Elements<WrapThrough>().FirstOrDefault()?.WrapText?.Value;
             if (wrapValue == WrapTextValues.Left) {
                 return WordTextWrapSide.Left;
             }
@@ -517,6 +718,26 @@ namespace OfficeIMO.Word {
             }
 
             return WordTextWrapSide.Largest;
+        }
+
+        private static bool TryCreateTextBoxFrameTextExclusion(
+            double left,
+            double top,
+            double right,
+            double bottom,
+            out IReadOnlyList<OfficePoint> polygon) {
+            polygon = Array.Empty<OfficePoint>();
+            if (right <= left || bottom <= top) {
+                return false;
+            }
+
+            polygon = new[] {
+                new OfficePoint(left, top),
+                new OfficePoint(right, top),
+                new OfficePoint(right, bottom),
+                new OfficePoint(left, bottom)
+            };
+            return true;
         }
 
         private readonly struct WordTextBoxFrameTransform {

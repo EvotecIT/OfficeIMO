@@ -31,7 +31,54 @@ public sealed partial class HtmlToMarkdownConverter {
     }
 
     private static string ResolvePictureSource(IElement pictureElement, ConversionContext context) {
-        return HtmlImageSourceResolver.ResolvePictureSource(pictureElement, context.Options.BaseUri, context.Options.UrlPolicy);
+        if (TryResolveUsableImageCandidate(ResolvePictureSourceCandidates(pictureElement, context), context, out string source)) {
+            return source;
+        }
+
+        return string.Empty;
+    }
+
+    private static IReadOnlyList<string> ResolvePictureSourceCandidates(IElement pictureElement, ConversionContext context) {
+        var candidates = new List<string>();
+        if (pictureElement == null || context == null) {
+            return candidates;
+        }
+
+        foreach (var child in pictureElement.Children) {
+            if (!HasEffectiveTagName(child, context, "SOURCE")) {
+                continue;
+            }
+
+            AddResolvedSrcSetCandidateAttributes(candidates, child, context, "srcset", "data-srcset", "data-original-srcset", "data-lazy-srcset");
+            AddResolvedCandidate(candidates, ResolveUrlAttributes(child, context, "src", "data-src", "data-original-src", "data-lazy-src"));
+        }
+
+        return candidates;
+    }
+
+    private static void AddResolvedSrcSetCandidateAttributes(IList<string> candidates, IElement element, ConversionContext context, params string[] attributeNames) {
+        if (candidates == null || element == null || context == null || attributeNames == null) {
+            return;
+        }
+
+        for (int i = 0; i < attributeNames.Length; i++) {
+            IReadOnlyList<HtmlSrcSetCandidate> srcSetCandidates = HtmlImageSourceResolver.ResolveSrcSetCandidates(
+                element.GetAttribute(attributeNames[i]),
+                context.Options.BaseUri,
+                context.Options.UrlPolicy);
+
+            for (int candidateIndex = 0; candidateIndex < srcSetCandidates.Count; candidateIndex++) {
+                AddResolvedCandidate(candidates, srcSetCandidates[candidateIndex].Url);
+            }
+        }
+    }
+
+    private static void AddResolvedCandidate(IList<string> candidates, string? value) {
+        if (candidates == null || string.IsNullOrWhiteSpace(value)) {
+            return;
+        }
+
+        candidates.Add(value!);
     }
 
     private static string ResolveUrlFromSrcSet(string? rawSrcSet, ConversionContext context) {
@@ -99,7 +146,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (fallbackMediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
             return CanCreatePictureImageBlockWithoutSideEffects(fallbackMediaElement, context);
         }
 
@@ -112,12 +159,12 @@ public sealed partial class HtmlToMarkdownConverter {
         }
 
         if (HasUsableImageCandidateWithoutSideEffects(
-            HtmlImageSourceResolver.ResolvePictureSourceCandidates(element, context.Options.BaseUri, context.Options.UrlPolicy),
+            ResolvePictureSourceCandidates(element, context),
             context)) {
             return true;
         }
 
-        var imageElement = element.QuerySelector("img");
+        var imageElement = FindFirstDescendantByEffectiveTagName(element, context, "IMG");
         return imageElement != null && CanCreateImageBlockWithoutSideEffects(imageElement, context);
     }
 
@@ -197,13 +244,13 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (fallbackMediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (HasEffectiveTagName(fallbackMediaElement, context, "PICTURE")) {
             var pictureImage = ConvertPictureElement(fallbackMediaElement, context).OfType<ImageBlock>().FirstOrDefault();
             if (pictureImage == null) {
                 return false;
             }
 
-            image = MergeImageMetadata(element, pictureImage, fallbackMediaElement.QuerySelector("img"));
+            image = MergeImageMetadata(element, pictureImage, FindFirstDescendantByEffectiveTagName(fallbackMediaElement, context, "IMG"));
             return true;
         }
 
@@ -283,7 +330,7 @@ public sealed partial class HtmlToMarkdownConverter {
     private static List<ImagePictureSource> CollectPictureSources(IElement pictureElement, ConversionContext context) {
         var sources = new List<ImagePictureSource>();
         foreach (var child in pictureElement.Children) {
-            if (!child.TagName.Equals("SOURCE", StringComparison.OrdinalIgnoreCase)) {
+            if (!HasEffectiveTagName(child, context, "SOURCE")) {
                 continue;
             }
 
@@ -513,7 +560,7 @@ public sealed partial class HtmlToMarkdownConverter {
 
     private static bool TryCreateLinkedImageBlockFromAnchor(IElement anchorElement, ConversionContext context, out ImageBlock image) {
         image = null!;
-        if (anchorElement == null || !anchorElement.TagName.Equals("A", StringComparison.OrdinalIgnoreCase)) {
+        if (anchorElement == null || !HasEffectiveTagName(anchorElement, context, "A")) {
             return false;
         }
 
@@ -522,11 +569,11 @@ public sealed partial class HtmlToMarkdownConverter {
             return false;
         }
 
-        if (!TryResolveAnchorMediaElement(anchorElement, out var mediaElement)) {
+        if (!TryResolveAnchorMediaElement(anchorElement, context, out var mediaElement)) {
             return false;
         }
 
-        if (mediaElement.TagName.Equals("IMG", StringComparison.OrdinalIgnoreCase)
+        if (HasEffectiveTagName(mediaElement, context, "IMG")
             && TryCreateImageBlock(mediaElement, context, out image)) {
             image.LinkUrl = href;
             image.LinkTitle = anchorElement.GetAttribute("title");
@@ -535,7 +582,7 @@ public sealed partial class HtmlToMarkdownConverter {
             return true;
         }
 
-        if (!mediaElement.TagName.Equals("PICTURE", StringComparison.OrdinalIgnoreCase)) {
+        if (!HasEffectiveTagName(mediaElement, context, "PICTURE")) {
             return false;
         }
 

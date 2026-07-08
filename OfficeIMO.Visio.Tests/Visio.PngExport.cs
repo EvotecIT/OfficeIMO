@@ -1001,6 +1001,540 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PngRendererProjectsPackageBackedBmpPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package BMP Preview").Size(3, 2);
+            AddPackagePreviewShape(page, TrueColorBlueBmp, "image/bmp", ".bmp", "../media/image1.bmp");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, "Expected embedded package preview BMP pixels in the native PNG render.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" fill-rule=\"evenodd\" d=\"M0 0 H20 V20 H0 Z M7 7 H13 V13 H7 Z\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/image1.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, "Expected embedded package preview SVG pixels in the native PNG render.");
+            Assert.True(IsWhitePixel(image, 150, 100), "Expected compound SVG preview paths to preserve even-odd holes.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgCssStyledPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG CSS Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>path{fill:#dc2626}#badge{fill:#0070c0}.cutout,path.cutout{fill-rule:evenodd}</style><path id=\"badge\" class=\"cutout\" d=\"M0 0 H20 V20 H0 Z M7 7 H13 V13 H7 Z\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/css.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, "Expected CSS id selectors in embedded SVG previews to override element selectors through the native PNG path.");
+            Assert.True(IsWhitePixel(image, 150, 100), "Expected CSS class and element.class fill-rule declarations to preserve even-odd holes.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgCurrentColorPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG CurrentColor Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.accent{color:#0070c0}.mark{fill:currentColor}.stop{stop-color:currentColor}</style><defs><linearGradient id=\"fade\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop class=\"stop\" offset=\"0%\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g class=\"accent\"><rect class=\"mark\" x=\"0\" y=\"0\" width=\"10\" height=\"20\"/><rect x=\"10\" y=\"0\" width=\"10\" height=\"20\" fill=\"url(#fade)\"/></g></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/current-color.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            int redPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 80 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 160 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+
+                if (image.Pixels[i] > 170 && image.Pixels[i + 1] < 90 && image.Pixels[i + 2] < 90 && image.Pixels[i + 3] > 200) {
+                    redPixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, $"Expected SVG currentColor fill and gradient stops in package preview output, but found {bluePixels} blue pixels.");
+            Assert.True(redPixels > 50, $"Expected SVG currentColor gradient to keep its literal red stop in package preview output, but found {redPixels} red pixels.");
+            Assert.True(IsBluePixel(image, 130, 100), "Expected currentColor fill to render on the left side of the package preview.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgTextPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Text Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.label{fill:#0070c0;font-size:9px;font-weight:700;text-anchor:middle}</style><text class=\"label\" x=\"10\" y=\"13\"><tspan>IMO</tspan></text></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/text-label.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 90 && image.Pixels[i + 1] < 170 && image.Pixels[i + 2] > 140 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 40, $"Expected SVG text labels in package preview output, but found {bluePixels} blue text pixels.");
+            Assert.False(IsWhitePixel(image, 150, 100), "Expected centered SVG text label pixels in the package preview.");
+        }
+
+        [Fact]
+        public void PngRendererPreservesPackageBackedSvgTextXmlSpace() {
+            static RgbaPng RenderSvgText(string svg) {
+                using MemoryStream packageStream = new();
+                VisioDocument document = VisioDocument.Create(packageStream);
+                VisioPage page = document.AddPage("Package SVG Text Space Preview").Size(3, 2);
+                AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/text-space-label.svg");
+
+                byte[] png = page.ToPng(new VisioPngSaveOptions {
+                    PixelsPerInch = 100,
+                    BackgroundColor = OfficeColor.White,
+                    Supersampling = 1
+                });
+
+                return DecodeRgbaPng(png);
+            }
+
+            static (int Span, int Count) MeasureBlueSpan(RgbaPng image) {
+                int minX = image.Width;
+                int maxX = -1;
+                int count = 0;
+                for (int y = 0; y < image.Height; y++) {
+                    for (int x = 0; x < image.Width; x++) {
+                        if (!IsBluePixel(image, x, y)) {
+                            continue;
+                        }
+
+                        minX = Math.Min(minX, x);
+                        maxX = Math.Max(maxX, x);
+                        count++;
+                    }
+                }
+
+                return (maxX >= minX ? maxX - minX : 0, count);
+            }
+
+            const string preservedSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 60 20\" xml:space=\"preserve\"><style>.label{fill:#0070c0;font-size:12px;font-weight:700}</style><text class=\"label\" x=\"2\" y=\"14\"><tspan>A     B</tspan></text></svg>";
+            const string collapsedSvg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 60 20\"><style>.label{fill:#0070c0;font-size:12px;font-weight:700}</style><text class=\"label\" x=\"2\" y=\"14\"><tspan>A     B</tspan></text></svg>";
+
+            (int preservedSpan, int preservedCount) = MeasureBlueSpan(RenderSvgText(preservedSvg));
+            (int collapsedSpan, int collapsedCount) = MeasureBlueSpan(RenderSvgText(collapsedSvg));
+
+            Assert.True(preservedCount > 20, $"Expected preserved-space SVG text to render visible blue text pixels, but found {preservedCount}.");
+            Assert.True(collapsedCount > 20, $"Expected collapsed-space SVG text to render visible blue text pixels, but found {collapsedCount}.");
+            Assert.True(preservedSpan > collapsedSpan + 8, $"Expected xml:space='preserve' to keep a wider text span, but preserved={preservedSpan}px and collapsed={collapsedSpan}px.");
+        }
+
+        [Fact]
+        public void PngRendererSkipsPackageBackedSvgHiddenPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Hidden Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><style>.hidden{display:none}.ghost{visibility:hidden}</style><rect class=\"hidden\" x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#dc2626\"/><g class=\"ghost\"><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#dc2626\"/></g><rect x=\"2\" y=\"2\" width=\"16\" height=\"16\" fill=\"#0070c0\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/hidden.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int redPixels = 0;
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] > 170 && image.Pixels[i + 1] < 90 && image.Pixels[i + 2] < 90 && image.Pixels[i + 3] > 200) {
+                    redPixels++;
+                }
+
+                if (image.Pixels[i] < 80 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 160 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.Equal(0, redPixels);
+            Assert.True(bluePixels > 100, $"Expected visible SVG preview artwork to render while hidden layers are skipped, but found {bluePixels} blue pixels.");
+            Assert.True(IsBluePixel(image, 150, 100), "Expected visible SVG preview artwork in the package preview center.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgUseSymbolPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Use Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" xmlns:xlink=\"http://www.w3.org/1999/xlink\" viewBox=\"0 0 20 20\"><defs><symbol id=\"badge\" viewBox=\"0 0 10 10\"><path fill=\"#0070c0\" fill-rule=\"evenodd\" d=\"M0 0 H10 V10 H0 Z M4 4 H6 V6 H4 Z\"/></symbol></defs><use xlink:href=\"#badge\" width=\"20\" height=\"20\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/use-symbol.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, $"Expected package-backed SVG use/symbol artwork to render through the native PNG path, but found {bluePixels} blue pixels.");
+            Assert.True(IsWhitePixel(image, 150, 100), "Expected use/symbol viewBox scaling to preserve the referenced even-odd center hole.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgEmbeddedRasterPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Embedded Raster Preview").Size(3, 2);
+            string svg = $"<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><image href=\"data:image/png;base64,{TrueColorBluePng}\" x=\"4\" y=\"4\" width=\"12\" height=\"12\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/embedded-raster.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, $"Expected embedded raster image pixels inside SVG package previews to render through the native PNG path, but found {bluePixels} blue pixels.");
+            Assert.True(IsBluePixel(image, 150, 100), "Expected embedded SVG raster artwork to land in the package preview center.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgRelatedRasterPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Related Raster Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><image href=\"related.png\" x=\"4\" y=\"4\" width=\"12\" height=\"12\"/></svg>";
+            VisioShape shape = AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/preview.svg");
+            shape.Master!.RawMasterRelationships.Add(new VisioAssets.MasterRelationshipContent {
+                Id = "rIdRelatedImage",
+                Type = "http://schemas.openxmlformats.org/officeDocument/2006/relationships/image",
+                Target = "../media/related.png",
+                ContentType = "image/png",
+                Extension = ".png",
+                Data = Convert.FromBase64String(TrueColorBluePng)
+            });
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 100, $"Expected related package image pixels inside SVG previews to render through the native PNG path, but found {bluePixels} blue pixels.");
+            Assert.True(IsBluePixel(image, 150, 100), "Expected related SVG raster artwork to land in the package preview center.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgGradientPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Gradient Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><linearGradient id=\"accent\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop offset=\"0%\" stop-color=\"#0070c0\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g fill=\"url(#accent)\"><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\"/></g></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/gradient.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int bluePixels = 0;
+            int redPixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] < 80 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 160 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+
+                if (image.Pixels[i] > 170 && image.Pixels[i + 1] < 90 && image.Pixels[i + 2] < 90 && image.Pixels[i + 3] > 200) {
+                    redPixels++;
+                }
+            }
+
+            Assert.True(bluePixels > 50, $"Expected SVG linear gradient blue stop pixels in package preview output, but found {bluePixels}.");
+            Assert.True(redPixels > 50, $"Expected SVG linear gradient red stop pixels in package preview output, but found {redPixels}.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgClippedPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Clipped Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><clipPath id=\"rightHalf\"><rect x=\"10\" y=\"0\" width=\"10\" height=\"20\"/></clipPath></defs><rect x=\"0\" y=\"0\" width=\"20\" height=\"20\" fill=\"#0070c0\" clip-path=\"url(#rightHalf)\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/clip.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsWhitePixel(image, 135, 100), "Expected SVG clipPath to leave the left side of package preview artwork unpainted.");
+            Assert.True(IsBluePixel(image, 165, 100), "Expected SVG clipPath to keep the right side of package preview artwork painted.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgDashedStrokePreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Dashed Stroke Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><g stroke=\"#0070c0\" stroke-width=\"2\" stroke-dasharray=\"2 2\" fill=\"none\"><path d=\"M2 10 H18\"/></g></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/dashed-stroke.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            bool sawDash = false;
+            bool sawGap = false;
+            for (int x = 130; x <= 170; x++) {
+                sawDash |= IsBluePixel(image, x, 100);
+                sawGap |= IsWhitePixel(image, x, 100);
+            }
+
+            Assert.True(sawDash, "Expected SVG stroke-dasharray to paint dash segments in package preview output.");
+            Assert.True(sawGap, "Expected SVG stroke-dasharray to leave visible gaps in package preview output.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgDashedGradientStrokePreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Dashed Gradient Stroke Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><defs><linearGradient id=\"accent\" x1=\"0%\" y1=\"0%\" x2=\"100%\" y2=\"0%\"><stop offset=\"0%\" stop-color=\"#0070c0\"/><stop offset=\"100%\" stop-color=\"#dc2626\"/></linearGradient></defs><g stroke=\"url(#accent)\" stroke-width=\"2\" stroke-dasharray=\"2 2\" fill=\"none\"><path d=\"M2 10 H18\"/></g></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/dashed-gradient-stroke.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            bool sawDash = false;
+            bool sawGap = false;
+            for (int x = 130; x <= 170; x++) {
+                sawDash |= IsRedPixel(image, x, 100);
+                sawGap |= IsWhitePixel(image, x, 100);
+            }
+
+            Assert.True(sawDash, "Expected SVG dashed gradient stroke segments to paint in package preview output.");
+            Assert.True(sawGap, "Expected SVG stroke-dasharray to leave visible gaps in package preview output.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgRoundStrokeCapsPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Round Stroke Cap Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path d=\"M5 6 H15\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"4\" stroke-linecap=\"butt\"/><path d=\"M5 14 H15\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"4\" stroke-linecap=\"round\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/round-stroke-cap.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            (int RedMin, int RedMax, int RedCount) = FindHorizontalColorSpanNear(image, 84, radius: 2, IsRedPixel);
+            (int BlueMin, int BlueMax, int BlueCount) = FindHorizontalColorSpanNear(image, 116, radius: 2, IsBluePixel);
+            Assert.True(RedCount > 0, "Expected SVG stroke-linecap=\"butt\" comparison stroke to render in package preview output.");
+            Assert.True(BlueCount > 0, "Expected SVG stroke-linecap=\"round\" comparison stroke to render in package preview output.");
+            Assert.True(BlueMin < RedMin, $"Expected SVG stroke-linecap=\"round\" to extend before the butt cap start. Red min {RedMin}, blue min {BlueMin}.");
+            Assert.True(BlueMax > RedMax, $"Expected SVG stroke-linecap=\"round\" to extend after the butt cap end. Red max {RedMax}, blue max {BlueMax}.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgRoundStrokeJoinsPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Round Stroke Join Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 20 28\"><path d=\"M3 11 L10 3 L17 11\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"5\" stroke-linecap=\"butt\" stroke-linejoin=\"bevel\"/><path d=\"M3 25 L10 17 L17 25\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"5\" stroke-linecap=\"butt\" stroke-linejoin=\"round\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/round-stroke-join.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            int redPixels = 0;
+            int bluePixels = 0;
+            for (int i = 0; i < image.Pixels.Length; i += 4) {
+                if (image.Pixels[i] > 180 && image.Pixels[i + 1] < 80 && image.Pixels[i + 2] < 80 && image.Pixels[i + 3] > 200) {
+                    redPixels++;
+                }
+
+                if (image.Pixels[i] < 60 && image.Pixels[i + 1] < 150 && image.Pixels[i + 2] > 180 && image.Pixels[i + 3] > 200) {
+                    bluePixels++;
+                }
+            }
+
+            Assert.True(redPixels > 100, "Expected SVG stroke-linejoin=\"bevel\" comparison stroke to render in package preview output.");
+            Assert.True(bluePixels > redPixels + 10, $"Expected SVG stroke-linejoin=\"round\" to add visible rounded join coverage beyond bevel joins. Red pixels {redPixels}, blue pixels {bluePixels}.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgNonScalingStrokePreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Non Scaling Stroke Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"256\" height=\"256\" viewBox=\"0 0 20 20\"><path d=\"M4 6 H16\" fill=\"none\" stroke=\"#dc2626\" stroke-width=\"4\" stroke-linecap=\"butt\"/><path d=\"M4 14 H16\" fill=\"none\" stroke=\"#0070c0\" stroke-width=\"4\" stroke-linecap=\"butt\" vector-effect=\"non-scaling-stroke\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/non-scaling-stroke.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            (int RedMin, int RedMax, int RedCount) = FindVerticalColorSpanNear(image, 150, radius: 2, IsRedPixel);
+            (int BlueMin, int BlueMax, int BlueCount) = FindVerticalColorSpanNear(image, 150, radius: 2, IsBluePixel);
+            Assert.True(RedCount > 0, "Expected regular SVG stroke to render in package preview output.");
+            Assert.True(BlueCount > 0, "Expected SVG vector-effect=\"non-scaling-stroke\" stroke to render in package preview output.");
+            Assert.True((RedMax - RedMin) > (BlueMax - BlueMin) + 4, $"Expected regular SVG stroke to scale thicker than non-scaling stroke. Red span {RedMin}-{RedMax}, blue span {BlueMin}-{BlueMax}.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgArcPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Arc Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" d=\"M5 2 H15 A3 3 0 0 1 18 5 V15 A3 3 0 0 1 15 18 H5 A3 3 0 0 1 2 15 V5 A3 3 0 0 1 5 2 Z\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/arc.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsBluePixel(image, 150, 100), "Expected SVG arc preview artwork to render through the native PNG export path.");
+            Assert.True(IsWhitePixel(image, 126, 76), "Expected SVG arc preview corners to stay rounded instead of filling as a rectangle.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgRoundedRectPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Rounded Rect Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><rect x=\"2\" y=\"2\" width=\"16\" height=\"16\" rx=\"5\" ry=\"5\" fill=\"#0070c0\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/rounded-rect.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(IsBluePixel(image, 150, 100), "Expected SVG rounded-rect package preview artwork to render through the native PNG export path.");
+            Assert.True(IsWhitePixel(image, 130, 80), "Expected SVG rect rx/ry to preserve the rounded preview corner instead of rendering a sharp rectangle.");
+        }
+
+        [Fact]
+        public void PngRendererProjectsPackageBackedSvgTransformedPreviewArtwork() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Transform Preview").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" viewBox=\"0 0 20 20\"><path fill=\"#0070c0\" transform=\"rotate(45 10 10)\" d=\"M8 0 H12 V20 H8 Z\"/></svg>";
+            AddPackagePreviewShape(page, Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)), "image/svg+xml", ".svg", "../media/transform.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.True(HasBluePixelNear(image, 168, 83, radius: 3), "Expected SVG rotate transform to move preview artwork toward the upper-right.");
+            Assert.True(IsWhitePixel(image, 150, 78), "Expected SVG rotate transform to remove the unrotated vertical bar from the top center.");
+        }
+
+        [Fact]
         public void PngRendererSniffsPackageBackedPreviewArtworkWhenMetadataIsGeneric() {
             using MemoryStream packageStream = new();
             VisioDocument document = VisioDocument.Create(packageStream);
@@ -1114,6 +1648,32 @@ namespace OfficeIMO.Tests {
             }
 
             Assert.True(changedPixels > 100, "Expected rotated package preview artwork to alter the native PNG render.");
+        }
+
+        [Fact]
+        public void PngRendererHonorsPackageBackedSvgImageOpacity() {
+            using MemoryStream packageStream = new();
+            VisioDocument document = VisioDocument.Create(packageStream);
+            VisioPage page = document.AddPage("Package SVG Image Opacity").Size(3, 2);
+            string svg = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"10\" height=\"10\" viewBox=\"0 0 10 10\">" +
+                "<image x=\"0\" y=\"0\" width=\"10\" height=\"10\" opacity=\"0.5\" href=\"data:image/png;base64," + TrueColorBluePng + "\"/>" +
+                "</svg>";
+            AddPackagePreviewShape(
+                page,
+                Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(svg)),
+                "image/svg+xml",
+                ".svg",
+                "../media/image1.svg");
+
+            byte[] png = page.ToPng(new VisioPngSaveOptions {
+                PixelsPerInch = 100,
+                BackgroundColor = OfficeColor.White,
+                Supersampling = 1
+            });
+
+            RgbaPng image = DecodeRgbaPng(png);
+            Assert.False(IsBluePixel(image, 150, 100), "Expected SVG image opacity to avoid rendering the embedded preview as fully opaque blue.");
+            Assert.True(IsPaleBluePixel(image, 150, 100), "Expected package-backed SVG image opacity to blend the embedded preview with the page background.");
         }
 
         [Fact]
@@ -2112,6 +2672,54 @@ namespace OfficeIMO.Tests {
             return false;
         }
 
+        private static (int MinX, int MaxX, int Count) FindHorizontalColorSpanNear(RgbaPng image, int y, int radius, Func<RgbaPng, int, int, bool> predicate) {
+            int minX = int.MaxValue;
+            int maxX = int.MinValue;
+            int count = 0;
+            int minY = Math.Max(0, y - radius);
+            int maxY = Math.Min(image.Height - 1, y + radius);
+            for (int py = minY; py <= maxY; py++) {
+                for (int px = 0; px < image.Width; px++) {
+                    if (predicate(image, px, py)) {
+                        minX = Math.Min(minX, px);
+                        maxX = Math.Max(maxX, px);
+                        count++;
+                    }
+                }
+            }
+
+            return (minX, maxX, count);
+        }
+
+        private static (int MinY, int MaxY, int Count) FindVerticalColorSpanNear(RgbaPng image, int x, int radius, Func<RgbaPng, int, int, bool> predicate) {
+            int minY = int.MaxValue;
+            int maxY = int.MinValue;
+            int count = 0;
+            int minX = Math.Max(0, x - radius);
+            int maxX = Math.Min(image.Width - 1, x + radius);
+            for (int px = minX; px <= maxX; px++) {
+                for (int py = 0; py < image.Height; py++) {
+                    if (predicate(image, px, py)) {
+                        minY = Math.Min(minY, py);
+                        maxY = Math.Max(maxY, py);
+                        count++;
+                    }
+                }
+            }
+
+            return (minY, maxY, count);
+        }
+
+        private static bool IsPaleBluePixel(RgbaPng image, int x, int y) {
+            int offset = ((y * image.Width) + x) * 4;
+            return image.Pixels[offset] > 90 &&
+                   image.Pixels[offset] < 180 &&
+                   image.Pixels[offset + 1] > 130 &&
+                   image.Pixels[offset + 1] < 220 &&
+                   image.Pixels[offset + 2] > 220 &&
+                   image.Pixels[offset + 3] > 200;
+        }
+
         private static bool IsWhitePixel(RgbaPng image, int x, int y) {
             int offset = ((y * image.Width) + x) * 4;
             return image.Pixels[offset] > 245 &&
@@ -2175,10 +2783,11 @@ namespace OfficeIMO.Tests {
         private const string GrayscaleAlphaBlackPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR4nGNg+A8AAQIBAEK+vGgAAAAASUVORK5CYII=";
         private const string PackedGrayscaleBlackPng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABAQAAAAA3bvkkAAAACklEQVR4nGNgAAAAAgABSK+kcQAAAABJRU5ErkJggg==";
         private const string SixteenBitTrueColorBluePng = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABEAIAAADA54+dAAAAD0lEQVR4nGNgYEhg+P8fAASEAl/OOhQdAAAAAElFTkSuQmCC";
+        private const string TrueColorBlueBmp = "Qk06AAAAAAAAADYAAAAoAAAAAQAAAAEAAAABABgAAAAAAAQAAAATCwAAEwsAAAAAAAAAAAAA/wAAAA==";
 
         private static VisioShape AddPackagePreviewShape(
             VisioPage page,
-            string previewPngBase64,
+            string previewBase64,
             string contentType = "image/png",
             string extension = ".png",
             string target = "../media/image1.png") {
@@ -2189,7 +2798,7 @@ namespace OfficeIMO.Tests {
                 Target = target,
                 ContentType = contentType,
                 Extension = extension,
-                Data = Convert.FromBase64String(previewPngBase64)
+                Data = Convert.FromBase64String(previewBase64)
             });
             VisioShape shape = page.AddRectangle(1.5, 1, 1.2, 0.8, string.Empty);
             shape.FillPattern = 0;
