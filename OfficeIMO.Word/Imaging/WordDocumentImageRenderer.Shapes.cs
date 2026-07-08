@@ -46,7 +46,10 @@ namespace OfficeIMO.Word {
                 drawingShape.Transform = CreateLocalShapeFrameTransform(width, height, transform);
             }
 
-            context.Drawing.AddShape(drawingShape, context.Left, context.Y);
+            if (context.IsTargetPage) {
+                context.Drawing.AddShape(drawingShape, context.Left, context.Y);
+            }
+
             context.Y += height + ParagraphGapPoints;
             return true;
         }
@@ -77,55 +80,178 @@ namespace OfficeIMO.Word {
                 drawingShape.Transform = CreateLocalShapeFrameTransform(drawingShape.Width, drawingShape.Height, transform);
             }
 
-            context.Drawing.AddShape(drawingShape, context.Left + leftOffset, context.Y + topOffset);
+            if (context.IsTargetPage) {
+                context.Drawing.AddShape(drawingShape, context.Left + leftOffset, context.Y + topOffset);
+            }
+
             context.Y += topOffset + drawingShape.Height + ParagraphGapPoints;
             return true;
         }
 
         private static bool AddAnchoredShape(WordShape shape, DW.Anchor anchor, WordImageFlowContext context, List<OfficeImageExportDiagnostic> diagnostics) {
-            if (anchor.GetFirstChild<DW.WrapSquare>() == null) {
-                AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because only square-wrapped DrawingML shapes are currently projected through OfficeIMO.Drawing.", DescribeShape(shape));
+            bool hasSquareWrap = anchor.GetFirstChild<DW.WrapSquare>() != null;
+            bool hasNoWrap = anchor.GetFirstChild<DW.WrapNone>() != null;
+            bool hasTightWrap = anchor.GetFirstChild<DW.WrapTight>() != null;
+            bool hasThroughWrap = anchor.GetFirstChild<DW.WrapThrough>() != null;
+            bool hasTopBottomWrap = anchor.GetFirstChild<DW.WrapTopBottom>() != null;
+            bool hasTextWrap = hasSquareWrap || hasTightWrap || hasThroughWrap;
+            if (!hasTextWrap && !hasNoWrap && !hasTopBottomWrap) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its DrawingML wrap mode is not yet projected through OfficeIMO.Drawing.", DescribeShape(shape));
+                }
+
                 return false;
             }
 
             if (!TryGetShapeSize(shape, anchor, out double width, out double height)) {
-                AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its DrawingML size could not be resolved.", DescribeShape(shape));
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its DrawingML size could not be resolved.", DescribeShape(shape));
+                }
+
                 return false;
             }
 
             string? presetName = GetShapePresetName(shape);
             if (!OfficeShapePresets.TryCreate(presetName, width, height, out OfficeShape? drawingShape) || drawingShape == null) {
-                AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its DrawingML preset is not yet projected through OfficeIMO.Drawing.", DescribeShape(shape));
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its DrawingML preset is not yet projected through OfficeIMO.Drawing.", DescribeShape(shape));
+                }
+
                 return false;
+            }
+
+            if (hasTopBottomWrap) {
+                return AddTopAndBottomAnchoredShape(shape, anchor, drawingShape, width, height, context, diagnostics);
             }
 
             double left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
             double top = ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height);
             if (!IsFinite(left) || !IsFinite(top)) {
-                AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its anchor position could not be resolved.", DescribeShape(shape));
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its anchor position could not be resolved.", DescribeShape(shape));
+                }
+
                 return false;
             }
 
             double right = left + width;
             double bottom = top + height;
             if (left < 0D || top < 0D || right > context.Drawing.Width || bottom > context.Drawing.Height) {
-                AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its anchor projects outside the current page preview.", DescribeShape(shape));
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word floating shape because its anchor projects outside the current page preview.", DescribeShape(shape));
+                }
+
                 return false;
             }
 
-            ApplyShapeStyle(drawingShape, shape);
             WordShapeFrameTransform transform = GetShapeFrameTransform(shape);
-            if (transform.HasTransform) {
-                drawingShape.Transform = CreateLocalShapeFrameTransform(width, height, transform);
+            if (context.IsTargetPage) {
+                ApplyShapeStyle(drawingShape, shape);
+                if (transform.HasTransform) {
+                    drawingShape.Transform = CreateLocalShapeFrameTransform(width, height, transform);
+                }
+
+                if (anchor.BehindDoc?.Value == true) {
+                    context.Drawing.AddShapeBehindContent(drawingShape, left, top);
+                } else {
+                    context.Drawing.AddShape(drawingShape, left, top);
+                }
             }
 
-            context.Drawing.AddShape(drawingShape, left, top);
-            context.AddTextExclusion(
-                Math.Max(context.Left, left - GetAnchorDistancePoints(anchor.DistanceFromLeft)),
-                Math.Max(0D, top - GetAnchorDistancePoints(anchor.DistanceFromTop)),
-                Math.Min(context.Left + context.ContentWidth, right + GetAnchorDistancePoints(anchor.DistanceFromRight)),
-                Math.Min(context.ContentBottom, bottom + GetAnchorDistancePoints(anchor.DistanceFromBottom)),
-                GetShapeWrapSide(anchor));
+            bool usedAuthoredPolygon = false;
+            bool usedShapePolygon = false;
+            if (hasTextWrap) {
+                double exclusionLeft = Math.Max(context.Left, left - GetAnchorDistancePoints(anchor.DistanceFromLeft));
+                double exclusionTop = Math.Max(0D, top - GetAnchorDistancePoints(anchor.DistanceFromTop));
+                double exclusionRight = Math.Min(context.Left + context.ContentWidth, right + GetAnchorDistancePoints(anchor.DistanceFromRight));
+                double exclusionBottom = Math.Min(context.ContentBottom, bottom + GetAnchorDistancePoints(anchor.DistanceFromBottom));
+                WordTextWrapSide wrapSide = GetShapeWrapSide(anchor);
+                IReadOnlyList<OfficePoint> polygon = Array.Empty<OfficePoint>();
+                usedAuthoredPolygon = (hasTightWrap || hasThroughWrap) &&
+                    TryCreateAuthoredWrapPolygonTextExclusion(anchor, exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, out polygon);
+                if (usedAuthoredPolygon) {
+                    context.AddTextExclusion(polygon, wrapSide);
+                } else if ((hasTightWrap || hasThroughWrap) &&
+                    !transform.HasTransform &&
+                    TryCreateShapeGeometryTextExclusion(drawingShape, left, top, out polygon)) {
+                    context.AddTextExclusion(polygon, wrapSide);
+                    usedShapePolygon = true;
+                } else {
+                    context.AddTextExclusion(exclusionLeft, exclusionTop, exclusionRight, exclusionBottom, wrapSide);
+                }
+            }
+
+            if (context.IsTargetPage && (hasTightWrap || hasThroughWrap) && !usedAuthoredPolygon && !usedShapePolygon) {
+                AddDiagnostic(
+                    diagnostics,
+                    "limited-word-floating-shape-wrap",
+                    "Rendered a Word floating shape with a rectangular text exclusion because dependency-free export does not yet implement polygon wrapping.",
+                    DescribeShape(shape));
+            }
+
+            if (hasTextWrap) {
+                AdvanceFlowToAnchoredWrapTop(context, top);
+            }
+
+            return true;
+        }
+
+        private static bool AddTopAndBottomAnchoredShape(
+            WordShape shape,
+            DW.Anchor anchor,
+            OfficeShape drawingShape,
+            double width,
+            double height,
+            WordImageFlowContext context,
+            List<OfficeImageExportDiagnostic> diagnostics) {
+            double left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
+            double top = ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height);
+            if (!IsFinite(left) || !IsFinite(top)) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word top-and-bottom floating shape because its anchor position could not be resolved.", DescribeShape(shape));
+                }
+
+                return false;
+            }
+
+            top = Math.Max(top, context.Y);
+            double distanceFromBottom = GetAnchorDistancePoints(anchor.DistanceFromBottom);
+            double requiredHeight = top + height + distanceFromBottom - context.Y;
+            if (!EnsureVerticalSpace(context, requiredHeight, diagnostics)) {
+                return false;
+            }
+
+            left = ResolveHorizontalAnchorPosition(anchor.HorizontalPosition, context, width);
+            top = Math.Max(ResolveVerticalAnchorPosition(anchor.VerticalPosition, context, height), context.Y);
+            if (!IsFinite(left) || !IsFinite(top)) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word top-and-bottom floating shape because its anchor position could not be resolved.", DescribeShape(shape));
+                }
+
+                return false;
+            }
+
+            double right = left + width;
+            double bottom = top + height;
+            if (left < 0D || top < 0D || right > context.Drawing.Width || bottom > context.Drawing.Height) {
+                if (context.IsTargetPage) {
+                    AddDiagnostic(diagnostics, "unsupported-word-shape", "Skipped a Word top-and-bottom floating shape because its anchor projects outside the current page preview.", DescribeShape(shape));
+                }
+
+                return false;
+            }
+
+            if (context.IsTargetPage) {
+                ApplyShapeStyle(drawingShape, shape);
+                WordShapeFrameTransform transform = GetShapeFrameTransform(shape);
+                if (transform.HasTransform) {
+                    drawingShape.Transform = CreateLocalShapeFrameTransform(width, height, transform);
+                }
+
+                context.Drawing.AddShape(drawingShape, left, top);
+            }
+
+            context.Y = bottom + distanceFromBottom + ParagraphGapPoints;
             return true;
         }
 
@@ -258,7 +384,10 @@ namespace OfficeIMO.Word {
         }
 
         private static WordTextWrapSide GetShapeWrapSide(DW.Anchor anchor) {
-            DW.WrapTextValues? wrapValue = anchor.Elements<DW.WrapSquare>().FirstOrDefault()?.WrapText?.Value;
+            DW.WrapTextValues? wrapValue =
+                anchor.Elements<DW.WrapSquare>().FirstOrDefault()?.WrapText?.Value ??
+                anchor.Elements<DW.WrapTight>().FirstOrDefault()?.WrapText?.Value ??
+                anchor.Elements<DW.WrapThrough>().FirstOrDefault()?.WrapText?.Value;
             if (wrapValue == DW.WrapTextValues.Left) {
                 return WordTextWrapSide.Left;
             }
@@ -268,6 +397,26 @@ namespace OfficeIMO.Word {
             }
 
             return WordTextWrapSide.Largest;
+        }
+
+        private static bool TryCreateShapeGeometryTextExclusion(
+            OfficeShape drawingShape,
+            double left,
+            double top,
+            out IReadOnlyList<OfficePoint> polygon) {
+            polygon = Array.Empty<OfficePoint>();
+            if (drawingShape.Kind != OfficeShapeKind.Polygon || drawingShape.Points.Count < 3) {
+                return false;
+            }
+
+            var points = new List<OfficePoint>(drawingShape.Points.Count);
+            for (int i = 0; i < drawingShape.Points.Count; i++) {
+                OfficePoint point = drawingShape.Points[i];
+                points.Add(new OfficePoint(left + point.X, top + point.Y));
+            }
+
+            polygon = points;
+            return true;
         }
 
         private static string? GetShapePresetName(WordShape shape) =>

@@ -1535,26 +1535,27 @@ public class PowerPointSaveAsPdfTests {
     }
 
     [Fact]
-    public void ToPdfDocument_PowerPointPresentation_WarnsForComboChartsInsteadOfDroppingSeries() {
+    public void ToPdfDocument_PowerPointPresentation_RendersComboChartsInsteadOfWarning() {
         using var stream = new MemoryStream();
         using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
         presentation.SlideSize.SetSizePoints(320, 240);
         var data = new PowerPointChartData(
             new[] { "Q1", "Q2" },
             new[] {
-                new PowerPointChartSeries("Bars", new[] { 10D, 12D })
+                new PowerPointChartSeries("Bars", new[] { 10D, 12D }),
+                new PowerPointChartSeries("Trend", new[] { 11D, 13D })
             });
         PowerPointChart chart = presentation.Slides[0].AddChartPoints(data, 40, 32, 240, 172);
-        ChartPart chartPart = GetChartPart(chart);
-        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
-        plotArea.AppendChild(new C.LineChart());
-        chartPart.ChartSpace.Save();
+        ConvertSecondBarSeriesToLineChart(chart);
         var options = new PowerPointPdfSaveOptions();
 
-        presentation.ToPdfDocument(options).ToBytes();
+        byte[] bytes = presentation.ToPdfDocument(options).ToBytes();
 
-        PowerPointPdfExportWarning warning = Assert.Single(options.Warnings);
-        Assert.Equal("unsupported-chart", warning.Code);
+        Assert.Empty(options.Warnings);
+        using var pdf = PdfPigDocument.Open(new MemoryStream(bytes));
+        string text = string.Join("", pdf.GetPage(1).Letters.Select(letter => letter.Value));
+        Assert.Contains("Bars", text, StringComparison.Ordinal);
+        Assert.Contains("Trend", text, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -1807,6 +1808,27 @@ public class PowerPointSaveAsPdfTests {
 
         lineChart.InsertAfterSelf(areaChart);
         lineChart.Remove();
+        chartPart.ChartSpace.Save();
+    }
+
+    private static void ConvertSecondBarSeriesToLineChart(PowerPointChart chart) {
+        ChartPart chartPart = GetChartPart(chart);
+        C.PlotArea plotArea = chartPart.ChartSpace!.Descendants<C.PlotArea>().Single();
+        C.BarChart barChart = plotArea.Elements<C.BarChart>().Single();
+        C.BarChartSeries barSeries = barChart.Elements<C.BarChartSeries>().Skip(1).Single();
+        var lineChart = new C.LineChart(new C.Grouping { Val = C.GroupingValues.Standard });
+        var lineSeries = new C.LineChartSeries();
+        foreach (OpenXmlElement child in barSeries.ChildElements) {
+            lineSeries.Append(child.CloneNode(true));
+        }
+
+        lineChart.Append(lineSeries);
+        foreach (C.AxisId axisId in barChart.Elements<C.AxisId>()) {
+            lineChart.Append((C.AxisId)axisId.CloneNode(true));
+        }
+
+        barSeries.Remove();
+        barChart.InsertAfterSelf(lineChart);
         chartPart.ChartSpace.Save();
     }
 

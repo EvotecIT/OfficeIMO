@@ -288,7 +288,7 @@ namespace OfficeIMO.Excel {
             diagnostics.Add(new OfficeImageExportDiagnostic(
                 OfficeImageExportDiagnosticSeverity.Warning,
                 ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported,
-                "Conditional formatting differential format does not contain a supported solid fill or font effect; border, number-format, and other differential effects are not rendered yet.",
+                "Conditional formatting differential format does not contain a supported solid fill, font effect, or border; number-format and other differential effects are not rendered yet.",
                 source));
             return true;
         }
@@ -946,7 +946,8 @@ namespace OfficeIMO.Excel {
             rule.DifferentialFontItalic.HasValue ||
             rule.DifferentialFontUnderline.HasValue ||
             !string.IsNullOrWhiteSpace(rule.DifferentialFontName) ||
-            rule.DifferentialFontSize.HasValue;
+            rule.DifferentialFontSize.HasValue ||
+            rule.DifferentialBorder != null;
 
         private static void ApplyDifferentialFormat(
             ExcelConditionalFormattingInfo rule,
@@ -974,6 +975,27 @@ namespace OfficeIMO.Excel {
             }
 
             format.FontSize ??= rule.DifferentialFontSize;
+            format.Border = MergeDifferentialBorder(format.Border, rule.DifferentialBorder);
+        }
+
+        private static ExcelCellBorderSnapshot? MergeDifferentialBorder(ExcelCellBorderSnapshot? current, ExcelCellBorderSnapshot? incoming) {
+            if (incoming == null) {
+                return current;
+            }
+
+            if (current == null) {
+                return incoming;
+            }
+
+            return new ExcelCellBorderSnapshot {
+                Left = current.Left ?? incoming.Left,
+                Right = current.Right ?? incoming.Right,
+                Top = current.Top ?? incoming.Top,
+                Bottom = current.Bottom ?? incoming.Bottom,
+                Diagonal = current.Diagonal ?? incoming.Diagonal,
+                DiagonalUp = current.DiagonalUp || (current.Diagonal == null && incoming.DiagonalUp),
+                DiagonalDown = current.DiagonalDown || (current.Diagonal == null && incoming.DiagonalDown)
+            };
         }
 
         private static void ApplyFillFormat(
@@ -1036,5 +1058,7 @@ namespace OfficeIMO.Excel {
         internal string? FontName { get; set; }
 
         internal double? FontSize { get; set; }
+
+        internal ExcelCellBorderSnapshot? Border { get; set; }
     }
 }

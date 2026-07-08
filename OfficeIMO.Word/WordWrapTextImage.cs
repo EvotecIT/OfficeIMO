@@ -135,7 +135,7 @@ namespace OfficeIMO.Word {
                         anchor.OfType<WrapTopBottom>().FirstOrDefault()?.Remove();
                     } else if (currentWrap == WrapTextImage.BehindText) {
                         anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
-                        anchor.BehindDoc = true;
+                        anchor.BehindDoc = false;
                     } else if (currentWrap == WrapTextImage.InFrontOfText) {
                         anchor.OfType<WrapNone>().FirstOrDefault()?.Remove();
                         anchor.BehindDoc = false;
@@ -160,11 +160,11 @@ namespace OfficeIMO.Word {
                         } else if (wrapImage == WrapTextImage.BehindText) {
                             var wrap = new WrapNone();
                             extent.InsertAfterSelf(wrap);
-                            anchor.BehindDoc = false;
+                            anchor.BehindDoc = true;
                         } else if (wrapImage == WrapTextImage.InFrontOfText) {
                             var wrap = new WrapNone();
                             extent.InsertAfterSelf(wrap);
-                            anchor.BehindDoc = true;
+                            anchor.BehindDoc = false;
                         } else if (wrapImage == WrapTextImage.InLineWithText) {
                             throw new InvalidOperationException("WrapTextImage.InLineWithText should be handled before.");
                         }

@@ -42,7 +42,7 @@ namespace OfficeIMO.Word {
         }
 
         private static WordParagraph? GetFirstTextRun(WordDocument document, Paragraph paragraph) {
-            foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(document, paragraph)) {
+            foreach (WordParagraph run in WordSection.ConvertParagraphToWordParagraphs(document, paragraph, splitPaginationMarkers: true)) {
                 if (!string.IsNullOrEmpty(run.Text)) {
                     return run;
                 }

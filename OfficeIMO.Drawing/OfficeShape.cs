@@ -45,8 +45,20 @@ public sealed class OfficeShape {
     /// <summary>Optional gradient fill. When set, renderers should prefer it over <see cref="FillColor"/> for fill-capable shapes.</summary>
     public OfficeLinearGradient? FillGradient { get; set; }
 
+    /// <summary>Optional radial gradient fill. When set, renderers should prefer it over <see cref="FillGradient"/> and <see cref="FillColor"/> for fill-capable shapes.</summary>
+    public OfficeRadialGradient? FillRadialGradient { get; set; }
+
+    /// <summary>Optional linear gradient stroke. When set, renderers should prefer it over <see cref="StrokeColor"/> for stroked shapes.</summary>
+    public OfficeLinearGradient? StrokeGradient { get; set; }
+
+    /// <summary>Optional radial gradient stroke. When set, renderers should prefer it over <see cref="StrokeGradient"/> and <see cref="StrokeColor"/> for stroked shapes.</summary>
+    public OfficeRadialGradient? StrokeRadialGradient { get; set; }
+
     /// <summary>Optional shadow intent rendered behind the shape when supported by a format-specific renderer.</summary>
     public OfficeShadow? Shadow { get; set; }
+
+    /// <summary>Optional glow intent rendered around the shape when supported by a format-specific renderer.</summary>
+    public OfficeGlow? Glow { get; set; }
 
     /// <summary>Optional fill opacity from 0.0 (transparent) to 1.0 (opaque). Null lets each renderer use opaque fill.</summary>
     public double? FillOpacity { get; set; }
@@ -59,6 +71,9 @@ public sealed class OfficeShape {
 
     /// <summary>Optional local clipping path applied before format-specific rendering.</summary>
     public OfficeClipPath? ClipPath { get; set; }
+
+    /// <summary>Fill rule used for multi-contour path shapes.</summary>
+    public OfficeFillRule FillRule { get; set; } = OfficeFillRule.EvenOdd;
 
     /// <summary>Corner radius for rounded rectangle shapes.</summary>
     public double CornerRadius { get; set; }
@@ -273,11 +288,16 @@ public sealed class OfficeShape {
         StrokeEndMarker = StrokeEndMarker?.Clone(),
         FillColor = FillColor,
         FillGradient = FillGradient?.Clone(),
+        FillRadialGradient = FillRadialGradient?.Clone(),
+        StrokeGradient = StrokeGradient?.Clone(),
+        StrokeRadialGradient = StrokeRadialGradient?.Clone(),
         Shadow = Shadow?.Clone(),
+        Glow = Glow?.Clone(),
         FillOpacity = FillOpacity,
         StrokeOpacity = StrokeOpacity,
         Transform = Transform,
         ClipPath = ClipPath?.Clone(),
+        FillRule = FillRule,
         CornerRadius = CornerRadius,
         Points = new ReadOnlyCollection<OfficePoint>(new List<OfficePoint>(Points)),
         PathCommands = new ReadOnlyCollection<OfficePathCommand>(new List<OfficePathCommand>(PathCommands))

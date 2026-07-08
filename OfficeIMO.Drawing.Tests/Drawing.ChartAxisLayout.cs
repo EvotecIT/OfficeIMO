@@ -125,4 +125,56 @@ public class DrawingChartAxisLayoutTests {
             shape.Y + shape.Shape.Height <= drawing.Height,
             "Column bars should stay inside the drawing when the visible value-axis range excludes zero."));
     }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_RendersMixedBarAndColumnSeriesWithAxisAlignedColumns() {
+        OfficeColor columnColor = OfficeColor.ParseHex("#2563EB");
+        OfficeColor barColor = OfficeColor.ParseHex("#DC2626");
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            "Mixed bar column",
+            "Mixed Bar Column",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Columns", new[] { 10D, 12D }, null, columnColor, null, true, renderKind: OfficeChartKind.ColumnClustered),
+                    new OfficeChartSeries("Bars", new[] { 8D, 14D }, null, barColor, null, true, renderKind: OfficeChartKind.BarClustered)
+                }),
+            widthPoints: 340D,
+            heightPoints: 220D,
+            layout: new OfficeChartLayout(showLegend: false)));
+
+        OfficeDrawingShape[] columnBars = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor == columnColor)
+            .ToArray();
+        OfficeDrawingShape[] axisAlignedBars = drawing.Shapes
+            .Where(shape => shape.Shape.Kind == OfficeShapeKind.Rectangle && shape.Shape.FillColor == barColor)
+            .ToArray();
+
+        Assert.NotEmpty(columnBars);
+        Assert.NotEmpty(axisAlignedBars);
+        Assert.All(columnBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
+        Assert.All(axisAlignedBars, shape => Assert.True(shape.Shape.Height > shape.Shape.Width));
+    }
+
+    [Fact]
+    public void OfficeChartDrawingRenderer_FiltersUnsupportedMixedScatterSeriesFromLegend() {
+        OfficeDrawing drawing = OfficeChartDrawingRenderer.Render(new OfficeChartSnapshot(
+            null,
+            "Mixed Scatter Category Guard",
+            OfficeChartKind.ColumnClustered,
+            new OfficeChartData(
+                new[] { "Q1", "Q2" },
+                new[] {
+                    new OfficeChartSeries("Columns", new[] { 10D, 12D }, null, null, null, true, renderKind: OfficeChartKind.ColumnClustered),
+                    new OfficeChartSeries("Scatter", new[] { 8D, 14D }, new[] { 1D, 2D }, null, null, true, renderKind: OfficeChartKind.Scatter)
+                }),
+            widthPoints: 340D,
+            heightPoints: 220D));
+
+        string[] text = drawing.Elements.OfType<OfficeDrawingText>().Select(label => label.Text).ToArray();
+
+        Assert.Contains("Columns", text);
+        Assert.DoesNotContain("Scatter", text);
+    }
 }

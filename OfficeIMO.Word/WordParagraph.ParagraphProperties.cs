@@ -201,14 +201,18 @@ namespace OfficeIMO.Word {
         /// </summary>
         public bool AvoidWidowAndOrphan {
             get {
-                return _paragraphProperties != null && _paragraphProperties.WidowControl is not null;
+                WidowControl? widowControl = _paragraphProperties?.WidowControl;
+                return widowControl?.Val?.Value ?? widowControl is not null;
             }
             set {
                 var props = _paragraph.ParagraphProperties ??= new ParagraphProperties();
                 if (value) {
                     props.WidowControl ??= new WidowControl();
+                    props.WidowControl.Val = null;
                 } else {
-                    props.WidowControl?.Remove();
+                    props.WidowControl = new WidowControl {
+                        Val = false
+                    };
                 }
             }
         }

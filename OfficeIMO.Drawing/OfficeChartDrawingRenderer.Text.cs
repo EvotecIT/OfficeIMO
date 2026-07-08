@@ -481,6 +481,10 @@ public static partial class OfficeChartDrawingRenderer {
     }
 
     private static ValueRange GetCartesianValueRange(OfficeChartSnapshot snapshot) {
+        if (HasMixedCartesianSeriesKinds(snapshot)) {
+            return GetMixedCartesianValueRange(snapshot);
+        }
+
         if (IsScatterChart(snapshot.ChartKind)) {
             return GetFiniteSeriesRange(snapshot.Data.Series);
         }
@@ -499,6 +503,75 @@ public static partial class OfficeChartDrawingRenderer {
 
     private static ValueRange GetCartesianValueRange(OfficeChartSnapshot snapshot, OfficeChartLayout layout, bool horizontalValueAxis) =>
         ApplyValueAxisScale(GetCartesianValueRange(snapshot), layout, horizontalValueAxis);
+
+    private static ValueRange GetMixedCartesianValueRange(OfficeChartSnapshot snapshot) {
+        int categoryCount = snapshot.Data.Categories.Count;
+        var ranges = new List<ValueRange>();
+
+        AddSeriesRange(
+            ranges,
+            snapshot.Data.Series.Where(series => ShouldRenderSeriesAsBarOrColumn(snapshot, series)).ToList(),
+            categoryCount,
+            kind => IsStackedBarOrColumnChart(kind),
+            kind => IsPercentStackedBarOrColumnChart(kind),
+            snapshot);
+        AddSeriesRange(
+            ranges,
+            GetRenderableAreaSeries(snapshot).Select(item => item.Series).ToList(),
+            categoryCount,
+            kind => IsStackedAreaChart(kind),
+            kind => IsPercentStackedAreaChart(kind),
+            snapshot);
+        AddSeriesRange(
+            ranges,
+            GetRenderableLineSeries(snapshot).Select(item => item.Series).ToList(),
+            categoryCount,
+            kind => IsStackedLineChart(kind),
+            kind => IsPercentStackedLineChart(kind),
+            snapshot);
+
+        List<OfficeChartSeries> scatterSeries = GetRenderableScatterSeries(snapshot).Select(item => item.Series).ToList();
+        if (scatterSeries.Count > 0) {
+            ranges.Add(GetFiniteSeriesRange(scatterSeries));
+        }
+
+        if (ranges.Count == 0) {
+            return new ValueRange(0D, 1D);
+        }
+
+        double min = ranges[0].Min;
+        double max = ranges[0].Max;
+        for (int i = 1; i < ranges.Count; i++) {
+            min = Math.Min(min, ranges[i].Min);
+            max = Math.Max(max, ranges[i].Max);
+        }
+
+        return ExpandFlatRange(min, max);
+    }
+
+    private static void AddSeriesRange(
+        List<ValueRange> ranges,
+        IReadOnlyList<OfficeChartSeries> series,
+        int categoryCount,
+        Func<OfficeChartKind, bool> isStacked,
+        Func<OfficeChartKind, bool> isPercentStacked,
+        OfficeChartSnapshot snapshot) {
+        if (series.Count == 0) {
+            return;
+        }
+
+        foreach (IGrouping<OfficeChartKind, OfficeChartSeries> group in series.GroupBy(item => GetEffectiveSeriesKind(snapshot, item))) {
+            List<OfficeChartSeries> groupedSeries = group.ToList();
+            if (isPercentStacked(group.Key)) {
+                ranges.Add(GetPercentStackedSeriesRange(groupedSeries, categoryCount));
+            } else if (isStacked(group.Key)) {
+                ranges.Add(GetStackedSeriesRange(groupedSeries, categoryCount));
+            } else {
+                ValueRange finiteRange = GetFiniteSeriesRange(groupedSeries);
+                ranges.Add(ExpandFlatRange(Math.Min(0D, finiteRange.Min), Math.Max(0D, finiteRange.Max)));
+            }
+        }
+    }
 
     private static string FormatAxisValue(double value, OfficeChartLayout layout, bool percentDefault, string? numberFormat = null, double? displayUnitDivisor = null) {
         double displayValue = displayUnitDivisor.HasValue ? value / displayUnitDivisor.Value : value;

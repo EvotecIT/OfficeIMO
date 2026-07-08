@@ -42,7 +42,19 @@ public sealed partial class OfficeRasterCanvas {
     /// <returns>A disposable scope that restores the previous clip.</returns>
     public IDisposable PushClipPolygonsEvenOdd(IReadOnlyList<IReadOnlyList<OfficePoint>> contours) {
         OfficeRasterClipRegion? previous = _clipRegion;
-        _clipRegion = OfficeRasterClipRegion.Polygons(contours, previous);
+        _clipRegion = OfficeRasterClipRegion.Polygons(contours, OfficeFillRule.EvenOdd, previous);
+        return new ClipScope(this, previous);
+    }
+
+    /// <summary>
+    /// Restricts subsequent raster drawing to the supplied non-zero winding contours until the returned scope is disposed.
+    /// Nested clips are intersected with the current clip.
+    /// </summary>
+    /// <param name="contours">Closed contours in canvas coordinates.</param>
+    /// <returns>A disposable scope that restores the previous clip.</returns>
+    public IDisposable PushClipPolygonsNonZero(IReadOnlyList<IReadOnlyList<OfficePoint>> contours) {
+        OfficeRasterClipRegion? previous = _clipRegion;
+        _clipRegion = OfficeRasterClipRegion.Polygons(contours, OfficeFillRule.NonZero, previous);
         return new ClipScope(this, previous);
     }
 
@@ -88,22 +100,24 @@ public sealed partial class OfficeRasterCanvas {
     private sealed class OfficeRasterClipRegion {
         private readonly OfficeRasterClipRectangle? _rectangle;
         private readonly IReadOnlyList<IReadOnlyList<OfficePoint>>? _contours;
+        private readonly OfficeFillRule _fillRule;
         private readonly OfficeRasterClipRegion? _previous;
 
-        private OfficeRasterClipRegion(OfficeRasterClipRectangle? rectangle, IReadOnlyList<IReadOnlyList<OfficePoint>>? contours, OfficeRasterClipRegion? previous) {
+        private OfficeRasterClipRegion(OfficeRasterClipRectangle? rectangle, IReadOnlyList<IReadOnlyList<OfficePoint>>? contours, OfficeFillRule fillRule, OfficeRasterClipRegion? previous) {
             _rectangle = rectangle;
             _contours = contours;
+            _fillRule = fillRule;
             _previous = previous;
         }
 
         internal static OfficeRasterClipRegion Rectangle(OfficeRasterClipRectangle rectangle, OfficeRasterClipRegion? previous) =>
-            new OfficeRasterClipRegion(rectangle, null, previous);
+            new OfficeRasterClipRegion(rectangle, null, OfficeFillRule.EvenOdd, previous);
 
         internal static OfficeRasterClipRegion Polygon(IReadOnlyList<OfficePoint> points, OfficeRasterClipRegion? previous) =>
-            new OfficeRasterClipRegion(null, new[] { points }, previous);
+            new OfficeRasterClipRegion(null, new[] { points }, OfficeFillRule.EvenOdd, previous);
 
-        internal static OfficeRasterClipRegion Polygons(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeRasterClipRegion? previous) =>
-            new OfficeRasterClipRegion(null, contours, previous);
+        internal static OfficeRasterClipRegion Polygons(IReadOnlyList<IReadOnlyList<OfficePoint>> contours, OfficeFillRule fillRule, OfficeRasterClipRegion? previous) =>
+            new OfficeRasterClipRegion(null, contours, fillRule, previous);
 
         internal bool Contains(int x, int y) {
             if (_previous != null && !_previous.Contains(x, y)) {
@@ -123,12 +137,18 @@ public sealed partial class OfficeRasterCanvas {
             int winding = 0;
             for (int i = 0; i < _contours.Count; i++) {
                 IReadOnlyList<OfficePoint> contour = _contours[i];
-                if (contour.Count >= 3 && ContainsPoint(contour, sampleX, sampleY)) {
+                if (contour.Count < 3) {
+                    continue;
+                }
+
+                if (_fillRule == OfficeFillRule.NonZero) {
+                    winding += GetWindingNumber(contour, sampleX, sampleY);
+                } else if (ContainsPoint(contour, sampleX, sampleY)) {
                     winding++;
                 }
             }
 
-            return (winding & 1) == 1;
+            return _fillRule == OfficeFillRule.NonZero ? winding != 0 : (winding & 1) == 1;
         }
     }
 

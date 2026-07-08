@@ -90,9 +90,49 @@ public static partial class OfficeSvgFormatting {
             return string.Empty;
         }
 
-        int start = svg.IndexOf('>');
-        int end = svg.LastIndexOf("</svg>", StringComparison.OrdinalIgnoreCase);
-        return start >= 0 && end > start ? svg.Substring(start + 1, end - start - 1) : svg;
+        int rootStart = FindSvgRootStart(svg);
+        if (rootStart >= 0) {
+            int start = svg.IndexOf('>', rootStart);
+            int end = svg.LastIndexOf("</svg>", StringComparison.OrdinalIgnoreCase);
+            if (start >= 0 && end > start) {
+                return svg.Substring(start + 1, end - start - 1);
+            }
+        }
+
+        try {
+            var document = new XmlDocument {
+                PreserveWhitespace = true,
+                XmlResolver = null
+            };
+            using var reader = XmlReader.Create(
+                new System.IO.StringReader(svg),
+                new XmlReaderSettings {
+                    DtdProcessing = DtdProcessing.Ignore,
+                    XmlResolver = null
+                });
+            document.Load(reader);
+            XmlElement? root = document.DocumentElement;
+            if (root != null && string.Equals(root.LocalName, "svg", StringComparison.OrdinalIgnoreCase)) {
+                return root.InnerXml;
+            }
+        } catch (XmlException) {
+        }
+
+        return svg;
+    }
+
+    private static int FindSvgRootStart(string svg) {
+        int index = 0;
+        while ((index = svg.IndexOf("<svg", index, StringComparison.OrdinalIgnoreCase)) >= 0) {
+            int nameEnd = index + 4;
+            if (nameEnd >= svg.Length || char.IsWhiteSpace(svg[nameEnd]) || svg[nameEnd] == '>' || svg[nameEnd] == '/') {
+                return index;
+            }
+
+            index = nameEnd;
+        }
+
+        return -1;
     }
 
     /// <summary>
@@ -231,6 +271,61 @@ public static partial class OfficeSvgFormatting {
         }
 
         builder.Append("</linearGradient></defs>");
+        return builder;
+    }
+
+    /// <summary>
+    /// Appends a reusable SVG radial-gradient definition.
+    /// </summary>
+    /// <param name="builder">Markup builder.</param>
+    /// <param name="id">Gradient identifier.</param>
+    /// <param name="gradient">Gradient definition.</param>
+    /// <returns>The supplied builder for call chaining.</returns>
+    public static StringBuilder AppendRadialGradientDefinition(this StringBuilder builder, string id, OfficeRadialGradient gradient) {
+        if (gradient == null) {
+            throw new ArgumentNullException(nameof(gradient));
+        }
+
+        builder.Append("<defs><radialGradient id=\"")
+            .Append(Escape(id))
+            .Append("\" cx=\"")
+            .Append(FormatNumber(gradient.EndX * 100D))
+            .Append("%\" cy=\"")
+            .Append(FormatNumber(gradient.EndY * 100D))
+            .Append("%\" r=\"")
+            .Append(FormatNumber(gradient.EndRadius * 100D))
+            .Append("%\" fx=\"")
+            .Append(FormatNumber(gradient.StartX * 100D))
+            .Append("%\" fy=\"")
+            .Append(FormatNumber(gradient.StartY * 100D))
+            .Append('%')
+            .Append('"');
+
+        if (gradient.StartRadius > 0D) {
+            builder.Append(" fr=\"")
+                .Append(FormatNumber(gradient.StartRadius * 100D))
+                .Append("%\"");
+        }
+
+        builder.Append('>');
+
+        for (int i = 0; i < gradient.Stops.Count; i++) {
+            OfficeGradientStop stop = gradient.Stops[i];
+            builder.Append("<stop offset=\"")
+                .Append(FormatNumber(stop.Offset * 100D))
+                .Append("%\" stop-color=\"")
+                .Append(ToCssColor(stop.Color))
+                .Append('"');
+
+            double opacity = ToOpacity(stop.Color);
+            if (opacity < 1D) {
+                builder.AppendNumberAttribute("stop-opacity", opacity);
+            }
+
+            builder.Append("/>");
+        }
+
+        builder.Append("</radialGradient></defs>");
         return builder;
     }
 

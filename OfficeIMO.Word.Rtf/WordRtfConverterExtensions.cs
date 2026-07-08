@@ -151,6 +151,10 @@ public static partial class WordRtfConverterExtensions {
                     paragraph.AddBookmarkEnd(bookmarkName);
                     break;
                 case Run runElement:
+                    if (IsCommentReferenceOnlyRun(runElement)) {
+                        break;
+                    }
+
                     if (TryAppendComplexFieldRun(wordParagraph, runElement, paragraph, rtfDocument, revisionAuthorIndexes, complexFields)) {
                         previousRun = null;
                         hasRuns = true;
@@ -195,6 +199,9 @@ public static partial class WordRtfConverterExtensions {
 
         AppendWordComments(wordParagraph, paragraph, rtfDocument, revisionAuthorIndexes);
     }
+
+    private static bool IsCommentReferenceOnlyRun(Run run) =>
+        run.ChildElements.All(element => element is RunProperties || element is CommentReference);
 
     private static bool TryAppendComplexFieldRun(WordParagraph wordParagraph, Run runElement, RtfParagraph paragraph, RtfDocument rtfDocument, Dictionary<string, int> revisionAuthorIndexes, Stack<ComplexFieldCapture> captures) {
         FieldChar? fieldChar = runElement.Elements<FieldChar>().FirstOrDefault();

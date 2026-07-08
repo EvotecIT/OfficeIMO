@@ -522,6 +522,35 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void ExcelRange_ImageExportHonorsCellTextIndentAcrossSnapshotsAndRenderers() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("Indent");
+            sheet.SetColumnWidth(1, 18);
+            sheet.SetRowHeight(1, 28);
+            sheet.CellValue(1, 1, "Indented");
+            ApplyCellTextIndentStyle(document, sheet, "A1", 3U);
+
+            ExcelRange range = sheet.Range("A1:A1");
+            ExcelRangeVisualSnapshot visualSnapshot = range.CreateVisualSnapshot(new ExcelImageExportOptions { ShowGridlines = false });
+            ExcelWorkbookSnapshot inspectionSnapshot = document.CreateInspectionSnapshot();
+            ExcelCellStyleSnapshot directStyle = sheet.CellAt(1, 1).GetStyle();
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, new ExcelImageExportOptions { ShowGridlines = false });
+            string svg = range.ToSvg(new ExcelImageExportOptions { ShowGridlines = false });
+
+            ExcelVisualCell cell = visualSnapshot.Cells[0];
+            Assert.Equal(3U, cell.Style.TextIndent);
+            Assert.Equal(3U, directStyle.TextIndent);
+            Assert.Equal(3U, inspectionSnapshot.Worksheets[0].Cells[0].Style!.TextIndent);
+            double textX = ExtractSvgTextX(svg, "Indented");
+            Assert.True(textX >= cell.X + 30D, "Expected SVG text to be inset by the authored alignment indentation.");
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            (int minX, _) = DarkPixelXExtent(rendered!, cell);
+            Assert.True(minX >= cell.X + 25D, $"Expected PNG text pixels to be indented. minX={minX}, cellX={cell.X}.");
+        }
+
+        [Fact]
         public void ExcelRange_ImageExportResolvesThemeTintColorsAcrossSnapshotsAndRenderers() {
             string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
             using ExcelDocument document = ExcelDocument.Create(filePath);
@@ -1150,6 +1179,56 @@ namespace OfficeIMO.Tests {
             Assert.Contains("text-decoration=\"underline\"", svg, StringComparison.Ordinal);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported);
             Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+        }
+
+        [Fact]
+        public void ExcelRange_ImageExportAppliesConditionalDifferentialBorders() {
+            string filePath = Path.Combine(Path.GetTempPath(), Guid.NewGuid() + ".xlsx");
+            using ExcelDocument document = ExcelDocument.Create(filePath);
+            ExcelSheet sheet = document.AddWorkSheet("BorderRules");
+            sheet.CellValue(1, 1, 5);
+            sheet.CellValue(2, 1, 20);
+            sheet.SetColumnWidth(1, 16);
+            sheet.SetRowHeight(1, 28);
+            sheet.SetRowHeight(2, 28);
+            sheet.AddConditionalRule("A1:A2", ConditionalFormattingOperatorValues.GreaterThan, "10");
+            uint differentialFormatId = sheet.AppendConditionalDifferentialFormat(new X.DifferentialFormat(
+                new X.Border(
+                    new X.LeftBorder(new X.Color { Rgb = "FFFF0000" }) { Style = X.BorderStyleValues.Thick },
+                    new X.RightBorder(new X.Color { Rgb = "FFFF0000" }) { Style = X.BorderStyleValues.Thick },
+                    new X.TopBorder(new X.Color { Rgb = "FFFF0000" }) { Style = X.BorderStyleValues.Thick },
+                    new X.BottomBorder(new X.Color { Rgb = "FFFF0000" }) { Style = X.BorderStyleValues.Thick })));
+            sheet.SetLastConditionalFormattingRuleDifferentialFormatId(differentialFormatId);
+
+            var options = new ExcelImageExportOptions { ShowGridlines = false };
+            ExcelRange range = sheet.Range("A1:A2");
+            ExcelRangeVisualSnapshot snapshot = range.CreateVisualSnapshot(options);
+            OfficeImageExportResult png = range.ExportImage(OfficeImageExportFormat.Png, options);
+            string svg = range.ToSvg(options);
+
+            ExcelConditionalFormattingInfo rule = Assert.Single(sheet.GetConditionalFormattingRules("A1:A2"));
+            Assert.NotNull(rule.DifferentialBorder);
+            Assert.Equal("thick", rule.DifferentialBorder!.Top!.Style);
+            Assert.Equal("FFFF0000", rule.DifferentialBorder.Top.ColorArgb);
+            Assert.Null(snapshot.Cells.Single(cell => cell.Row == 1 && cell.Column == 1).Style.Border);
+            ExcelVisualCell matched = snapshot.Cells.Single(cell => cell.Row == 2 && cell.Column == 1);
+            Assert.Equal("thick", matched.Style.Border!.Top!.Style);
+            Assert.Equal("FFFF0000", matched.Style.Border.Top.ColorArgb);
+            Assert.Contains("#FF0000", svg, StringComparison.OrdinalIgnoreCase);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.ConditionalDifferentialFormatUnsupported);
+            Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Severity == OfficeImageExportDiagnosticSeverity.Error);
+            Assert.True(OfficePngReader.TryDecode(png.Bytes, out OfficeRasterImage? rendered));
+            Assert.NotNull(rendered);
+            Assert.True(
+                ContainsPixelNear(
+                    rendered!,
+                    matched.X + 2D,
+                    matched.Y,
+                    matched.X + matched.Width - 2D,
+                    matched.Y + 5D,
+                    OfficeColor.Red,
+                    tolerance: 3),
+                "Expected the conditional top border to render as red pixels in the PNG artifact.");
         }
 
         [Fact]
@@ -4406,6 +4485,32 @@ namespace OfficeIMO.Tests {
             stylesheet.Save();
         }
 
+        private static void ApplyCellTextIndentStyle(ExcelDocument document, ExcelSheet sheet, string cellReference, uint indent) {
+            document.EnsureWorkbookThemeAndStyles();
+            WorkbookPart workbookPart = document.WorkbookPartRoot;
+            Stylesheet stylesheet = workbookPart.WorkbookStylesPart!.Stylesheet!;
+            CellFormats formats = stylesheet.CellFormats ??= new CellFormats(new CellFormat());
+            uint styleIndex = (uint)formats.Elements<CellFormat>().Count();
+            formats.Append(new CellFormat {
+                NumberFormatId = 0U,
+                FontId = 0U,
+                FillId = 0U,
+                BorderId = 0U,
+                FormatId = 0U,
+                ApplyAlignment = true,
+                Alignment = new Alignment {
+                    Horizontal = HorizontalAlignmentValues.Left,
+                    Indent = indent
+                }
+            });
+            formats.Count = (uint)formats.Elements<CellFormat>().Count();
+
+            Worksheet worksheet = sheet.WorksheetPart.Worksheet ?? throw new InvalidOperationException("Worksheet is missing.");
+            Cell cell = worksheet.Descendants<Cell>().First(item => item.CellReference?.Value == cellReference);
+            cell.StyleIndex = styleIndex;
+            stylesheet.Save();
+        }
+
         private static void ApplyBuiltInNumberFormatId(ExcelDocument document, ExcelSheet sheet, string cellReference, uint numberFormatId) {
             document.EnsureWorkbookThemeAndStyles();
             WorkbookPart workbookPart = document.WorkbookPartRoot;
@@ -4627,16 +4732,29 @@ namespace OfficeIMO.Tests {
             return ExtractSvgClipDoubleAttribute(svg, clipId, "x");
         }
 
+        private static double ExtractSvgTextX(string svg, string text) {
+            string textMarker = ">" + text + "</text>";
+            int textEnd = svg.IndexOf(textMarker, StringComparison.Ordinal);
+            Assert.True(textEnd >= 0, "SVG did not contain text '" + text + "'.");
+            int textStart = svg.LastIndexOf("<text", textEnd, StringComparison.Ordinal);
+            Assert.True(textStart >= 0, "SVG text '" + text + "' did not have an opening text element.");
+            return ExtractSvgElementDoubleAttribute(svg, textStart, "x");
+        }
+
         private static double ExtractSvgClipDoubleAttribute(string svg, string clipId, string attributeName) {
             string marker = "id=\"" + clipId + "\"><rect";
             int clipStart = svg.IndexOf(marker, StringComparison.Ordinal);
             Assert.True(clipStart >= 0, "SVG did not contain clip path '" + clipId + "'.");
+            return ExtractSvgElementDoubleAttribute(svg, clipStart, attributeName);
+        }
+
+        private static double ExtractSvgElementDoubleAttribute(string svg, int elementStart, string attributeName) {
             string attributeMarker = attributeName + "=\"";
-            int valueStart = svg.IndexOf(attributeMarker, clipStart, StringComparison.Ordinal);
-            Assert.True(valueStart >= 0, "SVG clip path '" + clipId + "' did not contain a " + attributeName + " attribute.");
+            int valueStart = svg.IndexOf(attributeMarker, elementStart, StringComparison.Ordinal);
+            Assert.True(valueStart >= 0, "SVG element did not contain a " + attributeName + " attribute.");
             valueStart += attributeMarker.Length;
             int valueEnd = svg.IndexOf('"', valueStart);
-            Assert.True(valueEnd > valueStart, "SVG clip path '" + clipId + "' " + attributeName + " attribute was malformed.");
+            Assert.True(valueEnd > valueStart, "SVG element " + attributeName + " attribute was malformed.");
             return double.Parse(svg.Substring(valueStart, valueEnd - valueStart), System.Globalization.CultureInfo.InvariantCulture);
         }
     }

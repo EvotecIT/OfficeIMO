@@ -41,6 +41,7 @@ namespace OfficeIMO.Excel {
                         DifferentialFontUnderline = ReadDifferentialFontUnderline(stylesheet, differentialFormatId),
                         DifferentialFontName = ReadDifferentialFontName(stylesheet, differentialFormatId),
                         DifferentialFontSize = ReadDifferentialFontSize(stylesheet, differentialFormatId),
+                        DifferentialBorder = ReadDifferentialBorder(stylesheet, workbookPart, differentialFormatId),
                         Formulas = rule.Elements<Formula>().Select(f => f.Text ?? string.Empty).ToArray(),
                         ColorScaleColors = ReadColorScaleColors(rule),
                         ColorScaleThresholds = ReadColorScaleThresholds(rule),
@@ -680,6 +681,47 @@ namespace OfficeIMO.Excel {
             DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
             double? fontSize = format?.Font?.FontSize?.Val?.Value;
             return fontSize is > 0D ? fontSize : null;
+        }
+
+        private static ExcelCellBorderSnapshot? ReadDifferentialBorder(Stylesheet? stylesheet, WorkbookPart? workbookPart, uint? differentialFormatId) {
+            DifferentialFormat? format = GetDifferentialFormat(stylesheet, differentialFormatId);
+            ExcelCellBorderSnapshot? border = BuildBorderSnapshot(format?.Border, workbookPart);
+            return RemoveDifferentialColorOnlyBorderSides(border);
+        }
+
+        private static ExcelCellBorderSnapshot? RemoveDifferentialColorOnlyBorderSides(ExcelCellBorderSnapshot? border) {
+            if (border == null) {
+                return null;
+            }
+
+            ExcelBorderSideSnapshot? left = HasBorderStyle(border.Left) ? border.Left : null;
+            ExcelBorderSideSnapshot? right = HasBorderStyle(border.Right) ? border.Right : null;
+            ExcelBorderSideSnapshot? top = HasBorderStyle(border.Top) ? border.Top : null;
+            ExcelBorderSideSnapshot? bottom = HasBorderStyle(border.Bottom) ? border.Bottom : null;
+            ExcelBorderSideSnapshot? diagonal = HasBorderStyle(border.Diagonal) ? border.Diagonal : null;
+            bool diagonalUp = diagonal != null && border.DiagonalUp;
+            bool diagonalDown = diagonal != null && border.DiagonalDown;
+            if (left == null && right == null && top == null && bottom == null && diagonal == null) {
+                return null;
+            }
+
+            return new ExcelCellBorderSnapshot {
+                Left = left,
+                Right = right,
+                Top = top,
+                Bottom = bottom,
+                Diagonal = diagonal,
+                DiagonalUp = diagonalUp,
+                DiagonalDown = diagonalDown
+            };
+        }
+
+        private static bool HasBorderStyle(ExcelBorderSideSnapshot? side) {
+            if (side == null || string.IsNullOrWhiteSpace(side.Style)) {
+                return false;
+            }
+
+            return !string.Equals(side.Style, "none", StringComparison.OrdinalIgnoreCase);
         }
 
         private static DifferentialFormat? GetDifferentialFormat(Stylesheet? stylesheet, uint? differentialFormatId) {

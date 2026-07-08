@@ -4,6 +4,7 @@ using System.Globalization;
 using System.Linq;
 using DocumentFormat.OpenXml;
 using DocumentFormat.OpenXml.Packaging;
+using OfficeIMO.Drawing;
 using A = DocumentFormat.OpenXml.Drawing;
 using C = DocumentFormat.OpenXml.Drawing.Charts;
 
@@ -12,7 +13,10 @@ namespace OfficeIMO.PowerPoint {
         /// <summary>
         /// Tries to create a dependency-free snapshot for rendering/export consumers.
         /// </summary>
-        public bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) {
+        public bool TryGetSnapshot(out PowerPointChartSnapshot snapshot) =>
+            TryGetSnapshot(null, out snapshot);
+
+        internal bool TryGetSnapshot(A.ColorScheme? colorScheme, out PowerPointChartSnapshot snapshot) {
             try {
                 ChartPart chartPart = GetChartPart();
                 C.Chart? chart = chartPart.ChartSpace?.GetFirstChild<C.Chart>();
@@ -22,46 +26,53 @@ namespace OfficeIMO.PowerPoint {
                     return false;
                 }
 
+                if (TryCreateMixedChartSnapshot(chart, plotArea, colorScheme, out snapshot)) {
+                    return true;
+                }
+
                 if (CountSupportedChartElements(plotArea) > 1) {
                     snapshot = null!;
                     return false;
                 }
 
                 if (plotArea.GetFirstChild<C.BarChart>() is C.BarChart barChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>());
+                    PowerPointChartSnapshotKind kind = GetBarChartSnapshotKind(barChart);
+                    PowerPointChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, GetBarChartSnapshotKind(barChart), data);
+                    snapshot = CreateSnapshot(chart, kind, data);
                     return true;
                 }
 
                 if (plotArea.GetFirstChild<C.LineChart>() is C.LineChart lineChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>());
+                    PowerPointChartSnapshotKind kind = GetLineChartSnapshotKind(lineChart);
+                    PowerPointChartData? data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, GetLineChartSnapshotKind(lineChart), data);
+                    snapshot = CreateSnapshot(chart, kind, data);
                     return true;
                 }
 
                 if (plotArea.GetFirstChild<C.AreaChart>() is C.AreaChart areaChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>());
+                    PowerPointChartSnapshotKind kind = GetAreaChartSnapshotKind(areaChart);
+                    PowerPointChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
                     }
 
-                    snapshot = CreateSnapshot(chart, GetAreaChartSnapshotKind(areaChart), data);
+                    snapshot = CreateSnapshot(chart, kind, data);
                     return true;
                 }
 
                 if (plotArea.GetFirstChild<C.RadarChart>() is C.RadarChart radarChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(radarChart.Elements<C.RadarChartSeries>().Cast<OpenXmlCompositeElement>());
+                    PowerPointChartData? data = ReadCategorySeriesData(radarChart.Elements<C.RadarChartSeries>().Cast<OpenXmlCompositeElement>(), PowerPointChartSnapshotKind.Radar, colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -72,7 +83,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (plotArea.GetFirstChild<C.ScatterChart>() is C.ScatterChart scatterChart) {
-                    PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>());
+                    PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -83,7 +94,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (plotArea.GetFirstChild<C.PieChart>() is C.PieChart pieChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(pieChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>());
+                    PowerPointChartData? data = ReadCategorySeriesData(pieChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), PowerPointChartSnapshotKind.Pie, colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -94,7 +105,7 @@ namespace OfficeIMO.PowerPoint {
                 }
 
                 if (plotArea.GetFirstChild<C.DoughnutChart>() is C.DoughnutChart doughnutChart) {
-                    PowerPointChartData? data = ReadCategorySeriesData(doughnutChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>());
+                    PowerPointChartData? data = ReadCategorySeriesData(doughnutChart.Elements<C.PieChartSeries>().Cast<OpenXmlCompositeElement>(), PowerPointChartSnapshotKind.Doughnut, colorScheme);
                     if (data == null) {
                         snapshot = null!;
                         return false;
@@ -121,6 +132,82 @@ namespace OfficeIMO.PowerPoint {
                 + plotArea.Elements<C.PieChart>().Count()
                 + plotArea.Elements<C.DoughnutChart>().Count();
         }
+
+        private bool TryCreateMixedChartSnapshot(C.Chart chart, C.PlotArea plotArea, A.ColorScheme? colorScheme, out PowerPointChartSnapshot snapshot) {
+            snapshot = null!;
+            if (CountSupportedChartElements(plotArea) <= 1) {
+                return false;
+            }
+
+            var parts = new List<(PowerPointChartSnapshotKind Kind, PowerPointChartData Data)>();
+            foreach (OpenXmlElement element in plotArea.ChildElements) {
+                if (element is C.BarChart barChart) {
+                    PowerPointChartSnapshotKind kind = GetBarChartSnapshotKind(barChart);
+                    PowerPointChartData? data = ReadCategorySeriesData(barChart.Elements<C.BarChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
+                    if (data != null) {
+                        parts.Add((kind, data));
+                    }
+                } else if (element is C.LineChart lineChart) {
+                    PowerPointChartSnapshotKind kind = GetLineChartSnapshotKind(lineChart);
+                    PowerPointChartData? data = ReadCategorySeriesData(lineChart.Elements<C.LineChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
+                    if (data != null) {
+                        parts.Add((kind, data));
+                    }
+                } else if (element is C.AreaChart areaChart) {
+                    PowerPointChartSnapshotKind kind = GetAreaChartSnapshotKind(areaChart);
+                    PowerPointChartData? data = ReadCategorySeriesData(areaChart.Elements<C.AreaChartSeries>().Cast<OpenXmlCompositeElement>(), kind, colorScheme);
+                    if (data != null) {
+                        parts.Add((kind, data));
+                    }
+                } else if (element is C.ScatterChart scatterChart) {
+                    PowerPointChartData? data = ReadScatterSeriesData(scatterChart.Elements<C.ScatterChartSeries>(), colorScheme);
+                    if (data != null) {
+                        parts.Add((PowerPointChartSnapshotKind.Scatter, data));
+                    }
+                }
+            }
+
+            if (parts.Count <= 1) {
+                return false;
+            }
+
+            if (parts.Any(part => part.Kind == PowerPointChartSnapshotKind.Scatter) &&
+                parts.Any(part => part.Kind != PowerPointChartSnapshotKind.Scatter)) {
+                return false;
+            }
+
+            if (parts.Any(part => IsHorizontalBarKind(part.Kind)) &&
+                parts.Any(part => !IsHorizontalBarKind(part.Kind))) {
+                return false;
+            }
+
+            IReadOnlyList<string> categories = parts[0].Data.Categories;
+            var series = new List<PowerPointChartSeries>();
+            foreach (var part in parts) {
+                foreach (PowerPointChartSeries item in part.Data.Series) {
+                    if (item.Values.Count == categories.Count || HasAlignedScatterPoints(item)) {
+                        series.Add(item);
+                    }
+                }
+            }
+
+            if (series.Count == 0) {
+                return false;
+            }
+
+            snapshot = CreateSnapshot(chart, parts[0].Kind, new PowerPointChartData(categories, series));
+            return true;
+        }
+
+        private static bool HasAlignedScatterPoints(PowerPointChartSeries series) =>
+            series.XValues != null &&
+            series.XValues.Count == series.Values.Count &&
+            series.Values.Count > 0;
+
+        private static bool IsHorizontalBarKind(PowerPointChartSnapshotKind kind) =>
+            kind == PowerPointChartSnapshotKind.ClusteredBar ||
+            kind == PowerPointChartSnapshotKind.StackedBar ||
+            kind == PowerPointChartSnapshotKind.StackedBar100;
 
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart, PowerPointChartSnapshotKind kind, PowerPointChartData data) {
             return new PowerPointChartSnapshot(
@@ -174,7 +261,7 @@ namespace OfficeIMO.PowerPoint {
             return PowerPointChartSnapshotKind.Area;
         }
 
-        private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements) {
+        private static PowerPointChartData? ReadCategorySeriesData(IEnumerable<OpenXmlCompositeElement> seriesElements, PowerPointChartSnapshotKind? chartKind = null, A.ColorScheme? colorScheme = null) {
             var seriesList = seriesElements.ToList();
             if (seriesList.Count == 0) {
                 return null;
@@ -214,13 +301,13 @@ namespace OfficeIMO.PowerPoint {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
                 }
 
-                series.Add(new PowerPointChartSeries(name, values));
+                series.Add(new PowerPointChartSeries(name, values, null, chartKind, ReadSeriesColor(seriesElement, chartKind, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
             }
 
             return series.Count == 0 ? null : new PowerPointChartData(categories, series);
         }
 
-        private static PowerPointChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements) {
+        private static PowerPointChartData? ReadScatterSeriesData(IEnumerable<C.ScatterChartSeries> seriesElements, A.ColorScheme? colorScheme = null) {
             var seriesList = seriesElements.ToList();
             if (seriesList.Count == 0) {
                 return null;
@@ -248,7 +335,7 @@ namespace OfficeIMO.PowerPoint {
                     name = "Series " + (i + 1).ToString(CultureInfo.InvariantCulture);
                 }
 
-                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList()));
+                series.Add(new PowerPointChartSeries(name, values, xValues.Take(pointCount).ToList(), PowerPointChartSnapshotKind.Scatter, ReadSeriesColor(seriesElement, PowerPointChartSnapshotKind.Scatter, colorScheme), ReadSeriesStrokeWidth(seriesElement)));
             }
 
             if (series.Count == 0 || categoryXValues == null || categoryXValues.Count == 0) {
@@ -259,6 +346,46 @@ namespace OfficeIMO.PowerPoint {
                 .Select(value => value.ToString(CultureInfo.InvariantCulture))
                 .ToList();
             return series.Count == 0 ? null : new PowerPointChartData(categories, series);
+        }
+
+        private static OfficeColor? ReadSeriesColor(OpenXmlCompositeElement seriesElement, PowerPointChartSnapshotKind? chartKind, A.ColorScheme? colorScheme) {
+            C.ChartShapeProperties? properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
+            if (properties == null) {
+                return null;
+            }
+
+            OfficeColor? fillColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.SolidFill>(), colorScheme);
+            if (IsFilledChartKind(chartKind)) {
+                return fillColor;
+            }
+
+            OfficeColor? lineColor = PowerPointThemeColorResolver.ResolveSolidFillOfficeColor(properties.GetFirstChild<A.Outline>()?.GetFirstChild<A.SolidFill>(), colorScheme);
+            if (lineColor.HasValue) {
+                return lineColor;
+            }
+
+            return fillColor;
+        }
+
+        private static bool IsFilledChartKind(PowerPointChartSnapshotKind? chartKind) =>
+            chartKind == PowerPointChartSnapshotKind.ClusteredColumn ||
+            chartKind == PowerPointChartSnapshotKind.StackedColumn ||
+            chartKind == PowerPointChartSnapshotKind.StackedColumn100 ||
+            chartKind == PowerPointChartSnapshotKind.ClusteredBar ||
+            chartKind == PowerPointChartSnapshotKind.StackedBar ||
+            chartKind == PowerPointChartSnapshotKind.StackedBar100 ||
+            chartKind == PowerPointChartSnapshotKind.Area ||
+            chartKind == PowerPointChartSnapshotKind.StackedArea ||
+            chartKind == PowerPointChartSnapshotKind.StackedArea100 ||
+            chartKind == PowerPointChartSnapshotKind.Pie ||
+            chartKind == PowerPointChartSnapshotKind.Doughnut;
+
+        private static double? ReadSeriesStrokeWidth(OpenXmlCompositeElement seriesElement) {
+            C.ChartShapeProperties? properties = seriesElement.GetFirstChild<C.ChartShapeProperties>();
+            long? widthEmus = properties?.GetFirstChild<A.Outline>()?.Width?.Value;
+            return widthEmus.HasValue && widthEmus.Value > 0L
+                ? PowerPointUnits.ToPoints(widthEmus.Value)
+                : null;
         }
 
         private static string? ReadTitle(C.Chart chart) {
