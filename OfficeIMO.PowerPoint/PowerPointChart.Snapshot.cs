@@ -176,6 +176,11 @@ namespace OfficeIMO.PowerPoint {
                 return false;
             }
 
+            if (parts.Any(part => IsHorizontalBarKind(part.Kind)) &&
+                parts.Any(part => !IsHorizontalBarKind(part.Kind))) {
+                return false;
+            }
+
             IReadOnlyList<string> categories = parts[0].Data.Categories;
             var series = new List<PowerPointChartSeries>();
             foreach (var part in parts) {
@@ -198,6 +203,11 @@ namespace OfficeIMO.PowerPoint {
             series.XValues != null &&
             series.XValues.Count == series.Values.Count &&
             series.Values.Count > 0;
+
+        private static bool IsHorizontalBarKind(PowerPointChartSnapshotKind kind) =>
+            kind == PowerPointChartSnapshotKind.ClusteredBar ||
+            kind == PowerPointChartSnapshotKind.StackedBar ||
+            kind == PowerPointChartSnapshotKind.StackedBar100;
 
         private PowerPointChartSnapshot CreateSnapshot(C.Chart chart, PowerPointChartSnapshotKind kind, PowerPointChartData data) {
             return new PowerPointChartSnapshot(

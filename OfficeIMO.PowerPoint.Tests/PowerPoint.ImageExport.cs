@@ -2677,6 +2677,26 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void PowerPointSlide_RejectsHorizontalBarComboChartsWithLineSeriesUntilAxisMappingIsModeled() {
+            using var stream = new MemoryStream();
+            using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
+            presentation.SlideSize.SetSizePoints(360, 240);
+            PowerPointSlide slide = presentation.Slides[0];
+            var data = new PowerPointChartData(
+                new[] { "Q1", "Q2", "Q3" },
+                new[] {
+                    new PowerPointChartSeries("Bars", new[] { 10D, 16D, 22D }),
+                    new PowerPointChartSeries("Trend", new[] { 12D, 18D, 24D })
+                });
+
+            PowerPointChart chart = slide.AddChartPoints(data, 30, 25, 280, 180);
+            SetBarChartShape(chart, C.BarDirectionValues.Bar, C.BarGroupingValues.Clustered);
+            ConvertSecondBarSeriesToLineChart(chart);
+
+            Assert.False(chart.TryGetSnapshot(out _));
+        }
+
+        [Fact]
         public void PowerPointSlide_RendersThemeChartSeriesColorsThroughSharedDrawingChartRenderer() {
             using var stream = new MemoryStream();
             using PowerPointPresentation presentation = PowerPointPresentation.Create(stream);
@@ -3413,6 +3433,14 @@ namespace OfficeIMO.Tests {
 
             barSeries.Remove();
             barChart.InsertAfterSelf(lineChart);
+            chartPart.ChartSpace.Save();
+        }
+
+        private static void SetBarChartShape(PowerPointChart chart, C.BarDirectionValues direction, C.BarGroupingValues grouping) {
+            DocumentFormat.OpenXml.Packaging.ChartPart chartPart = GetChartPart(chart);
+            C.BarChart barChart = chartPart.ChartSpace!.Descendants<C.BarChart>().Single();
+            barChart.GetFirstChild<C.BarDirection>()!.Val = direction;
+            barChart.GetFirstChild<C.BarGrouping>()!.Val = grouping;
             chartPart.ChartSpace.Save();
         }
 

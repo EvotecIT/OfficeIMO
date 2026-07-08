@@ -32,6 +32,15 @@ namespace OfficeIMO.Visio {
             }
 
             bool useEvenOddClip = UseEvenOddClip(definition, context.StyleSheet);
+            if (!useEvenOddClip) {
+                foreach (XElement child in definition.Descendants()) {
+                    if (UseEvenOddClip(child, context.StyleSheet)) {
+                        useEvenOddClip = true;
+                        break;
+                    }
+                }
+            }
+
             return useEvenOddClip
                 ? canvas.PushClipPolygonsEvenOdd(contours)
                 : canvas.PushClipPolygonsNonZero(contours);

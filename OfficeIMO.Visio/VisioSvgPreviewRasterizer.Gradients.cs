@@ -372,6 +372,10 @@ namespace OfficeIMO.Visio {
                 !ClipLinearGradientEdge(-dy, y1, ref t0, ref t1) ||
                 !ClipLinearGradientEdge(dy, 1D - y1, ref t0, ref t1) ||
                 t1 <= t0) {
+                if (TryProjectParallelGradientThroughUnitBox(x1, y1, dx, dy, stops, out clippedStart, out clippedEnd, out clippedStops)) {
+                    return true;
+                }
+
                 double lengthSquared = (dx * dx) + (dy * dy);
                 double nearestRatio = lengthSquared > double.Epsilon
                     ? (((0.5D - x1) * dx) + ((0.5D - y1) * dy)) / lengthSquared
@@ -400,6 +404,69 @@ namespace OfficeIMO.Visio {
             }
 
             adjusted.Add(new OfficeGradientStop(1D, InterpolateGradientColor(stops, t1)));
+            clippedStops = NormalizeStops(adjusted);
+            return clippedStops.Count >= 2 && !(clippedStart.X.Equals(clippedEnd.X) && clippedStart.Y.Equals(clippedEnd.Y));
+        }
+
+        private static bool TryProjectParallelGradientThroughUnitBox(
+            double x1,
+            double y1,
+            double dx,
+            double dy,
+            IReadOnlyList<OfficeGradientStop> stops,
+            out OfficePoint clippedStart,
+            out OfficePoint clippedEnd,
+            out IReadOnlyList<OfficeGradientStop> clippedStops) {
+            clippedStart = default;
+            clippedEnd = default;
+            clippedStops = Array.Empty<OfficeGradientStop>();
+            const double epsilon = 0.0000001D;
+            if (Math.Abs(dx) < epsilon && Math.Abs(dy) > epsilon) {
+                double x = ClampUnit(x1);
+                return TryCreateRebasedLinearGradient(x, 0D, x, 1D, (0D - y1) / dy, (1D - y1) / dy, stops, out clippedStart, out clippedEnd, out clippedStops);
+            }
+
+            if (Math.Abs(dy) < epsilon && Math.Abs(dx) > epsilon) {
+                double y = ClampUnit(y1);
+                return TryCreateRebasedLinearGradient(0D, y, 1D, y, (0D - x1) / dx, (1D - x1) / dx, stops, out clippedStart, out clippedEnd, out clippedStops);
+            }
+
+            return false;
+        }
+
+        private static bool TryCreateRebasedLinearGradient(
+            double startX,
+            double startY,
+            double endX,
+            double endY,
+            double tStart,
+            double tEnd,
+            IReadOnlyList<OfficeGradientStop> stops,
+            out OfficePoint clippedStart,
+            out OfficePoint clippedEnd,
+            out IReadOnlyList<OfficeGradientStop> clippedStops) {
+            clippedStart = new OfficePoint(startX, startY);
+            clippedEnd = new OfficePoint(endX, endY);
+            clippedStops = Array.Empty<OfficeGradientStop>();
+            if (Math.Abs(tEnd - tStart) < 0.0000001D) {
+                return false;
+            }
+
+            var adjusted = new List<OfficeGradientStop> {
+                new OfficeGradientStop(0D, InterpolateGradientColor(stops, tStart))
+            };
+            double min = Math.Min(tStart, tEnd);
+            double max = Math.Max(tStart, tEnd);
+            for (int i = 0; i < stops.Count; i++) {
+                double offset = stops[i].Offset;
+                if (offset <= min || offset >= max) {
+                    continue;
+                }
+
+                adjusted.Add(new OfficeGradientStop((offset - tStart) / (tEnd - tStart), stops[i].Color));
+            }
+
+            adjusted.Add(new OfficeGradientStop(1D, InterpolateGradientColor(stops, tEnd)));
             clippedStops = NormalizeStops(adjusted);
             return clippedStops.Count >= 2 && !(clippedStart.X.Equals(clippedEnd.X) && clippedStart.Y.Equals(clippedEnd.Y));
         }

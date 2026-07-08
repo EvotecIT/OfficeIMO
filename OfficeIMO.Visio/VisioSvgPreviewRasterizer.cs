@@ -469,14 +469,14 @@ namespace OfficeIMO.Visio {
                     FillGradientContours(canvas, closedContours, null, paint.FillRadialGradient, useEvenOddFill);
                 } else if (paint.FillGradient != null) {
                     FillGradientContours(canvas, closedContours, paint.FillGradient, null, useEvenOddFill);
-                } else if (useEvenOddFill && closedContours.Count > 1) {
-                    canvas.FillPolygonsEvenOdd(closedContours, paint.Fill);
-                } else if (closedContours.Count > 1) {
-                    canvas.FillPolygonsNonZero(closedContours, paint.Fill);
-                } else {
-                    for (int i = 0; i < closedContours.Count; i++) {
-                        canvas.FillPolygon(closedContours[i], paint.Fill);
+                } else if (useEvenOddFill) {
+                    if (closedContours.Count > 1) {
+                        canvas.FillPolygonsEvenOdd(closedContours, paint.Fill);
+                    } else {
+                        canvas.FillPolygon(closedContours[0], paint.Fill);
                     }
+                } else {
+                    canvas.FillPolygonsNonZero(closedContours, paint.Fill);
                 }
 
                 rendered = true;
@@ -506,7 +506,7 @@ namespace OfficeIMO.Visio {
             OfficeLinearGradient? linearGradient,
             OfficeRadialGradient? radialGradient,
             bool useEvenOddFill) {
-            if (contours.Count == 1) {
+            if (contours.Count == 1 && useEvenOddFill) {
                 FillGradientContour(canvas, contours[0], linearGradient, radialGradient);
                 return;
             }
