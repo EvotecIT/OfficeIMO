@@ -39,10 +39,12 @@ internal static partial class CsvParser
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
         var metadataAccepted = false;
+        var stringCache = CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader);
 
         while (pendingLines.Count > 0 || true)
         {
+            ThrowIfCancellationRequested(options);
             string? fastLine = null;
             string lineSeparator;
             CsvLineReadResult readResult;
@@ -65,8 +67,10 @@ internal static partial class CsvParser
             {
                 if (ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
+                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
                     ProcessReusableRecord(reusableRecord, startsWithCommentCharacter: false, metadataRecordAction, recordAction, ref metadataAccepted);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
@@ -94,44 +98,57 @@ internal static partial class CsvParser
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
+                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
                     ProcessReusableRecord(reusableRecord, startsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
                 continue;
             }
 
-            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+            try
             {
-                var logicalRecord = new System.Text.StringBuilder(line);
-                var pendingSeparator = lineSeparator;
-                while (true)
+                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
                 {
-                    var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                    if (next == null)
+                    var logicalRecord = new System.Text.StringBuilder(line);
+                    var pendingSeparator = lineSeparator;
+                    while (true)
                     {
-                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        ThrowIfCancellationRequested(options);
+                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
+                        if (next == null)
+                        {
+                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        }
+
+                        logicalRecord.Append(pendingSeparator);
+                        logicalRecord.Append(next);
+                        lineNumber++;
+
+                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+                        {
+                            break;
+                        }
+
+                        pendingSeparator = nextSeparator;
                     }
-
-                    logicalRecord.Append(pendingSeparator);
-                    logicalRecord.Append(next);
-                    lineNumber++;
-
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
-                    {
-                        break;
-                    }
-
-                    pendingSeparator = nextSeparator;
                 }
+            }
+            catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
+            {
+                lineNumber++;
+                continue;
             }
 
             if (ShouldEmitRecord(reusableQuotedRecord, allowEmpty) &&
                 !ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
             {
+                PrepareParsedRecord(reusableQuotedRecord, options, lineNumber, quotedRecord: true, stringCache);
                 ProcessReusableRecord(reusableQuotedRecord, startsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
                 emittedRecordCount++;
+                ReportProgress(options, emittedRecordCount, lineNumber);
             }
 
             lineNumber++;

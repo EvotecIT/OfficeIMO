@@ -118,10 +118,12 @@ internal static partial class CsvParser
         var lineNumber = 1;
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
+        var stringCache = CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader);
 
         while (ReadLineWithSeparator(lineReader, pendingLines, out var lineSeparator) is { } line)
         {
+            ThrowIfCancellationRequested(options);
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (TrySkipCommentRecordBeforeParsing(lineReader, pendingLines, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
             {
@@ -134,8 +136,10 @@ internal static partial class CsvParser
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
                 {
+                    PrepareParsedRecord(record, options, lineNumber, quotedRecord: false, stringCache);
                     recordAction(record);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
@@ -143,37 +147,48 @@ internal static partial class CsvParser
             }
 
             string[] fields;
-            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
+            try
             {
-                var logicalRecord = new StringBuilder(line);
-                var pendingSeparator = lineSeparator;
-                while (true)
+                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
                 {
-                    var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                    if (next == null)
+                    var logicalRecord = new StringBuilder(line);
+                    var pendingSeparator = lineSeparator;
+                    while (true)
                     {
-                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        ThrowIfCancellationRequested(options);
+                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
+                        if (next == null)
+                        {
+                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        }
+
+                        logicalRecord.Append(pendingSeparator);
+                        logicalRecord.Append(next);
+                        lineNumber++;
+
+                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
+                        {
+                            break;
+                        }
+
+                        pendingSeparator = nextSeparator;
                     }
-
-                    logicalRecord.Append(pendingSeparator);
-                    logicalRecord.Append(next);
-                    lineNumber++;
-
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
-                    {
-                        break;
-                    }
-
-                    pendingSeparator = nextSeparator;
                 }
+            }
+            catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
+            {
+                lineNumber++;
+                continue;
             }
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
                 {
+                    PrepareParsedRecord(fields, options, lineNumber, quotedRecord: true, stringCache);
                     recordAction(fields);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
             }
 
@@ -201,10 +216,12 @@ internal static partial class CsvParser
         var lineNumber = 1;
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
+        var stringCache = CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader);
 
         while (ReadLineWithSeparator(lineReader, pendingLines, out var lineSeparator) is { } line)
         {
+            ThrowIfCancellationRequested(options);
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
             if (TrySkipCommentRecordBeforeParsing(lineReader, pendingLines, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
             {
@@ -217,8 +234,10 @@ internal static partial class CsvParser
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
                 {
+                    PrepareParsedRecord(record, options, lineNumber, quotedRecord: false, stringCache);
                     yield return new CsvParsedRecord(record, startsWithCommentCharacter);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
@@ -226,37 +245,48 @@ internal static partial class CsvParser
             }
 
             string[] fields;
-            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
+            try
             {
-                var logicalRecord = new StringBuilder(line);
-                var pendingSeparator = lineSeparator;
-                while (true)
+                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, out fields))
                 {
-                    var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                    if (next == null)
+                    var logicalRecord = new StringBuilder(line);
+                    var pendingSeparator = lineSeparator;
+                    while (true)
                     {
-                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        ThrowIfCancellationRequested(options);
+                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
+                        if (next == null)
+                        {
+                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        }
+
+                        logicalRecord.Append(pendingSeparator);
+                        logicalRecord.Append(next);
+                        lineNumber++;
+
+                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
+                        {
+                            break;
+                        }
+
+                        pendingSeparator = nextSeparator;
                     }
-
-                    logicalRecord.Append(pendingSeparator);
-                    logicalRecord.Append(next);
-                    lineNumber++;
-
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, out fields))
-                    {
-                        break;
-                    }
-
-                    pendingSeparator = nextSeparator;
                 }
+            }
+            catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
+            {
+                lineNumber++;
+                continue;
             }
 
             if (ShouldEmitRecord(fields, allowEmpty))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
                 {
+                    PrepareParsedRecord(fields, options, lineNumber, quotedRecord: true, stringCache);
                     yield return new CsvParsedRecord(fields, startsWithCommentCharacter);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
             }
 
@@ -275,10 +305,12 @@ internal static partial class CsvParser
         var reusableQuotedRecord = new List<string>(64);
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
+        var stringCache = CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader);
 
         while (pendingLines.Count > 0 || true)
         {
+            ThrowIfCancellationRequested(options);
             string? fastLine = null;
             string lineSeparator;
             CsvLineReadResult readResult;
@@ -301,8 +333,10 @@ internal static partial class CsvParser
             {
                 if (ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
+                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
                     recordAction(reusableRecord);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
@@ -329,45 +363,58 @@ internal static partial class CsvParser
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
+                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
                     recordAction(reusableRecord);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
                 continue;
             }
 
-            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+            try
             {
-                var logicalRecord = new StringBuilder(line);
-                var pendingSeparator = lineSeparator;
-                while (true)
+                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
                 {
-                    var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                    if (next == null)
+                    var logicalRecord = new StringBuilder(line);
+                    var pendingSeparator = lineSeparator;
+                    while (true)
                     {
-                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        ThrowIfCancellationRequested(options);
+                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
+                        if (next == null)
+                        {
+                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        }
+
+                        logicalRecord.Append(pendingSeparator);
+                        logicalRecord.Append(next);
+                        lineNumber++;
+
+                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+                        {
+                            break;
+                        }
+
+                        pendingSeparator = nextSeparator;
                     }
-
-                    logicalRecord.Append(pendingSeparator);
-                    logicalRecord.Append(next);
-                    lineNumber++;
-
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
-                    {
-                        break;
-                    }
-
-                    pendingSeparator = nextSeparator;
                 }
+            }
+            catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
+            {
+                lineNumber++;
+                continue;
             }
 
             if (ShouldEmitRecord(reusableQuotedRecord, allowEmpty))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
                 {
+                    PrepareParsedRecord(reusableQuotedRecord, options, lineNumber, quotedRecord: true, stringCache);
                     recordAction(reusableQuotedRecord);
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
             }
 
@@ -386,10 +433,12 @@ internal static partial class CsvParser
         var reusableQuotedRecord = new List<string>(64);
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
+        var stringCache = CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader);
 
         while (pendingLines.Count > 0 || true)
         {
+            ThrowIfCancellationRequested(options);
             string? fastLine = null;
             string lineSeparator;
             CsvLineReadResult readResult;
@@ -412,8 +461,10 @@ internal static partial class CsvParser
             {
                 if (ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
+                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
                     recordAction(new CsvParsedRecord(reusableRecord, startsWithCommentCharacter: false));
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
@@ -440,45 +491,58 @@ internal static partial class CsvParser
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
+                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
                     recordAction(new CsvParsedRecord(reusableRecord, startsWithCommentCharacter));
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
 
                 lineNumber++;
                 continue;
             }
 
-            if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+            try
             {
-                var logicalRecord = new StringBuilder(line);
-                var pendingSeparator = lineSeparator;
-                while (true)
+                if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
                 {
-                    var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
-                    if (next == null)
+                    var logicalRecord = new StringBuilder(line);
+                    var pendingSeparator = lineSeparator;
+                    while (true)
                     {
-                        throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        ThrowIfCancellationRequested(options);
+                        var next = ReadLineWithSeparator(lineReader, pendingLines, out var nextSeparator);
+                        if (next == null)
+                        {
+                            throw new CsvParseException("Unterminated quoted field.", lineNumber);
+                        }
+
+                        logicalRecord.Append(pendingSeparator);
+                        logicalRecord.Append(next);
+                        lineNumber++;
+
+                        if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
+                        {
+                            break;
+                        }
+
+                        pendingSeparator = nextSeparator;
                     }
-
-                    logicalRecord.Append(pendingSeparator);
-                    logicalRecord.Append(next);
-                    lineNumber++;
-
-                    if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
-                    {
-                        break;
-                    }
-
-                    pendingSeparator = nextSeparator;
                 }
+            }
+            catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
+            {
+                lineNumber++;
+                continue;
             }
 
             if (ShouldEmitRecord(reusableQuotedRecord, allowEmpty))
             {
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
                 {
+                    PrepareParsedRecord(reusableQuotedRecord, options, lineNumber, quotedRecord: true, stringCache);
                     recordAction(new CsvParsedRecord(reusableQuotedRecord, startsWithCommentCharacter));
                     emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
                 }
             }
 
@@ -866,5 +930,117 @@ internal static partial class CsvParser
     {
         return fields.Count != 0 &&
             (allowEmpty || fields.Count != 1 || fields[0].Length != 0);
+    }
+
+    private static Dictionary<string, string>? CreateStringCache(CsvLoadOptions options) =>
+        options.InternStrings ? new Dictionary<string, string>(StringComparer.Ordinal) : null;
+
+    private static void ThrowIfCancellationRequested(CsvLoadOptions options)
+    {
+        if (options.CancellationToken.CanBeCanceled)
+        {
+            options.CancellationToken.ThrowIfCancellationRequested();
+        }
+    }
+
+    private static void ReportProgress(CsvLoadOptions options, long emittedRecordCount, int lineNumber)
+    {
+        if (options.ProgressCallback is null || options.ProgressReportInterval <= 0)
+        {
+            return;
+        }
+
+        if (emittedRecordCount % options.ProgressReportInterval == 0)
+        {
+            options.ProgressCallback(new CsvProgress(emittedRecordCount, lineNumber));
+        }
+    }
+
+    private static bool HandleParseError(CsvLoadOptions options, CsvParseException exception, int lineNumber)
+    {
+        if (options.CollectParseErrors)
+        {
+            var errors = options.ParseErrors ??= new List<CsvParseError>();
+            errors.Add(new CsvParseError(exception.LineNumber ?? lineNumber, exception.Message, exception));
+            if (options.MaxParseErrors >= 0 && errors.Count > options.MaxParseErrors)
+            {
+                throw new CsvParseException($"CSV parse error limit of {options.MaxParseErrors} was exceeded.", lineNumber, exception);
+            }
+        }
+
+        if (options.ParseErrorAction == CsvParseErrorAction.SkipRow)
+        {
+            return true;
+        }
+
+        throw exception;
+    }
+
+    private static void PrepareParsedRecord(string[] fields, CsvLoadOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    {
+        for (var i = 0; i < fields.Length; i++)
+        {
+            fields[i] = PrepareParsedField(fields[i], options, lineNumber, quotedRecord, stringCache);
+        }
+    }
+
+    private static void PrepareParsedRecord(List<string> fields, CsvLoadOptions options, int lineNumber, bool quotedRecord, Dictionary<string, string>? stringCache)
+    {
+        for (var i = 0; i < fields.Count; i++)
+        {
+            fields[i] = PrepareParsedField(fields[i], options, lineNumber, quotedRecord, stringCache);
+        }
+    }
+
+    private static string PrepareParsedField(string value, CsvLoadOptions options, int lineNumber, bool quotedField, Dictionary<string, string>? stringCache)
+    {
+        if (options.MaxFieldLength is { } maxFieldLength && value.Length > maxFieldLength)
+        {
+            throw new CsvParseException($"CSV field length {value.Length} exceeds the configured maximum of {maxFieldLength}.", lineNumber);
+        }
+
+        if (quotedField && options.MaxQuotedFieldLength is { } maxQuotedFieldLength && value.Length > maxQuotedFieldLength)
+        {
+            throw new CsvParseException($"CSV quoted field length {value.Length} exceeds the configured maximum of {maxQuotedFieldLength}.", lineNumber);
+        }
+
+        if (options.NormalizeQuotes)
+        {
+            value = NormalizeSmartQuotes(value);
+        }
+
+        if (stringCache is not null)
+        {
+            if (stringCache.TryGetValue(value, out var cached))
+            {
+                return cached;
+            }
+
+            stringCache[value] = value;
+        }
+
+        return value;
+    }
+
+    private static string NormalizeSmartQuotes(string value)
+    {
+        var replacementIndex = value.IndexOfAny(new[] { '\u2018', '\u2019', '\u201A', '\u201B', '\u201C', '\u201D', '\u201E', '\u201F' });
+        if (replacementIndex < 0)
+        {
+            return value;
+        }
+
+        var chars = value.ToCharArray();
+        for (var i = replacementIndex; i < chars.Length; i++)
+        {
+            chars[i] = chars[i] switch
+            {
+                '\u2018' or '\u2019' or '\u201A' or '\u201B' => '\'',
+                '\u201C' or '\u201D' or '\u201E' or '\u201F' => '"',
+                _ => chars[i]
+            };
+        }
+
+        return new string(chars);
     }
 }

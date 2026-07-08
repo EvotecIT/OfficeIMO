@@ -2,6 +2,7 @@
 
 using System.Globalization;
 using System.Text;
+using System.Threading;
 
 namespace OfficeIMO.CSV;
 
@@ -142,10 +143,71 @@ public sealed class CsvLoadOptions
     public long? MaxDecompressedBytes { get; set; }
 
     /// <summary>
+    /// Gets or sets an optional cancellation token checked while reading records.
+    /// </summary>
+    public CancellationToken CancellationToken { get; set; }
+
+    /// <summary>
+    /// Gets or sets how often <see cref="ProgressCallback"/> is called, in emitted records.
+    /// Default is <c>0</c>, which disables progress callbacks.
+    /// </summary>
+    public int ProgressReportInterval { get; set; }
+
+    /// <summary>
+    /// Gets or sets an optional callback invoked as records are emitted.
+    /// </summary>
+    public Action<CsvProgress>? ProgressCallback { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether parse errors should be collected into <see cref="ParseErrors"/>.
+    /// </summary>
+    public bool CollectParseErrors { get; set; }
+
+    /// <summary>
+    /// Gets or sets how parse errors are handled. Default throws immediately.
+    /// </summary>
+    public CsvParseErrorAction ParseErrorAction { get; set; } = CsvParseErrorAction.Throw;
+
+    /// <summary>
+    /// Gets or sets the maximum number of collected parse errors before parsing fails. Default is <c>100</c>.
+    /// </summary>
+    public int MaxParseErrors { get; set; } = 100;
+
+    /// <summary>
+    /// Gets or sets the collection receiving parse errors when <see cref="CollectParseErrors"/> is enabled.
+    /// </summary>
+    public IList<CsvParseError>? ParseErrors { get; set; }
+
+    /// <summary>
+    /// Gets or sets an optional maximum length for any parsed field.
+    /// </summary>
+    public int? MaxFieldLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets an optional maximum length for fields parsed from quoted records.
+    /// </summary>
+    public int? MaxQuotedFieldLength { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether curly quote characters are normalized to straight quotes while reading.
+    /// </summary>
+    public bool NormalizeQuotes { get; set; }
+
+    /// <summary>
+    /// Gets or sets whether repeated string values are reused through a per-read string cache.
+    /// </summary>
+    public bool InternStrings { get; set; }
+
+    /// <summary>
     /// Creates an options copy with mutable collections snapshotted for deferred reads.
     /// </summary>
     public CsvLoadOptions Clone()
     {
+        if (CollectParseErrors && ParseErrors is null)
+        {
+            ParseErrors = new List<CsvParseError>();
+        }
+
         var clone = (CsvLoadOptions)MemberwiseClone();
         clone.Header = Header is null ? null : (string[])Header.Clone();
         clone.DateTimeFormats = DateTimeFormats is null ? null : (string[])DateTimeFormats.Clone();

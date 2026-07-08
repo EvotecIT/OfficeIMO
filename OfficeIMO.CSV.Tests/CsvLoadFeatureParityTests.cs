@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -173,6 +174,83 @@ public class CsvLoadFeatureParityTests
         }
 
         Assert.Equal("Name,Value\nAlpha,<null>\n", writer.ToString());
+    }
+
+    [Fact]
+    public void Load_Honors_Cancellation_Token()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            CsvDocument.Parse(
+                "Name\nAlpha\n",
+                new CsvLoadOptions { CancellationToken = cancellation.Token }));
+    }
+
+    [Fact]
+    public void Load_Reports_Progress_At_Configured_Interval()
+    {
+        var reports = new List<long>();
+
+        CsvDocument.Parse(
+            "Name\nAlpha\nBeta\nGamma\n",
+            new CsvLoadOptions {
+                ProgressReportInterval = 2,
+                ProgressCallback = progress => reports.Add(progress.RecordsRead)
+            });
+
+        Assert.Equal(new[] { 2L, 4L }, reports);
+    }
+
+    [Fact]
+    public void Load_Collects_And_Skips_Parse_Errors_When_Configured()
+    {
+        var errors = new List<CsvParseError>();
+        var parsed = CsvDocument.Parse(
+            "Name,Value\nAlpha,1\nBroken,\"one\"two\nBeta,2\n",
+            new CsvLoadOptions {
+                QuoteParsingMode = CsvQuoteParsingMode.Strict,
+                ParseErrorAction = CsvParseErrorAction.SkipRow,
+                CollectParseErrors = true,
+                ParseErrors = errors
+            });
+
+        Assert.Equal(new[] { "Alpha", "Beta" }, parsed.AsEnumerable().Select(row => row.AsString("Name")).ToArray());
+        var error = Assert.Single(errors);
+        Assert.Contains("Invalid quoted field", error.Message);
+    }
+
+    [Fact]
+    public void Load_Rejects_Fields_Over_Configured_Limit()
+    {
+        var ex = Assert.Throws<CsvParseException>(() =>
+            CsvDocument.Parse(
+                "Name\nTooLong\n",
+                new CsvLoadOptions { MaxFieldLength = 3 }));
+
+        Assert.Contains("exceeds the configured maximum", ex.Message);
+    }
+
+    [Fact]
+    public void Load_Normalizes_Smart_Quotes_When_Configured()
+    {
+        var parsed = CsvDocument.Parse(
+            "Name,Value\nAlpha,\u201CHello\u201D\n",
+            new CsvLoadOptions { NormalizeQuotes = true });
+
+        Assert.Equal("\"Hello\"", Assert.Single(parsed.AsEnumerable()).AsString("Value"));
+    }
+
+    [Fact]
+    public void Load_Reuses_Repeated_String_Instances_When_Configured()
+    {
+        var parsed = CsvDocument.Parse(
+            "Name\nAlpha\nAlpha\n",
+            new CsvLoadOptions { InternStrings = true });
+
+        var rows = parsed.AsEnumerable().ToArray();
+        Assert.Same(rows[0]["Name"], rows[1]["Name"]);
     }
 
     [Fact]
