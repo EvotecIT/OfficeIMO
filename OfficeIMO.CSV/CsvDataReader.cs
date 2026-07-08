@@ -122,9 +122,20 @@ public sealed class CsvDataReader : DbDataReader
             return value.Length;
         }
 
-        var available = Math.Max(0, value.Length - (int)dataOffset);
+        if (dataOffset >= value.Length || length == 0)
+        {
+            return 0;
+        }
+
+        var offset = (int)dataOffset;
+        var available = value.Length - offset;
         var count = Math.Min(length, available);
-        value.CopyTo((int)dataOffset, buffer, bufferOffset, count);
+        if (count <= 0)
+        {
+            return 0;
+        }
+
+        value.CopyTo(offset, buffer, bufferOffset, count);
         return count;
     }
 

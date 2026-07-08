@@ -122,6 +122,18 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void GetChars_ReturnsZero_WhenOffsetIsPastField()
+    {
+        var doc = CsvDocument.Parse("Name\nAlpha\n");
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        var buffer = new char[4];
+        Assert.Equal(0, reader.GetChars(0, 99, buffer, 0, buffer.Length));
+    }
+
+    [Fact]
     public void CreateDataReader_WithoutSchema_ConvertsObjectValuesToStringsAndDbNull()
     {
         var doc = new CsvDocument()

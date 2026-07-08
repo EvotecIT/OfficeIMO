@@ -703,6 +703,20 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpans_ReplaysContinuationsBeforeLenientFallback()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name,Note,Value\nA,\"b\nc\"x,D\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:A", "0:1:b\ncx", "0:2:D" }, fields);
+    }
+
+    [Fact]
     public void ReadFieldSpansFromText_UsesLenientParsingAfterClosingQuotes()
     {
         var fields = new List<string>();

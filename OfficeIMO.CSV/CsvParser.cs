@@ -137,6 +137,12 @@ internal static partial class CsvParser
             throw new ArgumentOutOfRangeException(nameof(recordsToSkip), "SkipInitialRecords cannot be negative.");
         }
 
+        if (HasFieldLengthLimits(options))
+        {
+            ReadFieldSpansMaterialized(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
         if (UsesTextDelimiter(options))
         {
             ReadFieldSpansTextDelimiter(reader, options, recordsToSkip, ref fieldVisitor);
@@ -144,6 +150,27 @@ internal static partial class CsvParser
         }
 
         ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
+    }
+
+    private static bool HasFieldLengthLimits(CsvLoadOptions options) =>
+        options.MaxFieldLength.HasValue || options.MaxQuotedFieldLength.HasValue;
+
+    private static void ReadFieldSpansMaterialized<TVisitor>(TextReader reader, CsvLoadOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
+        where TVisitor : struct, ICsvFieldSpanVisitor
+    {
+        var recordIndex = 0;
+        var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
+        foreach (var record in ParseReusable(reader, options))
+        {
+            if (recordsToSkip > 0)
+            {
+                recordsToSkip--;
+                continue;
+            }
+
+            VisitParsedFields(record, recordIndex, projectedFieldVisitor, ref fieldVisitor);
+            recordIndex++;
+        }
     }
 #endif
 
@@ -656,6 +683,7 @@ internal static partial class CsvParser
 
         while (pendingLines.Count > 0 || true)
         {
+            ThrowIfCancellationRequested(options);
             string? fastLine = null;
             string lineSeparator;
             CsvLineReadResult readResult;

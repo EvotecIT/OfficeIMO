@@ -22,6 +22,13 @@ internal static partial class CsvParser
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
+        if (HasFieldLengthLimits(options))
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansMaterialized(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
         if (UsesTextDelimiter(options))
         {
             using var reader = new StringReader(text.ToString());
@@ -61,6 +68,7 @@ internal static partial class CsvParser
         {
             while (position < text.Length)
             {
+                ThrowIfCancellationRequested(options);
                 var recordStart = position;
                 if (TrySkipTextEmptyRecord(text, trim, allowEmpty, ref position))
                 {

@@ -288,6 +288,18 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
+    public void Load_Skips_Multiline_PreHeader_Comment_With_MultiCharacter_Delimiter()
+    {
+        var parsed = CsvDocument.Parse(
+            "#||\"note\ncontinued\"\nName||Value\nAlpha||1\n",
+            new CsvLoadOptions { DelimiterText = "||" });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("Alpha", row.AsString("Name"));
+    }
+
+    [Fact]
     public void Load_Reads_SingleCharacter_DelimiterText()
     {
         var parsed = CsvDocument.Parse(
@@ -373,6 +385,66 @@ public class CsvLoadFeatureParityTests
         Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1", "2:0:Beta", "2:1:2" }, fields);
         var error = Assert.Single(errors);
         Assert.Contains("Invalid quoted field", error.Message);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_Skips_Multiline_PreHeader_Comment_With_MultiCharacter_Delimiter()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "#||\"note\ncontinued\"\nName||Value\nAlpha||1\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { DelimiterText = "||", SkipCommentRows = true });
+
+        Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_Honors_Cancellation_Token()
+    {
+        using var cancellation = new CancellationTokenSource();
+        cancellation.Cancel();
+
+        Assert.Throws<OperationCanceledException>(() =>
+            CsvDocument.ReadFieldSpansFromText(
+                "Name,Value\nAlpha,1\n",
+                static (_, _, _) => { },
+                new CsvLoadOptions { CancellationToken = cancellation.Token }));
+    }
+
+    [Fact]
+    public void ReadFieldSpans_Rejects_Fields_Over_Configured_Limit()
+    {
+        var ex = Assert.Throws<CsvParseException>(() =>
+            CsvDocument.ReadFieldSpansFromText(
+                "Name\nTooLong\n",
+                static (_, _, _) => { },
+                new CsvLoadOptions { MaxFieldLength = 3 }));
+
+        Assert.Contains("exceeds the configured maximum", ex.Message);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_Skips_Field_Limit_Parse_Errors_When_Configured()
+    {
+        var fields = new List<string>();
+        var errors = new List<CsvParseError>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name\nOk\nTooLong\nFine\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions
+            {
+                MaxFieldLength = 4,
+                ParseErrorAction = CsvParseErrorAction.SkipRow,
+                CollectParseErrors = true,
+                ParseErrors = errors
+            });
+
+        Assert.Equal(new[] { "0:0:Name", "1:0:Ok", "2:0:Fine" }, fields);
+        var error = Assert.Single(errors);
+        Assert.Contains("exceeds the configured maximum", error.Message);
     }
 #endif
 

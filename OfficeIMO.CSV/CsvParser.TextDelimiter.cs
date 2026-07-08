@@ -73,7 +73,16 @@ internal static partial class CsvParser
         {
             ThrowIfCancellationRequested(options);
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
-            if (ShouldSkipCommentRecordBeforeParsing(startsWithCommentCharacter, line, options, emittedRecordCount))
+            if (TrySkipTextDelimiterCommentRecordBeforeParsing(
+                    lineReader,
+                    startsWithCommentCharacter,
+                    line,
+                    lineSeparator,
+                    options,
+                    emittedRecordCount,
+                    delimiter,
+                    trim,
+                    ref lineNumber))
             {
                 lineNumber++;
                 continue;
@@ -272,6 +281,61 @@ internal static partial class CsvParser
     private static bool StartsWithDelimiter(string text, string delimiter, int index) =>
         index <= text.Length - delimiter.Length &&
         string.CompareOrdinal(text, index, delimiter, 0, delimiter.Length) == 0;
+
+    private static bool TrySkipTextDelimiterCommentRecordBeforeParsing(
+        CsvLineReader reader,
+        bool startsWithCommentCharacter,
+        string firstLine,
+        string firstLineSeparator,
+        CsvLoadOptions options,
+        int emittedRecordCount,
+        string delimiter,
+        bool trim,
+        ref int lineNumber)
+    {
+        if (!ShouldSkipCommentRecordBeforeParsing(startsWithCommentCharacter, firstLine, options, emittedRecordCount))
+        {
+            return false;
+        }
+
+        if (firstLine.IndexOf('"') < 0 ||
+            !LooksLikeDelimitedRawComment(firstLine, delimiter) ||
+            TryParseQuotedRecord(firstLine, delimiter, trim, strictQuotes: false, lineNumber, out _))
+        {
+            return true;
+        }
+
+        var logicalRecord = new StringBuilder(firstLine);
+        var pendingSeparator = firstLineSeparator;
+        var continuationCount = 0;
+        while (true)
+        {
+            ThrowIfCancellationRequested(options);
+            var next = reader.ReadLine(out var nextSeparator);
+            if (next == null)
+            {
+                return true;
+            }
+
+            continuationCount++;
+            logicalRecord.Append(pendingSeparator);
+            logicalRecord.Append(next);
+            if (TryParseQuotedRecord(logicalRecord.ToString(), delimiter, trim, strictQuotes: false, lineNumber, out _))
+            {
+                lineNumber += continuationCount;
+                return true;
+            }
+
+            pendingSeparator = nextSeparator;
+        }
+    }
+
+    private static bool LooksLikeDelimitedRawComment(string line, string delimiter) =>
+        line.IndexOf(delimiter, StringComparison.Ordinal) >= 0 ||
+        line.IndexOf(',') >= 0 ||
+        line.IndexOf(';') >= 0 ||
+        line.IndexOf('|') >= 0 ||
+        line.IndexOf('\t') >= 0;
 
 #if NET8_0_OR_GREATER
     private static void ReadFieldSpansTextDelimiter<TVisitor>(TextReader reader, CsvLoadOptions options, int recordsToSkip, ref TVisitor fieldVisitor)
