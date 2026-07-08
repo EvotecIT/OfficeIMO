@@ -212,7 +212,7 @@ public class CsvDbatoolsLibraryParityBenchmarks
 
     [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-AllColumns")]
     [BenchmarkCategory("QuickTest")]
-    public int OfficeIMO_DataReader_QuickTest_AllColumns() => OfficeIMO_DataReaderReadAllValues(_quickTestCsvPath);
+    public int OfficeIMO_DataReader_QuickTest_AllColumns() => OfficeIMO_DataReaderReadAllValuesByOrdinal(_quickTestCsvPath);
 
     [Benchmark(Description = "Sep-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
@@ -302,6 +302,23 @@ public class CsvDbatoolsLibraryParityBenchmarks
         {
             count++;
             reader.GetValues(values);
+        }
+
+        return count;
+    }
+
+    private static int OfficeIMO_DataReaderReadAllValuesByOrdinal(string path)
+    {
+        var count = 0;
+        var document = CsvDocument.Load(path, new CsvLoadOptions { Mode = CsvLoadMode.Stream, DetectDelimiter = false });
+        using var reader = document.CreateDataReader();
+        while (reader.Read())
+        {
+            count++;
+            for (var i = 0; i < reader.FieldCount; i++)
+            {
+                _ = reader.GetValue(i);
+            }
         }
 
         return count;
