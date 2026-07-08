@@ -44,19 +44,19 @@ CsvHelper, Sylvan.Data.Csv, Dataplat.Dbatools.Csv, LumenWorksCsvReader2, and Sep
 
 ## Current dbatools.library Parity Snapshot
 
-Fresh local short-job run on 2026-07-08 using the 14 QuickTest-shaped parity lanes. Treat these as direction-finding numbers; run a longer BenchmarkDotNet job before release claims or performance gates.
+Fresh local short-job run on 2026-07-08 using the 14 QuickTest-shaped parity lanes with row-count and field-length checksum validation enabled. Treat these as direction-finding numbers; run a longer BenchmarkDotNet job before release claims or performance gates.
 
 QuickTest single-column/all-column read lanes:
 
 | Method | Single column mean | All columns mean | Allocated |
 | --- | ---: | ---: | ---: |
-| OfficeIMO span reader | 5.28 ms | 5.35 ms | 775 KB |
-| OfficeIMO streaming DataReader | 18.21 ms | 21.77 ms | 41.3 MB |
-| SEP | 10.69 ms | 18.82 ms | 3.1 MB / 39.4 MB |
-| Sylvan | 9.79 ms | 20.68 ms | 3.1 MB / 39.6 MB |
-| CsvHelper | 34.25 ms | 50.77 ms | 3.1 MB / 39.6 MB |
-| Dataplat.Dbatools.Csv | 31.92 ms | 34.38 ms | 39.9 MB |
-| LumenWorks | 116.02 ms | 38.64 ms | 1.58 GB / 39.7 MB |
+| OfficeIMO span reader | 5.42 ms | 5.69 ms | 772 KB / 775 KB |
+| OfficeIMO streaming DataReader | 24.67 ms | 28.69 ms | 41.3 MB |
+| SEP | 10.39 ms | 20.20 ms | 3.1 MB / 39.4 MB |
+| Sylvan | 12.44 ms | 21.44 ms | 3.1 MB / 39.6 MB |
+| CsvHelper | 35.27 ms | 53.79 ms | 3.1 MB / 39.6 MB |
+| Dataplat.Dbatools.Csv | 33.30 ms | 36.87 ms | 39.9 MB |
+| LumenWorks | 136.98 ms | 41.76 ms | 1.58 GB / 39.7 MB |
 
 All-values read lane:
 
