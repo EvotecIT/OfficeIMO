@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Globalization;
-using System.Text;
+using System.IO;
 using System.Xml.Linq;
 using OfficeIMO.Drawing;
 
@@ -21,7 +21,8 @@ namespace OfficeIMO.Visio {
 
             XDocument document;
             try {
-                document = XDocument.Parse(Encoding.UTF8.GetString(data), LoadOptions.None);
+                using var stream = new MemoryStream(data, writable: false);
+                document = XDocument.Load(stream, LoadOptions.None);
             } catch {
                 return false;
             }
@@ -127,7 +128,9 @@ namespace OfficeIMO.Visio {
         private static bool CanHiddenElementHaveVisibleDescendants(string name) =>
             string.Equals(name, "g", StringComparison.OrdinalIgnoreCase) ||
             string.Equals(name, "svg", StringComparison.OrdinalIgnoreCase) ||
-            string.Equals(name, "use", StringComparison.OrdinalIgnoreCase);
+            string.Equals(name, "use", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "text", StringComparison.OrdinalIgnoreCase) ||
+            string.Equals(name, "tspan", StringComparison.OrdinalIgnoreCase);
 
         private static bool TryGetElementPaintBounds(XElement element, string name, SvgRenderContext context, out SvgPaintBounds bounds) {
             bounds = default;

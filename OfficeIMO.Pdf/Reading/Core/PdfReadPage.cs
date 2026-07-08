@@ -453,7 +453,15 @@ public sealed partial class PdfReadPage {
                      paintOrderOffset,
                      GetGraphicsStateResources(resources),
                      GetColorSpaceResources(resources),
-                     pageHeight)) {
+                     pageHeight,
+                     initialFillColor,
+                     initialFillColorSpace,
+                     initialStrokeColor,
+                     initialStrokeColorSpace,
+                     initialFillOpacity,
+                     initialStrokeOpacity,
+                     initialTextRenderingMode,
+                     initialClipPath)) {
             if (!TryGetFormStream(resources, invocation.Name, out var formStream)) {
                 continue;
             }

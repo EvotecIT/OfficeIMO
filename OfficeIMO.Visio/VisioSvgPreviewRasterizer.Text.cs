@@ -30,6 +30,10 @@ namespace OfficeIMO.Visio {
 
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
+                    if (!context.IsVisible) {
+                        continue;
+                    }
+
                     string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref cursor.PendingSpace, cursor.HasTextRun);
                     rendered |= DrawSvgTextRun(canvas, value, cursor.X, cursor.Y, paint, style, transform, out double advance);
                     cursor.X += advance;
@@ -116,6 +120,10 @@ namespace OfficeIMO.Visio {
             var measureCursor = new SvgTextCursor(0D, 0D);
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
+                    if (!context.IsVisible) {
+                        continue;
+                    }
+
                     string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
                     if (value.Length > 0) {
                         width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);
@@ -158,6 +166,10 @@ namespace OfficeIMO.Visio {
             };
             foreach (XNode node in element.Nodes()) {
                 if (node is XText textNode) {
+                    if (!context.IsVisible) {
+                        continue;
+                    }
+
                     string value = NormalizeTextRun(textNode.Value, style.PreserveWhitespace, ref measureCursor.PendingSpace, measureCursor.HasTextRun);
                     if (value.Length > 0) {
                         width += canvas.MeasureText(value, Math.Max(1D, style.FontSize), style.FontFamily);

@@ -64,11 +64,22 @@ internal static class PdfPageXObjectInvocationParser {
         private readonly List<PdfPageXObjectInvocation> _invocations = new List<PdfPageXObjectInvocation>();
         private readonly List<object> _args = new List<object>(8);
         private readonly Stack<GraphicsState> _stack = new Stack<GraphicsState>();
+        private readonly Stack<TextState> _textStack = new Stack<TextState>();
         private readonly Stack<bool> _hiddenContentStack = new Stack<bool>();
         private readonly List<(double X, double Y)> _path = new List<(double X, double Y)>();
         private readonly List<OfficePathCommand> _pathCommands = new List<OfficePathCommand>();
         private readonly GraphicsState _initialState;
         private GraphicsState _state;
+        private bool _inText;
+        private double _textSize = 12D;
+        private double _textLeading = 14.4D;
+        private double _textCharSpacing;
+        private double _textWordSpacing;
+        private double _textHScale = 1D;
+        private double _textRise;
+        private int _textRenderingMode;
+        private Matrix2D _textMatrix = Matrix2D.Identity;
+        private Matrix2D _lineMatrix = Matrix2D.Identity;
         private int _currentSubpathStartIndex = -1;
         private int _index;
         private int _inlineImageIndex;
@@ -120,15 +131,15 @@ internal static class PdfPageXObjectInvocationParser {
                 } else if (current == '/') {
                     _args.Add(ReadName());
                 } else if (current == '(') {
-                    SkipLiteralString();
+                    _args.Add(ReadLiteralStringBytes());
                 } else if (current == '<') {
                     if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
                         _args.Add(PdfInlineOptionalContentReferenceParser.Read(_content, ref _index));
                     } else {
-                        SkipAngleObject();
+                        _args.Add(ReadHexStringBytes());
                     }
                 } else if (current == '[') {
-                    _args.Add(ReadNumberArray());
+                    _args.Add(ReadArray());
                 } else if (IsNumberStart(current)) {
                     _args.Add(ReadNumber());
                 } else {
@@ -147,13 +158,108 @@ internal static class PdfPageXObjectInvocationParser {
 
         private double GetPaintOrder(int operatorIndex) => _paintOrderBase + ((operatorIndex + _paintOrderOffset) * _paintOrderScale);
 
+        private TextState CaptureTextState() =>
+            new TextState(_inText, _textSize, _textLeading, _textCharSpacing, _textWordSpacing, _textHScale, _textRise, _textRenderingMode, _textMatrix, _lineMatrix);
+
+        private void RestoreTextState(TextState state) {
+            _inText = state.InText;
+            _textSize = state.Size;
+            _textLeading = state.Leading;
+            _textCharSpacing = state.CharSpacing;
+            _textWordSpacing = state.WordSpacing;
+            _textHScale = state.HScale;
+            _textRise = state.TextRise;
+            _textRenderingMode = state.TextRenderingMode;
+            _textMatrix = state.TextMatrix;
+            _lineMatrix = state.LineMatrix;
+        }
+
+        private void SetTextMatrix(int startIndex) {
+            _lineMatrix = new Matrix2D(
+                NumberAt(startIndex),
+                NumberAt(startIndex + 1),
+                NumberAt(startIndex + 2),
+                NumberAt(startIndex + 3),
+                NumberAt(startIndex + 4),
+                NumberAt(startIndex + 5));
+            _textMatrix = _lineMatrix;
+        }
+
+        private void MoveTextLine(double tx, double ty) {
+            _lineMatrix = Matrix2D.Multiply(_lineMatrix, Matrix2D.Translation(tx, ty));
+            _textMatrix = _lineMatrix;
+        }
+
+        private void MoveToNextTextLine() {
+            _lineMatrix = Matrix2D.Multiply(_lineMatrix, Matrix2D.Translation(0D, -_textLeading));
+            _textMatrix = _lineMatrix;
+        }
+
+        private void ShowText(object textObject) {
+            if (!_inText || textObject is not byte[] bytes || bytes.Length == 0) {
+                return;
+            }
+
+            double advance = EstimateTextAdvance(bytes);
+            ApplyTextClippingPath(advance);
+            _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(advance, 0D));
+        }
+
+        private void ShowTextArray(object arrayObject) {
+            if (arrayObject is not List<object> items) {
+                ShowText(arrayObject);
+                return;
+            }
+
+            for (int i = 0; i < items.Count; i++) {
+                if (items[i] is byte[] bytes) {
+                    ShowText(bytes);
+                } else if (items[i] is double kerning) {
+                    double delta = -kerning / 1000D * _textSize * _textHScale;
+                    _textMatrix = Matrix2D.Multiply(_textMatrix, Matrix2D.Translation(delta, 0D));
+                }
+            }
+        }
+
+        private double EstimateTextAdvance(byte[] bytes) {
+            double glyphAdvance = Math.Max(0.001D, _textSize * 0.5D);
+            double advance = 0D;
+            for (int i = 0; i < bytes.Length; i++) {
+                advance += glyphAdvance + _textCharSpacing;
+                if (bytes[i] == 32) {
+                    advance += _textWordSpacing;
+                }
+            }
+
+            return advance * _textHScale;
+        }
+
+        private void ApplyTextClippingPath(double advance) {
+            if (!AddsTextToClippingPath(_textRenderingMode) || _textSize <= 0D || Math.Abs(advance) <= 0.000001D) {
+                return;
+            }
+
+            double left = advance < 0D ? advance : 0D;
+            double width = Math.Abs(advance);
+            double descent = Math.Max(0.001D, _textSize * 0.25D);
+            double height = Math.Max(0.001D, _textSize + descent);
+            Matrix2D textToPage = Matrix2D.Multiply(_state.Transform, _textMatrix);
+            var textClipBuilder = new PdfPageClipPathBuilder(_pageHeight);
+            textClipBuilder.AddRectanglePath(textToPage, left, _textRise - descent, width, height);
+            if (textClipBuilder.TryCreateClipPath(OfficeFillRule.NonZero, out PdfPageClipPath textClipPath)) {
+                _state = _state.WithClipPath(PdfPageClipPath.ResolveActiveClip(_state.ClipPath, textClipPath));
+            }
+        }
+
         private void ApplyOperator(string op, double paintOrder) {
             switch (op) {
                 case "q":
                     _stack.Push(_state);
+                    _textStack.Push(CaptureTextState());
                     break;
                 case "Q":
                     _state = _stack.Count > 0 ? _stack.Pop() : _initialState;
+                    RestoreTextState(_textStack.Count > 0 ? _textStack.Pop() : TextState.Default);
                     break;
                 case "cm":
                     if (_args.Count >= 6) {
@@ -187,7 +293,7 @@ internal static class PdfPageXObjectInvocationParser {
 
                     break;
                 case "d":
-                    if (_args.Count >= 2 && _args[_args.Count - 2] is double[] dashArray) {
+                    if (_args.Count >= 2 && TryGetNumberArray(_args[_args.Count - 2], out double[] dashArray)) {
                         _state = _state.WithStrokeDashStyle(ReadDashStyle(dashArray));
                     }
 
@@ -347,6 +453,108 @@ internal static class PdfPageXObjectInvocationParser {
                 case "K":
                     if (_args.Count >= 4) {
                         _state = _state.WithStrokeColor(ReadCmyk(_args.Count - 4), PdfPageColorSpaceKind.DeviceCmyk);
+                    }
+
+                    break;
+                case "BT":
+                    _inText = true;
+                    _textMatrix = Matrix2D.Identity;
+                    _lineMatrix = Matrix2D.Identity;
+                    break;
+                case "ET":
+                    _inText = false;
+                    break;
+                case "Tf":
+                    if (_args.Count >= 2) {
+                        _textSize = NumberAt(_args.Count - 1);
+                    }
+
+                    break;
+                case "Tm":
+                    if (_args.Count >= 6) {
+                        SetTextMatrix(_args.Count - 6);
+                    }
+
+                    break;
+                case "Td":
+                    if (_args.Count >= 2) {
+                        MoveTextLine(NumberAt(_args.Count - 2), NumberAt(_args.Count - 1));
+                    }
+
+                    break;
+                case "TD":
+                    if (_args.Count >= 2) {
+                        double tx = NumberAt(_args.Count - 2);
+                        double ty = NumberAt(_args.Count - 1);
+                        _textLeading = -ty;
+                        MoveTextLine(tx, ty);
+                    }
+
+                    break;
+                case "TL":
+                    if (_args.Count >= 1) {
+                        _textLeading = NumberAt(_args.Count - 1);
+                    }
+
+                    break;
+                case "T*":
+                    MoveToNextTextLine();
+                    break;
+                case "Tc":
+                    if (_args.Count >= 1) {
+                        _textCharSpacing = NumberAt(_args.Count - 1);
+                    }
+
+                    break;
+                case "Tw":
+                    if (_args.Count >= 1) {
+                        _textWordSpacing = NumberAt(_args.Count - 1);
+                    }
+
+                    break;
+                case "Tz":
+                    if (_args.Count >= 1) {
+                        _textHScale = NumberAt(_args.Count - 1) / 100D;
+                    }
+
+                    break;
+                case "Ts":
+                    if (_args.Count >= 1) {
+                        _textRise = NumberAt(_args.Count - 1);
+                    }
+
+                    break;
+                case "Tr":
+                    if (_args.Count >= 1) {
+                        _textRenderingMode = ReadTextRenderingMode(NumberAt(_args.Count - 1));
+                    }
+
+                    break;
+                case "'":
+                    if (_args.Count >= 1) {
+                        MoveToNextTextLine();
+                        ShowText(_args[_args.Count - 1]);
+                    }
+
+                    break;
+                case "\"":
+                    if (_args.Count >= 3) {
+                        _textWordSpacing = NumberAt(_args.Count - 3);
+                        _textCharSpacing = NumberAt(_args.Count - 2);
+                        MoveToNextTextLine();
+                        ShowText(_args[_args.Count - 1]);
+                    }
+
+                    break;
+                case "Tj":
+                    if (_args.Count >= 1) {
+                        ShowText(_args[_args.Count - 1]);
+                    }
+
+                    break;
+                case "TJ":
+                    if (_args.Count >= 1) {
+                        ShowTextArray(_args[_args.Count - 1]);
                     }
 
                     break;
@@ -1033,6 +1241,74 @@ internal static class PdfPageXObjectInvocationParser {
             }
         }
 
+        private byte[] ReadLiteralStringBytes() {
+            _index++;
+            int depth = 1;
+            bool escaped = false;
+            var builder = new System.Text.StringBuilder();
+            while (_index < _content.Length && depth > 0) {
+                char ch = _content[_index++];
+                if (escaped) {
+                    builder.Append('\\');
+                    builder.Append(ch);
+                    escaped = false;
+                } else if (ch == '\\') {
+                    escaped = true;
+                } else if (ch == '(') {
+                    depth++;
+                    builder.Append(ch);
+                } else if (ch == ')') {
+                    depth--;
+                    if (depth > 0) {
+                        builder.Append(ch);
+                    }
+                } else {
+                    builder.Append(ch);
+                }
+            }
+
+            return PdfStringParser.ParseLiteralToBytes(builder.ToString());
+        }
+
+        private byte[] ReadHexStringBytes() {
+            _index++;
+            int start = _index;
+            while (_index < _content.Length && _content[_index] != '>') {
+                _index++;
+            }
+
+            string hex = _content.Substring(start, _index - start);
+            if (_index < _content.Length) {
+                _index++;
+            }
+
+            var builder = new System.Text.StringBuilder(hex.Length);
+            for (int i = 0; i < hex.Length; i++) {
+                if (!char.IsWhiteSpace(hex[i])) {
+                    builder.Append(hex[i]);
+                }
+            }
+
+            hex = builder.ToString();
+            if ((hex.Length & 1) == 1) {
+                hex += "0";
+            }
+
+            var bytes = new byte[hex.Length / 2];
+            for (int i = 0; i < bytes.Length; i++) {
+                bytes[i] = (byte)((HexNibble(hex[i * 2]) << 4) | HexNibble(hex[(i * 2) + 1]));
+            }
+
+            return bytes;
+
+            static int HexNibble(char ch) {
+                if (ch >= '0' && ch <= '9') return ch - '0';
+                if (ch >= 'a' && ch <= 'f') return 10 + (ch - 'a');
+                if (ch >= 'A' && ch <= 'F') return 10 + (ch - 'A');
+                return 0;
+            }
+        }
+
         private void SkipAngleObject() {
             if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
                 _index += 2;
@@ -1061,30 +1337,87 @@ internal static class PdfPageXObjectInvocationParser {
             }
         }
 
-        private double[] ReadNumberArray() {
-            var numbers = new List<double>();
-            int depth = 1;
+        private List<object> ReadArray() {
+            var items = new List<object>();
             _index++;
-            while (_index < _content.Length && depth > 0) {
-                char ch = _content[_index];
-                if (ch == '(') {
-                    SkipLiteralString();
-                } else if (ch == '<') {
-                    SkipAngleObject();
-                } else if (IsNumberStart(ch)) {
-                    numbers.Add(ReadNumber());
-                } else {
-                    if (ch == '[') {
-                        depth++;
-                    } else if (ch == ']') {
-                        depth--;
-                    }
+            while (_index < _content.Length) {
+                SkipWhitespace();
+                if (_index >= _content.Length) {
+                    break;
+                }
 
+                char current = _content[_index];
+                if (current == ']') {
                     _index++;
+                    break;
+                }
+
+                if (current == '(') {
+                    items.Add(ReadLiteralStringBytes());
+                } else if (current == '<') {
+                    if (_index + 1 < _content.Length && _content[_index + 1] == '<') {
+                        SkipAngleObject();
+                    } else {
+                        items.Add(ReadHexStringBytes());
+                    }
+                } else if (IsNumberStart(current)) {
+                    items.Add(ReadNumber());
+                } else if (current == '/') {
+                    items.Add(ReadName());
+                } else if (current == '[') {
+                    SkipArray();
+                } else {
+                    ReadOperator();
                 }
             }
 
-            return numbers.ToArray();
+            return items;
+        }
+
+        private void SkipArray() {
+            int depth = 1;
+            _index++;
+            while (_index < _content.Length && depth > 0) {
+                char current = _content[_index];
+                if (current == '(') {
+                    SkipLiteralString();
+                } else if (current == '<') {
+                    SkipAngleObject();
+                } else if (current == '[') {
+                    depth++;
+                    _index++;
+                } else if (current == ']') {
+                    depth--;
+                    _index++;
+                } else {
+                    _index++;
+                }
+            }
+        }
+
+        private static bool TryGetNumberArray(object value, out double[] numbers) {
+            if (value is double[] direct) {
+                numbers = direct;
+                return true;
+            }
+
+            if (value is List<object> items) {
+                var collected = new List<double>(items.Count);
+                for (int i = 0; i < items.Count; i++) {
+                    if (items[i] is not double number) {
+                        numbers = Array.Empty<double>();
+                        return false;
+                    }
+
+                    collected.Add(number);
+                }
+
+                numbers = collected.ToArray();
+                return true;
+            }
+
+            numbers = Array.Empty<double>();
+            return false;
         }
 
         private static bool IsNumberStart(char ch) => ch == '-' || ch == '+' || ch == '.' || char.IsDigit(ch);
@@ -1092,7 +1425,52 @@ internal static class PdfPageXObjectInvocationParser {
         private static bool IsDelimiter(char ch) =>
             char.IsWhiteSpace(ch) || ch == '/' || ch == '[' || ch == ']' || ch == '(' || ch == ')' || ch == '<' || ch == '>' || ch == '%';
 
+        private static int ReadTextRenderingMode(double value) {
+            int mode = (int)Math.Round(value);
+            return mode < 0 || mode > 7 ? 0 : mode;
+        }
+
+        private static bool AddsTextToClippingPath(int renderingMode) =>
+            renderingMode >= 4 && renderingMode <= 7;
+
         private static bool NearlyEqual(double left, double right) => Math.Abs(left - right) <= 0.001D;
+    }
+
+    private readonly struct TextState {
+        public TextState(bool inText, double size, double leading, double charSpacing, double wordSpacing, double hScale, double textRise, int textRenderingMode, Matrix2D textMatrix, Matrix2D lineMatrix) {
+            InText = inText;
+            Size = size;
+            Leading = leading;
+            CharSpacing = charSpacing;
+            WordSpacing = wordSpacing;
+            HScale = hScale;
+            TextRise = textRise;
+            TextRenderingMode = textRenderingMode;
+            TextMatrix = textMatrix;
+            LineMatrix = lineMatrix;
+        }
+
+        public static TextState Default { get; } = new TextState(false, 12D, 14.4D, 0D, 0D, 1D, 0D, 0, Matrix2D.Identity, Matrix2D.Identity);
+
+        public bool InText { get; }
+
+        public double Size { get; }
+
+        public double Leading { get; }
+
+        public double CharSpacing { get; }
+
+        public double WordSpacing { get; }
+
+        public double HScale { get; }
+
+        public double TextRise { get; }
+
+        public int TextRenderingMode { get; }
+
+        public Matrix2D TextMatrix { get; }
+
+        public Matrix2D LineMatrix { get; }
     }
 
     private readonly struct GraphicsState {
