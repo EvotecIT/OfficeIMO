@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -136,6 +137,26 @@ public class CsvDocumentFromObjectsTests
         }
 
         Assert.Equal("Name,Value\nA,1\nB,2\n", writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_AlwaysQuotedProjectedRowsPreserveEscaping()
+    {
+        var created = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", QuoteMode = CsvQuoteMode.Always }, leaveOpen: true))
+        {
+            csvWriter.WriteRow(
+                new[] { "Id", "Amount", "Enabled", "Created", "Name", "Missing" },
+                new object?[] { 1, 12.5m, true, created, "A\"B", null });
+        }
+
+        var expectedCreated = created.ToString(CultureInfo.InvariantCulture);
+        var expected =
+            "\"Id\",\"Amount\",\"Enabled\",\"Created\",\"Name\",\"Missing\"\n" +
+            $"\"1\",\"12.5\",\"True\",\"{expectedCreated}\",\"A\"\"B\",\"\"\n";
+
+        Assert.Equal(expected, writer.ToString());
     }
 
     [Fact]

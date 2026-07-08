@@ -827,7 +827,17 @@ internal static class CsvWriter
             Span<char> destination = stackalloc char[128];
             if (spanFormattable.TryFormat(destination, out var charsWritten, default, culture))
             {
-                AppendQuotedSpan(buffer, destination[..charsWritten]);
+                var formatted = destination[..charsWritten];
+                if (ReferenceEquals(culture, CultureInfo.InvariantCulture) && IsKnownCsvSafeSpanFormattedValue(value))
+                {
+                    buffer.Append(formatted);
+                    buffer.Append('"');
+                }
+                else
+                {
+                    AppendQuotedSpan(buffer, formatted);
+                }
+
                 return;
             }
         }
