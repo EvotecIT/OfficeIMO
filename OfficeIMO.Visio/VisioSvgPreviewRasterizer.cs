@@ -40,13 +40,30 @@ namespace OfficeIMO.Visio {
             OfficeRasterImage raster = new(width, height, OfficeColor.Transparent);
             OfficeRasterCanvas canvas = new(raster);
             SvgRenderContext context = SvgRenderContext.Create(root, new SvgPaintBounds(viewLeft, viewTop, viewWidth, viewHeight), imageResolver);
-            SvgPaint inherited = SvgPaint.Resolve(root, SvgPaint.Default, context);
+            double rootOpacity = SvgPaint.ReadOwnOpacity(root, context);
+            if (rootOpacity <= 0D) {
+                return false;
+            }
+
+            bool useRootOpacityLayer = rootOpacity < 1D;
+            SvgPaint inherited = SvgPaint.Resolve(root, SvgPaint.Default, context, applyOwnOpacity: !useRootOpacityLayer);
             SvgTransform transform = CreateViewBoxTransform(viewLeft, viewTop, viewWidth, viewHeight, 0D, 0D, width, height, root.Attribute("preserveAspectRatio")?.Value);
             using IDisposable rootTextStyle = context.PushTextStyle(SvgTextStyle.Resolve(root, SvgTextStyle.Default, context));
             using IDisposable rootFillRule = context.PushFillRule(ResolveFillRule(root, context));
-            bool rendered = RenderChildren(canvas, root, inherited, transform, context);
+            OfficeRasterCanvas targetCanvas = canvas;
+            OfficeRasterImage? rootLayer = null;
+            if (useRootOpacityLayer) {
+                rootLayer = new OfficeRasterImage(width, height, OfficeColor.Transparent);
+                targetCanvas = new OfficeRasterCanvas(rootLayer);
+            }
+
+            bool rendered = RenderChildren(targetCanvas, root, inherited, transform, context);
             if (!rendered) {
                 return false;
+            }
+
+            if (useRootOpacityLayer && rootLayer != null) {
+                canvas.DrawImage(ApplyImageOpacity(rootLayer, rootOpacity), 0D, 0D, width, height);
             }
 
             image = raster;

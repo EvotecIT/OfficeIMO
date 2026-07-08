@@ -1033,26 +1033,23 @@ public sealed partial class PdfReadPage {
             localY = y - clip.Y;
         }
 
-        double textX = localX;
-        double textY = localY;
         double textWidth = Math.Max(1D, width);
         double textHeight = Math.Max(1D, height);
-        double innerWidth = Math.Max(clip.Width, textX + textWidth);
-        double innerHeight = Math.Max(clip.Height, textY + textHeight);
-        var innerDrawing = new OfficeDrawing(innerWidth, innerHeight);
-        innerDrawing.AddText(
+        drawing.AddClippedText(
             span.Text,
-            textX,
-            textY,
+            x,
+            y,
             textWidth,
             textHeight,
+            clip.X,
+            clip.Y,
+            officeClipPath,
             ToOfficeFontInfo(span.BaseFont, span.FontSize),
             span.Color ?? OfficeColor.Black,
             rotationDegrees: -span.RotationDegrees,
-            rotationCenterX: x - clip.X,
-            rotationCenterY: baselineY - clip.Y,
+            rotationCenterX: x,
+            rotationCenterY: baselineY,
             wrapText: false);
-        drawing.AddClippedDrawing(innerDrawing, clip.X, clip.Y, officeClipPath);
         return true;
     }
 

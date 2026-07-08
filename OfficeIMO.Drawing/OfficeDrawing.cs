@@ -70,8 +70,12 @@ public sealed partial class OfficeDrawing {
 
     /// <summary>Adds text inside a local drawing rectangle and returns this drawing.</summary>
     public OfficeDrawing AddText(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
+        return AddTextCore(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent, allowOverflow: false);
+    }
+
+    private OfficeDrawing AddTextCore(string text, double x, double y, double width, double height, OfficeFontInfo? font, OfficeColor? color, OfficeTextAlignment alignment, double? lineHeight, OfficeTextVerticalAlignment verticalAlignment, double rotationDegrees, double? rotationCenterX, double? rotationCenterY, bool wrapText, bool shrinkToFit, bool stackedText, bool flipHorizontal, bool flipVertical, OfficeTextPadding? padding, OfficeTextParagraphIndent? paragraphIndent, bool allowOverflow) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent);
-        if (item.X + item.Width > Width || item.Y + item.Height > Height) {
+        if (!allowOverflow && (item.X < 0D || item.Y < 0D || item.X + item.Width > Width || item.Y + item.Height > Height)) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
 
@@ -82,7 +86,7 @@ public sealed partial class OfficeDrawing {
     /// <summary>Adds text behind existing foreground content while keeping an initial page background underneath it.</summary>
     public OfficeDrawing AddTextBehindContent(string text, double x, double y, double width, double height, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
         var item = new OfficeDrawingText(text, x, y, width, height, font, color, alignment, lineHeight, verticalAlignment, rotationDegrees, rotationCenterX, rotationCenterY, wrapText, shrinkToFit, stackedText, flipHorizontal, flipVertical, padding, paragraphIndent);
-        if (item.X + item.Width > Width || item.Y + item.Height > Height) {
+        if (item.X < 0D || item.Y < 0D || item.X + item.Width > Width || item.Y + item.Height > Height) {
             throw new ArgumentOutOfRangeException(nameof(text), "Drawing text must fit inside the drawing bounds.");
         }
 
@@ -131,6 +135,44 @@ public sealed partial class OfficeDrawing {
 
         var clipped = new OfficeDrawing(clipPath.Width, clipPath.Height);
         clipped.AddImageCore(bytes, contentType, projection.Translate(-clipX, -clipY), alternativeText, opacity, allowOverflow: true);
+        return AddClippedDrawing(clipped, clipX, clipY, clipPath);
+    }
+
+    /// <summary>Adds text clipped by a drawing-local clipping path.</summary>
+    public OfficeDrawing AddClippedText(string text, double x, double y, double width, double height, double clipX, double clipY, OfficeClipPath clipPath, OfficeFontInfo? font = null, OfficeColor? color = null, OfficeTextAlignment alignment = OfficeTextAlignment.Left, double? lineHeight = null, OfficeTextVerticalAlignment verticalAlignment = OfficeTextVerticalAlignment.Top, double rotationDegrees = 0D, double? rotationCenterX = null, double? rotationCenterY = null, bool wrapText = false, bool shrinkToFit = false, bool stackedText = false, bool flipHorizontal = false, bool flipVertical = false, OfficeTextPadding? padding = null, OfficeTextParagraphIndent? paragraphIndent = null) {
+        if (clipPath == null) {
+            throw new ArgumentNullException(nameof(clipPath));
+        }
+
+        ValidateFiniteNonNegative(clipX, nameof(clipX));
+        ValidateFiniteNonNegative(clipY, nameof(clipY));
+        if (clipX + clipPath.Width > Width || clipY + clipPath.Height > Height) {
+            throw new ArgumentOutOfRangeException(nameof(clipPath), "Text clip must fit inside the drawing bounds.");
+        }
+
+        var clipped = new OfficeDrawing(clipPath.Width, clipPath.Height);
+        clipped.AddTextCore(
+            text,
+            x - clipX,
+            y - clipY,
+            width,
+            height,
+            font,
+            color,
+            alignment,
+            lineHeight,
+            verticalAlignment,
+            rotationDegrees,
+            rotationCenterX.HasValue ? rotationCenterX.Value - clipX : null,
+            rotationCenterY.HasValue ? rotationCenterY.Value - clipY : null,
+            wrapText,
+            shrinkToFit,
+            stackedText,
+            flipHorizontal,
+            flipVertical,
+            padding,
+            paragraphIndent,
+            allowOverflow: true);
         return AddClippedDrawing(clipped, clipX, clipY, clipPath);
     }
 
