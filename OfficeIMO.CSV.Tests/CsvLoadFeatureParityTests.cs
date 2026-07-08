@@ -223,6 +223,25 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
+    public void Load_Skips_Field_Limit_Parse_Errors_When_Configured()
+    {
+        var errors = new List<CsvParseError>();
+        var parsed = CsvDocument.Parse(
+            "Name\nOk\nTooLong\nFine\n",
+            new CsvLoadOptions
+            {
+                MaxFieldLength = 4,
+                ParseErrorAction = CsvParseErrorAction.SkipRow,
+                CollectParseErrors = true,
+                ParseErrors = errors
+            });
+
+        Assert.Equal(new[] { "Ok", "Fine" }, parsed.AsEnumerable().Select(row => row.AsString("Name")).ToArray());
+        var error = Assert.Single(errors);
+        Assert.Contains("exceeds the configured maximum", error.Message);
+    }
+
+    [Fact]
     public void Load_Rejects_Fields_Over_Configured_Limit()
     {
         var ex = Assert.Throws<CsvParseException>(() =>
@@ -269,6 +288,19 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
+    public void Load_Reads_SingleCharacter_DelimiterText()
+    {
+        var parsed = CsvDocument.Parse(
+            "Name\tValue\nAlpha\t1\n",
+            new CsvLoadOptions { DelimiterText = "\t" });
+
+        var row = Assert.Single(parsed.AsEnumerable());
+        Assert.Equal(new[] { "Name", "Value" }, parsed.Header);
+        Assert.Equal("Alpha", row.AsString("Name"));
+        Assert.Equal("1", row.AsString("Value"));
+    }
+
+    [Fact]
     public void ReadRowsReusable_Reads_MultiCharacter_Delimiter()
     {
         var rows = new List<string>();
@@ -277,6 +309,19 @@ public class CsvLoadFeatureParityTests
             new StringReader("Name||Value\nAlpha||1\n"),
             (header, values) => rows.Add($"{string.Join(",", header)}={string.Join(",", values)}"),
             new CsvLoadOptions { DelimiterText = "||" });
+
+        Assert.Equal("Name,Value=Alpha,1", Assert.Single(rows));
+    }
+
+    [Fact]
+    public void ReadRowsReusable_Reads_SingleCharacter_DelimiterText()
+    {
+        var rows = new List<string>();
+
+        CsvDocument.ReadRowsReusable(
+            new StringReader("Name;Value\nAlpha;1\n"),
+            (header, values) => rows.Add($"{string.Join(",", header)}={string.Join(",", values)}"),
+            new CsvLoadOptions { DelimiterText = ";" });
 
         Assert.Equal("Name,Value=Alpha,1", Assert.Single(rows));
     }
@@ -294,6 +339,41 @@ public class CsvLoadFeatureParityTests
 
         Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:one||two" }, fields);
     }
+
+    [Fact]
+    public void ReadFieldSpans_Reads_SingleCharacter_DelimiterText()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name\tValue\nAlpha\t1\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { DelimiterText = "\t" });
+
+        Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_Skips_Parse_Errors_When_Configured()
+    {
+        var fields = new List<string>();
+        var errors = new List<CsvParseError>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Value\nAlpha,1\nBroken,\"one\"two\nBeta,2\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions
+            {
+                QuoteParsingMode = CsvQuoteParsingMode.Strict,
+                ParseErrorAction = CsvParseErrorAction.SkipRow,
+                CollectParseErrors = true,
+                ParseErrors = errors
+            });
+
+        Assert.Equal(new[] { "0:0:Name", "0:1:Value", "1:0:Alpha", "1:1:1", "2:0:Beta", "2:1:2" }, fields);
+        var error = Assert.Single(errors);
+        Assert.Contains("Invalid quoted field", error.Message);
+    }
 #endif
 
     [Fact]
@@ -309,6 +389,18 @@ public class CsvLoadFeatureParityTests
     }
 
     [Fact]
+    public void Save_Writes_SingleCharacter_DelimiterText()
+    {
+        var document = new CsvDocument()
+            .WithHeader("Name", "Value")
+            .AddRow("Alpha", "1");
+
+        var text = document.ToString(new CsvSaveOptions { DelimiterText = "\t", NewLine = "\n" });
+
+        Assert.Equal("Name\tValue\nAlpha\t1\n", text);
+    }
+
+    [Fact]
     public void CsvObjectWriter_Writes_MultiCharacter_Delimiter()
     {
         using var writer = new StringWriter();
@@ -318,6 +410,18 @@ public class CsvLoadFeatureParityTests
         }
 
         Assert.Equal("Name||Value\nAlpha||\"one||two\"\n", writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_Writes_SingleCharacter_DelimiterText()
+    {
+        using var writer = new StringWriter();
+        using (var csv = new CsvObjectWriter(writer, new CsvSaveOptions { DelimiterText = ";", NewLine = "\n" }, leaveOpen: true))
+        {
+            csv.WriteObject(new { Name = "Alpha", Value = 1 });
+        }
+
+        Assert.Equal("Name;Value\nAlpha;1\n", writer.ToString());
     }
 
     [Fact]

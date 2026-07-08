@@ -9,6 +9,11 @@ internal static partial class CsvParser
     private static bool UsesTextDelimiter(CsvLoadOptions options) =>
         !string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1;
 
+    private static char GetDelimiterChar(CsvLoadOptions options) =>
+        string.IsNullOrEmpty(options.DelimiterText)
+            ? options.Delimiter
+            : options.DelimiterText![0];
+
     private static string GetDelimiterText(CsvLoadOptions options) =>
         string.IsNullOrEmpty(options.DelimiterText)
             ? options.Delimiter.ToString()
@@ -79,7 +84,12 @@ internal static partial class CsvParser
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(record, allowEmpty))
                 {
-                    PrepareParsedRecord(record, options, lineNumber, quotedRecord: false, stringCache);
+                    if (!TryPrepareParsedRecord(record, options, lineNumber, quotedRecord: false, stringCache))
+                    {
+                        lineNumber++;
+                        continue;
+                    }
+
                     yield return new CsvParsedRecord(record, startsWithCommentCharacter);
                     emittedRecordCount++;
                     ReportProgress(options, emittedRecordCount, lineNumber);
@@ -127,7 +137,12 @@ internal static partial class CsvParser
             if (ShouldEmitRecord(fields, allowEmpty) &&
                 !ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
             {
-                PrepareParsedRecord(fields, options, lineNumber, quotedRecord: true, stringCache);
+                if (!TryPrepareParsedRecord(fields, options, lineNumber, quotedRecord: true, stringCache))
+                {
+                    lineNumber++;
+                    continue;
+                }
+
                 yield return new CsvParsedRecord(fields, startsWithCommentCharacter);
                 emittedRecordCount++;
                 ReportProgress(options, emittedRecordCount, lineNumber);

@@ -29,7 +29,7 @@ internal static class CsvDataProjectionConverter
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats)
     {
-        if (IsMissingValue(value, column.DataType))
+        if (IsMissingValue(value, column))
         {
             if (column.SchemaColumn?.DefaultValue is not null)
             {
@@ -84,10 +84,13 @@ internal static class CsvDataProjectionConverter
         }
     }
 
-    private static bool IsMissingValue(object? value, Type targetType) =>
+    private static bool IsMissingValue(object? value, CsvDataColumnProjection column) =>
         value is null ||
         value == DBNull.Value ||
-        (targetType != typeof(string) && value is string { Length: 0 });
+        (value is string { Length: 0 } &&
+            (column.DataType != typeof(string) ||
+             column.SchemaColumn?.IsRequired == true ||
+             column.SchemaColumn?.DefaultValue is not null));
 }
 
 internal static class CsvDataProjectionBuilder

@@ -213,6 +213,19 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void ToDataTable_WithRequiredStringSchema_RejectsEmptyValues()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Name")
+            .AddRow(string.Empty);
+        doc.EnsureSchema(schema => schema.Column("Name").AsString().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Column 'Name' is required", ex.Message);
+    }
+
+    [Fact]
     public void ToDataTable_InStreamingMode_PreservesNullAndStaticColumns()
     {
         var doc = CsvDocument.Parse(

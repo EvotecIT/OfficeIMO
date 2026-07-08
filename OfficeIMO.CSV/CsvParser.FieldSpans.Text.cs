@@ -29,13 +29,21 @@ internal static partial class CsvParser
             return;
         }
 
-        var delimiter = options.Delimiter;
+        if (options.ParseErrorAction == CsvParseErrorAction.SkipRow)
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
+        var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
         var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var position = 0;
         var recordIndex = 0;
         var emittedRecordCount = 0;
+        var lineNumber = 1;
         var useAvx2UnquotedFastPath = true;
         var textMayContainQuote = text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0;
         var unquotedDelimiterIndexCapacity = 64;
@@ -88,36 +96,46 @@ internal static partial class CsvParser
                 var emitFields = recordsToSkip == 0;
                 int fieldCount;
                 int firstFieldLength;
-                if (!TryReadTextUnquotedRecordFieldSpans(
-                        text,
-                        delimiter,
-                        trim,
-                        allowEmpty,
-                        emitFields,
-                        recordIndex,
-                        ref useAvx2UnquotedFastPath,
-                        ref unquotedDelimiterIndexCapacity,
-                        textMayContainQuote,
-                        delimiterVector,
-                        ref position,
-                        projectedFieldVisitor,
-                        ref fieldVisitor,
-                        ref scratch,
-                        out fieldCount,
-                        out firstFieldLength))
+                try
                 {
-                    fieldCount = ReadTextRecordFieldSpans(
-                        text,
-                        delimiter,
-                        trim,
-                        strictQuotes,
-                        emitFields,
-                        recordIndex,
-                        ref position,
-                        projectedFieldVisitor,
-                        ref fieldVisitor,
-                        ref scratch,
-                        out firstFieldLength);
+                    if (!TryReadTextUnquotedRecordFieldSpans(
+                            text,
+                            delimiter,
+                            trim,
+                            allowEmpty,
+                            emitFields,
+                            recordIndex,
+                            ref useAvx2UnquotedFastPath,
+                            ref unquotedDelimiterIndexCapacity,
+                            textMayContainQuote,
+                            delimiterVector,
+                            ref position,
+                            projectedFieldVisitor,
+                            ref fieldVisitor,
+                            ref scratch,
+                            out fieldCount,
+                            out firstFieldLength))
+                    {
+                        fieldCount = ReadTextRecordFieldSpans(
+                            text,
+                            delimiter,
+                            trim,
+                            strictQuotes,
+                            emitFields,
+                            recordIndex,
+                            ref position,
+                            projectedFieldVisitor,
+                            ref fieldVisitor,
+                            ref scratch,
+                            out firstFieldLength);
+                    }
+                }
+                catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
+                {
+                    position = recordStart;
+                    SkipTextRecord(text, ref position);
+                    lineNumber++;
+                    continue;
                 }
 
                 var isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
@@ -135,6 +153,7 @@ internal static partial class CsvParser
 
                 recordIndex++;
                 emittedRecordCount++;
+                lineNumber++;
 
                 if (position == recordStart)
                 {

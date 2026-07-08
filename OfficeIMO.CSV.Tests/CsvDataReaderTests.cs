@@ -198,4 +198,19 @@ public class CsvDataReaderTests
         var ex = Assert.Throws<CsvException>(() => reader.GetValue(0));
         Assert.Contains("Column 'Id' is required", ex.Message);
     }
+
+    [Fact]
+    public void CreateDataReader_WithRequiredStringSchema_RejectsEmptyValues()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Name")
+            .AddRow(string.Empty);
+        doc.EnsureSchema(schema => schema.Column("Name").AsString().Required());
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        var ex = Assert.Throws<CsvException>(() => reader.GetValue(0));
+        Assert.Contains("Column 'Name' is required", ex.Message);
+    }
 }

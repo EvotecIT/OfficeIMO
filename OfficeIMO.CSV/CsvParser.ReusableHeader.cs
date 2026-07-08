@@ -40,7 +40,7 @@ internal static partial class CsvParser
         Func<CsvParsedRecord, bool> metadataRecordAction,
         Action<IReadOnlyList<string>> recordAction)
     {
-        var delimiter = options.Delimiter;
+        var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
         var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
@@ -78,7 +78,12 @@ internal static partial class CsvParser
             {
                 if (ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
-                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
+                    if (!TryPrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache))
+                    {
+                        lineNumber++;
+                        continue;
+                    }
+
                     ProcessReusableRecord(reusableRecord, startsWithCommentCharacter: false, metadataRecordAction, recordAction, ref metadataAccepted);
                     emittedRecordCount++;
                     ReportProgress(options, emittedRecordCount, lineNumber);
@@ -109,7 +114,12 @@ internal static partial class CsvParser
                 if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount) &&
                     ShouldEmitRecord(reusableRecord, allowEmpty))
                 {
-                    PrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache);
+                    if (!TryPrepareParsedRecord(reusableRecord, options, lineNumber, quotedRecord: false, stringCache))
+                    {
+                        lineNumber++;
+                        continue;
+                    }
+
                     ProcessReusableRecord(reusableRecord, startsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
                     emittedRecordCount++;
                     ReportProgress(options, emittedRecordCount, lineNumber);
@@ -156,7 +166,12 @@ internal static partial class CsvParser
             if (ShouldEmitRecord(reusableQuotedRecord, allowEmpty) &&
                 !ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
             {
-                PrepareParsedRecord(reusableQuotedRecord, options, lineNumber, quotedRecord: true, stringCache);
+                if (!TryPrepareParsedRecord(reusableQuotedRecord, options, lineNumber, quotedRecord: true, stringCache))
+                {
+                    lineNumber++;
+                    continue;
+                }
+
                 ProcessReusableRecord(reusableQuotedRecord, startsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
                 emittedRecordCount++;
                 ReportProgress(options, emittedRecordCount, lineNumber);

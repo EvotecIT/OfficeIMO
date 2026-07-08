@@ -14,7 +14,7 @@ internal static class CsvWriter
 
     public static void Write(TextWriter writer, CsvDocument document, CsvSaveOptions options)
     {
-        var delimiter = options.Delimiter;
+        var delimiter = GetDelimiterChar(options);
         var delimiterText = GetDelimiterText(options);
         var culture = options.Culture;
         var includeHeader = options.IncludeHeader;
@@ -50,6 +50,11 @@ internal static class CsvWriter
 
     internal static bool UsesTextDelimiter(CsvSaveOptions options) =>
         !string.IsNullOrEmpty(options.DelimiterText) && options.DelimiterText!.Length > 1;
+
+    internal static char GetDelimiterChar(CsvSaveOptions options) =>
+        string.IsNullOrEmpty(options.DelimiterText)
+            ? options.Delimiter
+            : options.DelimiterText![0];
 
     internal static string GetDelimiterText(CsvSaveOptions options) =>
         string.IsNullOrEmpty(options.DelimiterText)
