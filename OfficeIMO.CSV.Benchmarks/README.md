@@ -65,7 +65,7 @@ The span-reader result is the fastest raw parser shape. The streaming DataReader
 
 ## Current Write Snapshot
 
-Fresh local short-job run on 2026-07-07:
+Fresh local short-job run on 2026-07-08:
 
 ```powershell
 dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*Write*" --job short --warmupCount 1 --iterationCount 3
@@ -100,9 +100,11 @@ The table keeps the SQL-shaped writer path visible. `OfficeIMO_WriteDataReader` 
 
 | Rows | OfficeIMO IDataReader | dbatools reader | Sylvan reader | SEP projected | OfficeIMO trusted text |
 | ---: | ---: | ---: | ---: | ---: | ---: |
-| 1000 | 1.46 ms | 1.63 ms | 1.25 ms | 1.05 ms | 0.27 ms |
-| 10000 | 16.84 ms | 18.17 ms | 13.17 ms | 11.98 ms | 3.68 ms |
-| 25000 | 42.44 ms | 55.73 ms | 32.87 ms | 28.18 ms | 10.26 ms |
+| 1000 | 1.68 ms | 1.76 ms | 1.12 ms | 1.21 ms | 0.67 ms |
+| 10000 | 18.36 ms | 20.68 ms | 14.82 ms | 14.48 ms | 6.26 ms |
+| 25000 | 47.57 ms | 78.13 ms | 35.75 ms | 33.28 ms | 16.02 ms |
+
+In this run the OfficeIMO `IDataReader` bridge stays ahead of dbatools' reader bridge at every tested row count while allocating about one-third as much memory. Sylvan and SEP remain faster in the projected-row lanes, and the OfficeIMO trusted text lane shows the upper bound when the caller already owns formatting and schema validation.
 
 ## Current Wide Read Snapshot
 
