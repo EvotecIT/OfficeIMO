@@ -17,6 +17,10 @@ internal sealed class CsvStreamingSource
         _headerCount = headerCount;
     }
 
+    public CsvLoadOptions Options => _options;
+
+    public int SourceColumnCount => _headerCount - (_options.StaticColumns?.Count ?? 0);
+
     public IEnumerable<object?[]> ReadRows()
     {
         using var reader = _readerFactory();
@@ -30,6 +34,40 @@ internal sealed class CsvStreamingSource
             }
 
             yield return CsvDocument.BuildParsedObjectValues(record, _headerCount, _options);
+        }
+    }
+
+    public IEnumerable<object?[]> ReadReusableRows()
+    {
+        using var reader = _readerFactory();
+        var skipped = 0;
+        object?[]? row = null;
+        foreach (var record in CsvParser.ParseReusable(reader, _options))
+        {
+            if (skipped < _skipRecordCount)
+            {
+                skipped++;
+                continue;
+            }
+
+            row = CsvDocument.FillParsedObjectValues(record, _headerCount, _options, row);
+            yield return row;
+        }
+    }
+
+    public IEnumerable<IReadOnlyList<string>> ReadReusableStringRows()
+    {
+        using var reader = _readerFactory();
+        var skipped = 0;
+        foreach (var record in CsvParser.ParseReusable(reader, _options))
+        {
+            if (skipped < _skipRecordCount)
+            {
+                skipped++;
+                continue;
+            }
+
+            yield return record;
         }
     }
 }

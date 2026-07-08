@@ -185,7 +185,7 @@ internal static class CsvValueConverter
             if (targetType == typeof(DateTime))
             {
                 if (dateTimeFormats is { Count: > 0 } &&
-                    DateTime.TryParseExact(text, dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out var formattedDateTime))
+                    DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out var formattedDateTime))
                 {
                     result = formattedDateTime;
                     return true;

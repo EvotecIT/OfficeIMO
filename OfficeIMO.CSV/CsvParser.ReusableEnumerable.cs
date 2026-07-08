@@ -1,44 +1,30 @@
 #nullable enable
 
+using System.Text;
+
 namespace OfficeIMO.CSV;
 
 internal static partial class CsvParser
 {
-    internal static void ReadRecordsReusableWithMetadataUntilAccepted(
-        TextReader reader,
-        CsvLoadOptions options,
-        Func<CsvParsedRecord, bool> metadataRecordAction,
-        Action<IReadOnlyList<string>> recordAction)
+    internal static IEnumerable<IReadOnlyList<string>> ParseReusable(TextReader reader, CsvLoadOptions options)
     {
-        if (metadataRecordAction == null)
-        {
-            throw new ArgumentNullException(nameof(metadataRecordAction));
-        }
-
-        if (recordAction == null)
-        {
-            throw new ArgumentNullException(nameof(recordAction));
-        }
-
         if (UsesTextDelimiter(options))
         {
-            var metadataAccepted = false;
             foreach (var record in ParseLineOrQuotedTextDelimiterWithMetadata(reader, options))
             {
-                ProcessReusableRecord(record.Values, record.StartsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
+                yield return record.Values;
             }
 
-            return;
+            yield break;
         }
 
-        ReadLineOrQuotedReusableWithMetadataUntilAccepted(reader, options, metadataRecordAction, recordAction);
+        foreach (var record in ParseLineOrQuotedReusable(reader, options))
+        {
+            yield return record;
+        }
     }
 
-    private static void ReadLineOrQuotedReusableWithMetadataUntilAccepted(
-        TextReader reader,
-        CsvLoadOptions options,
-        Func<CsvParsedRecord, bool> metadataRecordAction,
-        Action<IReadOnlyList<string>> recordAction)
+    private static IEnumerable<IReadOnlyList<string>> ParseLineOrQuotedReusable(TextReader reader, CsvLoadOptions options)
     {
         var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
@@ -49,11 +35,10 @@ internal static partial class CsvParser
         var reusableQuotedRecord = new List<string>(64);
         var emittedRecordCount = 0;
         var pendingLines = new Queue<CsvLine>();
-        var metadataAccepted = false;
         var stringCache = CreateStringCache(options);
         using var lineReader = new CsvLineReader(reader);
 
-        while (pendingLines.Count > 0 || true)
+        while (true)
         {
             ThrowIfCancellationRequested(options);
             string? fastLine = null;
@@ -84,7 +69,7 @@ internal static partial class CsvParser
                         continue;
                     }
 
-                    ProcessReusableRecord(reusableRecord, startsWithCommentCharacter: false, metadataRecordAction, recordAction, ref metadataAccepted);
+                    yield return reusableRecord;
                     emittedRecordCount++;
                     ReportProgress(options, emittedRecordCount, lineNumber);
                 }
@@ -102,8 +87,7 @@ internal static partial class CsvParser
             }
 
             var startsWithCommentCharacter = IsRawCommentLine(line, options);
-            if (!metadataAccepted &&
-                TrySkipCommentRecordBeforeParsing(lineReader, pendingLines, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
+            if (TrySkipCommentRecordBeforeParsing(lineReader, pendingLines, startsWithCommentCharacter, line, lineSeparator, options, emittedRecordCount, ref lineNumber))
             {
                 lineNumber++;
                 continue;
@@ -120,7 +104,7 @@ internal static partial class CsvParser
                         continue;
                     }
 
-                    ProcessReusableRecord(reusableRecord, startsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
+                    yield return reusableRecord;
                     emittedRecordCount++;
                     ReportProgress(options, emittedRecordCount, lineNumber);
                 }
@@ -133,7 +117,7 @@ internal static partial class CsvParser
             {
                 if (!TryParseQuotedRecord(line, delimiter, trim, strictQuotes, lineNumber, reusableQuotedRecord))
                 {
-                    var logicalRecord = new System.Text.StringBuilder(line);
+                    var logicalRecord = new StringBuilder(line);
                     var pendingSeparator = lineSeparator;
                     while (true)
                     {
@@ -163,37 +147,23 @@ internal static partial class CsvParser
                 continue;
             }
 
-            if (ShouldEmitRecord(reusableQuotedRecord, allowEmpty) &&
-                !ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
+            if (ShouldEmitRecord(reusableQuotedRecord, allowEmpty))
             {
-                if (!TryPrepareParsedRecord(reusableQuotedRecord, options, lineNumber, quotedRecord: true, stringCache))
+                if (!ShouldSkipCommentRecord(startsWithCommentCharacter, line, options, emittedRecordCount))
                 {
-                    lineNumber++;
-                    continue;
-                }
+                    if (!TryPrepareParsedRecord(reusableQuotedRecord, options, lineNumber, quotedRecord: true, stringCache))
+                    {
+                        lineNumber++;
+                        continue;
+                    }
 
-                ProcessReusableRecord(reusableQuotedRecord, startsWithCommentCharacter, metadataRecordAction, recordAction, ref metadataAccepted);
-                emittedRecordCount++;
-                ReportProgress(options, emittedRecordCount, lineNumber);
+                    yield return reusableQuotedRecord;
+                    emittedRecordCount++;
+                    ReportProgress(options, emittedRecordCount, lineNumber);
+                }
             }
 
             lineNumber++;
         }
-    }
-
-    private static void ProcessReusableRecord(
-        IReadOnlyList<string> record,
-        bool startsWithCommentCharacter,
-        Func<CsvParsedRecord, bool> metadataRecordAction,
-        Action<IReadOnlyList<string>> recordAction,
-        ref bool metadataAccepted)
-    {
-        if (metadataAccepted)
-        {
-            recordAction(record);
-            return;
-        }
-
-        metadataAccepted = metadataRecordAction(new CsvParsedRecord(record, startsWithCommentCharacter));
     }
 }

@@ -18,33 +18,44 @@ public sealed partial class CsvDocument
             throw new ArgumentOutOfRangeException(nameof(sampleSize), "Sample size must be greater than zero.");
         }
 
+        using var rows = EnumerateRawRows().GetEnumerator();
+        return InferSchema(rows, sampleSize, sampledRows: null);
+    }
+
+    private CsvSchema InferSchema(
+        IEnumerator<object?[]> rows,
+        int sampleSize,
+        ICollection<object?[]>? sampledRows,
+        bool cloneSampledRows = false)
+    {
         var columns = new InferredColumn[_header.Count];
         for (var i = 0; i < _header.Count; i++)
         {
             columns[i] = new InferredColumn(_header[i]);
         }
 
-        var sampledRows = 0;
-        foreach (var row in AsEnumerable())
+        var sampledRowCount = 0;
+        while (sampledRowCount < sampleSize && rows.MoveNext())
         {
-            if (sampledRows >= sampleSize)
+            var row = rows.Current;
+            if (sampledRows is not null)
             {
-                break;
+                sampledRows.Add(cloneSampledRows ? (object?[])row.Clone() : row);
             }
 
             for (var i = 0; i < columns.Length; i++)
             {
-                var value = i < row.FieldCount ? row[i] : null;
+                var value = i < row.Length ? row[i] : null;
                 columns[i].Observe(value, _culture, _dateTimeFormats);
             }
 
-            sampledRows++;
+            sampledRowCount++;
         }
 
         var schemaColumns = new List<CsvSchemaColumn>(columns.Length);
         foreach (var column in columns)
         {
-            schemaColumns.Add(column.ToSchemaColumn(sampledRows));
+            schemaColumns.Add(column.ToSchemaColumn(sampledRowCount));
         }
 
         return new CsvSchema(schemaColumns);
@@ -108,24 +119,54 @@ public sealed partial class CsvDocument
 
         private void ObserveString(string text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
         {
-            _canInt32 &= int.TryParse(text, NumberStyles.Any, culture, out _);
-            _canInt64 &= long.TryParse(text, NumberStyles.Any, culture, out _);
-            _canDecimal &= decimal.TryParse(text, NumberStyles.Any, culture, out _);
-            _canDouble &= double.TryParse(text, NumberStyles.Any, culture, out _);
-            _canBoolean &= IsBooleanText(text);
-            _canDateTime &= TryParseDateTime(text, culture, dateTimeFormats);
+            if (_canInt32)
+            {
+                _canInt32 = int.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canInt64)
+            {
+                _canInt64 = long.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canDecimal)
+            {
+                _canDecimal = decimal.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canDouble)
+            {
+                _canDouble = double.TryParse(text, NumberStyles.Any, culture, out _);
+            }
+
+            if (_canBoolean)
+            {
+                _canBoolean = IsBooleanText(text);
+            }
+
+            if (_canDateTime)
+            {
+                _canDateTime = TryParseDateTime(text, culture, dateTimeFormats);
+            }
         }
 
         private void ObserveTyped(object value)
         {
             var type = Nullable.GetUnderlyingType(value.GetType()) ?? value.GetType();
 
-            _canInt32 &= type == typeof(byte) || type == typeof(short) || type == typeof(int);
-            _canInt64 &= _canInt32 || type == typeof(long);
-            _canDecimal &= _canInt64 || type == typeof(decimal);
-            _canDouble &= _canDecimal || type == typeof(float) || type == typeof(double);
-            _canBoolean &= type == typeof(bool);
-            _canDateTime &= type == typeof(DateTime);
+            var canInt32 = type == typeof(byte) || type == typeof(short) || type == typeof(int);
+            var canInt64 = canInt32 || type == typeof(long);
+            var canDecimal = canInt64 || type == typeof(decimal);
+            var canDouble = canDecimal || type == typeof(float) || type == typeof(double);
+            var canBoolean = type == typeof(bool);
+            var canDateTime = type == typeof(DateTime);
+
+            _canInt32 &= canInt32;
+            _canInt64 &= canInt64;
+            _canDecimal &= canDecimal;
+            _canDouble &= canDouble;
+            _canBoolean &= canBoolean;
+            _canDateTime &= canDateTime;
         }
 
         private Type ResolveDataType()
@@ -170,7 +211,7 @@ public sealed partial class CsvDocument
         private static bool TryParseDateTime(string text, CultureInfo culture, IReadOnlyList<string>? dateTimeFormats)
         {
             if (dateTimeFormats is { Count: > 0 } &&
-                DateTime.TryParseExact(text, dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out _))
+                DateTime.TryParseExact(text, dateTimeFormats as string[] ?? dateTimeFormats.ToArray(), culture, DateTimeStyles.None, out _))
             {
                 return true;
             }

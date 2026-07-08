@@ -86,6 +86,15 @@ public class CsvWideBenchmarks
     }
 
     [Benchmark]
+    public int OfficeIMO_WriteDataReader()
+    {
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using var reader = new BenchmarkArrayDataReader(Headers, _rows);
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n" });
+        return writer.GetStringBuilder().Length;
+    }
+
+    [Benchmark]
     public int CsvHelper_WriteProjectedRows()
     {
         using var writer = new StringWriter(CultureInfo.InvariantCulture);
@@ -164,13 +173,13 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadRowsReusableCallback()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadRowsReusable(reader, (_, values) =>
         {
-            fieldCount += values.Count;
+            checksum += MeasureValues(values);
         });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
@@ -194,32 +203,32 @@ public class CsvWideBenchmarks
     public int OfficeIMO_ReadRecordsReusableSkipHeader()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadRecordsReusable(
             reader,
             values =>
             {
-                fieldCount += values.Count;
+                checksum += MeasureValues(values);
             },
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
     public int OfficeIMO_ReadFieldSpansSkipHeader()
     {
         using var reader = new StringReader(_csvText);
-        var fieldCount = 0;
+        var checksum = 0;
         CsvDocument.ReadFieldSpans(
             reader,
-            (_, _, _) =>
+            (_, _, value) =>
             {
-                fieldCount++;
+                checksum += 1 + value.Length;
             },
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
-        return fieldCount;
+        return checksum;
     }
 
     [Benchmark]
@@ -245,6 +254,58 @@ public class CsvWideBenchmarks
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
         return visitor.FieldCount + visitor.TextLength;
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataTableStrings()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.InMemory });
+        var table = document.ToDataTable();
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataTableInferredSchema()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        var table = document.ToDataTable(new CsvDataTableOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataTableLoadDataReaderStrings()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader();
+        var table = new System.Data.DataTable();
+        table.Load(csv);
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataTableLoadDataReaderInferredSchema()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        var table = new System.Data.DataTable();
+        table.Load(csv);
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataReaderStrings()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader();
+        return DataTableBenchmarkUtilities.Measure(csv);
+    }
+
+    [Benchmark]
+    public int OfficeIMO_ReadDataReaderInferredSchema()
+    {
+        var document = CsvDocument.Parse(_csvText, new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var csv = document.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = RowCount });
+        return DataTableBenchmarkUtilities.Measure(csv);
     }
 
     [Benchmark]
@@ -302,6 +363,16 @@ public class CsvWideBenchmarks
     }
 
     [Benchmark]
+    public int Sylvan_ReadDataTableLoad()
+    {
+        using var reader = new StringReader(_csvText);
+        using var csv = SylvanCsvDataReader.Create(reader);
+        var table = new System.Data.DataTable();
+        table.Load(csv);
+        return DataTableBenchmarkUtilities.Measure(table);
+    }
+
+    [Benchmark]
     public int Sylvan_ReadFieldSpans()
     {
         using var reader = new StringReader(_csvText);
@@ -333,6 +404,16 @@ public class CsvWideBenchmarks
         }
 
         return fieldCount;
+    }
+
+    [Benchmark]
+    public int Dataplat_ReadDataTableLoad()
+    {
+        using var reader = new StringReader(_csvText);
+        using var csv = new DataplatCsvDataReader(reader, DataplatReaderOptions);
+        var table = new System.Data.DataTable();
+        table.Load(csv);
+        return DataTableBenchmarkUtilities.Measure(table);
     }
 
     [Benchmark]
@@ -393,6 +474,17 @@ public class CsvWideBenchmarks
         }
 
         return values;
+    }
+
+    private static int MeasureValues(IReadOnlyList<string> values)
+    {
+        var checksum = 0;
+        for (var i = 0; i < values.Count; i++)
+        {
+            checksum += 1 + values[i].Length;
+        }
+
+        return checksum;
     }
 
     private struct CountingFieldSpanVisitor : ICsvFieldSpanVisitor

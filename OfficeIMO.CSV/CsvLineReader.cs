@@ -91,6 +91,7 @@ internal sealed partial class CsvLineReader : IDisposable
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int fieldCount,
         out bool isEmptyRecord,
@@ -129,6 +130,7 @@ internal sealed partial class CsvLineReader : IDisposable
                 allowEmpty,
                 emitFields,
                 recordIndex,
+                projectedFieldVisitor,
                 ref fieldVisitor,
                 out fieldCount,
                 out isEmptyRecord,
@@ -168,6 +170,7 @@ internal sealed partial class CsvLineReader : IDisposable
                     allowEmpty,
                     emitFields,
                     recordIndex,
+                    projectedFieldVisitor,
                     ref fieldVisitor,
                     out fieldCount,
                     out isEmptyRecord,
@@ -185,7 +188,7 @@ internal sealed partial class CsvLineReader : IDisposable
         var emitNonEmptyRecord = allowEmpty || (trim
             ? HasNonWhitespaceOrDelimiter(segmentStart, newlineIndex, delimiter)
             : lineLength != 0);
-        fieldCount = VisitUnquotedFieldSpans(segmentStart, newlineIndex, delimiter, trim, emitNonEmptyRecord, emitFields, recordIndex, ref fieldVisitor, out var firstFieldLength);
+        fieldCount = VisitUnquotedFieldSpans(segmentStart, newlineIndex, delimiter, trim, emitNonEmptyRecord, emitFields, recordIndex, projectedFieldVisitor, ref fieldVisitor, out var firstFieldLength);
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
         _position = newlineIndex;
         if (endsAtReaderEnd)
@@ -400,13 +403,14 @@ internal sealed partial class CsvLineReader : IDisposable
         bool emitNonEmptyRecord,
         bool emitFields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         if (!trim)
         {
-            return VisitUntrimmedUnquotedFieldSpans(start, end, delimiter, emitNonEmptyRecord && emitFields, recordIndex, ref fieldVisitor, out firstFieldLength);
+            return VisitUntrimmedUnquotedFieldSpans(start, end, delimiter, emitNonEmptyRecord && emitFields, recordIndex, projectedFieldVisitor, ref fieldVisitor, out firstFieldLength);
         }
 
         var fieldIndex = 0;
@@ -420,12 +424,12 @@ internal sealed partial class CsvLineReader : IDisposable
                 continue;
             }
 
-            VisitFieldSpan(fieldStart, i - fieldStart, trim: true, emit, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+            VisitFieldSpan(fieldStart, i - fieldStart, trim: true, emit, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
             fieldIndex++;
             fieldStart = i + 1;
         }
 
-        VisitFieldSpan(fieldStart, end - fieldStart, trim: true, emit, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+        VisitFieldSpan(fieldStart, end - fieldStart, trim: true, emit, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
         return fieldIndex + 1;
     }
 
@@ -435,6 +439,7 @@ internal sealed partial class CsvLineReader : IDisposable
         char delimiter,
         bool emit,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -442,6 +447,44 @@ internal sealed partial class CsvLineReader : IDisposable
         var fieldIndex = 0;
         var fieldStart = start;
         firstFieldLength = 0;
+        if (projectedFieldVisitor is null)
+        {
+            for (var i = start; i < end; i++)
+            {
+                if (_buffer[i] != delimiter)
+                {
+                    continue;
+                }
+
+                var length = i - fieldStart;
+                if (fieldIndex == 0)
+                {
+                    firstFieldLength = length;
+                }
+
+                if (emit)
+                {
+                    fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, length));
+                }
+
+                fieldIndex++;
+                fieldStart = i + 1;
+            }
+
+            var unprojectedFinalLength = end - fieldStart;
+            if (fieldIndex == 0)
+            {
+                firstFieldLength = unprojectedFinalLength;
+            }
+
+            if (emit)
+            {
+                fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, unprojectedFinalLength));
+            }
+
+            return fieldIndex + 1;
+        }
+
         for (var i = start; i < end; i++)
         {
             if (_buffer[i] != delimiter)
@@ -455,7 +498,7 @@ internal sealed partial class CsvLineReader : IDisposable
                 firstFieldLength = length;
             }
 
-            if (emit)
+            if (emit && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
             {
                 fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, length));
             }
@@ -470,7 +513,7 @@ internal sealed partial class CsvLineReader : IDisposable
             firstFieldLength = finalLength;
         }
 
-        if (emit)
+        if (emit && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
         {
             fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, finalLength));
         }
@@ -484,6 +527,7 @@ internal sealed partial class CsvLineReader : IDisposable
         ReadOnlySpan<int> delimiterIndexes,
         bool emit,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -491,6 +535,39 @@ internal sealed partial class CsvLineReader : IDisposable
         var fieldIndex = 0;
         var fieldStart = start;
         firstFieldLength = 0;
+        if (projectedFieldVisitor is null)
+        {
+            foreach (var delimiterIndex in delimiterIndexes)
+            {
+                var length = delimiterIndex - fieldStart;
+                if (fieldIndex == 0)
+                {
+                    firstFieldLength = length;
+                }
+
+                if (emit)
+                {
+                    fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, length));
+                }
+
+                fieldIndex++;
+                fieldStart = delimiterIndex + 1;
+            }
+
+            var unprojectedFinalLength = end - fieldStart;
+            if (fieldIndex == 0)
+            {
+                firstFieldLength = unprojectedFinalLength;
+            }
+
+            if (emit)
+            {
+                fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, unprojectedFinalLength));
+            }
+
+            return fieldIndex + 1;
+        }
+
         foreach (var delimiterIndex in delimiterIndexes)
         {
             var length = delimiterIndex - fieldStart;
@@ -499,7 +576,7 @@ internal sealed partial class CsvLineReader : IDisposable
                 firstFieldLength = length;
             }
 
-            if (emit)
+            if (emit && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
             {
                 fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, length));
             }
@@ -514,7 +591,7 @@ internal sealed partial class CsvLineReader : IDisposable
             firstFieldLength = finalLength;
         }
 
-        if (emit)
+        if (emit && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
         {
             fieldVisitor.VisitField(recordIndex, fieldIndex, _buffer.AsSpan(fieldStart, finalLength));
         }
@@ -527,6 +604,7 @@ internal sealed partial class CsvLineReader : IDisposable
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int fieldCount,
         out bool isEmptyRecord,
@@ -593,6 +671,7 @@ internal sealed partial class CsvLineReader : IDisposable
                             recordIndex,
                             delimiterIndexes.Slice(0, delimiterCount),
                             quoteIndex,
+                            projectedFieldVisitor,
                             ref fieldVisitor,
                             out fieldCount,
                             out isEmptyRecord,
@@ -613,6 +692,7 @@ internal sealed partial class CsvLineReader : IDisposable
                     delimiterIndexes.Slice(0, delimiterCount),
                     (allowEmpty || lineLength != 0) && emitFields,
                     recordIndex,
+                    projectedFieldVisitor,
                     ref fieldVisitor,
                     out var firstFieldLength);
                 isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
@@ -657,6 +737,7 @@ internal sealed partial class CsvLineReader : IDisposable
         bool emit,
         int recordIndex,
         int fieldIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -672,7 +753,7 @@ internal sealed partial class CsvLineReader : IDisposable
             firstFieldLength = span.Length;
         }
 
-        if (emit)
+        if (emit && (projectedFieldVisitor is null || projectedFieldVisitor.ShouldVisitField(recordIndex, fieldIndex)))
         {
             fieldVisitor.VisitField(recordIndex, fieldIndex, span);
         }

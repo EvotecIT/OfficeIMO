@@ -236,6 +236,8 @@ internal static partial class CsvParser
         ref int lineNumber)
     {
         parsedFields.Clear();
+        var startingLineNumber = lineNumber;
+        var continuations = new List<CsvLine>();
         var result = TryParseStandardQuotedRecordContinuations(
             reader,
             pendingLines,
@@ -244,6 +246,7 @@ internal static partial class CsvParser
             delimiter,
             trim,
             parsedFields,
+            continuations,
             ref lineNumber);
 
         if (result == QuotedRecordParseResult.Invalid && strictQuotes)
@@ -251,7 +254,27 @@ internal static partial class CsvParser
             throw new CsvParseException("Invalid quoted field.", lineNumber);
         }
 
-        return result == QuotedRecordParseResult.Complete;
+        if (result == QuotedRecordParseResult.Complete)
+        {
+            return true;
+        }
+
+        if (result != QuotedRecordParseResult.Invalid || strictQuotes)
+        {
+            return false;
+        }
+
+        PrependContinuations(pendingLines, continuations);
+        lineNumber = startingLineNumber;
+        return TryParseFlexibleQuotedRecordContinuations(
+            reader,
+            pendingLines,
+            firstLine,
+            firstLineSeparator,
+            delimiter,
+            trim,
+            parsedFields,
+            ref lineNumber);
     }
 
     private static QuotedRecordParseResult TryParseStandardQuotedRecordContinuations(
@@ -262,6 +285,7 @@ internal static partial class CsvParser
         char delimiter,
         bool trim,
         List<string> parsedFields,
+        List<CsvLine> continuations,
         ref int lineNumber)
     {
         var line = firstLine;
@@ -293,6 +317,7 @@ internal static partial class CsvParser
                     trim,
                     delimiter,
                     out var quotedValue,
+                    continuations,
                     ref lineNumber);
                 if (quotedResult != QuotedRecordParseResult.Complete)
                 {
@@ -347,6 +372,7 @@ internal static partial class CsvParser
         bool trim,
         char delimiter,
         out string value,
+        List<CsvLine> continuations,
         ref int lineNumber)
     {
         index++;
@@ -406,6 +432,7 @@ internal static partial class CsvParser
                 return QuotedRecordParseResult.Incomplete;
             }
 
+            continuations.Add(new CsvLine(next, lineSeparator));
             line = next;
             index = 0;
             start = 0;
@@ -427,6 +454,26 @@ internal static partial class CsvParser
             builder ??= new StringBuilder(currentLine.Length - currentStart + currentSeparator.Length + line.Length + 128);
             builder.Append(currentLine, currentStart, currentLine.Length - currentStart);
             builder.Append(currentSeparator);
+        }
+    }
+
+    private static void PrependContinuations(Queue<CsvLine> pendingLines, List<CsvLine> continuations)
+    {
+        if (continuations.Count == 0)
+        {
+            return;
+        }
+
+        var existing = pendingLines.Count == 0 ? Array.Empty<CsvLine>() : pendingLines.ToArray();
+        pendingLines.Clear();
+        foreach (var continuation in continuations)
+        {
+            pendingLines.Enqueue(continuation);
+        }
+
+        foreach (var line in existing)
+        {
+            pendingLines.Enqueue(line);
         }
     }
 

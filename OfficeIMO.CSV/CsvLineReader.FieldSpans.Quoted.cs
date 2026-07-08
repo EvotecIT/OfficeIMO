@@ -14,6 +14,7 @@ internal sealed partial class CsvLineReader
         bool allowEmpty,
         bool emitFields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int fieldCount,
         out bool isEmptyRecord,
@@ -37,7 +38,7 @@ internal sealed partial class CsvLineReader
         fieldCount = fieldCountValue;
         if (emit)
         {
-            VisitStandardQuotedFieldSpans(fields.Slice(0, fieldCount), recordIndex, ref fieldVisitor);
+            VisitStandardQuotedFieldSpans(fields.Slice(0, fieldCount), recordIndex, projectedFieldVisitor, ref fieldVisitor);
         }
 
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
@@ -54,6 +55,7 @@ internal sealed partial class CsvLineReader
         int recordIndex,
         ReadOnlySpan<int> delimiterIndexesBeforeQuote,
         int quoteIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int fieldCount,
         out bool isEmptyRecord,
@@ -117,7 +119,7 @@ internal sealed partial class CsvLineReader
         var emit = emitFields && (allowEmpty || recordEnd > start);
         if (emit)
         {
-            VisitStandardQuotedFieldSpans(fields.Slice(0, fieldCount), recordIndex, ref fieldVisitor);
+            VisitStandardQuotedFieldSpans(fields.Slice(0, fieldCount), recordIndex, projectedFieldVisitor, ref fieldVisitor);
         }
 
         isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
@@ -413,11 +415,17 @@ internal sealed partial class CsvLineReader
     private void VisitStandardQuotedFieldSpans<TVisitor>(
         ReadOnlySpan<StandardCsvFieldSpan> fields,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         for (var fieldIndex = 0; fieldIndex < fields.Length; fieldIndex++)
         {
+            if (!CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+            {
+                continue;
+            }
+
             var field = fields[fieldIndex];
             ReadOnlySpan<char> value = _buffer.AsSpan(field.Start, field.End - field.Start);
             if (field.HasEscapedQuotes)

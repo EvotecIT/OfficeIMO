@@ -1,5 +1,7 @@
 #nullable enable
 
+using System.Globalization;
+
 namespace OfficeIMO.CSV;
 
 /// <summary>
@@ -60,6 +62,11 @@ public sealed class CsvSchemaColumn
     /// </summary>
     public IReadOnlyList<CsvColumnRule> Validators => _validators;
 
+    /// <summary>
+    /// Gets the custom converter used before built-in typed conversion, when configured.
+    /// </summary>
+    public Func<object?, CultureInfo, object?>? Converter { get; internal set; }
+
     internal List<CsvColumnRule> _validators { get; } = new();
 }
 
@@ -114,6 +121,7 @@ public sealed class CsvSchemaBuilder
     {
         var clone = new CsvSchemaColumn(column.Name)
         {
+            Converter = column.Converter,
             DataType = column.DataType,
             DefaultValue = column.DefaultValue,
             IsRequired = column.IsRequired
@@ -186,6 +194,29 @@ public sealed class CsvColumnBuilder
     public CsvColumnBuilder AsType(Type type)
     {
         _column.DataType = type ?? throw new ArgumentNullException(nameof(type));
+        return this;
+    }
+
+    /// <summary>
+    /// Uses a custom converter before built-in typed conversion.
+    /// </summary>
+    public CsvColumnBuilder ConvertUsing(Func<object?, object?> converter)
+    {
+        if (converter is null)
+        {
+            throw new ArgumentNullException(nameof(converter));
+        }
+
+        _column.Converter = (value, _) => converter(value);
+        return this;
+    }
+
+    /// <summary>
+    /// Uses a culture-aware custom converter before built-in typed conversion.
+    /// </summary>
+    public CsvColumnBuilder ConvertUsing(Func<object?, CultureInfo, object?> converter)
+    {
+        _column.Converter = converter ?? throw new ArgumentNullException(nameof(converter));
         return this;
     }
 

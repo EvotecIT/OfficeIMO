@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Data;
 using System.Linq;
 using OfficeIMO.CSV;
 using Xunit;
@@ -22,6 +24,34 @@ public class CsvSchemaTests
         doc.Validate(out var errors);
         Assert.NotEmpty(errors);
         Assert.Contains(errors, e => e.ColumnName == "Age");
+    }
+
+    [Fact]
+    public void ToDataTable_WithRequiredSchema_RejectsMissingColumn()
+    {
+        var doc = CsvDocument.Parse("Id,Name\n1,Alice\n")
+            .EnsureSchema(schema => schema
+                .Column("Id").AsInt32().Required()
+                .Column("Name").AsString().Required()
+                .Column("Age").AsInt32().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Required column 'Age' is missing", ex.Message);
+    }
+
+    [Fact]
+    public void CreateDataReader_WithRequiredSchema_RejectsMissingColumn()
+    {
+        var doc = CsvDocument.Parse("Id,Name\n1,Alice\n")
+            .EnsureSchema(schema => schema
+                .Column("Id").AsInt32().Required()
+                .Column("Name").AsString().Required()
+                .Column("Age").AsInt32().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.CreateDataReader());
+
+        Assert.Contains("Required column 'Age' is missing", ex.Message);
     }
 
     [Fact]
@@ -68,6 +98,19 @@ public class CsvSchemaTests
     }
 
     [Fact]
+    public void InferSchema_ForTypedRows_IsNotOrderDependent()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Value")
+            .AddRow(1234567890123L)
+            .AddRow(1);
+
+        var schema = doc.InferSchema();
+
+        Assert.Equal(typeof(long), Assert.Single(schema.Columns).DataType);
+    }
+
+    [Fact]
     public void EnsureInferredSchema_Attaches_Schema_For_Validation()
     {
         var doc = CsvDocument.Parse("Id,Name\n1,Alice\n2,Bob\n")
@@ -76,6 +119,225 @@ public class CsvSchemaTests
         doc.Validate(out var errors);
 
         Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void ToDataTable_WithInferredSchema_UsesTypedColumns()
+    {
+        var doc = CsvDocument.Parse("Id,Amount,Active,Created,Note\n1,12.5,true,2026-07-07,Alpha\n2,13.7,false,2026-07-08,\n");
+
+        var table = doc.ToDataTable(new CsvDataTableOptions
+        {
+            TableName = "Rows",
+            InferSchema = true
+        });
+
+        Assert.Equal("Rows", table.TableName);
+        Assert.Equal(typeof(int), table.Columns["Id"]!.DataType);
+        Assert.Equal(typeof(decimal), table.Columns["Amount"]!.DataType);
+        Assert.Equal(typeof(bool), table.Columns["Active"]!.DataType);
+        Assert.Equal(typeof(DateTime), table.Columns["Created"]!.DataType);
+        Assert.Equal(typeof(string), table.Columns["Note"]!.DataType);
+        Assert.Equal(1, table.Rows[0]["Id"]);
+        Assert.Equal(12.5m, table.Rows[0]["Amount"]);
+        Assert.Equal(false, table.Rows[1]["Active"]);
+        Assert.Equal(string.Empty, table.Rows[1]["Note"]);
+    }
+
+    [Fact]
+    public void ToDataTable_InStreamingMode_UsesTypedColumns()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Amount,Active,Created,Note\n1,12.5,true,2026-07-07,Alpha\n2,13.7,false,2026-07-08,\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+
+        var table = doc.ToDataTable(new CsvDataTableOptions
+        {
+            TableName = "Rows",
+            InferSchema = true
+        });
+
+        Assert.Equal("Rows", table.TableName);
+        Assert.Equal(typeof(int), table.Columns["Id"]!.DataType);
+        Assert.Equal(typeof(decimal), table.Columns["Amount"]!.DataType);
+        Assert.Equal(typeof(bool), table.Columns["Active"]!.DataType);
+        Assert.Equal(typeof(DateTime), table.Columns["Created"]!.DataType);
+        Assert.Equal(typeof(string), table.Columns["Note"]!.DataType);
+        Assert.Equal(2, table.Rows.Count);
+        Assert.Equal(1, table.Rows[0]["Id"]);
+        Assert.Equal(13.7m, table.Rows[1]["Amount"]);
+        Assert.Equal(string.Empty, table.Rows[1]["Note"]);
+    }
+
+    [Fact]
+    public void ToDataTable_WithInferredSchema_StoresMissingTypedValuesAsDbNull()
+    {
+        var doc = CsvDocument.Parse("Id,Amount\n1,12.5\n2,\n");
+
+        var table = doc.ToDataTable(new CsvDataTableOptions { InferSchema = true });
+
+        Assert.Equal(typeof(decimal), table.Columns["Amount"]!.DataType);
+        Assert.Same(DBNull.Value, table.Rows[1]["Amount"]);
+    }
+
+    [Fact]
+    public void ToDataTable_WithCustomSchemaConverter_UsesConvertedValues()
+    {
+        var doc = CsvDocument.Parse("Code,Score\nA,high\nB,low\n")
+            .EnsureSchema(schema => schema
+                .Column("Code").AsString().Required()
+                .Column("Score").AsInt32().ConvertUsing(value =>
+                    string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1));
+
+        var table = doc.ToDataTable();
+
+        Assert.Equal(typeof(int), table.Columns["Score"]!.DataType);
+        Assert.Equal(10, table.Rows[0]["Score"]);
+        Assert.Equal(1, table.Rows[1]["Score"]);
+    }
+
+    [Fact]
+    public void CreateDataReader_WithCustomSchemaConverter_UsesConvertedValues()
+    {
+        var doc = CsvDocument.Parse("Code,Score\nA,high\n")
+            .EnsureSchema(schema => schema
+                .Column("Code").AsString().Required()
+                .Column("Score").AsInt32().ConvertUsing((value, _) =>
+                    string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1));
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal(typeof(int), reader.GetFieldType(reader.GetOrdinal("Score")));
+        Assert.Equal(10, reader.GetInt32(reader.GetOrdinal("Score")));
+    }
+
+    [Fact]
+    public void CreateDataReader_WithRequiredCustomConverter_RejectsConvertedNull()
+    {
+        var doc = CsvDocument.Parse("Code\nN/A\n")
+            .EnsureSchema(schema => schema
+                .Column("Code")
+                .AsString()
+                .Required()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "N/A", StringComparison.OrdinalIgnoreCase) ? null : value));
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        var ex = Assert.Throws<CsvException>(() => reader.GetValue(reader.GetOrdinal("Code")));
+        Assert.Contains("Column 'Code' is required", ex.Message);
+    }
+
+    [Fact]
+    public void ToDataTable_WithRequiredCustomConverter_RejectsConvertedNull()
+    {
+        var doc = CsvDocument.Parse("Code\nN/A\n")
+            .EnsureSchema(schema => schema
+                .Column("Code")
+                .AsString()
+                .Required()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "N/A", StringComparison.OrdinalIgnoreCase) ? null : value));
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Column 'Code' is required", ex.Message);
+    }
+
+    [Fact]
+    public void Validate_WithCustomSchemaConverter_RunsValidatorsAgainstConvertedValues()
+    {
+        var doc = CsvDocument.Parse("Score\nhigh\n")
+            .EnsureSchema(schema => schema
+                .Column("Score")
+                .AsInt32()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1)
+                .Validate(value => value is int score && score >= 10, "Score must be at least 10."));
+
+        doc.Validate(out var errors);
+
+        Assert.Empty(errors);
+    }
+
+    [Fact]
+    public void Validate_WithRequiredCustomConverter_ReportsConvertedNull()
+    {
+        var doc = CsvDocument.Parse("Code\nN/A\n")
+            .EnsureSchema(schema => schema
+                .Column("Code")
+                .AsString()
+                .Required()
+                .ConvertUsing(value => string.Equals(Convert.ToString(value), "N/A", StringComparison.OrdinalIgnoreCase) ? null : value));
+
+        doc.Validate(out var errors);
+
+        var error = Assert.Single(errors);
+        Assert.Equal("Code", error.ColumnName);
+        Assert.Equal("Value is required.", error.Message);
+    }
+
+    [Fact]
+    public void ToDataTable_WithRequiredSchema_RejectsMissingValues()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Id")
+            .AddRow(new object?[] { null });
+        doc.EnsureSchema(schema => schema.Column("Id").AsInt32().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Column 'Id' is required", ex.Message);
+    }
+
+    [Fact]
+    public void ToDataTable_WithRequiredStringSchema_RejectsEmptyValues()
+    {
+        var doc = new CsvDocument()
+            .WithHeader("Name")
+            .AddRow(string.Empty);
+        doc.EnsureSchema(schema => schema.Column("Name").AsString().Required());
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Column 'Name' is required", ex.Message);
+    }
+
+    [Fact]
+    public void ToDataTable_InStreamingMode_PreservesNullAndStaticColumns()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Note\n1,<null>\n",
+            new CsvLoadOptions
+            {
+                Mode = CsvLoadMode.Stream,
+                NullValue = "<null>",
+                StaticColumns = new Dictionary<string, object?> { ["Batch"] = 7, ["Source"] = null }
+            });
+
+        var table = doc.ToDataTable(new CsvDataTableOptions { TableName = "Import" });
+
+        Assert.Equal("Import", table.TableName);
+        Assert.Equal(new[] { "Id", "Note", "Batch", "Source" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName));
+        Assert.Equal("1", table.Rows[0]["Id"]);
+        Assert.Same(DBNull.Value, table.Rows[0]["Note"]);
+        Assert.Equal("7", table.Rows[0]["Batch"]);
+        Assert.Same(DBNull.Value, table.Rows[0]["Source"]);
+    }
+
+    [Fact]
+    public void ToDataTable_InStreamingMode_HonorsStrictColumnCounts()
+    {
+        var doc = CsvDocument.Parse(
+            "First,Second\n1\n",
+            new CsvLoadOptions
+            {
+                Mode = CsvLoadMode.Stream,
+                ColumnCountMismatchPolicy = CsvColumnCountMismatchPolicy.Strict
+            });
+
+        var ex = Assert.Throws<CsvException>(() => doc.ToDataTable());
+
+        Assert.Contains("Row contains 1 values but header defines 2 columns", ex.Message);
     }
 
     [Fact]

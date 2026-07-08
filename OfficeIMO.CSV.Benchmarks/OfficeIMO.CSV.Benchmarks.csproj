@@ -13,6 +13,7 @@
     <PackageReference Include="BenchmarkDotNet" Version="0.15.8" />
     <PackageReference Include="CsvHelper" Version="33.1.0" />
     <PackageReference Include="Dataplat.Dbatools.Csv" Version="1.1.15" />
+    <PackageReference Include="LumenWorksCsvReader2" Version="4.4.0" />
     <PackageReference Include="Sep" Version="0.15.0" />
     <PackageReference Include="Sylvan.Data.Csv" Version="1.4.4" />
   </ItemGroup>

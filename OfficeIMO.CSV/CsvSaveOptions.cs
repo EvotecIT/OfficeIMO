@@ -19,6 +19,12 @@ public sealed class CsvSaveOptions
     public char Delimiter { get; set; } = DefaultDelimiter;
 
     /// <summary>
+    /// Gets or sets the field delimiter text. Leave unset to use <see cref="Delimiter"/>.
+    /// Single-character values keep the optimized character delimiter path; longer values enable flexible delimiter writing.
+    /// </summary>
+    public string? DelimiterText { get; set; }
+
+    /// <summary>
     /// Gets or sets the newline sequence written between records. Default is <see cref="Environment.NewLine"/>.
     /// </summary>
     public string NewLine { get; set; } = Environment.NewLine;

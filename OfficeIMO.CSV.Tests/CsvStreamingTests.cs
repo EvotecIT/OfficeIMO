@@ -64,6 +64,38 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void StreamingMode_ClonesStaticColumnsBeforeEnumeration()
+    {
+        var tempPath = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.StreamingStaticClone." + Guid.NewGuid().ToString("N") + ".csv");
+        try
+        {
+            File.WriteAllText(tempPath, "Id,Name\n1,Alice\n");
+            var staticColumns = new Dictionary<string, object?> {
+                ["Source"] = "original.csv"
+            };
+            var doc = CsvDocument.Load(
+                tempPath,
+                new CsvLoadOptions {
+                    Mode = CsvLoadMode.Stream,
+                    StaticColumns = staticColumns
+                });
+
+            staticColumns["Batch"] = "late";
+
+            var row = Assert.Single(doc.AsEnumerable());
+            Assert.Equal(new[] { "Id", "Name", "Source" }, doc.Header);
+            Assert.Equal("original.csv", row.AsString("Source"));
+        }
+        finally
+        {
+            if (File.Exists(tempPath))
+            {
+                File.Delete(tempPath);
+            }
+        }
+    }
+
+    [Fact]
     public void StreamingMode_Disallows_FilterUntilMaterialized()
     {
         var csv = "Id,Value\n1,A\n2,B\n";
@@ -216,6 +248,44 @@ public class CsvStreamingTests
         var visitor = new CapturingRowFieldSpanVisitor(events);
 
         CsvDocument.ReadRowFieldSpansFromText("#Version: 1.0\nName,Value\nAlpha,1\n", ref visitor);
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpansFromText_SkipsCommentWithUnclosedQuoteBeforeHeader()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+
+        CsvDocument.ReadRowFieldSpansFromText("# generated \"by tool\nName,Value\nAlpha,1\n", ref visitor);
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:1",
+                "end:0:2"
+            },
+            events);
+    }
+
+    [Fact]
+    public void ReadRowFieldSpansFromText_SkipsMultilineCommentBeforeHeader()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+
+        CsvDocument.ReadRowFieldSpansFromText("#,\"note\ncontinued\"\nName,Value\nAlpha,1\n", ref visitor);
 
         Assert.Equal(
             new[]
@@ -432,6 +502,26 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadRowFieldSpans_PadsShortRowsByDefault()
+    {
+        var events = new List<string>();
+        var visitor = new CapturingRowFieldSpanVisitor(events);
+        using var reader = new StringReader("Name,Value\nAlpha\n");
+
+        CsvDocument.ReadRowFieldSpans(reader, ref visitor);
+
+        Assert.Equal(
+            new[]
+            {
+                "begin:0:Name|Value",
+                "field:0:0:Alpha",
+                "field:0:1:",
+                "end:0:1"
+            },
+            events);
+    }
+
+    [Fact]
     public void ReadFieldSpans_CanSkipInitialRecords()
     {
         var fields = new List<string>();
@@ -579,6 +669,19 @@ public class CsvStreamingTests
     }
 
     [Fact]
+    public void ReadFieldSpansFromText_SkipsRawCommentsBeforeParsing()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "# generated \"by tool\nName,Value\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipCommentRows = true });
+
+        Assert.Equal(new[] { "0:0:Name", "0:1:Value" }, fields);
+    }
+
+    [Fact]
     public void ReadFieldSpansFromText_ReadsQuotedMultilineAndEscapedFields()
     {
         var fields = new List<string>();
@@ -602,6 +705,47 @@ public class CsvStreamingTests
             new CsvLoadOptions { SkipInitialRecords = 1 });
 
         Assert.Equal(new[] { "0:0:A", "0:1:bc\nd", "0:2:E" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_PreservesFlexibleMultilineQuotedParsing()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name,Note,Value\nA,b\"c\nd\",E\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:A", "0:1:bc\nd", "0:2:E" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpans_ReplaysContinuationsBeforeLenientFallback()
+    {
+        var fields = new List<string>();
+        using var reader = new StringReader("Name,Note,Value\nA,\"b\nc\"x,D\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:A", "0:1:b\ncx", "0:2:D" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_UsesLenientParsingAfterClosingQuotes()
+    {
+        var fields = new List<string>();
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Note\nAlpha,\"one\"two\n",
+            (recordIndex, fieldIndex, value) => fields.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}"),
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:Alpha", "0:1:onetwo" }, fields);
     }
 
     [Fact]
@@ -692,7 +836,39 @@ public class CsvStreamingTests
             CsvDocument.ReadFieldSpansFromText(
                 "Id,Name,Department,Region,Note,Value\n1,Alpha,Ops,EU,\"one\"x,1\n",
                 static (_, _, _) => { },
-                new CsvLoadOptions { SkipInitialRecords = 1 }));
+                new CsvLoadOptions {
+                    SkipInitialRecords = 1,
+                    QuoteParsingMode = CsvQuoteParsingMode.Strict
+                }));
+    }
+
+    [Fact]
+    public void ReadFieldSpans_HonorsProjectedFieldVisitor()
+    {
+        var fields = new List<string>();
+        var visitor = new ProjectedFieldCapturingVisitor(fields, projectedFieldIndex: 0);
+        using var reader = new StringReader("Name,Note,Value\nAlpha,\"one \"\"quoted\"\" value\",1\nBeta,two,2\n");
+
+        CsvDocument.ReadFieldSpans(
+            reader,
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:0:Alpha", "1:0:Beta" }, fields);
+    }
+
+    [Fact]
+    public void ReadFieldSpansFromText_HonorsProjectedFieldVisitor()
+    {
+        var fields = new List<string>();
+        var visitor = new ProjectedFieldCapturingVisitor(fields, projectedFieldIndex: 2);
+
+        CsvDocument.ReadFieldSpansFromText(
+            "Name,Note,Value\nAlpha,\"one \"\"quoted\"\" value\",1\nBeta,two,2\n",
+            ref visitor,
+            new CsvLoadOptions { SkipInitialRecords = 1 });
+
+        Assert.Equal(new[] { "0:2:1", "1:2:2" }, fields);
     }
 
 #endif
@@ -831,6 +1007,31 @@ public class CsvStreamingTests
         public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
         {
             _events.Add($"escaped:{recordIndex}:{fieldIndex}:{escapedValue.ToString()}:{unescapedLength}");
+            return true;
+        }
+    }
+
+    private readonly struct ProjectedFieldCapturingVisitor : ICsvProjectedFieldSpanVisitor
+    {
+        private readonly List<string> _events;
+        private readonly int _projectedFieldIndex;
+
+        public ProjectedFieldCapturingVisitor(List<string> events, int projectedFieldIndex)
+        {
+            _events = events;
+            _projectedFieldIndex = projectedFieldIndex;
+        }
+
+        public bool ShouldVisitField(int recordIndex, int fieldIndex) => fieldIndex == _projectedFieldIndex;
+
+        public void VisitField(int recordIndex, int fieldIndex, ReadOnlySpan<char> value)
+        {
+            _events.Add($"{recordIndex}:{fieldIndex}:{value.ToString()}");
+        }
+
+        public bool TryVisitEscapedField(int recordIndex, int fieldIndex, ReadOnlySpan<char> escapedValue, int unescapedLength)
+        {
+            _events.Add($"{recordIndex}:{fieldIndex}:{escapedValue.ToString()}:{unescapedLength}");
             return true;
         }
     }

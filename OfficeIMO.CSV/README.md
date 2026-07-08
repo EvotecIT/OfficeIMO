@@ -38,9 +38,11 @@ new CsvDocument()
 
 - Keeps headers and rows as a first-class document model instead of ad hoc string arrays.
 - Loads from files, streams, or text and saves through configurable delimiter, culture, encoding, and newline options.
+- Supports single-character delimiters through `Delimiter` and multi-character delimiters through `DelimiterText`.
 - Reads and writes compressed CSV files with extension-based detection for gzip, deflate, Brotli, and zlib.
 - Can escape formula-like values during save when producing CSV files that people will open in spreadsheet applications.
 - Handles real-world import details such as duplicate headers, generated blank headers, null tokens, static metadata columns, custom date formats, comments, W3C `#Fields:` headers, and mismatched row lengths.
+- Provides cancellation, progress callbacks, parse-error collection, field-length limits, quote normalization, and string interning for import pipelines.
 - Supports `AddRow`, `AddColumn`, `RemoveColumn`, `SortBy`, `Filter`, and `Transform`.
 - Provides schema inference and schema validation with required columns, typed columns, defaults, and custom rules.
 - Maps rows to typed objects with explicit no-reflection mapping.
@@ -72,6 +74,18 @@ document.Validate(out var errors);
 foreach (var error in errors) {
     Console.WriteLine($"{error.RowIndex}:{error.ColumnName} - {error.Message}");
 }
+```
+
+Use `ConvertUsing` when a column needs domain-specific conversion before it becomes a `DataTable` or `IDataReader` value:
+
+```csharp
+var document = CsvDocument.Load("input.csv")
+    .EnsureSchema(schema => schema
+        .Column("Priority")
+        .AsInt32()
+        .ConvertUsing(value => string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1));
+
+DataTable table = document.ToDataTable();
 ```
 
 Infer a schema from sampled rows when the incoming file should define the import contract:
@@ -168,6 +182,24 @@ var transformed = CsvDocument.Load("large.csv", new CsvLoadOptions {
 transformed.Save("ready.csv");
 ```
 
+Use `CreateDataReader` when the next hop expects an ADO.NET reader, such as `DataTable.Load` or a provider bulk-copy API. Schema inference can expose typed columns while the rows remain forward-only:
+
+```csharp
+using System.Data;
+
+var document = CsvDocument.Load("large.csv", new CsvLoadOptions {
+    Mode = CsvLoadMode.Stream
+});
+
+using var reader = document.CreateDataReader(new CsvDataReaderOptions {
+    InferSchema = true,
+    SchemaSampleSize = 1000
+});
+
+var table = new DataTable();
+table.Load(reader);
+```
+
 ## Real-world headers
 
 CSV exports often contain blank or repeated header names. By default, blank headers are generated as `H1`, `H2`, and duplicate names are renamed with suffixes so name-based row access stays unambiguous:
@@ -216,6 +248,33 @@ The parser defaults to lenient quoted-field handling for compatibility with comm
 ```csharp
 var document = CsvDocument.Load("input.csv", new CsvLoadOptions {
     QuoteParsingMode = CsvQuoteParsingMode.Strict
+});
+```
+
+Use `DelimiterText` for multi-character delimiters such as `||` or `::`. Quoted fields can still contain the delimiter text:
+
+```csharp
+var document = CsvDocument.Parse(
+    "Name||Value\nAlpha||\"one||two\"\n",
+    new CsvLoadOptions { DelimiterText = "||" });
+
+document.Save("pipes.csv", new CsvSaveOptions {
+    DelimiterText = "||",
+    NewLine = "\n"
+});
+```
+
+Long-running import paths can opt into cancellation and progress reporting without changing the document model:
+
+```csharp
+using var cancellation = new CancellationTokenSource();
+
+var document = CsvDocument.Load("large.csv", new CsvLoadOptions {
+    Mode = CsvLoadMode.Stream,
+    CancellationToken = cancellation.Token,
+    ProgressReportInterval = 10_000,
+    ProgressCallback = progress =>
+        Console.WriteLine($"{progress.RecordsRead} records read")
 });
 ```
 
@@ -287,7 +346,8 @@ string normalized = document.ToString(new CsvSaveOptions {
 ## Boundaries
 
 - This package owns CSV parsing, writing, transforms, and validation.
-- Delimiters are single characters. Multi-character delimiter support is not advertised until the parser, writer, delimiter detection, and benchmark lanes can all support it consistently.
+- `DelimiterText` supports explicit multi-character delimiters. Delimiter auto-detection is still character-candidate based.
+- Parallel CSV-to-database import is intentionally outside this package; database bulk copy and provider behavior belong in DbaClientX or the consuming data-access layer.
 - Reader integration belongs in `OfficeIMO.Reader.Csv`.
 - Excel workbook behavior belongs in `OfficeIMO.Excel`.
 

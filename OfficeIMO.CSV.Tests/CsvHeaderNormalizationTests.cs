@@ -47,6 +47,16 @@ public class CsvHeaderNormalizationTests
     }
 
     [Fact]
+    public void Generated_Missing_Headers_Avoid_Existing_Names()
+    {
+        var parsed = CsvDocument.Parse(
+            ",H1,,H2\nAlpha,Beta,Gamma,Delta\n",
+            new CsvLoadOptions { GenerateMissingHeaderNames = true });
+
+        Assert.Equal(new[] { "H3", "H1", "H4", "H2" }, parsed.Header);
+    }
+
+    [Fact]
     public void W3C_Duplicate_Headers_Are_Normalized()
     {
         var parsed = CsvDocument.Parse("#Fields: date time time\n2026-07-07 10:00 10:01\n", new CsvLoadOptions { Delimiter = ' ' });

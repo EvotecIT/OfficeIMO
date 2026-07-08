@@ -428,6 +428,23 @@ public sealed partial class CsvDocument
             if (!_hasRowStarted)
             {
                 _rowVisitor.BeginRow(header, _rowIndex);
+                _hasRowStarted = true;
+            }
+
+            if (_options.ColumnCountMismatchPolicy == CsvColumnCountMismatchPolicy.PadMissingFieldsAndIgnoreExtraFields &&
+                _currentFieldCount < sourceHeaderCount)
+            {
+                var sourceFieldCount = _currentFieldCount;
+                for (var fieldIndex = _currentFieldCount; fieldIndex < sourceHeaderCount; fieldIndex++)
+                {
+                    _rowVisitor.VisitFieldValue(_rowIndex, fieldIndex, string.Empty);
+                }
+
+                _currentFieldCount = sourceHeaderCount;
+                AppendStaticFields(sourceHeaderCount);
+                _rowVisitor.EndRow(_rowIndex, sourceFieldCount);
+                _rowIndex++;
+                return;
             }
 
             var emittedFieldCount = AppendStaticFields(sourceHeaderCount);

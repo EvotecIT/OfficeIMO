@@ -1092,6 +1092,7 @@ internal static partial class ExcelLibraryComparisonRunner {
             var measurement = measurements[i];
             byte[] packageBytes = packageCase.CreatePackage();
             var profile = AnalyzePackage(packageBytes);
+            ValidatePackageProfile(scenario, packageCase.Library, profile);
 
             Console.WriteLine(
                 string.Create(
@@ -1156,6 +1157,25 @@ internal static partial class ExcelLibraryComparisonRunner {
             .ToList();
 
         return summary;
+    }
+
+    private static void ValidatePackageProfile(string scenario, string library, ExcelPackageProfileSummary summary) {
+        if (summary.FileSizeBytes <= 0) {
+            throw new InvalidOperationException($"Scenario '{scenario}' for {library} produced an empty workbook package.");
+        }
+
+        if (summary.PartCount <= 0) {
+            throw new InvalidOperationException($"Scenario '{scenario}' for {library} produced a workbook package without ZIP parts.");
+        }
+
+        if (summary.WorkbookCompressedBytes <= 0) {
+            throw new InvalidOperationException($"Scenario '{scenario}' for {library} produced a workbook package without a workbook part.");
+        }
+
+        if (summary.WorksheetRowCount <= 0 || summary.WorksheetCellCount <= 0) {
+            throw new InvalidOperationException(
+                $"Scenario '{scenario}' for {library} produced a workbook package without worksheet rows and cells.");
+        }
     }
 
     private static string GetPackagePartCategory(string partName) {

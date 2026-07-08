@@ -5,12 +5,13 @@ namespace OfficeIMO.CSV;
 internal static partial class CsvParser
 {
 #if NET8_0_OR_GREATER
-    private static bool HasUnexpectedQuoteInTextUnquotedField(ReadOnlySpan<char> text, char delimiter, int position)
+    private static bool ShouldUseFlexibleTextRecordParsing(ReadOnlySpan<char> text, char delimiter, bool trim, int position)
     {
+        var index = position;
         var fieldStart = position;
-        for (var i = position; i < text.Length; i++)
+        while (index < text.Length)
         {
-            var value = text[i];
+            var value = text[index];
             if (value == '\r' || value == '\n')
             {
                 return false;
@@ -18,14 +19,68 @@ internal static partial class CsvParser
 
             if (value == delimiter)
             {
-                fieldStart = i + 1;
+                index++;
+                fieldStart = index;
                 continue;
             }
 
             if (value == '"')
             {
-                return i != fieldStart;
+                if (index != fieldStart)
+                {
+                    return true;
+                }
+
+                index++;
+                while (index < text.Length)
+                {
+                    var quoteOffset = text[index..].IndexOf('"');
+                    if (quoteOffset < 0)
+                    {
+                        return false;
+                    }
+
+                    index += quoteOffset;
+                    if (index + 1 < text.Length && text[index + 1] == '"')
+                    {
+                        index += 2;
+                        continue;
+                    }
+
+                    index++;
+                    break;
+                }
+
+                if (trim)
+                {
+                    while (index < text.Length &&
+                        text[index] != delimiter &&
+                        text[index] != '\r' &&
+                        text[index] != '\n' &&
+                        char.IsWhiteSpace(text[index]))
+                    {
+                        index++;
+                    }
+                }
+
+                if (index < text.Length &&
+                    text[index] != delimiter &&
+                    text[index] != '\r' &&
+                    text[index] != '\n')
+                {
+                    return true;
+                }
+
+                if (index < text.Length && text[index] == delimiter)
+                {
+                    index++;
+                    fieldStart = index;
+                }
+
+                continue;
             }
+
+            index++;
         }
 
         return false;
@@ -38,6 +93,7 @@ internal static partial class CsvParser
         bool emitFields,
         int recordIndex,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -62,7 +118,10 @@ internal static partial class CsvParser
                 {
                     for (var i = 0; i < fields.Count; i++)
                     {
-                        fieldVisitor.VisitFieldValue(recordIndex, i, fields[i]);
+                        if (CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, i))
+                        {
+                            fieldVisitor.VisitFieldValue(recordIndex, i, fields[i]);
+                        }
                     }
                 }
 

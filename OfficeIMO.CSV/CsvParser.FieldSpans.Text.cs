@@ -22,16 +22,47 @@ internal static partial class CsvParser
         ref TVisitor fieldVisitor)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
-        var delimiter = options.Delimiter;
+        if (HasFieldLengthLimits(options))
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansMaterialized(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
+        if (UsesTextDelimiter(options))
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansTextDelimiter(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
+        if (NeedsLogicalCommentSkipping(options) &&
+            HasPotentialTextCommentRecord(text, options.CommentCharacter))
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
+        if (options.ParseErrorAction == CsvParseErrorAction.SkipRow)
+        {
+            using var reader = new StringReader(text.ToString());
+            ReadFieldSpansLineOrQuoted(reader, options, recordsToSkip, ref fieldVisitor);
+            return;
+        }
+
+        var delimiter = GetDelimiterChar(options);
         var trim = options.TrimWhitespace;
         var strictQuotes = options.QuoteParsingMode == CsvQuoteParsingMode.Strict;
         var allowEmpty = options.AllowEmptyLines;
         var position = 0;
         var recordIndex = 0;
         var emittedRecordCount = 0;
+        var lineNumber = 1;
         var useAvx2UnquotedFastPath = true;
         var textMayContainQuote = text.Length < TextQuoteFreeProbeMinimumLength || text.IndexOf('"') >= 0;
         var unquotedDelimiterIndexCapacity = 64;
+        var projectedFieldVisitor = fieldVisitor as ICsvProjectedFieldSpanVisitor;
         char[]? scratch = null;
         var delimiterVector = System.Runtime.Intrinsics.Vector256<byte>.Zero;
         if (!trim &&
@@ -45,6 +76,7 @@ internal static partial class CsvParser
         {
             while (position < text.Length)
             {
+                ThrowIfCancellationRequested(options);
                 var recordStart = position;
                 if (TrySkipTextEmptyRecord(text, trim, allowEmpty, ref position))
                 {
@@ -62,8 +94,13 @@ internal static partial class CsvParser
                             options.Header is null &&
                             options.SkipCommentRowsBeforeHeader &&
                             emittedRecordCount <= GetParserInitialRecordsToSkip(options)));
+                if (skipCommentRecord)
+                {
+                    SkipTextRecord(text, ref position);
+                    continue;
+                }
+
                 if (recordsToSkip > 0 &&
-                    !skipCommentRecord &&
                     !trim &&
                     TrySkipTextUnquotedRecord(text, delimiter, ref position, out var skippedDelimiterCount))
                 {
@@ -72,43 +109,54 @@ internal static partial class CsvParser
                     continue;
                 }
 
-                var emitFields = recordsToSkip == 0 && !skipCommentRecord;
+                var emitFields = recordsToSkip == 0;
                 int fieldCount;
                 int firstFieldLength;
-                if (skipCommentRecord ||
-                    !TryReadTextUnquotedRecordFieldSpans(
-                        text,
-                        delimiter,
-                        trim,
-                        allowEmpty,
-                        emitFields,
-                        recordIndex,
-                        ref useAvx2UnquotedFastPath,
-                        ref unquotedDelimiterIndexCapacity,
-                        textMayContainQuote,
-                        delimiterVector,
-                        ref position,
-                        ref fieldVisitor,
-                        ref scratch,
-                        out fieldCount,
-                        out firstFieldLength))
+                try
                 {
-                    fieldCount = ReadTextRecordFieldSpans(
-                        text,
-                        delimiter,
-                        trim,
-                        strictQuotes,
-                        emitFields,
-                        recordIndex,
-                        ref position,
-                        ref fieldVisitor,
-                        ref scratch,
-                        out firstFieldLength);
+                    if (!TryReadTextUnquotedRecordFieldSpans(
+                            text,
+                            delimiter,
+                            trim,
+                            allowEmpty,
+                            emitFields,
+                            recordIndex,
+                            ref useAvx2UnquotedFastPath,
+                            ref unquotedDelimiterIndexCapacity,
+                            textMayContainQuote,
+                            delimiterVector,
+                            ref position,
+                            projectedFieldVisitor,
+                            ref fieldVisitor,
+                            ref scratch,
+                            out fieldCount,
+                            out firstFieldLength))
+                    {
+                        fieldCount = ReadTextRecordFieldSpans(
+                            text,
+                            delimiter,
+                            trim,
+                            strictQuotes,
+                            emitFields,
+                            recordIndex,
+                            ref position,
+                            projectedFieldVisitor,
+                            ref fieldVisitor,
+                            ref scratch,
+                            out firstFieldLength);
+                    }
+                }
+                catch (CsvParseException ex) when (HandleParseError(options, ex, lineNumber))
+                {
+                    position = recordStart;
+                    SkipTextRecord(text, ref position);
+                    lineNumber++;
+                    continue;
                 }
 
                 var isEmptyRecord = fieldCount == 1 && firstFieldLength == 0;
                 var shouldEmit = fieldCount != 0 && (allowEmpty || !isEmptyRecord);
-                if (!shouldEmit || skipCommentRecord)
+                if (!shouldEmit)
                 {
                     continue;
                 }
@@ -121,6 +169,8 @@ internal static partial class CsvParser
 
                 recordIndex++;
                 emittedRecordCount++;
+                ReportProgress(options, emittedRecordCount, lineNumber);
+                lineNumber++;
 
                 if (position == recordStart)
                 {
@@ -149,6 +199,7 @@ internal static partial class CsvParser
         bool textMayContainQuote,
         System.Runtime.Intrinsics.Vector256<byte> delimiterVector,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldCount,
@@ -173,6 +224,7 @@ internal static partial class CsvParser
                 recordIndex,
                 delimiterVector,
                 ref position,
+                projectedFieldVisitor,
                 ref fieldVisitor,
                 out fieldCount,
                 out firstFieldLength))
@@ -193,6 +245,7 @@ internal static partial class CsvParser
                 ref unquotedDelimiterIndexCapacity,
                 delimiterVector,
                 ref position,
+                projectedFieldVisitor,
                 ref fieldVisitor,
                 ref scratch,
                 out fieldCount,
@@ -239,6 +292,7 @@ internal static partial class CsvParser
             trim,
             emitNonEmptyRecord && emitFields,
             recordIndex,
+            projectedFieldVisitor,
             ref fieldVisitor,
             out firstFieldLength);
         position = recordEnd;
@@ -259,6 +313,7 @@ internal static partial class CsvParser
         ref int delimiterIndexCapacity,
         System.Runtime.Intrinsics.Vector256<byte> delimiterVector,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldCount,
@@ -333,6 +388,7 @@ internal static partial class CsvParser
                             lineFeedMask,
                             delimiterVector,
                             ref position,
+                            projectedFieldVisitor,
                             ref fieldVisitor,
                             ref scratch,
                             out fieldCount,
@@ -351,6 +407,7 @@ internal static partial class CsvParser
                             delimiterIndexes.Slice(0, delimiterCount),
                             quoteIndex,
                             ref position,
+                            projectedFieldVisitor,
                             ref fieldVisitor,
                             ref scratch,
                             out fieldCount,
@@ -363,6 +420,7 @@ internal static partial class CsvParser
                             delimiterIndexes.Slice(0, delimiterCount),
                             quoteIndex,
                             ref position,
+                            projectedFieldVisitor,
                             ref fieldVisitor,
                             ref scratch,
                             out fieldCount,
@@ -376,6 +434,7 @@ internal static partial class CsvParser
                             delimiterIndexes.Slice(0, delimiterCount),
                             quoteIndex,
                             ref position,
+                            projectedFieldVisitor,
                             ref fieldVisitor,
                             ref scratch,
                             out fieldCount,
@@ -396,6 +455,7 @@ internal static partial class CsvParser
                     delimiterIndexes.Slice(0, delimiterCount),
                     (allowEmpty || lineLength != 0) && emitFields,
                     recordIndex,
+                    projectedFieldVisitor,
                     ref fieldVisitor,
                     out firstFieldLength);
                 position = recordEnd;
@@ -422,6 +482,7 @@ internal static partial class CsvParser
         ReadOnlySpan<int> delimiterIndexes,
         bool emit,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -445,7 +506,10 @@ internal static partial class CsvParser
                 firstFieldLength = length;
             }
 
-            fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, length));
+            if (CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+            {
+                fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, length));
+            }
 
             fieldIndex++;
             fieldStart = delimiterIndex + 1;
@@ -457,7 +521,10 @@ internal static partial class CsvParser
             firstFieldLength = finalLength;
         }
 
-        fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, finalLength));
+        if (CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+        {
+            fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, finalLength));
+        }
 
         return fieldIndex + 1;
     }
@@ -500,6 +567,7 @@ internal static partial class CsvParser
         bool trim,
         bool emit,
         int recordIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -514,12 +582,12 @@ internal static partial class CsvParser
                 continue;
             }
 
-            VisitTextField(text.Slice(fieldStart, i - fieldStart), trim, emit, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+            VisitTextField(text.Slice(fieldStart, i - fieldStart), trim, emit, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
             fieldIndex++;
             fieldStart = i + 1;
         }
 
-        VisitTextField(text.Slice(fieldStart, end - fieldStart), trim, emit, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+        VisitTextField(text.Slice(fieldStart, end - fieldStart), trim, emit, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
         return fieldIndex + 1;
     }
 
@@ -562,6 +630,30 @@ internal static partial class CsvParser
 
         position = scan;
         return true;
+    }
+
+    private static bool HasPotentialTextCommentRecord(ReadOnlySpan<char> text, char commentCharacter)
+    {
+        if (text.Length == 0)
+        {
+            return false;
+        }
+
+        if (text[0] == commentCharacter)
+        {
+            return true;
+        }
+
+        for (var i = 1; i < text.Length; i++)
+        {
+            if (text[i] == commentCharacter &&
+                (text[i - 1] == '\n' || text[i - 1] == '\r'))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static bool TrySkipTextUnquotedRecord(ReadOnlySpan<char> text, char delimiter, ref int position, out int delimiterCount)
@@ -620,13 +712,14 @@ internal static partial class CsvParser
         bool emitFields,
         int recordIndex,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
     {
         var recordStart = position;
-        if (!strictQuotes && HasUnexpectedQuoteInTextUnquotedField(text, delimiter, recordStart))
+        if (!strictQuotes && ShouldUseFlexibleTextRecordParsing(text, delimiter, trim, recordStart))
         {
             return ReadFlexibleTextRecordFieldSpans(
                 text,
@@ -635,6 +728,7 @@ internal static partial class CsvParser
                 emitFields,
                 recordIndex,
                 ref position,
+                projectedFieldVisitor,
                 ref fieldVisitor,
                 out firstFieldLength);
         }
@@ -650,7 +744,7 @@ internal static partial class CsvParser
             {
                 if (pendingTrailingField || fieldIndex == 0)
                 {
-                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+                    VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
                     fieldIndex++;
                 }
 
@@ -660,7 +754,7 @@ internal static partial class CsvParser
 
             if (value == delimiter)
             {
-                VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+                VisitTextField(text.Slice(position, 0), emitFields, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
                 fieldIndex++;
                 position++;
                 pendingTrailingField = true;
@@ -670,8 +764,23 @@ internal static partial class CsvParser
             pendingTrailingField = false;
             if (value == '"')
             {
-                if (!TryVisitTextQuotedField(text, delimiter, trim, emitFields, recordIndex, fieldIndex, ref position, ref fieldVisitor, ref scratch, out var quotedLength))
+                if (!TryVisitTextQuotedField(text, delimiter, trim, emitFields, recordIndex, fieldIndex, ref position, projectedFieldVisitor, ref fieldVisitor, ref scratch, out var quotedLength))
                 {
+                    if (!strictQuotes)
+                    {
+                        position = recordStart;
+                        return ReadFlexibleTextRecordFieldSpans(
+                            text,
+                            delimiter,
+                            trim,
+                            emitFields,
+                            recordIndex,
+                            ref position,
+                            projectedFieldVisitor,
+                            ref fieldVisitor,
+                            out firstFieldLength);
+                    }
+
                     throw new CsvParseException("Unterminated quoted field.", 0);
                 }
 
@@ -688,7 +797,7 @@ internal static partial class CsvParser
                 }
 
                 position = nextPosition;
-                VisitTextField(field, emitFields, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+                VisitTextField(field, emitFields, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
             }
 
             fieldIndex++;
@@ -711,12 +820,27 @@ internal static partial class CsvParser
                 return fieldIndex;
             }
 
+            if (!strictQuotes)
+            {
+                position = recordStart;
+                return ReadFlexibleTextRecordFieldSpans(
+                    text,
+                    delimiter,
+                    trim,
+                    emitFields,
+                    recordIndex,
+                    ref position,
+                    projectedFieldVisitor,
+                    ref fieldVisitor,
+                    out firstFieldLength);
+            }
+
             throw new CsvParseException("Unexpected character after CSV field.", 0);
         }
 
         if (pendingTrailingField)
         {
-            VisitTextField(text.Slice(text.Length, 0), emitFields, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+            VisitTextField(text.Slice(text.Length, 0), emitFields, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
             fieldIndex++;
         }
 
@@ -782,6 +906,7 @@ internal static partial class CsvParser
         int recordIndex,
         int fieldIndex,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref char[]? scratch,
         out int fieldLength)
@@ -828,6 +953,15 @@ internal static partial class CsvParser
                 }
             }
 
+            if (position < text.Length &&
+                text[position] != delimiter &&
+                text[position] != '\r' &&
+                text[position] != '\n')
+            {
+                fieldLength = 0;
+                return false;
+            }
+
             fieldLength = valueEnd - valueStart - escapeCount;
             if (!emitFields)
             {
@@ -835,6 +969,11 @@ internal static partial class CsvParser
             }
 
             var field = text.Slice(valueStart, valueEnd - valueStart);
+            if (!CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
+            {
+                return true;
+            }
+
             if (escapeCount == 0)
             {
                 fieldVisitor.VisitField(recordIndex, fieldIndex, field);
@@ -913,6 +1052,7 @@ internal static partial class CsvParser
         bool emitFields,
         int recordIndex,
         int fieldIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -922,7 +1062,7 @@ internal static partial class CsvParser
             firstFieldLength = value.Length;
         }
 
-        if (emitFields)
+        if (emitFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
         {
             fieldVisitor.VisitField(recordIndex, fieldIndex, value);
         }
@@ -934,6 +1074,7 @@ internal static partial class CsvParser
         bool emitFields,
         int recordIndex,
         int fieldIndex,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         ref int firstFieldLength)
         where TVisitor : struct, ICsvFieldSpanVisitor
@@ -943,7 +1084,7 @@ internal static partial class CsvParser
             value = TrimTextField(value);
         }
 
-        VisitTextField(value, emitFields, recordIndex, fieldIndex, ref fieldVisitor, ref firstFieldLength);
+        VisitTextField(value, emitFields, recordIndex, fieldIndex, projectedFieldVisitor, ref fieldVisitor, ref firstFieldLength);
     }
 
     private static ReadOnlySpan<char> TrimTextField(ReadOnlySpan<char> field)
@@ -972,6 +1113,19 @@ internal static partial class CsvParser
         }
 
         position++;
+    }
+
+    private static void SkipTextRecord(ReadOnlySpan<char> text, ref int position)
+    {
+        while (position < text.Length && text[position] != '\r' && text[position] != '\n')
+        {
+            position++;
+        }
+
+        if (position < text.Length)
+        {
+            ConsumeTextLineSeparator(text, ref position);
+        }
     }
 
     private static bool IsTextW3CFieldsLine(ReadOnlySpan<char> text, int position)

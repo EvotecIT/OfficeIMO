@@ -11,6 +11,7 @@ internal static partial class CsvParser
         int recordIndex,
         System.Runtime.Intrinsics.Vector256<byte> delimiterVector,
         ref int position,
+        ICsvProjectedFieldSpanVisitor? projectedFieldVisitor,
         ref TVisitor fieldVisitor,
         out int fieldCount,
         out int firstFieldLength)
@@ -65,7 +66,7 @@ internal static partial class CsvParser
                             firstFieldLength = length;
                         }
 
-                        if (emitFields)
+                        if (emitFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
                         {
                             fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, length));
                         }
@@ -83,7 +84,7 @@ internal static partial class CsvParser
                         firstFieldLength = finalLength;
                     }
 
-                    if (emitRecordFields)
+                    if (emitRecordFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
                     {
                         fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, finalLength));
                     }
@@ -109,7 +110,7 @@ internal static partial class CsvParser
                     firstFieldLength = length;
                 }
 
-                if (emitFields)
+                if (emitFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
                 {
                     fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, length));
                 }
@@ -130,7 +131,7 @@ internal static partial class CsvParser
                     firstFieldLength = finalLength;
                 }
 
-                if (emitRecordFields)
+                if (emitRecordFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
                 {
                     fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, finalLength));
                 }
@@ -155,7 +156,7 @@ internal static partial class CsvParser
             firstFieldLength = tailLength;
         }
 
-        if ((allowEmpty || text.Length != start) && emitFields)
+        if ((allowEmpty || text.Length != start) && emitFields && CsvFieldSpanProjection.ShouldVisitField(projectedFieldVisitor, recordIndex, fieldIndex))
         {
             fieldVisitor.VisitField(recordIndex, fieldIndex, text.Slice(fieldStart, tailLength));
         }

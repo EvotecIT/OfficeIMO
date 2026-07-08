@@ -41,6 +41,28 @@ public interface ICsvFieldSpanVisitor
     }
 }
 
+/// <summary>
+/// Optional extension for field-span visitors that only consume selected fields.
+/// </summary>
+public interface ICsvProjectedFieldSpanVisitor : ICsvFieldSpanVisitor
+{
+    /// <summary>
+    /// Indicates whether the visitor wants to receive a parsed field. The parser still validates record structure and field counts.
+    /// </summary>
+    /// <param name="recordIndex">Zero-based emitted record index.</param>
+    /// <param name="fieldIndex">Zero-based field index within the record.</param>
+    /// <returns><see langword="true" /> to receive the field; otherwise the parser skips materializing or dispatching it when possible.</returns>
+    bool ShouldVisitField(int recordIndex, int fieldIndex);
+}
+
+internal static class CsvFieldSpanProjection
+{
+    public static bool ShouldVisitField(ICsvProjectedFieldSpanVisitor? projectedVisitor, int recordIndex, int fieldIndex)
+    {
+        return projectedVisitor is null || projectedVisitor.ShouldVisitField(recordIndex, fieldIndex);
+    }
+}
+
 internal readonly struct CsvFieldSpanActionVisitor : ICsvFieldSpanVisitor
 {
     private readonly CsvFieldSpanAction _action;

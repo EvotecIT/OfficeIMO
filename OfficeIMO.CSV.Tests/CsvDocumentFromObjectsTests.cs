@@ -1,5 +1,7 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
+using System.Globalization;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
@@ -138,6 +140,48 @@ public class CsvDocumentFromObjectsTests
     }
 
     [Fact]
+    public void CsvObjectWriter_AlwaysQuotedProjectedRowsPreserveEscaping()
+    {
+        var created = new DateTime(2026, 1, 2, 3, 4, 5, DateTimeKind.Utc);
+        using var writer = new StringWriter(CultureInfo.InvariantCulture);
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", QuoteMode = CsvQuoteMode.Always }, leaveOpen: true))
+        {
+            csvWriter.WriteRow(
+                new[] { "Id", "Amount", "Enabled", "Created", "Name", "Missing" },
+                new object?[] { 1, 12.5m, true, created, "A\"B", null });
+        }
+
+        var expectedCreated = created.ToString(CultureInfo.InvariantCulture);
+        var expected =
+            "\"Id\",\"Amount\",\"Enabled\",\"Created\",\"Name\",\"Missing\"\n" +
+            $"\"1\",\"12.5\",\"True\",\"{expectedCreated}\",\"A\"\"B\",\"\"\n";
+
+        Assert.Equal(expected, writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_WritesWideTextRowsWithEscaping()
+    {
+        var columns = Enumerable.Range(1, 21).Select(static index => $"C{index}").ToArray();
+        var values = Enumerable.Range(1, 21).Select(static index => $"V{index}").ToArray();
+        values[5] = "A,B";
+        values[10] = "A\"B";
+
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n" }, leaveOpen: true))
+        {
+            csvWriter.WriteTextRow(columns, values);
+        }
+
+        var output = writer.ToString();
+        var lines = output.Split('\n');
+        Assert.Equal(string.Join(",", columns), lines[0]);
+        Assert.Contains("\"A,B\"", lines[1], StringComparison.Ordinal);
+        Assert.Contains("\"A\"\"B\"", lines[1], StringComparison.Ordinal);
+        Assert.EndsWith("\n", output, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void CsvObjectWriter_RejectsProjectedRowsWithDifferentColumns()
     {
         using var writer = new StringWriter();
@@ -157,6 +201,59 @@ public class CsvDocumentFromObjectsTests
         Assert.Equal(string.Empty, writer.ToString());
     }
 
+    [Fact]
+    public void CsvObjectWriter_WritesDataReaderSchemaAndRows()
+    {
+        using var reader = CreateReader();
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
+        {
+            csvWriter.WriteDataReader(reader);
+        }
+
+        Assert.Equal("Name,Score,Notes\nAlpha,1.5,\"A, quoted\"\nBeta,<null>,\n", writer.ToString());
+    }
+
+    [Fact]
+    public void CsvObjectWriter_TreatsDBNullAsNullValue()
+    {
+        using var writer = new StringWriter();
+        using (var csvWriter = new CsvObjectWriter(writer, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" }, leaveOpen: true))
+        {
+            csvWriter.WriteRow(new[] { "Name", "Score" }, new object?[] { "Alpha", DBNull.Value });
+        }
+
+        Assert.Equal("Name,Score\nAlpha,<null>\n", writer.ToString());
+    }
+
+    [Fact]
+    public void WriteDataReader_WritesReaderWithoutMaterializingDocument()
+    {
+        using var reader = CreateReader();
+        using var writer = new StringWriter();
+
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", IncludeHeader = false });
+
+        Assert.Equal("Alpha,1.5,\"A, quoted\"\nBeta,,\n", writer.ToString());
+    }
+
+    [Fact]
+    public void WriteDataReader_FallsBackWhenGetValuesIsUnsupported()
+    {
+        using var reader = new ThrowingGetValuesDataReader(
+            new[] { "Name", "Score", "Notes" },
+            new[]
+            {
+                new object?[] { "Alpha", 1.5m, "A, quoted" },
+                new object?[] { "Beta", DBNull.Value, string.Empty }
+            });
+        using var writer = new StringWriter();
+
+        CsvDocument.WriteDataReader(writer, reader, new CsvSaveOptions { NewLine = "\n", NullValue = "<null>" });
+
+        Assert.Equal("Name,Score,Notes\nAlpha,1.5,\"A, quoted\"\nBeta,<null>,\n", writer.ToString());
+    }
+
     private sealed class FlushTrackingWriter : StringWriter
     {
         public bool WasFlushed { get; private set; }
@@ -166,6 +263,17 @@ public class CsvDocumentFromObjectsTests
             WasFlushed = true;
             base.Flush();
         }
+    }
+
+    private static IDataReader CreateReader()
+    {
+        var table = new DataTable();
+        table.Columns.Add("Name", typeof(string));
+        table.Columns.Add("Score", typeof(decimal));
+        table.Columns.Add("Notes", typeof(string));
+        table.Rows.Add("Alpha", 1.5m, "A, quoted");
+        table.Rows.Add("Beta", DBNull.Value, string.Empty);
+        return table.CreateDataReader();
     }
 
     [Fact]
