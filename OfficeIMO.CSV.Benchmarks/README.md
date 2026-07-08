@@ -44,13 +44,13 @@ QuickTest single-column/all-column read lanes:
 
 | Method | Single column mean | All columns mean | Allocated |
 | --- | ---: | ---: | ---: |
-| OfficeIMO span reader | 5.45 ms | 5.40 ms | ~775 KB |
-| OfficeIMO streaming DataReader | 18.37 ms | 22.04 ms | 41.3 MB |
-| SEP | 10.76 ms | 18.70 ms | 3.1 MB / 39.4 MB |
-| Sylvan | 12.03 ms | 20.67 ms | 3.1 MB / 39.6 MB |
-| CsvHelper | 35.08 ms | 51.51 ms | 3.1 MB / 39.6 MB |
-| Dataplat.Dbatools.Csv | 31.05 ms | 35.81 ms | 39.9 MB |
-| LumenWorks | 90.29 ms | 40.59 ms | 1.58 GB / 39.7 MB |
+| OfficeIMO span reader | 5.48 ms | 5.54 ms | ~779 KB |
+| OfficeIMO streaming DataReader | 18.18 ms | 22.60 ms | 41.3 MB |
+| SEP | 8.17 ms | 19.37 ms | 3.1 MB / 39.4 MB |
+| Sylvan | 9.74 ms | 20.15 ms | 3.1 MB / 39.6 MB |
+| CsvHelper | 34.62 ms | 51.83 ms | 3.1 MB / 39.6 MB |
+| Dataplat.Dbatools.Csv | 31.77 ms | 35.43 ms | 39.9 MB |
+| LumenWorks | 90.15 ms | 41.80 ms | 1.58 GB / 39.7 MB |
 
 All-values read lane:
 
