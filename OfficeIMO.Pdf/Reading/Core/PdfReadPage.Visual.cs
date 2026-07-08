@@ -522,10 +522,11 @@ public sealed partial class PdfReadPage {
                     ToColorByte(ComponentAt(components, 1, endColor ? 1D : 0D)),
                     ToColorByte(ComponentAt(components, 2, endColor ? 1D : 0D)));
             case PdfPageColorSpaceKind.DeviceCmyk:
-                double cyan = ComponentAt(components, 0, 0D);
-                double magenta = ComponentAt(components, 1, 0D);
-                double yellow = ComponentAt(components, 2, 0D);
-                double black = ComponentAt(components, 3, endColor ? 0D : 1D);
+                double cmykFallback = endColor ? 1D : 0D;
+                double cyan = ComponentAt(components, 0, cmykFallback);
+                double magenta = ComponentAt(components, 1, cmykFallback);
+                double yellow = ComponentAt(components, 2, cmykFallback);
+                double black = ComponentAt(components, 3, cmykFallback);
                 return OfficeColor.FromRgb(
                     ToColorByte((1D - cyan) * (1D - black)),
                     ToColorByte((1D - magenta) * (1D - black)),

@@ -626,6 +626,8 @@ namespace OfficeIMO.Tests {
 
                 ExcelVisualDrawingObject drawingObject = Assert.Single(snapshot.DrawingObjects);
                 Assert.False(string.IsNullOrWhiteSpace(drawingObject.FillColorArgb));
+                Assert.False(string.IsNullOrWhiteSpace(drawingObject.StrokeColorArgb));
+                Assert.True(drawingObject.StrokeWidth > 0D);
                 Assert.DoesNotContain(snapshot.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
                 Assert.DoesNotContain(png.Diagnostics, diagnostic => diagnostic.Code == ExcelImageExportDiagnosticCodes.DrawingShapeUnsupported);
             }

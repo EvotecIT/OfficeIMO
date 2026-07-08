@@ -801,6 +801,26 @@ public class PdfPageImageRendererTests {
     }
 
     [Fact]
+    public void RenderPage_UsesCmykDefaultsForOmittedShadingFunctionColors() {
+        byte[] pdf = BuildSingleStreamPdf(
+            """
+            20 80 120 40 re
+            W
+            n
+            /Sh1 sh
+            """,
+            "<< /Shading << /Sh1 5 0 R >> >>",
+            "5 0 obj\n<< /ShadingType 2 /ColorSpace /DeviceCMYK /Coords [20 80 140 80] /Function << /FunctionType 2 /Domain [0 1] /N 1 >> /Extend [true true] >>\nendobj");
+
+        OfficeDrawing drawing = PdfPageImageRenderer.RenderPage(pdf);
+
+        OfficeDrawingShape shape = Assert.Single(drawing.Shapes, item => item.Shape.FillGradient != null);
+        OfficeLinearGradient gradient = shape.Shape.FillGradient!;
+        Assert.Equal(OfficeColor.White, gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.Black, gradient.Stops[1].Color);
+    }
+
+    [Fact]
     public void RenderPage_ProjectsShadingPatternFillAsLinearGradient() {
         byte[] pdf = BuildSingleStreamPdf(
             """

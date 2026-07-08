@@ -492,7 +492,23 @@ namespace OfficeIMO.Excel.Utilities {
             strokeLineJoin = null;
             unsupportedReason = null;
             A.Outline? outline = properties?.GetFirstChild<A.Outline>();
-            if (outline == null || outline.GetFirstChild<A.NoFill>() != null) {
+            if (outline == null) {
+                A.SolidFill? styleLineFill = GetStyleLineFill(properties);
+                if (styleLineFill == null) {
+                    strokeWidth = 0D;
+                    return true;
+                }
+
+                strokeColorArgb = ExcelThemeColorResolver.Resolve(styleLineFill, workbookPart);
+                if (strokeColorArgb == null) {
+                    unsupportedReason = "shape outline color could not be resolved by the dependency-free exporter";
+                    return false;
+                }
+
+                return true;
+            }
+
+            if (outline.GetFirstChild<A.NoFill>() != null) {
                 strokeWidth = 0D;
                 return true;
             }
@@ -689,6 +705,18 @@ namespace OfficeIMO.Excel.Utilities {
             Xdr.ShapeStyle? style = properties.Parent?.GetFirstChild<Xdr.ShapeStyle>();
             A.SchemeColor? schemeColor = style?
                 .GetFirstChild<A.FillReference>()?
+                .GetFirstChild<A.SchemeColor>();
+            if (schemeColor == null) {
+                return null;
+            }
+
+            return new A.SolidFill((A.SchemeColor)schemeColor.CloneNode(true));
+        }
+
+        private static A.SolidFill? GetStyleLineFill(OpenXmlElement? properties) {
+            Xdr.ShapeStyle? style = properties?.Parent?.GetFirstChild<Xdr.ShapeStyle>();
+            A.SchemeColor? schemeColor = style?
+                .GetFirstChild<A.LineReference>()?
                 .GetFirstChild<A.SchemeColor>();
             if (schemeColor == null) {
                 return null;
