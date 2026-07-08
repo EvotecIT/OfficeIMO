@@ -4,7 +4,7 @@
     <PackageId>OfficeIMO.PowerPoint.Pdf</PackageId>
     <AssemblyName>OfficeIMO.PowerPoint.Pdf</AssemblyName>
     <AssemblyTitle>OfficeIMO.PowerPoint.Pdf</AssemblyTitle>
-    <VersionPrefix>1.0.13</VersionPrefix>
+    <VersionPrefix>1.0.14</VersionPrefix>
     <TargetFrameworks>netstandard2.0;net8.0;net10.0</TargetFrameworks>
     <TargetFrameworks Condition=" '$([MSBuild]::IsOsPlatform(`Windows`))' ">$(TargetFrameworks);net472</TargetFrameworks>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
