@@ -21,11 +21,14 @@ public sealed class CsvDataReader : DbDataReader
     private readonly IEnumerator<IReadOnlyList<string>>? _stringRows;
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
-    private readonly Dictionary<string, int> _ordinals;
     private readonly CsvLoadOptions? _stringRowOptions;
     private readonly object?[]? _staticColumnValues;
     private readonly int _sourceColumnCount;
     private readonly bool _useRawStringValues;
+    private readonly bool _useDirectValueConversion;
+    private readonly bool _rawRowsAreParsedStringsOnly;
+    private readonly string? _stringNullValue;
+    private Dictionary<string, int>? _ordinals;
     private object?[]? _currentRawRow;
     private IReadOnlyList<string>? _currentStringRow;
     private object?[]? _currentConvertedRow;
@@ -40,19 +43,16 @@ public sealed class CsvDataReader : DbDataReader
         CsvDataColumnProjection[] columns,
         IEnumerable<object?[]> rows,
         CultureInfo culture,
-        IReadOnlyList<string>? dateTimeFormats)
+        IReadOnlyList<string>? dateTimeFormats,
+        bool rawRowsAreParsedStringsOnly = false)
     {
         _columns = columns;
         _rows = rows.GetEnumerator();
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
-        _ordinals = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
         _useRawStringValues = CanUseRawStringValues(columns);
-
-        for (var i = 0; i < columns.Length; i++)
-        {
-            _ordinals[columns[i].Name] = i;
-        }
+        _useDirectValueConversion = CanUseDirectValueConversion(columns);
+        _rawRowsAreParsedStringsOnly = rawRowsAreParsedStringsOnly;
     }
 
     internal CsvDataReader(
@@ -66,17 +66,13 @@ public sealed class CsvDataReader : DbDataReader
         _columns = columns;
         _stringRows = rows.GetEnumerator();
         _sourceColumnCount = sourceColumnCount;
-        _stringRowOptions = options.Clone();
+        _stringRowOptions = options;
+        _stringNullValue = options.NullValue;
         _staticColumnValues = CaptureStaticColumnValues(_stringRowOptions.StaticColumns);
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
-        _ordinals = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
         _useRawStringValues = CanUseRawStringValues(columns);
-
-        for (var i = 0; i < columns.Length; i++)
-        {
-            _ordinals[columns[i].Name] = i;
-        }
+        _useDirectValueConversion = CanUseDirectValueConversion(columns);
     }
 
     /// <inheritdoc />
@@ -101,7 +97,32 @@ public sealed class CsvDataReader : DbDataReader
     public override int RecordsAffected => -1;
 
     /// <inheritdoc />
-    public override bool GetBoolean(int ordinal) => (bool)GetValue(ordinal);
+    public override bool GetBoolean(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Boolean)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is bool boolean)
+            {
+                return boolean;
+            }
+
+            if (rawValue is string text)
+            {
+                if (bool.TryParse(text, out boolean))
+                {
+                    return boolean;
+                }
+
+                if (text == "0" || text == "1")
+                {
+                    return text == "1";
+                }
+            }
+        }
+
+        return (bool)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
     public override byte GetByte(int ordinal) => (byte)GetValue(ordinal);
@@ -143,13 +164,73 @@ public sealed class CsvDataReader : DbDataReader
     public override string GetDataTypeName(int ordinal) => GetFieldType(ordinal).Name;
 
     /// <inheritdoc />
-    public override DateTime GetDateTime(int ordinal) => (DateTime)GetValue(ordinal);
+    public override DateTime GetDateTime(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.DateTime)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is DateTime dateTime)
+            {
+                return dateTime;
+            }
+
+            if (rawValue is string text && TryParseDateTime(text, out dateTime))
+            {
+                return dateTime;
+            }
+        }
+
+        return (DateTime)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
-    public override decimal GetDecimal(int ordinal) => (decimal)GetValue(ordinal);
+    public override decimal GetDecimal(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Decimal)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is decimal decimalValue)
+            {
+                return decimalValue;
+            }
+
+            if (rawValue is string text)
+            {
+                if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+                    CsvDataProjectionConverter.TryParseInvariantDecimal(text, out decimalValue))
+                {
+                    return decimalValue;
+                }
+
+                if (decimal.TryParse(text, NumberStyles.Any, _culture, out decimalValue))
+                {
+                    return decimalValue;
+                }
+            }
+        }
+
+        return (decimal)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
-    public override double GetDouble(int ordinal) => (double)GetValue(ordinal);
+    public override double GetDouble(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Double)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is double doubleValue)
+            {
+                return doubleValue;
+            }
+
+            if (rawValue is string text && double.TryParse(text, NumberStyles.Any, _culture, out doubleValue))
+            {
+                return doubleValue;
+            }
+        }
+
+        return (double)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
     public override IEnumerator GetEnumerator()
@@ -170,13 +251,73 @@ public sealed class CsvDataReader : DbDataReader
     public override Guid GetGuid(int ordinal) => (Guid)GetValue(ordinal);
 
     /// <inheritdoc />
-    public override short GetInt16(int ordinal) => (short)GetValue(ordinal);
+    public override short GetInt16(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int16)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is short int16)
+            {
+                return int16;
+            }
+
+            if (rawValue is string text && short.TryParse(text, NumberStyles.Any, _culture, out int16))
+            {
+                return int16;
+            }
+        }
+
+        return (short)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
-    public override int GetInt32(int ordinal) => (int)GetValue(ordinal);
+    public override int GetInt32(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int32)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is int int32)
+            {
+                return int32;
+            }
+
+            if (rawValue is string text)
+            {
+                if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+                    CsvDataProjectionConverter.TryParseInvariantInt32(text, out int32))
+                {
+                    return int32;
+                }
+
+                if (int.TryParse(text, NumberStyles.Any, _culture, out int32))
+                {
+                    return int32;
+                }
+            }
+        }
+
+        return (int)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
-    public override long GetInt64(int ordinal) => (long)GetValue(ordinal);
+    public override long GetInt64(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int64)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is long int64)
+            {
+                return int64;
+            }
+
+            if (rawValue is string text && long.TryParse(text, NumberStyles.Any, _culture, out int64))
+            {
+                return int64;
+            }
+        }
+
+        return (long)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
     public override string GetName(int ordinal) => _columns[ordinal].Name;
@@ -184,6 +325,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override int GetOrdinal(string name)
     {
+        _ordinals ??= CreateOrdinalMap(_columns);
         if (_ordinals.TryGetValue(name, out var ordinal))
         {
             return ordinal;
@@ -193,7 +335,19 @@ public sealed class CsvDataReader : DbDataReader
     }
 
     /// <inheritdoc />
-    public override string GetString(int ordinal) => (string)GetValue(ordinal);
+    public override string GetString(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind == CsvDataConversionKind.String)
+        {
+            var rawValue = GetRawValue(ordinal);
+            if (rawValue is string text)
+            {
+                return text;
+            }
+        }
+
+        return (string)GetValue(ordinal);
+    }
 
     /// <inheritdoc />
     public override object GetValue(int ordinal)
@@ -201,6 +355,11 @@ public sealed class CsvDataReader : DbDataReader
         EnsureOpenRow();
         if (_useRawStringValues)
         {
+            if (_rawRowsAreParsedStringsOnly && _currentRawRow is { } rawRow)
+            {
+                return GetParsedStringRawValue(rawRow, ordinal);
+            }
+
             return GetRawStringValue(ordinal);
         }
 
@@ -230,6 +389,11 @@ public sealed class CsvDataReader : DbDataReader
             }
 
             var row = _currentRawRow!;
+            if (_rawRowsAreParsedStringsOnly)
+            {
+                return GetParsedStringRawRowValues(row, values, count);
+            }
+
             var rowValueCount = Math.Min(count, row.Length);
             for (var i = 0; i < rowValueCount; i++)
             {
@@ -246,6 +410,28 @@ public sealed class CsvDataReader : DbDataReader
             for (var i = rowValueCount; i < count; i++)
             {
                 values[i] = DBNull.Value;
+            }
+
+            return count;
+        }
+
+        if (_useDirectValueConversion)
+        {
+            if (_currentStringRow is not null)
+            {
+                return GetDirectStringRowValues(values, count);
+            }
+
+            var row = _currentRawRow!;
+            var rowValueCount = Math.Min(count, row.Length);
+            for (var i = 0; i < rowValueCount; i++)
+            {
+                values[i] = CsvDataProjectionConverter.ConvertValue(row[i], _columns[i], _rowIndex, _culture, _dateTimeFormats);
+            }
+
+            for (var i = rowValueCount; i < count; i++)
+            {
+                values[i] = CsvDataProjectionConverter.ConvertValue(null, _columns[i], _rowIndex, _culture, _dateTimeFormats);
             }
 
             return count;
@@ -269,7 +455,18 @@ public sealed class CsvDataReader : DbDataReader
     }
 
     /// <inheritdoc />
-    public override bool IsDBNull(int ordinal) => GetValue(ordinal) == DBNull.Value;
+    public override bool IsDBNull(int ordinal)
+    {
+        if (_columns[ordinal].ConversionKind != CsvDataConversionKind.General)
+        {
+            var rawValue = GetRawValue(ordinal);
+            return rawValue is null ||
+                rawValue == DBNull.Value ||
+                (rawValue is string { Length: 0 } && _columns[ordinal].ConversionKind != CsvDataConversionKind.String);
+        }
+
+        return GetValue(ordinal) == DBNull.Value;
+    }
 
     /// <inheritdoc />
     public override bool NextResult() => false;
@@ -470,11 +667,64 @@ public sealed class CsvDataReader : DbDataReader
         return true;
     }
 
+    private static bool CanUseDirectValueConversion(CsvDataColumnProjection[] columns)
+    {
+        for (var i = 0; i < columns.Length; i++)
+        {
+            if (columns[i].ConversionKind == CsvDataConversionKind.General)
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    private static Dictionary<string, int> CreateOrdinalMap(CsvDataColumnProjection[] columns)
+    {
+        var ordinals = new Dictionary<string, int>(columns.Length, StringComparer.OrdinalIgnoreCase);
+        for (var i = 0; i < columns.Length; i++)
+        {
+            ordinals[columns[i].Name] = i;
+        }
+
+        return ordinals;
+    }
+
     private object GetRawStringValue(int ordinal)
     {
         if ((uint)ordinal >= (uint)_columns.Length)
         {
             throw new IndexOutOfRangeException();
+        }
+
+        if (_currentStringRow is not null)
+        {
+            if (ordinal < _sourceColumnCount)
+            {
+                if (ordinal >= _currentStringRow.Count)
+                {
+                    return string.Empty;
+                }
+
+                var value = _currentStringRow[ordinal];
+                return _stringNullValue is not null && string.Equals(value, _stringNullValue, StringComparison.Ordinal)
+                    ? DBNull.Value
+                    : value;
+            }
+
+            var staticIndex = ordinal - _sourceColumnCount;
+            var staticValue = _staticColumnValues is not null && staticIndex < _staticColumnValues.Length
+                ? _staticColumnValues[staticIndex]
+                : null;
+
+            return staticValue switch
+            {
+                null => DBNull.Value,
+                DBNull => DBNull.Value,
+                string staticText => staticText,
+                _ => CsvDataProjectionConverter.ConvertValue(staticValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats)
+            };
         }
 
         var rawValue = GetRawValue(ordinal);
@@ -506,8 +756,8 @@ public sealed class CsvDataReader : DbDataReader
             }
 
             var value = _currentStringRow[ordinal];
-            return _stringRowOptions!.NullValue is not null &&
-                string.Equals(value, _stringRowOptions.NullValue, StringComparison.Ordinal)
+            return _stringNullValue is not null &&
+                string.Equals(value, _stringNullValue, StringComparison.Ordinal)
                     ? null
                     : value;
         }
@@ -522,7 +772,7 @@ public sealed class CsvDataReader : DbDataReader
     {
         var row = _currentStringRow!;
         var rowValueCount = Math.Min(Math.Min(count, row.Count), _sourceColumnCount);
-        if (_stringRowOptions!.NullValue is null)
+        if (_stringNullValue is null)
         {
             for (var i = 0; i < rowValueCount; i++)
             {
@@ -534,7 +784,7 @@ public sealed class CsvDataReader : DbDataReader
             for (var i = 0; i < rowValueCount; i++)
             {
                 var value = row[i];
-                values[i] = string.Equals(value, _stringRowOptions.NullValue, StringComparison.Ordinal)
+                values[i] = string.Equals(value, _stringNullValue, StringComparison.Ordinal)
                     ? DBNull.Value
                     : value;
             }
@@ -552,6 +802,148 @@ public sealed class CsvDataReader : DbDataReader
         }
 
         return count;
+    }
+
+    private int GetDirectStringRowValues(object[] values, int count)
+    {
+        var row = _currentStringRow!;
+        var rowValueCount = Math.Min(Math.Min(count, row.Count), _sourceColumnCount);
+        for (var i = 0; i < rowValueCount; i++)
+        {
+            var value = row[i];
+            values[i] = _stringNullValue is not null && string.Equals(value, _stringNullValue, StringComparison.Ordinal)
+                ? ConvertDirectStringValue(i, null)
+                : ConvertDirectStringValue(i, value);
+        }
+
+        var missingCount = Math.Min(count, _sourceColumnCount);
+        for (var i = rowValueCount; i < missingCount; i++)
+        {
+            values[i] = ConvertDirectStringValue(i, string.Empty);
+        }
+
+        for (var i = _sourceColumnCount; i < count; i++)
+        {
+            var staticIndex = i - _sourceColumnCount;
+            var staticValue = _staticColumnValues is not null && staticIndex < _staticColumnValues.Length
+                ? _staticColumnValues[staticIndex]
+                : null;
+
+            values[i] = CsvDataProjectionConverter.ConvertValue(staticValue, _columns[i], _rowIndex, _culture, _dateTimeFormats);
+        }
+
+        return count;
+    }
+
+    private object ConvertDirectStringValue(int ordinal, string? text)
+    {
+        var column = _columns[ordinal];
+        if (text is null || (text.Length == 0 && column.ConversionKind != CsvDataConversionKind.String))
+        {
+            return DBNull.Value;
+        }
+
+        switch (column.ConversionKind)
+        {
+            case CsvDataConversionKind.String:
+                return text;
+            case CsvDataConversionKind.Int32:
+                if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+                    CsvDataProjectionConverter.TryParseInvariantInt32(text, out var fastInt32))
+                {
+                    return fastInt32;
+                }
+
+                if (int.TryParse(text, NumberStyles.Any, _culture, out var int32))
+                {
+                    return int32;
+                }
+
+                break;
+            case CsvDataConversionKind.Decimal:
+                if (ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+                    CsvDataProjectionConverter.TryParseInvariantDecimal(text, out var fastDecimal))
+                {
+                    return fastDecimal;
+                }
+
+                if (decimal.TryParse(text, NumberStyles.Any, _culture, out var decimalValue))
+                {
+                    return decimalValue;
+                }
+
+                break;
+            case CsvDataConversionKind.DateTime:
+                if (TryParseDateTime(text, out var dateTime))
+                {
+                    return dateTime;
+                }
+
+                break;
+            case CsvDataConversionKind.Boolean:
+                if (bool.TryParse(text, out var boolean))
+                {
+                    return boolean;
+                }
+
+                if (text == "0" || text == "1")
+                {
+                    return text == "1";
+                }
+
+                break;
+            case CsvDataConversionKind.Guid:
+                if (Guid.TryParse(text, out var guid))
+                {
+                    return guid;
+                }
+
+                break;
+        }
+
+        return CsvDataProjectionConverter.ConvertValue(text, column, _rowIndex, _culture, _dateTimeFormats);
+    }
+
+    private static int GetParsedStringRawRowValues(object?[] row, object[] values, int count)
+    {
+        var rowValueCount = Math.Min(count, row.Length);
+        Array.Copy(row, values, rowValueCount);
+        for (var i = rowValueCount; i < count; i++)
+        {
+            values[i] = DBNull.Value;
+        }
+
+        return count;
+    }
+
+    private bool TryParseDateTime(string text, out DateTime dateTime)
+    {
+        if (_dateTimeFormats is { Count: > 0 } &&
+            DateTime.TryParseExact(text, _dateTimeFormats as string[] ?? _dateTimeFormats.ToArray(), _culture, DateTimeStyles.None, out dateTime))
+        {
+            return true;
+        }
+
+        if (_dateTimeFormats is not { Count: > 0 } &&
+            ReferenceEquals(_culture, CultureInfo.InvariantCulture) &&
+            CsvDataProjectionConverter.TryParseDefaultInvariantDateTime(text, out dateTime))
+        {
+            return true;
+        }
+
+        return DateTime.TryParse(text, _culture, DateTimeStyles.None, out dateTime);
+    }
+
+    private object GetParsedStringRawValue(object?[] row, int ordinal)
+    {
+        if ((uint)ordinal >= (uint)_columns.Length)
+        {
+            throw new IndexOutOfRangeException();
+        }
+
+        return ordinal < row.Length
+            ? row[ordinal] ?? DBNull.Value
+            : DBNull.Value;
     }
 
     private void ValidateStringRowColumnCount(IReadOnlyList<string> row)

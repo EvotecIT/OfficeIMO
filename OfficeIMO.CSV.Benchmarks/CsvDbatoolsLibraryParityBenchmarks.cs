@@ -230,6 +230,10 @@ public class CsvDbatoolsLibraryParityBenchmarks
     [BenchmarkCategory("QuickTest")]
     public int OfficeIMO_DataReader_QuickTest_AllColumns() => OfficeIMO_DataReaderReadAllValuesByOrdinal(_quickTestCsvPath);
 
+    [Benchmark(Description = "OfficeIMO-DataReader-QuickTest-GetValues")]
+    [BenchmarkCategory("QuickTest")]
+    public int OfficeIMO_DataReader_QuickTest_GetValues() => OfficeIMO_DataReaderReadAllValues(_quickTestCsvPath);
+
     [Benchmark(Description = "Sep-QuickTest-SingleColumn")]
     [BenchmarkCategory("QuickTest")]
     public int Sep_QuickTest_SingleColumn() => Sep_ReadFirstColumn(_quickTestCsvPath);

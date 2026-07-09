@@ -24,6 +24,7 @@ public sealed partial class CsvDocument
     private CsvColumnCountMismatchPolicy _columnCountMismatchPolicy;
     private string[]? _dateTimeFormats;
     private CsvSchema? _schema;
+    private bool _rowsAreParsedStringsOnly;
 
     /// <summary>
     /// Initializes a new in-memory CSV document with default settings.
@@ -622,12 +623,16 @@ public sealed partial class CsvDocument
 
     private void AddRowInternal(object?[] values)
     {
+        _rowsAreParsedStringsOnly = false;
         var aligned = NormalizeValuesLength(values);
         _rows.Add(new CsvRow(this, aligned));
     }
 
     private void AddParsedRowInternal(IReadOnlyList<string> values, CsvLoadOptions options)
     {
+        _rowsAreParsedStringsOnly = (_rows.Count == 0 || _rowsAreParsedStringsOnly) &&
+            options.NullValue is null &&
+            (options.StaticColumns is null || options.StaticColumns.Count == 0);
         _rows.Add(new CsvRow(this, BuildParsedObjectValues(values, _header.Count, options)));
     }
 

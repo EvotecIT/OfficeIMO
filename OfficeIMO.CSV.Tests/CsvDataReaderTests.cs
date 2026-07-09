@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.IO;
 using System.Linq;
 using OfficeIMO.CSV;
 using Xunit;
@@ -53,6 +54,28 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void CreateDataReader_WithExplicitSchemaBuilder_UsesTypedColumnsWithoutInference()
+    {
+        var schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Column("Amount").AsType(typeof(decimal))
+            .Column("Created").AsDateTime()
+            .Done()
+            .Build();
+        var doc = CsvDocument.Parse("Id,Amount,Created\n1,12.5,2026-07-07\n");
+
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { Schema = schema });
+
+        Assert.Equal(typeof(int), reader.GetFieldType(reader.GetOrdinal("Id")));
+        Assert.Equal(typeof(decimal), reader.GetFieldType(reader.GetOrdinal("Amount")));
+        Assert.Equal(typeof(DateTime), reader.GetFieldType(reader.GetOrdinal("Created")));
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+        Assert.Equal(12.5m, reader.GetDecimal(reader.GetOrdinal("Amount")));
+        Assert.Equal(new DateTime(2026, 7, 7), reader.GetDateTime(reader.GetOrdinal("Created")));
+    }
+
+    [Fact]
     public void GetValues_WithInferredSchema_ExposesTypedValues()
     {
         var doc = CsvDocument.Parse("Id,Amount,Created,Note\n1,12.5,2026-07-07,Alpha\n");
@@ -66,6 +89,58 @@ public class CsvDataReaderTests
         Assert.Equal(12.5m, values[1]);
         Assert.Equal(new DateTime(2026, 7, 7), values[2]);
         Assert.Equal("Alpha", values[3]);
+    }
+
+    [Fact]
+    public void GetValues_WithExplicitSchema_UsesCommonTypedConversions()
+    {
+        var guid = Guid.Parse("2fae048c-5886-43ec-b03f-e5814c5d52ba");
+        var schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Column("Name").AsString()
+            .Column("Score").AsType(typeof(decimal))
+            .Column("Created").AsDateTime()
+            .Column("Active").AsBoolean()
+            .Column("BatchId").AsType(typeof(Guid))
+            .Done()
+            .Build();
+        var doc = CsvDocument.Parse($"Id,Name,Score,Created,Active,BatchId\n-1,Alpha,-12.50,01/02/2026 03:04:05,1,{guid}\n");
+
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { Schema = schema });
+
+        Assert.True(reader.Read());
+        var values = new object[reader.FieldCount];
+        Assert.Equal(6, reader.GetValues(values));
+        Assert.Equal(-1, values[0]);
+        Assert.Equal("Alpha", values[1]);
+        Assert.Equal(-12.50m, values[2]);
+        Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), values[3]);
+        Assert.Equal(true, values[4]);
+        Assert.Equal(guid, values[5]);
+    }
+
+    [Fact]
+    public void GetValues_WithCustomConverter_CachesConvertedValuesForCurrentRow()
+    {
+        var calls = 0;
+        var doc = CsvDocument.Parse("Score\nhigh\n")
+            .EnsureSchema(schema => schema
+                .Column("Score")
+                .AsInt32()
+                .ConvertUsing(value =>
+                {
+                    calls++;
+                    return string.Equals(Convert.ToString(value), "high", StringComparison.OrdinalIgnoreCase) ? 10 : 1;
+                }));
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        var values = new object[reader.FieldCount];
+        Assert.Equal(1, reader.GetValues(values));
+        Assert.Equal(10, values[0]);
+        Assert.Equal(10, reader.GetValue(0));
+        Assert.Equal(1, calls);
     }
 
     [Fact]
@@ -104,6 +179,60 @@ public class CsvDataReaderTests
         Assert.Equal(3, reader.GetInt32(0));
         Assert.Equal("Gamma", reader.GetString(1));
         Assert.False(reader.Read());
+    }
+
+    [Fact]
+    public void CreateDataReader_FromCompressedFileWithExplicitSchema_ExposesTypedRows()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Tests." + Guid.NewGuid().ToString("N") + ".csv.gz");
+        var schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Column("DisplayName").AsString()
+            .Column("Score").AsType(typeof(decimal))
+            .Column("CreatedUtc").AsDateTime()
+            .Done()
+            .Build();
+
+        try
+        {
+            new CsvDocument()
+                .WithHeader("Id", "DisplayName", "Score", "CreatedUtc")
+                .AddRow(1, "Alice", 12.5m, new DateTime(2026, 1, 2, 3, 4, 5))
+                .AddRow(2, "Bob", 13.75m, new DateTime(2026, 1, 3, 4, 5, 6))
+                .Save(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip });
+
+            using var reader = CsvDocument.CreateDataReader(
+                path,
+                new CsvLoadOptions
+                {
+                    Mode = CsvLoadMode.Stream,
+                    CompressionType = CsvCompressionType.GZip
+                },
+                new CsvDataReaderOptions { Schema = schema });
+
+            Assert.Equal(typeof(int), reader.GetFieldType(reader.GetOrdinal("Id")));
+            Assert.Equal(typeof(decimal), reader.GetFieldType(reader.GetOrdinal("Score")));
+
+            Assert.True(reader.Read());
+            Assert.Equal(1, reader.GetInt32(reader.GetOrdinal("Id")));
+            Assert.Equal("Alice", reader.GetString(reader.GetOrdinal("DisplayName")));
+            Assert.Equal(12.5m, reader.GetDecimal(reader.GetOrdinal("Score")));
+            Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), reader.GetDateTime(reader.GetOrdinal("CreatedUtc")));
+
+            Assert.True(reader.Read());
+            Assert.Equal(2, reader.GetInt32(reader.GetOrdinal("Id")));
+            Assert.Equal("Bob", reader.GetString(reader.GetOrdinal("DisplayName")));
+            Assert.Equal(13.75m, reader.GetDecimal(reader.GetOrdinal("Score")));
+            Assert.Equal(new DateTime(2026, 1, 3, 4, 5, 6), reader.GetDateTime(reader.GetOrdinal("CreatedUtc")));
+            Assert.False(reader.Read());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
     }
 
     [Fact]
@@ -177,6 +306,25 @@ public class CsvDataReaderTests
         Assert.Equal("1", values[0]);
         Assert.Equal(DBNull.Value, values[1]);
         Assert.Equal("7", values[2]);
+    }
+
+    [Fact]
+    public void CreateDataReader_InMemoryWithoutSchema_PreservesConfiguredNullValue()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Note\n1,<null>\n",
+            new CsvLoadOptions { NullValue = "<null>" });
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("1", reader.GetString(0));
+        Assert.True(reader.IsDBNull(1));
+
+        var values = new object[reader.FieldCount];
+        Assert.Equal(2, reader.GetValues(values));
+        Assert.Equal("1", values[0]);
+        Assert.Equal(DBNull.Value, values[1]);
     }
 
     [Fact]
