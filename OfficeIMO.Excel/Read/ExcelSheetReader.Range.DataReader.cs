@@ -45,8 +45,7 @@ namespace OfficeIMO.Excel {
             if (schemaSampleRows == 0
                 && rows > BufferedRangeStreamRowLimit
                 && mode != OfficeIMO.Excel.ExecutionMode.Parallel
-                && CanUseRangeStreamXmlReader()
-                && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                && CanUseRangeStreamXmlReader()) {
                 return new ExcelXmlRangeDataReader(this, r1, c1, r2, c2, cols, headersInFirstRow, _opt, ct);
             }
 

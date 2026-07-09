@@ -368,11 +368,8 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_hasPendingRow && _pendingRowIndex > _nextLogicalRow) {
-                    row = _blankRow;
-                    _currentRow = row;
-                    _currentRowIsBlank = true;
-                    _nextLogicalRow++;
-                    return true;
+                    BufferRemainingRows();
+                    return TryReadBufferedLogicalRow(out row);
                 }
 
                 if (_bufferedRows != null) {
@@ -409,11 +406,6 @@ namespace OfficeIMO.Excel {
                     if (rowIndex < _firstRow) {
                         SkipXmlElement(_reader, "row");
                         continue;
-                    }
-
-                    if (rowIndex > _lastRow) {
-                        SkipXmlElement(_reader, "row");
-                        return;
                     }
 
                     if (rowIndex < _nextLogicalRow) {

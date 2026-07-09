@@ -65,41 +65,21 @@ Focus the `IDataReader.GetValues` read path used by bulk-copy style consumers:
 dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-getvalues-25000.json --rows 25000 --scenario read-datareader-getvalues --skip-legacy-epplus --warmup 2 --iterations 7
 ```
 
-Compare setup, row scanning, selective field access, and the full `GetValues` scan:
+Compare row scanning, selective field access, full `GetValues`, and typed getters:
 
 ```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-datareader-diagnostics-25000.json --rows 25000 --scenario read-datareader-open --scenario read-datareader-readonly --scenario read-datareader-first-column --scenario read-datareader-getvalues --skip-legacy-epplus --warmup 2 --iterations 7
+dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-datareader-25000.json --rows 25000 --scenario read-datareader-readonly,read-datareader-first-column,read-datareader-getvalues,read-datareader-typed --skip-legacy-epplus --warmup 3 --iterations 15
 ```
 
-Check typed getter access separately:
+Local 2026-07-09 results at 25,000 rows, with three warmups and 15 measured
+iterations:
 
-```powershell
-dotnet run -c Release --framework net8.0 --project .\OfficeIMO.Excel.Benchmarks\OfficeIMO.Excel.Benchmarks.csproj -- compare .\Ignore\Benchmarks\excel-typed-reader-25000.json --rows 25000 --scenario read-datareader-typed --skip-legacy-epplus --warmup 3 --iterations 10
-```
-
-Local 2026-07-09 short-run signal for `read-datareader-getvalues` at 25,000
-rows after the shared-string index-buffering pass: `OfficeIMO.Excel` averaged
-`64.35 ms`, median `66.17 ms`, and `19.7 MB` allocated; `ExcelDataReader`
-averaged `121.14 ms`, median `112.67 ms`, and `42.6 MB` allocated;
-`Sylvan.Data.Excel` averaged `69.02 ms`, median `70.15 ms`, and `7.4 MB`
-allocated. Treat this as a focused signal: OfficeIMO is the fastest full-row
-`GetValues` reader in this run and uses less than half of ExcelDataReader's
-allocation, while Sylvan still has the lower allocation profile.
-
-The companion diagnostic lanes show where the allocation work belongs. On the
-same local run, `read-datareader-open` averaged `0.98 ms` and `221.5 KB` for
-OfficeIMO, while `read-datareader-readonly` averaged `53.46 ms` and `1.0 MB`
-and `read-datareader-first-column` averaged `40.15 ms` and `3.0 MB`. That means
-OfficeIMO now avoids decoding unrequested cells for row-only and selective
-field-access consumers; the remaining allocation in the full `GetValues` lane is
-the cost of materializing every requested cell value. After the primitive typed
-cache and boolean-buffer pass, repeated local 25,000-row `read-datareader-typed`
-runs put OfficeIMO around `65-68 ms` average, `58-60 ms` median, and `16.8 MB`
-allocated. `ExcelDataReader` was around `129-130 ms` and `42.6 MB` allocated.
-`Sylvan.Data.Excel` stayed much leaner at `3.4 MB` allocated and can still win
-elapsed time on repeat runs. Treat this as a solid improvement over
-ExcelDataReader and over the earlier OfficeIMO allocation profile, not as a final
-typed-reader win over Sylvan.
+| Reader access | OfficeIMO.Excel | Sylvan.Data.Excel | ExcelDataReader | Result |
+| --- | ---: | ---: | ---: | --- |
+| Rows only | 40.36 ms / 1.0 MB | 44.61 ms / 3.5 MB | 110.41 ms / 42.6 MB | OfficeIMO fastest |
+| First column | 42.23 ms / 2.5 MB | 47.37 ms / 3.5 MB | 109.30 ms / 42.6 MB | OfficeIMO fastest |
+| `GetValues` | 55.93 ms / 19.7 MB | 67.08 ms / 7.4 MB | 122.95 ms / 42.6 MB | OfficeIMO fastest |
+| Typed getters | 57.03 ms / 16.8 MB | 53.65 ms / 3.4 MB | 126.78 ms / 42.6 MB | Sylvan 1.06x faster |
 
 Use `--skip-legacy-epplus` only when you want a faster local pass without the isolated EPPlus 4.x subprocess:
 
