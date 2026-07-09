@@ -2399,12 +2399,6 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static int OfficeImoReadDataReaderGetValues(byte[] workbookBytes, string dataRange)
         => OfficeImoReadDataReader(workbookBytes, dataRange);
 
-    private static int OfficeImoOpenDataReader(byte[] workbookBytes, string dataRange) {
-        using var reader = ExcelDocumentReader.Open(workbookBytes);
-        using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
-        return AddSalesHeadersMetric(dataReader.FieldCount);
-    }
-
     private static int OfficeImoReadDataReaderRowsOnly(byte[] workbookBytes, string dataRange) {
         using var reader = ExcelDocumentReader.Open(workbookBytes);
         using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
@@ -2799,13 +2793,6 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
-    private static int SylvanOpenWorksheet(byte[] workbookBytes) {
-        using var stream = new MemoryStream(workbookBytes, writable: false);
-        using var reader = CreateSylvanReader(stream);
-        OpenSylvanWorksheet(reader, "Data");
-        return AddSalesHeadersMetric(reader.FieldCount);
-    }
-
     private static int SylvanReadRowsOnly(byte[] workbookBytes) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var reader = CreateSylvanReader(stream);
@@ -2923,13 +2910,6 @@ internal static partial class ExcelLibraryComparisonRunner {
         }
 
         return metric;
-    }
-
-    private static int ExcelDataReaderOpenWorksheet(byte[] workbookBytes) {
-        using var stream = new MemoryStream(workbookBytes, writable: false);
-        using var reader = CreateExcelDataReader(stream);
-        OpenExcelDataReaderWorksheet(reader, "Data");
-        return AddSalesHeadersMetric(reader.FieldCount);
     }
 
     private static int ExcelDataReaderReadRowsOnly(byte[] workbookBytes) {
