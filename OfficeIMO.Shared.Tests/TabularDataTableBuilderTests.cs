@@ -51,12 +51,17 @@ public class TabularDataTableBuilderTests {
 
     [Fact]
     public void FromItems_UsesHostProjectionCallback() {
+        var projectionCalls = 0;
         var table = TabularDataTableBuilder.FromItems(new object?[] { new HostRow(7) }, new TabularDataOptions {
-            ProjectObject = item => item is HostRow row
-                ? new Dictionary<string, object?> { ["Value"] = row.Number }
-                : null
+            ProjectObject = item => {
+                projectionCalls++;
+                return new Dictionary<string, object?> {
+                    ["Value"] = item is HostRow row ? row.Number : -1
+                };
+            }
         });
 
+        Assert.Equal(1, projectionCalls);
         Assert.Equal(typeof(int), table.Columns["Value"]!.DataType);
         Assert.Equal(7, table.Rows[0]["Value"]);
     }

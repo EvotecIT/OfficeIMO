@@ -1,6 +1,7 @@
 using System.Collections;
 using System.Data;
 using System.Diagnostics.CodeAnalysis;
+using System.Reflection;
 using OfficeIMO.Data;
 
 namespace OfficeIMO.Excel {
@@ -24,6 +25,7 @@ namespace OfficeIMO.Excel {
             options ??= new ObjectDataTableBuilderOptions();
             var rows = AsReadOnlyList(items);
             ValidateRows(rows);
+            ValidateFirstRowShape(rows[0]!);
 
             return TabularDataTableBuilder.FromItems(rows, new TabularDataOptions {
                 TableName = tableName,
@@ -53,6 +55,24 @@ namespace OfficeIMO.Excel {
                 if (items[index] == null) {
                     throw new InvalidOperationException("Data rows cannot contain null entries.");
                 }
+            }
+        }
+
+        private static void ValidateFirstRowShape(object first) {
+            if (TabularDataTableBuilder.IsScalarValue(first)) {
+                throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
+            }
+
+            bool hasColumns = first switch {
+                IReadOnlyDictionary<string, object?> readOnlyDictionary => readOnlyDictionary.Count > 0,
+                IDictionary<string, object?> genericDictionary => genericDictionary.Count > 0,
+                IDictionary dictionary => dictionary.Count > 0,
+                _ => first.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)
+                    .Any(property => property.CanRead && property.GetIndexParameters().Length == 0)
+            };
+
+            if (!hasColumns) {
+                throw new InvalidOperationException("Unable to infer column names. Use objects with properties or dictionaries.");
             }
         }
 

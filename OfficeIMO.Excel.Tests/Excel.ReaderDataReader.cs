@@ -301,6 +301,51 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesOutOfOrderCellsAcrossAccessOrders() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Id");
+                sheet.CellValue(1, 2, "Name");
+                sheet.CellValue(1, 3, "Note");
+                sheet.CellValue(2, 1, 1);
+                sheet.CellValue(2, 2, "Alpha");
+                sheet.CellValue(2, 3, "First note");
+                sheet.CellValue(3, 1, 2);
+                sheet.CellValue(3, 2, "Beta");
+                sheet.CellValue(3, 3, "Second note");
+                sheet.CellValue(4098, 1, 4097);
+            }
+
+            memory.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, true)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(item => item.Name == "Data");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                foreach (uint rowIndex in new[] { 2U, 3U }) {
+                    var row = worksheetPart.Worksheet.Descendants<Row>().Single(item => item.RowIndex == rowIndex);
+                    var cell = row.Elements<Cell>().Single(item => item.CellReference == "B" + rowIndex);
+                    cell.Remove();
+                    row.Append(cell);
+                }
+
+                worksheetPart.Worksheet.Save();
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:C4098", schemaSampleRows: 0);
+
+            Assert.True(dataReader.Read());
+            Assert.Equal("First note", dataReader.GetString(2));
+            Assert.Equal("Alpha", dataReader.GetString(1));
+
+            Assert.True(dataReader.Read());
+            Assert.Equal("Beta", dataReader.GetString(1));
+            Assert.Equal("Second note", dataReader.GetString(2));
+        }
+
+        [Fact]
         public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesLargeOutOfOrderRows() {
             string filePath = Path.Combine(_directoryWithFiles, "ReaderDataReaderLargeOutOfOrderRows.xlsx");
 

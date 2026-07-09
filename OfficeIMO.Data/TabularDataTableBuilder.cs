@@ -150,7 +150,7 @@ public static class TabularDataTableBuilder {
     private static void AddMaterializedItem(List<object?> items, object? item, TabularDataOptions options) {
         var projected = options.ProjectObject?.Invoke(item);
         if (projected != null) {
-            items.Add(projected);
+            items.Add(new ProjectedRow(projected));
             return;
         }
 
@@ -291,6 +291,10 @@ public static class TabularDataTableBuilder {
     }
 
     private static IReadOnlyDictionary<string, object?> GetProperties(object? item, TabularDataOptions options) {
+        if (item is ProjectedRow projectedRow) {
+            return NormalizeDictionary(projectedRow.Values, options);
+        }
+
         var projected = options.ProjectObject?.Invoke(item);
         if (projected != null) {
             return NormalizeDictionary(projected, options);
@@ -315,6 +319,12 @@ public static class TabularDataTableBuilder {
         }
 
         return ProjectPublicProperties(item!, options);
+    }
+
+    private sealed class ProjectedRow {
+        internal ProjectedRow(IReadOnlyDictionary<string, object?> values) => Values = values;
+
+        internal IReadOnlyDictionary<string, object?> Values { get; }
     }
 
     private static IReadOnlyDictionary<string, object?> NormalizeDictionary(IEnumerable<KeyValuePair<string, object?>> source, TabularDataOptions options) {

@@ -200,6 +200,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_FromObjects_ThrowsWhenColumnsCannotBeInferred() {
+            foreach (var items in new[] {
+                new object?[] { "A", "B" },
+                new object?[] { new object() }
+            }) {
+                var ex = Assert.Throws<InvalidOperationException>(() => ObjectDataTableBuilder.FromObjects(items));
+                Assert.Equal("Unable to infer column names. Use objects with properties or dictionaries.", ex.Message);
+            }
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullFirstRow() {
             var ex = Assert.Throws<ArgumentException>(() => ObjectDataTableBuilder.FromObjects(new object?[] { null }));
             Assert.StartsWith("Data rows cannot be null.", ex.Message);

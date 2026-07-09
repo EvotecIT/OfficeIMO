@@ -49,6 +49,7 @@ namespace OfficeIMO.Excel {
             private bool _currentRowActive;
             private bool _currentRowFinished;
             private bool _currentRowIsBlank;
+            private bool? _rowsAreSorted;
             private bool _closed;
             private bool _disposed;
 
@@ -368,6 +369,15 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_hasPendingRow && _pendingRowIndex > _nextLogicalRow) {
+                    _rowsAreSorted ??= _owner.RowsAreSortedWithinRangeXmlFast(_firstRow, _lastRow, _ct);
+                    if (_rowsAreSorted.Value) {
+                        row = _blankRow;
+                        _currentRow = row;
+                        _currentRowIsBlank = true;
+                        _nextLogicalRow++;
+                        return true;
+                    }
+
                     BufferRemainingRows();
                     return TryReadBufferedLogicalRow(out row);
                 }
