@@ -17,12 +17,43 @@ namespace OfficeIMO.Excel {
         /// <returns>Populated DataTable.</returns>
         [RequiresUnreferencedCode("Uses reflection over arbitrary object graphs. For AOT-safe usage, map values explicitly or pre-flatten items.")]
         public static DataTable FromObjects(IEnumerable<object?> items, string tableName = "Data", ObjectDataTableBuilderOptions? options = null) {
+            if (items == null) {
+                throw new ArgumentNullException(nameof(items));
+            }
+
             options ??= new ObjectDataTableBuilderOptions();
-            return TabularDataTableBuilder.FromItems(items, new TabularDataOptions {
+            var rows = AsReadOnlyList(items);
+            ValidateRows(rows);
+
+            return TabularDataTableBuilder.FromItems(rows, new TabularDataOptions {
                 TableName = tableName,
                 ColumnDiscoveryMode = TabularColumnDiscoveryMode.FirstRow,
                 NormalizeValue = value => NormalizeCellValue(value, options)
             });
+        }
+
+        private static IReadOnlyList<object?> AsReadOnlyList(IEnumerable<object?> items) {
+            if (items is IReadOnlyList<object?> list) {
+                return list;
+            }
+
+            return items.ToList();
+        }
+
+        private static void ValidateRows(IReadOnlyList<object?> items) {
+            if (items.Count == 0) {
+                throw new ArgumentException("Provide at least one data row.", nameof(items));
+            }
+
+            if (items[0] == null) {
+                throw new ArgumentException("Data rows cannot be null.", nameof(items));
+            }
+
+            for (var index = 1; index < items.Count; index++) {
+                if (items[index] == null) {
+                    throw new InvalidOperationException("Data rows cannot contain null entries.");
+                }
+            }
         }
 
         private static object? NormalizeCellValue(object? value, ObjectDataTableBuilderOptions options) {

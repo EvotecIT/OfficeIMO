@@ -18,10 +18,7 @@ public static class TabularDataTableBuilder {
         }
 
         options ??= new TabularDataOptions();
-        var items = input
-            .Select(item => Unwrap(item, options))
-            .Where(item => options.PreserveNullRows || item != null)
-            .ToList();
+        var items = MaterializeItems(input, options);
 
         if (items.Count == 1 && options.ExpandSingleEnumerableInput && ShouldExpandSingleEnumerableInput(items[0])) {
             items = ((IEnumerable)items[0]!)
@@ -131,6 +128,31 @@ public static class TabularDataTableBuilder {
 
     private static object? Unwrap(object? item, TabularDataOptions options)
         => options.UnwrapValue?.Invoke(item) ?? item;
+
+    private static List<object?> MaterializeItems(IEnumerable<object?> input, TabularDataOptions options) {
+        if (input is IReadOnlyList<object?> list) {
+            var items = new List<object?>(list.Count);
+            for (var index = 0; index < list.Count; index++) {
+                AddMaterializedItem(items, list[index], options);
+            }
+
+            return items;
+        }
+
+        var result = new List<object?>();
+        foreach (var item in input) {
+            AddMaterializedItem(result, item, options);
+        }
+
+        return result;
+    }
+
+    private static void AddMaterializedItem(List<object?> items, object? item, TabularDataOptions options) {
+        var unwrapped = Unwrap(item, options);
+        if (options.PreserveNullRows || unwrapped != null) {
+            items.Add(unwrapped);
+        }
+    }
 
     private static DataTable FromDataRows(IReadOnlyList<object?> items, DataTable source, string? tableName) {
         var table = CloneTable(source, tableName);
@@ -275,14 +297,7 @@ public static class TabularDataTableBuilder {
         }
 
         if (item is IDictionary dictionary) {
-            var values = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-            foreach (DictionaryEntry entry in dictionary) {
-                if (entry.Key != null) {
-                    values[entry.Key.ToString()!] = NormalizeValue(entry.Value, options);
-                }
-            }
-
-            return values;
+            return new LegacyDictionaryProjection(dictionary, options);
         }
 
         return ProjectPublicProperties(item!, options);
@@ -416,5 +431,61 @@ public static class TabularDataTableBuilder {
         internal string TableName { get; }
 
         internal Type FieldType { get; }
+    }
+
+    private sealed class LegacyDictionaryProjection : IReadOnlyDictionary<string, object?> {
+        private readonly IDictionary _source;
+        private readonly TabularDataOptions _options;
+        private readonly List<string> _keys;
+
+        internal LegacyDictionaryProjection(IDictionary source, TabularDataOptions options) {
+            _source = source;
+            _options = options;
+            _keys = new List<string>(source.Count);
+
+            foreach (DictionaryEntry entry in source) {
+                if (entry.Key != null) {
+                    _keys.Add(entry.Key.ToString()!);
+                }
+            }
+        }
+
+        public IEnumerable<string> Keys => _keys;
+
+        public IEnumerable<object?> Values => _keys.Select(key => this[key]);
+
+        public int Count => _keys.Count;
+
+        public object? this[string key] => TryGetValue(key, out var value)
+            ? value
+            : throw new KeyNotFoundException();
+
+        public bool ContainsKey(string key) => TryGetValue(key, out _);
+
+        public bool TryGetValue(string key, out object? value) {
+            if (_source.Contains(key)) {
+                value = NormalizeValue(_source[key], _options);
+                return true;
+            }
+
+            foreach (DictionaryEntry entry in _source) {
+                var entryKey = entry.Key?.ToString();
+                if (string.Equals(entryKey, key, StringComparison.OrdinalIgnoreCase)) {
+                    value = NormalizeValue(entry.Value, _options);
+                    return true;
+                }
+            }
+
+            value = null;
+            return false;
+        }
+
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() {
+            foreach (var key in _keys) {
+                yield return new KeyValuePair<string, object?>(key, this[key]);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }
