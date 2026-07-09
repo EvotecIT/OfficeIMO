@@ -1,5 +1,6 @@
 #nullable enable
 
+using DocumentFormat.OpenXml.Spreadsheet;
 using System.Collections;
 using System.Data;
 using System.Data.Common;
@@ -40,8 +41,143 @@ namespace OfficeIMO.Excel {
             }
 
             int cols = c2 - c1 + 1;
-            IEnumerable<RangeChunk> chunks = ReadRangeStream(a1Range, chunkRows, mode, ct);
+            IEnumerable<RangeChunk> chunks = ReadRangeStreamForDataReader(a1Range, chunkRows, mode, ct);
             return new ExcelRangeDataReader(chunks, r1, r2, cols, headersInFirstRow, schemaSampleRows, _opt, ct);
+        }
+
+        private IEnumerable<RangeChunk> ReadRangeStreamForDataReader(
+            string a1Range,
+            int chunkRows,
+            OfficeIMO.Excel.ExecutionMode? mode,
+            CancellationToken ct) {
+            if (chunkRows <= 0) {
+                throw new ArgumentOutOfRangeException(nameof(chunkRows), "Chunk row count must be greater than zero.");
+            }
+
+            var (r1, c1, r2, c2) = A1.ParseRange(a1Range);
+            if (r1 > r2 || c1 > c2) {
+                yield break;
+            }
+
+            if (ct.CanBeCanceled) {
+                ct.ThrowIfCancellationRequested();
+            }
+
+            if (mode != OfficeIMO.Excel.ExecutionMode.Parallel
+                && CanUseRangeStreamXmlReader()
+                && RowsAreSortedWithinRangeXmlFast(r1, r2, ct)) {
+                foreach (var chunk in ReadRangeStreamXmlFast(r1, c1, r2, c2, chunkRows, ct)) {
+                    yield return chunk;
+                }
+
+                yield break;
+            }
+
+            var sheetData = WorksheetRoot.GetFirstChild<SheetData>();
+            if (sheetData is null) {
+                yield break;
+            }
+
+            if (mode != OfficeIMO.Excel.ExecutionMode.Parallel
+                && RowsAreSortedWithinRange(sheetData, r1, r2, ct)) {
+                foreach (var chunk in ReadSortedDomRangeStream(sheetData, r1, c1, r2, c2, chunkRows, ct)) {
+                    yield return chunk;
+                }
+
+                yield break;
+            }
+
+            foreach (var chunk in ReadRangeStream(a1Range, chunkRows, OfficeIMO.Excel.ExecutionMode.Sequential, ct)) {
+                yield return chunk;
+            }
+        }
+
+        private IEnumerable<RangeChunk> ReadSortedDomRangeStream(
+            SheetData sheetData,
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int chunkRows,
+            CancellationToken ct) {
+            int currentWindow = -1;
+            var rows = new List<Row>();
+
+            foreach (var row in sheetData.Elements<Row>()) {
+                if (ct.CanBeCanceled) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                int rowIndex = checked((int)row.RowIndex!.Value);
+                if (rowIndex < r1) {
+                    continue;
+                }
+
+                if (rowIndex > r2) {
+                    break;
+                }
+
+                int window = (rowIndex - r1) / chunkRows;
+                if (currentWindow >= 0 && window != currentWindow) {
+                    yield return ConvertSortedDomChunk(rows, currentWindow, r1, c1, r2, c2, chunkRows, ct);
+                    rows.Clear();
+                }
+
+                currentWindow = window;
+                rows.Add(row);
+            }
+
+            if (rows.Count > 0) {
+                yield return ConvertSortedDomChunk(rows, currentWindow, r1, c1, r2, c2, chunkRows, ct);
+            }
+        }
+
+        private RangeChunk ConvertSortedDomChunk(
+            IReadOnlyList<Row> rows,
+            int windowIndex,
+            int r1,
+            int c1,
+            int r2,
+            int c2,
+            int chunkRows,
+            CancellationToken ct) {
+            int startRow = r1 + (windowIndex * chunkRows);
+            int endRow = Math.Min(startRow + chunkRows - 1, r2);
+            int height = endRow - startRow + 1;
+            int width = c2 - c1 + 1;
+            if (height <= 0 || width <= 0) {
+                return new RangeChunk(startRow, 0, c1, width, Array.Empty<object?[]>());
+            }
+
+            var values = new object?[height][];
+            for (int i = 0; i < height; i++) {
+                values[i] = new object?[width];
+            }
+
+            foreach (var row in rows) {
+                if (ct.CanBeCanceled) {
+                    ct.ThrowIfCancellationRequested();
+                }
+
+                int rowIndex = checked((int)row.RowIndex!.Value);
+                int rowOffset = rowIndex - startRow;
+                if ((uint)rowOffset >= (uint)height) {
+                    continue;
+                }
+
+                foreach (var cell in row.Elements<Cell>()) {
+                    int column = A1.ParseColumnIndexFromCellReferenceFast(cell.CellReference?.Value);
+                    if (column < c1 || column > c2) {
+                        continue;
+                    }
+
+                    if (TryConvertCell(cell, out object? value)) {
+                        values[rowOffset][column - c1] = value ?? values[rowOffset][column - c1];
+                    }
+                }
+            }
+
+            return new RangeChunk(startRow, height, c1, width, values);
         }
 
         private sealed class ExcelRangeDataReader : DbDataReader {
