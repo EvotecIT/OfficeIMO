@@ -317,5 +317,46 @@ namespace OfficeIMO.Tests {
                 }
             }
         }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesInRangeRowsAfterOutOfRangeRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataReaderOutOfRangeBeforeInRange.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(2, 1, "First");
+                    sheet.CellValue(4097, 1, "Last in range");
+                    sheet.CellValue(5000, 1, "Outside range");
+                    document.Save();
+                }
+
+                MoveWorksheetRowToEnd(filePath, 4097U);
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:A4097", schemaSampleRows: 0, chunkRows: 512);
+
+                Assert.True(dataReader.Read());
+                Assert.Equal("First", dataReader.GetString(0));
+
+                string? last = null;
+                int rowsRead = 1;
+                while (dataReader.Read()) {
+                    rowsRead++;
+                    if (!dataReader.IsDBNull(0)) {
+                        last = dataReader.GetString(0);
+                    }
+                }
+
+                Assert.Equal(4096, rowsRead);
+                Assert.Equal("Last in range", last);
+                Assert.False(dataReader.Read());
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }

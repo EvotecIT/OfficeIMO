@@ -368,8 +368,11 @@ namespace OfficeIMO.Excel {
                 }
 
                 if (_hasPendingRow && _pendingRowIndex > _nextLogicalRow) {
-                    BufferRemainingRows();
-                    return TryReadBufferedLogicalRow(out row);
+                    row = _blankRow;
+                    _currentRow = row;
+                    _currentRowIsBlank = true;
+                    _nextLogicalRow++;
+                    return true;
                 }
 
                 if (_bufferedRows != null) {
