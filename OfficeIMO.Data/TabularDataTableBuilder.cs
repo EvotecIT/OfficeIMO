@@ -148,17 +148,26 @@ public static class TabularDataTableBuilder {
     }
 
     private static void AddMaterializedItem(List<object?> items, object? item, TabularDataOptions options) {
+        var unwrapped = Unwrap(item, options);
+        if (IsNativeTabularValue(unwrapped) ||
+            (options.ExpandSingleEnumerableInput && ShouldExpandSingleEnumerableInput(unwrapped))) {
+            items.Add(unwrapped);
+            return;
+        }
+
         var projected = options.ProjectObject?.Invoke(item);
         if (projected != null) {
             items.Add(new ProjectedRow(projected));
             return;
         }
 
-        var unwrapped = Unwrap(item, options);
         if (options.PreserveNullRows || unwrapped != null) {
             items.Add(unwrapped);
         }
     }
+
+    private static bool IsNativeTabularValue(object? item)
+        => item is DataTable or DataView or IDataReader or DataRow or DataRowView or IDataRecord;
 
     private static DataTable FromDataRows(IReadOnlyList<object?> items, DataTable source, string? tableName) {
         var table = CloneTable(source, tableName);

@@ -67,6 +67,30 @@ public class TabularDataTableBuilderTests {
     }
 
     [Fact]
+    public void FromItems_BypassesHostProjectionForNativeTablesAndEnumerableContainers() {
+        var source = new DataTable("Source");
+        source.Columns.Add("Name", typeof(string));
+        source.Rows.Add("Alpha");
+        var projectionCalls = 0;
+        var options = new TabularDataOptions {
+            CopyExistingDataTable = false,
+            ProjectObject = item => {
+                projectionCalls++;
+                return new Dictionary<string, object?> { ["Projected"] = item };
+            }
+        };
+
+        var table = TabularDataTableBuilder.FromItems(new object?[] { source }, options);
+        var empty = TabularDataTableBuilder.FromItems(new object?[] { Array.Empty<object?>() }, options);
+
+        Assert.Same(source, table);
+        Assert.Equal("Alpha", table.Rows[0]["Name"]);
+        Assert.Empty(empty.Rows);
+        Assert.Empty(empty.Columns);
+        Assert.Equal(0, projectionCalls);
+    }
+
+    [Fact]
     public void FromItems_ConvertsReadOnlyDictionaryRows() {
         IReadOnlyDictionary<string, object?> row = new ReadOnlyRow(new Dictionary<string, object?> {
             ["Id"] = 5,
