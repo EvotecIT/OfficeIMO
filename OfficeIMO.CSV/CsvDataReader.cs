@@ -4,6 +4,11 @@ using System.Collections;
 using System.Data;
 using System.Data.Common;
 using System.Globalization;
+#if NET8_0_OR_GREATER
+using CsvDataReaderTextRowSource = OfficeIMO.CSV.CsvParser.CsvTextDataReaderRowSource;
+#else
+using CsvDataReaderTextRowSource = OfficeIMO.CSV.ICsvDataReaderTextRowSource;
+#endif
 
 namespace OfficeIMO.CSV;
 
@@ -19,6 +24,7 @@ public sealed class CsvDataReader : DbDataReader
     private readonly CsvDataColumnProjection[] _columns;
     private readonly IEnumerator<object?[]>? _rows;
     private readonly IEnumerator<IReadOnlyList<string>>? _stringRows;
+    private readonly CsvDataReaderTextRowSource? _textRowSource;
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
     private readonly IDisposable? _rowOwner;
@@ -37,6 +43,7 @@ public sealed class CsvDataReader : DbDataReader
     private IReadOnlyList<string>? _bufferedStringRow;
     private bool _hasBufferedRow;
     private bool _checkedForRows;
+    private bool _hasCurrentTextRow;
     private bool _closed;
     private int _rowIndex = -1;
 
@@ -74,6 +81,25 @@ public sealed class CsvDataReader : DbDataReader
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
         _rowOwner = rowOwner;
+        _useRawStringValues = CanUseRawStringValues(columns);
+        _useDirectValueConversion = CanUseDirectValueConversion(columns);
+    }
+
+    internal CsvDataReader(
+        CsvDataColumnProjection[] columns,
+        CsvDataReaderTextRowSource rows,
+        int sourceColumnCount,
+        CsvLoadOptions options,
+        CultureInfo culture,
+        IReadOnlyList<string>? dateTimeFormats)
+    {
+        _columns = columns;
+        _textRowSource = rows;
+        _sourceColumnCount = sourceColumnCount;
+        _stringRowOptions = options;
+        _stringNullValue = options.NullValue;
+        _culture = culture;
+        _dateTimeFormats = dateTimeFormats;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
     }
@@ -342,6 +368,18 @@ public sealed class CsvDataReader : DbDataReader
     {
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.String)
         {
+            if (_textRowSource is not null &&
+                (_stringNullValue is null || !_textRowSource.IsNull(ordinal, _stringNullValue)))
+            {
+                var textValue = _textRowSource.GetString(ordinal);
+                if (textValue.Length == 0 && _columns[ordinal].SchemaColumn?.IsRequired == true)
+                {
+                    CsvDataProjectionConverter.GetDirectMissingValue(_columns[ordinal], _rowIndex);
+                }
+
+                return textValue;
+            }
+
             var rawValue = GetRawValue(ordinal);
             if (rawValue is string text)
             {
@@ -358,6 +396,11 @@ public sealed class CsvDataReader : DbDataReader
         EnsureOpenRow();
         if (_useRawStringValues)
         {
+            if (_textRowSource is not null)
+            {
+                return GetTextSourceRawStringValue(ordinal);
+            }
+
             if (_rawRowsAreParsedStringsOnly && _currentRawRow is { } rawRow)
             {
                 return GetParsedStringRawValue(rawRow, ordinal);
@@ -373,8 +416,18 @@ public sealed class CsvDataReader : DbDataReader
             return value;
         }
 
-        var rawValue = GetRawValue(ordinal);
-        value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats);
+#if NET8_0_OR_GREATER
+        if (_textRowSource is not null && _useDirectValueConversion)
+        {
+            value = ConvertDirectTextSourceValue(ordinal);
+        }
+        else
+#endif
+        {
+            var rawValue = GetRawValue(ordinal);
+            value = CsvDataProjectionConverter.ConvertValue(rawValue, _columns[ordinal], _rowIndex, _culture, _dateTimeFormats);
+        }
+
         _currentConvertedRow[ordinal] = value;
         return value;
     }
@@ -386,6 +439,11 @@ public sealed class CsvDataReader : DbDataReader
         var count = Math.Min(values.Length, _columns.Length);
         if (_useRawStringValues)
         {
+            if (_textRowSource is not null)
+            {
+                return _textRowSource.CopyStringValues(values, count, _stringNullValue);
+            }
+
             if (_currentStringRow is not null)
             {
                 return GetStringRowValues(values, count);
@@ -420,6 +478,11 @@ public sealed class CsvDataReader : DbDataReader
 
         if (_useDirectValueConversion)
         {
+            if (_textRowSource is not null)
+            {
+                return GetDirectTextSourceValues(values, count);
+            }
+
             if (_currentStringRow is not null)
             {
                 return GetDirectStringRowValues(values, count);
@@ -515,6 +578,7 @@ public sealed class CsvDataReader : DbDataReader
         _closed = true;
         _rows?.Dispose();
         _stringRows?.Dispose();
+        _textRowSource?.Dispose();
         _rowOwner?.Dispose();
     }
 
@@ -589,10 +653,22 @@ public sealed class CsvDataReader : DbDataReader
 
         if (_checkedForRows || _currentRawRow is not null || _currentStringRow is not null)
         {
-            return _currentRawRow is not null || _currentStringRow is not null;
+            return _currentRawRow is not null || _currentStringRow is not null || _hasCurrentTextRow;
         }
 
         _checkedForRows = true;
+        if (_textRowSource is not null)
+        {
+            if (!_textRowSource.Read())
+            {
+                return false;
+            }
+
+            _hasCurrentTextRow = true;
+            _hasBufferedRow = true;
+            return true;
+        }
+
         if (_rows is not null)
         {
             if (!_rows.MoveNext())
@@ -620,6 +696,12 @@ public sealed class CsvDataReader : DbDataReader
 
     private bool MoveNextRow()
     {
+        if (_textRowSource is not null)
+        {
+            _hasCurrentTextRow = _textRowSource.Read();
+            return _hasCurrentTextRow;
+        }
+
         if (_rows is not null)
         {
             if (!_rows.MoveNext())
@@ -647,6 +729,7 @@ public sealed class CsvDataReader : DbDataReader
     {
         _currentRawRow = null;
         _currentStringRow = null;
+        _hasCurrentTextRow = false;
         ClearConvertedRow();
     }
 
@@ -747,6 +830,13 @@ public sealed class CsvDataReader : DbDataReader
 
     private object? GetRawValue(int ordinal)
     {
+        if (_textRowSource is not null)
+        {
+            return _stringNullValue is not null && _textRowSource.IsNull(ordinal, _stringNullValue)
+                ? null
+                : _textRowSource.GetString(ordinal);
+        }
+
         if (_currentStringRow is null)
         {
             return ordinal < _currentRawRow!.Length ? _currentRawRow[ordinal] : null;
@@ -839,12 +929,80 @@ public sealed class CsvDataReader : DbDataReader
         return count;
     }
 
+    private object GetTextSourceRawStringValue(int ordinal)
+    {
+        if ((uint)ordinal >= (uint)_sourceColumnCount)
+        {
+            throw new IndexOutOfRangeException();
+        }
+
+        var source = _textRowSource!;
+        return _stringNullValue is not null && source.IsNull(ordinal, _stringNullValue)
+            ? DBNull.Value
+            : source.GetString(ordinal);
+    }
+
+    private int GetDirectTextSourceValues(object[] values, int count)
+    {
+        var source = _textRowSource!;
+        var valueCount = Math.Min(count, _sourceColumnCount);
+        for (var i = 0; i < valueCount; i++)
+        {
+#if NET8_0_OR_GREATER
+            values[i] = ConvertDirectTextSourceValue(i);
+#else
+            values[i] = _stringNullValue is not null && source.IsNull(i, _stringNullValue)
+                ? ConvertDirectStringValue(i, null)
+                : ConvertDirectStringValue(i, source.GetString(i));
+#endif
+        }
+
+        for (var i = valueCount; i < count; i++)
+        {
+            values[i] = DBNull.Value;
+        }
+
+        return count;
+    }
+
+#if NET8_0_OR_GREATER
+    private object ConvertDirectTextSourceValue(int ordinal)
+    {
+        var source = _textRowSource!;
+        if (_stringNullValue is not null && source.IsNull(ordinal, _stringNullValue))
+        {
+            return CsvDataProjectionConverter.GetDirectMissingValue(_columns[ordinal], _rowIndex);
+        }
+
+        var column = _columns[ordinal];
+        var text = source.GetSpan(ordinal);
+        if (text.Length == 0 && column.SchemaColumn?.IsRequired == true)
+        {
+            return CsvDataProjectionConverter.GetDirectMissingValue(column, _rowIndex);
+        }
+
+        if (column.ConversionKind == CsvDataConversionKind.String)
+        {
+            return source.GetString(ordinal);
+        }
+
+        return CsvDataProjectionConverter.ConvertTextSpan(
+            text,
+            column,
+            _rowIndex,
+            _culture,
+            _dateTimeFormats);
+    }
+#endif
+
     private object ConvertDirectStringValue(int ordinal, string? text)
     {
         var column = _columns[ordinal];
-        if (text is null || (text.Length == 0 && column.ConversionKind != CsvDataConversionKind.String))
+        if (text is null ||
+            (text.Length == 0 &&
+                (column.ConversionKind != CsvDataConversionKind.String || column.SchemaColumn?.IsRequired == true)))
         {
-            return DBNull.Value;
+            return CsvDataProjectionConverter.GetDirectMissingValue(column, _rowIndex);
         }
 
         switch (column.ConversionKind)
@@ -983,7 +1141,7 @@ public sealed class CsvDataReader : DbDataReader
             throw new InvalidOperationException("The reader is closed.");
         }
 
-        if (_currentRawRow is null && _currentStringRow is null)
+        if (_currentRawRow is null && _currentStringRow is null && !_hasCurrentTextRow)
         {
             throw new InvalidOperationException("The reader is not positioned on a row.");
         }

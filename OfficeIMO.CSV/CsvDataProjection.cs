@@ -26,8 +26,7 @@ internal readonly struct CsvDataColumnProjection
     private static CsvDataConversionKind ResolveConversionKind(Type dataType, CsvSchemaColumn? schemaColumn)
     {
         if (schemaColumn is { Converter: not null } ||
-            schemaColumn is { DefaultValue: not null } ||
-            schemaColumn is { IsRequired: true })
+            schemaColumn is { DefaultValue: not null })
         {
             return CsvDataConversionKind.General;
         }
@@ -107,7 +106,7 @@ internal enum CsvDataConversionKind
     Guid
 }
 
-internal static class CsvDataProjectionConverter
+internal static partial class CsvDataProjectionConverter
 {
     private const string DefaultInvariantDateTimeFormat = "MM/dd/yyyy HH:mm:ss";
 
@@ -118,12 +117,6 @@ internal static class CsvDataProjectionConverter
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats)
     {
-        if (column.ConversionKind != CsvDataConversionKind.General &&
-            TryConvertFast(value, column, rowIndex, culture, dateTimeFormats, out var fastValue))
-        {
-            return fastValue;
-        }
-
         if (IsMissingValue(value, column))
         {
             if (column.SchemaColumn?.DefaultValue is not null)
@@ -138,6 +131,12 @@ internal static class CsvDataProjectionConverter
             {
                 return DBNull.Value;
             }
+        }
+
+        if (column.ConversionKind != CsvDataConversionKind.General &&
+            TryConvertFast(value, column, rowIndex, culture, dateTimeFormats, out var fastValue))
+        {
+            return fastValue;
         }
 
         if (column.SchemaColumn?.Converter is { } converter)
@@ -171,6 +170,16 @@ internal static class CsvDataProjectionConverter
         }
 
         return converted ?? DBNull.Value;
+    }
+
+    internal static object GetDirectMissingValue(CsvDataColumnProjection column, int rowIndex)
+    {
+        if (column.SchemaColumn?.IsRequired == true)
+        {
+            throw new CsvException($"Column '{column.Name}' is required but row {rowIndex + 1} has no value.");
+        }
+
+        return DBNull.Value;
     }
 
     private static bool TryConvertFast(

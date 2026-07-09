@@ -1,6 +1,7 @@
 #nullable enable
 
 using System.Data.Common;
+using System.Text;
 
 namespace OfficeIMO.CSV;
 
@@ -8,6 +9,7 @@ public sealed partial class CsvDocument
 {
     // Large explicit schema samples are faster when streamed twice than kept live through reader traversal.
     private const int StreamingInferredReaderBufferLimit = 1000;
+    private const long MemoryBackedDataReaderFileLimit = 32L * 1024 * 1024;
 
     /// <summary>
     /// Creates a forward-only data reader over a CSV file.
@@ -29,6 +31,16 @@ public sealed partial class CsvDocument
         {
             throw new ArgumentOutOfRangeException(nameof(readerOptions), "Schema sample size must be greater than zero.");
         }
+
+#if NET8_0_OR_GREATER
+        if (CanUseMemoryBackedFileDataReader(path, options, readerOptions))
+        {
+            options.CancellationToken.ThrowIfCancellationRequested();
+            var encoding = options.Encoding ?? new UTF8Encoding(encoderShouldEmitUTF8Identifier: false);
+            var text = File.ReadAllText(path, encoding);
+            return Parse(text, options).CreateDataReader(readerOptions);
+        }
+#endif
 
         if (!CanUseSinglePassFileDataReader(options, readerOptions))
         {
@@ -94,9 +106,10 @@ public sealed partial class CsvDocument
         if (options.Schema is null &&
             _schema is null &&
             options.InferSchema &&
-            options.SchemaSampleSize <= StreamingInferredReaderBufferLimit &&
             _mode == CsvLoadMode.Stream &&
-            _streamingSource is not null)
+            _streamingSource is not null &&
+            (options.SchemaSampleSize <= StreamingInferredReaderBufferLimit ||
+                _streamingSource.CanCreateDataReaderTextRowSource))
         {
             return CreateStreamingInferredDataReader(options.SchemaSampleSize);
         }
@@ -106,6 +119,17 @@ public sealed partial class CsvDocument
         var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
         if (_mode == CsvLoadMode.Stream && _streamingSource is not null)
         {
+            if (_streamingSource.TryCreateDataReaderTextRowSource(out var textRows))
+            {
+                return new CsvDataReader(
+                    columns,
+                    textRows!,
+                    _streamingSource.SourceColumnCount,
+                    _streamingSource.Options,
+                    _culture,
+                    _dateTimeFormats);
+            }
+
             return new CsvDataReader(
                 columns,
                 _streamingSource.ReadReusableStringRows(),
@@ -126,6 +150,25 @@ public sealed partial class CsvDocument
         options.SkipInitialRecords == 0 &&
         !options.DetectDelimiter &&
         (!readerOptions.InferSchema || readerOptions.Schema is not null);
+
+#if NET8_0_OR_GREATER
+    private static bool CanUseMemoryBackedFileDataReader(
+        string path,
+        CsvLoadOptions options,
+        CsvDataReaderOptions readerOptions)
+    {
+        if ((readerOptions.Schema is null && !readerOptions.InferSchema) ||
+            options.Mode != CsvLoadMode.Stream ||
+            CsvFile.ResolveCompression(options.CompressionType, path) != CsvCompressionType.None)
+        {
+            return false;
+        }
+
+        var fileLength = new FileInfo(path).Length;
+        return fileLength <= MemoryBackedDataReaderFileLimit &&
+            (options.MaxDecompressedBytes is null || fileLength <= options.MaxDecompressedBytes.Value);
+    }
+#endif
 
     private static bool ShouldUseGeneralDataReaderForFirstHeaderRecord(IReadOnlyList<string> record, CsvLoadOptions options)
     {
@@ -167,6 +210,31 @@ public sealed partial class CsvDocument
 
     private CsvDataReader CreateStreamingInferredDataReader(int schemaSampleSize)
     {
+#if NET8_0_OR_GREATER
+        if (_streamingSource!.TryCreateDataReaderTextRowSource(out var inferenceRows))
+        {
+            var rowsForInference = inferenceRows!;
+            CsvSchema schema;
+            using (rowsForInference)
+            {
+                schema = InferSchema(rowsForInference, schemaSampleSize, _streamingSource.Options.NullValue);
+            }
+
+            var schemaColumns = schema.Columns.ToDictionary(column => column.Name, StringComparer.OrdinalIgnoreCase);
+            var columns = CsvDataProjectionBuilder.Create(_header, schemaColumns);
+            if (_streamingSource.TryCreateDataReaderTextRowSource(out var typedRows))
+            {
+                return new CsvDataReader(
+                    columns,
+                    typedRows!,
+                    _streamingSource.SourceColumnCount,
+                    _streamingSource.Options,
+                    _culture,
+                    _dateTimeFormats);
+            }
+        }
+#endif
+
         var rows = _streamingSource!.ReadReusableRows().GetEnumerator();
         try
         {

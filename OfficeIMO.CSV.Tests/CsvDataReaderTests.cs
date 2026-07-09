@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Data;
 using System.IO;
 using System.Linq;
+using System.Text;
 using OfficeIMO.CSV;
 using Xunit;
 
@@ -130,14 +131,16 @@ public class CsvDataReaderTests
             .Column("BatchId").AsType(typeof(Guid))
             .Done()
             .Build();
-        var doc = CsvDocument.Parse($"Id,Name,Score,Created,Active,BatchId\n-1,Alpha,-12.50,01/02/2026 03:04:05,1,{guid}\n");
+        var doc = CsvDocument.Parse(
+            $"Id,Name,Score,Created,Active,BatchId\n{int.MinValue},Alpha,-12.50,01/02/2026 03:04:05,1,{guid}\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
 
         using var reader = doc.CreateDataReader(new CsvDataReaderOptions { Schema = schema });
 
         Assert.True(reader.Read());
         var values = new object[reader.FieldCount];
         Assert.Equal(6, reader.GetValues(values));
-        Assert.Equal(-1, values[0]);
+        Assert.Equal(int.MinValue, values[0]);
         Assert.Equal("Alpha", values[1]);
         Assert.Equal(-12.50m, values[2]);
         Assert.Equal(new DateTime(2026, 1, 2, 3, 4, 5), values[3]);
@@ -205,6 +208,86 @@ public class CsvDataReaderTests
         Assert.Equal(3, reader.GetInt32(0));
         Assert.Equal("Gamma", reader.GetString(1));
         Assert.False(reader.Read());
+    }
+
+    [Fact]
+    public void CreateDataReader_WithStreamingInferredSchema_EnforcesRequiredColumnsAfterSample()
+    {
+        var doc = CsvDocument.Parse(
+            "Id,Name\n1,Alpha\n2,Beta\n,Gamma\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { InferSchema = true, SchemaSampleSize = 2 });
+        Assert.True(reader.Read());
+        Assert.True(reader.Read());
+        Assert.True(reader.Read());
+
+        var ex = Assert.Throws<CsvException>(() => reader.GetValue(0));
+        Assert.Contains("Column 'Id' is required", ex.Message);
+    }
+
+    [Fact]
+    public void CreateDataReader_WithLargeStreamingInferenceSample_ReturnsEveryRow()
+    {
+        const int rowCount = 5000;
+        var csv = new StringBuilder("Id,Name\n");
+        for (var i = 1; i <= rowCount; i++)
+        {
+            csv.Append(i).Append(",Name-").Append(i).Append('\n');
+        }
+
+        var doc = CsvDocument.Parse(csv.ToString(), new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions
+        {
+            InferSchema = true,
+            SchemaSampleSize = rowCount
+        });
+
+        Assert.Equal(typeof(int), reader.GetFieldType(0));
+        var actualRowCount = 0;
+        var lastId = 0;
+        while (reader.Read())
+        {
+            actualRowCount++;
+            lastId = reader.GetInt32(0);
+        }
+
+        Assert.Equal(rowCount, actualRowCount);
+        Assert.Equal(rowCount, lastId);
+    }
+
+    [Fact]
+    public void CreateDataReader_FromFileWithExplicitSchema_ExposesTypedRows()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Tests." + Guid.NewGuid().ToString("N") + ".csv");
+        var schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Column("Amount").AsType(typeof(decimal))
+            .Column("Active").AsBoolean()
+            .Done()
+            .Build();
+
+        try
+        {
+            File.WriteAllText(path, "Id,Amount,Active\n-2147483648,-12.50,1\n");
+            using var reader = CsvDocument.CreateDataReader(
+                path,
+                new CsvLoadOptions { Mode = CsvLoadMode.Stream },
+                new CsvDataReaderOptions { Schema = schema });
+
+            Assert.True(reader.Read());
+            Assert.Equal(int.MinValue, reader.GetInt32(0));
+            Assert.Equal(-12.50m, reader.GetDecimal(1));
+            Assert.True(reader.GetBoolean(2));
+            Assert.False(reader.Read());
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
     }
 
     [Fact]

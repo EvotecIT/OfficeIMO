@@ -50,13 +50,13 @@ QuickTest single-column/all-column read lanes:
 
 | Method | Single column mean | All columns mean | Allocated |
 | --- | ---: | ---: | ---: |
-| OfficeIMO span reader | 3.96 ms | 4.11 ms | 770 KB / 770 KB |
-| OfficeIMO streaming DataReader | 16.24 ms | 20.21 ms | 41.3 MB |
-| SEP | 7.11 ms | 13.88 ms | 3.1 MB / 39.4 MB |
-| Sylvan | 7.42 ms | 19.20 ms | 3.1 MB / 39.6 MB |
-| CsvHelper | 33.55 ms | 50.06 ms | 3.1 MB / 39.6 MB |
-| Dataplat.Dbatools.Csv | 28.98 ms | 30.19 ms | 39.9 MB |
-| LumenWorks | 108.46 ms | 31.53 ms | 1.58 GB / 39.7 MB |
+| OfficeIMO span reader | 4.57 ms | 4.70 ms | 770 KB / 770 KB |
+| OfficeIMO streaming DataReader | 19.68 ms | 21.33 ms | 40.6 MB |
+| SEP | 7.14 ms | 15.59 ms | 3.1 MB / 39.4 MB |
+| Sylvan | 8.23 ms | 16.34 ms | 3.1 MB / 39.6 MB |
+| CsvHelper | 30.15 ms | 45.63 ms | 3.1 MB / 39.6 MB |
+| Dataplat.Dbatools.Csv | 26.13 ms | 29.38 ms | 39.9 MB |
+| LumenWorks | 118.19 ms | 33.17 ms | 1.58 GB / 39.7 MB |
 
 All-values read lane:
 
@@ -69,10 +69,26 @@ All-values read lane:
 
 Additional guardrail: `OfficeIMO-DataReader-QuickTest-GetValues` reads the same
 100k-row QuickTest file through `DbDataReader.GetValues`; the latest 2026-07-09
-short run measured 23.18 ms and 41.3 MB. Keep this lane visible when optimizing
+short run measured 23.10 ms and 40.6 MB. Keep this lane visible when optimizing
 the SQL/bulk-copy-shaped reader path.
 
 The span-reader result is the fastest raw parser shape. The streaming DataReader result is the SQL/bulk-copy-shaped path; it now reads reusable parser string rows directly and is faster than Dataplat's DataReader in these short runs, with Dataplat still holding a small allocation edge.
+
+## Current Typed DataReader Snapshot
+
+Fresh local short-job runs on 2026-07-09 using the 25,000-row, 40-column wide payload. Every lane traverses every value. The file lane includes file decoding and uses the public `CsvDocument.CreateDataReader(path, ...)` API used by PSWriteOffice and DbaClientX.
+
+```powershell
+dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj -c Release -f net8.0 -- --filter "*CsvWideBenchmarks*DataReader*Schema*" --job short --warmupCount 5 --iterationCount 10
+```
+
+| Input | Schema | Mean | Allocated |
+| --- | --- | ---: | ---: |
+| CSV file | Explicit 40-column schema | 113.27 ms | 101.47 MB |
+| CSV text | Explicit 40-column schema | 94.06 ms | 66.94 MB |
+| CSV text | Inferred from 25,000 rows | 151.29 ms | 66.95 MB |
+
+Explicit typed readers parse numbers, booleans, dates, and GUIDs directly from source spans. Inferred readers inspect spans without retaining sampled rows, then replay the immutable text through the typed reader. String-only file readers stay on the lower-memory streaming path.
 
 ## Current Write Snapshot
 
@@ -129,6 +145,6 @@ The table shows the fastest raw field-span read method per wide row-count lane. 
 
 | Shape | Rows | Fastest method | Mean | SEP span read | Sylvan span read |
 | --- | ---: | --- | ---: | ---: | ---: |
-| Wide | 1000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.07 ms | 0.10 ms | 0.14 ms |
-| Wide | 10000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.77 ms | 1.10 ms | 1.45 ms |
-| Wide | 25000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 1.91 ms | 2.87 ms | 3.71 ms |
+| Wide | 1000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.06 ms | 0.08 ms | 0.11 ms |
+| Wide | 10000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 0.67 ms | 0.87 ms | 1.05 ms |
+| Wide | 25000 | OfficeIMO_ReadTextFieldSpanVisitorSkipHeader | 1.73 ms | 2.09 ms | 2.79 ms |
