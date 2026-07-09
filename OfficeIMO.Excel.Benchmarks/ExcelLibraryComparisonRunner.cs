@@ -419,12 +419,6 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan over the same workbook payload.", () => SylvanReadRange(officeImoWorkbookBytes.Value))
         ]);
 
-        AddScenarioGroup(scenarios, scenarioFilter, "read-datareader-open", warmupIterations, measuredIterations, [
-            new LibraryComparisonCase("OfficeIMO.Excel", "Open the workbook, resolve the Data sheet, and create the requested IDataReader without scanning rows.", () => OfficeImoOpenDataReader(officeImoWorkbookBytes.Value, dataRange)),
-            new LibraryComparisonCase("ExcelDataReader", "Open the workbook and resolve the Data worksheet without scanning rows.", () => ExcelDataReaderOpenWorksheet(officeImoWorkbookBytes.Value)),
-            new LibraryComparisonCase("Sylvan.Data.Excel", "Open the workbook and resolve the Data worksheet without scanning rows.", () => SylvanOpenWorksheet(officeImoWorkbookBytes.Value))
-        ]);
-
         AddScenarioGroup(scenarios, scenarioFilter, "read-datareader-readonly", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Read every row through IDataReader.Read without copying values into a consumer buffer.", () => OfficeImoReadDataReaderRowsOnly(officeImoWorkbookBytes.Value, dataRange)),
             new LibraryComparisonCase("ExcelDataReader", "Read every row through IExcelDataReader.Read without copying values into a consumer buffer.", () => ExcelDataReaderReadRowsOnly(officeImoWorkbookBytes.Value)),
@@ -5229,10 +5223,11 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static bool IsComparableReadScenario(string scenario)
         => string.Equals(scenario, "read-range", StringComparison.Ordinal)
            || string.Equals(scenario, "read-used-range", StringComparison.Ordinal)
-           || string.Equals(scenario, "read-datareader-open", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-datareader", StringComparison.Ordinal)
            || string.Equals(scenario, "read-datareader-readonly", StringComparison.Ordinal)
            || string.Equals(scenario, "read-datareader-first-column", StringComparison.Ordinal)
            || string.Equals(scenario, "read-datareader-getvalues", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-datareader-typed", StringComparison.Ordinal)
            || string.Equals(scenario, "read-range-decimal", StringComparison.Ordinal)
            || string.Equals(scenario, "enumerate-range", StringComparison.Ordinal)
            || string.Equals(scenario, "enumerate-cells", StringComparison.Ordinal)

@@ -619,9 +619,14 @@ namespace OfficeIMO.Excel {
             }
 
             if (rawText == null) {
-                return TryParseSharedStringIndex(buffer.AsSpan(0, length), out int parsed)
+                if (TryParseSharedStringIndex(buffer.AsSpan(0, length), out int parsed)) {
+                    return GetSharedString(parsed, sharedStringItems);
+                }
+
+                rawText = new string(buffer, 0, length);
+                return TryParseSharedStringIndex(rawText, out parsed)
                     ? GetSharedString(parsed, sharedStringItems)
-                    : new string(buffer, 0, length);
+                    : rawText;
             }
 
             return TryParseSharedStringIndex(rawText, out int index)

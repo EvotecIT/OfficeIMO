@@ -2,6 +2,8 @@ using System;
 using System.Data;
 using System.Data.Common;
 using System.IO;
+using DocumentFormat.OpenXml.Packaging;
+using DocumentFormat.OpenXml.Spreadsheet;
 using OfficeIMO.Excel;
 using Xunit;
 
@@ -225,6 +227,35 @@ namespace OfficeIMO.Tests {
             Assert.Equal(7d, values[0]);
             Assert.Equal(expectedDate, values[1]);
             Assert.Equal(true, values[2]);
+            Assert.False(dataReader.Read());
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_ResolvesPaddedSharedStringIndexes() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Name");
+                sheet.CellValue(2, 1, "Padded");
+            }
+
+            memory.Position = 0;
+            using (var spreadsheet = SpreadsheetDocument.Open(memory, true)) {
+                var workbookPart = spreadsheet.WorkbookPart!;
+                var sheet = workbookPart.Workbook.Sheets!.Elements<Sheet>().Single(s => s.Name == "Data");
+                var worksheetPart = (WorksheetPart)workbookPart.GetPartById(sheet.Id!);
+                var cell = worksheetPart.Worksheet.Descendants<Cell>().Single(c => c.CellReference == "A2");
+                Assert.Equal(CellValues.SharedString, cell.DataType!.Value);
+                cell.CellValue = new CellValue(" " + cell.CellValue!.Text + " ");
+                worksheetPart.Worksheet.Save();
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:A2", schemaSampleRows: 0);
+
+            Assert.True(dataReader.Read());
+            Assert.Equal("Padded", dataReader.GetString(0));
             Assert.False(dataReader.Read());
         }
 
