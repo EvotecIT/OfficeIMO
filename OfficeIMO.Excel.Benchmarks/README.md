@@ -76,10 +76,10 @@ iterations:
 
 | Reader access | OfficeIMO.Excel | Sylvan.Data.Excel | ExcelDataReader | Result |
 | --- | ---: | ---: | ---: | --- |
-| Rows only | 40.36 ms / 1.0 MB | 44.61 ms / 3.5 MB | 110.41 ms / 42.6 MB | OfficeIMO fastest |
-| First column | 42.23 ms / 2.5 MB | 47.37 ms / 3.5 MB | 109.30 ms / 42.6 MB | OfficeIMO fastest |
-| `GetValues` | 55.93 ms / 19.7 MB | 67.08 ms / 7.4 MB | 122.95 ms / 42.6 MB | OfficeIMO fastest |
-| Typed getters | 57.03 ms / 16.8 MB | 53.65 ms / 3.4 MB | 126.78 ms / 42.6 MB | Sylvan 1.06x faster |
+| Rows only | 39.46 ms / 1.0 MB | 41.07 ms / 3.4 MB | 99.94 ms / 42.6 MB | Within 4%; OfficeIMO allocates less |
+| First column | 39.34 ms / 2.5 MB | 36.39 ms / 3.4 MB | 91.24 ms / 42.6 MB | Sylvan 1.08x faster |
+| `GetValues` | 47.23 ms / 19.7 MB | 54.53 ms / 7.4 MB | 101.87 ms / 42.6 MB | OfficeIMO 1.15x faster |
+| Typed getters | 51.53 ms / 16.8 MB | 40.02 ms / 3.4 MB | 97.24 ms / 42.6 MB | Sylvan 1.29x faster |
 
 Use `--skip-legacy-epplus` only when you want a faster local pass without the isolated EPPlus 4.x subprocess:
 
@@ -94,10 +94,3 @@ After a comparison-suite run, refresh website/blog benchmark data with:
 ```powershell
 .\Build\Generate-ExcelBenchmarkWebsiteData.ps1 -SummaryPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-summary.json -ManifestPath .\Docs\benchmarks\comparison-current\officeimo.excel.comparison-suite-manifest.json -RunMode quick
 ```
-
-## Boundaries
-
-- Benchmark scenarios and opt-in comparison commands belong here.
-- Runtime workbook behavior belongs in `OfficeIMO.Excel`.
-- Committed benchmark artifact guidance belongs in [Docs/benchmarks](../Docs/benchmarks/README.md).
-- Comparison outputs are local evidence and should not be treated as CI gates unless a workflow explicitly opts into them.
