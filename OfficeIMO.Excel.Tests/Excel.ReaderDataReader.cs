@@ -146,5 +146,176 @@ namespace OfficeIMO.Tests {
             Assert.Equal("Gamma", dataReader.GetString(1));
             Assert.False(dataReader.Read());
         }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_StreamsRows() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Id");
+                sheet.CellValue(1, 2, "Name");
+                sheet.CellValue(2, 1, 1);
+                sheet.CellValue(2, 2, "Alpha");
+                sheet.CellValue(4098, 1, 4097);
+                sheet.CellValue(4098, 2, "Gamma");
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:B4098", schemaSampleRows: 0);
+            var values = new object[dataReader.FieldCount];
+
+            Assert.Equal(typeof(object), dataReader.GetFieldType(0));
+            Assert.True(dataReader.Read());
+            Assert.Equal(2, dataReader.GetValues(values));
+            Assert.Equal(1, dataReader.GetInt32(0));
+            Assert.Equal(1d, values[0]);
+            Assert.Equal("Alpha", values[1]);
+
+            Assert.True(dataReader.Read());
+            Assert.Equal(DBNull.Value, dataReader.GetValue(0));
+            Assert.Equal(DBNull.Value, dataReader.GetValue(1));
+
+            int rowsRead = 2;
+            object? lastId = null;
+            object? lastName = null;
+            int lastTypedId = 0;
+            while (dataReader.Read()) {
+                rowsRead++;
+                dataReader.GetValues(values);
+                lastId = values[0];
+                lastName = values[1];
+                if (lastId != DBNull.Value) {
+                    lastTypedId = dataReader.GetInt32(0);
+                }
+            }
+
+            Assert.Equal(4097, rowsRead);
+            Assert.Equal(4097d, lastId);
+            Assert.Equal("Gamma", lastName);
+            Assert.Equal(4097, lastTypedId);
+            Assert.False(dataReader.Read());
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesValuesAfterTypedAccess() {
+            var expectedDate = new DateTime(2026, 7, 9);
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Id");
+                sheet.CellValue(1, 2, "Created");
+                sheet.CellValue(1, 3, "Active");
+                sheet.CellValue(2, 1, 7);
+                sheet.CellValue(2, 2, expectedDate);
+                sheet.CellValue(2, 3, true);
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:C2", schemaSampleRows: 0);
+            var values = new object[dataReader.FieldCount];
+
+            Assert.True(dataReader.Read());
+            Assert.Equal(7, dataReader.GetInt32(0));
+            Assert.Equal(expectedDate, dataReader.GetDateTime(1));
+            Assert.True(dataReader.GetBoolean(2));
+
+            Assert.Equal(3, dataReader.GetValues(values));
+            Assert.Equal(7d, values[0]);
+            Assert.Equal(expectedDate, values[1]);
+            Assert.Equal(true, values[2]);
+            Assert.False(dataReader.Read());
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_AllowsSelectiveColumnAccess() {
+            using var memory = new MemoryStream();
+
+            using (var document = ExcelDocument.Create(memory)) {
+                var sheet = document.AddWorkSheet("Data");
+                sheet.CellValue(1, 1, "Id");
+                sheet.CellValue(1, 2, "Name");
+                sheet.CellValue(1, 3, "Note");
+                sheet.CellValue(2, 1, 1);
+                sheet.CellValue(2, 2, "Alpha");
+                sheet.CellValue(2, 3, "First note");
+                sheet.CellValue(4098, 1, 4097);
+                sheet.CellValue(4098, 2, "Gamma");
+                sheet.CellValue(4098, 3, "Last note");
+            }
+
+            using var reader = ExcelDocumentReader.Open(memory.ToArray());
+            using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:C4098", schemaSampleRows: 0);
+
+            Assert.True(dataReader.Read());
+            Assert.Equal(1, dataReader.GetInt32(0));
+            Assert.Equal("First note", dataReader.GetString(2));
+
+            Assert.True(dataReader.Read());
+            Assert.True(dataReader.IsDBNull(0));
+
+            int rowsRead = 2;
+            int lastId = 0;
+            while (dataReader.Read()) {
+                rowsRead++;
+                if (!dataReader.IsDBNull(0)) {
+                    lastId = dataReader.GetInt32(0);
+                }
+            }
+
+            Assert.Equal(4097, rowsRead);
+            Assert.Equal(4097, lastId);
+            Assert.False(dataReader.Read());
+        }
+
+        [Fact]
+        public void Reader_ReadRangeAsDataReader_WithoutSchemaSamples_PreservesLargeOutOfOrderRows() {
+            string filePath = Path.Combine(_directoryWithFiles, "ReaderDataReaderLargeOutOfOrderRows.xlsx");
+
+            try {
+                using (var document = ExcelDocument.Create(filePath)) {
+                    var sheet = document.AddWorkSheet("Data");
+                    sheet.CellValue(1, 1, "Name");
+                    sheet.CellValue(2, 1, "First");
+                    sheet.CellValue(2049, 1, "Middle");
+                    sheet.CellValue(4097, 1, "Last");
+                    document.Save();
+                }
+
+                MoveWorksheetRowToEnd(filePath, 2049U);
+
+                using var reader = ExcelDocumentReader.Open(filePath);
+                using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader("A1:A4097", schemaSampleRows: 0, chunkRows: 512);
+
+                Assert.True(dataReader.Read());
+                Assert.Equal("First", dataReader.GetString(0));
+
+                string? middle = null;
+                string? last = null;
+                int rowsRead = 1;
+                while (dataReader.Read()) {
+                    rowsRead++;
+                    if (!dataReader.IsDBNull(0)) {
+                        string value = dataReader.GetString(0);
+                        if (rowsRead == 2048) {
+                            middle = value;
+                        }
+
+                        if (rowsRead == 4096) {
+                            last = value;
+                        }
+                    }
+                }
+
+                Assert.Equal(4096, rowsRead);
+                Assert.Equal("Middle", middle);
+                Assert.Equal("Last", last);
+            } finally {
+                if (File.Exists(filePath)) {
+                    File.Delete(filePath);
+                }
+            }
+        }
     }
 }

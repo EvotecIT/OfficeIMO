@@ -413,6 +413,42 @@ internal static partial class ExcelLibraryComparisonRunner {
             new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan over the same workbook payload.", () => SylvanReadRange(officeImoWorkbookBytes.Value))
         ]);
 
+        AddScenarioGroup(scenarios, scenarioFilter, "read-datareader", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Forward-only IDataReader scan over the requested A1 range.", () => OfficeImoReadDataReader(officeImoWorkbookBytes.Value, dataRange)),
+            new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader scan over the same workbook payload.", () => ExcelDataReaderReadRange(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan over the same workbook payload.", () => SylvanReadRange(officeImoWorkbookBytes.Value))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-datareader-open", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Open the workbook, resolve the Data sheet, and create the requested IDataReader without scanning rows.", () => OfficeImoOpenDataReader(officeImoWorkbookBytes.Value, dataRange)),
+            new LibraryComparisonCase("ExcelDataReader", "Open the workbook and resolve the Data worksheet without scanning rows.", () => ExcelDataReaderOpenWorksheet(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Open the workbook and resolve the Data worksheet without scanning rows.", () => SylvanOpenWorksheet(officeImoWorkbookBytes.Value))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-datareader-readonly", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read every row through IDataReader.Read without copying values into a consumer buffer.", () => OfficeImoReadDataReaderRowsOnly(officeImoWorkbookBytes.Value, dataRange)),
+            new LibraryComparisonCase("ExcelDataReader", "Read every row through IExcelDataReader.Read without copying values into a consumer buffer.", () => ExcelDataReaderReadRowsOnly(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Read every row through DbDataReader.Read without copying values into a consumer buffer.", () => SylvanReadRowsOnly(officeImoWorkbookBytes.Value))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-datareader-first-column", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Read every row from the full IDataReader range while accessing only the Id column.", () => OfficeImoReadDataReaderFirstColumn(officeImoWorkbookBytes.Value, dataRange, rowCount)),
+            new LibraryComparisonCase("ExcelDataReader", "Read every row from the full IExcelDataReader worksheet while accessing only the Id column.", () => ExcelDataReaderReadRangeFirstColumn(officeImoWorkbookBytes.Value, rowCount)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Read every row from the full DbDataReader worksheet while accessing only the Id column.", () => SylvanReadRangeFirstColumn(officeImoWorkbookBytes.Value, rowCount))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-datareader-getvalues", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Forward-only IDataReader scan using GetValues over the requested A1 range.", () => OfficeImoReadDataReaderGetValues(officeImoWorkbookBytes.Value, dataRange)),
+            new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader scan using GetValues over the same workbook payload.", () => ExcelDataReaderReadRangeGetValues(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan using GetValues over the same workbook payload.", () => SylvanReadRangeGetValues(officeImoWorkbookBytes.Value))
+        ]);
+
+        AddScenarioGroup(scenarios, scenarioFilter, "read-datareader-typed", warmupIterations, measuredIterations, [
+            new LibraryComparisonCase("OfficeIMO.Excel", "Forward-only IDataReader scan with typed field access over the requested A1 range.", () => OfficeImoReadDataReaderTyped(officeImoWorkbookBytes.Value, dataRange)),
+            new LibraryComparisonCase("ExcelDataReader", "Forward-only IExcelDataReader scan with typed field access over the same workbook payload.", () => ExcelDataReaderReadRangeTyped(officeImoWorkbookBytes.Value)),
+            new LibraryComparisonCase("Sylvan.Data.Excel", "Forward-only DbDataReader scan with typed field access over the same workbook payload.", () => SylvanReadRange(officeImoWorkbookBytes.Value))
+        ]);
+
         AddScenarioGroup(scenarios, scenarioFilter, "read-range-decimal", warmupIterations, measuredIterations, [
             new LibraryComparisonCase("OfficeIMO.Excel", "Read A1 range with NumericAsDecimal enabled.", () => OfficeImoReadRangeDecimal(officeImoWorkbookBytes.Value, dataRange)),
             new LibraryComparisonCase("ClosedXML", "Iterate used data cells and read Amount as decimal.", () => ClosedXmlReadRangeDecimal(officeImoWorkbookBytes.Value)),
@@ -2343,6 +2379,88 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
+    private static int OfficeImoReadDataReader(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
+        int metric = AddSalesHeadersMetric(0);
+        var values = new object[dataReader.FieldCount];
+
+        while (dataReader.Read()) {
+            dataReader.GetValues(values);
+            metric = AddSalesRangeMetric(
+                metric,
+                Convert.ToInt32(values[0], CultureInfo.InvariantCulture),
+                Convert.ToString(values[1], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(values[2], CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(values[3]),
+                Convert.ToDouble(values[4], CultureInfo.InvariantCulture),
+                Convert.ToInt32(values[5], CultureInfo.InvariantCulture),
+                Convert.ToBoolean(values[6], CultureInfo.InvariantCulture),
+                Convert.ToString(values[7], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
+    private static int OfficeImoReadDataReaderGetValues(byte[] workbookBytes, string dataRange)
+        => OfficeImoReadDataReader(workbookBytes, dataRange);
+
+    private static int OfficeImoOpenDataReader(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
+        return AddSalesHeadersMetric(dataReader.FieldCount);
+    }
+
+    private static int OfficeImoReadDataReaderRowsOnly(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
+        int metric = AddSalesHeadersMetric(dataReader.FieldCount);
+        int rowsRead = 0;
+        while (dataReader.Read()) {
+            rowsRead++;
+        }
+
+        return AddIntMetric(metric, rowsRead);
+    }
+
+    private static int OfficeImoReadDataReaderFirstColumn(byte[] workbookBytes, string dataRange, int rowCount) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
+        int metric = AddSalesHeadersMetric(dataReader.FieldCount);
+        int rowsRead = 0;
+        while (dataReader.Read()) {
+            rowsRead++;
+            metric = AddSalesIdDataMetric(metric, rowsRead, rowCount, dataReader.GetInt32(0));
+        }
+
+        if (rowsRead != rowCount) {
+            throw new InvalidOperationException($"Expected {rowCount.ToString(CultureInfo.InvariantCulture)} data rows, got {rowsRead.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return metric;
+    }
+
+    private static int OfficeImoReadDataReaderTyped(byte[] workbookBytes, string dataRange) {
+        using var reader = ExcelDocumentReader.Open(workbookBytes);
+        using var dataReader = reader.GetSheet("Data").ReadRangeAsDataReader(dataRange, schemaSampleRows: 0);
+        int metric = AddSalesHeadersMetric(0);
+
+        while (dataReader.Read()) {
+            metric = AddSalesRangeMetric(
+                metric,
+                dataReader.GetInt32(0),
+                dataReader.GetString(1),
+                dataReader.GetString(2),
+                dataReader.GetDateTime(3),
+                dataReader.GetDouble(4),
+                dataReader.GetInt32(5),
+                dataReader.GetBoolean(6),
+                dataReader.GetString(7));
+        }
+
+        return metric;
+    }
+
     private static int OfficeImoReadRangeDecimal(byte[] workbookBytes, string dataRange) {
         using var reader = ExcelDocumentReader.Open(workbookBytes, new ExcelReadOptions { NumericAsDecimal = true });
         object?[,] values = reader.GetSheet("Data").ReadRange(dataRange);
@@ -2663,6 +2781,68 @@ internal static partial class ExcelLibraryComparisonRunner {
         return metric;
     }
 
+    private static int SylvanReadRangeGetValues(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateSylvanReader(stream);
+        OpenSylvanWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(0);
+        var values = new object[reader.FieldCount];
+
+        while (reader.Read()) {
+            reader.GetValues(values);
+            metric = AddSalesRangeMetric(
+                metric,
+                Convert.ToInt32(values[0], CultureInfo.InvariantCulture),
+                Convert.ToString(values[1], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(values[2], CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(values[3]),
+                Convert.ToDouble(values[4], CultureInfo.InvariantCulture),
+                Convert.ToInt32(values[5], CultureInfo.InvariantCulture),
+                Convert.ToBoolean(values[6], CultureInfo.InvariantCulture),
+                Convert.ToString(values[7], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
+    private static int SylvanOpenWorksheet(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateSylvanReader(stream);
+        OpenSylvanWorksheet(reader, "Data");
+        return AddSalesHeadersMetric(reader.FieldCount);
+    }
+
+    private static int SylvanReadRowsOnly(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateSylvanReader(stream);
+        OpenSylvanWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(reader.FieldCount);
+        int rowsRead = 0;
+        while (reader.Read()) {
+            rowsRead++;
+        }
+
+        return AddIntMetric(metric, rowsRead);
+    }
+
+    private static int SylvanReadRangeFirstColumn(byte[] workbookBytes, int rowCount) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateSylvanReader(stream);
+        OpenSylvanWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(reader.FieldCount);
+        int rowsRead = 0;
+        while (reader.Read()) {
+            rowsRead++;
+            metric = AddSalesIdDataMetric(metric, rowsRead, rowCount, reader.GetInt32(0));
+        }
+
+        if (rowsRead != rowCount) {
+            throw new InvalidOperationException($"Expected {rowCount.ToString(CultureInfo.InvariantCulture)} data rows, got {rowsRead.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return metric;
+    }
+
     private static int SylvanReadRangeDecimal(byte[] workbookBytes) {
         using var stream = new MemoryStream(workbookBytes, writable: false);
         using var reader = CreateSylvanReader(stream);
@@ -2718,6 +2898,108 @@ internal static partial class ExcelLibraryComparisonRunner {
                 Convert.ToInt32(GetExcelDataReaderValue(reader, 5), CultureInfo.InvariantCulture),
                 Convert.ToBoolean(GetExcelDataReaderValue(reader, 6), CultureInfo.InvariantCulture),
                 Convert.ToString(GetExcelDataReaderValue(reader, 7), CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
+    private static int ExcelDataReaderReadRangeGetValues(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateExcelDataReader(stream);
+        OpenExcelDataReaderWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(0);
+        var values = new object[reader.FieldCount];
+
+        if (!reader.Read()) {
+            return metric;
+        }
+
+        while (reader.Read()) {
+            reader.GetValues(values);
+            metric = AddSalesRangeMetric(
+                metric,
+                Convert.ToInt32(values[0], CultureInfo.InvariantCulture),
+                Convert.ToString(values[1], CultureInfo.InvariantCulture) ?? string.Empty,
+                Convert.ToString(values[2], CultureInfo.InvariantCulture) ?? string.Empty,
+                ReadDateCell(values[3]),
+                Convert.ToDouble(values[4], CultureInfo.InvariantCulture),
+                Convert.ToInt32(values[5], CultureInfo.InvariantCulture),
+                Convert.ToBoolean(values[6], CultureInfo.InvariantCulture),
+                Convert.ToString(values[7], CultureInfo.InvariantCulture) ?? string.Empty);
+        }
+
+        return metric;
+    }
+
+    private static int ExcelDataReaderOpenWorksheet(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateExcelDataReader(stream);
+        OpenExcelDataReaderWorksheet(reader, "Data");
+        return AddSalesHeadersMetric(reader.FieldCount);
+    }
+
+    private static int ExcelDataReaderReadRowsOnly(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateExcelDataReader(stream);
+        OpenExcelDataReaderWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(reader.FieldCount);
+        if (!reader.Read()) {
+            return metric;
+        }
+
+        int rowsRead = 0;
+        while (reader.Read()) {
+            rowsRead++;
+        }
+
+        return AddIntMetric(metric, rowsRead);
+    }
+
+    private static int ExcelDataReaderReadRangeFirstColumn(byte[] workbookBytes, int rowCount) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateExcelDataReader(stream);
+        OpenExcelDataReaderWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(reader.FieldCount);
+
+        if (!reader.Read()) {
+            return metric;
+        }
+
+        int rowsRead = 0;
+        while (reader.Read()) {
+            rowsRead++;
+            int id = Convert.ToInt32(GetExcelDataReaderValue(reader, 0), CultureInfo.InvariantCulture);
+            metric = AddSalesIdDataMetric(metric, rowsRead, rowCount, id);
+        }
+
+        if (rowsRead != rowCount) {
+            throw new InvalidOperationException($"Expected {rowCount.ToString(CultureInfo.InvariantCulture)} data rows, got {rowsRead.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return metric;
+    }
+
+    private static int ExcelDataReaderReadRangeTyped(byte[] workbookBytes) {
+        using var stream = new MemoryStream(workbookBytes, writable: false);
+        using var reader = CreateExcelDataReader(stream);
+        OpenExcelDataReaderWorksheet(reader, "Data");
+        int metric = AddSalesHeadersMetric(0);
+
+        if (!reader.Read()) {
+            return metric;
+        }
+
+        while (reader.Read()) {
+            metric = AddSalesRangeMetric(
+                metric,
+                checked((int)reader.GetDouble(0)),
+                reader.GetString(1),
+                reader.GetString(2),
+                ReadDateCell(reader.GetValue(3)),
+                reader.GetDouble(4),
+                checked((int)reader.GetDouble(5)),
+                reader.GetBoolean(6),
+                reader.GetString(7));
         }
 
         return metric;
@@ -4947,6 +5229,10 @@ internal static partial class ExcelLibraryComparisonRunner {
     private static bool IsComparableReadScenario(string scenario)
         => string.Equals(scenario, "read-range", StringComparison.Ordinal)
            || string.Equals(scenario, "read-used-range", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-datareader-open", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-datareader-readonly", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-datareader-first-column", StringComparison.Ordinal)
+           || string.Equals(scenario, "read-datareader-getvalues", StringComparison.Ordinal)
            || string.Equals(scenario, "read-range-decimal", StringComparison.Ordinal)
            || string.Equals(scenario, "enumerate-range", StringComparison.Ordinal)
            || string.Equals(scenario, "enumerate-cells", StringComparison.Ordinal)
@@ -5293,6 +5579,18 @@ internal static partial class ExcelLibraryComparisonRunner {
         return AddIntMetric(metric, id);
     }
 
+    private static int AddSalesIdDataMetric(int metric, int rowIndex, int rowCount, int id) {
+        if (rowIndex <= 0 || rowIndex > rowCount) {
+            throw new InvalidOperationException($"Unexpected data row {rowIndex.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        if (id != rowIndex) {
+            throw new InvalidOperationException($"Expected Id {rowIndex.ToString(CultureInfo.InvariantCulture)}, got {id.ToString(CultureInfo.InvariantCulture)}.");
+        }
+
+        return AddIntMetric(metric, id);
+    }
+
     private static int AddSalesRangeMetric(
         int metric,
         int id,
@@ -5349,10 +5647,17 @@ internal static partial class ExcelLibraryComparisonRunner {
         };
     }
 
-    private static DateTime ReadDateCell(object? value)
-        => value is DateTime dateTime
-            ? dateTime
-            : DateTime.FromOADate(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+    private static DateTime ReadDateCell(object? value) {
+        if (value is DateTime dateTime) {
+            return dateTime;
+        }
+
+        if (value is string text && DateTime.TryParse(text, CultureInfo.InvariantCulture, DateTimeStyles.None, out var parsed)) {
+            return parsed;
+        }
+
+        return DateTime.FromOADate(Convert.ToDouble(value, CultureInfo.InvariantCulture));
+    }
 
     private static int AddIntMetric(int metric, int value) {
         unchecked {

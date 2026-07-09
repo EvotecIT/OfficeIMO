@@ -12,6 +12,21 @@ namespace OfficeIMO.Excel {
     /// Range-based read operations for <see cref="ExcelSheetReader"/>.
     /// </summary>
     public sealed partial class ExcelSheetReader {
+        private enum XmlDataReaderTargetKind : byte {
+            None,
+            Int32,
+            Double,
+            DateTime,
+            Boolean
+        }
+
+        private enum XmlDataReaderPrimitiveKind : byte {
+            None,
+            Double,
+            DateTime,
+            Boolean
+        }
+
         private object? ReadXmlCellValue(XmlReader cellReader) {
             return ReadXmlCellValue(cellReader, cellReader.GetAttribute("t"));
         }
@@ -125,7 +140,7 @@ namespace OfficeIMO.Excel {
             }
 
             if (cellKind == XmlCellKind.Boolean && rawText != null) {
-                return rawText == "1";
+                return BoxBoolean(rawText == "1");
             }
 
             if (cellKind == XmlCellKind.Date && rawText != null) {
@@ -177,9 +192,15 @@ namespace OfficeIMO.Excel {
 
                 if (cellReader.NodeType == XmlNodeType.Element) {
                     if (cellReader.LocalName == "v") {
-                        rawText = useCachedFormulaResult
-                            ? ReadXmlValueTextAndSkipCell(cellReader, depth)
-                            : ReadXmlValueText(cellReader);
+                        if (useCachedFormulaResult && !numericAsDecimal) {
+                            if (TryReadXmlSimpleDoubleAndSkipCell(cellReader, depth, out double simpleNumber, out rawText)) {
+                                return useDateStyle ? FromExcelSerialDate(simpleNumber) : simpleNumber;
+                            }
+                        } else {
+                            rawText = useCachedFormulaResult
+                                ? ReadXmlValueTextAndSkipCell(cellReader, depth)
+                                : ReadXmlValueText(cellReader);
+                        }
 
                         if (useCachedFormulaResult) {
                             if (!numericAsDecimal
@@ -264,6 +285,230 @@ namespace OfficeIMO.Excel {
                 : rawText;
         }
 
+        private bool TryReadXmlCellPrimitiveForDataReader(
+            XmlReader cellReader,
+            string? cellType,
+            XmlDataReaderTargetKind targetKind,
+            out XmlDataReaderPrimitiveKind primitiveKind,
+            out double doubleValue,
+            out DateTime dateTimeValue,
+            out bool booleanValue,
+            out object? objectValue) {
+            primitiveKind = XmlDataReaderPrimitiveKind.None;
+            doubleValue = 0;
+            dateTimeValue = default;
+            booleanValue = false;
+            objectValue = null;
+
+            if (_opt.CellValueConverter != null || cellReader.IsEmptyElement) {
+                return false;
+            }
+
+            XmlCellKind cellKind = ParseXmlCellKind(cellType);
+            if ((cellKind == XmlCellKind.Default || cellKind == XmlCellKind.Number)
+                && !_opt.NumericAsDecimal) {
+                bool useDateStyle = _opt.TreatDatesUsingNumberFormat && IsDateStyleAttribute(cellReader.GetAttribute("s"));
+                if ((targetKind == XmlDataReaderTargetKind.Int32 || targetKind == XmlDataReaderTargetKind.Double) && !useDateStyle) {
+                    return TryReadXmlNumericPrimitiveForDataReader(
+                        cellReader,
+                        asDate: false,
+                        out primitiveKind,
+                        out doubleValue,
+                        out dateTimeValue,
+                        out objectValue);
+                }
+
+                if (targetKind == XmlDataReaderTargetKind.DateTime && useDateStyle) {
+                    return TryReadXmlNumericPrimitiveForDataReader(
+                        cellReader,
+                        asDate: true,
+                        out primitiveKind,
+                        out doubleValue,
+                        out dateTimeValue,
+                        out objectValue);
+                }
+            }
+
+            if (cellKind == XmlCellKind.Boolean && targetKind == XmlDataReaderTargetKind.Boolean) {
+                return TryReadXmlBooleanPrimitiveForDataReader(cellReader, out primitiveKind, out booleanValue, out objectValue);
+            }
+
+            return false;
+        }
+
+        private bool TryReadXmlNumericPrimitiveForDataReader(
+            XmlReader cellReader,
+            bool asDate,
+            out XmlDataReaderPrimitiveKind primitiveKind,
+            out double doubleValue,
+            out DateTime dateTimeValue,
+            out object? objectValue) {
+            primitiveKind = XmlDataReaderPrimitiveKind.None;
+            doubleValue = 0;
+            dateTimeValue = default;
+            objectValue = null;
+
+            bool useCachedFormulaResult = _opt.UseCachedFormulaResult;
+            int depth = cellReader.Depth;
+            string? rawText = null;
+            string? inlineText = null;
+            string? formulaText = null;
+            bool hasNode = cellReader.Read();
+            while (hasNode) {
+                if (cellReader.NodeType == XmlNodeType.EndElement && cellReader.Depth == depth && cellReader.LocalName == "c") {
+                    break;
+                }
+
+                if (cellReader.NodeType == XmlNodeType.Element) {
+                    if (cellReader.LocalName == "v") {
+                        if (useCachedFormulaResult) {
+                            if (TryReadXmlSimpleDoubleAndSkipCell(cellReader, depth, out double simpleNumber, out rawText)) {
+                                if (asDate) {
+                                    primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
+                                    dateTimeValue = FromExcelSerialDate(simpleNumber);
+                                } else {
+                                    primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                                    doubleValue = simpleNumber;
+                                }
+
+                                return true;
+                            }
+                        } else {
+                            rawText = ReadXmlValueText(cellReader);
+                        }
+
+                        hasNode = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "f") {
+                        formulaText = cellReader.ReadElementContentAsString();
+                        if (!useCachedFormulaResult) {
+                            SkipXmlElementContent(cellReader, depth);
+                            objectValue = formulaText;
+                            return true;
+                        }
+
+                        hasNode = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "is") {
+                        inlineText = ReadXmlInlineString(cellReader);
+                        hasNode = true;
+                        continue;
+                    }
+                }
+
+                hasNode = cellReader.Read();
+            }
+
+            if (formulaText != null && !useCachedFormulaResult) {
+                objectValue = formulaText;
+                return true;
+            }
+
+            if (formulaText != null && rawText == null) {
+                objectValue = formulaText;
+                return true;
+            }
+
+            if (rawText == null) {
+                objectValue = inlineText;
+                return true;
+            }
+
+            if (TryParseInvariantDoubleFast(rawText, out double number)
+                || double.TryParse(rawText, NumberStyles.Float | NumberStyles.AllowThousands, CultureInfo.InvariantCulture, out number)) {
+                if (asDate) {
+                    primitiveKind = XmlDataReaderPrimitiveKind.DateTime;
+                    dateTimeValue = FromExcelSerialDate(number);
+                } else {
+                    primitiveKind = XmlDataReaderPrimitiveKind.Double;
+                    doubleValue = number;
+                }
+
+                return true;
+            }
+
+            objectValue = rawText;
+            return true;
+        }
+
+        private bool TryReadXmlBooleanPrimitiveForDataReader(
+            XmlReader cellReader,
+            out XmlDataReaderPrimitiveKind primitiveKind,
+            out bool booleanValue,
+            out object? objectValue) {
+            primitiveKind = XmlDataReaderPrimitiveKind.None;
+            booleanValue = false;
+            objectValue = null;
+
+            bool useCachedFormulaResult = _opt.UseCachedFormulaResult;
+            int depth = cellReader.Depth;
+            string? rawText = null;
+            string? formulaText = null;
+            bool hasNode = cellReader.Read();
+            while (hasNode) {
+                if (cellReader.NodeType == XmlNodeType.EndElement && cellReader.Depth == depth && cellReader.LocalName == "c") {
+                    break;
+                }
+
+                if (cellReader.NodeType == XmlNodeType.Element) {
+                    if (cellReader.LocalName == "v") {
+                        if (useCachedFormulaResult) {
+                            primitiveKind = XmlDataReaderPrimitiveKind.Boolean;
+                            booleanValue = ReadXmlBooleanValueAndSkipCell(cellReader, depth, out rawText);
+                            return true;
+                        }
+
+                        rawText = ReadXmlValueText(cellReader);
+                        hasNode = true;
+                        continue;
+                    }
+
+                    if (cellReader.LocalName == "f") {
+                        formulaText = cellReader.ReadElementContentAsString();
+                        if (!useCachedFormulaResult) {
+                            SkipXmlElementContent(cellReader, depth);
+                            objectValue = formulaText;
+                            return true;
+                        }
+
+                        hasNode = true;
+                        continue;
+                    }
+                }
+
+                hasNode = cellReader.Read();
+            }
+
+            if (formulaText != null && rawText == null) {
+                objectValue = formulaText;
+                return true;
+            }
+
+            if (rawText == null) {
+                return true;
+            }
+
+            primitiveKind = XmlDataReaderPrimitiveKind.Boolean;
+            booleanValue = rawText == "1";
+            return true;
+        }
+
+        private bool ReadXmlBooleanValueAndSkipCell(XmlReader valueReader, int cellDepth, out string? rawText) {
+            if (!TryReadXmlBufferedValueTextAndSkipCell(valueReader, cellDepth, out char[] buffer, out int length, out rawText)) {
+                return rawText == "1";
+            }
+
+            if (rawText == null) {
+                return length == 1 && buffer[0] == '1';
+            }
+
+            return rawText == "1";
+        }
+
         private bool TryConvertXmlRawText(
             XmlCellKind cellKind,
             string? rawText,
@@ -281,7 +526,7 @@ namespace OfficeIMO.Excel {
                     value = TryParseSharedStringIndex(rawText, out int sstIndex) ? GetSharedString(sstIndex) : rawText;
                     return true;
                 case XmlCellKind.Boolean:
-                    value = rawText == "1";
+                    value = BoxBoolean(rawText == "1");
                     return true;
                 case XmlCellKind.Date:
                     value = DateTime.TryParse(rawText, culture, DateTimeStyles.AssumeLocal, out var date)
@@ -368,56 +613,20 @@ namespace OfficeIMO.Excel {
             return TryParseSharedStringIndex(rawText, out int index) ? GetSharedString(index, sharedStringItems) : rawText;
         }
 
-        private static string? ReadXmlSharedStringTextAndSkipCell(XmlReader valueReader, int cellDepth, List<string> sharedStringItems) {
-            if (valueReader.IsEmptyElement) {
-                SkipXmlElementContent(valueReader, cellDepth);
-                return string.Empty;
+        private string? ReadXmlSharedStringTextAndSkipCell(XmlReader valueReader, int cellDepth, List<string> sharedStringItems) {
+            if (!TryReadXmlBufferedValueTextAndSkipCell(valueReader, cellDepth, out char[] buffer, out int length, out string? rawText)) {
+                return rawText;
             }
 
-            int valueDepth = valueReader.Depth;
-            if (!valueReader.Read()) {
-                return null;
+            if (rawText == null) {
+                return TryParseSharedStringIndex(buffer.AsSpan(0, length), out int parsed)
+                    ? GetSharedString(parsed, sharedStringItems)
+                    : new string(buffer, 0, length);
             }
 
-            if (valueReader.NodeType != XmlNodeType.Text
-                && valueReader.NodeType != XmlNodeType.SignificantWhitespace
-                && valueReader.NodeType != XmlNodeType.Whitespace) {
-                SkipXmlElementContent(valueReader, cellDepth);
-                return null;
-            }
-
-            string text = valueReader.Value;
-            int parsed = 0;
-            bool hasDigit = false;
-            bool parsedFast = true;
-            for (int i = 0; i < text.Length; i++) {
-                int digit = text[i] - '0';
-                if ((uint)digit > 9U || parsed > (int.MaxValue - digit) / 10) {
-                    parsedFast = false;
-                    break;
-                }
-
-                parsed = (parsed * 10) + digit;
-                hasDigit = true;
-            }
-
-            bool completedCell = valueReader.Read()
-                && valueReader.NodeType == XmlNodeType.EndElement
-                && valueReader.Depth == valueDepth
-                && valueReader.Read()
-                && valueReader.NodeType == XmlNodeType.EndElement
-                && valueReader.Depth == cellDepth;
-            if (!completedCell) {
-                SkipXmlElementContent(valueReader, cellDepth);
-            }
-
-            if (parsedFast && hasDigit) {
-                return GetSharedString(parsed, sharedStringItems);
-            }
-
-            return int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out int index)
+            return TryParseSharedStringIndex(rawText, out int index)
                 ? GetSharedString(index, sharedStringItems)
-                : text;
+                : rawText;
         }
 
         private static string? ReadXmlValueText(XmlReader valueReader) {
@@ -472,6 +681,92 @@ namespace OfficeIMO.Excel {
 
             SkipXmlElementContent(valueReader, cellDepth);
             return text;
+        }
+
+        private bool TryReadXmlSimpleDoubleAndSkipCell(XmlReader valueReader, int cellDepth, out double value, out string? rawText) {
+            value = 0;
+            if (!TryReadXmlBufferedValueTextAndSkipCell(valueReader, cellDepth, out char[] buffer, out int length, out rawText)) {
+                return false;
+            }
+
+            if (rawText == null) {
+                if (TryParseInvariantDoubleFast(buffer.AsSpan(0, length), out value)) {
+                    return true;
+                }
+
+                rawText = new string(buffer, 0, length);
+                return false;
+            }
+
+            return TryParseInvariantDoubleFast(rawText, out value);
+        }
+
+        private bool TryReadXmlBufferedValueTextAndSkipCell(XmlReader valueReader, int cellDepth, out char[] buffer, out int length, out string? rawText) {
+            buffer = _xmlValueTextBuffer ??= new char[64];
+            length = 0;
+            rawText = null;
+
+            if (valueReader.IsEmptyElement) {
+                SkipXmlElementContent(valueReader, cellDepth);
+                rawText = string.Empty;
+                return false;
+            }
+
+            int valueDepth = valueReader.Depth;
+            if (!valueReader.Read()) {
+                return false;
+            }
+
+            if (!IsXmlTextNode(valueReader.NodeType)) {
+                SkipXmlElementContent(valueReader, cellDepth);
+                return false;
+            }
+
+            System.Text.StringBuilder? builder = null;
+
+            while (true) {
+                int read = valueReader.ReadValueChunk(buffer, length, buffer.Length - length);
+                if (read == 0) {
+                    break;
+                }
+
+                length += read;
+                if (length != buffer.Length) {
+                    continue;
+                }
+
+                builder = new System.Text.StringBuilder(buffer.Length * 2);
+                builder.Append(buffer, 0, length);
+                length = 0;
+
+                while (true) {
+                    read = valueReader.ReadValueChunk(buffer, 0, buffer.Length);
+                    if (read == 0) {
+                        break;
+                    }
+
+                    builder.Append(buffer, 0, read);
+                }
+
+                break;
+            }
+
+            bool completedCell = valueReader.Read()
+                && valueReader.NodeType == XmlNodeType.EndElement
+                && valueReader.Depth == valueDepth
+                && valueReader.Read()
+                && valueReader.NodeType == XmlNodeType.EndElement
+                && valueReader.Depth == cellDepth;
+            if (!completedCell) {
+                SkipXmlElementContent(valueReader, cellDepth);
+            }
+
+            if (builder == null) {
+                return true;
+            }
+
+            rawText = builder.ToString();
+            return true;
         }
 
         private static bool TryReadXmlSharedStringIndexValue(XmlReader valueReader, out int index, out string? rawText) {
