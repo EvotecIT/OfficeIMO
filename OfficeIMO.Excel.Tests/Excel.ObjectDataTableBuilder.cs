@@ -187,6 +187,17 @@ namespace OfficeIMO.Tests {
         }
 
         [Fact]
+        public void Test_ObjectDataTableBuilder_FromSingleEnumerableObject_PreservesTheRow() {
+            var row = new EnumerableObjectRow { Name = "Single", Value = 42 };
+
+            var table = ObjectDataTableBuilder.FromObjects(new object?[] { row }, "Data");
+
+            Assert.Single(table.Rows.Cast<System.Data.DataRow>());
+            Assert.Equal("Single", table.Rows[0]["Name"]);
+            Assert.Equal(42, table.Rows[0]["Value"]);
+        }
+
+        [Fact]
         public void Test_ObjectDataTableBuilder_FromObjects_ThrowsOnNullItems() {
             var ex = Assert.Throws<ArgumentNullException>(() => ObjectDataTableBuilder.FromObjects(null!));
             Assert.Equal("items", ex.ParamName);
@@ -235,6 +246,19 @@ namespace OfficeIMO.Tests {
         private sealed class HiddenObjectRow : ObjectDataBaseRow {
             public new string Name { get; set; } = string.Empty;
             public new int Value { get; set; }
+        }
+
+        private sealed class EnumerableObjectRow : IEnumerable<int> {
+            public string Name { get; set; } = string.Empty;
+            public int Value { get; set; }
+
+            public IEnumerator<int> GetEnumerator() {
+                yield return Value;
+            }
+
+            IEnumerator IEnumerable.GetEnumerator() {
+                return GetEnumerator();
+            }
         }
 
     }

@@ -48,7 +48,9 @@ internal static partial class CsvParser
 
         public bool IsNull(int ordinal, string? nullValue)
         {
-            return nullValue is not null && GetSpan(ordinal).SequenceEqual(nullValue.AsSpan());
+            return !_visitor.IsMissing(ordinal) &&
+                nullValue is not null &&
+                GetSpan(ordinal).SequenceEqual(nullValue.AsSpan());
         }
 
         public int CopyStringValues(object[] values, int count, string? nullValue)
@@ -137,6 +139,19 @@ internal static partial class CsvParser
             return false;
         }
 
+        public void VisitFieldValue(int recordIndex, int fieldIndex, string value)
+        {
+            _nextVisitIsUnescapedScratch = false;
+            if ((uint)fieldIndex >= (uint)_starts.Length)
+            {
+                return;
+            }
+
+            _starts[fieldIndex] = -1;
+            _lengths[fieldIndex] = value.Length;
+            _materialized[fieldIndex] = value;
+        }
+
         internal void Complete(int fieldCount, CsvColumnCountMismatchPolicy mismatchPolicy)
         {
             if (mismatchPolicy == CsvColumnCountMismatchPolicy.Strict && fieldCount != _starts.Length)
@@ -167,6 +182,16 @@ internal static partial class CsvParser
             return materialized is not null
                 ? materialized.AsSpan()
                 : _text.AsSpan(_starts[ordinal], _lengths[ordinal]);
+        }
+
+        internal bool IsMissing(int ordinal)
+        {
+            if ((uint)ordinal >= (uint)_starts.Length)
+            {
+                throw new IndexOutOfRangeException();
+            }
+
+            return _lengths[ordinal] < 0;
         }
 
         internal string GetString(int ordinal)

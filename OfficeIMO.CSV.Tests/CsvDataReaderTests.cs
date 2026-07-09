@@ -439,6 +439,45 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void CreateDataReader_TextBackedFlexibleFields_PreservesMaterializedValues()
+    {
+        var doc = CsvDocument.Parse(
+            "Name,Note,Value\nA,b\"c\nd\",E\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        Assert.Equal("A", reader.GetString(0));
+        Assert.Equal("bc\nd", reader.GetString(1));
+        Assert.Equal("E", reader.GetString(2));
+    }
+
+    [Fact]
+    public void CreateDataReader_TextBackedShortRows_DoNotApplyNullTokenToPadding()
+    {
+        var doc = CsvDocument.Parse(
+            "First,Second\nshort\nexplicit,\n",
+            new CsvLoadOptions
+            {
+                Mode = CsvLoadMode.Stream,
+                NullValue = string.Empty
+            });
+
+        using var reader = doc.CreateDataReader();
+
+        Assert.True(reader.Read());
+        Assert.False(reader.IsDBNull(1));
+        Assert.Equal(string.Empty, reader.GetString(1));
+        var values = new object[reader.FieldCount];
+        Assert.Equal(reader.FieldCount, reader.GetValues(values));
+        Assert.Equal(string.Empty, values[1]);
+
+        Assert.True(reader.Read());
+        Assert.True(reader.IsDBNull(1));
+    }
+
+    [Fact]
     public void CreateDataReader_InMemoryWithoutSchema_PreservesConfiguredNullValue()
     {
         var doc = CsvDocument.Parse(

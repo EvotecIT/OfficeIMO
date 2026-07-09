@@ -29,6 +29,7 @@ namespace OfficeIMO.Excel {
 
             return TabularDataTableBuilder.FromItems(rows, new TabularDataOptions {
                 TableName = tableName,
+                ExpandSingleEnumerableInput = false,
                 ColumnDiscoveryMode = TabularColumnDiscoveryMode.FirstRow,
                 NormalizeValue = value => NormalizeCellValue(value, options)
             });
