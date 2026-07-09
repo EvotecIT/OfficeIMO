@@ -251,15 +251,26 @@ public static class TabularDataTableBuilder {
     private static DataTable FromObjects(IReadOnlyList<object?> items, TabularDataOptions options) {
         var rows = new List<IReadOnlyDictionary<string, object?>>(items.Count);
         var columns = new List<string>();
-        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var exactColumns = new HashSet<string>(StringComparer.Ordinal);
 
         foreach (var item in items) {
             var row = GetProperties(item, options);
             rows.Add(row);
 
             if (options.ColumnDiscoveryMode == TabularColumnDiscoveryMode.AllRows || rows.Count == 1) {
-                foreach (var key in row.Keys.Where(seen.Add)) {
-                    columns.Add(key);
+                var rowKeys = row.Keys.Where(key => !string.IsNullOrWhiteSpace(key)).ToArray();
+                var exactRowKeys = new HashSet<string>(rowKeys, StringComparer.Ordinal);
+                foreach (var key in rowKeys) {
+                    if (exactColumns.Contains(key)) {
+                        continue;
+                    }
+
+                    var matchesExistingColumn = columns.Any(column =>
+                        !exactRowKeys.Contains(column) && row.ContainsKey(column));
+                    if (!matchesExistingColumn) {
+                        columns.Add(key);
+                        exactColumns.Add(key);
+                    }
                 }
             }
         }
@@ -336,16 +347,11 @@ public static class TabularDataTableBuilder {
         internal IReadOnlyDictionary<string, object?> Values { get; }
     }
 
-    private static IReadOnlyDictionary<string, object?> NormalizeDictionary(IEnumerable<KeyValuePair<string, object?>> source, TabularDataOptions options) {
-        var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var entry in source) {
-            if (!string.IsNullOrWhiteSpace(entry.Key)) {
-                result[entry.Key] = NormalizeValue(entry.Value, options);
-            }
-        }
+    private static IReadOnlyDictionary<string, object?> NormalizeDictionary(IReadOnlyDictionary<string, object?> source, TabularDataOptions options)
+        => new NormalizedReadOnlyDictionaryProjection(source, options);
 
-        return result;
-    }
+    private static IReadOnlyDictionary<string, object?> NormalizeDictionary(IDictionary<string, object?> source, TabularDataOptions options)
+        => new NormalizedDictionaryProjection(source, options);
 
     private static IReadOnlyDictionary<string, object?> ProjectPublicProperties(object item, TabularDataOptions options) {
         var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
@@ -382,7 +388,7 @@ public static class TabularDataTableBuilder {
     }
 
     private static object? NormalizeValue(object? value, TabularDataOptions options)
-        => options.NormalizeValue?.Invoke(value) ?? value;
+        => options.NormalizeValue is null ? value : options.NormalizeValue(value);
 
     private static bool ShouldExpandSingleEnumerableInput(object? item)
         => item is IEnumerable &&
@@ -509,6 +515,112 @@ public static class TabularDataTableBuilder {
                     value = NormalizeValue(entry.Value, _options);
                     return true;
                 }
+            }
+
+            value = null;
+            return false;
+        }
+
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() {
+            foreach (var key in _keys) {
+                yield return new KeyValuePair<string, object?>(key, this[key]);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    private sealed class NormalizedReadOnlyDictionaryProjection : IReadOnlyDictionary<string, object?> {
+        private readonly IReadOnlyDictionary<string, object?> _source;
+        private readonly TabularDataOptions _options;
+        private readonly List<string> _keys;
+        private readonly Dictionary<string, object?> _normalizedValues = new(StringComparer.Ordinal);
+
+        internal NormalizedReadOnlyDictionaryProjection(IReadOnlyDictionary<string, object?> source, TabularDataOptions options) {
+            _source = source;
+            _options = options;
+            _keys = source.Keys.Where(key => !string.IsNullOrWhiteSpace(key)).ToList();
+        }
+
+        public IEnumerable<string> Keys => _keys;
+
+        public IEnumerable<object?> Values => _keys.Select(key => this[key]);
+
+        public int Count => _keys.Count;
+
+        public object? this[string key] => TryGetValue(key, out var value)
+            ? value
+            : throw new KeyNotFoundException();
+
+        public bool ContainsKey(string key) => !string.IsNullOrWhiteSpace(key) && _source.ContainsKey(key);
+
+        public bool TryGetValue(string key, out object? value) {
+            if (string.IsNullOrWhiteSpace(key)) {
+                value = null;
+                return false;
+            }
+
+            if (_normalizedValues.TryGetValue(key, out value)) {
+                return true;
+            }
+
+            if (_source.TryGetValue(key, out var sourceValue)) {
+                value = NormalizeValue(sourceValue, _options);
+                _normalizedValues[key] = value;
+                return true;
+            }
+
+            value = null;
+            return false;
+        }
+
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() {
+            foreach (var key in _keys) {
+                yield return new KeyValuePair<string, object?>(key, this[key]);
+            }
+        }
+
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+    }
+
+    private sealed class NormalizedDictionaryProjection : IReadOnlyDictionary<string, object?> {
+        private readonly IDictionary<string, object?> _source;
+        private readonly TabularDataOptions _options;
+        private readonly List<string> _keys;
+        private readonly Dictionary<string, object?> _normalizedValues = new(StringComparer.Ordinal);
+
+        internal NormalizedDictionaryProjection(IDictionary<string, object?> source, TabularDataOptions options) {
+            _source = source;
+            _options = options;
+            _keys = source.Keys.Where(key => !string.IsNullOrWhiteSpace(key)).ToList();
+        }
+
+        public IEnumerable<string> Keys => _keys;
+
+        public IEnumerable<object?> Values => _keys.Select(key => this[key]);
+
+        public int Count => _keys.Count;
+
+        public object? this[string key] => TryGetValue(key, out var value)
+            ? value
+            : throw new KeyNotFoundException();
+
+        public bool ContainsKey(string key) => !string.IsNullOrWhiteSpace(key) && _source.ContainsKey(key);
+
+        public bool TryGetValue(string key, out object? value) {
+            if (string.IsNullOrWhiteSpace(key)) {
+                value = null;
+                return false;
+            }
+
+            if (_normalizedValues.TryGetValue(key, out value)) {
+                return true;
+            }
+
+            if (_source.TryGetValue(key, out var sourceValue)) {
+                value = NormalizeValue(sourceValue, _options);
+                _normalizedValues[key] = value;
+                return true;
             }
 
             value = null;

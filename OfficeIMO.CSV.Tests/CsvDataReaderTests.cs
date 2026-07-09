@@ -77,6 +77,27 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void TypedGetters_RequireAnOpenCurrentRow()
+    {
+        var schema = new CsvSchemaBuilder()
+            .Column("Id").AsInt32()
+            .Done()
+            .Build();
+        var doc = CsvDocument.Parse(
+            "Id\n1\n",
+            new CsvLoadOptions { Mode = CsvLoadMode.Stream });
+        using var reader = doc.CreateDataReader(new CsvDataReaderOptions { Schema = schema });
+
+        Assert.Throws<InvalidOperationException>(() => reader.GetInt32(0));
+        Assert.True(reader.Read());
+        Assert.Equal(1, reader.GetInt32(0));
+
+        reader.Close();
+
+        Assert.Throws<InvalidOperationException>(() => reader.GetInt32(0));
+    }
+
+    [Fact]
     public void CreateDataReader_FromFile_DisposeWithoutRead_ReleasesFile()
     {
         var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Tests." + Guid.NewGuid().ToString("N") + ".csv");

@@ -84,9 +84,9 @@ dotnet run --project .\OfficeIMO.CSV.Benchmarks\OfficeIMO.CSV.Benchmarks.csproj 
 
 | Input | Schema | Mean | Allocated |
 | --- | --- | ---: | ---: |
-| CSV file | Explicit 40-column schema | 113.27 ms | 101.47 MB |
-| CSV text | Explicit 40-column schema | 94.06 ms | 66.94 MB |
-| CSV text | Inferred from 25,000 rows | 151.29 ms | 66.95 MB |
+| CSV file | Explicit 40-column schema | 103.11 ms | 101.49 MB |
+| CSV text | Explicit 40-column schema | 91.41 ms | 66.95 MB |
+| CSV text | Inferred from 25,000 rows | 135.78 ms | 66.97 MB |
 
 Explicit typed readers parse numbers, booleans, dates, and GUIDs directly from source spans. Inferred readers inspect spans without retaining sampled rows, then replay the immutable text through the typed reader. String-only file readers stay on the lower-memory streaming path.
 

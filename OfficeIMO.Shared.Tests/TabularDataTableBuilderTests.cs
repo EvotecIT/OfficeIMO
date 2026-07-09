@@ -115,6 +115,47 @@ public class TabularDataTableBuilderTests {
         Assert.Equal("Beta", table.Rows[1]["Value"]);
     }
 
+    [Fact]
+    public void FromItems_PreservesNullReturnedByValueNormalizer() {
+        var table = TabularDataTableBuilder.FromItems(new object?[] {
+            new Dictionary<string, object?> { ["Secret"] = "remove-me" }
+        }, new TabularDataOptions {
+            NormalizeValue = _ => null
+        });
+
+        Assert.Equal(DBNull.Value, table.Rows[0]["Secret"]);
+    }
+
+    [Fact]
+    public void FromItems_PreservesDictionaryLookupComparer() {
+        var ordinalTable = TabularDataTableBuilder.FromItems(new object?[] {
+            new Dictionary<string, object?>(StringComparer.Ordinal) { ["Name"] = "Alpha" },
+            new Dictionary<string, object?>(StringComparer.Ordinal) { ["name"] = "Beta" }
+        }, new TabularDataOptions {
+            ColumnDiscoveryMode = TabularColumnDiscoveryMode.FirstRow
+        });
+        var ignoreCaseTable = TabularDataTableBuilder.FromItems(new object?[] {
+            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["Name"] = "Alpha" },
+            new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase) { ["name"] = "Beta" }
+        }, new TabularDataOptions {
+            ColumnDiscoveryMode = TabularColumnDiscoveryMode.FirstRow
+        });
+        var distinctCaseTable = TabularDataTableBuilder.FromItems(new object?[] {
+            new Dictionary<string, object?>(StringComparer.Ordinal) {
+                ["Name"] = "Upper",
+                ["name"] = "Lower"
+            }
+        }, new TabularDataOptions {
+            ColumnDiscoveryMode = TabularColumnDiscoveryMode.FirstRow
+        });
+
+        Assert.Equal(DBNull.Value, ordinalTable.Rows[1]["Name"]);
+        Assert.Equal("Beta", ignoreCaseTable.Rows[1]["Name"]);
+        Assert.Equal(2, distinctCaseTable.Columns.Count);
+        Assert.Equal("Upper", distinctCaseTable.Rows[0]["Name"]);
+        Assert.Equal("Lower", distinctCaseTable.Rows[0]["name"]);
+    }
+
     private sealed class HostRow {
         public HostRow(int number) => Number = number;
 

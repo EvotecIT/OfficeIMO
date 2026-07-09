@@ -195,6 +195,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override DateTime GetDateTime(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.DateTime)
         {
             var rawValue = GetRawValue(ordinal);
@@ -215,6 +216,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override decimal GetDecimal(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Decimal)
         {
             var rawValue = GetRawValue(ordinal);
@@ -244,6 +246,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override double GetDouble(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Double)
         {
             var rawValue = GetRawValue(ordinal);
@@ -282,6 +285,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override short GetInt16(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int16)
         {
             var rawValue = GetRawValue(ordinal);
@@ -302,6 +306,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override int GetInt32(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int32)
         {
             var rawValue = GetRawValue(ordinal);
@@ -331,6 +336,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override long GetInt64(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.Int64)
         {
             var rawValue = GetRawValue(ordinal);
@@ -366,6 +372,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override string GetString(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind == CsvDataConversionKind.String)
         {
             if (_textRowSource is not null &&
@@ -523,6 +530,7 @@ public sealed class CsvDataReader : DbDataReader
     /// <inheritdoc />
     public override bool IsDBNull(int ordinal)
     {
+        EnsureOpenRow();
         if (_columns[ordinal].ConversionKind != CsvDataConversionKind.General)
         {
             var rawValue = GetRawValue(ordinal);
