@@ -21,6 +21,7 @@ public sealed class CsvDataReader : DbDataReader
     private readonly IEnumerator<IReadOnlyList<string>>? _stringRows;
     private readonly CultureInfo _culture;
     private readonly IReadOnlyList<string>? _dateTimeFormats;
+    private readonly IDisposable? _rowOwner;
     private readonly CsvLoadOptions? _stringRowOptions;
     private readonly object?[]? _staticColumnValues;
     private readonly int _sourceColumnCount;
@@ -61,7 +62,8 @@ public sealed class CsvDataReader : DbDataReader
         int sourceColumnCount,
         CsvLoadOptions options,
         CultureInfo culture,
-        IReadOnlyList<string>? dateTimeFormats)
+        IReadOnlyList<string>? dateTimeFormats,
+        IDisposable? rowOwner = null)
     {
         _columns = columns;
         _stringRows = rows.GetEnumerator();
@@ -71,6 +73,7 @@ public sealed class CsvDataReader : DbDataReader
         _staticColumnValues = CaptureStaticColumnValues(_stringRowOptions.StaticColumns);
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
+        _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
     }
@@ -512,6 +515,7 @@ public sealed class CsvDataReader : DbDataReader
         _closed = true;
         _rows?.Dispose();
         _stringRows?.Dispose();
+        _rowOwner?.Dispose();
     }
 
     /// <inheritdoc />

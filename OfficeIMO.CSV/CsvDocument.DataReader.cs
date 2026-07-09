@@ -58,7 +58,8 @@ public sealed partial class CsvDocument
 
             var header = AppendStaticColumnsToHeader(NormalizeParsedHeader(records.Current, options), options);
             var columns = CreateDataReaderColumns(header, readerOptions);
-            var rows = EnumerateRemainingStringRows(reader, records);
+            var rows = EnumerateRemainingStringRows(records);
+            var rowOwner = new CsvFileDataReaderRowOwner(reader, records);
             records = null;
             return new CsvDataReader(
                 columns,
@@ -66,7 +67,8 @@ public sealed partial class CsvDocument
                 header.Count - (options.StaticColumns?.Count ?? 0),
                 options,
                 options.Culture,
-                options.DateTimeFormats);
+                options.DateTimeFormats,
+                rowOwner);
         }
         catch
         {
@@ -155,20 +157,11 @@ public sealed partial class CsvDocument
     }
 
     private static IEnumerable<IReadOnlyList<string>> EnumerateRemainingStringRows(
-        TextReader reader,
         IEnumerator<IReadOnlyList<string>> records)
     {
-        try
+        while (records.MoveNext())
         {
-            while (records.MoveNext())
-            {
-                yield return records.Current;
-            }
-        }
-        finally
-        {
-            records.Dispose();
-            reader.Dispose();
+            yield return records.Current;
         }
     }
 
@@ -207,6 +200,26 @@ public sealed partial class CsvDocument
         finally
         {
             remainingRows.Dispose();
+        }
+    }
+
+    private sealed class CsvFileDataReaderRowOwner : IDisposable
+    {
+        private TextReader? _reader;
+        private IEnumerator<IReadOnlyList<string>>? _records;
+
+        internal CsvFileDataReaderRowOwner(TextReader reader, IEnumerator<IReadOnlyList<string>> records)
+        {
+            _reader = reader;
+            _records = records;
+        }
+
+        public void Dispose()
+        {
+            _records?.Dispose();
+            _records = null;
+            _reader?.Dispose();
+            _reader = null;
         }
     }
 }

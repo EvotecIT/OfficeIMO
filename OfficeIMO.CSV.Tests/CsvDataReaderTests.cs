@@ -76,6 +76,32 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void CreateDataReader_FromFile_DisposeWithoutRead_ReleasesFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Tests." + Guid.NewGuid().ToString("N") + ".csv");
+        File.WriteAllText(path, "Id,Name\n1,Alice\n2,Bob\n");
+
+        try
+        {
+            using (var reader = CsvDocument.CreateDataReader(path))
+            {
+                using var schema = reader.GetSchemaTable();
+                Assert.Equal(2, reader.FieldCount);
+            }
+
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            Assert.True(stream.CanRead);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void GetValues_WithInferredSchema_ExposesTypedValues()
     {
         var doc = CsvDocument.Parse("Id,Amount,Created,Note\n1,12.5,2026-07-07,Alpha\n");

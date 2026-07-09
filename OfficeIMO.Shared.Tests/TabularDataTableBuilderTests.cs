@@ -62,6 +62,19 @@ public class TabularDataTableBuilderTests {
     }
 
     [Fact]
+    public void FromItems_ConvertsReadOnlyDictionaryRows() {
+        IReadOnlyDictionary<string, object?> row = new ReadOnlyRow(new Dictionary<string, object?> {
+            ["Id"] = 5,
+            ["Name"] = "Alice"
+        });
+
+        var table = TabularDataTableBuilder.FromItems(new object?[] { row });
+
+        Assert.Equal(typeof(int), table.Columns["Id"]!.DataType);
+        Assert.Equal("Alice", table.Rows[0]["Name"]);
+    }
+
+    [Fact]
     public void FromItems_PreservesExplicitNullScalarRowsWhenConfigured() {
         var table = TabularDataTableBuilder.FromItems(new object?[] { null, "Beta" }, new TabularDataOptions {
             PreserveNullRows = true
@@ -77,5 +90,27 @@ public class TabularDataTableBuilderTests {
         public HostRow(int number) => Number = number;
 
         public int Number { get; }
+    }
+
+    private sealed class ReadOnlyRow : IReadOnlyDictionary<string, object?> {
+        private readonly Dictionary<string, object?> _values;
+
+        internal ReadOnlyRow(Dictionary<string, object?> values) => _values = values;
+
+        public IEnumerable<string> Keys => _values.Keys;
+
+        public IEnumerable<object?> Values => _values.Values;
+
+        public int Count => _values.Count;
+
+        public object? this[string key] => _values[key];
+
+        public bool ContainsKey(string key) => _values.ContainsKey(key);
+
+        public bool TryGetValue(string key, out object? value) => _values.TryGetValue(key, out value);
+
+        public IEnumerator<KeyValuePair<string, object?>> GetEnumerator() => _values.GetEnumerator();
+
+        System.Collections.IEnumerator System.Collections.IEnumerable.GetEnumerator() => GetEnumerator();
     }
 }

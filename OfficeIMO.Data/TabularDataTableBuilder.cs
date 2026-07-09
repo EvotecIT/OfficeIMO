@@ -148,6 +148,12 @@ public static class TabularDataTableBuilder {
     }
 
     private static void AddMaterializedItem(List<object?> items, object? item, TabularDataOptions options) {
+        var projected = options.ProjectObject?.Invoke(item);
+        if (projected != null) {
+            items.Add(projected);
+            return;
+        }
+
         var unwrapped = Unwrap(item, options);
         if (options.PreserveNullRows || unwrapped != null) {
             items.Add(unwrapped);
@@ -296,6 +302,14 @@ public static class TabularDataTableBuilder {
             };
         }
 
+        if (item is IReadOnlyDictionary<string, object?> readOnlyDictionary) {
+            return NormalizeDictionary(readOnlyDictionary, options);
+        }
+
+        if (item is IDictionary<string, object?> genericDictionary) {
+            return NormalizeDictionary(genericDictionary, options);
+        }
+
         if (item is IDictionary dictionary) {
             return new LegacyDictionaryProjection(dictionary, options);
         }
@@ -303,8 +317,8 @@ public static class TabularDataTableBuilder {
         return ProjectPublicProperties(item!, options);
     }
 
-    private static IReadOnlyDictionary<string, object?> NormalizeDictionary(IReadOnlyDictionary<string, object?> source, TabularDataOptions options) {
-        var result = new Dictionary<string, object?>(source.Count, StringComparer.OrdinalIgnoreCase);
+    private static IReadOnlyDictionary<string, object?> NormalizeDictionary(IEnumerable<KeyValuePair<string, object?>> source, TabularDataOptions options) {
+        var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
         foreach (var entry in source) {
             if (!string.IsNullOrWhiteSpace(entry.Key)) {
                 result[entry.Key] = NormalizeValue(entry.Value, options);
@@ -360,7 +374,9 @@ public static class TabularDataTableBuilder {
            item is not DataView &&
            item is not IDataReader &&
            item is not IDataRecord &&
-           item is not IDictionary;
+           item is not IDictionary &&
+           item is not IReadOnlyDictionary<string, object?> &&
+           item is not IDictionary<string, object?>;
 
     private static DataTable CloneTable(DataTable source, string? tableName) {
         var table = source.Clone();
