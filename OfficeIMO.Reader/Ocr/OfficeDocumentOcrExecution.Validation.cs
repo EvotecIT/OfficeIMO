@@ -95,6 +95,10 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         if (!string.IsNullOrWhiteSpace(candidate.AssetId)) {
             OfficeDocumentAsset? exact = assets.FirstOrDefault(asset => string.Equals(asset.Id, candidate.AssetId, StringComparison.Ordinal));
             if (exact == null) resolutionCode = "ocr-asset-missing";
+            if (exact != null && IsAmbiguousMultiImagePage(candidate)) {
+                resolutionCode = "ocr-asset-ambiguous";
+                return null;
+            }
             return exact;
         }
 
@@ -106,6 +110,11 @@ public static partial class OfficeDocumentOcrExecutionExtensions {
         if (matches.Length == 1) return matches[0];
         resolutionCode = matches.Length == 0 ? "ocr-asset-missing" : "ocr-asset-ambiguous";
         return null;
+    }
+
+    private static bool IsAmbiguousMultiImagePage(OfficeDocumentOcrCandidate candidate) {
+        return candidate.ImageCount.GetValueOrDefault() > 1
+            && string.Equals(candidate.Kind, "page", StringComparison.OrdinalIgnoreCase);
     }
 
     private static bool IsSameContainer(ReaderLocation candidate, ReaderLocation asset) {

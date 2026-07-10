@@ -64,6 +64,28 @@ public sealed class ReaderOcrCoreTests {
     }
 
     [Fact]
+    public async Task ApplyOcrAsync_DoesNotResolveMultiImagePageToItsFirstImageAsset() {
+        OfficeDocumentReadResult source = CreateDocument(2);
+        source.OcrCandidates = new[] {
+            new OfficeDocumentOcrCandidate {
+                Id = "page-ocr",
+                Kind = "page",
+                AssetId = source.Assets[0].Id,
+                ImageCount = 2,
+                Location = source.OcrCandidates[0].Location
+            }
+        };
+        var engine = new RecordingOcrEngine();
+
+        OfficeDocumentOcrExecutionResult execution = await source.ApplyOcrAsync(engine);
+
+        Assert.Empty(engine.CandidateIds);
+        Assert.Equal(0, execution.Report.AttemptedCandidateCount);
+        Assert.Single(execution.Document.OcrCandidates);
+        Assert.Contains(execution.Diagnostics, diagnostic => diagnostic.Code == "ocr-asset-ambiguous");
+    }
+
+    [Fact]
     public async Task ApplyOcrAsync_BoundsProviderTextSpansAndConfidenceDiagnostics() {
         OfficeDocumentReadResult source = CreateDocument(1);
         var engine = new DelegateOfficeOcrEngine("bounded-fixture", (request, cancellationToken) => new ValueTask<OfficeOcrEngineResult>(new OfficeOcrEngineResult {

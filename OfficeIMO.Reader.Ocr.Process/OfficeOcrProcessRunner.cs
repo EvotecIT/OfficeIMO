@@ -72,11 +72,10 @@ public static class OfficeOcrProcessRunner {
         }
 
         using OfficeOcrProcessLifetime processLifetime = OfficeOcrProcessLifetime.Configure(startInfo, command.FileName, arguments);
-        using var process = new System.Diagnostics.Process { StartInfo = startInfo, EnableRaisingEvents = true };
-        if (!process.Start()) throw new InvalidOperationException("Failed to start OCR process '" + command.FileName + "'.");
-        processLifetime.Attach(process);
-        Task<BoundedText> outputTask = ReadBoundedAsync(process.StandardOutput, command.MaxStandardOutputCharacters);
-        Task<BoundedText> errorTask = ReadBoundedAsync(process.StandardError, command.MaxStandardErrorCharacters);
+        using OfficeOcrStartedProcess startedProcess = processLifetime.Start(startInfo);
+        System.Diagnostics.Process process = startedProcess.Process;
+        Task<BoundedText> outputTask = ReadBoundedAsync(startedProcess.StandardOutput, command.MaxStandardOutputCharacters);
+        Task<BoundedText> errorTask = ReadBoundedAsync(startedProcess.StandardError, command.MaxStandardErrorCharacters);
         try {
             await WaitForExitAsync(process, linked.Token).ConfigureAwait(false);
             BoundedText[] streams = await WaitWithCancellationAsync(Task.WhenAll(outputTask, errorTask), linked.Token).ConfigureAwait(false);
@@ -89,13 +88,13 @@ public static class OfficeOcrProcessRunner {
             };
         } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested && timeout.IsCancellationRequested) {
             processLifetime.Terminate(process);
-            CloseRedirectedStreams(process);
+            startedProcess.CloseRedirectedStreams();
             ObserveReadFailure(outputTask);
             ObserveReadFailure(errorTask);
             throw new TimeoutException("OCR process exceeded timeout " + command.Timeout + ".");
         } catch {
             processLifetime.Terminate(process);
-            CloseRedirectedStreams(process);
+            startedProcess.CloseRedirectedStreams();
             ObserveReadFailure(outputTask);
             ObserveReadFailure(errorTask);
             throw;
@@ -110,11 +109,6 @@ public static class OfficeOcrProcessRunner {
             if (completed != operation) throw new OperationCanceledException(cancellationToken);
         }
         return await operation.ConfigureAwait(false);
-    }
-
-    private static void CloseRedirectedStreams(System.Diagnostics.Process process) {
-        try { process.StandardOutput.Dispose(); } catch (InvalidOperationException) { }
-        try { process.StandardError.Dispose(); } catch (InvalidOperationException) { }
     }
 
     private static void ObserveReadFailure(Task operation) {

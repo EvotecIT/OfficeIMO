@@ -50,24 +50,33 @@ internal sealed class OfficeOcrProcessLifetime : IDisposable {
             "Bounded OCR process execution requires a Windows Job Object, /usr/bin/setsid or /bin/setsid on Unix, or /usr/bin/perl with POSIX::setsid on macOS.");
     }
 
-    internal void Attach(System.Diagnostics.Process process) {
-        if (_mode == LifetimeMode.UnixProcessGroup) {
-            _processGroupId = process.Id;
-            return;
+    internal OfficeOcrStartedProcess Start(ProcessStartInfo startInfo) {
+        if (_mode == LifetimeMode.WindowsJob) {
+            return OfficeOcrWindowsSuspendedProcess.Start(startInfo, this);
         }
-        if (_mode != LifetimeMode.WindowsJob) return;
 
-        SafeFileHandle? job = TryCreateWindowsJob();
-        if (job == null) {
-            TryKillDirectProcess(process);
-            throw new InvalidOperationException("Unable to create the Windows Job Object required for bounded OCR process execution.");
+        var process = new System.Diagnostics.Process { StartInfo = startInfo, EnableRaisingEvents = true };
+        try {
+            if (!process.Start()) throw new InvalidOperationException("Failed to start OCR process '" + startInfo.FileName + "'.");
+            _processGroupId = process.Id;
+            return new OfficeOcrStartedProcess(process, process.StandardOutput, process.StandardError);
+        } catch {
+            process.Dispose();
+            throw;
         }
-        if (!AssignProcessToJobObject(job.DangerousGetHandle(), process.Handle)) {
-            job.Dispose();
-            TryKillDirectProcess(process);
-            throw new InvalidOperationException("Unable to assign the OCR process to the Windows Job Object required for bounded execution.");
-        }
-        _jobHandle = job;
+    }
+
+    internal void PrepareWindowsJob() {
+        if (_mode != LifetimeMode.WindowsJob) throw new InvalidOperationException("A Windows Job Object is not configured for this process.");
+        _jobHandle = TryCreateWindowsJob()
+            ?? throw new InvalidOperationException("Unable to create the Windows Job Object required for bounded OCR process execution.");
+    }
+
+    internal bool AssignSuspendedWindowsProcess(IntPtr processHandle) {
+        return _jobHandle != null
+            && !_jobHandle.IsInvalid
+            && !_jobHandle.IsClosed
+            && AssignProcessToJobObject(_jobHandle.DangerousGetHandle(), processHandle);
     }
 
     internal void Terminate(System.Diagnostics.Process process) {
