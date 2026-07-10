@@ -167,7 +167,7 @@ public sealed class OdsSheet {
             start = checked(start + count);
         }
         long required = checked(rowIndex - start + 1);
-        var added = new XElement(OdfNamespaces.Table + "table-row");
+        var added = new XElement(OdfNamespaces.Table + "table-row", new XElement(OdfNamespaces.Table + "table-cell"));
         OdsRepeatModel.Set(added, OdfNamespaces.Table + "number-rows-repeated", required);
         Element.Add(added);
         XElement result = OdsRepeatModel.Split(added, OdfNamespaces.Table + "number-rows-repeated", required - 1);

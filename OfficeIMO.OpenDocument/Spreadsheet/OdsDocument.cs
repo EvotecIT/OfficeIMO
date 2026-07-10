@@ -40,7 +40,10 @@ public sealed partial class OdsDocument : OdfDocument {
         if (Sheets.Any(sheet => string.Equals(sheet.Name, name, StringComparison.Ordinal))) {
             throw new InvalidOperationException($"A worksheet named '{name}' already exists.");
         }
-        var element = new XElement(OdfNamespaces.Table + "table", new XAttribute(OdfNamespaces.Table + "name", name));
+        var element = new XElement(OdfNamespaces.Table + "table",
+            new XAttribute(OdfNamespaces.Table + "name", name),
+            new XElement(OdfNamespaces.Table + "table-column"),
+            new XElement(OdfNamespaces.Table + "table-row", new XElement(OdfNamespaces.Table + "table-cell")));
         SpreadsheetBody.Add(element);
         MarkPartDirty("content.xml");
         return new OdsSheet(this, element);

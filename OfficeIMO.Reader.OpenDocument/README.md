@@ -12,4 +12,10 @@ DocumentReaderOpenDocumentRegistrationExtensions.RegisterOpenDocumentHandler();
 IReadOnlyList<ReaderChunk> chunks = DocumentReader.Read("report.odt").ToList();
 ```
 
-ODT extraction emits paragraph-, heading-, and table-aligned chunks. ODS and ODP extraction use the same handler and are expanded by their native format milestones.
+The handler emits:
+
+- paragraph-, heading-, and table-aligned ODT chunks;
+- bounded sheet/table chunks for ODS, including sheet and A1-range locations;
+- slide-aligned ODP chunks with tables and optional speaker notes.
+
+`ReaderOptions.MaxTableRows`, `MaxChars`, `ExcelHeadersInFirstRow`, `ExcelSheetName`, and `IncludePowerPointNotes` apply to the corresponding OpenDocument extraction paths. ODS extraction caps one chunk at 256 columns so repeated or adversarial ranges remain bounded.

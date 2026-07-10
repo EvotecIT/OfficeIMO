@@ -44,7 +44,6 @@ internal static class OdfPackageTemplates {
         XElement root = new XElement(OdfNamespaces.Office + "document-settings");
         OdfXmlCodec.AddStandardNamespaces(root);
         root.SetAttributeValue(OdfNamespaces.Office + "version", version.ToToken());
-        root.Add(new XElement(OdfNamespaces.Office + "settings"));
         return new XDocument(new XDeclaration("1.0", "UTF-8", null), root);
     }
 

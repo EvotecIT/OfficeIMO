@@ -436,32 +436,32 @@ Keep the implementation in reviewable vertical slices.
 
 ### Milestone 0: package kernel
 
-- [ ] Add `OfficeIMO.OpenDocument` and `OfficeIMO.OpenDocument.Tests` with no package or project references.
-- [ ] Extract shared internal archive-safety primitives and make `OfficeIMO.Zip` use them.
-- [ ] Implement package open/save, manifest handling, safe XML loading, dirty-part tracking, metadata, diagnostics, and validation.
-- [ ] Create minimal conforming ODT, ODS, and ODP packages that LibreOffice opens without repair.
-- [ ] Prove first-entry `mimetype` structure on every target framework lane.
-- [ ] Add unknown-entry and foreign-XML preservation tests.
+- [x] Add `OfficeIMO.OpenDocument` and `OfficeIMO.OpenDocument.Tests` with no package or project references.
+- [x] Extract shared internal archive-safety primitives and make `OfficeIMO.Zip` use them.
+- [x] Implement package open/save, manifest handling, safe XML loading, dirty-part tracking, metadata, diagnostics, and validation.
+- [x] Create minimal conforming ODT, ODS, and ODP packages that LibreOffice opens without repair.
+- [x] Prove first-entry `mimetype` structure on every target framework lane.
+- [x] Add unknown-entry and foreign-XML preservation tests.
 
 ### Milestone 1: useful ODT
 
-- [ ] Implement the ODT slice listed above through XML-backed wrappers.
-- [ ] Add LibreOffice- and Word-authored preservation fixtures.
-- [ ] Add a public README and examples only for supported behavior.
-- [ ] Add `OfficeIMO.Reader.OpenDocument` extraction for ODT.
+- [x] Implement the ODT slice listed above through XML-backed wrappers.
+- [x] Add LibreOffice- and Word-authored preservation fixtures.
+- [x] Add a public README and examples only for supported behavior.
+- [x] Add `OfficeIMO.Reader.OpenDocument` extraction for ODT.
 
 ### Milestone 2: useful ODS
 
-- [ ] Implement the sparse row/cell run model before general cell APIs.
-- [ ] Implement typed values, formulas with cached results, styles, merges, ranges, and sheet operations.
-- [ ] Add LibreOffice- and Excel-authored preservation fixtures, including extreme repeat counts.
-- [ ] Extend `OfficeIMO.Reader.OpenDocument` with sheet/table chunks.
+- [x] Implement the sparse row/cell run model before general cell APIs.
+- [x] Implement typed values, formulas with cached results, styles, merges, ranges, and sheet operations.
+- [x] Add LibreOffice- and Excel-authored preservation fixtures, including extreme repeat counts.
+- [x] Extend `OfficeIMO.Reader.OpenDocument` with sheet/table chunks.
 
 ### Milestone 3: useful ODP
 
-- [ ] Implement slides, masters, text, common drawing shapes, images, tables, and notes.
-- [ ] Add LibreOffice- and PowerPoint-authored preservation fixtures.
-- [ ] Extend `OfficeIMO.Reader.OpenDocument` with slide-aligned chunks and notes.
+- [x] Implement slides, masters, text, common drawing shapes, images, tables, and notes.
+- [x] Add LibreOffice- and PowerPoint-authored preservation fixtures.
+- [x] Extend `OfficeIMO.Reader.OpenDocument` with slide-aligned chunks and notes.
 
 ### Milestone 4: conversion adapters
 

@@ -23,6 +23,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.PowerPoint](OfficeIMO.PowerPoint/README.md) | Generate `.pptx` presentations programmatically. |
 | [OfficeIMO.Visio](OfficeIMO.Visio/README.md) | Create, inspect, validate, and export `.vsdx` diagrams without Visio automation. |
 | [OfficeIMO.Pdf](OfficeIMO.Pdf/README.md) | Dependency-free PDF creation, reading, inspection, page operations, and converter engine support. |
+| [OfficeIMO.OpenDocument](OfficeIMO.OpenDocument/README.md) | Dependency-free native ODT, ODS, and ODP creation, editing, inspection, and preservation. |
 | [OfficeIMO.Rtf](OfficeIMO.Rtf/README.md) | Dependency-free RTF parser, syntax tree, fluent document model, and writer. |
 | [OfficeIMO.Markdown](OfficeIMO.Markdown/README.md) | Typed Markdown AST, builder API, reader, and HTML renderer. |
 | [OfficeIMO.Reader](OfficeIMO.Reader/README.md) | Unified read-only extraction facade with modular adapters. |
@@ -66,6 +67,7 @@ PowerShell users should start with [EvotecIT/PSWriteOffice](https://github.com/E
 | [OfficeIMO.Reader.Epub](OfficeIMO.Reader.Epub/README.md) | EPUB reader adapter. |
 | [OfficeIMO.Reader.Html](OfficeIMO.Reader.Html/README.md) | HTML reader adapter. |
 | [OfficeIMO.Reader.Json](OfficeIMO.Reader.Json/README.md) | JSON reader adapter. |
+| [OfficeIMO.Reader.OpenDocument](OfficeIMO.Reader.OpenDocument/README.md) | Native ODT, ODS, and ODP reader adapter. |
 | [OfficeIMO.Reader.Pdf](OfficeIMO.Reader.Pdf/README.md) | PDF reader adapter. |
 | [OfficeIMO.Reader.Rtf](OfficeIMO.Reader.Rtf/README.md) | RTF reader adapter. |
 | [OfficeIMO.Reader.Text](OfficeIMO.Reader.Text/README.md) | Structured text compatibility adapter. |
@@ -94,6 +96,7 @@ Install only the packages you need:
 dotnet add package OfficeIMO.Word
 dotnet add package OfficeIMO.Excel
 dotnet add package OfficeIMO.PowerPoint
+dotnet add package OfficeIMO.OpenDocument
 dotnet add package OfficeIMO.Pdf
 ```
 

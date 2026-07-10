@@ -32,9 +32,9 @@ public class OpenDocumentOdsTests {
         using OdsDocument document = OdsDocument.Open(path);
         OdsSheet sheet = document.Sheets.Single();
 
-        Assert.Equal(2, sheet.RowRuns.Count);
-        Assert.Equal(1_048_575, sheet.RowRuns[0].RepeatCount);
-        Assert.Equal(16_383, sheet.RowRuns[1].CellRuns[0].RepeatCount);
+        Assert.Equal(3, sheet.RowRuns.Count);
+        Assert.Equal(1_048_574, sheet.RowRuns[1].RepeatCount);
+        Assert.Equal(16_382, sheet.RowRuns[2].CellRuns[1].RepeatCount);
         Assert.Equal("edge", sheet.GetValue(1_048_575, 16_383).DisplayText);
     }
 
@@ -45,18 +45,18 @@ public class OpenDocumentOdsTests {
 
         sheet.Cell(1_000_000, 500_000).SetString("edge");
 
-        Assert.Equal(2, sheet.RowRuns.Count);
-        Assert.Equal(1_000_000, sheet.RowRuns[0].RepeatCount);
-        Assert.Equal(2, sheet.RowRuns[1].CellRuns.Count);
-        Assert.Equal(500_000, sheet.RowRuns[1].CellRuns[0].RepeatCount);
+        Assert.Equal(3, sheet.RowRuns.Count);
+        Assert.Equal(999_999, sheet.RowRuns[1].RepeatCount);
+        Assert.Equal(3, sheet.RowRuns[2].CellRuns.Count);
+        Assert.Equal(499_999, sheet.RowRuns[2].CellRuns[1].RepeatCount);
         Assert.Equal(new OdsUsedRange(1_000_000, 500_000, 1_000_000, 500_000), sheet.UsedRange);
         Assert.True(document.ToBytes().Length < 10_000);
 
         using OdsDocument reopened = OdsDocument.Open(new MemoryStream(document.ToBytes()));
         OdsSheet reopenedSheet = reopened.Sheets.Single();
         Assert.Equal("edge", reopenedSheet.GetValue(1_000_000, 500_000).DisplayText);
-        Assert.Equal(2, reopenedSheet.RowRuns.Count);
-        Assert.Equal(2, reopenedSheet.RowRuns[1].CellRuns.Count);
+        Assert.Equal(3, reopenedSheet.RowRuns.Count);
+        Assert.Equal(3, reopenedSheet.RowRuns[2].CellRuns.Count);
     }
 
     [Fact]
