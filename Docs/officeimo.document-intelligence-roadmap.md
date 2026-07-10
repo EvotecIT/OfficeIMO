@@ -1,6 +1,6 @@
 # OfficeIMO Document Intelligence Roadmap
 
-Date: 2026-06-10
+Date: 2026-07-10
 
 ## Purpose
 
@@ -32,7 +32,9 @@ Keep this roadmap aligned with the current owner documents and proof manifests:
 
 `OfficeIMO.Reader` is already a stable ingestion facade. It reads Word, Excel, PowerPoint, Markdown, PDF, HTML, ZIP, EPUB, CSV, JSON, XML, YAML, and plain text-like formats into `ReaderChunk` instances with stable IDs, location metadata, hashes, table metadata, folder traversal, warning chunks, progress callbacks, detailed source summaries, handler registration, capability manifests, and host bootstrap helpers.
 
-`OfficeIMO.Reader.Pdf` now registers PDF ingestion through the same reader facade. The next step is not another reader switch statement; it is a shared result model that can expose chunks, Markdown, JSON, HTML, assets, diagnostics, source maps, and format-specific logical blocks from the same extraction run.
+`OfficeIMO.Reader.Pdf` registers PDF ingestion through the same reader facade. The shared `OfficeDocumentReadResult` model now carries chunks, assets, diagnostics, source maps, and normalized format-specific content from one extraction run. Further format fidelity belongs in the owning format packages and their narrow Reader adapters, not in another central reader switch statement.
+
+Reader hosts can now use `OfficeDocumentReaderBuilder` to compose modular adapters and custom handlers, then freeze that configuration into an immutable `OfficeDocumentReader`. Each instance owns its routing snapshot, so concurrent services can use different handlers for the same extension without process-global interference. The static registration API remains a compatibility surface for existing applications.
 
 ### Markdown
 
@@ -158,6 +160,7 @@ This branch starts the shared model and adapter path:
 - `OfficeIMO.Reader.Pdf` maps logical PDF readback into the shared envelope and JSON output.
 - `OfficeIMO.Reader.Visio` is an optional adapter over `OfficeIMO.Visio`, with page chunks, Shape Data tables, blocks, links, and optional SVG/PNG preview asset metadata.
 - Reader handlers can register native path and stream `OfficeDocumentReadResult` delegates. The generic `DocumentReader.ReadDocument(...)` entry point preserves PDF and Visio rich results, while legacy chunk reads project the same result's chunks when a handler is rich-result-only.
+- `OfficeDocumentReaderBuilder` and `OfficeDocumentReader` provide instance-scoped handler routing, capability manifests, file/stream/byte reads, and folder ingestion. Every modular Reader adapter exposes a matching `Add...Handler()` builder extension, while the static registry remains backward compatible.
 - Document-level metadata entries now carry stable catalog, outline, destination, open-action, viewer-preference, and form-summary facts without making the shared Reader model depend on PDF-specific types.
 - PDF source preflight capability flags now flow into metadata, and read/rewrite blockers flow into shared diagnostics as stable `pdf-read-blocker` and `pdf-rewrite-blocker` entries for file and stream readback.
 - OCR readiness is represented as `OcrCandidates` plus `ocr-needed` diagnostics for image-only PDF pages and embedded Office image assets, without adding an OCR engine or service dependency to the core.

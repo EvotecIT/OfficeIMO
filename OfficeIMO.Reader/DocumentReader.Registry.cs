@@ -272,7 +272,7 @@ public static partial class DocumentReader {
         return hasReplaceExisting;
     }
 
-    private static string NormalizeExtension(string? extension) {
+    internal static string NormalizeExtension(string? extension) {
         var value = extension ?? string.Empty;
         if (string.IsNullOrWhiteSpace(value)) return string.Empty;
         var ext = value.Trim();
@@ -280,23 +280,6 @@ public static partial class DocumentReader {
             ext = "." + ext;
         }
         return ext.ToLowerInvariant();
-    }
-
-    private static List<string> NormalizeRegistrationExtensions(IReadOnlyList<string>? extensions) {
-        var list = new List<string>();
-        if (extensions == null) return list;
-
-        var set = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        foreach (var ext in extensions) {
-            var normalized = NormalizeExtension(ext);
-            if (normalized.Length == 0) continue;
-            if (set.Add(normalized)) {
-                list.Add(normalized);
-            }
-        }
-
-        list.Sort(StringComparer.Ordinal);
-        return list;
     }
 
     private static HashSet<string> BuildBuiltInExtensionSet() {
@@ -311,44 +294,18 @@ public static partial class DocumentReader {
         return set;
     }
 
-    private static bool TryResolveCustomHandlerByPath(string path, out CustomReaderHandler handler) {
+    private static bool TryResolveCustomHandlerByPath(string path, out ReaderHandlerDescriptor handler) {
         var ext = NormalizeExtension(TryGetExtension(path));
         return TryResolveCustomHandlerByExtension(ext, out handler);
     }
 
-    private static bool TryResolveCustomHandlerBySourceName(string? sourceName, out CustomReaderHandler handler) {
+    private static bool TryResolveCustomHandlerBySourceName(string? sourceName, out ReaderHandlerDescriptor handler) {
         var ext = NormalizeExtension(TryGetExtension(sourceName ?? string.Empty));
         return TryResolveCustomHandlerByExtension(ext, out handler);
     }
 
-    private static bool TryResolveCustomHandlerByExtension(string ext, out CustomReaderHandler handler) {
-        handler = null!;
-        if (string.IsNullOrWhiteSpace(ext)) return false;
-
-        lock (HandlerRegistrySync) {
-            if (!CustomHandlerIdByExtension.TryGetValue(ext, out var handlerId)) {
-                return false;
-            }
-            if (!CustomHandlersById.TryGetValue(handlerId, out var resolved) || resolved == null) {
-                return false;
-            }
-            handler = resolved;
-            return true;
-        }
-    }
-
-    private static bool RemoveCustomHandlerUnsafe(string handlerId) {
-        if (!CustomHandlersById.TryGetValue(handlerId, out var existing)) return false;
-
-        CustomHandlersById.Remove(handlerId);
-        foreach (var ext in existing.Extensions) {
-            if (CustomHandlerIdByExtension.TryGetValue(ext, out var current) &&
-                string.Equals(current, handlerId, StringComparison.OrdinalIgnoreCase)) {
-                CustomHandlerIdByExtension.Remove(ext);
-            }
-        }
-
-        return true;
+    private static bool TryResolveCustomHandlerByExtension(string ext, out ReaderHandlerDescriptor handler) {
+        return GetActiveHandlerRegistry().TryResolve(ext, out handler);
     }
 
     private static ReaderOptions NormalizeOptions(ReaderOptions? options) {
@@ -470,22 +427,12 @@ public static partial class DocumentReader {
     }
 
     private static IReadOnlyList<string> GetDefaultAndRegisteredFolderExtensions() {
-        lock (HandlerRegistrySync) {
-            if (CustomHandlerIdByExtension.Count == 0) {
-                return DefaultFolderExtensions;
-            }
-
-            var merged = new string[DefaultFolderExtensions.Length + CustomHandlerIdByExtension.Count];
-            Array.Copy(DefaultFolderExtensions, merged, DefaultFolderExtensions.Length);
-
-            int index = DefaultFolderExtensions.Length;
-            foreach (var extension in CustomHandlerIdByExtension.Keys) {
-                merged[index] = extension;
-                index++;
-            }
-
-            return merged;
+        IReadOnlyList<string> customExtensions = GetActiveHandlerRegistry().Extensions;
+        if (customExtensions.Count == 0) {
+            return DefaultFolderExtensions;
         }
+
+        return DefaultFolderExtensions.Concat(customExtensions).ToArray();
     }
 
     private static IEnumerable<string> EnumerateFilesSafeDeterministic(string folderPath, ReaderFolderOptions options, CancellationToken cancellationToken) {

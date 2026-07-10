@@ -30,68 +30,6 @@ public static partial class DocumentReader {
         public ReaderHandlerRegistrarDescriptor Descriptor { get; }
     }
 
-    private sealed class CustomReaderHandler {
-        public CustomReaderHandler(
-            string id,
-            string displayName,
-            string? description,
-            ReaderInputKind kind,
-            IReadOnlyList<string> extensions,
-            long? defaultMaxInputBytes,
-            ReaderWarningBehavior warningBehavior,
-            bool deterministicOutput,
-            Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readPath,
-            Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? readStream,
-            Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentPath,
-            Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? readDocumentStream) {
-            Id = id;
-            DisplayName = displayName;
-            Description = description;
-            Kind = kind;
-            Extensions = extensions;
-            DefaultMaxInputBytes = defaultMaxInputBytes;
-            WarningBehavior = warningBehavior;
-            DeterministicOutput = deterministicOutput;
-            ReadPath = readPath;
-            ReadStream = readStream;
-            ReadDocumentPath = readDocumentPath;
-            ReadDocumentStream = readDocumentStream;
-        }
-
-        public string Id { get; }
-        public string DisplayName { get; }
-        public string? Description { get; }
-        public ReaderInputKind Kind { get; }
-        public IReadOnlyList<string> Extensions { get; }
-        public long? DefaultMaxInputBytes { get; }
-        public ReaderWarningBehavior WarningBehavior { get; }
-        public bool DeterministicOutput { get; }
-        public Func<string, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadPath { get; }
-        public Func<Stream, string?, ReaderOptions, CancellationToken, IEnumerable<ReaderChunk>>? ReadStream { get; }
-        public Func<string, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentPath { get; }
-        public Func<Stream, string?, ReaderOptions, CancellationToken, OfficeDocumentReadResult>? ReadDocumentStream { get; }
-
-        public ReaderHandlerCapability ToCapability() {
-            return new ReaderHandlerCapability {
-                Id = Id,
-                DisplayName = DisplayName,
-                Description = Description,
-                Kind = Kind,
-                Extensions = Extensions.ToArray(),
-                IsBuiltIn = false,
-                SupportsPath = ReadPath != null || ReadDocumentPath != null,
-                SupportsStream = ReadStream != null || ReadDocumentStream != null,
-                SupportsDocumentPath = ReadDocumentPath != null,
-                SupportsDocumentStream = ReadDocumentStream != null,
-                SchemaId = ReaderCapabilitySchema.Id,
-                SchemaVersion = ReaderCapabilitySchema.Version,
-                DefaultMaxInputBytes = DefaultMaxInputBytes,
-                WarningBehavior = WarningBehavior,
-                DeterministicOutput = DeterministicOutput
-            };
-        }
-    }
-
     private sealed class FolderIngestState {
         public int FilesScanned { get; set; }
         public int FilesParsed { get; set; }

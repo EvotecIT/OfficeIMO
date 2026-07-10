@@ -17,9 +17,30 @@ public static class DocumentReaderTextRegistrationExtensions {
     /// Defaults to true because these extensions are already handled by the built-in plain text path.
     /// </param>
     public static void RegisterStructuredTextHandler(StructuredTextReadOptions? structuredOptions = null, bool replaceExisting = true) {
-        var registered = Clone(structuredOptions);
+        DocumentReader.RegisterHandler(CreateRegistration(structuredOptions), replaceExisting);
+    }
 
-        DocumentReader.RegisterHandler(new ReaderHandlerRegistration {
+    /// <summary>
+    /// Adds structured text compatibility ingestion to an isolated reader builder.
+    /// </summary>
+    public static OfficeDocumentReaderBuilder AddStructuredTextHandler(
+        this OfficeDocumentReaderBuilder builder,
+        StructuredTextReadOptions? structuredOptions = null,
+        bool replaceExisting = true) {
+        if (builder == null) throw new ArgumentNullException(nameof(builder));
+        return builder.AddHandler(CreateRegistration(structuredOptions), replaceExisting);
+    }
+
+    /// <summary>
+    /// Unregisters structured text compatibility handler from <see cref="DocumentReader"/>.
+    /// </summary>
+    public static bool UnregisterStructuredTextHandler() {
+        return DocumentReader.UnregisterHandler(HandlerId);
+    }
+
+    private static ReaderHandlerRegistration CreateRegistration(StructuredTextReadOptions? structuredOptions) {
+        StructuredTextReadOptions? registered = Clone(structuredOptions);
+        return new ReaderHandlerRegistration {
             Id = HandlerId,
             DisplayName = "Structured Text Reader Compatibility Adapter",
             Description = "Compatibility adapter that delegates CSV/JSON/XML to dedicated modular handlers.",
@@ -36,14 +57,7 @@ public static class DocumentReaderTextRegistrationExtensions {
                 readerOptions: readerOptions,
                 structuredOptions: Clone(registered),
                 cancellationToken: ct)
-        }, replaceExisting);
-    }
-
-    /// <summary>
-    /// Unregisters structured text compatibility handler from <see cref="DocumentReader"/>.
-    /// </summary>
-    public static bool UnregisterStructuredTextHandler() {
-        return DocumentReader.UnregisterHandler(HandlerId);
+        };
     }
 
     private static StructuredTextReadOptions? Clone(StructuredTextReadOptions? options) {
