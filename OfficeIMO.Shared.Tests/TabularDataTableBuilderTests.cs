@@ -20,6 +20,17 @@ public class TabularDataTableBuilderTests {
     }
 
     [Fact]
+    public void FromItems_OrdersPublicPropertiesByMetadata() {
+        var table = TabularDataTableBuilder.FromItems(new object?[] {
+            new StablePropertyOrderRow { Second = "two", First = 1 }
+        });
+
+        Assert.Equal(new[] { "Second", "First" }, table.Columns.Cast<DataColumn>().Select(column => column.ColumnName).ToArray());
+        Assert.Equal("two", table.Rows[0]["Second"]);
+        Assert.Equal(1, table.Rows[0]["First"]);
+    }
+
+    [Fact]
     public void FromItems_ExpandsSingleEnumerableInput() {
         var rows = new[] {
             new Dictionary<string, object?> { ["Id"] = 1 },
@@ -222,6 +233,12 @@ public class TabularDataTableBuilderTests {
         public HostRow(int number) => Number = number;
 
         public int Number { get; }
+    }
+
+    private sealed class StablePropertyOrderRow {
+        public string Second { get; set; } = string.Empty;
+
+        public int First { get; set; }
     }
 
     private sealed class ReadOnlyRow : IReadOnlyDictionary<string, object?> {

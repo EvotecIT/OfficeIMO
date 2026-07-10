@@ -1,5 +1,6 @@
 using System;
 using System.Collections;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -11,6 +12,8 @@ namespace OfficeIMO.Data;
 /// Converts common object, dictionary, DataTable, DataView, IDataReader, DataRow, and IDataRecord inputs into tabular data.
 /// </summary>
 public static class TabularDataTableBuilder {
+    private static readonly ConcurrentDictionary<Type, PropertyInfo[]> PublicPropertyPlans = new();
+
     /// <summary>Converts an input sequence into a DataTable.</summary>
     public static DataTable FromItems(IEnumerable<object?> input, TabularDataOptions? options = null) {
         if (input == null) {
@@ -376,16 +379,21 @@ public static class TabularDataTableBuilder {
 
     private static IReadOnlyDictionary<string, object?> ProjectPublicProperties(object item, TabularDataOptions options) {
         var result = new Dictionary<string, object?>(StringComparer.OrdinalIgnoreCase);
-        foreach (var property in item.GetType().GetProperties(BindingFlags.Public | BindingFlags.Instance)) {
-            if (!property.CanRead || property.GetIndexParameters().Length != 0) {
-                continue;
-            }
-
+        foreach (var property in GetPublicPropertyPlan(item.GetType())) {
             result[property.Name] = NormalizeValue(property.GetValue(item), options);
         }
 
         return result;
     }
+
+    private static PropertyInfo[] GetPublicPropertyPlan(Type type)
+        => PublicPropertyPlans.GetOrAdd(type, propertyType => propertyType
+            .GetProperties(BindingFlags.Public | BindingFlags.Instance)
+            .Where(property => property.CanRead
+                && property.GetIndexParameters().Length == 0
+                && !string.IsNullOrWhiteSpace(property.Name))
+            .OrderBy(property => property.MetadataToken)
+            .ToArray());
 
     private static Type InferColumnType(IReadOnlyList<IReadOnlyDictionary<string, object?>> rows, string column) {
         Type? inferred = null;
