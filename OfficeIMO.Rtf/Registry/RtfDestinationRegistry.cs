@@ -86,15 +86,42 @@ public static class RtfDestinationRegistry {
         ["bkmkstart"] = RtfDestinationType.Bookmark,
         ["bkmkend"] = RtfDestinationType.Bookmark,
         ["htmltag"] = RtfDestinationType.Metadata,
-        ["mhtmltag"] = RtfDestinationType.Metadata
+        ["mhtmltag"] = RtfDestinationType.Metadata,
+        ["themedata"] = RtfDestinationType.Metadata,
+        ["colorschememapping"] = RtfDestinationType.Metadata,
+        ["latentstyles"] = RtfDestinationType.StyleSheet,
+        ["lsdlockedexcept"] = RtfDestinationType.StyleSheet,
+        ["xe"] = RtfDestinationType.Field,
+        ["tc"] = RtfDestinationType.Field,
+        ["xmlopen"] = RtfDestinationType.Metadata,
+        ["xmlclose"] = RtfDestinationType.Metadata,
+        ["xmlattr"] = RtfDestinationType.Metadata,
+        ["xmlattrname"] = RtfDestinationType.Metadata,
+        ["xmlattrvalue"] = RtfDestinationType.Metadata,
+        ["factoidname"] = RtfDestinationType.Metadata,
+        ["datastore"] = RtfDestinationType.Metadata,
+        ["datafield"] = RtfDestinationType.Metadata,
+        ["protusertbl"] = RtfDestinationType.Metadata,
+        ["protstart"] = RtfDestinationType.Metadata,
+        ["protend"] = RtfDestinationType.Metadata,
+        ["mvfmf"] = RtfDestinationType.Bookmark,
+        ["mvfml"] = RtfDestinationType.Bookmark,
+        ["mvtof"] = RtfDestinationType.Bookmark,
+        ["mvtol"] = RtfDestinationType.Bookmark
     };
 
     private static readonly HashSet<string> SemanticSkipDestinations = new HashSet<string>(StringComparer.Ordinal) {
-        "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "listtable", "listoverridetable", "pntext", "listtext", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl", "htmltag", "mhtmltag"
+        "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "listtable", "listoverridetable", "pntext", "listtext", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl", "htmltag", "mhtmltag",
+        "themedata", "colorschememapping", "latentstyles", "lsdlockedexcept", "xe", "tc", "xmlopen", "xmlclose", "xmlattr", "xmlattrname", "xmlattrvalue", "factoidname", "datastore", "datafield", "protusertbl", "protstart", "protend", "mvfmf", "mvfml", "mvtof", "mvtol"
+    };
+
+    private static readonly HashSet<string> UnsupportedSemanticDestinations = new HashSet<string>(StringComparer.Ordinal) {
+        "objdata", "themedata", "colorschememapping", "latentstyles", "lsdlockedexcept", "xe", "tc", "xmlopen", "xmlclose", "xmlattr", "xmlattrname", "xmlattrvalue", "factoidname", "datastore", "datafield", "protusertbl", "protstart", "protend", "mvfmf", "mvfml", "mvtof", "mvtol"
     };
 
     private static readonly HashSet<string> TextReplacementSkipDestinations = new HashSet<string>(StringComparer.Ordinal) {
-        "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "pict", "object", "objdata", "listtable", "listoverridetable", "pntext", "listtext", "fldinst", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl"
+        "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "pict", "object", "objdata", "listtable", "listoverridetable", "pntext", "listtext", "fldinst", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl", "htmltag", "mhtmltag",
+        "themedata", "colorschememapping", "latentstyles", "lsdlockedexcept", "xe", "tc", "xmlopen", "xmlclose", "xmlattr", "xmlattrname", "xmlattrvalue", "factoidname", "datastore", "datafield", "protusertbl", "protstart", "protend", "mvfmf", "mvfml", "mvtof", "mvtol"
     };
 
     private static readonly HashSet<string> HeaderControlsBeforeInfo = new HashSet<string>(StringComparer.Ordinal) {
@@ -130,7 +157,7 @@ public static class RtfDestinationRegistry {
     /// Returns whether the destination is currently preserved but not semantically modeled.
     /// </summary>
     public static bool IsUnsupportedSemanticDestination(string? destination) =>
-        destination != null && destination != "object" && GetDestinationType(destination) is RtfDestinationType.Object;
+        destination != null && UnsupportedSemanticDestinations.Contains(destination);
 
     /// <summary>
     /// Returns whether the group is marked with the ignorable destination control symbol.
