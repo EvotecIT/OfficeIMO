@@ -238,8 +238,27 @@ internal sealed class HtmlInlineRun {
         OwnerElement = ownerElement;
     }
 
+    internal HtmlInlineRun(
+        HtmlRenderFlowBlock floatingBlock,
+        HtmlRenderBoxStyle style,
+        string? linkUri,
+        string source,
+        string floatSide,
+        string clearSide,
+        IElement ownerElement) {
+        FloatingBlock = floatingBlock;
+        Text = string.Empty;
+        Style = style;
+        LinkUri = linkUri;
+        Source = source;
+        FloatSide = floatSide;
+        ClearSide = clearSide;
+        OwnerElement = ownerElement;
+    }
+
     internal string Text { get; }
     internal HtmlRenderFlowBlock? AtomicBlock { get; }
+    internal HtmlRenderFlowBlock? FloatingBlock { get; }
     internal HtmlRenderBoxStyle Style { get; }
     internal string? LinkUri { get; }
     internal string Source { get; }
@@ -247,6 +266,8 @@ internal sealed class HtmlInlineRun {
     internal double PaintOffsetY { get; }
     internal IElement? OwnerElement { get; }
     internal IElement? PositionedMarkerElement { get; }
+    internal string FloatSide { get; } = "none";
+    internal string ClearSide { get; } = "none";
 }
 
 internal sealed class HtmlInlineLayout {

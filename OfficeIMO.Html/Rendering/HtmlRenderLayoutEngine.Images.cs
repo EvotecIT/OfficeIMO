@@ -55,12 +55,36 @@ internal sealed partial class HtmlRenderLayoutEngine {
         return new HtmlRenderFlowBlock(containingWidth, outerHeight, visuals, style.BreakBefore, style.BreakAfter, style.AvoidBreakInside, sourceDescription, pageName: style.PageName);
     }
 
+    private double ResolveFloatingImageOuterWidth(IElement element, double containingWidth, HtmlRenderBoxStyle style) {
+        double availableWidth = Math.Max(1D, containingWidth - style.MarginLeft - style.MarginRight);
+        TryResolveImageSource(
+            element.GetAttribute("src"),
+            HtmlRenderStyleResolver.DescribeSource(element),
+            out _,
+            out _,
+            out OfficeImageInfo? imageInfo,
+            reportDiagnostics: false);
+        double intrinsicWidth = imageInfo != null && imageInfo.Width > 0
+            ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiX
+            : 300D;
+        double intrinsicHeight = imageInfo != null && imageInfo.Height > 0
+            ? imageInfo.Height * HtmlRenderOptions.CssPixelsPerInch / imageInfo.DpiY
+            : 150D;
+        double imageWidth = style.ExplicitWidth ?? intrinsicWidth;
+        if (!style.ExplicitWidth.HasValue && style.ExplicitHeight.HasValue && intrinsicHeight > 0D) {
+            imageWidth = style.ExplicitHeight.Value * intrinsicWidth / intrinsicHeight;
+        }
+        imageWidth = Math.Min(imageWidth, Math.Max(1D, availableWidth - style.HorizontalInsets));
+        return Math.Max(1D, style.MarginLeft + imageWidth + style.HorizontalInsets + style.MarginRight);
+    }
+
     private bool TryResolveImageSource(
         string? source,
         string sourceDescription,
         out byte[]? bytes,
         out string contentType,
-        out OfficeImageInfo? imageInfo) {
+        out OfficeImageInfo? imageInfo,
+        bool reportDiagnostics = true) {
         bytes = null;
         contentType = string.Empty;
         imageInfo = null;
@@ -74,7 +98,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             bytes = decoded;
             contentType = dataUri.MediaType;
             extension = dataUri.FileExtension;
-        } else if (!string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
+        } else if (reportDiagnostics && !string.IsNullOrWhiteSpace(source) && !_resources.WasAttempted(source, resolvedSource)) {
             string code = resolvedSource.Length == 0 ? "ImageResourceRejectedByPolicy" : HtmlRenderDiagnosticCodes.ExternalImagePending;
             string message = resolvedSource.Length == 0
                 ? "An image was rejected before entering the rendered document."

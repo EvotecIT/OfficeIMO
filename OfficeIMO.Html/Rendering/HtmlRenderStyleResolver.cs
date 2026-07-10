@@ -65,6 +65,7 @@ internal sealed class HtmlRenderStyleResolver {
             SemanticRole = pseudoElement ? pseudoSemanticRole : ResolveSemanticRole(tag),
             PreserveWhitespace = IsPreformatted(pseudoElement ? string.Empty : tag, computed.GetValue("white-space")),
             TextTransform = string.IsNullOrWhiteSpace(computed.GetValue("text-transform")) ? parent?.TextTransform ?? "none" : computed.GetValue("text-transform").Trim().ToLowerInvariant(),
+            Direction = ResolveDirection(computed.GetValue("direction"), parent?.Direction),
             BorderBox = string.Equals(computed.GetValue("box-sizing"), "border-box", StringComparison.OrdinalIgnoreCase)
         };
 
@@ -72,11 +73,42 @@ internal sealed class HtmlRenderStyleResolver {
         ApplyBoxValues(computed, containingWidth, fontSize, style);
         ApplyDimensions(element, computed, containingWidth, fontSize, style, !pseudoElement);
         ApplyPaint(computed, style);
+        ApplyFloat(computed, style);
         ApplyPositioning(computed, style);
         ApplyFlex(computed, containingWidth, fontSize, style);
         ApplyGrid(computed, style);
         ApplyBreaks(computed, style);
         return style;
+    }
+
+    private static void ApplyFloat(HtmlComputedStyle computed, HtmlRenderBoxStyle style) {
+        style.FloatSide = NormalizeFloatSide(computed.GetValue("float"), style.Direction, out style.UnsupportedFloat);
+        style.ClearSide = NormalizeClearSide(computed.GetValue("clear"), style.Direction, out style.UnsupportedClear);
+    }
+
+    private static string NormalizeFloatSide(string value, string direction, out string unsupported) {
+        unsupported = string.Empty;
+        string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value.Trim().ToLowerInvariant();
+        if (normalized == "none" || normalized == "left" || normalized == "right") return normalized;
+        if (normalized == "inline-start") return direction == "rtl" ? "right" : "left";
+        if (normalized == "inline-end") return direction == "rtl" ? "left" : "right";
+        unsupported = normalized;
+        return "none";
+    }
+
+    private static string NormalizeClearSide(string value, string direction, out string unsupported) {
+        unsupported = string.Empty;
+        string normalized = string.IsNullOrWhiteSpace(value) ? "none" : value.Trim().ToLowerInvariant();
+        if (normalized == "none" || normalized == "left" || normalized == "right" || normalized == "both") return normalized;
+        if (normalized == "inline-start") return direction == "rtl" ? "right" : "left";
+        if (normalized == "inline-end") return direction == "rtl" ? "left" : "right";
+        unsupported = normalized;
+        return "none";
+    }
+
+    private static string ResolveDirection(string value, string? inherited) {
+        string normalized = string.IsNullOrWhiteSpace(value) ? inherited ?? "ltr" : value.Trim().ToLowerInvariant();
+        return normalized == "rtl" ? "rtl" : "ltr";
     }
 
     internal static bool IsBlockElement(IElement element, HtmlRenderBoxStyle style) {

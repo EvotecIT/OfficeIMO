@@ -30,11 +30,13 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private readonly Dictionary<IElement, InlineStaticPosition> _inlineStaticPositions = new Dictionary<IElement, InlineStaticPosition>();
     private readonly HashSet<IElement> _inlineStackingElements = new HashSet<IElement>();
     private readonly Dictionary<IElement, HtmlRenderBoxStyle> _layoutStyles = new Dictionary<IElement, HtmlRenderBoxStyle>();
+    private readonly Dictionary<IElement, bool> _containsInFlowFloatCache = new Dictionary<IElement, bool>();
     private readonly Dictionary<int, int> _rootStackingPaintOrders = new Dictionary<int, int>();
     private readonly Dictionary<IElement, int> _positionedSourceOrdersByElement = new Dictionary<IElement, int>();
     private readonly HashSet<IElement> _registeredFixedElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _registeredAbsoluteElements = new HashSet<IElement>();
     private readonly HashSet<IElement> _reportedPositionStaticAnchorFallbacks = new HashSet<IElement>();
+    private readonly HashSet<IElement> _reportedFloatValueFallbacks = new HashSet<IElement>();
     private readonly HashSet<string> _reportedStickySources = new HashSet<string>(StringComparer.Ordinal);
 
     internal HtmlRenderLayoutEngine(IHtmlDocument document, HtmlComputedStyleSet computedStyles, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, HtmlRenderResourceSet? resources = null, HtmlCssPageRuleSet? pageRules = null, OfficeFontFaceCollection? fonts = null) {

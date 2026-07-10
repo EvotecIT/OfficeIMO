@@ -6,6 +6,10 @@ internal sealed class HtmlRenderBoxStyle {
     internal string Display = "block";
     internal bool DisplayWasSpecified;
     internal string Position = "static";
+    internal string FloatSide = "none";
+    internal string ClearSide = "none";
+    internal string UnsupportedFloat = string.Empty;
+    internal string UnsupportedClear = string.Empty;
     internal string Top = "auto";
     internal string Right = "auto";
     internal string Bottom = "auto";
@@ -71,6 +75,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool BorderBox;
     internal bool PreserveWhitespace;
     internal string TextTransform = "none";
+    internal string Direction = "ltr";
     internal HtmlPageBreakTarget BreakBefore;
     internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;

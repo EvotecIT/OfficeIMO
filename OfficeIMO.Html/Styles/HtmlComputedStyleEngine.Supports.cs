@@ -59,6 +59,17 @@ public static partial class HtmlComputedStyleEngine {
 
         string propertyName = normalized.Substring(0, separator).Trim();
         string value = normalized.Substring(separator + 1).Trim();
+        return IsSupportedSupportsConditionValue(propertyName, value);
+    }
+
+    private static bool IsSupportedSupportsConditionValue(string propertyName, string value) {
+        string normalized = value.Trim().Trim('\'', '"').ToLowerInvariant();
+        if (string.Equals(propertyName, "float", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "none", "left", "right", "inline-start", "inline-end");
+        }
+        if (string.Equals(propertyName, "clear", StringComparison.OrdinalIgnoreCase)) {
+            return IsKnownKeyword(normalized, "none", "left", "right", "both", "inline-start", "inline-end");
+        }
         return IsSupportedDeclarationValue(propertyName, value);
     }
 

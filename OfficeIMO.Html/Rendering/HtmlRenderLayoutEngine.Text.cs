@@ -61,6 +61,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
         HtmlRenderBoxStyle style = _styleResolver.Resolve(element, width, inheritedStyle);
         _layoutStyles[element] = style.Clone();
         if (style.Display == "none") return;
+        ReportUnsupportedFloatValues(element, style);
+        string? link = inheritedLink;
+        if (tag == "a") {
+            link = ResolveSafeLink(element.GetAttribute("href"), element);
+        }
         if ((style.Position == "relative" || style.Position == "sticky") && style.ZIndex != "auto") {
             _inlineStackingElements.Add(element);
         }
@@ -77,9 +82,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 element));
             return;
         }
-        string? link = inheritedLink;
-        if (tag == "a") {
-            link = ResolveSafeLink(element.GetAttribute("href"), element);
+        if (style.FloatSide != "none") {
+            AddFloatingRun(element, width, inheritedStyle, depth, style, link, runs);
+            return;
         }
 
         if (style.Display == "inline-flex") {
@@ -113,6 +118,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlInlineLayout LayoutInlineRuns(IReadOnlyList<HtmlInlineRun> runs, double width, HtmlRenderBoxStyle paragraphStyle, IElement? formattingContainer = null) {
         if (runs.Count == 0 || width <= 0D) return new HtmlInlineLayout(Array.Empty<HtmlRenderVisual>(), 0D);
+        if (runs.Any(run => run.FloatingBlock != null)) {
+            return LayoutInlineRunsWithFloats(runs, width, paragraphStyle, formattingContainer);
+        }
         var lines = new List<InlineLine>();
         var line = new InlineLine();
         bool previousWasCollapsibleSpace = false;
@@ -171,80 +179,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         TrimTrailingWhitespace(line);
         if (line.Segments.Count > 0 || lines.Count == 0) lines.Add(line);
-
-        var visuals = new List<HtmlRenderVisual>();
-        var ownedVisuals = new Dictionary<IElement, List<HtmlRenderVisual>>();
-        var inlineBounds = new Dictionary<IElement, InlineContainingBounds>();
-        var breakOffsets = new List<double>();
-        double y = 0D;
-        foreach (InlineLine current in lines) {
-            double lineHeight = current.ResolveLineHeight(paragraphStyle.LineHeight);
-            double offsetX = ResolveLineOffset(paragraphStyle.Alignment, width, current.Width);
-            double x = offsetX;
-            foreach (InlineSegment segment in MergeAdjacentInlineSegments(current.Segments)) {
-                if (segment.Run.PositionedMarkerElement != null) {
-                    RecordInlineStaticMarker(segment.Run, formattingContainer, x, y, lineHeight, inlineBounds);
-                    EnsureInlineStackingOwner(segment.Run.OwnerElement, formattingContainer, ownedVisuals);
-                } else if (segment.Run.AtomicBlock != null) {
-                    HtmlRenderFlowBlock atomic = segment.Run.AtomicBlock;
-                    double atomicY = y + Math.Max(0D, lineHeight - atomic.Height);
-                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, atomicY, segment.Width, atomic.Height, inlineBounds);
-                    foreach (HtmlRenderVisual visual in atomic.Visuals) {
-                        HtmlRenderVisual translated = visual.Translate(x, atomicY, visuals.Count);
-                        if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
-                            translated = translated.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
-                        }
-                        AddInlineOwnedVisual(visuals, ownedVisuals, translated, segment.Run.OwnerElement, formattingContainer);
-                    }
-                    if (segment.Run.LinkUri != null) {
-                        OfficeShape linkArea = OfficeShape.Rectangle(Math.Max(0.01D, segment.Width), Math.Max(0.01D, atomic.Height));
-                        linkArea.FillColor = null;
-                        linkArea.StrokeWidth = 0D;
-                        HtmlRenderVisual linkVisual = new HtmlRenderShape(linkArea, x, atomicY, visuals.Count, segment.Run.LinkUri, segment.Run.Source);
-                        if (Math.Abs(segment.Run.PaintOffsetX) > 0.0001D || Math.Abs(segment.Run.PaintOffsetY) > 0.0001D) {
-                            linkVisual = linkVisual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count);
-                        }
-                        AddInlineOwnedVisual(
-                            visuals,
-                            ownedVisuals,
-                            linkVisual,
-                            segment.Run.OwnerElement,
-                            formattingContainer);
-                    }
-                } else if (segment.Text.Length > 0 && segment.Width > 0D) {
-                    RecordInlineOwnerGeometry(segment.Run, formattingContainer, x, y, segment.Width, lineHeight, inlineBounds);
-                    double frameTolerance = Math.Max(1D, segment.Run.Style.Font.Size * 0.35D);
-                    double frameWidth = Math.Min(Math.Max(0.01D, width - x), segment.Width + frameTolerance);
-                    HtmlRenderVisual visual = new HtmlRenderText(
-                        segment.Text,
-                        x,
-                        y,
-                        Math.Max(0.01D, frameWidth),
-                        Math.Max(0.01D, lineHeight),
-                        segment.Run.Style.Font,
-                        segment.Run.Style.Color,
-                        OfficeTextAlignment.Left,
-                        lineHeight,
-                        visuals.Count,
-                        segment.Run.LinkUri,
-                        segment.Run.Source,
-                        segment.Run.Style.SemanticRole);
-                    AddInlineOwnedVisual(
-                        visuals,
-                        ownedVisuals,
-                        visual.TranslatePaint(segment.Run.PaintOffsetX, segment.Run.PaintOffsetY, visuals.Count),
-                        segment.Run.OwnerElement,
-                        formattingContainer);
-                }
-
-                x += segment.Width;
-            }
-
-            y += lineHeight;
-            breakOffsets.Add(y);
-        }
-
-        return new HtmlInlineLayout(ComposeInlinePositionedVisuals(visuals, ownedVisuals, inlineBounds, formattingContainer), y, breakOffsets);
+        return RenderInlineLines(lines, width, paragraphStyle, formattingContainer);
     }
 
     private static IReadOnlyList<InlineSegment> MergeAdjacentInlineSegments(IReadOnlyList<InlineSegment> segments) {
@@ -389,6 +324,17 @@ internal sealed partial class HtmlRenderLayoutEngine {
     private sealed class InlineLine {
         internal List<InlineSegment> Segments { get; } = new List<InlineSegment>();
         internal double Width { get; private set; }
+        internal bool HasExplicitPlacement { get; private set; }
+        internal double X { get; private set; }
+        internal double Y { get; private set; }
+        internal double AvailableWidth { get; private set; }
+
+        internal void Place(double x, double y, double availableWidth) {
+            HasExplicitPlacement = true;
+            X = Math.Max(0D, x);
+            Y = Math.Max(0D, y);
+            AvailableWidth = Math.Max(0.01D, availableWidth);
+        }
 
         internal void Add(InlineSegment segment) {
             Segments.Add(segment);

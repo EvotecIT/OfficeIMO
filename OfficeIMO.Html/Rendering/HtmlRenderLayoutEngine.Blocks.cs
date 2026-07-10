@@ -33,6 +33,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                     continue;
                 }
 
+                if (childStyle.FloatSide != "none") {
+                    inlineNodes.Add(node);
+                    continue;
+                }
+
                 if (HtmlRenderStyleResolver.IsBlockElement(element, childStyle)) {
                     flowHeight += FlushInlineNodes(blocks, inlineNodes, width, parentStyle, container, depth);
                     RecordNormalFlowPlacement(element, container, 0D, flowHeight, childStyle);
@@ -53,6 +58,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
     private HtmlRenderFlowBlock LayoutElement(IElement element, double containingWidth, HtmlRenderBoxStyle style, HtmlRenderBoxStyle parentStyle, int depth) {
         EnsureDepth(depth, element);
+        ReportUnsupportedFloatValues(element, style);
         _layoutStyles[element] = style.Clone();
         string tag = element.TagName.ToLowerInvariant();
         double? containingHeight = ResolveContainingBlockHeight(parentStyle);
@@ -211,8 +217,10 @@ internal sealed partial class HtmlRenderLayoutEngine {
         foreach (IElement child in element.Children) {
             if (ShouldSkipElement(child)) continue;
             HtmlRenderBoxStyle style = _styleResolver.Resolve(child, width, parentStyle);
+            if (style.FloatSide != "none") return true;
             if (style.Display != "none" && ShouldExtractOutOfFlow(style) && !UsesInlineStaticPosition(child, style)) return true;
             if (style.Display != "none" && HtmlRenderStyleResolver.IsBlockElement(child, style)) return true;
+            if (style.Display != "none" && ContainsFloatingDescendant(child, width, style)) return true;
         }
 
         return false;
