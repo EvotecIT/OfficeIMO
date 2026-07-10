@@ -506,8 +506,9 @@ internal sealed class HtmlRenderStyleResolver {
         string column = gap.Count > 1 ? gap[1] : row;
         if (!string.IsNullOrWhiteSpace(computed.GetValue("row-gap"))) row = computed.GetValue("row-gap");
         if (!string.IsNullOrWhiteSpace(computed.GetValue("column-gap"))) column = computed.GetValue("column-gap");
-        style.RowGap = ResolveGap(row, reference, fontSize, out _);
+        style.RowGap = ResolveGap(row, reference, fontSize, out bool rowUnsupported);
         style.ColumnGap = ResolveGap(column, reference, fontSize, out bool columnUnsupported);
+        if (rowUnsupported) style.UnsupportedRowGap = row.Trim();
         if (columnUnsupported) style.UnsupportedColumnGap = column.Trim();
     }
 

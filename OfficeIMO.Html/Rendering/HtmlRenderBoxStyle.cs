@@ -22,6 +22,7 @@ internal sealed class HtmlRenderBoxStyle {
     internal int Order;
     internal double RowGap;
     internal double ColumnGap;
+    internal string UnsupportedRowGap = string.Empty;
     internal string UnsupportedColumnGap = string.Empty;
     internal bool HasAutoMargin;
     internal double MarginTop;

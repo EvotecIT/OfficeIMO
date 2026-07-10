@@ -10,7 +10,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         int depth,
         out HtmlRenderFlowBlock block) {
         block = null!;
-        if (style.FlexWrap != "nowrap"
+        if (style.FlexWrap != "nowrap" && style.FlexWrap != "wrap" && style.FlexWrap != "wrap-reverse"
             || style.FlexDirection != "row" && style.FlexDirection != "row-reverse"
             || _generatedContent.TryGet(element, HtmlPseudoElementKind.Before, out _)
             || _generatedContent.TryGet(element, HtmlPseudoElementKind.After, out _)) {
@@ -43,22 +43,33 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedColumnGap.Length > 0) {
             ReportUnsupportedFlexValue(element, "column-gap=" + style.UnsupportedColumnGap);
         }
+        if (style.FlexWrap != "nowrap" && style.UnsupportedRowGap.Length > 0) {
+            ReportUnsupportedFlexValue(element, "row-gap=" + style.UnsupportedRowGap);
+        }
         List<FlexItem> orderedItems = items.OrderBy(item => item.Style.Order).ThenBy(item => item.SourceIndex).ToList();
         double gap = orderedItems.Count > 1 ? style.ColumnGap : 0D;
-        double availableForItems = Math.Max(1D, contentWidth - gap * Math.Max(0, orderedItems.Count - 1));
-        foreach (FlexItem item in orderedItems) item.Basis = ResolveFlexBasis(item, availableForItems);
-        ResolveFlexMainSizes(orderedItems, availableForItems);
+        foreach (FlexItem item in orderedItems) item.Basis = ResolveFlexBasis(item, contentWidth);
+        List<FlexLine> lines = CreateFlexLines(orderedItems, style.FlexWrap, contentWidth, gap);
+        foreach (FlexLine line in lines) {
+            double availableForItems = Math.Max(0D, contentWidth - gap * Math.Max(0, line.Items.Count - 1));
+            ResolveFlexMainSizes(line.Items, availableForItems);
+            foreach (FlexItem item in line.Items) {
+                item.Block = LayoutElement(item.Element, Math.Max(1D, item.MainSize), item.Style, style, depth + 1);
+            }
 
-        foreach (FlexItem item in orderedItems) {
-            item.Block = LayoutElement(item.Element, Math.Max(1D, item.MainSize), item.Style, style, depth + 1);
+            line.CrossSize = line.Items.Count == 0 ? 0D : line.Items.Max(item => item.Block!.Height);
         }
 
-        double naturalCrossSize = orderedItems.Count == 0 ? 0D : orderedItems.Max(item => item.Block!.Height);
+        double rowGap = lines.Count > 1 ? style.RowGap : 0D;
+        double naturalCrossSize = lines.Sum(line => line.CrossSize) + rowGap * Math.Max(0, lines.Count - 1);
         double crossSize = ResolveFlexCrossSize(style, naturalCrossSize);
-        StretchFlexItems(orderedItems, style, crossSize, depth);
-        ResolveFlexMainOffsets(orderedItems, style, contentWidth, gap, HtmlRenderStyleResolver.DescribeSource(element));
-        foreach (FlexItem item in orderedItems) {
-            item.CrossOffset = ResolveFlexCrossOffset(item, style, crossSize);
+        ResolveFlexLineOffsets(lines, style, crossSize, rowGap, HtmlRenderStyleResolver.DescribeSource(element));
+        foreach (FlexLine line in lines) {
+            StretchFlexItems(line.Items, style, line.CrossSize, depth);
+            ResolveFlexMainOffsets(line.Items, style, contentWidth, gap, HtmlRenderStyleResolver.DescribeSource(element));
+            foreach (FlexItem item in line.Items) {
+                item.CrossOffset = ResolveFlexCrossOffset(item, style, line.CrossSize);
+            }
         }
 
         double boxHeight = ResolveBoxHeight(crossSize, style);
@@ -67,11 +78,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         AddBoxPaint(visuals, style, style.MarginLeft, style.MarginTop, boxWidth, boxHeight, element);
         double contentX = style.MarginLeft + style.BorderWidth + style.PaddingLeft;
         double contentY = style.MarginTop + style.BorderWidth + style.PaddingTop;
-        foreach (FlexItem item in orderedItems) {
-            foreach (HtmlRenderVisual visual in item.Block!.Visuals) {
-                visuals.Add(visual.Translate(contentX + item.MainOffset, contentY + item.CrossOffset, visuals.Count));
+        foreach (FlexLine line in lines) {
+            foreach (FlexItem item in line.Items) {
+                foreach (HtmlRenderVisual visual in item.Block!.Visuals) {
+                    visuals.Add(visual.Translate(contentX + item.MainOffset, contentY + line.CrossOffset + item.CrossOffset, visuals.Count));
+                }
             }
         }
+
+        IEnumerable<double>? breakOffsets = style.FlexWrap == "nowrap"
+            ? null
+            : lines.Select(line => contentY + line.CrossOffset)
+                .Distinct()
+                .OrderBy(offset => offset)
+                .Skip(1);
 
         block = new HtmlRenderFlowBlock(
             containingWidth,
@@ -81,6 +101,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
             style.BreakAfter,
             style.AvoidBreakInside,
             HtmlRenderStyleResolver.DescribeSource(element),
+            breakOffsets,
             pageName: style.PageName);
         return true;
     }

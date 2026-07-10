@@ -162,6 +162,93 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlFlexWrap_CreatesLinesWithIndependentMainAndCrossAlignment() {
+        const string html = """
+            <div style="display:flex;flex-wrap:wrap;width:120px;gap:5px 10px;justify-content:space-between;align-items:center">
+              <div id="wrap-a" style="width:50px;height:20px;background:#ff0000"></div>
+              <div id="wrap-b" style="width:50px;height:30px;background:#0000ff"></div>
+              <div id="wrap-c" style="width:50px;height:10px;background:#00ff00"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 140D);
+        HtmlRenderShape a = FindFlexShape(rendered, "div#wrap-a");
+        HtmlRenderShape b = FindFlexShape(rendered, "div#wrap-b");
+        HtmlRenderShape c = FindFlexShape(rendered, "div#wrap-c");
+
+        Assert.Equal(0D, a.X, 3);
+        Assert.Equal(5D, a.Y, 3);
+        Assert.Equal(70D, b.X, 3);
+        Assert.Equal(0D, b.Y, 3);
+        Assert.Equal(0D, c.X, 3);
+        Assert.Equal(35D, c.Y, 3);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexLayoutPending);
+    }
+
+    [Fact]
+    public void HtmlFlexWrapReverse_UsesTheReversedCrossStartWithAlignContent() {
+        const string html = """
+            <div style="display:flex;flex-wrap:wrap-reverse;width:100px;height:100px;row-gap:10px;align-content:center">
+              <div id="reverse-a" style="width:60px;height:20px;background:#ff0000"></div>
+              <div id="reverse-b" style="width:60px;height:30px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 120D);
+
+        Assert.Equal(60D, FindFlexShape(rendered, "div#reverse-a").Y, 3);
+        Assert.Equal(20D, FindFlexShape(rendered, "div#reverse-b").Y, 3);
+    }
+
+    [Fact]
+    public void HtmlFlexWrap_DiagnosesUnsupportedRowGapAndReverseOverflow() {
+        const string html = """
+            <div style="display:flex;flex-wrap:wrap-reverse;width:100px;height:30px;row-gap:calc(2px + 1px)">
+              <div id="overflow-a" style="width:100px;height:20px;background:#ff0000"></div>
+              <div id="overflow-b" style="width:100px;height:20px;background:#0000ff"></div>
+            </div>
+            """;
+
+        HtmlRenderDocument rendered = RenderFlex(html, 120D);
+        IReadOnlyList<HtmlDiagnostic> diagnostics = rendered.Diagnostics.Diagnostics
+            .Where(diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.FlexValueUnsupported)
+            .ToList();
+
+        Assert.Equal(2, diagnostics.Count);
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Detail == "row-gap=calc(2px + 1px)");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Detail == "flex-wrap=wrap-reverse; cross-size-overflow");
+        Assert.True(FindFlexShape(rendered, "div#overflow-a").Y >= 0D);
+        Assert.True(FindFlexShape(rendered, "div#overflow-b").Y >= 0D);
+    }
+
+    [Fact]
+    public void HtmlFlexWrap_PaginatesOnlyBetweenCompleteLines() {
+        const string html = """
+            <div style="height:20px;margin:0">Before</div>
+            <div style="display:flex;flex-wrap:wrap;width:100px">
+              <div id="line-one" style="width:100px;height:40px;background:#ff0000">One</div>
+              <div id="line-two" style="width:100px;height:40px;background:#0000ff">Two</div>
+            </div>
+            """;
+        var options = new HtmlRenderOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(2D, 70D / HtmlRenderOptions.CssPixelsPerInch),
+            HonorCssPageRules = false,
+            Margins = HtmlRenderMargins.All(0D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.Equal(2, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#line-one");
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#line-two");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "div#line-two");
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic =>
+            diagnostic.Code == HtmlRenderDiagnosticCodes.ForcedFragment
+            || diagnostic.Code == HtmlRenderDiagnosticCodes.VisualFragmentUnsupported);
+    }
+
+    [Fact]
     public void HtmlFlexRow_DiagnosesUnsupportedValuesWithoutDiscardingItems() {
         const string html = """
             <div id="flex" style="display:flex;width:200px;gap:calc(4px + 2px);justify-content:safe center">
@@ -207,9 +294,9 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlFlexFallbacks_RemainExplicitForWrapDirectTextAutoMarginsAndInlineFlex() {
+    public void HtmlFlexFallbacks_RemainExplicitForColumnsDirectTextAutoMarginsAndInlineFlex() {
         const string html = """
-            <div class="wrap" style="display:flex;flex-wrap:wrap"><span>Wrap</span></div>
+            <div class="column" style="display:flex;flex-direction:column"><span>Column</span></div>
             <div class="text" style="display:flex">Direct text</div>
             <div class="margin" style="display:flex"><span style="margin-left:auto">Auto</span></div>
             <span class="inline" style="display:inline-flex"><span>Inline</span></span>
@@ -221,7 +308,7 @@ public sealed partial class HtmlRenderingTests {
             .ToList();
 
         Assert.Equal(4, diagnostics.Count);
-        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.wrap");
+        Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.column");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.text");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "div.margin");
         Assert.Contains(diagnostics, diagnostic => diagnostic.Source == "span.inline");
