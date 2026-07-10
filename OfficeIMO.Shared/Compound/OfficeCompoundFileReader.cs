@@ -49,11 +49,19 @@ namespace OfficeIMO.Shared {
                 ushort byteOrder = ReadUInt16(bytes, 28);
                 ushort sectorShift = ReadUInt16(bytes, 30);
                 ushort miniSectorShift = ReadUInt16(bytes, 32);
+                if ((sectorShift != 9 && sectorShift != 12) || miniSectorShift != 6) {
+                    error = $"Unsupported compound file sector sizes. SectorShift={sectorShift}, MiniSectorShift={miniSectorShift}.";
+                    return false;
+                }
                 int sectorSize = 1 << sectorShift;
                 int miniSectorSize = 1 << miniSectorShift;
                 bool validVersion = (majorVersion == 3 && sectorSize == 512) || (majorVersion == 4 && sectorSize == 4096);
-                if (!validVersion || byteOrder != 0xfffe || miniSectorSize != MiniSectorSize || bytes.Length < sectorSize) {
-                    error = $"Unsupported compound file sector sizes. Sector={sectorSize}, MiniSector={miniSectorSize}.";
+                if (!validVersion || byteOrder != 0xfffe) {
+                    error = $"The OLE compound file could not be read. The header has an unsupported version or byte order. Version={majorVersion}, ByteOrder=0x{byteOrder:x4}.";
+                    return false;
+                }
+                if (miniSectorSize != MiniSectorSize || bytes.Length < sectorSize) {
+                    error = "The compound file is shorter than its declared header sector.";
                     return false;
                 }
 
