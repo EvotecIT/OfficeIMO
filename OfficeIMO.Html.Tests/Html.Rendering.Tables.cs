@@ -2,6 +2,7 @@ using System.Text;
 using OfficeIMO.Drawing;
 using OfficeIMO.Html;
 using OfficeIMO.Html.Pdf;
+using OfficeIMO.Tests.Pdf;
 using PdfCore = OfficeIMO.Pdf;
 using Xunit;
 
@@ -79,6 +80,25 @@ public sealed partial class HtmlRenderingTests {
         Assert.True(wide.Width > narrow.Width * 2D);
         Assert.Equal(100D, wide.Width + narrow.Width, 3);
         Assert.Equal(wide.Width, narrow.X, 3);
+    }
+
+    [Fact]
+    public void HtmlTables_AutoLayoutIncludesIntrinsicReplacedImageWidth() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(80, 10));
+        string html = "<table style='width:100px;margin:0;table-layout:auto;font-size:8px;line-height:10px'><tr>"
+            + "<td id='image-cell' style='background:red'><img src='data:image/png;base64," + imageData + "'></td>"
+            + "<td id='text-cell' style='background:blue'>i</td></tr></table>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 120D,
+            ViewportHeight = 30D,
+            Margins = HtmlRenderMargins.All(0D)
+        });
+        HtmlRenderShape imageCell = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#image-cell" && shape.Shape.FillColor == OfficeColor.Red);
+        HtmlRenderShape textCell = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Source == "td#text-cell" && shape.Shape.FillColor == OfficeColor.Blue);
+
+        Assert.True(imageCell.Width > textCell.Width * 4D);
+        Assert.Equal(100D, imageCell.Width + textCell.Width, 3);
     }
 
     [Fact]

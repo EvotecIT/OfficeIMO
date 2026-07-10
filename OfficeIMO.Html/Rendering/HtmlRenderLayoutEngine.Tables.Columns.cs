@@ -23,7 +23,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 if (column >= columnCount) break;
                 int span = Math.Max(1, Math.Min(requestedSpan, columnCount - column));
                 HtmlRenderBoxStyle cellStyle = _styleResolver.Resolve(cell, contentWidth, tableStyle);
-                ResolveTableCellIntrinsicWidths(cell, cellStyle, out double minimum, out double maximum);
+                ResolveTableCellIntrinsicWidths(cell, cellStyle, contentWidth, out double minimum, out double maximum);
                 ApplySpanningWidth(minimums, column, span, minimum);
                 ApplySpanningWidth(preferred, column, span, maximum);
                 int rowSpan = ReadRowSpan(cell.GetAttribute("rowspan"), rows, rowIndex, table);
@@ -70,7 +70,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, out double minimum, out double preferred) {
+    private void ResolveTableCellIntrinsicWidths(IElement cell, HtmlRenderBoxStyle style, double containingWidth, out double minimum, out double preferred) {
         string text = ApplyTextTransform(cell.TextContent ?? string.Empty, style.TextTransform);
         IReadOnlyList<string> tokens = HtmlRenderCssValues.SplitWhitespace(text);
         string normalized = string.Join(" ", tokens);
@@ -82,6 +82,18 @@ internal sealed partial class HtmlRenderLayoutEngine {
             minimum = Math.Max(minimum, authored);
             preferred = Math.Max(preferred, authored);
         }
+        foreach (IElement image in cell.QuerySelectorAll("img").Where(candidate => BelongsToTableCell(candidate, cell))) {
+            HtmlRenderBoxStyle imageStyle = _styleResolver.Resolve(image, containingWidth, style);
+            double imageWidth = ResolveReplacedImageBoxWidth(image, imageStyle) + imageStyle.MarginLeft + imageStyle.MarginRight + insets;
+            minimum = Math.Max(minimum, imageWidth);
+            preferred = Math.Max(preferred, imageWidth);
+        }
+    }
+
+    private static bool BelongsToTableCell(IElement element, IElement cell) {
+        IElement? current = element.ParentElement;
+        while (current != null && !IsTableCell(current)) current = current.ParentElement;
+        return ReferenceEquals(current, cell);
     }
 
     private static IReadOnlyList<double> AllocateFixedColumnWidths(IReadOnlyList<double> requested, double totalWidth) {
