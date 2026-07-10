@@ -261,10 +261,19 @@ internal sealed class HtmlRenderStyleResolver {
             string repeat = GetLayerValue(repeatLayers, index, ExtractBackgroundRepeat(sourceLayer), "repeat");
             string size = GetLayerValue(sizeLayers, index, ExtractBackgroundSize(sourceLayer), "auto");
             if (urls.Count == 0) {
-                if (HtmlCssLinearGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out OfficeLinearGradient? gradient, out bool stopLimitExceeded)
-                    && gradient != null) {
-                    layers.Add(new HtmlRenderBackgroundLayer(gradient, position, repeat, size));
-                } else if (stopLimitExceeded) {
+                if (HtmlCssLinearGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out OfficeLinearGradient? linearGradient, out bool linearStopLimitExceeded)
+                    && linearGradient != null) {
+                    layers.Add(new HtmlRenderBackgroundLayer(linearGradient, position, repeat, size));
+                    continue;
+                }
+
+                if (HtmlCssRadialGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out OfficeRadialGradient? radialGradient, out bool radialStopLimitExceeded)
+                    && radialGradient != null) {
+                    layers.Add(new HtmlRenderBackgroundLayer(radialGradient, position, repeat, size));
+                    continue;
+                }
+
+                if (linearStopLimitExceeded || radialStopLimitExceeded) {
                     gradientStopLimitExceededCount++;
                 } else {
                     unsupportedLayerCount++;

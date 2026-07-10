@@ -125,8 +125,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
         double areaY = y + borderWidth;
         double areaWidth = Math.Max(0.01D, width - (borderWidth * 2D));
         double areaHeight = Math.Max(0.01D, height - (borderWidth * 2D));
-        if (layer.LinearGradient != null) {
-            AddLinearGradientBackground(
+        if (layer.LinearGradient != null || layer.RadialGradient != null) {
+            AddGradientBackground(
                 visuals,
                 style,
                 layer,
@@ -229,7 +229,7 @@ internal sealed partial class HtmlRenderLayoutEngine {
         }
     }
 
-    private void AddLinearGradientBackground(
+    private void AddGradientBackground(
         ICollection<HtmlRenderVisual> visuals,
         HtmlRenderBoxStyle style,
         HtmlRenderBackgroundLayer layer,
@@ -249,7 +249,8 @@ internal sealed partial class HtmlRenderLayoutEngine {
 
         OfficeShape fill = OfficeShape.Rectangle(areaWidth, areaHeight);
         fill.FillColor = null;
-        fill.FillGradient = layer.LinearGradient!.Clone();
+        fill.FillGradient = layer.LinearGradient?.Clone();
+        fill.FillRadialGradient = layer.RadialGradient?.Clone();
         fill.FillOpacity = style.Opacity;
         fill.StrokeWidth = 0D;
         visuals.Add(new HtmlRenderShape(fill, areaX, areaY, visuals.Count, source: visualSourceDescription));
