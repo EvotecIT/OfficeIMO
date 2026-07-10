@@ -307,6 +307,41 @@ public partial class PdfDocumentVisualQualityTests {
     }
 
     [Fact]
+    public void VectorShape_RendersMultiStopRadialGradientAsScaledNativeShading() {
+        var shape = OfficeShape.Rectangle(90, 40);
+        shape.FillRadialGradient = new OfficeRadialGradient(
+            0.5D,
+            0.5D,
+            0D,
+            0.5D,
+            0.5D,
+            0.5D,
+            new[] {
+                new OfficeGradientStop(0D, OfficeColor.Red),
+                new OfficeGradientStop(0.5D, OfficeColor.Lime),
+                new OfficeGradientStop(1D, OfficeColor.Blue)
+            });
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.5 0.5 0 0.5 0.5 0.5]", content);
+        Assert.Contains("/FunctionType 3 /Domain [0 1]", content);
+        Assert.Contains("/Bounds [0.5] /Encode [0 1 0 1]", content);
+        Assert.Contains("q\n30 90 90 40 re W n\n90 0 0 40 30 90 cm\n/SH1 sh\nQ", content);
+    }
+
+    [Fact]
     public void VectorShape_RendersSharedLinearGradientInsideTransformGraphicsState() {
         var shape = OfficeShape.Rectangle(40, 20);
         shape.FillGradient = OfficeLinearGradient.Vertical(OfficeColor.SteelBlue, OfficeColor.WhiteSmoke);
@@ -328,6 +363,30 @@ public partial class PdfDocumentVisualQualityTests {
         Assert.Contains("/ShadingType 2 /ColorSpace /DeviceRGB /Coords [20 20 20 0]", content);
         Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
         Assert.Contains("q\n0 0 40 20 re W n\n/SH1 sh\nQ", content);
+    }
+
+    [Fact]
+    public void VectorShape_RendersRadialGradientInsideTransformGraphicsState() {
+        var shape = OfficeShape.Rectangle(40, 20);
+        shape.FillRadialGradient = OfficeRadialGradient.Centered(OfficeColor.Red, OfficeColor.Blue);
+        shape.Transform = OfficeTransform.Translate(10, 5);
+
+        byte[] bytes = PdfDocument.Create(new PdfOptions {
+                PageWidth = 220,
+                PageHeight = 160,
+                MarginLeft = 30,
+                MarginRight = 30,
+                MarginTop = 30,
+                MarginBottom = 30
+            })
+            .Shape(shape)
+            .ToBytes();
+
+        string content = Encoding.ASCII.GetString(bytes);
+
+        Assert.Contains("/ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.5 0.5 0 0.5 0.5 0.5]", content);
+        Assert.Contains("q\n1 0 0 -1 40 125 cm", content);
+        Assert.Contains("q\n0 0 40 20 re W n\n40 0 0 20 0 0 cm\n/SH1 sh\nQ", content);
     }
 
     [Fact]

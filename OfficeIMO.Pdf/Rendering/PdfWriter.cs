@@ -225,12 +225,22 @@ internal static partial class PdfWriter {
             var shadings = new List<(string Name, int Id)>();
             if (page.Shadings.Count > 0) {
                 foreach (var shading in page.Shadings) {
-                    int shadingId = AddObject(objects, PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
-                        shading.X0,
-                        shading.Y0,
-                        shading.X1,
-                        shading.Y1,
-                        shading.Stops));
+                    string shadingObject = shading.IsRadial
+                        ? PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
+                            shading.X0,
+                            shading.Y0,
+                            shading.R0,
+                            shading.X1,
+                            shading.Y1,
+                            shading.R1,
+                            shading.Stops)
+                        : PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(
+                            shading.X0,
+                            shading.Y0,
+                            shading.X1,
+                            shading.Y1,
+                            shading.Stops);
+                    int shadingId = AddObject(objects, shadingObject);
                     shadings.Add(("/" + shading.Name, shadingId));
                 }
             }

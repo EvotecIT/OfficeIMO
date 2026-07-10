@@ -742,12 +742,35 @@ namespace OfficeIMO.Tests.Pdf {
                         new OfficeGradientStop(1D, OfficeColor.Blue)
                     }));
 
+            Assert.Contains(
+                "<< /ShadingType 3 /ColorSpace /DeviceRGB /Coords [0.25 0.75 0 0.5 0.5 0.75] /Function << /FunctionType 2",
+                PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
+                    0.25D,
+                    0.75D,
+                    0D,
+                    0.5D,
+                    0.5D,
+                    0.75D,
+                    new[] {
+                        new OfficeGradientStop(0D, OfficeColor.Red),
+                        new OfficeGradientStop(1D, OfficeColor.Blue)
+                    }));
+
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(-0.1, 1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildExtGStateObject(1, 1.1));
             Assert.Throws<ArgumentOutOfRangeException>(() =>
                 PdfVisualResourceDictionaryBuilder.BuildAxialShadingObject(double.NaN, 0, 1, 1, OfficeColor.Black, OfficeColor.White));
+            Assert.Throws<ArgumentOutOfRangeException>(() =>
+                PdfVisualResourceDictionaryBuilder.BuildRadialShadingObject(
+                    0,
+                    0,
+                    -0.1D,
+                    0.5D,
+                    0.5D,
+                    0.5D,
+                    new[] { new OfficeGradientStop(0D, OfficeColor.Black), new OfficeGradientStop(1D, OfficeColor.White) }));
         }
 
         private static int CountOccurrences(string text, string value) {

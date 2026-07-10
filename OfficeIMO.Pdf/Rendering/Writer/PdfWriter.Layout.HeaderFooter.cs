@@ -160,16 +160,18 @@ internal static partial class PdfWriter {
     }
 
     private static string? EnsureHeaderFooterOpacityState(LayoutResult.Page page, OfficeShape shape) {
-        bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null) && shape.Kind != OfficeShapeKind.Line;
+        bool hasFill = (shape.FillColor.HasValue || shape.FillGradient != null || shape.FillRadialGradient != null) && shape.Kind != OfficeShapeKind.Line;
         bool hasStroke = shape.StrokeColor.HasValue && shape.StrokeWidth > 0;
         double fillOpacity = hasFill ? shape.FillOpacity ?? 1D : 1D;
         double strokeOpacity = hasStroke ? shape.StrokeOpacity ?? 1D : 1D;
         return EnsureHeaderFooterGraphicsState(page, fillOpacity, strokeOpacity);
     }
 
-    private static string? EnsureHeaderFooterLinearGradient(LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
+    private static string? EnsureHeaderFooterFillGradient(LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY, bool localCoordinates) {
+        if (shape.Kind == OfficeShapeKind.Line) return null;
+        if (shape.FillRadialGradient != null) return EnsureRadialShading(page.Shadings, shape.FillRadialGradient);
         var gradient = shape.FillGradient;
-        if (gradient == null || shape.Kind == OfficeShapeKind.Line) {
+        if (gradient == null) {
             return null;
         }
 
@@ -179,24 +181,7 @@ internal static partial class PdfWriter {
         double y0 = originY + shape.Height - gradient.StartY * shape.Height;
         double x1 = originX + gradient.EndX * shape.Width;
         double y1 = originY + shape.Height - gradient.EndY * shape.Height;
-
-        for (int i = 0; i < page.Shadings.Count; i++) {
-            var existing = page.Shadings[i];
-            if (existing.Matches(x0, y0, x1, y1, gradient.Stops)) {
-                return existing.Name;
-            }
-        }
-
-        string name = "SH" + (page.Shadings.Count + 1).ToString(CultureInfo.InvariantCulture);
-        page.Shadings.Add(new PageShading {
-            Name = name,
-            Stops = new System.Collections.Generic.List<OfficeGradientStop>(gradient.Stops),
-            X0 = x0,
-            Y0 = y0,
-            X1 = x1,
-            Y1 = y1
-        });
-        return name;
+        return EnsureAxialShading(page.Shadings, gradient, x0, y0, x1, y1);
     }
 
     private static void DrawHeaderFooterShapeShadowAt(StringBuilder sb, LayoutResult.Page page, OfficeShape shape, double xShape, double bottomY) {
@@ -253,7 +238,7 @@ internal static partial class PdfWriter {
         }
 
         if (shape.Transform.HasValue) {
-            string? shadingName = EnsureHeaderFooterLinearGradient(page, shape, xShape, bottomY, localCoordinates: true);
+            string? shadingName = EnsureHeaderFooterFillGradient(page, shape, xShape, bottomY, localCoordinates: true);
             DrawTransformedShape(sb, shape, shadingName == null ? ToHeaderFooterPdfColor(shape.FillColor) : null, ToHeaderFooterPdfColor(shape.StrokeColor), shadingName, xShape, bottomY);
         } else {
             if (shape.ClipPath != null) {
@@ -262,7 +247,7 @@ internal static partial class PdfWriter {
                 AppendClipPath(sb, shape.ClipPath, xShape, bottomY, shape.Height);
             }
 
-            string? shadingName = EnsureHeaderFooterLinearGradient(page, shape, xShape, bottomY, localCoordinates: false);
+            string? shadingName = EnsureHeaderFooterFillGradient(page, shape, xShape, bottomY, localCoordinates: false);
             if (shadingName != null) {
                 DrawGradientShape(sb, shape, shadingName, xShape, bottomY);
             }

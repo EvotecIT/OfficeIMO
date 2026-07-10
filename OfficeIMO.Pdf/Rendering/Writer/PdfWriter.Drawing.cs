@@ -404,8 +404,12 @@ internal static partial class PdfWriter {
         new ContentStreamBuilder(sb)
             .SaveState();
         AppendShapeClipPath(sb, shape, x, y);
-        new ContentStreamBuilder(sb)
-            .Shading(shadingName)
+        var content = new ContentStreamBuilder(sb);
+        if (shape.FillRadialGradient != null) {
+            content.TransformMatrix(shape.Width, 0D, 0D, shape.Height, x, y);
+        }
+
+        content.Shading(shadingName)
             .RestoreState();
     }
 
@@ -427,8 +431,12 @@ internal static partial class PdfWriter {
             new ContentStreamBuilder(sb)
                 .SaveState();
             AppendLocalShapeClipPath(sb, shape);
-            new ContentStreamBuilder(sb)
-                .Shading(shadingName!)
+            var gradientContent = new ContentStreamBuilder(sb);
+            if (shape.FillRadialGradient != null) {
+                gradientContent.TransformMatrix(shape.Width, 0D, 0D, shape.Height, 0D, 0D);
+            }
+
+            gradientContent.Shading(shadingName!)
                 .RestoreState();
         }
 
