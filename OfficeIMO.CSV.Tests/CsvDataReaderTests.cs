@@ -184,6 +184,37 @@ public class CsvDataReaderTests
     }
 
     [Fact]
+    public void CreateDataReader_FromCompressedFileWithInferredSchema_DisposeWithoutRead_ReleasesFile()
+    {
+        var path = Path.Combine(Path.GetTempPath(), "OfficeIMO.CSV.Tests." + Guid.NewGuid().ToString("N") + ".csv.gz");
+
+        try
+        {
+            CsvDocument.Parse("Id,Name\n1,Alice\n2,Bob\n")
+                .Save(path, new CsvSaveOptions { CompressionType = CsvCompressionType.GZip });
+
+            using (var reader = CsvDocument.CreateDataReader(
+                       path,
+                       new CsvLoadOptions { Mode = CsvLoadMode.Stream, CompressionType = CsvCompressionType.GZip },
+                       new CsvDataReaderOptions { InferSchema = true }))
+            {
+                using var schema = reader.GetSchemaTable();
+                Assert.Equal(typeof(int), reader.GetFieldType(0));
+            }
+
+            using var stream = new FileStream(path, FileMode.Open, FileAccess.ReadWrite, FileShare.None);
+            Assert.True(stream.CanRead);
+        }
+        finally
+        {
+            if (File.Exists(path))
+            {
+                File.Delete(path);
+            }
+        }
+    }
+
+    [Fact]
     public void GetValues_WithInferredSchema_ExposesTypedValues()
     {
         var doc = CsvDocument.Parse("Id,Amount,Created,Note\n1,12.5,2026-07-07,Alpha\n");

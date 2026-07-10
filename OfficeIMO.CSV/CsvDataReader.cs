@@ -52,12 +52,14 @@ public sealed class CsvDataReader : DbDataReader
         IEnumerable<object?[]> rows,
         CultureInfo culture,
         IReadOnlyList<string>? dateTimeFormats,
-        bool rawRowsAreParsedStringsOnly = false)
+        bool rawRowsAreParsedStringsOnly = false,
+        IDisposable? rowOwner = null)
     {
         _columns = columns;
         _rows = rows.GetEnumerator();
         _culture = culture;
         _dateTimeFormats = dateTimeFormats;
+        _rowOwner = rowOwner;
         _useRawStringValues = CanUseRawStringValues(columns);
         _useDirectValueConversion = CanUseDirectValueConversion(columns);
         _rawRowsAreParsedStringsOnly = rawRowsAreParsedStringsOnly;

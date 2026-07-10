@@ -272,7 +272,13 @@ public sealed partial class CsvDocument
             var sampledRows = new List<object?[]>(Math.Min(schemaSampleSize, 4096));
             var schema = InferSchema(rows, schemaSampleSize, sampledRows, cloneSampledRows: true);
             var columns = CreateDataReaderColumns(_header, schema);
-            return new CsvDataReader(columns, EnumerateSampledThenRemainingRows(sampledRows, rows), _culture, _dateTimeFormats);
+            var rowOwner = new CsvStreamingDataReaderRowOwner(rows);
+            return new CsvDataReader(
+                columns,
+                EnumerateSampledThenRemainingRows(sampledRows, rowOwner),
+                _culture,
+                _dateTimeFormats,
+                rowOwner: rowOwner);
         }
         catch
         {
@@ -281,7 +287,9 @@ public sealed partial class CsvDocument
         }
     }
 
-    private static IEnumerable<object?[]> EnumerateSampledThenRemainingRows(IReadOnlyList<object?[]> sampledRows, IEnumerator<object?[]> remainingRows)
+    private static IEnumerable<object?[]> EnumerateSampledThenRemainingRows(
+        IReadOnlyList<object?[]> sampledRows,
+        CsvStreamingDataReaderRowOwner remainingRows)
     {
         try
         {
@@ -298,6 +306,26 @@ public sealed partial class CsvDocument
         finally
         {
             remainingRows.Dispose();
+        }
+    }
+
+    private sealed class CsvStreamingDataReaderRowOwner : IDisposable
+    {
+        private IEnumerator<object?[]>? _rows;
+
+        internal CsvStreamingDataReaderRowOwner(IEnumerator<object?[]> rows)
+        {
+            _rows = rows;
+        }
+
+        internal object?[] Current => _rows!.Current;
+
+        internal bool MoveNext() => _rows?.MoveNext() == true;
+
+        public void Dispose()
+        {
+            _rows?.Dispose();
+            _rows = null;
         }
     }
 
