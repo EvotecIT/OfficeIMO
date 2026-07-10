@@ -1,10 +1,26 @@
 using OfficeIMO.Rtf;
 using OfficeIMO.Rtf.Diagnostics;
+using System.Globalization;
 using Xunit;
 
 namespace OfficeIMO.Tests.Rtf;
 
 public partial class RtfDocumentReadWriteTests {
+    [Theory]
+    [InlineData(932, @"\'93\'fa\'96\'7b\'8c\'ea", "日本語")]
+    [InlineData(936, @"\'d6\'d0\'ce\'c4", "中文")]
+    [InlineData(949, @"\'c7\'d1\'b1\'b9\'be\'ee", "한국어")]
+    [InlineData(950, @"\'a4\'a4\'a4\'e5", "中文")]
+    public void Read_Decodes_DoubleByte_Ansi_CodePages(int codePage, string encodedText, string expected) {
+        string rtf = "{\\rtf1\\ansi\\ansicpg" + codePage.ToString(CultureInfo.InvariantCulture) + " " + encodedText + "}";
+
+        RtfReadResult result = RtfDocument.Read(rtf);
+
+        Assert.Equal(expected, Assert.Single(result.Document.Paragraphs).ToPlainText());
+        Assert.DoesNotContain(result.Diagnostics, diagnostic => diagnostic.Code == "RTF103");
+        Assert.Equal(rtf, result.ToRtfLossless());
+    }
+
     [Fact]
     public void Load_Decodes_Literal_Ansi_Text_With_CodePage_And_Preserves_Source_Bytes() {
         var bytes = new List<byte>();

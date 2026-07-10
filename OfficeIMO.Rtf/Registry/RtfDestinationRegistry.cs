@@ -84,11 +84,13 @@ public static class RtfDestinationRegistry {
         ["endnote"] = RtfDestinationType.Endnote,
         ["annotation"] = RtfDestinationType.Annotation,
         ["bkmkstart"] = RtfDestinationType.Bookmark,
-        ["bkmkend"] = RtfDestinationType.Bookmark
+        ["bkmkend"] = RtfDestinationType.Bookmark,
+        ["htmltag"] = RtfDestinationType.Metadata,
+        ["mhtmltag"] = RtfDestinationType.Metadata
     };
 
     private static readonly HashSet<string> SemanticSkipDestinations = new HashSet<string>(StringComparer.Ordinal) {
-        "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "listtable", "listoverridetable", "pntext", "listtext", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl"
+        "fonttbl", "colortbl", "stylesheet", "generator", "info", "userprops", "docvar", "revtbl", "rsidtbl", "atnid", "atnauthor", "atntime", "filetbl", "file", "xmlnstbl", "xmlns", "listtable", "listoverridetable", "pntext", "listtext", "shpinst", "sp", "sn", "sv", "ffdata", "ffname", "ffdeftext", "ffformat", "ffhelptext", "ffstattext", "ffentrymcr", "ffexitmcr", "ffl", "htmltag", "mhtmltag"
     };
 
     private static readonly HashSet<string> TextReplacementSkipDestinations = new HashSet<string>(StringComparer.Ordinal) {

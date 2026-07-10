@@ -90,6 +90,9 @@ public sealed partial class RtfDocument {
     /// <summary>Document-level footnote and endnote numbering settings.</summary>
     public RtfNoteSettings NoteSettings { get; } = new RtfNoteSettings();
 
+    /// <summary>Outlook/Exchange HTML encapsulation found in the source RTF, when present.</summary>
+    public RtfHtmlEncapsulation? HtmlEncapsulation { get; internal set; }
+
     /// <summary>Creates an empty RTF document.</summary>
     public static RtfDocument Create() {
         var document = new RtfDocument();

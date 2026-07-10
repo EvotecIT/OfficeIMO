@@ -77,6 +77,7 @@ internal static partial class RtfSemanticReader {
             ReadInfo(root, _document.Info, ansiCodePage, unicodeSkipCount);
             _document.ReplaceUserProperties(ReadUserProperties(root, ansiCodePage, unicodeSkipCount));
             _document.ReplaceDocumentVariables(ReadDocumentVariables(root, ansiCodePage, unicodeSkipCount));
+            _document.HtmlEncapsulation = ReadHtmlEncapsulation(root, ansiCodePage, unicodeSkipCount);
             _currentParagraph = new RtfParagraph();
             _currentSection = new RtfSection();
 
@@ -199,7 +200,7 @@ internal static partial class RtfSemanticReader {
                         }
                         break;
                     case RtfText text:
-                        AppendText(ApplySkip(childState, RtfAnsiCodePage.DecodeText(childState.AnsiCodePage, text.Text)), childState);
+                        AppendAnsiText(text.Text, childState);
                         break;
                     case RtfControlWord control:
                         ApplyControlWord(control, childState);
@@ -231,7 +232,7 @@ internal static partial class RtfSemanticReader {
                     return;
                 case '\'':
                     if (symbol.Parameter.HasValue) {
-                        AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeByte(state.AnsiCodePage, symbol.Parameter.Value)), state);
+                        AppendAnsiByte(symbol.Parameter.Value, state);
                     }
                     return;
             }
@@ -273,6 +274,11 @@ internal static partial class RtfSemanticReader {
         }
 
         private void AppendText(string text, CharacterState state) {
+            if (state.PendingAnsiLeadByte.HasValue) {
+                text = "\uFFFD" + text;
+                state.PendingAnsiLeadByte = null;
+            }
+
             if (string.IsNullOrEmpty(text)) return;
             if (IsFormattingTrivia(text)) return;
             if (state.PendingHighSurrogate.HasValue) {
@@ -319,6 +325,42 @@ internal static partial class RtfSemanticReader {
             };
             run.CharacterBorder.CopyFrom(state.CharacterBorder);
             _currentParagraph.AddRun(run);
+        }
+
+        private void AppendAnsiText(string text, CharacterState state) {
+            if (string.IsNullOrEmpty(text)) return;
+            int start = 0;
+            if (state.PendingAnsiLeadByte.HasValue) {
+                if (text[0] <= byte.MaxValue) {
+                    byte lead = state.PendingAnsiLeadByte.Value;
+                    state.PendingAnsiLeadByte = null;
+                    AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, (byte)text[0] })), state);
+                    start = 1;
+                } else {
+                    AppendText("\uFFFD", state);
+                }
+            }
+
+            if (start < text.Length) {
+                AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeText(state.AnsiCodePage, text.Substring(start))), state);
+            }
+        }
+
+        private void AppendAnsiByte(int value, CharacterState state) {
+            byte current = (byte)(value & 0xFF);
+            if (state.PendingAnsiLeadByte.HasValue) {
+                byte lead = state.PendingAnsiLeadByte.Value;
+                state.PendingAnsiLeadByte = null;
+                AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeBytes(state.AnsiCodePage, new[] { lead, current })), state);
+                return;
+            }
+
+            if (RtfAnsiCodePage.IsLeadByte(state.AnsiCodePage, current)) {
+                state.PendingAnsiLeadByte = current;
+                return;
+            }
+
+            AppendText(ApplySkip(state, RtfAnsiCodePage.DecodeByte(state.AnsiCodePage, current)), state);
         }
 
         private void AppendGeneratedText(RtfGeneratedTextKind kind, CharacterState state) {

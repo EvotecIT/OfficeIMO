@@ -6,10 +6,15 @@ internal static partial class RtfAnsiCodePage {
     public const int IbmPcaCodePage = 850;
     public const int DefaultWindowsCodePage = 1252;
 
+    static RtfAnsiCodePage() {
+        Encoding.RegisterProvider(CodePagesEncodingProvider.Instance);
+    }
+
     public static bool IsSupported(int codePage) =>
         codePage == IbmPcCodePage ||
         codePage == IbmPcaCodePage ||
         codePage == 874 ||
+        IsDoubleByteCodePage(codePage) ||
         codePage == MacRomanCodePage ||
         (codePage >= 1250 && codePage <= 1258);
 
@@ -24,6 +29,15 @@ internal static partial class RtfAnsiCodePage {
 
     public static string DecodeText(int codePage, string text) {
         if (string.IsNullOrEmpty(text)) return text;
+
+        if (IsDoubleByteCodePage(codePage)) {
+            var bytes = new byte[text.Length];
+            for (int index = 0; index < text.Length; index++) {
+                bytes[index] = (byte)(text[index] & 0xFF);
+            }
+
+            return DecodeBytes(codePage, bytes);
+        }
 
         StringBuilder? builder = null;
         for (int i = 0; i < text.Length; i++) {
@@ -45,6 +59,10 @@ internal static partial class RtfAnsiCodePage {
     }
 
     public static string DecodeByte(int codePage, int value) {
+        if (IsDoubleByteCodePage(codePage)) {
+            return DecodeBytes(codePage, new[] { (byte)(value & 0xFF) });
+        }
+
         int b = value & 0xFF;
         int mapped = codePage switch {
             IbmPcCodePage => DecodeIbmPc437(b),
@@ -64,5 +82,25 @@ internal static partial class RtfAnsiCodePage {
         };
 
         return char.ConvertFromUtf32(mapped);
+    }
+
+    public static bool IsDoubleByteCodePage(int codePage) =>
+        codePage == 932 || codePage == 936 || codePage == 949 || codePage == 950;
+
+    public static bool IsLeadByte(int codePage, int value) {
+        int b = value & 0xFF;
+        if (codePage == 932) {
+            return (b >= 0x81 && b <= 0x9F) || (b >= 0xE0 && b <= 0xFC);
+        }
+
+        return (codePage == 936 || codePage == 949 || codePage == 950) && b >= 0x81 && b <= 0xFE;
+    }
+
+    public static string DecodeBytes(int codePage, byte[] bytes) {
+        if (bytes == null) throw new ArgumentNullException(nameof(bytes));
+        return Encoding.GetEncoding(
+            codePage,
+            EncoderFallback.ReplacementFallback,
+            DecoderFallback.ReplacementFallback).GetString(bytes);
     }
 }

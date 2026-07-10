@@ -91,6 +91,7 @@ internal static partial class RtfSemanticReader {
         public int UnicodeSkipCount { get; set; } = 1;
         public int SkipCharacters { get; set; }
         public char? PendingHighSurrogate { get; set; }
+        public byte? PendingAnsiLeadByte { get; set; }
 
         public CharacterState Clone() {
             var clone = new CharacterState {
@@ -172,7 +173,8 @@ internal static partial class RtfSemanticReader {
                 HasExplicitAnsiCodePage = HasExplicitAnsiCodePage,
                 UnicodeSkipCount = UnicodeSkipCount,
                 SkipCharacters = SkipCharacters,
-                PendingHighSurrogate = PendingHighSurrogate
+                PendingHighSurrogate = PendingHighSurrogate,
+                PendingAnsiLeadByte = PendingAnsiLeadByte
             };
             clone.CharacterBorder.CopyFrom(CharacterBorder);
             clone.LegacyNumbering.CopyFrom(LegacyNumbering);

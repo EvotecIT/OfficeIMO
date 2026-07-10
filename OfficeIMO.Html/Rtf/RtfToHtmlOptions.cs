@@ -27,6 +27,12 @@ public sealed partial class RtfToHtmlOptions {
     /// <summary>Includes document metadata when a full HTML document is requested.</summary>
     public bool IncludeMetadata { get; set; } = true;
 
+    /// <summary>
+    /// Prefers Outlook/Exchange HTML encapsulated in the RTF transport over its plain-text fallback.
+    /// The encapsulated HTML is always reparsed through the bounded HTML reader and current URL policy.
+    /// </summary>
+    public bool PreferEncapsulatedHtml { get; set; } = true;
+
     /// <summary>Optional HTML document title. When unset, the RTF title is used.</summary>
     public string? Title { get; set; }
 
@@ -77,6 +83,7 @@ public sealed partial class RtfToHtmlOptions {
     public RtfToHtmlOptions Clone() => new RtfToHtmlOptions {
         FragmentOnly = FragmentOnly,
         IncludeMetadata = IncludeMetadata,
+        PreferEncapsulatedHtml = PreferEncapsulatedHtml,
         Title = Title,
         UrlPolicy = (UrlPolicy ?? HtmlUrlPolicy.CreateWebOnlyProfile()).Clone(),
         IncludeRoundTripMetadata = IncludeRoundTripMetadata,
