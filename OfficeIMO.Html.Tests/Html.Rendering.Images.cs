@@ -35,7 +35,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlImages_SvgPrimitivesFlowAsNativeVectorsAcrossPngSvgAndSearchablePdf() {
-        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><rect width='20' height='20' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/></svg>";
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 20'><path d='M0 0h20v20H0z' fill='red'/><circle cx='30' cy='10' r='8' fill='blue'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<body style='margin:0'><img id='vector' src='data:image/svg+xml;base64," + data + "' style='display:block;width:80px;height:40px'><div style='font-size:6px;line-height:8px'>SvgPdf</div></body>";
         var options = new HtmlImageExportOptions {
@@ -63,7 +63,7 @@ public sealed partial class HtmlRenderingTests {
         Assert.Equal(2, vector.Drawing.Shapes.Count);
         Assert.Equal(OfficeColor.Red, raster.GetPixel(10, 10));
         Assert.Equal(OfficeColor.Blue, raster.GetPixel(60, 20));
-        Assert.Contains("<rect", exportedSvg, StringComparison.Ordinal);
+        Assert.Contains("<path", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("<ellipse", exportedSvg, StringComparison.Ordinal);
         Assert.DoesNotContain("data:image/svg+xml", exportedSvg, StringComparison.Ordinal);
         Assert.Contains("SvgPdf", pdfText, StringComparison.Ordinal);
@@ -73,7 +73,7 @@ public sealed partial class HtmlRenderingTests {
 
     [Fact]
     public void HtmlImages_SvgUnsupportedFeaturesAreDiagnosedWhilePrimitivesRemain() {
-        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' fill='lime'/><path d='M0 0L20 20'/></svg>";
+        const string svgSource = "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'><rect width='20' height='20' fill='lime'/><path d='M1 10 A9 9 0 0 1 19 10'/></svg>";
         string data = Convert.ToBase64String(Encoding.UTF8.GetBytes(svgSource));
         string html = "<img id='partial-svg' src='data:image/svg+xml;base64," + data + "'>";
 

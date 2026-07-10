@@ -113,6 +113,7 @@ public static class OfficeSvgDrawingReader {
                 "line" => CreateLine(element, style, viewX, viewY),
                 "polygon" => CreatePolygon(element, style, viewX, viewY, close: true),
                 "polyline" => CreatePolygon(element, style, viewX, viewY, close: false),
+                "path" => CreatePath(element, style, viewX, viewY),
                 _ => null
             };
             if (shape == null) {
@@ -206,6 +207,66 @@ public static class OfficeSvgDrawingReader {
         }
         ApplyPaint(shape, style);
         return new OfficeDrawingShape(shape, minX, minY);
+    }
+
+    private static OfficeDrawingShape? CreatePath(XElement element, SvgPaintContext style, double viewX, double viewY) {
+        if (!OfficeSvgPathDataParser.TryParse(element.Attribute("d")?.Value, out IReadOnlyList<OfficePathCommand> parsed)) return null;
+        var commands = new List<OfficePathCommand>(parsed.Count + 1);
+        double minX = double.PositiveInfinity;
+        double minY = double.PositiveInfinity;
+        double maxX = double.NegativeInfinity;
+        double maxY = double.NegativeInfinity;
+        foreach (OfficePathCommand source in parsed) {
+            OfficePathCommand command = source.Translate(viewX, viewY);
+            commands.Add(command);
+            IncludeCommandBounds(command, ref minX, ref minY, ref maxX, ref maxY);
+        }
+        if (double.IsInfinity(minX) || double.IsInfinity(minY)) return null;
+        if (maxX - minX <= 0.0001D) commands.Add(OfficePathCommand.MoveTo(maxX + 0.0001D, maxY));
+        if (maxY - minY <= 0.0001D) commands.Add(OfficePathCommand.MoveTo(maxX, maxY + 0.0001D));
+        OfficeShape shape;
+        try {
+            shape = OfficeShape.Path(commands);
+        } catch (ArgumentException) {
+            return null;
+        }
+        ApplyPaint(shape, style);
+        return new OfficeDrawingShape(shape, minX, minY);
+    }
+
+    private static void IncludeCommandBounds(
+        OfficePathCommand command,
+        ref double minX,
+        ref double minY,
+        ref double maxX,
+        ref double maxY) {
+        switch (command.Kind) {
+            case OfficePathCommandKind.MoveTo:
+            case OfficePathCommandKind.LineTo:
+                IncludePoint(command.Point, ref minX, ref minY, ref maxX, ref maxY);
+                break;
+            case OfficePathCommandKind.QuadraticBezierTo:
+                IncludePoint(command.ControlPoint1, ref minX, ref minY, ref maxX, ref maxY);
+                IncludePoint(command.Point, ref minX, ref minY, ref maxX, ref maxY);
+                break;
+            case OfficePathCommandKind.CubicBezierTo:
+                IncludePoint(command.ControlPoint1, ref minX, ref minY, ref maxX, ref maxY);
+                IncludePoint(command.ControlPoint2, ref minX, ref minY, ref maxX, ref maxY);
+                IncludePoint(command.Point, ref minX, ref minY, ref maxX, ref maxY);
+                break;
+        }
+    }
+
+    private static void IncludePoint(
+        OfficePoint point,
+        ref double minX,
+        ref double minY,
+        ref double maxX,
+        ref double maxY) {
+        minX = Math.Min(minX, point.X);
+        minY = Math.Min(minY, point.Y);
+        maxX = Math.Max(maxX, point.X);
+        maxY = Math.Max(maxY, point.Y);
     }
 
     private static SvgPaintContext ResolvePaintContext(XElement element, SvgPaintContext inherited, ref int unsupported) {
