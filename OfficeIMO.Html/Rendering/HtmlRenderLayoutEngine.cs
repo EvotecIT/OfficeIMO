@@ -70,11 +70,9 @@ internal sealed partial class HtmlRenderLayoutEngine {
         for (int index = 0; index < blocks.Count; index++) {
             HtmlRenderFlowBlock block = blocks[index];
             bool hasPageContent = visuals.Count > 1;
-            if (block.BreakBefore && hasPageContent) {
-                CommitPage(pages, visuals, pageWidth, pageHeight);
-                visuals = CreatePageVisuals(pageWidth, pageHeight);
-                y = _options.Margins.Top;
-                hasPageContent = false;
+            if (block.BreakBefore != HtmlPageBreakTarget.None) {
+                ApplyBreakBefore(block.BreakBefore, pages, ref visuals, ref y, pageWidth, pageHeight);
+                hasPageContent = visuals.Count > 1;
             }
 
             if (block.Height <= contentHeight && hasPageContent && y + block.Height > pageHeight - _options.Margins.Bottom) {
@@ -151,10 +149,11 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 }
             }
 
-            if (block.BreakAfter && index < blocks.Count - 1) {
+            if (block.BreakAfter != HtmlPageBreakTarget.None && index < blocks.Count - 1) {
                 CommitPage(pages, visuals, pageWidth, pageHeight);
                 visuals = CreatePageVisuals(pageWidth, pageHeight);
                 y = _options.Margins.Top;
+                EnsurePageSide(block.BreakAfter, pages, ref visuals, ref y, pageWidth, pageHeight);
             }
         }
 
@@ -163,6 +162,27 @@ internal sealed partial class HtmlRenderLayoutEngine {
     }
 
     private List<HtmlRenderVisual> CreatePageVisuals(double width, double height) => new List<HtmlRenderVisual> { CreatePageBackground(width, height) };
+
+    private void ApplyBreakBefore(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height) {
+        if (visuals.Count > 1) {
+            CommitPage(pages, visuals, width, height);
+            visuals = CreatePageVisuals(width, height);
+            y = _options.Margins.Top;
+        }
+
+        EnsurePageSide(target, pages, ref visuals, ref y, width, height);
+    }
+
+    private void EnsurePageSide(HtmlPageBreakTarget target, ICollection<HtmlRenderPage> pages, ref List<HtmlRenderVisual> visuals, ref double y, double width, double height) {
+        if (target != HtmlPageBreakTarget.Left && target != HtmlPageBreakTarget.Right) return;
+        int nextPageNumber = pages.Count + 1;
+        bool nextIsRight = nextPageNumber % 2 != 0;
+        bool targetIsRight = target == HtmlPageBreakTarget.Right;
+        if (nextIsRight == targetIsRight) return;
+        CommitPage(pages, visuals, width, height);
+        visuals = CreatePageVisuals(width, height);
+        y = _options.Margins.Top;
+    }
 
     private HtmlRenderShape CreatePageBackground(double width, double height) {
         OfficeShape background = OfficeShape.Rectangle(width, height);

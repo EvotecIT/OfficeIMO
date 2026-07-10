@@ -5,8 +5,8 @@ internal sealed class HtmlRenderFlowBlock {
         double width,
         double height,
         IEnumerable<HtmlRenderVisual> visuals,
-        bool breakBefore,
-        bool breakAfter,
+        HtmlPageBreakTarget breakBefore,
+        HtmlPageBreakTarget breakAfter,
         bool avoidBreakInside,
         string source,
         IEnumerable<double>? breakOffsets = null,
@@ -61,8 +61,8 @@ internal sealed class HtmlRenderFlowBlock {
     internal double Width { get; }
     internal double Height { get; }
     internal IReadOnlyList<HtmlRenderVisual> Visuals { get; }
-    internal bool BreakBefore { get; }
-    internal bool BreakAfter { get; }
+    internal HtmlPageBreakTarget BreakBefore { get; }
+    internal HtmlPageBreakTarget BreakAfter { get; }
     internal bool AvoidBreakInside { get; }
     internal string Source { get; }
     internal IReadOnlyList<double> BreakOffsets { get; }

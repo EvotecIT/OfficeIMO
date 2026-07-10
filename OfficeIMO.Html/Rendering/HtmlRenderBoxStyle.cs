@@ -28,8 +28,8 @@ internal sealed class HtmlRenderBoxStyle {
     internal bool BorderBox;
     internal bool PreserveWhitespace;
     internal string TextTransform = "none";
-    internal bool BreakBefore;
-    internal bool BreakAfter;
+    internal HtmlPageBreakTarget BreakBefore;
+    internal HtmlPageBreakTarget BreakAfter;
     internal bool AvoidBreakInside;
     internal int Orphans = 2;
     internal int Widows = 2;

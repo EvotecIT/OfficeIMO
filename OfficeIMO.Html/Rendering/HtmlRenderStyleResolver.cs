@@ -235,8 +235,8 @@ internal sealed class HtmlRenderStyleResolver {
         string before = FirstNonEmpty(computed.GetValue("break-before"), computed.GetValue("page-break-before"));
         string after = FirstNonEmpty(computed.GetValue("break-after"), computed.GetValue("page-break-after"));
         string inside = FirstNonEmpty(computed.GetValue("break-inside"), computed.GetValue("page-break-inside"));
-        style.BreakBefore = IsForcedPageBreak(before);
-        style.BreakAfter = IsForcedPageBreak(after);
+        style.BreakBefore = ResolvePageBreakTarget(before);
+        style.BreakAfter = ResolvePageBreakTarget(after);
         style.AvoidBreakInside = string.Equals(inside, "avoid", StringComparison.OrdinalIgnoreCase) || string.Equals(inside, "avoid-page", StringComparison.OrdinalIgnoreCase);
         style.Orphans = ReadPositiveInteger(computed.GetValue("orphans"), style.Orphans);
         style.Widows = ReadPositiveInteger(computed.GetValue("widows"), style.Widows);
@@ -256,7 +256,12 @@ internal sealed class HtmlRenderStyleResolver {
         return HtmlRenderCssValues.TryLength(value, reference, fontSize, _options.DefaultFontSize, out double parsed) && parsed >= 0D ? parsed : null;
     }
 
-    private static bool IsForcedPageBreak(string value) => value == "page" || value == "always" || value == "left" || value == "right" || value == "recto" || value == "verso";
+    private static HtmlPageBreakTarget ResolvePageBreakTarget(string value) {
+        if (value == "left" || value == "verso") return HtmlPageBreakTarget.Left;
+        if (value == "right" || value == "recto") return HtmlPageBreakTarget.Right;
+        if (value == "page" || value == "always") return HtmlPageBreakTarget.Page;
+        return HtmlPageBreakTarget.None;
+    }
 
     private static string FirstNonEmpty(string first, string second) => first.Length > 0 ? first.Trim().ToLowerInvariant() : second.Trim().ToLowerInvariant();
 }

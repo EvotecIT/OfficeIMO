@@ -389,6 +389,42 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public void HtmlRender_Paged_RightBreakInsertsAStyledBlankLeftPage() {
+        string html = """
+            <style>
+              @page { size:3in 2in; margin:0.25in; }
+              @page :left { @top-left { content:"L" counter(page); } }
+              @page :right { @top-right { content:"R" counter(page); } }
+            </style>
+            <p>FirstBody</p>
+            <div style="break-before:right">RightBody</div>
+            """;
+        var options = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Paged,
+            PageSize = new OfficePageSize(4D, 4D),
+            Margins = HtmlRenderMargins.All(10D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+
+        Assert.Equal(3, rendered.Pages.Count);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text == "FirstBody");
+        Assert.Contains(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.Text == "L2" && text.SemanticRole == "page-margin");
+        Assert.DoesNotContain(rendered.Pages[1].Visuals.OfType<HtmlRenderText>(), text => text.SemanticRole != "page-margin");
+        Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "RightBody");
+        Assert.Contains(rendered.Pages[2].Visuals.OfType<HtmlRenderText>(), text => text.Text == "R3" && text.SemanticRole == "page-margin");
+
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        pdfOptions.RenderOptions = options;
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+        string pdfText = PdfCore.PdfReadDocument.Load(pdf).ExtractText();
+        Assert.Equal(3, PdfCore.PdfInspector.Inspect(pdf).PageCount);
+        Assert.Contains("FirstBody", pdfText, StringComparison.Ordinal);
+        Assert.Contains("L2", pdfText, StringComparison.Ordinal);
+        Assert.Contains("RightBody", pdfText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public void HtmlImageExport_RendersPngSvgTableAndDataImageWithoutNewRuntimeDependencies() {
         string pngData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(12, 8));
         string html = $"""

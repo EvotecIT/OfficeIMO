@@ -611,6 +611,7 @@ public sealed class HtmlPdfTests {
         Assert.Contains("generic-page-size-margin", rendered.SupportedCssFeatures);
         Assert.Contains("first-left-right-page-margin-content", rendered.SupportedCssFeatures);
         Assert.Contains("page-counters", rendered.SupportedCssFeatures);
+        Assert.Contains("left-right-page-breaks", rendered.SupportedCssFeatures);
         Assert.Contains("widows-orphans", rendered.SupportedCssFeatures);
         Assert.Contains("caller-resolved-external-images", rendered.SupportedResourceFeatures);
         Assert.Contains("shared-html-render-diagnostics", rendered.DiagnosticGuarantees);
