@@ -14,39 +14,45 @@ internal static class RtfToMarkdownConverter {
     internal static MarkdownDoc Convert(RtfDocument document, RtfToMarkdownOptions options) {
         var markdown = MarkdownDoc.Create();
         int imageIndex = 0;
+        options.NoteRegistry = new RtfMarkdownNoteRegistry();
 
-        for (int i = 0; i < document.Blocks.Count; i++) {
-            IRtfBlock block = document.Blocks[i];
-            switch (block) {
-                case RtfParagraph paragraph:
-                    if (paragraph.ListKind != RtfListKind.None) {
-                        i = ConvertListRun(document, options, markdown, i, ref imageIndex);
-                    } else if (TryConvertCodeBlockRun(document, markdown, i, out int codeBlockEndIndex)) {
-                        i = codeBlockEndIndex;
-                    } else {
-                        markdown.Add(ConvertParagraph(document, paragraph, options, ref imageIndex));
-                    }
-                    break;
-                case RtfTable table:
-                    markdown.Add(ConvertTable(document, table, options, ref imageIndex));
-                    break;
-                case RtfImage image:
-                    markdown.Add(ConvertImageBlock(image, options, ref imageIndex));
-                    break;
-                case RtfObject:
-                    AddUnsupportedBlock(markdown, options, "RTF object block omitted.", "rtf-object");
-                    break;
-                case RtfShape:
-                    AddUnsupportedBlock(markdown, options, "RTF drawing shape block omitted.", "rtf-shape");
-                    break;
-                default:
-                    options.Report("RTFMD001", RtfMarkdownDiagnosticSeverity.Warning, "Unsupported RTF block omitted.", block.GetType().Name);
-                    break;
+        try {
+            for (int i = 0; i < document.Blocks.Count; i++) {
+                IRtfBlock block = document.Blocks[i];
+                switch (block) {
+                    case RtfParagraph paragraph:
+                        if (paragraph.ListKind != RtfListKind.None) {
+                            i = ConvertListRun(document, options, markdown, i, ref imageIndex);
+                        } else if (TryConvertCodeBlockRun(document, markdown, i, out int codeBlockEndIndex)) {
+                            i = codeBlockEndIndex;
+                        } else {
+                            markdown.Add(ConvertParagraph(document, paragraph, options, ref imageIndex));
+                        }
+                        break;
+                    case RtfTable table:
+                        markdown.Add(ConvertTable(document, table, options, ref imageIndex));
+                        break;
+                    case RtfImage image:
+                        markdown.Add(ConvertImageBlock(image, options, ref imageIndex));
+                        break;
+                    case RtfObject:
+                        AddUnsupportedBlock(markdown, options, "RTF object block omitted.", "rtf-object");
+                        break;
+                    case RtfShape:
+                        AddUnsupportedBlock(markdown, options, "RTF drawing shape block omitted.", "rtf-shape");
+                        break;
+                    default:
+                        options.Report("RTFMD001", RtfMarkdownDiagnosticSeverity.Warning, "Unsupported RTF block omitted.", block.GetType().Name);
+                        break;
+                }
             }
-        }
 
-        ReportOmittedHeaderFooters(document, markdown, options);
-        return markdown;
+            ReportOmittedHeaderFooters(document, markdown, options);
+            AppendNoteDefinitions(document, markdown, options);
+            return markdown;
+        } finally {
+            options.NoteRegistry = null;
+        }
     }
 
     private static int ConvertListRun(RtfDocument document, RtfToMarkdownOptions options, MarkdownDoc markdown, int startIndex, ref int imageIndex) {
@@ -538,7 +544,7 @@ internal static class RtfToMarkdownConverter {
 
     private static ImageBlock ConvertImageBlock(RtfImage image, RtfToMarkdownOptions options, ref int imageIndex) {
         int currentIndex = imageIndex++;
-        string path = FormatMarkdownLinkDestination(options.ImagePathFactory?.Invoke(image, currentIndex) ?? BuildDefaultImagePath(image, currentIndex));
+        string path = ResolveImagePath(image, currentIndex, options);
         string alt = string.IsNullOrWhiteSpace(image.Description) ? "RTF image" : image.Description!;
         options.Report("RTFMD003", RtfMarkdownDiagnosticSeverity.Info, "RTF image payload represented by Markdown image reference.", path);
         return new ImageBlock(path, alt, null);
@@ -639,27 +645,18 @@ internal static class RtfToMarkdownConverter {
     private static void AppendRun(InlineSequence sequence, RtfRun run, RtfToMarkdownOptions options) {
         if (run.Hidden && !options.IncludeHiddenText) {
             options.Report("RTFMD005", RtfMarkdownDiagnosticSeverity.Info, "Hidden RTF text omitted from Markdown output.");
+            AppendNoteReference(sequence, run.Note, options);
             return;
-        }
-
-        if (run.Note != null) {
-            options.Report("RTFMD012", RtfMarkdownDiagnosticSeverity.Warning, "RTF run-attached note omitted from Markdown output.", run.Note.Kind.ToString());
-            if (options.EmitUnsupportedHtmlComments && string.IsNullOrEmpty(run.Text)) {
-                sequence.AddRaw(new HtmlRawInline("<!-- RTF run-attached note omitted from Markdown output. -->"));
-            }
         }
 
         IMarkdownInline? inline = BuildRunInline(run);
-        if (inline == null) {
-            return;
-        }
-
-        if (run.Hyperlink != null) {
+        if (inline != null && run.Hyperlink != null) {
             sequence.AddRaw(new LinkInline(InlineSequenceOf(inline), FormatMarkdownLinkDestination(run.Hyperlink.ToString()), null));
-            return;
+        } else if (inline != null) {
+            sequence.AddRaw(inline);
         }
 
-        sequence.AddRaw(inline);
+        AppendNoteReference(sequence, run.Note, options);
     }
 
     private static IMarkdownInline? BuildRunInline(RtfRun run) {
@@ -736,7 +733,10 @@ internal static class RtfToMarkdownConverter {
     private static void AppendGeneratedText(InlineSequence sequence, RtfGeneratedText generatedText, RtfToMarkdownOptions options) {
         string text = generatedText.ToPlainText();
         if (generatedText.Note != null) {
-            options.Report("RTFMD008", RtfMarkdownDiagnosticSeverity.Warning, "RTF note reference converted using fallback text.");
+            if (AppendNoteReference(sequence, generatedText.Note, options)) {
+                options.Report("RTFMD008", RtfMarkdownDiagnosticSeverity.Info, "RTF note reference converted to a Markdown footnote reference.");
+                return;
+            }
         }
 
         if (!string.IsNullOrEmpty(text)) {
@@ -751,7 +751,7 @@ internal static class RtfToMarkdownConverter {
 
     private static void AppendImageInline(InlineSequence sequence, RtfImage image, RtfToMarkdownOptions options, ref int imageIndex) {
         int currentIndex = imageIndex++;
-        string path = FormatMarkdownLinkDestination(options.ImagePathFactory?.Invoke(image, currentIndex) ?? BuildDefaultImagePath(image, currentIndex));
+        string path = ResolveImagePath(image, currentIndex, options);
         string alt = string.IsNullOrWhiteSpace(image.Description) ? "RTF image" : image.Description!;
         sequence.AddRaw(new ImageInline(alt, path));
         options.Report("RTFMD009", RtfMarkdownDiagnosticSeverity.Info, "Inline RTF image represented by Markdown image reference.", path);
@@ -786,6 +786,36 @@ internal static class RtfToMarkdownConverter {
     private static string BuildDefaultImagePath(RtfImage image, int imageIndex) {
         string extension = image.Format.ToString().ToLowerInvariant();
         return "rtf-image-" + imageIndex.ToString(CultureInfo.InvariantCulture) + "." + extension;
+    }
+
+    private static string ResolveImagePath(RtfImage image, int imageIndex, RtfToMarkdownOptions options) {
+        string logicalPath = options.ImagePathFactory?.Invoke(image, imageIndex) ?? BuildDefaultImagePath(image, imageIndex);
+        options.ImageExporter?.Invoke(image, imageIndex, logicalPath);
+        return FormatMarkdownLinkDestination(logicalPath);
+    }
+
+    private static bool AppendNoteReference(InlineSequence sequence, RtfNote? note, RtfToMarkdownOptions options) {
+        if (note == null || options.NoteRegistry == null) return false;
+        string? label = options.NoteRegistry.Register(note, options);
+        if (label == null) return false;
+        sequence.AddRaw(new FootnoteRefInline(label));
+        return true;
+    }
+
+    private static void AppendNoteDefinitions(RtfDocument document, MarkdownDoc markdown, RtfToMarkdownOptions options) {
+        RtfMarkdownNoteRegistry? registry = options.NoteRegistry;
+        if (registry == null) return;
+        foreach (RtfNote note in document.Notes) {
+            registry.Register(note, options);
+        }
+
+        foreach (KeyValuePair<string, RtfNote> entry in registry.Ordered) {
+            markdown.Add(new FootnoteDefinitionBlock(entry.Key, entry.Value.ToPlainText()));
+        }
+
+        if (registry.Ordered.Count > 0) {
+            options.Report("RTFMD015", RtfMarkdownDiagnosticSeverity.Info, "RTF footnotes and endnotes were converted to Markdown footnote definitions.", registry.Ordered.Count.ToString(CultureInfo.InvariantCulture));
+        }
     }
 
     private static string FormatMarkdownLinkDestination(string destination) {

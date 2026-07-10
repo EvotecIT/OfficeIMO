@@ -712,18 +712,18 @@ public class RtfMarkdownConverterTests {
     }
 
     [Fact]
-    public void RtfDocumentToMarkdownReportsRunAttachedNotes() {
+    public void RtfDocumentToMarkdownConvertsRunAttachedNotesToFootnotes() {
         RtfDocument document = RtfDocument.Create();
         document.AddParagraph().AddFootnote("1", "Footnote body");
         var options = new RtfToMarkdownOptions();
 
-        string markdown = document.ToMarkdown(options);
+        string markdown = document.ToMarkdown(options).Replace("\r\n", "\n");
 
-        Assert.Contains("1", markdown, StringComparison.Ordinal);
-        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
-        RtfConversionDiagnostic shared = Assert.Single(options.ConversionReport.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
-        Assert.Equal(RtfConversionAction.Omitted, shared.Action);
-        Assert.Throws<RtfConversionLossException>(() => options.ConversionReport.RequireNoLoss());
+        Assert.Contains("<sup>1</sup>[^fn1]", markdown, StringComparison.Ordinal);
+        Assert.Contains("[^fn1]: Footnote body", markdown, StringComparison.Ordinal);
+        Assert.Contains(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD015");
+        Assert.DoesNotContain(options.Diagnostics, diagnostic => diagnostic.Code == "RTFMD012");
+        options.ConversionReport.RequireNoLoss();
     }
 
     [Fact]
@@ -861,6 +861,26 @@ public class RtfMarkdownConverterTests {
 
         Assert.Contains("![Logo](images/My%20File.png)", markdown, StringComparison.Ordinal);
         Assert.Equal("images/My%20File.png", image.Path);
+    }
+
+    [Fact]
+    public void RtfDocumentToMarkdownExportsBlockAndInlineImagePayloads() {
+        RtfDocument document = RtfDocument.Create();
+        RtfImage block = document.AddImage(RtfImageFormat.Png, new byte[] { 0x89, 0x50 });
+        RtfImage inline = document.AddParagraph().AddImage(RtfImageFormat.Jpeg, new byte[] { 0xFF, 0xD8 });
+        var exported = new List<(RtfImage Image, int Index, string Path)>();
+        var options = new RtfToMarkdownOptions {
+            ImagePathFactory = (image, index) => "media/image " + index + "." + image.Format.ToString().ToLowerInvariant(),
+            ImageExporter = (image, index, path) => exported.Add((image, index, path))
+        };
+
+        string markdown = document.ToMarkdown(options);
+
+        Assert.Equal(2, exported.Count);
+        Assert.Equal((block, 0, "media/image 0.png"), exported[0]);
+        Assert.Equal((inline, 1, "media/image 1.jpeg"), exported[1]);
+        Assert.Contains("media/image%200.png", markdown, StringComparison.Ordinal);
+        Assert.Contains("media/image%201.jpeg", markdown, StringComparison.Ordinal);
     }
 
     private static string ExtractPlainText(IPlainTextMarkdownInline inline) {
