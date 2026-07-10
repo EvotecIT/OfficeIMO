@@ -28,10 +28,10 @@ public static partial class WordRtfConverterExtensions {
     private static void AddRtfToWordDiagnostics(RtfDocument document, RtfConversionReport report) {
         if (document.Styles.Count > 0) {
             report.Add(
-                RtfConversionSeverity.Warning,
-                "RtfWordStylesFlattened",
-                "RTF stylesheet definitions were flattened into direct Word formatting.",
-                RtfConversionAction.Flattened,
+                RtfConversionSeverity.Information,
+                "RtfWordStylesMapped",
+                "RTF paragraph, character, and table stylesheet definitions were mapped to Word styles.",
+                RtfConversionAction.Preserved,
                 feature: "stylesheet",
                 count: document.Styles.Count);
         }
@@ -39,10 +39,10 @@ public static partial class WordRtfConverterExtensions {
         int listStructureCount = document.ListDefinitions.Count + document.ListOverrides.Count;
         if (listStructureCount > 0) {
             report.Add(
-                RtfConversionSeverity.Warning,
-                "RtfWordListDefinitionsFlattened",
-                "RTF list definitions and overrides were flattened to paragraph list formatting.",
-                RtfConversionAction.Flattened,
+                RtfConversionSeverity.Information,
+                "RtfWordListDefinitionsMapped",
+                "RTF list definitions, overrides, levels, and paragraph bindings were mapped to Word numbering.",
+                RtfConversionAction.Preserved,
                 feature: "listtable",
                 count: listStructureCount);
         }
