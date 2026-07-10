@@ -33,6 +33,12 @@ public sealed class HtmlPdfResourcePolicySummary {
     /// <summary>Maximum total bytes accepted by one direct-render operation.</summary>
     public long? RenderMaxTotalResourceBytes { get; private set; }
 
+    /// <summary>Maximum external resource count accepted by one direct-render operation.</summary>
+    public int? RenderMaxResourceCount { get; private set; }
+
+    /// <summary>Maximum recursive stylesheet import depth accepted by direct rendering.</summary>
+    public int? RenderMaxStylesheetImportDepth { get; private set; }
+
     /// <summary>Allowed URL schemes when the direct render URL policy restricts schemes.</summary>
     public IReadOnlyList<string> RenderAllowedUrlSchemes { get; private set; } = Array.Empty<string>();
 
@@ -95,6 +101,8 @@ public sealed class HtmlPdfResourcePolicySummary {
             summary.RenderResourceTimeout = renderOptions.ResourceTimeout;
             summary.RenderMaxResourceBytes = renderOptions.MaxResourceBytes;
             summary.RenderMaxTotalResourceBytes = renderOptions.MaxTotalResourceBytes;
+            summary.RenderMaxResourceCount = renderOptions.MaxResourceCount;
+            summary.RenderMaxStylesheetImportDepth = renderOptions.MaxStylesheetImportDepth;
             HtmlUrlPolicy renderUrlPolicy = renderOptions.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile();
             summary.RenderAllowedUrlSchemes = renderUrlPolicy.RestrictUrlSchemes
                 ? CopySorted(renderUrlPolicy.AllowedUrlSchemes)

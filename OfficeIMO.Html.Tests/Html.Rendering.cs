@@ -72,6 +72,104 @@ public sealed class HtmlRenderingTests {
     }
 
     [Fact]
+    public async Task HtmlRenderAsync_ResolvesRecursiveStylesheetImports() {
+        var stylesheets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+            ["https://assets.example.test/css/top.css"] = "@import 'base.css'; .top { color:#112233; }",
+            ["https://assets.example.test/css/base.css"] = "@import url('palette.css') screen; .base { color:#334455; font-family:\"Missing\", Arial, sans-serif; }",
+            ["https://assets.example.test/css/palette.css"] = ".palette { color:#556677; }"
+        };
+        var requested = new List<string>();
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(8D),
+            ResourceResolver = (request, cancellationToken) => {
+                requested.Add(request.Uri.AbsoluteUri);
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(stylesheets[request.Uri.AbsoluteUri]),
+                    "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/css/top.css'><p class='top'>Top import</p><p class='base'>Base import</p><p class='palette'>Palette import</p>",
+            options);
+
+        HtmlRenderText top = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Top import", StringComparison.Ordinal));
+        HtmlRenderText baseText = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Base import", StringComparison.Ordinal));
+        HtmlRenderText palette = Assert.Single(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Palette import", StringComparison.Ordinal));
+        Assert.Equal(new[] {
+            "https://assets.example.test/css/top.css",
+            "https://assets.example.test/css/base.css",
+            "https://assets.example.test/css/palette.css"
+        }, requested);
+        Assert.Equal(OfficeColor.FromRgb(0x11, 0x22, 0x33), top.Color);
+        Assert.Equal(OfficeColor.FromRgb(0x33, 0x44, 0x55), baseText.Color);
+        Assert.Equal(OfficeColor.FromRgb(0x55, 0x66, 0x77), palette.Color);
+        Assert.Contains("Arial", baseText.Font.FamilyName, StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetImportCycle);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_SuppressesStylesheetImportCycles() {
+        var stylesheets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+            ["https://assets.example.test/css/top.css"] = "@import 'base.css'; .cycle-top { color:#123456; }",
+            ["https://assets.example.test/css/base.css"] = "@import 'top.css'; .cycle-base { color:#654321; }"
+        };
+        int calls = 0;
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(8D),
+            ResourceResolver = (request, cancellationToken) => {
+                calls++;
+                return Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                    System.Text.Encoding.UTF8.GetBytes(stylesheets[request.Uri.AbsoluteUri]),
+                    "text/css"));
+            }
+        };
+
+        HtmlRenderDocument rendered = await HtmlRenderEngine.RenderAsync(
+            "<link rel='stylesheet' href='https://assets.example.test/css/top.css'><p class='cycle-top'>Cycle top</p><p class='cycle-base'>Cycle base</p>",
+            options);
+
+        Assert.Equal(2, calls);
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Cycle top", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(0x12, 0x34, 0x56));
+        Assert.Contains(rendered.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Cycle base", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(0x65, 0x43, 0x21));
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetImportCycle);
+    }
+
+    [Fact]
+    public async Task HtmlRenderAsync_EnforcesStylesheetImportDepthAndResourceCountLimits() {
+        var stylesheets = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase) {
+            ["https://assets.example.test/css/top.css"] = "@import 'base.css'; .top-limit { color:#112233; }",
+            ["https://assets.example.test/css/base.css"] = "@import 'deep.css'; .base-limit { color:#334455; }",
+            ["https://assets.example.test/css/deep.css"] = ".deep-limit { color:#556677; }"
+        };
+        HtmlRenderResourceResolver resolver = (request, cancellationToken) =>
+            Task.FromResult<HtmlResolvedResource?>(new HtmlResolvedResource(
+                System.Text.Encoding.UTF8.GetBytes(stylesheets[request.Uri.AbsoluteUri]),
+                "text/css"));
+        const string html = "<link rel='stylesheet' href='https://assets.example.test/css/top.css'><p class='base-limit'>Limited import</p>";
+
+        HtmlRenderDocument depthLimited = await HtmlRenderEngine.RenderAsync(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(8D),
+            MaxStylesheetImportDepth = 1,
+            ResourceResolver = resolver
+        });
+        HtmlRenderDocument countLimited = await HtmlRenderEngine.RenderAsync(html, new HtmlRenderOptions {
+            ViewportWidth = 300D,
+            Margins = HtmlRenderMargins.All(8D),
+            MaxResourceCount = 1,
+            ResourceResolver = resolver
+        });
+
+        Assert.Contains(depthLimited.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.StylesheetImportDepthExceeded);
+        Assert.Contains(depthLimited.Pages[0].Visuals.OfType<HtmlRenderText>(), text => text.Text.Contains("Limited import", StringComparison.Ordinal) && text.Color == OfficeColor.FromRgb(0x33, 0x44, 0x55));
+        Assert.Contains(countLimited.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded);
+    }
+
+    [Fact]
     public void HtmlRender_ReportsExternalStylesheetPendingForSynchronousRendering() {
         HtmlRenderDocument rendered = HtmlRenderEngine.Render(
             "<link rel='stylesheet' href='https://assets.example.test/theme.css'><p>Pending sheet</p>",
@@ -161,6 +259,8 @@ public sealed class HtmlRenderingTests {
         options.RenderOptions!.ResourceTimeout = TimeSpan.FromSeconds(5D);
         options.RenderOptions.MaxResourceBytes = 1024L;
         options.RenderOptions.MaxTotalResourceBytes = 4096L;
+        options.RenderOptions.MaxResourceCount = 12;
+        options.RenderOptions.MaxStylesheetImportDepth = 4;
         options.RenderOptions.UrlPolicy = HtmlUrlPolicy.CreateWebOnlyProfile();
         options.RenderOptions.ResourceResolver = (request, cancellationToken) => Task.FromResult<HtmlResolvedResource?>(null);
 
@@ -173,6 +273,8 @@ public sealed class HtmlRenderingTests {
         Assert.Equal(TimeSpan.FromSeconds(5D), summary.RenderResourceTimeout);
         Assert.Equal(1024L, summary.RenderMaxResourceBytes);
         Assert.Equal(4096L, summary.RenderMaxTotalResourceBytes);
+        Assert.Equal(12, summary.RenderMaxResourceCount);
+        Assert.Equal(4, summary.RenderMaxStylesheetImportDepth);
         Assert.Contains("https", summary.RenderAllowedUrlSchemes);
     }
 

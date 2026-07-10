@@ -52,7 +52,7 @@ public static class HtmlRenderEngine {
         diagnostics.AddRange(manifest.Diagnostics.Diagnostics);
         HtmlRenderResourceSet resources = await HtmlRenderResourceLoader.LoadAsync(manifest, resolved, diagnostics, cancellationToken).ConfigureAwait(false);
         cancellationToken.ThrowIfCancellationRequested();
-        HtmlRenderStylesheetApplier.Apply(document, resources, diagnostics);
+        HtmlRenderStylesheetApplier.Apply(document, resources, resolved, diagnostics);
         AddPendingStylesheetDiagnostics(manifest, resources, diagnostics);
         HtmlCssPageRuleSet pageRules = HtmlCssPageSettingsResolver.Apply(document, resolved, diagnostics);
         resolved.Validate();

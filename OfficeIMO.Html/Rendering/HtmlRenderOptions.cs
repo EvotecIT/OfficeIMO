@@ -60,6 +60,12 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum total bytes accepted from external resources in one render operation.</summary>
     public long MaxTotalResourceBytes { get; set; } = 50L * 1024L * 1024L;
 
+    /// <summary>Maximum number of external resources accepted in one render operation.</summary>
+    public int MaxResourceCount { get; set; } = 256;
+
+    /// <summary>Maximum recursive <c>@import</c> depth accepted for external stylesheets.</summary>
+    public int MaxStylesheetImportDepth { get; set; } = 16;
+
     /// <summary>Maximum width of any generated image surface in output pixels.</summary>
     public int MaxSurfaceWidth { get; set; } = 32768;
 
@@ -102,6 +108,8 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.ResourceTimeout = ResourceTimeout;
         target.MaxResourceBytes = MaxResourceBytes;
         target.MaxTotalResourceBytes = MaxTotalResourceBytes;
+        target.MaxResourceCount = MaxResourceCount;
+        target.MaxStylesheetImportDepth = MaxStylesheetImportDepth;
         target.MaxSurfaceWidth = MaxSurfaceWidth;
         target.MaxSurfaceHeight = MaxSurfaceHeight;
         target.MaxPageCount = MaxPageCount;
@@ -148,6 +156,14 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxTotalResourceBytes <= 0L || MaxTotalResourceBytes < MaxResourceBytes) {
             throw new ArgumentOutOfRangeException(nameof(MaxTotalResourceBytes), "Maximum total resource bytes must be positive and at least the per-resource limit.");
+        }
+
+        if (MaxResourceCount <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxResourceCount), "Maximum resource count must be positive.");
+        }
+
+        if (MaxStylesheetImportDepth <= 0) {
+            throw new ArgumentOutOfRangeException(nameof(MaxStylesheetImportDepth), "Maximum stylesheet import depth must be positive.");
         }
 
         double surfaceWidth = Mode == HtmlRenderMode.Paged ? PageWidth : ViewportWidth;

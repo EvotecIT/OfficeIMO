@@ -5,23 +5,24 @@ using System.Text.RegularExpressions;
 namespace OfficeIMO.Html;
 
 public static partial class HtmlResourcePipeline {
-    internal static bool HasNestedStylesheetResources(string css) {
+    internal static bool HasStylesheetUrlResources(string css) {
         if (string.IsNullOrWhiteSpace(css)) {
             return false;
         }
 
         string normalized = StripCssCommentsOutsideStrings(css);
-        if (ExtractCssImports(normalized).Any()) {
-            return true;
-        }
-
+        var importRanges = ExtractCssImports(normalized)
+            .Select(import => new SourceRange(import.Start, import.End))
+            .ToList();
         foreach (Match match in CssUrlExpression.Matches(normalized)) {
-            if (IsCssFunctionNameAt(normalized, match.Index, "url") && !IsInsideCssString(normalized, match.Index)) {
+            if (IsCssFunctionNameAt(normalized, match.Index, "url")
+                && !IsInsideCssString(normalized, match.Index)
+                && !IsImportUrl(match.Index, importRanges)) {
                 return true;
             }
         }
 
-        return false;
+        return ExtractImageSetStringUrls(normalized).Any(reference => !IsInRanges(reference.Start, importRanges));
     }
 
     private static void AddCssResources(HtmlResourceManifest manifest, IHtmlDocument document, Uri? baseUri, HtmlResourcePipelineOptions options) {

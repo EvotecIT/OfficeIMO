@@ -1,4 +1,3 @@
-using System.Text;
 using AngleSharp.Dom;
 using AngleSharp.Html.Dom;
 
@@ -7,7 +6,8 @@ namespace OfficeIMO.Html;
 internal static class HtmlRenderStylesheetApplier {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
-    internal static void Apply(IHtmlDocument document, HtmlRenderResourceSet resources, HtmlDiagnosticReport diagnostics) {
+    internal static void Apply(IHtmlDocument document, HtmlRenderResourceSet resources, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics) {
+        var reportedCycles = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
         foreach (IElement link in document.QuerySelectorAll("link[href]")) {
             if (!IsStylesheetLink(link)) {
                 continue;
@@ -18,7 +18,7 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (!TryDecodeCss(resource.Bytes, out string css)) {
+            if (!HtmlRenderStylesheetText.TryDecode(resource.Bytes, out string css)) {
                 diagnostics.Add(
                     ComponentName,
                     HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported,
@@ -29,11 +29,23 @@ internal static class HtmlRenderStylesheetApplier {
                 continue;
             }
 
-            if (HtmlResourcePipeline.HasNestedStylesheetResources(css)) {
+            if (resources.TryGetResolvedSource(source, null, out string resolvedSource)
+                && Uri.TryCreate(resolvedSource, UriKind.Absolute, out Uri? stylesheetUri)) {
+                css = ExpandImports(
+                    css,
+                    stylesheetUri,
+                    resources,
+                    options,
+                    diagnostics,
+                    new HashSet<string>(StringComparer.OrdinalIgnoreCase),
+                    reportedCycles);
+            }
+
+            if (HtmlResourcePipeline.HasStylesheetUrlResources(css)) {
                 diagnostics.Add(
                     ComponentName,
-                    HtmlRenderDiagnosticCodes.StylesheetNestedResourcesPending,
-                    "The external stylesheet was applied, but its nested imports or URL resources require recursive stylesheet loading.",
+                    HtmlRenderDiagnosticCodes.StylesheetUrlResourcesPending,
+                    "The external stylesheet was applied, but its URL resources are not active in the current paint model.",
                     HtmlDiagnosticSeverity.Warning,
                     source,
                     resource.ContentType);
@@ -61,6 +73,70 @@ internal static class HtmlRenderStylesheetApplier {
         }
     }
 
+    private static string ExpandImports(
+        string css,
+        Uri stylesheetUri,
+        HtmlRenderResourceSet resources,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics,
+        HashSet<string> activeStylesheets,
+        HashSet<string> reportedCycles) {
+        string currentKey = stylesheetUri.AbsoluteUri;
+        if (!activeStylesheets.Add(currentKey)) {
+            ReportCycle(diagnostics, reportedCycles, currentKey);
+            return string.Empty;
+        }
+
+        var resourceOptions = new HtmlResourcePipelineOptions {
+            UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            MediaContext = options.MediaContext
+        };
+        HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
+        var builder = new System.Text.StringBuilder(analysis.Css);
+        for (int index = analysis.Imports.Count - 1; index >= 0; index--) {
+            HtmlExternalStylesheetImport import = analysis.Imports[index];
+            string replacement = string.Empty;
+            HtmlResourceReference reference = import.Reference;
+            if (import.IsApplicable
+                && reference.IsAllowed
+                && resources.TryGet(reference.Source, reference.ResolvedSource, out HtmlResolvedResource importedResource)
+                && Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? importedUri)) {
+                if (activeStylesheets.Contains(importedUri.AbsoluteUri)) {
+                    ReportCycle(diagnostics, reportedCycles, importedUri.AbsoluteUri);
+                } else if (HtmlRenderStylesheetText.TryDecode(importedResource.Bytes, out string importedCss)) {
+                    replacement = ExpandImports(importedCss, importedUri, resources, options, diagnostics, activeStylesheets, reportedCycles);
+                } else {
+                    diagnostics.Add(
+                        ComponentName,
+                        HtmlRenderDiagnosticCodes.StylesheetEncodingUnsupported,
+                        "An imported stylesheet could not be decoded as UTF-8 or BOM-declared UTF-16 CSS text.",
+                        HtmlDiagnosticSeverity.Warning,
+                        reference.Source,
+                        importedResource.ContentType);
+                }
+            }
+
+            builder.Remove(import.Start, import.End - import.Start);
+            builder.Insert(import.Start, replacement);
+        }
+
+        activeStylesheets.Remove(currentKey);
+        return builder.ToString();
+    }
+
+    private static void ReportCycle(HtmlDiagnosticReport diagnostics, HashSet<string> reportedCycles, string source) {
+        if (!reportedCycles.Add(source)) {
+            return;
+        }
+
+        diagnostics.Add(
+            ComponentName,
+            HtmlRenderDiagnosticCodes.StylesheetImportCycle,
+            "A recursive stylesheet import cycle was suppressed.",
+            HtmlDiagnosticSeverity.Warning,
+            source);
+    }
+
     private static bool IsStylesheetLink(IElement link) {
         string rel = link.GetAttribute("rel") ?? string.Empty;
         foreach (string token in rel.Split(new[] { ' ', '\t', '\r', '\n', '\f' }, StringSplitOptions.RemoveEmptyEntries)) {
@@ -70,25 +146,5 @@ internal static class HtmlRenderStylesheetApplier {
         }
 
         return false;
-    }
-
-    private static bool TryDecodeCss(byte[] bytes, out string css) {
-        css = string.Empty;
-        try {
-            if (bytes.Length >= 3 && bytes[0] == 0xEF && bytes[1] == 0xBB && bytes[2] == 0xBF) {
-                css = new UTF8Encoding(false, true).GetString(bytes, 3, bytes.Length - 3);
-            } else if (bytes.Length >= 2 && bytes[0] == 0xFF && bytes[1] == 0xFE) {
-                css = new UnicodeEncoding(false, true, true).GetString(bytes, 2, bytes.Length - 2);
-            } else if (bytes.Length >= 2 && bytes[0] == 0xFE && bytes[1] == 0xFF) {
-                css = new UnicodeEncoding(true, true, true).GetString(bytes, 2, bytes.Length - 2);
-            } else {
-                css = new UTF8Encoding(false, true).GetString(bytes);
-            }
-
-            return true;
-        } catch (DecoderFallbackException) {
-            css = string.Empty;
-            return false;
-        }
     }
 }

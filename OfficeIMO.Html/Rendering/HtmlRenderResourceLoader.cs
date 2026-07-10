@@ -2,6 +2,7 @@ namespace OfficeIMO.Html;
 
 internal sealed class HtmlRenderResourceSet {
     private readonly Dictionary<string, HtmlResolvedResource> _resources = new Dictionary<string, HtmlResolvedResource>(StringComparer.OrdinalIgnoreCase);
+    private readonly Dictionary<string, string> _resolvedSources = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
     private readonly HashSet<string> _attempted = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
 
     internal void MarkAttempted(HtmlResourceReference reference) {
@@ -10,14 +11,28 @@ internal sealed class HtmlRenderResourceSet {
     }
 
     internal void Add(HtmlResourceReference reference, HtmlResolvedResource resource) {
-        if (reference.Source.Length > 0) _resources[reference.Source] = resource;
-        if (reference.ResolvedSource.Length > 0) _resources[reference.ResolvedSource] = resource;
+        if (reference.Source.Length > 0) {
+            _resources[reference.Source] = resource;
+            _resolvedSources[reference.Source] = reference.ResolvedSource;
+        }
+
+        if (reference.ResolvedSource.Length > 0) {
+            _resources[reference.ResolvedSource] = resource;
+            _resolvedSources[reference.ResolvedSource] = reference.ResolvedSource;
+        }
     }
 
     internal bool TryGet(string? source, string? resolvedSource, out HtmlResolvedResource resource) {
-        if (!string.IsNullOrWhiteSpace(source) && _resources.TryGetValue(source!, out resource!)) return true;
         if (!string.IsNullOrWhiteSpace(resolvedSource) && _resources.TryGetValue(resolvedSource!, out resource!)) return true;
+        if (!string.IsNullOrWhiteSpace(source) && _resources.TryGetValue(source!, out resource!)) return true;
         resource = null!;
+        return false;
+    }
+
+    internal bool TryGetResolvedSource(string? source, string? resolvedSource, out string value) {
+        if (!string.IsNullOrWhiteSpace(resolvedSource) && _resolvedSources.TryGetValue(resolvedSource!, out value!)) return true;
+        if (!string.IsNullOrWhiteSpace(source) && _resolvedSources.TryGetValue(source!, out value!)) return true;
+        value = string.Empty;
         return false;
     }
 
@@ -29,16 +44,43 @@ internal sealed class HtmlRenderResourceSet {
 internal static class HtmlRenderResourceLoader {
     private const string ComponentName = "OfficeIMO.Html.Renderer";
 
+    private readonly struct PendingResource {
+        internal PendingResource(HtmlResourceReference reference, int importDepth) {
+            Reference = reference;
+            ImportDepth = importDepth;
+        }
+
+        internal HtmlResourceReference Reference { get; }
+        internal int ImportDepth { get; }
+    }
+
     internal static async Task<HtmlRenderResourceSet> LoadAsync(HtmlResourceManifest manifest, HtmlRenderOptions options, HtmlDiagnosticReport diagnostics, CancellationToken cancellationToken) {
         var result = new HtmlRenderResourceSet();
         if (options.ResourceResolver == null) return result;
         long totalBytes = 0L;
+        int resourceCount = 0;
         var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var pending = new Queue<PendingResource>();
         foreach (HtmlResourceReference reference in manifest.Resources) {
+            pending.Enqueue(new PendingResource(reference, 0));
+        }
+
+        var resourceOptions = new HtmlResourcePipelineOptions {
+            UrlPolicy = (options.UrlPolicy ?? HtmlUrlPolicy.CreateOfficeIMOProfile()).Clone(),
+            MediaContext = options.MediaContext
+        };
+        while (pending.Count > 0) {
             cancellationToken.ThrowIfCancellationRequested();
+            PendingResource pendingResource = pending.Dequeue();
+            HtmlResourceReference reference = pendingResource.Reference;
             if (!reference.IsAllowed || !IsLoadableKind(reference.Kind) || reference.ResolvedSource.Length == 0) continue;
             if (reference.ResolvedSource.StartsWith("data:", StringComparison.OrdinalIgnoreCase)) continue;
             if (!seen.Add(reference.ResolvedSource)) continue;
+            if (resourceCount >= options.MaxResourceCount) {
+                diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceCountLimitExceeded, "Resolved resources exceeded the configured operation-wide count limit.", HtmlDiagnosticSeverity.Error, reference.Source, "limit=" + options.MaxResourceCount);
+                break;
+            }
+
             result.MarkAttempted(reference);
 
             if (!Uri.TryCreate(reference.ResolvedSource, UriKind.Absolute, out Uri? uri)) {
@@ -73,7 +115,19 @@ internal static class HtmlRenderResourceLoader {
                 }
 
                 totalBytes += length;
+                resourceCount++;
                 result.Add(reference, resource);
+                if (reference.Kind == HtmlResourceKind.Stylesheet
+                    && HtmlRenderStylesheetText.TryDecode(resource.Bytes, out string css)) {
+                    EnqueueStylesheetImports(
+                        pending,
+                        css,
+                        uri,
+                        pendingResource.ImportDepth,
+                        resourceOptions,
+                        options,
+                        diagnostics);
+                }
             } catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested) {
                 diagnostics.Add(ComponentName, HtmlRenderDiagnosticCodes.ResourceTimeout, "Resource resolution exceeded the configured timeout.", HtmlDiagnosticSeverity.Warning, reference.Source, reference.ResolvedSource);
             } catch (Exception exception) {
@@ -82,6 +136,47 @@ internal static class HtmlRenderResourceLoader {
         }
 
         return result;
+    }
+
+    private static void EnqueueStylesheetImports(
+        Queue<PendingResource> pending,
+        string css,
+        Uri stylesheetUri,
+        int importDepth,
+        HtmlResourcePipelineOptions resourceOptions,
+        HtmlRenderOptions options,
+        HtmlDiagnosticReport diagnostics) {
+        HtmlExternalStylesheetAnalysis analysis = HtmlResourcePipeline.AnalyzeExternalStylesheet(css, stylesheetUri, resourceOptions);
+        foreach (HtmlExternalStylesheetImport import in analysis.Imports) {
+            if (!import.IsApplicable) {
+                continue;
+            }
+
+            HtmlResourceReference reference = import.Reference;
+            if (!reference.IsAllowed) {
+                diagnostics.Add(
+                    ComponentName,
+                    reference.DiagnosticCode.Length == 0 ? "StylesheetResourceRejectedByPolicy" : reference.DiagnosticCode,
+                    "A stylesheet import was rejected by the configured URL policy.",
+                    HtmlDiagnosticSeverity.Warning,
+                    reference.Source,
+                    stylesheetUri.AbsoluteUri);
+                continue;
+            }
+
+            if (importDepth >= options.MaxStylesheetImportDepth) {
+                diagnostics.Add(
+                    ComponentName,
+                    HtmlRenderDiagnosticCodes.StylesheetImportDepthExceeded,
+                    "Stylesheet imports exceeded the configured recursion depth.",
+                    HtmlDiagnosticSeverity.Error,
+                    reference.Source,
+                    "limit=" + options.MaxStylesheetImportDepth);
+                continue;
+            }
+
+            pending.Enqueue(new PendingResource(reference, importDepth + 1));
+        }
     }
 
     private static bool IsLoadableKind(HtmlResourceKind kind) =>

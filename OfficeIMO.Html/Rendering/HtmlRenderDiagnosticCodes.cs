@@ -36,6 +36,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string RasterDecoderUnavailable = "HtmlRenderRasterDecoderUnavailable";
     /// <summary>A resource exceeded the configured per-resource byte limit.</summary>
     public const string ResourceByteLimitExceeded = "HtmlRenderResourceByteLimitExceeded";
+    /// <summary>Resolved resources exceeded the operation-wide count limit.</summary>
+    public const string ResourceCountLimitExceeded = "HtmlRenderResourceCountLimitExceeded";
     /// <summary>A resolver returned an incompatible media type.</summary>
     public const string ResourceContentTypeRejected = "HtmlRenderResourceContentTypeRejected";
     /// <summary>The configured resource resolver failed.</summary>
@@ -48,8 +50,12 @@ public static class HtmlRenderDiagnosticCodes {
     public const string ResourceUriInvalid = "HtmlRenderResourceUriInvalid";
     /// <summary>A resolved stylesheet could not be decoded as supported CSS text.</summary>
     public const string StylesheetEncodingUnsupported = "HtmlRenderStylesheetEncodingUnsupported";
-    /// <summary>A resolved stylesheet referenced imports or assets that require recursive resource loading.</summary>
-    public const string StylesheetNestedResourcesPending = "HtmlRenderStylesheetNestedResourcesPending";
+    /// <summary>A recursive stylesheet import cycle was suppressed.</summary>
+    public const string StylesheetImportCycle = "HtmlRenderStylesheetImportCycle";
+    /// <summary>Stylesheet imports exceeded the configured recursion depth.</summary>
+    public const string StylesheetImportDepthExceeded = "HtmlRenderStylesheetImportDepthExceeded";
+    /// <summary>A resolved stylesheet referenced URL resources that are not active in the current paint model.</summary>
+    public const string StylesheetUrlResourcesPending = "HtmlRenderStylesheetUrlResourcesPending";
     /// <summary>A repeated table header was suppressed because it left no safe body-row break.</summary>
     public const string TableHeaderRepeatSuppressed = "HtmlRenderTableHeaderRepeatSuppressed";
     /// <summary>A repeated table footer was suppressed because it left no safe body-row break.</summary>
@@ -76,13 +82,16 @@ public static class HtmlRenderDiagnosticCodes {
         PageSizeUnsupported,
         RasterDecoderUnavailable,
         ResourceByteLimitExceeded,
+        ResourceCountLimitExceeded,
         ResourceContentTypeRejected,
         ResourceLoadFailed,
         ResourceTimeout,
         ResourceUnavailable,
         ResourceUriInvalid,
         StylesheetEncodingUnsupported,
-        StylesheetNestedResourcesPending,
+        StylesheetImportCycle,
+        StylesheetImportDepthExceeded,
+        StylesheetUrlResourcesPending,
         TableFooterRepeatSuppressed,
         TableHeaderRepeatSuppressed,
         TotalResourceByteLimitExceeded,
