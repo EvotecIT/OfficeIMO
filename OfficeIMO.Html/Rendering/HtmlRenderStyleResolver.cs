@@ -243,34 +243,39 @@ internal sealed class HtmlRenderStyleResolver {
         var layers = new List<HtmlRenderBackgroundLayer>();
         int declaredLayerCount = 0;
         int unsupportedLayerCount = 0;
+        int gradientStopLimitExceededCount = 0;
         for (int index = 0; index < sourceLayers.Count; index++) {
             string sourceLayer = sourceLayers[index];
             IReadOnlyList<string> urls = HtmlResourcePipeline.ExtractCssUrls(sourceLayer);
-            bool hasUnsupportedImage = urls.Count == 0
+            bool hasGradientFunction = urls.Count == 0
                 && sourceLayer.IndexOf("gradient(", StringComparison.OrdinalIgnoreCase) >= 0;
-            if (urls.Count == 0 && !hasUnsupportedImage) continue;
+            if (urls.Count == 0 && !hasGradientFunction) continue;
 
             declaredLayerCount++;
-            if (hasUnsupportedImage) {
-                unsupportedLayerCount++;
-                continue;
-            }
-
             if (declaredLayerCount > _options.MaxBackgroundImageLayers) continue;
             string position = GetLayerValue(positionLayers, index, ExtractBackgroundPosition(sourceLayer), "0% 0%");
             string repeat = GetLayerValue(repeatLayers, index, ExtractBackgroundRepeat(sourceLayer), "repeat");
             string size = GetLayerValue(sizeLayers, index, ExtractBackgroundSize(sourceLayer), "auto");
+            if (urls.Count == 0) {
+                if (HtmlCssLinearGradientParser.TryParse(sourceLayer, _options.MaxGradientStops, out OfficeLinearGradient? gradient, out bool stopLimitExceeded)
+                    && gradient != null) {
+                    layers.Add(new HtmlRenderBackgroundLayer(gradient, position, repeat, size));
+                } else if (stopLimitExceeded) {
+                    gradientStopLimitExceededCount++;
+                } else {
+                    unsupportedLayerCount++;
+                }
+
+                continue;
+            }
+
             layers.Add(new HtmlRenderBackgroundLayer(urls[0], position, repeat, size));
         }
 
         style.BackgroundImageLayerCount = declaredLayerCount;
         style.UnsupportedBackgroundImageLayerCount = unsupportedLayerCount;
+        style.GradientStopLimitExceededCount = gradientStopLimitExceededCount;
         style.BackgroundImageLayers = layers.AsReadOnly();
-        if (layers.Count == 0) return;
-        style.BackgroundImageSource = layers[0].Source;
-        style.BackgroundPosition = layers[0].Position;
-        style.BackgroundRepeat = layers[0].Repeat;
-        style.BackgroundSize = layers[0].Size;
     }
 
     private static string GetLayerValue(IReadOnlyList<string> values, int index, string shorthandValue, string fallback) {

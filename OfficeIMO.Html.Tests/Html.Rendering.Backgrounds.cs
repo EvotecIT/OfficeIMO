@@ -98,11 +98,15 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_ValidatesAndClonesTheBackgroundLayerLimit() {
-        var options = new HtmlRenderOptions { MaxBackgroundImageLayers = 7 };
+    public void HtmlRender_ValidatesAndClonesTheBackgroundPaintLimits() {
+        var options = new HtmlRenderOptions { MaxBackgroundImageLayers = 7, MaxGradientStops = 9 };
 
         Assert.Equal(7, options.Clone().MaxBackgroundImageLayers);
+        Assert.Equal(9, options.Clone().MaxGradientStops);
         options.MaxBackgroundImageLayers = 0;
+        Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render("<div></div>", options));
+        options.MaxBackgroundImageLayers = 7;
+        options.MaxGradientStops = 1;
         Assert.Throws<ArgumentOutOfRangeException>(() => HtmlRenderEngine.Render("<div></div>", options));
     }
 
@@ -198,11 +202,149 @@ public sealed partial class HtmlRenderingTests {
     }
 
     [Fact]
-    public void HtmlRender_BoundsBackgroundLayersAndDiagnosesOmittedGradients() {
+    public void HtmlLinearGradient_FlowsAsMultiStopVectorPaintAcrossPngSvgAndSearchablePdf() {
+        const string html = "<div style=\"width:160px;height:30px;background-image:linear-gradient(to right,#ff0000 0%,#00ff00 50%,#0000ff 100%)\">GradientMarker</div>";
+        var imageOptions = new HtmlImageExportOptions {
+            Mode = HtmlRenderMode.Continuous,
+            ViewportWidth = 200D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, imageOptions);
+        HtmlRenderShape gradientShape = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null);
+        OfficeLinearGradient gradient = gradientShape.Shape.FillGradient!;
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(rendered.Pages[0].CreateDrawing());
+        string svg = html.ToSvg(imageOptions);
+        HtmlPdfSaveOptions pdfOptions = HtmlPdfSaveOptions.CreateRenderedProfile();
+        byte[] pdf = html.SaveAsPdf(pdfOptions);
+
+        Assert.Equal(3, gradient.Stops.Count);
+        Assert.Equal(0D, gradient.StartX, 3);
+        Assert.Equal(1D, gradient.EndX, 3);
+        Assert.True(raster.GetPixel(9, 20).R > raster.GetPixel(9, 20).G);
+        Assert.True(raster.GetPixel(88, 20).G > raster.GetPixel(88, 20).R);
+        Assert.True(raster.GetPixel(166, 20).B > raster.GetPixel(166, 20).G);
+        Assert.Contains("<linearGradient", svg, StringComparison.Ordinal);
+        Assert.Equal(3, CountBackgroundOccurrences(svg, "<stop "));
+        Assert.Contains("/FunctionType 3", Encoding.ASCII.GetString(pdf), StringComparison.Ordinal);
+        Assert.Contains("GradientMarker", PdfCore.PdfReadDocument.Load(pdf).ExtractText(), StringComparison.Ordinal);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+        Assert.DoesNotContain(pdfOptions.ConversionReport.Warnings, warning => warning.Severity == PdfCore.PdfConversionWarningSeverity.Error);
+    }
+
+    [Theory]
+    [InlineData("to right", 0D, 0.5D, 1D, 0.5D)]
+    [InlineData("to bottom", 0.5D, 0D, 0.5D, 1D)]
+    [InlineData("to top left", 1D, 1D, 0D, 0D)]
+    [InlineData("90deg", 0D, 0.5D, 1D, 0.5D)]
+    public void HtmlLinearGradient_MapsCssDirectionsToDrawingCoordinates(
+        string direction,
+        double startX,
+        double startY,
+        double endX,
+        double endY) {
+        string html = "<div style='width:40px;height:20px;background:linear-gradient(" + direction + ",red,blue)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        Assert.Equal(startX, gradient.StartX, 3);
+        Assert.Equal(startY, gradient.StartY, 3);
+        Assert.Equal(endX, gradient.EndX, 3);
+        Assert.Equal(endY, gradient.EndY, 3);
+    }
+
+    [Fact]
+    public void HtmlLinearGradient_DistributesImplicitStopsAndExtendsEndpointColors() {
+        const string html = "<div style='width:40px;height:20px;background:linear-gradient(red 20%,lime,blue 80%)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        OfficeLinearGradient gradient = Assert.Single(
+            rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Shape.FillGradient != null).Shape.FillGradient!;
+        Assert.Equal(new[] { 0D, 0.2D, 0.5D, 0.8D, 1D }, gradient.Stops.Select(stop => stop.Offset));
+        Assert.Equal(OfficeColor.Red, gradient.Stops[0].Color);
+        Assert.Equal(OfficeColor.Red, gradient.Stops[1].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[3].Color);
+        Assert.Equal(OfficeColor.Blue, gradient.Stops[4].Color);
+    }
+
+    [Fact]
+    public void HtmlLinearGradient_ComposesAboveUrlLayers() {
+        string imageData = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
+        string html = "<div style=\"width:40px;height:20px;background-image:linear-gradient(to right,red,lime),url('data:image/png;base64,"
+            + imageData
+            + "');background-size:auto,40px 20px;background-repeat:no-repeat\"></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        });
+
+        IReadOnlyList<HtmlRenderVisual> backgrounds = rendered.Pages[0].Visuals
+            .Where(visual => visual.Source != null && visual.Source.IndexOf(":background-", StringComparison.Ordinal) >= 0)
+            .ToList();
+        Assert.Equal(2, backgrounds.Count);
+        Assert.IsType<HtmlRenderImage>(backgrounds[0]);
+        Assert.EndsWith(":background-image[1]", backgrounds[0].Source, StringComparison.Ordinal);
+        Assert.IsType<HtmlRenderShape>(backgrounds[1]);
+        Assert.EndsWith(":background-gradient[0]", backgrounds[1].Source, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public void HtmlLinearGradient_PropagatesFromTheRootAcrossTheWholeCanvas() {
+        const string html = "<style>body{background:linear-gradient(to bottom,red,blue)}</style><p>G</p>";
+        var options = new HtmlRenderOptions {
+            ViewportWidth = 100D,
+            ViewportHeight = 80D,
+            Margins = HtmlRenderMargins.All(8D)
+        };
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, options);
+        HtmlRenderPage page = Assert.Single(rendered.Pages);
+        HtmlRenderShape gradient = Assert.Single(
+            page.Visuals.OfType<HtmlRenderShape>(),
+            shape => shape.Source == "render-root-background:background-gradient");
+        OfficeRasterImage raster = OfficeDrawingRasterRenderer.Render(page.CreateDrawing());
+
+        Assert.Equal(page.Width, gradient.Width, 3);
+        Assert.Equal(page.Height, gradient.Height, 3);
+        Assert.True(raster.GetPixel(raster.Width / 2, 1).R > raster.GetPixel(raster.Width / 2, 1).B);
+        Assert.True(raster.GetPixel(raster.Width / 2, raster.Height - 2).B > raster.GetPixel(raster.Width / 2, raster.Height - 2).R);
+    }
+
+    [Fact]
+    public void HtmlRender_BoundsCssGradientStops() {
+        const string html = "<div style='width:40px;height:20px;background:linear-gradient(red,lime,blue)'></div>";
+
+        HtmlRenderDocument rendered = HtmlRenderEngine.Render(html, new HtmlRenderOptions {
+            ViewportWidth = 80D,
+            Margins = HtmlRenderMargins.All(8D),
+            MaxGradientStops = 2
+        });
+
+        Assert.DoesNotContain(rendered.Pages[0].Visuals.OfType<HtmlRenderShape>(), shape => shape.Shape.FillGradient != null);
+        Assert.Contains(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.GradientStopLimitExceeded);
+        Assert.DoesNotContain(rendered.Diagnostics.Diagnostics, diagnostic => diagnostic.Code == HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported);
+    }
+
+    [Fact]
+    public void HtmlRender_BoundsBackgroundLayersAndDiagnosesUnsupportedGradientFunctions() {
         string red = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(255, 0, 0));
         string blue = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 0, 255));
         string green = Convert.ToBase64String(PdfPngTestImages.CreateRgbPng(0, 255, 0));
-        string html = "<div style=\"width:40px;height:40px;background-image:linear-gradient(red,blue),url('data:image/png;base64,"
+        string html = "<div style=\"width:40px;height:40px;background-image:conic-gradient(red,blue),url('data:image/png;base64,"
             + red
             + "'),url('data:image/png;base64,"
             + blue

@@ -14,6 +14,8 @@ public static class HtmlRenderDiagnosticCodes {
     public const string BackgroundImageValueUnsupported = "HtmlRenderBackgroundImageValueUnsupported";
     /// <summary>Repeated CSS background images exceeded the configured operation-wide tile limit.</summary>
     public const string BackgroundImageTileLimitExceeded = "HtmlRenderBackgroundImageTileLimitExceeded";
+    /// <summary>CSS gradients exceeded the configured color-stop limit.</summary>
+    public const string GradientStopLimitExceeded = "HtmlRenderGradientStopLimitExceeded";
     /// <summary>Layout exceeded the configured nesting-depth limit.</summary>
     public const string DepthLimitExceeded = "HtmlRenderDepthLimitExceeded";
     /// <summary>A table contained no renderable rows or cells.</summary>
@@ -87,6 +89,7 @@ public static class HtmlRenderDiagnosticCodes {
         BackgroundImageRepeatUnsupported,
         BackgroundImageValueUnsupported,
         BackgroundImageTileLimitExceeded,
+        GradientStopLimitExceeded,
         DepthLimitExceeded,
         EmptyTable,
         ExternalImagePending,

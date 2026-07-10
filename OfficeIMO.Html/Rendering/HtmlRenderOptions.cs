@@ -84,6 +84,9 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
     /// <summary>Maximum background-image layers accepted on one element.</summary>
     public int MaxBackgroundImageLayers { get; set; } = 32;
 
+    /// <summary>Maximum color stops accepted in one CSS gradient.</summary>
+    public int MaxGradientStops { get; set; } = 64;
+
     /// <summary>Gets the CSS media context selected by the current render mode.</summary>
     public HtmlCssMediaContext MediaContext => Mode == HtmlRenderMode.Paged ? HtmlCssMediaContext.Print : HtmlCssMediaContext.Screen;
 
@@ -122,6 +125,7 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
         target.MaxLayoutDepth = MaxLayoutDepth;
         target.MaxBackgroundImageTiles = MaxBackgroundImageTiles;
         target.MaxBackgroundImageLayers = MaxBackgroundImageLayers;
+        target.MaxGradientStops = MaxGradientStops;
         return target;
     }
 
@@ -160,6 +164,10 @@ public class HtmlRenderOptions : OfficeImageExportOptions {
 
         if (MaxBackgroundImageLayers <= 0) {
             throw new ArgumentOutOfRangeException(nameof(MaxBackgroundImageLayers), "Maximum background-image layer count must be positive.");
+        }
+
+        if (MaxGradientStops < 2) {
+            throw new ArgumentOutOfRangeException(nameof(MaxGradientStops), "Maximum gradient stop count must be at least two.");
         }
 
         if (ResourceTimeout <= TimeSpan.Zero || ResourceTimeout == System.Threading.Timeout.InfiniteTimeSpan) {

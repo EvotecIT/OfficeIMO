@@ -71,9 +71,20 @@ internal sealed partial class HtmlRenderLayoutEngine {
         if (style.UnsupportedBackgroundImageLayerCount > 0) {
             AddUnsupported(
                 HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
-                "CSS gradient background layers were omitted until shared gradient-image paint is available.",
+                "Unsupported or invalid CSS background image functions were omitted.",
                 source,
                 "layers=" + style.UnsupportedBackgroundImageLayerCount.ToString(CultureInfo.InvariantCulture));
+        }
+
+        if (style.GradientStopLimitExceededCount > 0) {
+            _diagnostics.Add(
+                ComponentName,
+                HtmlRenderDiagnosticCodes.GradientStopLimitExceeded,
+                "CSS gradients exceeded the configured color-stop limit and were omitted.",
+                HtmlDiagnosticSeverity.Error,
+                diagnosticSourceDescription,
+                "gradients=" + style.GradientStopLimitExceededCount.ToString(CultureInfo.InvariantCulture)
+                    + ";limit=" + _options.MaxGradientStops.ToString(CultureInfo.InvariantCulture));
         }
 
         for (int layerIndex = style.BackgroundImageLayers.Count - 1; layerIndex >= 0; layerIndex--) {
@@ -106,17 +117,34 @@ internal sealed partial class HtmlRenderLayoutEngine {
         IElement source,
         string diagnosticSourceDescription,
         string visualSourceDescription) {
-        string layerVisualSource = visualSourceDescription + ":background-image"
-            + (style.BackgroundImageLayers.Count > 1 ? "[" + layerIndex.ToString(CultureInfo.InvariantCulture) + "]" : string.Empty);
-        if (!TryResolveImageSource(layer.Source, diagnosticSourceDescription + ":background-image", out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo)
-            || bytes == null) {
-            return;
-        }
-
+        string layerSuffix = style.BackgroundImageLayers.Count > 1
+            ? "[" + layerIndex.ToString(CultureInfo.InvariantCulture) + "]"
+            : string.Empty;
+        string layerVisualSource = visualSourceDescription + ":background-image" + layerSuffix;
         double areaX = x + borderWidth;
         double areaY = y + borderWidth;
         double areaWidth = Math.Max(0.01D, width - (borderWidth * 2D));
         double areaHeight = Math.Max(0.01D, height - (borderWidth * 2D));
+        if (layer.LinearGradient != null) {
+            AddLinearGradientBackground(
+                visuals,
+                style,
+                layer,
+                areaX,
+                areaY,
+                areaWidth,
+                areaHeight,
+                source,
+                visualSourceDescription + ":background-gradient" + layerSuffix);
+            return;
+        }
+
+        if (string.IsNullOrWhiteSpace(layer.Source)
+            || !TryResolveImageSource(layer.Source!, diagnosticSourceDescription + ":background-image", out byte[]? bytes, out string contentType, out OfficeImageInfo? imageInfo)
+            || bytes == null) {
+            return;
+        }
+
         double intrinsicWidth = imageInfo != null && imageInfo.Width > 0
             ? imageInfo.Width * HtmlRenderOptions.CssPixelsPerInch / Math.Max(1D, imageInfo.DpiX)
             : areaWidth;
@@ -188,6 +216,32 @@ internal sealed partial class HtmlRenderLayoutEngine {
                 diagnosticSourceDescription,
                 contentType);
         }
+    }
+
+    private void AddLinearGradientBackground(
+        ICollection<HtmlRenderVisual> visuals,
+        HtmlRenderBoxStyle style,
+        HtmlRenderBackgroundLayer layer,
+        double areaX,
+        double areaY,
+        double areaWidth,
+        double areaHeight,
+        IElement source,
+        string visualSourceDescription) {
+        if (!string.Equals(layer.Size.Trim(), "auto", StringComparison.OrdinalIgnoreCase)) {
+            AddUnsupported(
+                HtmlRenderDiagnosticCodes.BackgroundImageValueUnsupported,
+                "An explicit CSS background-size on a gradient used the full paint area.",
+                source,
+                layer.Size);
+        }
+
+        OfficeShape fill = OfficeShape.Rectangle(areaWidth, areaHeight);
+        fill.FillColor = null;
+        fill.FillGradient = layer.LinearGradient!.Clone();
+        fill.FillOpacity = style.Opacity;
+        fill.StrokeWidth = 0D;
+        visuals.Add(new HtmlRenderShape(fill, areaX, areaY, visuals.Count, source: visualSourceDescription));
     }
 
     private static void AddVisibleBackgroundImage(
